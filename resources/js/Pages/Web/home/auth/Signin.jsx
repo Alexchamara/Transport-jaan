@@ -1,17 +1,18 @@
-import React from "react";
+import React, { useState } from "react";
 import bg from "../../assets/landingPages/bg.svg";
-
 import proPic1 from "../../assets/auth/proPic1.svg";
 import proPic2 from "../../assets/auth/proPic2.svg";
 import proPic3 from "../../assets/auth/proPic3.svg";
+import { router } from '@inertiajs/react';
 
 const Signin = () => {
+    const [selectedRole, setSelectedRole] = useState(null);
     return (
         <div className="bg-[#000000] text-[#FFFFFF] poppins">
             <div className="flex relative justify-center items-center md:py-10 md:px-20 px-10 poppins">
                 <h1
                     className="absolute md:top-[30px] top-[10px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
-                    onClick={() => (window.location.href = "/")}
+                    onClick={() => router.visit('/')}
                 >
                     Company Logo
                 </h1>
@@ -36,10 +37,12 @@ const Signin = () => {
                         <div>
                             {/* client */}
                             <div
-                                className="w-[426px] h-[74px] border-[0.7px] border-[#FFFFFFBF] rounded-[9px] my-10 flex flex-row gap-5 justify-between px-5 py-5"
-                                onClick={() =>
-                                    (window.location.href = "/registerNew")
-                                }
+                                className="w-[426px] h-[74px] border-[0.7px] border-[#FFFFFFBF] rounded-[9px] my-10 flex flex-row gap-5 justify-between px-5 py-5 cursor-pointer"
+                                onClick={() => {
+                                    router.visit('/registerNew', {
+                                        data: { role: 'client' }
+                                    });
+                                }}
                             >
                                 <div className="flex flex-row gap-5 justify-center items-start">
                                     <div className="flex flex-row items-center">
@@ -64,10 +67,12 @@ const Signin = () => {
 
                             {/* vendor */}
                             <div
-                                className="w-[426px] h-[74px] border-[0.7px] border-[#FFFFFFBF] rounded-[9px] my-10 flex flex-row gap-5 justify-between px-5 py-5"
-                                onClick={() =>
-                                    (window.location.href = "/registerNew")
-                                }
+                                className="w-[426px] h-[74px] border-[0.7px] border-[#FFFFFFBF] rounded-[9px] my-10 flex flex-row gap-5 justify-between px-5 py-5 cursor-pointer"
+                                onClick={() => {
+                                    router.visit('/registerNew', {
+                                        data: { role: 'vendor' }
+                                    });
+                                }}
                             >
                                 <div className="flex flex-row gap-5 justify-center items-start">
                                     <div className="flex flex-row items-center">
@@ -95,9 +100,7 @@ const Signin = () => {
                             Already have an account?{" "}
                             <span
                                 className="text-[#FF7003] font-[600] cursor-pointer pl-2"
-                                onClick={() =>
-                                    (window.location.href = "/signin")
-                                }
+                                onClick={() => router.visit('/signin')}
                             >
                                 Sign in
                             </span>{" "}

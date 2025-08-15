@@ -34,18 +34,32 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role_type' => ['required', 'in:client,vendor'],
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string|max:255',
+            'country' => 'required|string|max:2',
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => $request->role_type,
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'country' => $request->country,
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        $redirectTo = match($user->role) {
+            'client' => route('home', absolute: false),
+            'vendor' => route('vendors.mainDashboard', absolute: false),
+            default => route('landingPage.home', absolute: false),
+        };
+
+        return redirect($redirectTo);
     }
 }

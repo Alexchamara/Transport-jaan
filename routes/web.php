@@ -10,7 +10,15 @@ use Inertia\Inertia;
 // 🌐 Public Routes
 // -------------------------------
 
-// client
+// Auth
+Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
+Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
+
+// landing pages
+Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
+Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
+Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
+
 Route::get('/clientRent', [WebController::class, 'index'])->name('home');
 Route::get('/vehicleList', [WebController::class, 'vehicleList'])->name('vehicle.list');
 Route::get('/vehicleDetails', [WebController::class, 'vehicleDetails'])->name('vehicle.details');
@@ -26,57 +34,53 @@ Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
-// landing pages
-Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
-Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
-Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
+// client routes
+Route::middleware(['auth', 'role:client'])->group(function () {
 
-// Auth
-Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
-Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
-Route::get('/registerNew', [WebController::class, 'register'])->name('register.register');
+});
 
+// vendor routes
+Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
+    Route::get('/bookings', function () {
+        return Inertia::render('Web/home/vendors/Booking');
+    })->name('bookings');
 
-// vendor
-Route::get('/vendors/bookings', function () {
-    return Inertia::render('Web/home/vendors/Booking');
-})->name('vendors.bookings');
+    Route::get('/units', function () {
+        return Inertia::render('Web/home/vendors/Unit');
+    })->name('units');
 
-Route::get('/vendors/units', function () {
-    return Inertia::render('Web/home/vendors/Unit');
-})->name('vendors.units');
+    Route::get('/dashboard', function () {
+        return Inertia::render('Web/home/vendors/Dashboard');
+    })->name('dashboard');
 
-Route::get('/vendors/dashboard', function () {
-    return Inertia::render('Web/home/vendors/Dashboard');
-})->name('vendors.dashboard');
+    Route::get('/clients', function () {
+        return Inertia::render('Web/home/vendors/Client');
+    })->name('clients');
 
-Route::get('/vendors/clients', function () {
-    return Inertia::render('Web/home/vendors/Client');
-})->name('vendors.clients');
+    Route::get('/expenses', function () {
+        return Inertia::render('Web/home/vendors/Expenses');
+    })->name('expenses');
 
-Route::get('/vendors/expenses', function () {
-    return Inertia::render('Web/home/vendors/Expenses');
-})->name('vendors.expenses');
+    Route::get('/payment', function () {
+        return Inertia::render('Web/home/vendors/Payment');
+    })->name('payment');
 
-Route::get('/vendors/payment', function () {
-    return Inertia::render('Web/home/vendors/Payment');
-})->name('vendors.payment');
+    Route::get('/tracking', function () {
+        return Inertia::render('Web/home/vendors/Tracking');
+    })->name('tracking');
 
-Route::get('/vendors/tracking', function () {
-    return Inertia::render('Web/home/vendors/Tracking');
-})->name('vendors.tracking');
+    Route::get('/calendar', function () {
+        return Inertia::render('Web/home/vendors/Calendar');
+    })->name('calendar');
 
-Route::get('/vendors/calendar', function () {
-    return Inertia::render('Web/home/vendors/Calendar');
-})->name('vendors.calendar');
+    Route::get('/addUnit', function () {
+        return Inertia::render('Web/home/vendors/AddUnit');
+    })->name('addUnit');
 
-Route::get('/vendors/addUnit', function () {
-    return Inertia::render('Web/home/vendors/AddUnit');
-})->name('vendors.addUnit');
-
-Route::get('/vendors/mainDashboard', function () {
-    return Inertia::render('Web/home/vendors/MainDashboard');
-})->name('vendors.mainDashboard');
+    Route::get('/mainDashboard', function () {
+        return Inertia::render('Web/home/vendors/MainDashboard');
+    })->name('mainDashboard');
+});
 
 
 
