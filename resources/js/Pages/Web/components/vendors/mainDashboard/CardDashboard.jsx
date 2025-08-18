@@ -3,7 +3,11 @@ import Card from "./Card";
 
 const CardDashboard = () => {
   const services = [
-    { title: 'Vehicle Rental', description: 'Rent vehicles for your transportation needs.' },
+    { 
+      title: 'Vehicle Rental', 
+      description: 'Rent vehicles for your transportation needs.',
+      subOptions: ['Land', 'Air', 'Sea']   //  Added sub options
+    },
     { title: 'Ticket Booking', description: 'Book tickets for travel and events.' },
     { title: 'Courier Service', description: 'Send and track packages efficiently.' },
     { title: 'Warehouse Rental', description: 'Rent warehouse space for storage.' },
@@ -22,6 +26,7 @@ const CardDashboard = () => {
             index={index + 1}
             title={service.title}
             description={service.description}
+            subOptions={service.subOptions}   //  Pass subOptions
           />
         ))}
       </div>

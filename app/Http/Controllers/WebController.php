@@ -7,7 +7,7 @@ use Inertia\Inertia;
 
 class WebController extends Controller
 {
-     public function index()
+    public function index()
     {
         return Inertia::render('Web/home/HomePage');
     }
@@ -23,12 +23,12 @@ class WebController extends Controller
         }
 
         if ($request->has('bodyType')) {
-            $query->whereHas('land', function($q) use ($request) {
+            $query->whereHas('land', function ($q) use ($request) {
                 $q->where('body_type', $request->bodyType);
             });
         }
 
-        $vehicles = $query->get()->map(function($vehicle) {
+        $vehicles = $query->get()->map(function ($vehicle) {
             return [
                 'id' => $vehicle->id,
                 'name' => $vehicle->model,
@@ -116,7 +116,7 @@ class WebController extends Controller
         return Inertia::render('Web/home/flight/TicketBooking');
     }
 
-     public function landingPage()
+    public function landingPage()
     {
         return Inertia::render('Web/home/landingPages/LandingPage');
     }
@@ -126,7 +126,7 @@ class WebController extends Controller
         return Inertia::render('Web/home/landingPages/Blog');
     }
 
-     public function blogExample()
+    public function blogExample()
     {
         return Inertia::render('Web/home/landingPages/BlogExample');
     }
@@ -144,5 +144,10 @@ class WebController extends Controller
     public function register()
     {
         return Inertia::render('Web/home/auth/Register');
+    }
+
+    public function warehouse()
+    {
+        return Inertia::render('Web/home/warehouse/WarehouseHome');
     }
 }

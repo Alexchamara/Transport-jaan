@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState , useEffect } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../assets/vendors/dashboard/settings.svg";
@@ -10,7 +10,6 @@ import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIc
 import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
 import car1 from "../../../assets/vendors/dashboard/icons/car1.svg";
-
 import availableIcon from "../../../assets/vendors/units/availableIcon.svg";
 
 import icon1 from "../../../assets/vendors/units/icons/icon1.svg";
@@ -255,7 +254,7 @@ const UnitContent = () => {
     };
 
     // Reset to first page when itemsPerPage changes
-    React.useEffect(() => {
+    useEffect(() => {
         setCurrentPage(1);
     }, [itemsPerPage]);
 
@@ -339,7 +338,7 @@ const UnitContent = () => {
                     {currentUnits.map((unit) => (
                         <div
                             key={unit.id}
-                            className="relative w-auto h-[157px] bg-[#FFFFFF] rounded-[10px] flex flex-row items-center my-10"
+                            className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex flex-row items-center my-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <img src={car1} alt="Car" />

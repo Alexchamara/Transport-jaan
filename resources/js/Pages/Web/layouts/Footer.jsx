@@ -116,7 +116,7 @@ const Footer = () => {
                     </div>
 
                     {/* Subscribe and Description Section */}
-                    <div className="md:col-span-4 bg-blue-950 p-6 sm:p-10 h-auto sm:h-[258px]">
+                    <div className="md:col-span-4 bg-blue-950 p-6 sm:p-10 h-auto">
                         {/* Subscribe Section */}
                         <div>
                             <h4 className="text-[16px] font-[700] mb-2">
@@ -126,9 +126,9 @@ const Footer = () => {
                                 <input
                                     type="email"
                                     placeholder="Email address"
-                                    className="flex-1 px-3 sm:px-4 py-2 text-[#7A7E92] bg-[#FFFFFF] h-[45px] sm:h-[50px] w-full sm:w-[248px] rounded-l-[6px] text-sm sm:text-base"
+                                    className="flex-1 px-3 sm:px-4 py-2 text-[#7A7E92] bg-[#FFFFFF] h-[45px] sm:h-[50px] w-auto rounded-l-[6px] text-sm sm:text-base"
                                 />
-                                <button className="px-3 sm:px-4 py-2 bg-[#0955AC] rounded-r-[6px] cursor-pointer h-[45px] sm:h-[50px] hover:bg-[#074a94] transition-colors duration-200">
+                                <button className="px-3 sm:px-4 py-5 bg-[#0955AC] rounded-r-[6px] cursor-pointer h-[45px] sm:h-[50px] hover:bg-[#074a94] transition-colors duration-200">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         className="h-5 w-5 sm:h-6 sm:w-6"

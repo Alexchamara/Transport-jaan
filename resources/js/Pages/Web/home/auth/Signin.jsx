@@ -21,7 +21,7 @@ const Signin = () => {
                     style={{ backgroundImage: `url(${bg})` }}
                 >
                     <div
-                        className="w-[548px] h-[500px] bg-white/5 rounded-[30px] backdrop-blur-sm px-10 py-20 flex flex-col items-center relative"
+                        className="w-[548px] h-auto bg-white/5 rounded-[30px] backdrop-blur-sm px-10 py-20 flex flex-col items-center relative"
                         style={{
                             boxShadow: "4px 4px 4px 0px rgba(0, 0, 0, 0.25)",
                         }}
@@ -89,9 +89,37 @@ const Signin = () => {
                                     className="size-[16px] rounded-full border-[0.5px] border-[#FFFFFFA8] bg-transparent focus:outline-none focus:ring-0 focus:border-none"
                                 />
                             </div>
+
+                            {/* freight */}
+                            <div
+                                className="w-[426px] h-[74px] border-[0.7px] border-[#FFFFFFBF] rounded-[9px] my-10 flex flex-row gap-5 justify-between px-5 py-5"
+                                onClick={() =>
+                                    (window.location.href = "/registerNew")
+                                }
+                            >
+                                <div className="flex flex-row gap-5 justify-center items-start">
+                                    <div className="flex flex-row items-center">
+                                        <img src={proPic1} className="-mr-4" />
+                                        <img src={proPic2} className="z-[50]" />
+                                        <img src={proPic3} className="-ml-4" />
+                                    </div>
+                                    <div className="flex flex-col justify-between">
+                                        <h1 className="text-[14px] font-[700]">
+                                            I’m a Freight user{" "}
+                                        </h1>
+                                        <h1 className="text-[14px] font-[400]">
+                                            I’m a Freight user.
+                                        </h1>
+                                    </div>
+                                </div>
+                                <input
+                                    type="checkbox"
+                                    className="size-[16px] rounded-full border-[0.5px] border-[#FFFFFFA8] bg-transparent focus:outline-none focus:ring-0 focus:border-none"
+                                />
+                            </div>
                         </div>
 
-                        <h1 className="text-[12px] font-[500] absolute bottom-20">
+                        <h1 className="text-[12px] font-[500] absolute bottom-10">
                             Already have an account?{" "}
                             <span
                                 className="text-[#FF7003] font-[600] cursor-pointer pl-2"

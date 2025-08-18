@@ -36,6 +36,10 @@ Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 Route::get('/registerNew', [WebController::class, 'register'])->name('register.register');
 
+//warehouse
+Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
+
+
 
 // vendor
 Route::get('/vendors/bookings', function () {
