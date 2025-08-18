@@ -41,7 +41,7 @@ Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.h
 
 
 
-// vendor
+// vendor - vehicle rent
 Route::get('/vendors/bookings', function () {
     return Inertia::render('Web/home/vendors/Booking');
 })->name('vendors.bookings');
@@ -82,6 +82,11 @@ Route::get('/vendors/mainDashboard', function () {
     return Inertia::render('Web/home/vendors/MainDashboard');
 })->name('vendors.mainDashboard');
 
+
+// vendor - warehouse rent
+Route::get('/vendors/warehouse/unit', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Unit');
+})->name('warehouse.Unit');
 
 
 

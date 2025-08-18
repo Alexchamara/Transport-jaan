@@ -17,7 +17,7 @@ const WhyOurService = () => {
                 {/* All three cards */}
                 <div className="flex flex-col md:flex-row gap-20 justify-center items-center poppins text-[10px]/[28px] xl:text-[12px]/[33px]">
                     {/* card one */}
-                    <div className="xl:w-[362px] h-auto xl:h-[468px] border-[1px] rounded-[8px] bg-[#F5F5F5] border-[#0955AC] py-10 px-5 text-justify flex flex-col items-center">
+                    <div className="xl:w-[362px] h-auto min-h-[468px] border-[1px] rounded-[8px] bg-[#F5F5F5] border-[#0955AC] py-10 px-5 text-justify flex flex-col items-center">
                         <div className="flex flex-row justify-center items-center gap-5">
                             <div className="size-[50px] xl:size-[60px] rounded-full bg-[#0955AC] flex justify-center items-center">
                                 <img
@@ -43,7 +43,7 @@ const WhyOurService = () => {
                         </p>
                     </div>
                     {/* card two */}
-                    <div className="xl:w-[362px] h-auto xl:h-[468px] border-[1px] rounded-[8px] bg-[#FFFFFF] border-[#0955AC] py-10 px-5 text-justify flex flex-col items-center">
+                    <div className="xl:w-[362px] h-auto min-h-[468px] border-[1px] rounded-[8px] bg-[#FFFFFF] border-[#0955AC] py-10 px-5 text-justify flex flex-col items-center">
                         <div className="flex flex-row justify-center items-center gap-5">
                             <div className="size-[50px] xl:size-[60px] rounded-full bg-[#0955AC] flex justify-center items-center">
                                 <img
@@ -69,7 +69,7 @@ const WhyOurService = () => {
                         </p>
                     </div>
                     {/* card three */}
-                    <div className="xl:w-[362px] h-auto xl:h-[468px] border-[1px] rounded-[8px] bg-[#FFFFFF] border-[#0955AC] py-10 px-5 text-justify flex flex-col items-center">
+                    <div className="xl:w-[362px] h-auto min-h-[468px] border-[1px] rounded-[8px] bg-[#FFFFFF] border-[#0955AC] py-10 px-5 text-justify flex flex-col items-center">
                         <div className="flex flex-row justify-center items-center gap-5">
                             <div className="size-[50px] xl:size-[60px] rounded-full bg-[#0955AC] flex justify-center items-center">
                                 <img
