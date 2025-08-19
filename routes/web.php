@@ -96,6 +96,15 @@ Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.h
 Route::get('/bookings', function () {
         return Inertia::render('Web/home/vendors/Booking');
     })->name('bookings');
+// landing pages
+Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
+Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
+Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
+
+// Auth
+Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
+Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
+Route::get('/registerNew', [WebController::class, 'register'])->name('register.register');
 
     Route::get('/units', function () {
         return Inertia::render('Web/home/vendors/Unit');

@@ -17,13 +17,12 @@ class WebController extends Controller
         $query = \App\Models\Vehicle::with(['images', 'land', 'vendor'])
             ->where('category', 'land');
 
-        // Apply filters if they exist
         if ($request->has('brand')) {
-            $query->where('manufracture', 'like', '%' . $request->brand . '%');
+            $query->where('manufacturer', 'like', '%' . $request->brand . '%');
         }
 
         if ($request->has('bodyType')) {
-            $query->whereHas('land', function ($q) use ($request) {
+            $query->whereHas('landSpec', function ($q) use ($request) {
                 $q->where('body_type', $request->bodyType);
             });
         }
@@ -32,13 +31,13 @@ class WebController extends Controller
             return [
                 'id' => $vehicle->id,
                 'name' => $vehicle->model,
-                'brand' => $vehicle->manufracture,
-                'price' => 89, // You might want to add a price field to your vehicles table
+                'brand' => $vehicle->manufacturer,
+                'price' => 89,
                 'image' => $vehicle->images->first() ? asset('storage/' . $vehicle->images->first()->image_path) : null,
-                'bodyType' => $vehicle->land ? $vehicle->land->body_type : null,
-                'vendor' => $vehicle->vendor ? [
-                    'id' => $vehicle->vendor->id,
-                    'name' => $vehicle->vendor->business_name
+                'bodyType' => $vehicle->landSpec ? $vehicle->landSpec->body_type : null,
+                'vendor' => $vehicle->provider ? [
+                    'id' => $vehicle->provider->id,
+                    'name' => $vehicle->provider->business_name
                 ] : null
             ];
         });
