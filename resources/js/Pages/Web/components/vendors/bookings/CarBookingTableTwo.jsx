@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 
-const CarBookingTableTwo = ({ bookings, setBookings }) => {
+const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
+  
     // State for pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -24,7 +25,6 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
         setCurrentPage(page);
     };
 
-    // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
         const pages = [];
         if (totalPages <= 5) {
@@ -41,7 +41,6 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
         return pages;
     };
 
-    // Handle row click to open popup
     const handleRowClick = (booking, index) => {
         setSelectedBooking({ ...booking, index: startIdx + index });
         setNewPayment(booking.payment);
@@ -50,7 +49,6 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
         setIsPopupOpen(true);
     };
 
-    // Handle popup submission
     const handlePopupSubmit = () => {
         if (selectedBooking) {
             const updatedBookings = [...bookings];
@@ -66,8 +64,8 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
                 paymentStatusColor: paymentStatusColors[newPaymentStatus]?.color || "#3B8F314D",
                 paymentStatusBg: paymentStatusColors[newPaymentStatus]?.bg || "#ACE19957",
                 status: newStatus,
-                statusBg: newStatus === "Returned" ? "#FFCD29" : "#FFCD29",
-                statusText: newStatus === "Returned" ? "#FFCD29" : "#000000",
+                statusBg: statusColors[newStatus]?.bg || "#FFCD29", // Use statusColors prop
+                statusText: statusColors[newStatus]?.text || "#000000", // Use statusColors prop
             };
 
             setBookings(updatedBookings);
@@ -76,7 +74,6 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
         }
     };
 
-    // Reset to first page when itemsPerPage changes
     React.useEffect(() => {
         setCurrentPage(1);
     }, [itemsPerPage]);

@@ -41,7 +41,7 @@ const carTypes = [
 
 const DashContent = () => {
     return (
-        <div className="w-full h-auto pr-20 py-10">
+        <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Dashboard</h1>
@@ -67,7 +67,6 @@ const DashContent = () => {
                     </div>
                 </div>
             </div>
-
             {/* end of header section */}
 
             <div className="flex flex-col gap-5 py-10">
@@ -407,7 +406,7 @@ const DashContent = () => {
 
                 <div className="flex flex-col xl:flex-row gap-5">
                     <div
-                        className="w-[553px] h-[858px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                        className="w-auto h-[858px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">

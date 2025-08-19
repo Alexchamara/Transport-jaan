@@ -49,8 +49,51 @@ Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.h
 // })->name('vendors.bookings');
 
 // vendor routes
-Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
-    Route::get('/bookings', function () {
+// Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
+//     Route::get('/bookings', function () {
+//         return Inertia::render('Web/home/vendors/Booking');
+//     })->name('bookings');
+
+//     Route::get('/units', function () {
+//         return Inertia::render('Web/home/vendors/Unit');
+//     })->name('units');
+
+//     Route::get('/dashboard', function () {
+//         return Inertia::render('Web/home/vendors/Dashboard');
+//     })->name('dashboard');
+
+//     Route::get('/clients', function () {
+//         return Inertia::render('Web/home/vendors/Client');
+//     })->name('clients');
+
+//     Route::get('/expenses', function () {
+//         return Inertia::render('Web/home/vendors/Expenses');
+//     })->name('expenses');
+
+//     Route::get('/payment', function () {
+//         return Inertia::render('Web/home/vendors/Payment');
+//     })->name('payment');
+
+//     Route::get('/tracking', function () {
+//         return Inertia::render('Web/home/vendors/Tracking');
+//     })->name('tracking');
+
+//     Route::get('/calendar', function () {
+//         return Inertia::render('Web/home/vendors/Calendar');
+//     })->name('calendar');
+
+//     Route::get('/addUnit', function () {
+//         return Inertia::render('Web/home/vendors/AddUnit');
+//     })->name('addUnit');
+
+//     Route::get('/mainDashboard', function () {
+//         return Inertia::render('Web/home/vendors/MainDashboard');
+//     })->name('mainDashboard');
+// });
+
+
+// for now
+Route::get('/bookings', function () {
         return Inertia::render('Web/home/vendors/Booking');
     })->name('bookings');
 
@@ -89,7 +132,17 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')-
     Route::get('/mainDashboard', function () {
         return Inertia::render('Web/home/vendors/MainDashboard');
     })->name('mainDashboard');
-});
+
+
+
+    // end
+
+
+
+
+
+
+
 
 
 // vendor - warehouse rent

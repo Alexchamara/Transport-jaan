@@ -15,7 +15,7 @@ const SideMenu = () => {
     const currentPath = window.location.pathname;
 
     return (
-        <div className="poppins w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-5 px-5 rounded-tr-[10px] rounded-br-[10px]">
+        <div className="poppins min-w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-5 px-5 rounded-tr-[10px] rounded-br-[10px]">
             <h1 className="text-[25px] font-[700] text-center uppercase">
                 Company <br /> <span className="text-[#0955AC]">Logo</span>{" "}
             </h1>

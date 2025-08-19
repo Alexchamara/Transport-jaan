@@ -117,12 +117,12 @@ const CalendarContent = () => {
 
             <div className="mt-10 flex flex-row gap-5">
                 <div
-                    className="w-[428px] h-[428px] bg-[#FFFFFF] rounded-[10px] flex flex-col justify-between px-8 py-10"
+                    className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-[175px] bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
                         <img src={proPicTwo} className="size-[90px]" />
                         <div className="flex flex-col gap-3">
                             <h1 className="text-[18px] font-[700]">
@@ -144,7 +144,7 @@ const CalendarContent = () => {
                         </div>
                     </div>
 
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-[175px] bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
                         <img src={car1} className="size-[90px]" />
                         <div className="flex flex-col gap-2">
                             <h1 className="text-[18px] font-[700]">BMW LX3</h1>

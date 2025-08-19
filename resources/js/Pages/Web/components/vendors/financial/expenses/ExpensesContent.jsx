@@ -232,7 +232,7 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-20 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Expenses</h1>
@@ -264,7 +264,7 @@ const ExpensesContent = () => {
             <div className="flex flex-row gap-5">
                 {/* card 1 */}
                 <div
-                    className="w-[360px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-[350px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -292,7 +292,7 @@ const ExpensesContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="w-[360px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-[350px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -321,7 +321,7 @@ const ExpensesContent = () => {
                 <div className="flex flex-row gap-5">
                     {/* card 3 */}
                     <div
-                        className="w-[360px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-[350px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -358,7 +358,7 @@ const ExpensesContent = () => {
 
             <div className="flex flex-row gap-8">
                 <div
-                    className="w-[741px] h-[426px] bg-[#FFFFFF] rounded-[10px]"
+                    className="w-[730px] h-[426px] bg-[#FFFFFF] rounded-[10px]"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -366,7 +366,7 @@ const ExpensesContent = () => {
                     <CashflowChart />
                 </div>
                 <div
-                    className="w-[349px] h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
+                    className="w-[339px] h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}

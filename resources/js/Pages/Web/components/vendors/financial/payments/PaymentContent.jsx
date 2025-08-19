@@ -263,7 +263,7 @@ const PaymentContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-20 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Payment</h1>
@@ -295,7 +295,7 @@ const PaymentContent = () => {
             <div className="flex flex-row gap-5">
                 {/* card 1 */}
                 <div
-                    className="w-[360px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-[350px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -323,7 +323,7 @@ const PaymentContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="w-[360px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-[350px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -352,7 +352,7 @@ const PaymentContent = () => {
                 <div className="flex flex-row gap-5">
                     {/* card 3 */}
                     <div
-                        className="w-[360px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-[350px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
