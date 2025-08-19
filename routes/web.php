@@ -147,7 +147,7 @@ Route::get('/unitDetails', function () {
 
 
 // vendor - warehouse rent
-Route::get('/vendors/warehouse/unit', function () {
+Route::get('/warehouse/unit', function () {
     return Inertia::render('Web/home/vendors/warehouse/Unit');
 })->name('warehouse.Unit');
 
