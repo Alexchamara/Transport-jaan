@@ -128,11 +128,25 @@ const ClientTable = () => {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else {
             if (currentPage <= 3) {
-                pages.push(1, 2, 3, '...', totalPages);
+                pages.push(1, 2, 3, "...", totalPages);
             } else if (currentPage >= totalPages - 2) {
-                pages.push(1, '...', totalPages - 2, totalPages - 1, totalPages);
+                pages.push(
+                    1,
+                    "...",
+                    totalPages - 2,
+                    totalPages - 1,
+                    totalPages
+                );
             } else {
-                pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                pages.push(
+                    1,
+                    "...",
+                    currentPage - 1,
+                    currentPage,
+                    currentPage + 1,
+                    "...",
+                    totalPages
+                );
             }
         }
         return pages;
@@ -157,7 +171,10 @@ const ClientTable = () => {
         if (selectedFile) {
             setNewClient({
                 ...newClient,
-                documents: [...newClient.documents, { name: selectedFile.name }],
+                documents: [
+                    ...newClient.documents,
+                    { name: selectedFile.name },
+                ],
             });
             setSelectedFile(null);
         }
@@ -167,9 +184,13 @@ const ClientTable = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isEditing) {
-            setClients(clients.map(client =>
-                client.id === currentClientId ? { ...newClient, id: currentClientId } : client
-            ));
+            setClients(
+                clients.map((client) =>
+                    client.id === currentClientId
+                        ? { ...newClient, id: currentClientId }
+                        : client
+                )
+            );
         } else {
             setClients([...clients, { ...newClient, id: clients.length + 1 }]);
         }
@@ -197,7 +218,7 @@ const ClientTable = () => {
 
     // Handle delete button click
     const handleDelete = (id) => {
-        setClients(clients.filter(client => client.id !== id));
+        setClients(clients.filter((client) => client.id !== id));
     };
 
     // Reset to first page when itemsPerPage changes
@@ -239,69 +260,85 @@ const ClientTable = () => {
             {/* Popup for adding/editing client */}
             {isPopupOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                    <div className="bg-white p-6 rounded-[10px] w-[500px] max-h-[100vh] overflow-y-auto">
-                        <h2 className="text-[18px] font-[700] mb-4">{isEditing ? "Edit Client" : "Add New Client"}</h2>
+                    <div className="bg-white p-10 rounded-[10px] w-[500px] max-h-[100vh] overflow-y-auto">
+                        <h2 className="text-[18px] font-[700] mb-4">
+                            {isEditing ? "Edit Client" : "Add New Client"}
+                        </h2>
                         <div className="space-y-6">
                             <div>
-                                <label className="block text-[14px] font-[600]">Name</label>
+                                <label className="block text-[14px] font-[600]">
+                                    Name
+                                </label>
                                 <input
                                     type="text"
                                     name="name"
                                     value={newClient.name}
                                     onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px]"
+                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
                                     placeholder="Enter name"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-[14px] font-[600]">Email</label>
+                                <label className="block text-[14px] font-[600]">
+                                    Email
+                                </label>
                                 <input
                                     type="email"
                                     name="email"
                                     value={newClient.email}
                                     onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px]"
+                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
                                     placeholder="Enter email"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-[14px] font-[600]">Phone</label>
+                                <label className="block text-[14px] font-[600]">
+                                    Phone
+                                </label>
                                 <input
                                     type="text"
                                     name="phone"
                                     value={newClient.phone}
                                     onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px]"
+                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
                                     placeholder="Enter phone number"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-[14px] font-[600]">Address</label>
+                                <label className="block text-[14px] font-[600]">
+                                    Address
+                                </label>
                                 <input
                                     type="text"
                                     name="address"
                                     value={newClient.address}
                                     onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px]"
+                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
                                     placeholder="Enter address"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-[14px] font-[600]">Documents</label>
+                                <label className="block text-[14px] font-[600]">
+                                    Documents
+                                </label>
                                 <div className="flex gap-2">
                                     <input
                                         type="file"
                                         onChange={handleFileChange}
-                                        className="w-full p-5 border rounded-[5px]"
+                                        className="w-full p-5 border border-dashed rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
                                     />
                                     <button
                                         onClick={addFileToDocuments}
                                         disabled={!selectedFile}
-                                        className={`px-4 py-5 font-[600] rounded-[5px] text-white ${selectedFile ? 'bg-[#0955AC]' : 'bg-gray-400 cursor-not-allowed'}`}
+                                        className={`px-4 py-5 font-[600] rounded-[5px] text-white ${
+                                            selectedFile
+                                                ? "bg-[#0955AC]"
+                                                : "bg-gray-400 cursor-not-allowed"
+                                        }`}
                                     >
                                         Add File
                                     </button>
@@ -309,7 +346,10 @@ const ClientTable = () => {
                             </div>
                             <div className="mt-2">
                                 {newClient.documents.map((doc, idx) => (
-                                    <div key={idx} className="flex items-center gap-2">
+                                    <div
+                                        key={idx}
+                                        className="flex items-center gap-2"
+                                    >
                                         <img src={file} alt="file icon" />
                                         <span>{doc.name}</span>
                                     </div>
@@ -443,14 +483,20 @@ const ClientTable = () => {
             <div className="flex justify-between items-center gap-2 mt-20">
                 {/* Left: Results per page */}
                 <div className="flex items-center">
-                    <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
+                    <span className="mr-3 text-[#00000080] text-[15px]">
+                        Results per page
+                    </span>
                     <select
                         className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                         value={itemsPerPage}
-                        onChange={e => setItemsPerPage(Number(e.target.value))}
+                        onChange={(e) =>
+                            setItemsPerPage(Number(e.target.value))
+                        }
                     >
-                        {perPageOptions.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
+                        {perPageOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                                {opt}
+                            </option>
                         ))}
                     </select>
                 </div>
@@ -464,15 +510,23 @@ const ClientTable = () => {
                         <span className="text-lg">&#60;</span>
                     </button>
                     {getPageNumbers().map((num, idx) =>
-                        num === '...'
-                            ? <span key={idx} className="px-2">...</span>
-                            : <button
+                        num === "..." ? (
+                            <span key={idx} className="px-2">
+                                ...
+                            </span>
+                        ) : (
+                            <button
                                 key={num}
-                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num ? ' text-[#0955AC] font-[600] border-[2px] border-[#0955AC]' : 'bg-[#F4F3F3]'}`}
+                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                    currentPage === num
+                                        ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
+                                        : "bg-[#F4F3F3]"
+                                }`}
                                 onClick={() => goToPage(num)}
                             >
                                 {num}
                             </button>
+                        )
                     )}
                     <button
                         className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
