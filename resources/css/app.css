@@ -33,6 +33,34 @@
 @tailwind utilities;
 
 
+<<<<<<< HEAD
+=======
+/* Custom Font Face for .otf font */
+@font-face {
+  font-family: 'Gilroy-ExtraBold';
+  src: url('/fonts/Gilroy-ExtraBold.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy-Bold';
+  src: url('/fonts/Gilroy-Bold.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy-Medium';
+  src: url('/fonts/Gilroy-Medium.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+>>>>>>> 910b133cc8bf05558cc5ff60caeb25d298f302d2
 .bebas-neue {
   font-family: "Bebas Neue", sans-serif;
 }

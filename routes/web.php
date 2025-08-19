@@ -39,8 +39,6 @@ Route::middleware(['auth', 'role:client'])->group(function () {
 
 });
 
-
-
 // vendor routes
 Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
     Route::get('/bookings', function () {
