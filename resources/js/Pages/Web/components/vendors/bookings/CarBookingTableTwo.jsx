@@ -2,215 +2,8 @@ import React, { useState } from "react";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 
-const CarBookingTableTwo = () => {
-    const bookings = [
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$50",
-            paymentStatus: "Pending",
-            paymentStatusColor: "#FF6060",
-            paymentStatusBg: "#FF60608C",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Returned",
-            statusBg: "#FFCD29",
-            statusText: "#FFCD29",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-        {
-            id: "C-JV1001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Honda Civic",
-            carPlate: "CBK - 1475",
-            plan: "7 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$450",
-            paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
-        },
-    ];
-
-    // Pagination state
+const CarBookingTableTwo = ({ bookings, setBookings }) => {
+    // State for pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const perPageOptions = [5, 10, 20, 50];
@@ -218,6 +11,13 @@ const CarBookingTableTwo = () => {
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
     const currentBookings = bookings.slice(startIdx, endIdx);
+
+    // State for popup
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [newPayment, setNewPayment] = useState('');
+    const [newPaymentStatus, setNewPaymentStatus] = useState('');
+    const [newStatus, setNewStatus] = useState('');
 
     const goToPage = (page) => {
         if (page < 1 || page > totalPages) return;
@@ -241,6 +41,41 @@ const CarBookingTableTwo = () => {
         return pages;
     };
 
+    // Handle row click to open popup
+    const handleRowClick = (booking, index) => {
+        setSelectedBooking({ ...booking, index: startIdx + index });
+        setNewPayment(booking.payment);
+        setNewPaymentStatus(booking.paymentStatus);
+        setNewStatus(booking.status);
+        setIsPopupOpen(true);
+    };
+
+    // Handle popup submission
+    const handlePopupSubmit = () => {
+        if (selectedBooking) {
+            const updatedBookings = [...bookings];
+            const paymentStatusColors = {
+                Paid: { color: "#3B8F314D", bg: "#ACE19957" },
+                Pending: { color: "#FF6060", bg: "#FF60608C" },
+            };
+
+            updatedBookings[selectedBooking.index] = {
+                ...selectedBooking,
+                payment: newPayment,
+                paymentStatus: newPaymentStatus,
+                paymentStatusColor: paymentStatusColors[newPaymentStatus]?.color || "#3B8F314D",
+                paymentStatusBg: paymentStatusColors[newPaymentStatus]?.bg || "#ACE19957",
+                status: newStatus,
+                statusBg: newStatus === "Returned" ? "#FFCD29" : "#FFCD29",
+                statusText: newStatus === "Returned" ? "#FFCD29" : "#000000",
+            };
+
+            setBookings(updatedBookings);
+            setIsPopupOpen(false);
+            setSelectedBooking(null);
+        }
+    };
+
     // Reset to first page when itemsPerPage changes
     React.useEffect(() => {
         setCurrentPage(1);
@@ -253,57 +88,57 @@ const CarBookingTableTwo = () => {
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Book id</h1>
                     <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
+                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
                     </div>
                 </div>
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Booking Date</h1>
                     <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
+                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
                     </div>
                 </div>
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Client Name</h1>
                     <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
+                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
                     </div>
                 </div>
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Car Model</h1>
                     <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
+                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
                     </div>
                 </div>
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Plan</h1>
                     <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
+                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
                     </div>
                 </div>
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Date</h1>
                     <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
+                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
                     </div>
                 </div>
                 <div className="flex flex-row gap-2 items-center ml-10">
                     <h1>Payment</h1>
                     <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
+                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
                     </div>
                 </div>
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Status</h1>
                     <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
+                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
                     </div>
                 </div>
             </div>
@@ -312,7 +147,8 @@ const CarBookingTableTwo = () => {
             {currentBookings.map((booking, idx) => (
                 <div
                     key={startIdx + idx}
-                    className={`grid grid-cols-8 ${(startIdx + idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} h-[100px] justify-center items-center text-[15px] font-[500] px-10`}
+                    className={`grid grid-cols-8 ${(startIdx + idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} h-[100px] justify-center items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100`}
+                    onClick={() => handleRowClick(booking, idx)}
                 >
                     <div>{booking.id}</div>
                     <div>{booking.bookingDate}</div>
@@ -356,9 +192,63 @@ const CarBookingTableTwo = () => {
                 </div>
             ))}
 
+            {/* Popup Modal */}
+            {isPopupOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div className="bg-white p-6 rounded-lg w-[400px] shadow-lg">
+                        <h2 className="text-[18px] font-[700] mb-4">Edit Booking</h2>
+                        <div className="mb-4">
+                            <label className="block text-[14px] font-[500] mb-1">Payment Amount</label>
+                            <input
+                                type="text"
+                                value={newPayment}
+                                onChange={(e) => setNewPayment(e.target.value)}
+                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                placeholder="Enter payment amount"
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-[14px] font-[500] mb-1">Payment Status</label>
+                            <select
+                                value={newPaymentStatus}
+                                onChange={(e) => setNewPaymentStatus(e.target.value)}
+                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                            >
+                                <option value="Paid">Paid</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-[14px] font-[500] mb-1">Status</label>
+                            <select
+                                value={newStatus}
+                                onChange={(e) => setNewStatus(e.target.value)}
+                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                            >
+                                <option value="Ongoing">Ongoing</option>
+                                <option value="Returned">Returned</option>
+                            </select>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setIsPopupOpen(false)}
+                                className="px-4 py-2 bg-gray-200 rounded text-[14px] font-[500]"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handlePopupSubmit}
+                                className="px-4 py-2 bg-[#0955AC] text-white rounded text-[14px] font-[500]"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Pagination Controls and Results per page inline */}
             <div className="flex justify-between items-center gap-2 mt-20">
-                {/* Left: Results per page */}
                 <div className="flex items-center">
                     <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
                     <select
@@ -371,7 +261,6 @@ const CarBookingTableTwo = () => {
                         ))}
                     </select>
                 </div>
-                {/* Right: Pagination */}
                 <div className="flex items-center gap-2">
                     <button
                         className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"

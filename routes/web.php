@@ -44,6 +44,25 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')-
     Route::get('/bookings', function () {
         return Inertia::render('Web/home/vendors/Booking');
     })->name('bookings');
+// landing pages
+Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
+Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
+Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
+
+// Auth
+Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
+Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
+Route::get('/registerNew', [WebController::class, 'register'])->name('register.register');
+
+//warehouse
+Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
+
+
+
+// vendor - vehicle rent
+Route::get('/vendors/bookings', function () {
+    return Inertia::render('Web/home/vendors/Booking');
+})->name('vendors.bookings');
 
     Route::get('/units', function () {
         return Inertia::render('Web/home/vendors/Unit');
@@ -82,6 +101,11 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')-
     })->name('mainDashboard');
 });
 
+
+// vendor - warehouse rent
+Route::get('/vendors/warehouse/unit', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Unit');
+})->name('warehouse.Unit');
 
 
 

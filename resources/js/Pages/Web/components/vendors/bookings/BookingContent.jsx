@@ -1,8 +1,8 @@
-import React from "react";
+import React, {useState} from "react";
 
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg"
+import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 
 import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
@@ -20,6 +20,271 @@ import CarBookingTableTwo from "../../../components/vendors/bookings/CarBookingT
 import BookingBarChart from "./BookingBarChart";
 
 const BookingContent = () => {
+    const [bookings, setBookings] = useState([
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$50",
+            paymentStatus: "Pending",
+            paymentStatusColor: "#FF6060",
+            paymentStatusBg: "#FF60608C",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Returned",
+            statusBg: "#FFCD29",
+            statusText: "#FFCD29",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+        {
+            id: "C-JV1001",
+            bookingDate: "May 4, 2025",
+            clientName: "Steve Gibson",
+            carModel: "Honda Civic",
+            carPlate: "CBK - 1475",
+            plan: "7 days",
+            startDate: "May 10, 2025",
+            endDate: "May 17, 2025",
+            payment: "$450",
+            paymentStatus: "Paid",
+            paymentStatusColor: "#3B8F314D",
+            paymentStatusBg: "#ACE19957",
+            status: "Ongoing",
+            statusBg: "#FFCD29",
+            statusText: "#000000",
+        },
+    ]);
+
+    const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
+    const [newBooking, setNewBooking] = useState({
+        id: "",
+        bookingDate: "",
+        clientName: "",
+        carModel: "",
+        carPlate: "",
+        plan: "",
+        startDate: "",
+        endDate: "",
+        payment: "",
+        paymentStatus: "Pending",
+        status: "Ongoing",
+    });
+
+    // Handle input changes in the add booking form
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewBooking((prev) => ({ ...prev, [name]: value }));
+    };
+
+    // Handle form submission to add new booking
+    const handleAddBooking = () => {
+        const paymentStatusColors = {
+            Paid: { color: "#3B8F314D", bg: "#ACE19957" },
+            Pending: { color: "#FF6060", bg: "#FF60608C" },
+        };
+
+        const newBookingEntry = {
+            ...newBooking,
+            paymentStatusColor:
+                paymentStatusColors[newBooking.paymentStatus]?.color ||
+                "#FF6060",
+            paymentStatusBg:
+                paymentStatusColors[newBooking.paymentStatus]?.bg ||
+                "#FF60608C",
+            statusBg: newBooking.status === "Returned" ? "#FFCD29" : "#FFCD29",
+            statusText:
+                newBooking.status === "Returned" ? "#FFCD29" : "#000000",
+        };
+
+        setBookings((prev) => [...prev, newBookingEntry]);
+        setIsAddPopupOpen(false);
+        setNewBooking({
+            id: "",
+            bookingDate: "",
+            clientName: "",
+            carModel: "",
+            carPlate: "",
+            plan: "",
+            startDate: "",
+            endDate: "",
+            payment: "",
+            paymentStatus: "Pending",
+            status: "Ongoing",
+        });
+    };
+
     return (
         <div className="w-full h-auto pr-10 py-10">
             {/* Header section */}
@@ -181,7 +446,7 @@ const BookingContent = () => {
                     <h1 className="text-[24px] font-[700]">Car Booking</h1>
                     <div className="flex flex-row gap-5">
                         <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                            <img src={miniSearchIcon} />
+                            <img src={miniSearchIcon} alt="Search" />
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
@@ -189,24 +454,214 @@ const BookingContent = () => {
                             />
                         </div>
                         <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={filterIcon} className="size-[12px]" />
+                            <img
+                                src={filterIcon}
+                                className="size-[12px]"
+                                alt="Filter"
+                            />
                             <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
                                 Car type
                             </h1>
-                            <img src={miniDownArrow} />
+                            <img src={miniDownArrow} alt="Dropdown" />
                         </div>
                         <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={filterIcon} className="size-[12px]" />
+                            <img
+                                src={filterIcon}
+                                className="size-[12px]"
+                                alt="Filter"
+                            />
                             <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
                                 Status
                             </h1>
-                            <img src={miniDownArrow} />
+                            <img src={miniDownArrow} alt="Dropdown" />
                         </div>
-                        <button className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]">Add Booking</button>
+                        <button
+                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+                            onClick={() => setIsAddPopupOpen(true)}
+                        >
+                            Add Booking
+                        </button>
                     </div>
                 </div>
 
-                <CarBookingTableTwo />
+                {/* Add Booking Popup */}
+                {isAddPopupOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                        <div className="bg-white p-6 rounded-lg w-[500px] shadow-lg">
+                            <h2 className="text-[18px] font-[700] mb-4">
+                                Add New Booking
+                            </h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Booking ID
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="id"
+                                        value={newBooking.id}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        placeholder="e.g. C-JV1001"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Booking Date
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="bookingDate"
+                                        value={newBooking.bookingDate}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        placeholder="e.g. May 4, 2025"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Client Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="clientName"
+                                        value={newBooking.clientName}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        placeholder="e.g. Steve Gibson"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Car Model
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="carModel"
+                                        value={newBooking.carModel}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        placeholder="e.g. Honda Civic"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Car Plate
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="carPlate"
+                                        value={newBooking.carPlate}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        placeholder="e.g. CBK - 1475"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Plan
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="plan"
+                                        value={newBooking.plan}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        placeholder="e.g. 7 days"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Start Date
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="startDate"
+                                        value={newBooking.startDate}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        placeholder="e.g. May 10, 2025"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        End Date
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="endDate"
+                                        value={newBooking.endDate}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        placeholder="e.g. May 17, 2025"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Payment Amount
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="payment"
+                                        value={newBooking.payment}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        placeholder="e.g. $450"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Payment Status
+                                    </label>
+                                    <select
+                                        name="paymentStatus"
+                                        value={newBooking.paymentStatus}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                    >
+                                        <option value="Paid">Paid</option>
+                                        <option value="Pending">Pending</option>
+                                    </select>
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Status
+                                    </label>
+                                    <select
+                                        name="status"
+                                        value={newBooking.status}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                    >
+                                        <option value="Ongoing">Ongoing</option>
+                                        <option value="Returned">
+                                            Returned
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={() => setIsAddPopupOpen(false)}
+                                    className="px-4 py-2 bg-gray-200 rounded text-[14px] font-[500]"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleAddBooking}
+                                    className="px-4 py-2 bg-[#0955AC] text-white rounded text-[14px] font-[500]"
+                                >
+                                    Add Booking
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <CarBookingTableTwo
+                    bookings={bookings}
+                    setBookings={setBookings}
+                />
             </div>
             {/* end */}
         </div>

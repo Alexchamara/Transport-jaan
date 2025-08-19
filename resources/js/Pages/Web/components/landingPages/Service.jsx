@@ -188,7 +188,7 @@ const Service = () => {
                 {/* Card 4 */}
                 <div
                     className="w-[305px] h-[740px] relative group overflow-hidden"
-                    // onClick={() => (window.location.href = "/courier-service")}
+                    onClick={() => (window.location.href = "/warehouse")}
                 >
                     {/* Background image */}
                     <img src={card4} className="w-full h-full object-cover" />
