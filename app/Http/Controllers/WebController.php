@@ -44,7 +44,7 @@ class WebController extends Controller
         });
 
         return Inertia::render('Web/home/vehicleList', [
-            'vehicles' => $vehicles,
+            'vehicles' => [],
             'searchParams' => $request->all()
         ]);
     }

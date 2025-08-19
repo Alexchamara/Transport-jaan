@@ -14,7 +14,7 @@ export default function Register({ countries = [] }) {
         address: '',
         country: '',
         phone: '',
-        role_type: 'user',
+        role_type: 'client',
     });
 
     const submit = (e) => {
@@ -102,11 +102,8 @@ export default function Register({ countries = [] }) {
                                             onChange={(e) => setData('role_type', e.target.value)}
                                             required
                                         >
-                                            <option value="user">User</option>
-                                            <option value="admin">Admin</option>
-                                            <option value="superadmin">Super Admin</option>
+                                            <option value="client">Client</option>
                                             <option value="vendor">Vendor</option>
-                                            <option value="driver">Driver</option>
                                         </select>
                                         <InputError message={errors.role_type} className="mt-2" />
                                     </div>
