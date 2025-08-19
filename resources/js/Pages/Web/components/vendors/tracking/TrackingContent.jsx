@@ -19,7 +19,7 @@ import distance from "../../../assets/vendors/tracking/distance.svg";
 
 const TrackingContent = () => {
     return (
-        <div className="w-full h-auto pr-20 py-10">
+        <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Tracking</h1>

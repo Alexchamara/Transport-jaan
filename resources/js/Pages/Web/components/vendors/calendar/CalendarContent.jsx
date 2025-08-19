@@ -87,7 +87,7 @@ const CalendarContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-20 py-10">
+        <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Calendar</h1>
@@ -167,7 +167,7 @@ const CalendarContent = () => {
                     </div>
                 </div>
                 <div
-                    className="w-[349px] h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="w-[349px] h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -220,7 +220,7 @@ const CalendarContent = () => {
                     {/* end */}
                 </div>
                 <div
-                    className="w-[315px] h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
+                    className="w-[315px] h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}

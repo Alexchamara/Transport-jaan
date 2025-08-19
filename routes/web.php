@@ -35,9 +35,7 @@ Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('fr
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
 // client routes
-Route::middleware(['auth', 'role:client'])->group(function () {
-
-});
+Route::middleware(['auth', 'role:client'])->group(function () {});
 
 //warehouse
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
@@ -94,48 +92,51 @@ Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.h
 
 // for now
 Route::get('/bookings', function () {
-        return Inertia::render('Web/home/vendors/Booking');
-    })->name('bookings');
+    return Inertia::render('Web/home/vendors/Booking');
+})->name('bookings');
 
-    Route::get('/units', function () {
-        return Inertia::render('Web/home/vendors/Unit');
-    })->name('units');
+Route::get('/units', function () {
+    return Inertia::render('Web/home/vendors/Unit');
+})->name('units');
 
-    Route::get('/dashboard', function () {
-        return Inertia::render('Web/home/vendors/Dashboard');
-    })->name('dashboard');
+Route::get('/dashboard', function () {
+    return Inertia::render('Web/home/vendors/Dashboard');
+})->name('dashboard');
 
-    Route::get('/clients', function () {
-        return Inertia::render('Web/home/vendors/Client');
-    })->name('clients');
+Route::get('/clients', function () {
+    return Inertia::render('Web/home/vendors/Client');
+})->name('clients');
 
-    Route::get('/expenses', function () {
-        return Inertia::render('Web/home/vendors/Expenses');
-    })->name('expenses');
+Route::get('/expenses', function () {
+    return Inertia::render('Web/home/vendors/Expenses');
+})->name('expenses');
 
-    Route::get('/payment', function () {
-        return Inertia::render('Web/home/vendors/Payment');
-    })->name('payment');
+Route::get('/payment', function () {
+    return Inertia::render('Web/home/vendors/Payment');
+})->name('payment');
 
-    Route::get('/tracking', function () {
-        return Inertia::render('Web/home/vendors/Tracking');
-    })->name('tracking');
+Route::get('/tracking', function () {
+    return Inertia::render('Web/home/vendors/Tracking');
+})->name('tracking');
 
-    Route::get('/calendar', function () {
-        return Inertia::render('Web/home/vendors/Calendar');
-    })->name('calendar');
+Route::get('/calendar', function () {
+    return Inertia::render('Web/home/vendors/Calendar');
+})->name('calendar');
 
-    Route::get('/addUnit', function () {
-        return Inertia::render('Web/home/vendors/AddUnit');
-    })->name('addUnit');
+Route::get('/addUnit', function () {
+    return Inertia::render('Web/home/vendors/AddUnit');
+})->name('addUnit');
 
-    Route::get('/mainDashboard', function () {
-        return Inertia::render('Web/home/vendors/MainDashboard');
-    })->name('mainDashboard');
+Route::get('/mainDashboard', function () {
+    return Inertia::render('Web/home/vendors/MainDashboard');
+})->name('mainDashboard');
+
+Route::get('/unitDetails', function () {
+    return Inertia::render('Web/home/vendors/UnitDetails');
+})->name('mainDashboard');
 
 
-
-    // end
+// end
 
 
 
@@ -172,4 +173,4 @@ Route::get('/vendors/warehouse/unit', function () {
 //     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 // });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

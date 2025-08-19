@@ -404,9 +404,9 @@ const DashContent = () => {
                 </div>
                 {/* end */}
 
-                <div className="flex flex-col xl:flex-row gap-5">
+                <div className="flex flex-col xl:flex-row gap-5 justify-between">
                     <div
-                        className="w-auto h-[858px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                        className="w-[500px] h-[858px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">
