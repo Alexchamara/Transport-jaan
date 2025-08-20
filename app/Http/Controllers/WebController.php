@@ -1,9 +1,15 @@
 <?php
 
 namespace App\Http\Controllers;
-use Illuminate\Support\Facades\Auth;
+
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Models\FreightQuote;
+use App\Mail\FreightQuoteSubmitted;
 use Inertia\Inertia;
+
+
 
 class WebController extends Controller
 {
@@ -81,6 +87,71 @@ class WebController extends Controller
     {
         return Inertia::render('Web/home/freight/Homepage');
     }
+
+
+
+
+
+
+public function freightQuoteStore(Request $request)
+{
+    try {
+        // Validate the request
+        $validated = $request->validate([
+            'origin'            => 'required|string|max:255',
+            'destination'       => 'required|string|max:255',
+            'load_type'         => 'required|string|max:100',
+            'goods_description' => 'required|string',
+            'length_cm'         => 'nullable|numeric|min:0',
+            'width_cm'          => 'nullable|numeric|min:0',
+            'height_cm'         => 'nullable|numeric|min:0',
+            'total_weight_kg'   => 'required|numeric|min:0',
+            'preferred_method'  => 'required|string|in:Air,Sea,Road',
+            'shipping_date'     => 'required|date|after_or_equal:today',
+            'notes'             => 'nullable|string',
+        ]);
+
+        // Create the freight quote
+        $quote = FreightQuote::create(array_merge($validated, [
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]));
+
+
+        try {
+            Mail::send(new FreightQuoteSubmitted($quote));
+
+
+            Log::info('Freight quote email sent successfully', [
+                'quote_id' => $quote->id,
+                'recipients' => ['alexchamara56@gmail@gmail.com', 'alexchamara76@gmail.com']
+            ]);
+
+        } catch (\Exception $emailException) {
+
+            Log::error('Failed to send freight quote email', [
+                'quote_id' => $quote->id,
+                'error' => $emailException->getMessage()
+            ]);
+        }
+
+        return back()->with('success', 'Freight quote submitted successfully! Quote ID: #' . $quote->id . '. We will contact you soon with a quotation.');
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+
+        return back()->withErrors($e->validator)->withInput();
+
+    } catch (\Exception $e) {
+
+        Log::error('Freight Quote Submission Error: ' . $e->getMessage());
+
+        return back()->with('error', 'There was an error submitting your quote. Please try again or contact support.')
+                    ->withInput();
+    }
+}
+
+
 
     public function freightTicketBooking()
     {

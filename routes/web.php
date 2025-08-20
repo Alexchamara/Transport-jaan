@@ -32,7 +32,10 @@ Route::get('/driver-details', [WebController::class, 'driverDetails'])->name('dr
 Route::get('/vehicle-checkout', [WebController::class, 'vehicleCheckout'])->name('vehicle.checkout');
 Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
+Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->name('freight-quotes.store');
+
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
+
 
 // client routes
 Route::middleware(['auth', 'role:client'])->group(function () {

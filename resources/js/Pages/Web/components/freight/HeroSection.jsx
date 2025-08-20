@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useForm } from "@inertiajs/react";
+import React, { useEffect, useState } from "react";
+import { useForm, usePage } from "@inertiajs/react";
 import bg from "../../assets/freight/bg.svg";
 import locationIcon from "../../assets/freight/Location.svg";
 import line from "../../assets/freight/line.svg";
@@ -7,7 +7,31 @@ import goods from "../../assets/freight/goods.svg";
 import load from "../../assets/freight/load.svg";
 
 const HeroSection = () => {
-  const [selectedTab, setSelectedTab] = useState("quote");
+  const { flash } = usePage().props;
+
+  // local visibility so we can auto-hide and allow manual close
+  const [visibleFlash, setVisibleFlash] = useState({
+    type: null, // "success" | "error" | null
+    message: null,
+  });
+
+  useEffect(() => {
+    if (flash?.success) {
+      setVisibleFlash({ type: "success", message: flash.success });
+    } else if (flash?.error) {
+      setVisibleFlash({ type: "error", message: flash.error });
+    } else {
+      setVisibleFlash({ type: null, message: null });
+    }
+  }, [flash]);
+
+  useEffect(() => {
+    if (!visibleFlash.message) return;
+    const t = setTimeout(() => {
+      setVisibleFlash({ type: null, message: null });
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [visibleFlash.message]);
 
   const { data, setData, post, processing, errors, reset } = useForm({
     origin: "",
@@ -20,27 +44,29 @@ const HeroSection = () => {
     total_weight_kg: "",
     preferred_method: "",
     shipping_date: "",
-    special_requirements: [], // ["fragile","hazardous","temperature_controlled","insurance"]
     notes: "",
   });
+
+  const [selectedTab, setSelectedTab] = useState("quote");
 
   const inputBase =
     "w-full h-[56px] border border-[#0000001A] rounded-[8px] px-3 text-[16px] text-[#286BB6] placeholder:text-[#286BB6] focus:outline-none focus:ring-2 focus:ring-[#0955AC]";
   const labelBase = "text-[#286BB6]";
 
-  const toggleReq = (value) => {
-    setData(
-      "special_requirements",
-      data.special_requirements.includes(value)
-        ? data.special_requirements.filter((v) => v !== value)
-        : [...data.special_requirements, value]
-    );
-  };
-
   const submitForm = (e) => {
     e.preventDefault();
     post(route("freight-quotes.store"), {
-      onSuccess: () => reset(),
+      onSuccess: () => {
+        // Server sends flash.success; UI shows it via middleware share.
+        reset();
+        // Optionally keep the Quote tab selected and scroll to banner
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      },
+      onError: () => {
+        // Server sends validation errors; banner will show flash.error if you sent it.
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      },
+      preserveScroll: true,
     });
   };
 
@@ -124,6 +150,28 @@ const HeroSection = () => {
               </div>
             </div>
 
+            {/* Flash banner */}
+            {visibleFlash.message && (
+              <div
+                className={`p-3 mb-4 rounded flex items-start justify-between gap-4 ${
+                  visibleFlash.type === "success"
+                    ? "bg-green-100 text-green-700 border border-green-300"
+                    : "bg-red-100 text-red-700 border border-red-300"
+                }`}
+              >
+                <span>{visibleFlash.message}</span>
+                <button
+                  type="button"
+                  onClick={() => setVisibleFlash({ type: null, message: null })}
+                  className="shrink-0 px-2"
+                  aria-label="Dismiss"
+                  title="Dismiss"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
             {/* QUOTE TAB */}
             {selectedTab === "quote" && (
               <form
@@ -156,9 +204,7 @@ const HeroSection = () => {
                         className={inputBase}
                         placeholder="City/Port, Country"
                         value={data.destination}
-                        onChange={(e) =>
-                          setData("destination", e.target.value)
-                        }
+                        onChange={(e) => setData("destination", e.target.value)}
                       />
                     </div>
                     {errors.destination && (
@@ -268,79 +314,44 @@ const HeroSection = () => {
                       value={data.height_cm}
                       onChange={(e) => setData("height_cm", e.target.value)}
                     />
-                   <input
-  type="number"
-  min="0"
-  step="0.01"
-  className="col-span-2 xl:col-span-2 w-full h-[56px] border border-[#0000001A] rounded-[8px] px-3 text-[16px] text-[#286BB6] placeholder:text-[#286BB6] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-  placeholder="Total Weight (kg)"
-  value={data.total_weight_kg}
-  onChange={(e) =>
-    setData("total_weight_kg", e.target.value)
-  }
-/>
-
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="col-span-2 xl:col-span-2 w-full h-[56px] border border-[#0000001A] rounded-[8px] px-3 text-[16px] text-[#286BB6] placeholder:text-[#286BB6] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                      placeholder="Total Weight (kg)"
+                      value={data.total_weight_kg}
+                      onChange={(e) => setData("total_weight_kg", e.target.value)}
+                    />
                   </div>
                   {(errors.length_cm ||
                     errors.width_cm ||
                     errors.height_cm ||
                     errors.total_weight_kg) && (
                     <p className="text-red-600 text-sm">
-                      {errors.length_cm || errors.width_cm || errors.height_cm || errors.total_weight_kg}
+                      {errors.length_cm ||
+                        errors.width_cm ||
+                        errors.height_cm ||
+                        errors.total_weight_kg}
                     </p>
                   )}
                 </div>
 
                 {/* date */}
-
-              {/* Row: Shipping Date + Special Requirements side by side */}
-<div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-  {/* Shipping Date */}
-  <div className="flex flex-col gap-2">
-    <label className={labelBase}>Shipping Date</label>
-    <input
-      type="date"
-      className={inputBase}
-      value={data.shipping_date}
-      onChange={(e) => setData("shipping_date", e.target.value)}
-    />
-    {errors.shipping_date && (
-      <p className="text-red-600 text-sm">{errors.shipping_date}</p>
-    )}
-  </div>
-
-  {/* Special Requirements */}
-  <div className="flex flex-col gap-2">
-    <label className={labelBase}>Special Requirements</label>
-    <div className="flex flex-wrap gap-3">
-      {[
-        ["fragile", "Fragile"],
-        ["hazardous", "Hazardous"],
-        ["temperature_controlled", "Temperature-controlled"],
-        ["insurance", "Insurance"],
-      ].map(([val, label]) => (
-        <label key={val} className="inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="h-5 w-5"
-            checked={data.special_requirements.includes(val)}
-            onChange={() => toggleReq(val)}
-          />
-          <span>{label}</span>
-        </label>
-      ))}
-    </div>
-    {errors.special_requirements && (
-      <p className="text-red-600 text-sm">
-        {errors.special_requirements}
-      </p>
-    )}
-  </div>
-</div>
-
-
-
-
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-center">
+                  <div className="flex flex-col gap-2">
+                    <label className={labelBase}>Shipping Date</label>
+                    <input
+                      type="date"
+                      className={inputBase}
+                      value={data.shipping_date}
+                      onChange={(e) => setData("shipping_date", e.target.value)}
+                    />
+                    {errors.shipping_date && (
+                      <p className="text-red-600 text-sm">{errors.shipping_date}</p>
+                    )}
+                  </div>
+                </div>
 
                 {/* notes */}
                 <div className="flex flex-col gap-2">
@@ -367,7 +378,7 @@ const HeroSection = () => {
               </form>
             )}
 
-            {/* TRACK TAB (unchanged) */}
+            {/* TRACK TAB (placeholder) */}
             {selectedTab === "track" && (
               <div className="w-auto xl:h-[175px] bg-[#FFFFFF] rounded-b-[15px] text-[16px] text-[#286BB6] font-[400] px-10 py-10 flex flex-col md:flex-row gap-5 md:gap-0 justify-evenly items-center">
                 <div className="flex flex-col gap-2">
