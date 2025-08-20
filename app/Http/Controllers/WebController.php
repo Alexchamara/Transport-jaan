@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -89,7 +89,15 @@ class WebController extends Controller
 
     public function landingPage()
     {
-        return Inertia::render('Web/home/landingPages/LandingPage');
+        return Inertia::render('Web/home/landingPages/LandingPage',[
+            'auth' => [
+                'user' => Auth::user() ? [
+                    'id' => Auth::user()->id,
+                    'role' => Auth::user()->role,
+                    // ...other user fields
+                ]:null
+            ]
+        ]);
     }
 
     public function blog()

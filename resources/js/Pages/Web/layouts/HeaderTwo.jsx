@@ -1,8 +1,11 @@
-import React , {useState} from "react";
+import React, { useState } from "react";
+import { usePage, Link } from "@inertiajs/react";
 import burgerIcon from "../assets/landingPages/burgerIcon.svg";
 
 const HeaderTwo = () => {
     const [menuOpen, setMenuOpen] = useState(false);
+    const { auth } = usePage().props;
+
     // Scroll to section by id
     const handleScroll = (id) => {
         const el = document.getElementById(id);
@@ -53,12 +56,15 @@ const HeaderTwo = () => {
                     </div>
                 </div>
                 <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[700]">
-                    <div className="xl:w-[137px] h-[38px] bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2">
+                        
+                     <div className="xl:w-[137px] h-[38px] bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2">
                         Login
-                    </div>
+                     </div>
+                               
                     <div className="xl:w-[137px] h-[38px] text-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2">
                         Register
                     </div>
+                            
                 </div>
             </div>
             {/* end */}
@@ -124,12 +130,15 @@ const HeaderTwo = () => {
                             </div>
                         </div>
                         <div className="flex flex-col gap-4 mt-6 text-white text-[17px] font-[700]">
-                            <div className="bg-[#FF7003] border border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer">
-                                Login
+                             
+                            <div className="xl:w-[137px] h-[38px] bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2">
+                                    Login
                             </div>
-                            <div className="text-[#FF7003] border border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer">
-                                Register
+                                   
+                             <div className="xl:w-[137px] h-[38px] text-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2">
+                                     Register
                             </div>
+                                  
                         </div>
                     </div>
                 </>
