@@ -32,16 +32,7 @@ const VehicleDetails = () => {
     return (
         <div>
             <Header />
-            <div
-                className="main-content flex justify-center items-center"
-                // style={{
-                //     backgroundImage: `url(${bg})`,
-                //     backgroundSize: "cover",
-                //     backgroundPosition: "center",
-                //     backgroundRepeat: "no-repeat",
-                //     minHeight: "calc(100vh - 80px)",
-                // }}
-            >
+            <div className="main-content flex justify-center items-center">
                 <div className="py-20 md:px-10 flex flex-col xl:flex-row justify-center gap-20">
                     <div className="flex flex-col gap-10 justify-start items-center">
                         <VehicleImages />

@@ -6,22 +6,27 @@ import icon2 from "../../assets/vehicleCheckout/icon2.svg";
 import icon3 from "../../assets/vehicleCheckout/icon3.svg";
 import icon4 from "../../assets/vehicleCheckout/icon4.svg";
 
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
+const Payments = () => {
+    const [selectedPayment, setSelectedPayment] = useState("Credit Card");
+    const [slipNumber, setSlipNumber] = useState("");
+    const [slipPdf, setSlipPdf] = useState(null);
 
-const VehicleCheckoutContent = () => {
-    const [countryCode, setCountryCode] = useState("lk");
-    const [phone, setPhone] = useState("");
-
-    const handlePaymentBooking = () => {
-        router.visit("/vehicle-payments", {
+    const handleConfirmBooking = () => {
+        router.visit("/summary", {
             method: "get",
             preserveScroll: true,
         });
     };
 
-    const handleConfirmBooking = () => {
-        router.visit("/summary", {
+    const handleBackBooking = () => {
+        router.visit("/vehicle-checkout", {
+            method: "get",
+            preserveScroll: true,
+        });
+    };
+
+    const handlePaymentBooking = () => {
+        router.visit("/vehicle-payments", {
             method: "get",
             preserveScroll: true,
         });
@@ -33,6 +38,7 @@ const VehicleCheckoutContent = () => {
             preserveScroll: true,
         });
     };
+
 
     return (
         <div>
@@ -54,7 +60,10 @@ const VehicleCheckoutContent = () => {
                             </h1>
                         </div>
                         <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
-                        <div className="md:flex flex-col hidden justify-center items-center gap-3">
+                        <div
+                            className="md:flex flex-col hidden justify-center items-center gap-3 cursor-pointer"
+                            onClick={handleBackBooking}
+                        >
                             <div
                                 className="w-[18px] h-[18px] rounded-full bg-[#1565c0]"
                                 style={{
@@ -70,7 +79,12 @@ const VehicleCheckoutContent = () => {
                             className="flex flex-col justify-center items-center gap-3 cursor-pointer"
                             onClick={handlePaymentBooking}
                         >
-                            <div className="w-[22px] h-[22px] rounded-full border-[2px] border-[#1565c0]" />
+                            <div
+                                className="w-[18px] h-[18px] rounded-full bg-[#1565c0]"
+                                style={{
+                                    boxShadow: "0 0 10px 8px #1565c088", // blur
+                                }}
+                            />
                             <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">
                                 Payments
                             </h1>
@@ -86,145 +100,9 @@ const VehicleCheckoutContent = () => {
                             </h1>
                         </div>
                     </div>
-                    <div
-                        className="border-l-[0.2px] rounded-[10px] xl:w-[874px] xl:h-[372px] bg-[#FFFFFF] px-10 py-10"
-                        style={{
-                            boxShadow: "4px 4px 4px #0000001A",
-                            borderLeftWidth: "0.2px",
-                            borderTopWidth: "0.2px",
-                        }}
-                    >
-                        <h1 className="text-[20px] font-[700]">
-                            Personal Information
-                        </h1>
-
-                        <div className="flex flex-col justify-center gap-5">
-                            <div className="flex flex-col lg:flex-row justify-between mt-3">
-                                <div className="">
-                                    <label className="text-[10px]/[24px] font-[600]">
-                                        First Name :
-                                    </label>
-                                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                        <input
-                                            className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                            placeholder="Enter your full name"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="">
-                                    <label className="text-[10px]/[24px] font-[600]">
-                                        Last Name :
-                                    </label>
-                                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                        <input
-                                            className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                            placeholder="Enter your last name"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex flex-col lg:flex-row justify-between">
-                                <div className="">
-                                    <label className="text-[10px]/[24px] font-[600]">
-                                        Email Address :
-                                    </label>
-                                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                        <input
-                                            className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                            placeholder="Enter your full name"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="">
-                                    <label className="text-[10px]/[24px] font-[600]">
-                                        Phone Number :
-                                    </label>
-                                    <div className="flex flex-row gap-3">
-                                        <div className="w-[69px] h-[49px] border-[1px] border-[#0000004D] rounded-[5px] flex items-center justify-center">
-                                            <PhoneInput
-                                                country={countryCode}
-                                                value={""}
-                                                onChange={(value, data) =>
-                                                    setCountryCode(
-                                                        data.countryCode || "us"
-                                                    )
-                                                }
-                                                inputStyle={{
-                                                    display: "none",
-                                                }}
-                                                buttonStyle={{
-                                                    border: "none",
-                                                    borderRadius: "5px",
-                                                    width: "100%",
-                                                    height: "47px",
-                                                }}
-                                                containerStyle={{
-                                                    width: "100%",
-                                                    height: "100%",
-                                                }}
-                                                dropdownStyle={{
-                                                    zIndex: 1000,
-                                                }}
-                                                disableCountryCode={false}
-                                                disableDropdown={false}
-                                                countryCodeEditable={true}
-                                                enableSearch={true}
-                                            />
-                                        </div>
-                                        <div className="md:w-[293px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                            <input
-                                                className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                                placeholder="Enter your phone number"
-                                                value={phone}
-                                                onChange={(e) =>
-                                                    setPhone(e.target.value)
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col lg:flex-row justify-between">
-                                <div className="">
-                                    <label className="text-[10px]/[24px] font-[600]">
-                                        Age :
-                                    </label>
-                                    <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                        <input
-                                            className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                            placeholder="18 - 25"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="">
-                                    <label className="text-[10px]/[24px] font-[600]">
-                                        City :
-                                    </label>
-                                    <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                        <input
-                                            className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                            placeholder="Colombo 03"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="">
-                                    <label className="text-[10px]/[24px] font-[600]">
-                                        Zip Code :
-                                    </label>
-                                    <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                        <input
-                                            className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                            placeholder="033302"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     <div
-                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] h-auto bg-[#FFFFFF] px-10 py-10"
+                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-auto bg-[#FFFFFF] px-10 py-10"
                         style={{
                             borderLeftWidth: "0.2px",
                             borderTopWidth: "0.2px",
@@ -232,25 +110,217 @@ const VehicleCheckoutContent = () => {
                         }}
                     >
                         <h1 className="text-[20px] font-[700]">
-                            Additional Information
+                            Payment Methods
                         </h1>
-                        <div className="">
-                            <label className="text-[10px]/[24px] font-[600]">
-                                Special Requests :
+
+                        {/* method selector */}
+                        <div className="flex flex-row flex-wrap items-center gap-10 text-[10px] font-[600] text-[#00000080] py-2">
+                            <label className="flex flex-row justify-center items-center gap-3 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value="Credit Card"
+                                    checked={selectedPayment === "Credit Card"}
+                                    onChange={() =>
+                                        setSelectedPayment("Credit Card")
+                                    }
+                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent  focus:outline-none transition-colors cursor-pointer"
+                                />
+                                <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600]">
+                                    Credit Card
+                                </span>
                             </label>
-                            <textarea
-                                className="w-full h-[87px] border-[1px] border-[#0000004D] rounded-[5px] focus:outline-none focus:ring-0 placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] focus:border-[#0000004D]"
-                                placeholder="Add if you have any extra requests"
-                            />
+
+                            <label className="flex flex-row justify-center items-center gap-3 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value="PayPal"
+                                    checked={selectedPayment === "PayPal"}
+                                    onChange={() =>
+                                        setSelectedPayment("PayPal")
+                                    }
+                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:outline-none focus:ring-transparent  transition-colors cursor-pointer"
+                                />
+                                <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600]">
+                                    PayPal
+                                </span>
+                            </label>
+
+                            <label className="flex flex-row justify-center items-center gap-3 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value="Bank Transfer"
+                                    checked={
+                                        selectedPayment === "Bank Transfer"
+                                    }
+                                    onChange={() =>
+                                        setSelectedPayment("Bank Transfer")
+                                    }
+                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:outline-none focus:ring-transparent transition-colors cursor-pointer"
+                                />
+                                <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600]">
+                                    Bank Transfer
+                                </span>
+                            </label>
+                        </div>
+
+                        {/* only show when Bank Transfer is selected */}
+                        {selectedPayment === "Bank Transfer" && (
+                            <div className="mt-4 grid lg:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px]/[24px] font-[600]">
+                                        Slip Number :
+                                    </label>
+                                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                        <input
+                                            value={slipNumber}
+                                            onChange={(e) =>
+                                                setSlipNumber(e.target.value)
+                                            }
+                                            className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                            placeholder="Enter slip number"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px]/[24px] font-[600]">
+                                        Upload Bank Slip (PDF) :
+                                    </label>
+                                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] flex items-center px-3">
+                                        <input
+                                            type="file"
+                                            accept="application/pdf"
+                                            onChange={(e) =>
+                                                setSlipPdf(
+                                                    e.target.files?.[0] ?? null
+                                                )
+                                            }
+                                            className="w-full text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
+                                        />
+                                    </div>
+                                    {/* optional: small hint */}
+                                    <p className="text-[10px] text-[#00000080] mt-1">
+                                        Only PDF files are allowed.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div
+                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-[316px] bg-[#FFFFFF] px-10 py-10"
+                        style={{
+                            borderLeftWidth: "0.2px",
+                            borderTopWidth: "0.2px",
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
+                    >
+                        <h1 className="text-[20px] font-[700]">
+                            Select Payment Option
+                        </h1>
+
+                        <div className="flex flex-col gap-5 py-10">
+                            <div className="flex flex-row items-start gap-4">
+                                <input
+                                    type="radio"
+                                    name="paymentOption"
+                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent  focus:outline-none transition-colors mt-[1.5px] cursor-pointer"
+                                />
+                                <div className="poppins text-[12px] flex flex-col justify-center items-start">
+                                    <h1 className="font-[600]">
+                                        Pay full amount now
+                                    </h1>
+                                    <h1 className="font-[500]">
+                                        You will complete the entire payment
+                                        before tour begins.
+                                    </h1>
+                                </div>
+                            </div>
+                            <div className="flex flex-row items-start gap-4">
+                                <input
+                                    type="radio"
+                                    name="paymentOption"
+                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent  focus:outline-none transition-colors mt-[1.5px] cursor-pointer"
+                                />
+                                <div className="poppins text-[12px] flex flex-col justify-center items-start">
+                                    <h1 className="font-[600]">
+                                        Pay advance now. PAy the balance after
+                                        the tour.
+                                    </h1>
+                                </div>
+                            </div>
+
+                            <div className="w-full md:h-[74px] bg-[#E2F6DC] rounded-[7px] text-[12px] px-5 py-5">
+                                <div className="flex flex-col md:flex-row md:gap-5">
+                                    <h1 className="font-[500] text-[#000000B2] w-[150px]">
+                                        Advance to pay now:
+                                    </h1>
+                                    <h1 className="font-[600]">$3400.00</h1>
+                                </div>
+                                <div className="flex flex-col md:flex-row md:gap-5">
+                                    <h1 className="font-[500] text-[#000000B2] w-[150px]">
+                                        Remaining Balance:
+                                    </h1>
+                                    <h1 className="font-[600]">
+                                        $13400.00 (due date August 25, 2025)
+                                    </h1>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div
-                        onClick={handlePaymentBooking}
-                        className="rounded-[5px] flex justify-center items-center text-[#FFFFFF] font-[700] text-[12px] lg:w-[874px] h-[50px] bg-[#0955AC] px-5 py-5 cursor-pointer hover:bg-[#074a8f] transition-colors"
+                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-[72px] bg-[#D8E4F2] px-5 py-5"
+                        style={{
+                            borderLeftWidth: "0.2px",
+                            borderTopWidth: "0.2px",
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
                     >
-                        {" "}
-                        Next{" "}
+                        <div className="flex flex-row gap-5 text-[10px] font-[400]">
+                            <input
+                                className="size-[20px] border-[0.5px] border-[#0955AC] bg-[#FFFFFF] rounded-[4px] cursor-pointer focus:ring-transparent"
+                                type="checkbox"
+                            />
+                            <div>
+                                <h1 className="">
+                                    I agree to the{" "}
+                                    <span className="text-[#0955AC]">
+                                        Term and Condition
+                                    </span>{" "}
+                                    and{" "}
+                                    <span className="text-[#0955AC]">
+                                        Privacy Policy.
+                                    </span>
+                                </h1>
+                                <h1>
+                                    {" "}
+                                    I confirm that am at least. 21 vears old and
+                                    hold a valid driver's license
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div
+                            onClick={handleBackBooking}
+                            className="rounded-[5px] flex justify-center items-center text-[#0955AC] font-[700] text-[12px] lg:w-[874px] h-[50px] border-[2px] border-[#0955AC] px-5 cursor-pointer transition-colors"
+                        >
+                            {" "}
+                            Back{" "}
+                        </div>
+
+                        <div
+                            onClick={handleConfirmBooking}
+                            className="rounded-[5px] flex mt-5 justify-center items-center text-[#FFFFFF] font-[700] text-[12px] lg:w-[874px] h-[50px] bg-[#0955AC] px-5 cursor-pointer hover:bg-[#074a8f] transition-colors"
+                        >
+                            {" "}
+                            CONFIRM BOOKING{" "}
+                        </div>
                     </div>
                 </div>
 
@@ -455,4 +525,10 @@ const VehicleCheckoutContent = () => {
     );
 };
 
-export default VehicleCheckoutContent;
+//         <div>
+//
+//         </div>
+//     );
+// };
+
+export default Payments;

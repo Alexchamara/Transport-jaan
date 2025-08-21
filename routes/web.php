@@ -30,6 +30,8 @@ Route::get('/drivers-home', [WebController::class, 'driversHome'])->name('driver
 Route::get('/driver-search-results', [WebController::class, 'driverSearchResults'])->name('driver.search.results');
 Route::get('/driver-details', [WebController::class, 'driverDetails'])->name('driver.details');
 Route::get('/vehicle-checkout', [WebController::class, 'vehicleCheckout'])->name('vehicle.checkout');
+Route::get('/vehicle-payments', [WebController::class, 'vehiclePayments'])->name('vehicle.vehiclePayments');
+
 Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');

@@ -9,11 +9,14 @@ import Stories from "../../components/landingPages/Stories";
 import Contact from "../../components/landingPages/Contact";
 import FooterTwo from "../../layouts/FooterTwo";
 
+import TravelExploreAnimation from "../../components/landingPages/TravelExploreAnimation";
+
 const LandingPage = () => {
     return (
         <div className="bg-[#000000] text-[#FFFFFF]">
             <div id="home">
                 <Hero />
+                {/* <TravelExploreAnimation /> */}
             </div>
             <div id="about">
                 <About />

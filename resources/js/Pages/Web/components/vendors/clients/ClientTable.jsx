@@ -329,7 +329,7 @@ const ClientTable = () => {
                                     <input
                                         type="file"
                                         onChange={handleFileChange}
-                                        className="w-full p-5 border border-dashed rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
+                                        className="w-full p-5 border border-[#000000] border-dashed rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000] text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
                                     />
                                     <button
                                         onClick={addFileToDocuments}
