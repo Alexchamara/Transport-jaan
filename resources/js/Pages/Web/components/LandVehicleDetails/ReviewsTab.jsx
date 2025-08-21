@@ -8,7 +8,7 @@ const ReviewsTab = () => (
             <h1 className="text-[20px] font-[700]">Review</h1>
             <div className="w-[44px] h-[28px] bg-[#0955AC] rounded-[4px] flex justify-center items-center text-[14px] font-[700] text-[#FFFFFF]">13</div>
         </div>
-        <div className="flex flex-row gap-8 items-center mb-10">
+        <div className="flex flex-col xl:flex-row gap-8 items-center mb-10">
             <div>
                 <h1 className="text-[50px] font-[700]">4.5</h1>
                 <img src={starSec} />

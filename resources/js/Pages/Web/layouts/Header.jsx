@@ -55,7 +55,7 @@ const Header = () => {
                 </div>
 
                 {/* right side buttons */}
-                <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+                <div className="md:flex hidden flex-row gap-5 justify-center items-center">
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <img
                             src={search}

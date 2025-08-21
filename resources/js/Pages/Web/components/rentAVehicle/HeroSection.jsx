@@ -89,7 +89,7 @@ const HeroSection = ({ formData, onFormChange, onSubmit }) => {
         </p>
 
         {/* Search Form */}
-        <form onSubmit={onSubmit} className="figtree bg-white p-4 sm:p-6 rounded-[15px] w-full 2xl:w-[505px] h-auto text-[#286BB6] text-[13px] font-[400]" style={{ boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)' }}>
+        <form onSubmit={onSubmit} className="figtree bg-white p-4 sm:p-6 rounded-[15px] w-full h-auto text-[#286BB6] text-[13px] font-[400]" style={{ boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Pick-up Location */}
             <div>

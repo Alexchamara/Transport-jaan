@@ -79,7 +79,7 @@ const HowItWorks = () => {
           </div>
           {/* Image Placeholder */}
           <div
-            className="md:w-2/3 w-full rounded-[24px] shadow flex items-center justify-center bg-no-repeat bg-[#F5F5F5] mt-6 lg:mt-0"
+            className="md:w-2/3 hidden lg:flex w-full rounded-[24px] shadow items-center justify-center bg-no-repeat bg-[#F5F5F5] mt-6 lg:mt-0"
             style={{
               backgroundImage: `url(${jeep})`,
               height: "600px",

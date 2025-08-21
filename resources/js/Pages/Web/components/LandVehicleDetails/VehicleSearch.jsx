@@ -8,7 +8,7 @@ const VehicleSearch = () => {
     const [showQuoteModal, setShowQuoteModal] = useState(false);
     useScrollLock(showQuoteModal);
     return (
-        <>
+        <div className="px-5 xl:px-0">
             <QuoteModal
                 open={showQuoteModal}
                 onClose={() => setShowQuoteModal(false)}
@@ -118,7 +118,7 @@ const VehicleSearch = () => {
                     </div>
                 </div>
             </QuoteModal>
-            <div className="poppins w-auto h-auto xl:w-[440px] xl:h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-10 py-10 px-20">
+            <div className="poppins w-auto h-auto xl:w-[440px] xl:h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-10 py-10 xl:px-20 px-10">
                 <div className="text-[25px] font-[700]">
                     <h1>
                         $620{" "}
@@ -403,7 +403,7 @@ const VehicleSearch = () => {
 
                     <div className="flex justify-center items-center">
                         <div
-                            className=" w-auto md:w-[261px] h-[29px] bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer"
+                            className=" w-auto xl:w-[261px] xl:h-[29px] px-4 py-2 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer"
                             onClick={() => setShowQuoteModal(true)}
                         >
                             GET A QUOTE
@@ -412,7 +412,7 @@ const VehicleSearch = () => {
 
                     <div className="flex justify-center items-center">
                         <div
-                            className=" w-auto md:w-[261px] h-[29px] bg-[#0955AC] rounded-[5px] mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] cursor-pointer"
+                            className="w-auto xl:w-[261px] xl:h-[29px] bg-[#0955AC] px-4 py-2 rounded-[5px] mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer"
                             onClick={() => router.visit("/vehicle-checkout")}
                         >
                             CONTINUE TO CHECKOUT
@@ -420,7 +420,7 @@ const VehicleSearch = () => {
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

@@ -33,7 +33,7 @@ const VehicleDetails = () => {
         <div>
             <Header />
             <div className="main-content flex justify-center items-center">
-                <div className="py-20 md:px-10 flex flex-col xl:flex-row justify-center gap-20">
+                <div className="py-10 md:px-10 flex flex-col xl:flex-row justify-center gap-10">
                     <div className="flex flex-col gap-10 justify-start items-center">
                         <VehicleImages />
                         <VehicleInfo />
