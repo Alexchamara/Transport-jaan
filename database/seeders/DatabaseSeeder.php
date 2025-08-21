@@ -16,15 +16,10 @@ class DatabaseSeeder extends Seeder
      
 
          $this->call([
-            VehicleCategorySeeder::class,
+           
             DemoUsersSeeder::class,
-            VehicleSeeder::class,
-            LandVehicleSpecSeeder::class,
-            AirVehicleSpecSeeder::class,
-            SeaVehicleSpecSeeder::class,
-            VehicleMediaSeeder::class,
-            VehicleDocumentSeeder::class,
-            VehicleCrewSeeder::class,
+            
+           
         ]);
     }
 }

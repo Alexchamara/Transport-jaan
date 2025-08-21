@@ -40,5 +40,16 @@ class DemoUsersSeeder extends Seeder
                 ]
             );
         }
+              // Vendor user
+        User::create([
+            'name' => 'Vendor User',
+            'email' => 'vendor@example.com',
+            'password' => Hash::make('12345678'),
+            'role' => 'vendor',
+            'phone' => '9876543210',
+            'address' => 'Kandy, Sri Lanka',
+            'country' => 'Sri Lanka',
+        ]);
+
     }
 }

@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('vehicles', function (Blueprint $table) {
@@ -15,16 +14,18 @@ return new class extends Migration
             $table->foreignId('provider_id')->nullable()->constrained('users')->nullOnDelete();
 
             // Core identity
-            $table->enum('type', ['land', 'air', 'sea'])->index();
+            $table->enum('type', ['land','air','sea'])->index();
             $table->foreignId('category_id')->nullable()->constrained('vehicle_categories')->nullOnDelete();
 
             $table->string('model')->nullable();
-            $table->string('manufacturer')->nullable(); // maps your `manufacture` field more precisely
+            $table->string('manufacturer')->nullable();
             $table->unsignedSmallInteger('manufacture_year')->nullable();
             $table->unsignedSmallInteger('registration_year')->nullable();
-            $table->string('registration_number')->nullable()->unique();
 
+            $table->string('registration_number')->nullable()->unique(); // UNIQUE (global)
             $table->string('colour', 64)->nullable();
+
+            // Enums aligned to controller/request normalization
             $table->enum('condition', ['new','used','refurbished'])->nullable()->index();
             $table->enum('ownership_type', ['company_owned','partner_owned','leased'])->nullable()->index();
 
@@ -41,7 +42,6 @@ return new class extends Migration
 
             // Insurance (quick access)
             $table->string('insurance_provider')->nullable();
-            $table->string('insurance_policy_number')->nullable();
 
             // Feature flags
             $table->boolean('gps')->default(false);
@@ -52,40 +52,23 @@ return new class extends Migration
             // Free-form extras
             $table->text('extra')->nullable();
 
-            // Contact Information
-            $table->string('contact_name')->nullable();
-            $table->string('contact_email')->nullable();
-            $table->string('contact_phone', 32)->nullable()->index();
-
-            // Location Information
-            $table->string('address')->nullable();
-            $table->string('city')->nullable()->index();
-            $table->string('state')->nullable();
-            $table->string('postal_code', 32)->nullable();
-            $table->string('country', 2)->nullable()->index(); // ISO-3166-1 alpha-2
-            $table->decimal('latitude', 10, 7)->nullable();
-            $table->decimal('longitude', 10, 7)->nullable();
-
             // Operational
-            $table->enum('status', ['draft','active','inactive'])->default('draft')->index();
+            $table->enum('status', ['draft','active','inactive'])->default('active')->index();
             $table->enum('approval_status', ['pending','approved','rejected'])->default('pending')->index();
-            $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('approved_at')->nullable();
 
             $table->text('description')->nullable();
 
-            // Legacy/ingest helpers
+            // Legacy/ingest helpers (unused by UI but available if needed)
             $table->json('images_json')->nullable();
             $table->json('insurance_docs_json')->nullable();
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['type', 'status']);
-            $table->index(['provider_id', 'type']);
+            $table->index(['type','status']);
+            $table->index(['provider_id','type']);
         });
     }
-
     public function down(): void
     {
         Schema::dropIfExists('vehicles');

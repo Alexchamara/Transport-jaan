@@ -2,23 +2,27 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
+use App\Http\Controllers\Vendor\VehicleController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-// -------------------------------
-// 🌐 Public Routes
-// -------------------------------
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
 
-// Auth
+// Auth (public)
 Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 
-// landing pages
+// Landing / marketing
 Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
 Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
-Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
+Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blog');
 
+// Client-facing pages
 Route::get('/clientRent', [WebController::class, 'index'])->name('home');
 Route::get('/vehicleList', [WebController::class, 'vehicleList'])->name('vehicle.list');
 Route::get('/vehicleDetails', [WebController::class, 'vehicleDetails'])->name('vehicle.details');
@@ -34,151 +38,78 @@ Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
-// client routes
-Route::middleware(['auth', 'role:client'])->group(function () {
-
-});
-
-//warehouse
+// Warehouse (public page)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
 
+/*
+|--------------------------------------------------------------------------
+| Vendor App Pages (Inertia UI, behind role:vendor)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:vendor'])
+    ->prefix('vendors')
+    ->name('vendors.')
+    ->group(function () {
+        Route::get('/bookings', fn () => Inertia::render('Web/home/vendors/Booking'))->name('bookings');
+        Route::get('/dashboard', fn () => Inertia::render('Web/home/vendors/Dashboard'))->name('dashboard');
+        Route::get('/clients', fn () => Inertia::render('Web/home/vendors/Client'))->name('clients');
+        Route::get('/expenses', fn () => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
+        Route::get('/payment', fn () => Inertia::render('Web/home/vendors/Payment'))->name('payment');
+        Route::get('/tracking', fn () => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
+        Route::get('/calendar', fn () => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
+        Route::get('/mainDashboard', fn () => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
 
-// vendor - vehicle rent
-// Route::get('/vendors/bookings', function () {
-//     return Inertia::render('Web/home/vendors/Booking');
-// })->name('vendors.bookings');
+        // Vendor Units UI
+        Route::get('/units', fn () => Inertia::render('Web/home/vendors/Unit'))->name('units');
+        Route::get('/addUnit', fn () => Inertia::render('Web/home/vendors/AddUnit'))->name('addUnit');
 
-// vendor routes
-// Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
-//     Route::get('/bookings', function () {
-//         return Inertia::render('Web/home/vendors/Booking');
-//     })->name('bookings');
+        // Warehouse UI
+        Route::get('/warehouse/unit', fn () => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('warehouse.unit');
+    });
 
-//     Route::get('/units', function () {
-//         return Inertia::render('Web/home/vendors/Unit');
-//     })->name('units');
+/*
+|--------------------------------------------------------------------------
+| Vendor Backend (JSON APIs & actions)
+|--------------------------------------------------------------------------
+|
+| - GET  /vendor/vehicles          → index (redirect to vendors.units)
+| - GET  /vendor/vehicles/list     → list (JSON for Units grid)
+| - POST /vendor/vehicles          → store (⚠️ compat for existing forms)
+| - POST /vendor/vehicles/store    → store (canonical)
+| - DELETE /vendor/vehicles/{id}   → destroy
+|
+*/
+Route::middleware(['auth'])
+    ->prefix('vendor')
+    ->name('vendor.')
+    ->group(function () {
+        // UI redirect so /vendor/vehicles never 404s
+        Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
 
-//     Route::get('/dashboard', function () {
-//         return Inertia::render('Web/home/vendors/Dashboard');
-//     })->name('dashboard');
+        // JSON list for Units grid
+        Route::get('/vehicles/list', [VehicleController::class, 'list'])->name('vehicles.list');
 
-//     Route::get('/clients', function () {
-//         return Inertia::render('Web/home/vendors/Client');
-//     })->name('clients');
+        // ✅ Accept both /vendor/vehicles and /vendor/vehicles/store for POST
+        Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store.compat');
+        Route::post('/vehicles/store', [VehicleController::class, 'store'])->name('vehicles.store');
 
-//     Route::get('/expenses', function () {
-//         return Inertia::render('Web/home/vendors/Expenses');
-//     })->name('expenses');
+        // Delete (trash button)
+        Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
+    });
 
-//     Route::get('/payment', function () {
-//         return Inertia::render('Web/home/vendors/Payment');
-//     })->name('payment');
+/*
+|--------------------------------------------------------------------------
+| App Shell / Profile
+|--------------------------------------------------------------------------
+*/
+Route::get('/dashboard', fn () => Inertia::render('Dashboard'))
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
-//     Route::get('/tracking', function () {
-//         return Inertia::render('Web/home/vendors/Tracking');
-//     })->name('tracking');
+Route::middleware('auth')->group(function () {
+    Route::get('/profile',   [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile',[ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
-//     Route::get('/calendar', function () {
-//         return Inertia::render('Web/home/vendors/Calendar');
-//     })->name('calendar');
-
-//     Route::get('/addUnit', function () {
-//         return Inertia::render('Web/home/vendors/AddUnit');
-//     })->name('addUnit');
-
-//     Route::get('/mainDashboard', function () {
-//         return Inertia::render('Web/home/vendors/MainDashboard');
-//     })->name('mainDashboard');
-// });
-
-
-// for now
-Route::get('/bookings', function () {
-        return Inertia::render('Web/home/vendors/Booking');
-    })->name('bookings');
-// landing pages
-Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
-Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
-Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
-
-// Auth
-Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
-Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
-Route::get('/registerNew', [WebController::class, 'register'])->name('register.register');
-
-    Route::get('/units', function () {
-        return Inertia::render('Web/home/vendors/Unit');
-    })->name('units');
-
-    Route::get('/dashboard', function () {
-        return Inertia::render('Web/home/vendors/Dashboard');
-    })->name('dashboard');
-
-    Route::get('/clients', function () {
-        return Inertia::render('Web/home/vendors/Client');
-    })->name('clients');
-
-    Route::get('/expenses', function () {
-        return Inertia::render('Web/home/vendors/Expenses');
-    })->name('expenses');
-
-    Route::get('/payment', function () {
-        return Inertia::render('Web/home/vendors/Payment');
-    })->name('payment');
-
-    Route::get('/tracking', function () {
-        return Inertia::render('Web/home/vendors/Tracking');
-    })->name('tracking');
-
-    Route::get('/calendar', function () {
-        return Inertia::render('Web/home/vendors/Calendar');
-    })->name('calendar');
-
-    Route::get('/addUnit', function () {
-        return Inertia::render('Web/home/vendors/AddUnit');
-    })->name('addUnit');
-
-    Route::get('/mainDashboard', function () {
-        return Inertia::render('Web/home/vendors/MainDashboard');
-    })->name('mainDashboard');
-
-
-
-    // end
-
-
-
-
-
-
-
-
-
-// vendor - warehouse rent
-Route::get('/vendors/warehouse/unit', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Unit');
-})->name('warehouse.Unit');
-
-
-
-
-// Route::get('/', function () {
-//     return Inertia::render('Welcome', [
-//         'canLogin' => Route::has('login'),
-//         'canRegister' => Route::has('register'),
-//         'laravelVersion' => Application::VERSION,
-//         'phpVersion' => PHP_VERSION,
-//     ]);
-// });
-
-// Route::get('/dashboard', function () {
-//     return Inertia::render('Dashboard');
-// })->middleware(['auth', 'verified'])->name('dashboard');
-
-// Route::middleware('auth')->group(function () {
-//     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-//     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-//     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-// });
-
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
