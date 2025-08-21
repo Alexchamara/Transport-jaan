@@ -12,7 +12,7 @@ class LandVehicleSpecSeeder extends Seeder
     {
         $map = [
             'ABC-1234' => [
-                'body_type' => 'sedan',
+                'body_type' => 'Sedan',
                 'fuel_type' => 'petrol',
                 'transmission_type' => 'automatic',
                 'gears' => 6,
@@ -21,7 +21,7 @@ class LandVehicleSpecSeeder extends Seeder
                 'fuel_tank_capacity_l' => 47.0,
             ],
             'SUV-7777' => [
-                'body_type' => 'suv',
+                'body_type' => 'SUV',
                 'fuel_type' => 'diesel',
                 'transmission_type' => 'automatic',
                 'gears' => 6,

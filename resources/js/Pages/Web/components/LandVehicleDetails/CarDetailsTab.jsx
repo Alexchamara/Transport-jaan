@@ -1,178 +1,139 @@
-import React from "react";
+import React, { useMemo } from "react";
+
 import miles from "../../assets/landVehicleDetails/carSpec/miles.svg";
 import fuel from "../../assets/landVehicleDetails/carSpec/fuel.svg";
 import gear from "../../assets/landVehicleDetails/carSpec/gear.svg";
-import seats from "../../assets/landVehicleDetails/carSpec/seats.svg";
-import model from "../../assets/landVehicleDetails/carSpec/model.svg";
-import doors from "../../assets/landVehicleDetails/carSpec/doors.svg";
-import airBag from "../../assets/landVehicleDetails/carSpec/airBag.svg";
+import seatsIcon from "../../assets/landVehicleDetails/carSpec/seats.svg";
+import modelIcon from "../../assets/landVehicleDetails/carSpec/model.svg";
+import doorsIcon from "../../assets/landVehicleDetails/carSpec/doors.svg";
+import airBag from "../../assets/landVehicleDetails/carSpec/airBag.svg"; // fallback only (no field in DB)
 import liters from "../../assets/landVehicleDetails/carSpec/liters.svg";
 import car from "../../assets/landVehicleDetails/car.svg";
 import proPic from "../../assets/landVehicleDetails/proPic.svg";
 import tag from "../../assets/landVehicleDetails/tag.svg";
 import star from "../../assets/driverBooking/star.svg";
 
-const CarDetailsTab = () => (
-    <>
-        <div className="flex flex-col gap-5">
-            <h1 className="text-[15px] font-[600]">Description</h1>
-            <p className="text-[14px]/[33px] font-[400] text-justify px-5">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit amet. Quisque congue sapien nec aliquet faucibus. Morbi lectus eros, accumsan eget malesuada et, fermentum eget nisl. Fusce vel placerat libero. Integer convallis sodales libero, vitae tristique massa hendrerit in.
-            </p>
-        </div>
-        {/*  Specs*/}
-        <div className="py-10">
-            <h1 className="text-[15px] font-[600]">Car Specifications</h1>
-            <div className="py-10 text-[12px] font-[700]">
-                <div className="flex flex-col justify-center items-center gap-10">
-                    <div className="flex flex-col xl:flex-row gap-10 justify-center items-center">
-                        <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
-                            <img src={miles} />
-                            <h1>62,500</h1>
-                        </div>
-                        <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
-                            <img src={fuel} />
-                            <h1>Petrol</h1>
-                        </div>
-                        <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
-                            <img src={gear} />
-                            <h1>Manual</h1>
-                        </div>
-                        <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
-                            <img src={seats} />
-                            <h1>05 Seats</h1>
-                        </div>
-                    </div>
-                    <div className="flex flex-col xl:flex-row justify-center items-center gap-10">
-                        <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
-                            <img src={airBag} />
-                            <h1>03 Air Bags</h1>
-                        </div>
-                        <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
-                            <img src={model} />
-                            <h1>Lamborghini</h1>
-                        </div>
-                        <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
-                            <img src={doors} />
-                            <h1>04 Doors</h1>
-                        </div>
-                        <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
-                            <img src={liters} />
-                            <h1>3.5 L</h1>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div className="poppins">
-            <h1 className="text-[20px] font-[600] mb-10">Warranty</h1>
-            <p className="text-[14px] font-[400]">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, {" "}
-            </p>
-            <div className="flex flex-col justify-center gap-10 py-10">
-                {/* 1st row */}
-                <div className="flex flex-col md:flex-row lg:gap-40">
-                    <div className="flex flex-row items-start gap-3">
-                        <img src={car} />
-                        <div className="flex flex-col gap-2 text-[14px]">
-                            <h1 className="font-[700]">Bumper - to - Bumper</h1>
-                            <h1 className="font-[400]">48 months / 50,000 miles</h1>
-                        </div>
-                    </div>
-                    <div className="flex flex-row items-start gap-3">
-                        <img src={car} />
-                        <div className="flex flex-col gap-2 text-[14px]">
-                            <h1 className="font-[700]">Bumper - to - Bumper</h1>
-                            <h1 className="font-[400]">48 months / 50,000 miles</h1>
-                        </div>
-                    </div>
-                </div>
-                {/* 2nd row */}
-                <div className="flex flex-col md:flex-row lg:gap-40">
-                    <div className="flex flex-row items-start gap-3">
-                        <img src={car} />
-                        <div className="flex flex-col gap-2 text-[14px]">
-                            <h1 className="font-[700]">Bumper - to - Bumper</h1>
-                            <h1 className="font-[400]">48 months / 50,000 miles</h1>
-                        </div>
-                    </div>
-                    <div className="flex flex-row items-start gap-3">
-                        <img src={car} />
-                        <div className="flex flex-col gap-2 text-[14px]">
-                            <h1 className="font-[700]">Bumper - to - Bumper</h1>
-                            <h1 className="font-[400]">48 months / 50,000 miles</h1>
-                        </div>
-                    </div>
-                </div>
-                {/* 3rd row */}
-                <div className="flex flex-col md:flex-row lg:gap-40">
-                    <div className="flex flex-row items-start gap-3">
-                        <img src={car} />
-                        <div className="flex flex-col gap-2 text-[14px]">
-                            <h1 className="font-[700]">Bumper - to - Bumper</h1>
-                            <h1 className="font-[400]">48 months / 50,000 miles</h1>
-                        </div>
-                    </div>
-                    <div className="flex flex-row items-start gap-3">
-                        <img src={car} />
-                        <div className="flex flex-col gap-2 text-[14px]">
-                            <h1 className="font-[700]">Bumper - to - Bumper</h1>
-                            <h1 className="font-[400]">48 months / 50,000 miles</h1>
-                        </div>
-                    </div>
-                </div>
-                {/* 4th row */}
-                <div className="flex flex-col md:flex-row lg:gap-40">
-                    <div className="flex flex-row items-start gap-3">
-                        <img src={car} />
-                        <div className="flex flex-col gap-2 text-[14px]">
-                            <h1 className="font-[700]">Bumper - to - Bumper</h1>
-                            <h1 className="font-[400]">48 months / 50,000 miles</h1>
-                        </div>
-                    </div>
-                    <div className="flex flex-row items-start gap-3">
-                        <img src={car} />
-                        <div className="flex flex-col gap-2 text-[14px]">
-                            <h1 className="font-[700]">Bumper - to - Bumper</h1>
-                            <h1 className="font-[400]">48 months / 50,000 miles</h1>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div className="poppins w-full py-7">
-            <h1 className="text-[20px] font-[600] mb-10">Owners Info</h1>
-            <div className="flex flex-col md:flex-row justify-start items-center gap-20">
-                <div className="flex flex-col md:flex-row justify-start items-center gap-5">
-                    <img src={proPic} />
-                    <div className="flex flex-col items-start justify-center">
-                        <div className="flex flex-row gap-2 justify-center items-center">
-                            {" "}
-                            <h1 className="text-[15px] font-[700]">Steve Gibson</h1>
-                            <img src={tag} />
-                        </div>
-                        <div>
-                            <div className="flex flex-row gap-3 justify-center items-center">
-                                {" "}
-                                <img src={star} className="w-[16px]" />
-                                <h1 className="text-[14px] font-[400]">4.0</h1>
-                                <h1 className="text-[12px] font-[500] text-[#949699]">(180 Reviews)</h1>
-                            </div>
-                            <h1 className="text-[14px] font-[400] text-[#949699]">Joined 7 moths ago</h1>
-                        </div>
-                    </div>
-                </div>
-                <div className="text-[9px] flex flex-col md:flex-row gap-4">
-                    <div className="w-[123px] h-[29px] bg-[#0955AC] text-[#FFFFFF] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
-                        CONTACT NUMBER
-                    </div>
-                    <div className="w-[123px] h-[29px] border-[1.5px] border-[#0955AC] bg-[#E8EBEF] text-[#0955AC] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
-                        VIEW PROFILE
-                    </div>
-                </div>
-            </div>
-        </div>
-    </>
+const fmtInt = (n) => (n ?? n === 0 ? Number(n).toLocaleString() : "—");
+const fmtFloat = (n, d = 1) => (n ?? n === 0 ? Number(n).toFixed(d) : "—");
+const ucfirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "—");
+
+const SpecCard = ({ icon, label }) => (
+  <div className="w-[187px] h-[81px] border-[1px] border-[#0000002B] bg-[#E7E6E6] rounded-[10px] flex flex-row justify-center items-center gap-5 px-5 py-5">
+    <img src={icon} alt="" />
+    <h1>{label}</h1>
+  </div>
 );
 
-export default CarDetailsTab; 
+const CarDetailsTab = ({ vehicle }) => {
+  const land = vehicle?.landSpec;
+
+  const specs = useMemo(() => {
+    return {
+      mileage: fmtInt(vehicle?.mileage_km), // km total
+      fuel: ucfirst(land?.fuel_type),
+      transmission: ucfirst(land?.transmission_type),
+      seats: land?.seats ? `${land.seats} Seats` : "—",
+      airbags: "— Air Bags", // not in your DB; keep as fallback or remove the card
+      brand: vehicle?.manufacturer || "—",
+      doors: land?.doors ? `${land.doors} Doors` : "—",
+      tank: land?.fuel_tank_capacity_l ? `${fmtFloat(land.fuel_tank_capacity_l, 1)} L` : "—",
+      description:
+        vehicle?.description ||
+        "No description provided for this vehicle.",
+      owner: {
+        name: vehicle?.provider?.name || "—",
+        rating: vehicle?.rating_avg ? fmtFloat(vehicle.rating_avg, 1) : null,
+        reviews: vehicle?.reviews_count ?? null,
+        // If you store how long the provider has been on the platform, add it here.
+      },
+      brandModel:
+        (vehicle?.manufacturer || "") +
+        (vehicle?.model ? ` ${vehicle.model}` : ""),
+    };
+  }, [vehicle, land]);
+
+  return (
+    <>
+      {/* Description */}
+      <div className="flex flex-col gap-5">
+        <h1 className="text-[15px] font-[600]">Description</h1>
+        <p className="text-[14px]/[33px] font-[400] text-justify px-5">
+          {specs.description}
+        </p>
+      </div>
+
+      {/* Specs */}
+      <div className="py-10">
+        <h1 className="text-[15px] font-[600]">Car Specifications</h1>
+        <div className="py-10 text-[12px] font-[700]">
+          <div className="flex flex-col justify-center items-center gap-10">
+            <div className="flex flex-col xl:flex-row gap-10 justify-center items-center">
+              <SpecCard icon={miles} label={specs.mileage} />
+              <SpecCard icon={fuel} label={specs.fuel} />
+              <SpecCard icon={gear} label={specs.transmission} />
+              <SpecCard icon={seatsIcon} label={specs.seats} />
+            </div>
+            <div className="flex flex-col xl:flex-row justify-center items-center gap-10">
+              {/* Airbags not present in DB: keep as fallback or remove */}
+              <SpecCard icon={airBag} label={specs.airbags} />
+              <SpecCard icon={modelIcon} label={specs.brand} />
+              <SpecCard icon={doorsIcon} label={specs.doors} />
+              <SpecCard icon={liters} label={specs.tank} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Warranty (optional static; keep or replace with real data if you add fields later) */}
+      <div className="poppins">
+        <h1 className="text-[20px] font-[600] mb-10">Warranty</h1>
+        <p className="text-[14px] font-[400]">
+          Warranty information isn’t available for this vehicle.
+        </p>
+      </div>
+
+      {/* Owner Info */}
+      <div className="poppins w-full py-7">
+        <h1 className="text-[20px] font-[600] mb-10">Owner Info</h1>
+        <div className="flex flex-col md:flex-row justify-start items-center gap-20">
+          <div className="flex flex-col md:flex-row justify-start items-center gap-5">
+            <img src={proPic} alt="" />
+            <div className="flex flex-col items-start justify-center">
+              <div className="flex flex-row gap-2 justify-center items-center">
+                <h1 className="text-[15px] font-[700]">
+                  {specs.owner.name}
+                </h1>
+                <img src={tag} alt="" />
+              </div>
+              <div>
+                <div className="flex flex-row gap-3 justify-center items-center">
+                  <img src={star} className="w-[16px]" alt="" />
+                  <h1 className="text-[14px] font-[400]">
+                    {specs.owner.rating ?? "—"}
+                  </h1>
+                  <h1 className="text-[12px] font-[500] text-[#949699]">
+                    {specs.owner.reviews
+                      ? `(${fmtInt(specs.owner.reviews)} Reviews)`
+                      : "(No reviews)"}
+                  </h1>
+                </div>
+                {/* If you later compute “Joined X months ago”, place it here */}
+                {/* <h1 className="text-[14px] font-[400] text-[#949699]">Joined 7 months ago</h1> */}
+              </div>
+            </div>
+          </div>
+          <div className="text-[9px] flex flex-col md:flex-row gap-4">
+            <div className="w-[123px] h-[29px] bg-[#0955AC] text-[#FFFFFF] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
+              CONTACT NUMBER
+            </div>
+            <div className="w-[123px] h-[29px] border-[1.5px] border-[#0955AC] bg-[#E8EBEF] text-[#0955AC] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
+              VIEW PROFILE
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default CarDetailsTab;

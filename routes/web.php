@@ -2,6 +2,9 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
+use App\Http\Controllers\ClientVehicleController;
+use App\Http\Controllers\VehicleLikeController;
+use App\Http\Controllers\VehicleReviewController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,9 +22,9 @@ Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home')
 Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
 Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
 
-Route::get('/clientRent', [WebController::class, 'index'])->name('home');
-Route::get('/vehicleList', [WebController::class, 'vehicleList'])->name('vehicle.list');
-Route::get('/vehicleDetails', [WebController::class, 'vehicleDetails'])->name('vehicle.details');
+//Route::get('/clientRent', [WebController::class, 'index'])->name('home');
+//Route::get('/vehicleList', [WebController::class, 'vehicleList'])->name('vehicle.list');
+//Route::get('/vehicleDetails', [WebController::class, 'vehicleDetails'])->name('vehicle.details');
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
 Route::get('/book-a-ticket', [WebController::class, 'bookATicket'])->name('book.a.ticket');
 Route::get('/booking-home', [WebController::class, 'bookingHome'])->name('booking.home');
@@ -34,10 +37,24 @@ Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
+
+//-------------------------------
 // client routes
 Route::middleware(['auth', 'role:client'])->group(function () {
 
+    //LIKe
+    Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');
+    // Vehicle Reviews
+    Route::get('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'index'])
+        ->name('vehicles.reviews.index');
+    Route::post('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'store'])
+        ->name('vehicles.reviews.store')
+        ->middleware('auth');
 });
+
+Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('home');
+Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
+Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
 
 
 
@@ -46,25 +63,25 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')-
     Route::get('/bookings', function () {
         return Inertia::render('Web/home/vendors/Booking');
     })->name('bookings');
-// landing pages
-Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
-Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
-Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
+    // landing pages
+    Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
+    Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
+    Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
 
-// Auth
-Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
-Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
-Route::get('/registerNew', [WebController::class, 'register'])->name('register.register');
+    // Auth
+    Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
+    Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
+    Route::get('/registerNew', [WebController::class, 'register'])->name('register.register');
 
-//warehouse
-Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
+    //warehouse
+    Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
 
 
 
-// vendor - vehicle rent
-Route::get('/vendors/bookings', function () {
-    return Inertia::render('Web/home/vendors/Booking');
-})->name('vendors.bookings');
+    // vendor - vehicle rent
+    Route::get('/vendors/bookings', function () {
+        return Inertia::render('Web/home/vendors/Booking');
+    })->name('vendors.bookings');
 
     Route::get('/units', function () {
         return Inertia::render('Web/home/vendors/Unit');
@@ -131,4 +148,4 @@ Route::get('/vendors/warehouse/unit', function () {
 //     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 // });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

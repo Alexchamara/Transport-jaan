@@ -1,61 +1,48 @@
 import React, { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
+import axios from "axios";
 import info from "../../assets/rentAVehicle/collection/info.png";
 import heartFill from '../../assets/rentAVehicle/collection/heartFill.png';
 import heart from '../../assets/rentAVehicle/collection/heart.png';
 
-const VehicleListContent = ({ vehicles: initialVehicles }) => {
-  const [likedVehicles, setLikedVehicles] = useState([]);
+const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleIds }) => {
+  const [likedVehicles, setLikedVehicles] = useState(likedVehicleIds || []);
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredVehicles, setFilteredVehicles] = useState(initialVehicles || []);
+  const [filteredVehicles, setFilteredVehicles] = useState(initialVehicles?.data || []);
   const itemsPerPage = 6;
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    let filtered = [...initialVehicles];
-
-    if (searchParams.get('brand')) {
-      filtered = filtered.filter(vehicle => 
-        vehicle.manufracture?.toLowerCase().includes(searchParams.get('brand').toLowerCase())
-      );
-    }
-
-    if (searchParams.get('bodyType')) {
-      filtered = filtered.filter(vehicle => 
-        vehicle.land?.body_type?.toLowerCase() === searchParams.get('bodyType').toLowerCase()
-      );
-    }
-
-    setFilteredVehicles(filtered);
+    setFilteredVehicles(initialVehicles?.data || []);
     setCurrentPage(1);
-  }, [initialVehicles]);
+    setLikedVehicles(likedVehicleIds || []);
+  }, [initialVehicles, likedVehicleIds]);
 
-  const toggleLike = (vehicleId) => {
-    setLikedVehicles(prev => 
-      prev.includes(vehicleId)
-        ? prev.filter(id => id !== vehicleId)
-        : [...prev, vehicleId]
-    );
+  const toggleLike = async (vehicleId) => {
+    if (!authUser) {
+      alert("You must be logged in to like a vehicle.");
+      router.visit("/signin");
+      return;
+    }
+
+    try {
+      const response = await axios.post(route("vehicle.like.toggle"), { vehicle_id: vehicleId });
+      const { likedVehicleIds } = response.data;
+
+      // Sync state with backend
+      setLikedVehicles(likedVehicleIds);
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong while liking the vehicle.");
+    }
   };
 
   const handleViewDetails = (vehicle) => {
-    router.visit('/vehicleDetails', {
-      method: 'get',
-      data: { 
-        vehicle: {
-          ...vehicle,
-          image: vehicle.images?.[0]?.image_path ? `/storage/${vehicle.images[0].image_path}` : null
-        }
-      },
-      preserveState: true
-    });
+    router.visit(`/vehicleDetails/${vehicle.id}`);
   };
 
-  // Calculate pagination
   const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentVehicles = filteredVehicles.slice(startIndex, endIndex);
+  const currentVehicles = filteredVehicles.slice(startIndex, startIndex + itemsPerPage);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -65,7 +52,7 @@ const VehicleListContent = ({ vehicles: initialVehicles }) => {
     <div className="w-full py-6 md:py-12 px-4 md:px-40">
       <div className="container mx-auto">
         <p className="bebas-neue text-[28px] md:text-[40px] font-[400] mb-6 md:mb-10">
-          we found <span className="text-[#0955AC]">{filteredVehicles.length} cars </span>for you
+          we found <span className="text-[#0955AC]">{filteredVehicles.length} cars</span> for you
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-15 justify-items-center">
@@ -75,20 +62,17 @@ const VehicleListContent = ({ vehicles: initialVehicles }) => {
               className="bg-white shadow-md overflow-hidden h-auto w-full max-w-[286px] py-5"
             >
               <div className="flex items-center justify-center mt-5">
-                <img
-                  src={info}
-                  alt="info"
-                  className="h-[30px] md:h-[36px] w-[180px] md:w-[207px]"
-                />
+                <img src={info} alt="info" className="h-[30px] md:h-[36px] w-[180px] md:w-[207px]" />
               </div>
 
               <div className="flex items-center justify-center">
-                <img 
-                  src={vehicle.images?.[0]?.image_path ? `/storage/${vehicle.images[0].image_path}` : 'https://via.placeholder.com/286x150?text=No+Image'} 
-                  alt={vehicle.model} 
+                <img
+                  src={vehicle.images?.[0]?.image_path ? `/storage/${vehicle.images[0].image_path}` : 'https://via.placeholder.com/286x150?text=No+Image'}
+                  alt={vehicle.model}
                   className="w-full h-[120px] md:h-[150px] object-cover"
                 />
               </div>
+
               <div className="p-2 flex flex-col items-center justify-center">
                 <h3 className="bebas-neue text-[24px] md:text-[30px] font-[400] text-center">
                   {vehicle.model.split(" ").map((word, i) => (
@@ -98,9 +82,10 @@ const VehicleListContent = ({ vehicles: initialVehicles }) => {
                   ))}
                 </h3>
                 <p className="poppins font-[700] text-[20px] md:text-[25px]">
-                  {vehicle.price || 89}.00
+                  {vehicle.rental_price_per_day ?? 89}.00
                   <span className="text-[#00000080] text-[8px] md:text-[10px] font-[600]"> /day</span>
                 </p>
+
                 <div className="flex gap-2 mt-4">
                   <button
                     onClick={() => handleViewDetails(vehicle)}
@@ -124,18 +109,16 @@ const VehicleListContent = ({ vehicles: initialVehicles }) => {
           ))}
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center mt-6 md:mt-8 gap-1 md:gap-2">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
                 onClick={() => handlePageChange(page)}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded text-sm md:text-base ${
-                  currentPage === page
+                className={`px-3 md:px-4 py-1.5 md:py-2 rounded text-sm md:text-base ${currentPage === page
                     ? "bg-[#0955AC] text-white"
                     : "bg-white text-[#0955AC] border border-[#0955AC]"
-                }`}
+                  }`}
               >
                 {page}
               </button>
