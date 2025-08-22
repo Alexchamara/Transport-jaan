@@ -318,9 +318,9 @@ const BookingContent = () => {
             </div>
             {/* end of header section */}
 
-            <div className="flex flex-row gap-10 justify-between py-20">
+            <div className="flex flex-row gap-10 justify-between py-20 w-full">
                 {/* mini left */}
-                <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-8 w-full">
                     {/* card 1 */}
                     <div
                         className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
@@ -354,7 +354,7 @@ const BookingContent = () => {
                     {/* end of card 1 */}
                     {/* card 2 */}
                     <div
-                        className="w-full h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -385,7 +385,7 @@ const BookingContent = () => {
                     {/* end of card 2 */}
                     {/* card 3 */}
                     <div
-                        className="w-full h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -416,7 +416,7 @@ const BookingContent = () => {
                     {/* end of card 3 */}
                     {/* card 4 */}
                     <div
-                        className="w-full h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -449,7 +449,7 @@ const BookingContent = () => {
 
                 {/* mini right */}
                 <div
-                    className="w-[712px] h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
+                    className="min-w-[712px] w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <BookingBarChart />

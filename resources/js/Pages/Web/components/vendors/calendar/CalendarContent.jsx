@@ -115,9 +115,9 @@ const CalendarContent = () => {
             </div>
             {/* end of header section */}
 
-            <div className="mt-10 flex flex-row gap-5">
+            <div className="mt-10 flex flex-row gap-5 w-full justify-between">
                 <div
-                    className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -167,7 +167,7 @@ const CalendarContent = () => {
                     </div>
                 </div>
                 <div
-                    className="w-[349px] h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -220,7 +220,7 @@ const CalendarContent = () => {
                     {/* end */}
                 </div>
                 <div
-                    className="w-[315px] h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
+                    className="min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
