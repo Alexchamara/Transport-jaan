@@ -290,7 +290,7 @@ const BookingContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-10 py-10">
+        <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Bookings</h1>
@@ -318,9 +318,9 @@ const BookingContent = () => {
             </div>
             {/* end of header section */}
 
-            <div className="flex flex-row gap-10 py-20">
+            <div className="flex flex-row gap-10 justify-between py-20 w-full">
                 {/* mini left */}
-                <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-8 w-full">
                     {/* card 1 */}
                     <div
                         className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
@@ -354,7 +354,7 @@ const BookingContent = () => {
                     {/* end of card 1 */}
                     {/* card 2 */}
                     <div
-                        className="w-full h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -385,7 +385,7 @@ const BookingContent = () => {
                     {/* end of card 2 */}
                     {/* card 3 */}
                     <div
-                        className="w-full h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -416,7 +416,7 @@ const BookingContent = () => {
                     {/* end of card 3 */}
                     {/* card 4 */}
                     <div
-                        className="w-full h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -449,7 +449,7 @@ const BookingContent = () => {
 
                 {/* mini right */}
                 <div
-                    className="w-[712px] h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
+                    className="min-w-[712px] w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <BookingBarChart />
@@ -520,7 +520,7 @@ const BookingContent = () => {
                                         name="id"
                                         value={newBooking.id}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. C-JV1001"
                                     />
                                 </div>
@@ -533,7 +533,7 @@ const BookingContent = () => {
                                         name="bookingDate"
                                         value={newBooking.bookingDate}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. May 4, 2025"
                                     />
                                 </div>
@@ -546,7 +546,7 @@ const BookingContent = () => {
                                         name="clientName"
                                         value={newBooking.clientName}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. Steve Gibson"
                                     />
                                 </div>
@@ -559,7 +559,7 @@ const BookingContent = () => {
                                         name="carModel"
                                         value={newBooking.carModel}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. Honda Civic"
                                     />
                                 </div>
@@ -572,7 +572,7 @@ const BookingContent = () => {
                                         name="carPlate"
                                         value={newBooking.carPlate}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. CBK - 1475"
                                     />
                                 </div>
@@ -585,7 +585,7 @@ const BookingContent = () => {
                                         name="plan"
                                         value={newBooking.plan}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. 7 days"
                                     />
                                 </div>
@@ -598,7 +598,7 @@ const BookingContent = () => {
                                         name="startDate"
                                         value={newBooking.startDate}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. May 10, 2025"
                                     />
                                 </div>
@@ -611,7 +611,7 @@ const BookingContent = () => {
                                         name="endDate"
                                         value={newBooking.endDate}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. May 17, 2025"
                                     />
                                 </div>
@@ -624,7 +624,7 @@ const BookingContent = () => {
                                         name="payment"
                                         value={newBooking.payment}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. $450"
                                     />
                                 </div>
@@ -636,7 +636,7 @@ const BookingContent = () => {
                                         name="paymentStatus"
                                         value={newBooking.paymentStatus}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                     >
                                         <option value="Paid">Paid</option>
                                         <option value="Pending">Pending</option>
@@ -650,7 +650,7 @@ const BookingContent = () => {
                                         name="status"
                                         value={newBooking.status}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded-[5px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                     >
                                         <option value="Ongoing">Ongoing</option>
                                         <option value="Returned">
@@ -662,13 +662,13 @@ const BookingContent = () => {
                             <div className="flex justify-end gap-2">
                                 <button
                                     onClick={() => setIsAddPopupOpen(false)}
-                                    className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[500]"
+                                    className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleAddBooking}
-                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[14px] font-[500]"
+                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[14px] font-[700]"
                                 >
                                     Add Booking
                                 </button>

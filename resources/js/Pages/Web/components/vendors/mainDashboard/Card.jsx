@@ -4,9 +4,9 @@ const Card = ({ title, description, index, subOptions }) => {
     const handleNavigate = (option = null) => {
         if (title === "Vehicle Rental") {
             if (option) {
-                router.visit(`/vendors/dashboard/${option.toLowerCase()}`); // Navigate per sub-option
+                router.visit(`/dashboard/${option.toLowerCase()}`); // Navigate per sub-option
             } else {
-                router.visit("/vendors/dashboard");
+                router.visit("/dashboard");
             }
         } else {
             alert(`Navigating to ${title}...`);

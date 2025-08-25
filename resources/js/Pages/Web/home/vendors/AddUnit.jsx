@@ -495,7 +495,7 @@ const AddUnit = () => {
         title="Done"
         message={successMsg}
         onClose={handleAddAnother}
-        onPrimary={() => (window.location.href = '/vendors/units')}
+        onPrimary={() => (window.location.href = '/units')}
       />
 
       {/* Success toaster only */}
@@ -1807,7 +1807,7 @@ const AddUnit = () => {
             <button
               type="button"
               className="px-6 py-2.5 border border-gray-300 text-gray-700 font-[700] figtree rounded-lg focus:outline-none focus:ring-0 transition-colors duration-150"
-              onClick={() => (window.location.href = '/vendors/units')}
+              onClick={() => window.location.href = "/units"}
             >
               Cancel
             </button>

@@ -1,4 +1,5 @@
 import React from "react";
+import { router } from "@inertiajs/react";
 import Header from "../../layouts/Header";
 import car from "../../assets/vehicleCheckout/car.svg";
 import icon1 from "../../assets/vehicleCheckout/icon1.svg";
@@ -8,6 +9,34 @@ import icon4 from "../../assets/vehicleCheckout/icon4.svg";
 import tick from "../../assets/vehicleCheckout/tick.svg";
 
 const Summary = () => {
+    const handleConfirmBooking = () => {
+        router.visit("/summary", {
+            method: "get",
+            preserveScroll: true,
+        });
+    };
+
+    const handleBackBooking = () => {
+        router.visit("/vehicle-checkout", {
+            method: "get",
+            preserveScroll: true,
+        });
+    };
+
+    const handlePaymentBooking = () => {
+        router.visit("/vehicle-payments", {
+            method: "get",
+            preserveScroll: true,
+        });
+    };
+
+    const handleVehicleList = () => {
+        router.visit("/vehicleList", {
+            method: "get",
+            preserveScroll: true,
+        });
+    };
+
     return (
         <div>
             <Header />
@@ -16,7 +45,7 @@ const Summary = () => {
                 <div className="flex flex-col xl:flex-row justify-center items-center xl:items-start px-10 py-10 gap-10">
                     <div className="flex flex-col gap-10">
                         <div className="flex flex-row items-start justify-center pb-10">
-                            <div className="md:flex flex-col hidden justify-center items-center gap-3">
+                            <div className="md:flex flex-col hidden justify-center items-center gap-3 cursor-pointer" onClick={handleVehicleList}>
                                 <div
                                     className="w-[18px] h-[18px] rounded-full bg-[#1565c0]"
                                     style={{
@@ -28,19 +57,10 @@ const Summary = () => {
                                 </h1>
                             </div>
                             <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
-                            <div className="md:flex flex-col hidden justify-center items-center gap-3">
-                                <div
-                                    className="w-[18px] h-[18px] rounded-full bg-[#1565c0]"
-                                    style={{
-                                        boxShadow: "0 0 10px 8px #1565c088", // blur
-                                    }}
-                                />
-                                <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">
-                                    Choose Add-ons
-                                </h1>
-                            </div>
-                            <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
-                            <div className="md:flex hidden flex-col justify-center items-center gap-3">
+                            <div
+                                className="md:flex flex-col hidden justify-center items-center gap-3 cursor-pointer"
+                                onClick={handleBackBooking}
+                            >
                                 <div
                                     className="w-[18px] h-[18px] rounded-full bg-[#1565c0]"
                                     style={{
@@ -49,6 +69,21 @@ const Summary = () => {
                                 />
                                 <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">
                                     Booking Info
+                                </h1>
+                            </div>
+                            <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
+                            <div
+                                className="md:flex hidden flex-col justify-center items-center gap-3 cursor-pointer"
+                                onClick={handlePaymentBooking}
+                            >
+                                <div
+                                    className="w-[18px] h-[18px] rounded-full bg-[#1565c0]"
+                                    style={{
+                                        boxShadow: "0 0 10px 8px #1565c088", // blur
+                                    }}
+                                />
+                                <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">
+                                    Payments
                                 </h1>
                             </div>
                             <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
@@ -156,7 +191,7 @@ const Summary = () => {
                             </div>
                         </div>
                         <div className="flex justify-end text-[#0955AC] text-[16px] font-[500] cursor-pointer">
-                          <h1>Need a Driver ?</h1>
+                            <h1>Need a Driver ?</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-10">

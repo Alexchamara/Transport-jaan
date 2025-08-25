@@ -40,12 +40,12 @@ const RentByBodyType = () => {
   };
 
   return (
-    <div className="w-full py-12">
+    <div className="w-full px-5 py-12">
       <div className="container mx-auto px-4">
         <h2 className="bebas-neue text-[40px] font-[400] text-center mb-8">
           RENT BY <span className="text-[#0955AC]">BODY TYPE</span>
         </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-10 cursor-pointer">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:gap-10 gap-5 cursor-pointer">
           {bodyTypes.map((bodyType, index) => (
             <div 
               key={index} 

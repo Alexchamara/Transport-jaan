@@ -8,12 +8,19 @@ import Blog from "../../components/landingPages/Blog";
 import Stories from "../../components/landingPages/Stories";
 import Contact from "../../components/landingPages/Contact";
 import FooterTwo from "../../layouts/FooterTwo";
+import { usePage } from "@inertiajs/react";
+
+import TravelExploreAnimation from "../../components/landingPages/TravelExploreAnimation";
 
 const LandingPage = () => {
+    const { auth } = usePage().props;
     return (
         <div className="bg-[#000000] text-[#FFFFFF]">
             <div id="home">
-                <Hero />
+                {/* <Hero /> */}
+                <TravelExploreAnimation />
+
+                {/*                 <Hero auth={auth} /> */}
             </div>
             <div id="about">
                 <About />

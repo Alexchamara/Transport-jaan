@@ -46,7 +46,7 @@ const ExpensesPieChart = () => (
                 </div>
             </div>
         </div>
-        <div className="w-[287px] h-[0.8px] bg-[#00000080] mt-10" />
+        <div className="min-w-[287px] w-full h-[0.8px] bg-[#00000080] mt-10" />
         <div className="flex flex-col w-full mt-4">
             {data.map((item, idx) => (
                 <div

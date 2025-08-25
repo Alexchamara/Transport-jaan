@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
-
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 import file from "../../../assets/vendors/clients/file.svg";
 import proPic from "../../../assets/vendors/clients/proPic.svg";
 
 const ClientTable = () => {
-    const clients = [
+    const [clients, setClients] = useState([
         {
+            id: 1,
             name: "Steve Gibson",
             email: "steve.gibson@example.com",
             phone: "+94 78 390 1623",
@@ -20,6 +20,7 @@ const ClientTable = () => {
             ],
         },
         {
+            id: 2,
             name: "Steve Gibson",
             email: "steve.gibson@example.com",
             phone: "+94 78 390 1623",
@@ -31,6 +32,7 @@ const ClientTable = () => {
             ],
         },
         {
+            id: 3,
             name: "Steve Gibson",
             email: "steve.gibson@example.com",
             phone: "+94 78 390 1623",
@@ -42,6 +44,7 @@ const ClientTable = () => {
             ],
         },
         {
+            id: 4,
             name: "Steve Gibson",
             email: "steve.gibson@example.com",
             phone: "+94 78 390 1623",
@@ -53,6 +56,7 @@ const ClientTable = () => {
             ],
         },
         {
+            id: 5,
             name: "Steve Gibson",
             email: "steve.gibson@example.com",
             phone: "+94 78 390 1623",
@@ -64,6 +68,7 @@ const ClientTable = () => {
             ],
         },
         {
+            id: 6,
             name: "Steve Gibson",
             email: "steve.gibson@example.com",
             phone: "+94 78 390 1623",
@@ -75,6 +80,7 @@ const ClientTable = () => {
             ],
         },
         {
+            id: 7,
             name: "Steve Gibson",
             email: "steve.gibson@example.com",
             phone: "+94 78 390 1623",
@@ -85,7 +91,21 @@ const ClientTable = () => {
                 { name: "Certification" },
             ],
         },
-    ];
+    ]);
+
+    // State for popup
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentClientId, setCurrentClientId] = useState(null);
+    const [newClient, setNewClient] = useState({
+        name: "",
+        email: "",
+        phone: "",
+        address: "",
+        documents: [],
+    });
+    const [documentInput, setDocumentInput] = useState("");
+    const [selectedFile, setSelectedFile] = useState(null);
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -108,14 +128,97 @@ const ClientTable = () => {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else {
             if (currentPage <= 3) {
-                pages.push(1, 2, 3, '...', totalPages);
+                pages.push(1, 2, 3, "...", totalPages);
             } else if (currentPage >= totalPages - 2) {
-                pages.push(1, '...', totalPages - 2, totalPages - 1, totalPages);
+                pages.push(
+                    1,
+                    "...",
+                    totalPages - 2,
+                    totalPages - 1,
+                    totalPages
+                );
             } else {
-                pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                pages.push(
+                    1,
+                    "...",
+                    currentPage - 1,
+                    currentPage,
+                    currentPage + 1,
+                    "...",
+                    totalPages
+                );
             }
         }
         return pages;
+    };
+
+    // Handle form input changes
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewClient({ ...newClient, [name]: value });
+    };
+
+    // Handle file input
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setSelectedFile(file);
+        }
+    };
+
+    // Add file to documents
+    const addFileToDocuments = () => {
+        if (selectedFile) {
+            setNewClient({
+                ...newClient,
+                documents: [
+                    ...newClient.documents,
+                    { name: selectedFile.name },
+                ],
+            });
+            setSelectedFile(null);
+        }
+    };
+
+    // Handle form submission
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (isEditing) {
+            setClients(
+                clients.map((client) =>
+                    client.id === currentClientId
+                        ? { ...newClient, id: currentClientId }
+                        : client
+                )
+            );
+        } else {
+            setClients([...clients, { ...newClient, id: clients.length + 1 }]);
+        }
+        setNewClient({
+            name: "",
+            email: "",
+            phone: "",
+            address: "",
+            documents: [],
+        });
+        setDocumentInput("");
+        setSelectedFile(null);
+        setIsPopupOpen(false);
+        setIsEditing(false);
+        setCurrentClientId(null);
+    };
+
+    // Handle edit button click
+    const handleEdit = (client) => {
+        setNewClient({ ...client });
+        setCurrentClientId(client.id);
+        setIsEditing(true);
+        setIsPopupOpen(true);
+    };
+
+    // Handle delete button click
+    const handleDelete = (id) => {
+        setClients(clients.filter((client) => client.id !== id));
     };
 
     // Reset to first page when itemsPerPage changes
@@ -124,7 +227,7 @@ const ClientTable = () => {
     }, [itemsPerPage]);
 
     return (
-        <div>
+        <div className="relative">
             <div className="flex flex-row items-center justify-between w-full">
                 <div className="flex flex-row gap-5 justify-center items-center">
                     <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
@@ -136,10 +239,152 @@ const ClientTable = () => {
                         />
                     </div>
                 </div>
-                <button className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]">
+                <button
+                    className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+                    onClick={() => {
+                        setIsEditing(false);
+                        setNewClient({
+                            name: "",
+                            email: "",
+                            phone: "",
+                            address: "",
+                            documents: [],
+                        });
+                        setIsPopupOpen(true);
+                    }}
+                >
                     Add Booking
                 </button>
             </div>
+
+            {/* Popup for adding/editing client */}
+            {isPopupOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
+                    <div className="bg-white p-10 rounded-[10px] w-[500px] max-h-[100vh] overflow-y-auto">
+                        <h2 className="text-[18px] font-[700] mb-4">
+                            {isEditing ? "Edit Client" : "Add New Client"}
+                        </h2>
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-[14px] font-[600]">
+                                    Name
+                                </label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={newClient.name}
+                                    onChange={handleInputChange}
+                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
+                                    placeholder="Enter name"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[14px] font-[600]">
+                                    Email
+                                </label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={newClient.email}
+                                    onChange={handleInputChange}
+                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
+                                    placeholder="Enter email"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[14px] font-[600]">
+                                    Phone
+                                </label>
+                                <input
+                                    type="text"
+                                    name="phone"
+                                    value={newClient.phone}
+                                    onChange={handleInputChange}
+                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
+                                    placeholder="Enter phone number"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[14px] font-[600]">
+                                    Address
+                                </label>
+                                <input
+                                    type="text"
+                                    name="address"
+                                    value={newClient.address}
+                                    onChange={handleInputChange}
+                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
+                                    placeholder="Enter address"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[14px] font-[600]">
+                                    Documents
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="file"
+                                        onChange={handleFileChange}
+                                        className="w-full p-5 border border-[#000000] border-dashed rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000] text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
+                                    />
+                                    <button
+                                        onClick={addFileToDocuments}
+                                        disabled={!selectedFile}
+                                        className={`px-4 py-5 font-[600] rounded-[5px] text-white ${
+                                            selectedFile
+                                                ? "bg-[#0955AC]"
+                                                : "bg-gray-400 cursor-not-allowed"
+                                        }`}
+                                    >
+                                        Add File
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="mt-2">
+                                {newClient.documents.map((doc, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <img src={file} alt="file icon" />
+                                        <span>{doc.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={() => {
+                                        setIsPopupOpen(false);
+                                        setIsEditing(false);
+                                        setNewClient({
+                                            name: "",
+                                            email: "",
+                                            phone: "",
+                                            address: "",
+                                            documents: [],
+                                        });
+                                        setDocumentInput("");
+                                        setSelectedFile(null);
+                                    }}
+                                    className="px-4 py-2 bg-gray-200 rounded-[5px] font-[700]"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSubmit}
+                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] font-[700]"
+                                >
+                                    {isEditing ? "Update" : "Save"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* table headings */}
             <div className="figtree grid grid-cols-7 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
@@ -188,7 +433,7 @@ const ClientTable = () => {
             {/* table rows */}
             {currentClients.map((client, idx) => (
                 <div
-                    key={startIdx + idx}
+                    key={client.id}
                     className="figtree grid grid-cols-7 h-[100px] border-b-[1.5px] border-[#00000033] px-10 items-center text-[14px] font-[500]"
                 >
                     <div className="flex flex-row col-span-2 items-center gap-7">
@@ -217,10 +462,16 @@ const ClientTable = () => {
                         ))}
                     </div>
                     <div className="flex flex-row justify-center items-center gap-3">
-                        <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
+                        <div
+                            className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer"
+                            onClick={() => handleEdit(client)}
+                        >
                             Edit
                         </div>
-                        <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
+                        <div
+                            className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer"
+                            onClick={() => handleDelete(client.id)}
+                        >
                             Delete
                         </div>
                     </div>
@@ -232,14 +483,20 @@ const ClientTable = () => {
             <div className="flex justify-between items-center gap-2 mt-20">
                 {/* Left: Results per page */}
                 <div className="flex items-center">
-                    <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
+                    <span className="mr-3 text-[#00000080] text-[15px]">
+                        Results per page
+                    </span>
                     <select
                         className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                         value={itemsPerPage}
-                        onChange={e => setItemsPerPage(Number(e.target.value))}
+                        onChange={(e) =>
+                            setItemsPerPage(Number(e.target.value))
+                        }
                     >
-                        {perPageOptions.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
+                        {perPageOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                                {opt}
+                            </option>
                         ))}
                     </select>
                 </div>
@@ -253,15 +510,23 @@ const ClientTable = () => {
                         <span className="text-lg">&#60;</span>
                     </button>
                     {getPageNumbers().map((num, idx) =>
-                        num === '...'
-                            ? <span key={idx} className="px-2">...</span>
-                            : <button
+                        num === "..." ? (
+                            <span key={idx} className="px-2">
+                                ...
+                            </span>
+                        ) : (
+                            <button
                                 key={num}
-                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num ? ' text-[#0955AC] font-[600] border-[2px] border-[#0955AC]' : 'bg-[#F4F3F3]'}`}
+                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                    currentPage === num
+                                        ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
+                                        : "bg-[#F4F3F3]"
+                                }`}
                                 onClick={() => goToPage(num)}
                             >
                                 {num}
                             </button>
+                        )
                     )}
                     <button
                         className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"

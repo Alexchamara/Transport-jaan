@@ -14,9 +14,18 @@ class HandleInertiaRequests extends Middleware
         return parent::version($request);
     }
 
-    public function share(Request $request): array
+    /**
+     * Define the props that are shared by default.
+     *
+     * @return array<string, mixed>
+     */
+   public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
+            'auth' => [
+                'user' => $request->user(),
+            ],
+            // expose Laravel flash messages to the front end
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error'   => fn () => $request->session()->get('error'),

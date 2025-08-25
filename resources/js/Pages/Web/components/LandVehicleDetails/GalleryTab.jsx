@@ -69,7 +69,7 @@ const GalleryTab = () => {
     };
 
     return (
-        <div className="relative w-auto xl:w-[880px] flex justify-center items-center">
+        <div className="relative w-full xl:w-[880px] flex justify-center items-center">
             <div className="grid grid-cols-4 grid-rows-4 gap-5">
                 {images.map((img, idx) => (
                     <img

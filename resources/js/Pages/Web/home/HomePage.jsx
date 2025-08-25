@@ -40,16 +40,7 @@ const HomePage = ({ auth }) => {
 
     return (
         <div>
-            <div
-                className="relative flex flex-col"
-                // style={{
-                //     backgroundImage: `url(${bg})`,
-                //     backgroundSize: "cover",
-                //     backgroundPosition: "center",
-                //     backgroundRepeat: "no-repeat",
-                //     minHeight: "calc(100vh - 80px)",
-                // }}
-            >
+            <div className="relative flex flex-col">
                 <Header />
 
                 <HeroSection

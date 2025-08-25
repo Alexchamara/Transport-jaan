@@ -14,7 +14,7 @@ import heartB2 from "../../assets/landVehicleDetails/heartB2.svg"
 const VehicleInfo = () => {
     const [selectedTab, setSelectedTab] = useState("car-details");
     return (
-        <div className="poppins w-full h-auto">
+        <div className="poppins w-full h-auto p-10 xl:p-0">
             <h1 className="text-[12px] font-[600] text-[#00000080]">
                 Lamborghini
             </h1>
@@ -32,12 +32,12 @@ const VehicleInfo = () => {
                         </h1>
                     </div>
                 </div>
-                <div className="flex flex-col md:flex-row items-center gap-5">
-                    <div className=" w-[81px] h-[30px] rounded-[4px] border-[1px] border-[#00000030] bg-[#EAE9E8] flex flex-row justify-center items-center gap-3">
+                <div className="flex flex-row items-center py-10 lg:py-0 gap-5">
+                    <div className="min-w-[81px] min-h-[30px] px-4 py-2 rounded-[4px] border-[1px] border-[#00000030] bg-[#EAE9E8] flex flex-row justify-center items-center gap-3 cursor-pointer">
                         <img src={share} />
                         <h1>Share</h1>
                     </div>
-                    <div className=" w-[81px] h-[30px] rounded-[4px] border-[1px] border-[#0955AC] bg-[#0955AC] text-[#FFFFFF] flex flex-row justify-center items-center gap-3">
+                    <div className="min-w-[81px] min-h-[30px] px-4 py-2 rounded-[4px] border-[1px] border-[#0955AC] bg-[#0955AC] text-[#FFFFFF] flex flex-row justify-center items-center gap-3 cursor-pointer">
                         <img src={heartB2} />
                         <h1>Wishlist</h1>
                     </div>
@@ -51,9 +51,9 @@ const VehicleInfo = () => {
             </div>
 
             <div className="py-10">
-                <div className="flex flex-col md:flex-row md:gap-20 px-20 text-[12px] font-[600] text-[#00000080] border-b-[2px] border-[#0000001F]">
+                <div className="flex flex-row xl:gap-20 gap-5 xl:px-20 text-[12px] font-[600] text-[#00000080] border-b-[2px] border-[#0000001F]">
                     <h1
-                        className={`border-b-[2px] pb-5 w-[92px] flex justify-center items-center cursor-pointer ${
+                        className={`border-b-[2px] pb-5 xl:w-[92px] flex justify-center items-center cursor-pointer ${
                             selectedTab === "car-details"
                                 ? "border-[#0955AC] text-[#0955AC]"
                                 : ""
@@ -63,7 +63,7 @@ const VehicleInfo = () => {
                         Car Details
                     </h1>
                     <h1
-                        className={`border-b-[2px] pb-5 w-[92px] flex justify-center items-center cursor-pointer ${
+                        className={`border-b-[2px] pb-5 xl:w-[92px] flex justify-center items-center cursor-pointer ${
                             selectedTab === "policies"
                                 ? "border-[#0955AC] text-[#0955AC]"
                                 : ""
@@ -73,7 +73,7 @@ const VehicleInfo = () => {
                         Policies
                     </h1>
                     <h1
-                        className={`border-b-[2px] pb-5 w-[92px] flex justify-center items-center cursor-pointer ${
+                        className={`border-b-[2px] pb-5 xl:w-[92px] flex justify-center items-center cursor-pointer ${
                             selectedTab === "reviews"
                                 ? "border-[#0955AC] text-[#0955AC]"
                                 : ""
@@ -83,7 +83,7 @@ const VehicleInfo = () => {
                         Reviews
                     </h1>
                     <h1
-                        className={`border-b-[2px] pb-5 w-[92px] flex justify-center items-center cursor-pointer ${
+                        className={`border-b-[2px] pb-5 xl:w-[92px] flex justify-center items-center cursor-pointer ${
                             selectedTab === "gallery"
                                 ? "border-[#0955AC] text-[#0955AC]"
                                 : ""

@@ -191,7 +191,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
 
             {/* Popup Modal */}
             {isPopupOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
                     <div className="bg-white p-6 rounded-lg w-[400px] shadow-lg">
                         <h2 className="text-[18px] font-[700] mb-4">Edit Booking</h2>
                         <div className="mb-4">
@@ -200,7 +200,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                                 type="text"
                                 value={newPayment}
                                 onChange={(e) => setNewPayment(e.target.value)}
-                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                 placeholder="Enter payment amount"
                             />
                         </div>
@@ -209,7 +209,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                             <select
                                 value={newPaymentStatus}
                                 onChange={(e) => setNewPaymentStatus(e.target.value)}
-                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                className="w-full p-2 border-[1px] focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                             >
                                 <option value="Paid">Paid</option>
                                 <option value="Pending">Pending</option>
@@ -220,7 +220,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                             <select
                                 value={newStatus}
                                 onChange={(e) => setNewStatus(e.target.value)}
-                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                             >
                                 <option value="Ongoing">Ongoing</option>
                                 <option value="Returned">Returned</option>
@@ -229,13 +229,13 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                         <div className="flex justify-end gap-2">
                             <button
                                 onClick={() => setIsPopupOpen(false)}
-                                className="px-4 py-2 bg-gray-200 rounded text-[14px] font-[500]"
+                                className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handlePopupSubmit}
-                                className="px-4 py-2 bg-[#0955AC] text-white rounded text-[14px] font-[500]"
+                                className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[14px] font-[700]"
                             >
                                 Save
                             </button>

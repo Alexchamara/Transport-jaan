@@ -39,12 +39,12 @@ const RentByBrands = () => {
   };
 
   return (
-    <div className="w-full py-12 mt-10">
+    <div className="w-full py-12 px-5 mt-10">
       <div className="container mx-auto px-4">
         <h2 className="bebas-neue text-[40px] font-[400] text-center mb-8">
           RENT BY <span className="text-[#0955AC]">BRANDS</span>
         </h2>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-10">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 xl:gap-10 gap-5">
           {brands.map((brand, index) => (
             <div 
               key={index} 
