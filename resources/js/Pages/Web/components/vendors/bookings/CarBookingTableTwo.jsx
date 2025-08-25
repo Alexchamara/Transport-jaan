@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 
-const CarBookingTableTwo = ({ bookings, setBookings }) => {
+const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
+  
     // State for pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -24,7 +25,6 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
         setCurrentPage(page);
     };
 
-    // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
         const pages = [];
         if (totalPages <= 5) {
@@ -41,7 +41,6 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
         return pages;
     };
 
-    // Handle row click to open popup
     const handleRowClick = (booking, index) => {
         setSelectedBooking({ ...booking, index: startIdx + index });
         setNewPayment(booking.payment);
@@ -50,7 +49,6 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
         setIsPopupOpen(true);
     };
 
-    // Handle popup submission
     const handlePopupSubmit = () => {
         if (selectedBooking) {
             const updatedBookings = [...bookings];
@@ -66,8 +64,8 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
                 paymentStatusColor: paymentStatusColors[newPaymentStatus]?.color || "#3B8F314D",
                 paymentStatusBg: paymentStatusColors[newPaymentStatus]?.bg || "#ACE19957",
                 status: newStatus,
-                statusBg: newStatus === "Returned" ? "#FFCD29" : "#FFCD29",
-                statusText: newStatus === "Returned" ? "#FFCD29" : "#000000",
+                statusBg: statusColors[newStatus]?.bg || "#FFCD29", // Use statusColors prop
+                statusText: statusColors[newStatus]?.text || "#000000", // Use statusColors prop
             };
 
             setBookings(updatedBookings);
@@ -76,7 +74,6 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
         }
     };
 
-    // Reset to first page when itemsPerPage changes
     React.useEffect(() => {
         setCurrentPage(1);
     }, [itemsPerPage]);
@@ -194,7 +191,7 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
 
             {/* Popup Modal */}
             {isPopupOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
                     <div className="bg-white p-6 rounded-lg w-[400px] shadow-lg">
                         <h2 className="text-[18px] font-[700] mb-4">Edit Booking</h2>
                         <div className="mb-4">
@@ -203,7 +200,7 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
                                 type="text"
                                 value={newPayment}
                                 onChange={(e) => setNewPayment(e.target.value)}
-                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                 placeholder="Enter payment amount"
                             />
                         </div>
@@ -212,7 +209,7 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
                             <select
                                 value={newPaymentStatus}
                                 onChange={(e) => setNewPaymentStatus(e.target.value)}
-                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                className="w-full p-2 border-[1px] focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                             >
                                 <option value="Paid">Paid</option>
                                 <option value="Pending">Pending</option>
@@ -223,7 +220,7 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
                             <select
                                 value={newStatus}
                                 onChange={(e) => setNewStatus(e.target.value)}
-                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                             >
                                 <option value="Ongoing">Ongoing</option>
                                 <option value="Returned">Returned</option>
@@ -232,13 +229,13 @@ const CarBookingTableTwo = ({ bookings, setBookings }) => {
                         <div className="flex justify-end gap-2">
                             <button
                                 onClick={() => setIsPopupOpen(false)}
-                                className="px-4 py-2 bg-gray-200 rounded text-[14px] font-[500]"
+                                className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handlePopupSubmit}
-                                className="px-4 py-2 bg-[#0955AC] text-white rounded text-[14px] font-[500]"
+                                className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[14px] font-[700]"
                             >
                                 Save
                             </button>

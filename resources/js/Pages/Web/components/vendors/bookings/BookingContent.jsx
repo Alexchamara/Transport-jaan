@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, { useState } from "react";
 
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../assets/vendors/dashboard/settings.svg";
@@ -19,7 +19,18 @@ import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow
 import CarBookingTableTwo from "../../../components/vendors/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
 
+
 const BookingContent = () => {
+    const paymentStatusColors = {
+        Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
+        Pending: { color: "#FF60608C", bg: "#FF60608C" }, // Solid colors for Pending
+    };
+
+    const statusColors = {
+        Ongoing: { bg: "#FFCD29", text: "#000000" }, // Yellow background, black text
+        Returned: { bg: "#3B8F31", text: "#FFCD29" }, // Dark green background, yellow text
+    };
+
     const [bookings, setBookings] = useState([
         {
             id: "C-JV1001",
@@ -32,11 +43,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -49,11 +60,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$50",
             paymentStatus: "Pending",
-            paymentStatusColor: "#FF6060",
-            paymentStatusBg: "#FF60608C",
+            paymentStatusColor: paymentStatusColors.Pending.color,
+            paymentStatusBg: paymentStatusColors.Pending.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -66,11 +77,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
-            status: "Returned",
-            statusBg: "#FFCD29",
-            statusText: "#FFCD29",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
+            status: "Ongoing",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -83,11 +94,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -100,11 +111,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -117,11 +128,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -134,11 +145,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -151,11 +162,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -168,11 +179,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -185,11 +196,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -202,11 +213,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
         {
             id: "C-JV1001",
@@ -219,11 +230,11 @@ const BookingContent = () => {
             endDate: "May 17, 2025",
             payment: "$450",
             paymentStatus: "Paid",
-            paymentStatusColor: "#3B8F314D",
-            paymentStatusBg: "#ACE19957",
+            paymentStatusColor: paymentStatusColors.Paid.color,
+            paymentStatusBg: paymentStatusColors.Paid.bg,
             status: "Ongoing",
-            statusBg: "#FFCD29",
-            statusText: "#000000",
+            statusBg: statusColors.Ongoing.bg,
+            statusText: statusColors.Ongoing.text,
         },
     ]);
 
@@ -242,7 +253,7 @@ const BookingContent = () => {
         status: "Ongoing",
     });
 
-    // Handle input changes in the add booking form
+    // Handle input changes for the form
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setNewBooking((prev) => ({ ...prev, [name]: value }));
@@ -250,22 +261,15 @@ const BookingContent = () => {
 
     // Handle form submission to add new booking
     const handleAddBooking = () => {
-        const paymentStatusColors = {
-            Paid: { color: "#3B8F314D", bg: "#ACE19957" },
-            Pending: { color: "#FF6060", bg: "#FF60608C" },
-        };
-
         const newBookingEntry = {
             ...newBooking,
             paymentStatusColor:
                 paymentStatusColors[newBooking.paymentStatus]?.color ||
                 "#FF6060",
             paymentStatusBg:
-                paymentStatusColors[newBooking.paymentStatus]?.bg ||
-                "#FF60608C",
-            statusBg: newBooking.status === "Returned" ? "#FFCD29" : "#FFCD29",
-            statusText:
-                newBooking.status === "Returned" ? "#FFCD29" : "#000000",
+                paymentStatusColors[newBooking.paymentStatus]?.bg || "#FF6060",
+            statusBg: statusColors[newBooking.status]?.bg || "#FFCD29",
+            statusText: statusColors[newBooking.status]?.text || "#000000",
         };
 
         setBookings((prev) => [...prev, newBookingEntry]);
@@ -286,22 +290,22 @@ const BookingContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-10 py-10">
+        <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Bookings</h1>
                 <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
+                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
+                        <img src={search} alt="Search" />
                     </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
+                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
+                        <img src={settings} alt="Settings" />
                     </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
+                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
+                        <img src={bell} alt="Notifications" />
                     </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
+                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
+                        <img src={proPic} alt="Profile" />
                     </div>
 
                     <div className="figtree flex flex-col justify-center items-start">
@@ -314,9 +318,9 @@ const BookingContent = () => {
             </div>
             {/* end of header section */}
 
-            <div className="flex flex-row gap-10 py-20">
+            <div className="flex flex-row gap-10 justify-between py-20 w-full">
                 {/* mini left */}
-                <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-8 w-full">
                     {/* card 1 */}
                     <div
                         className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
@@ -326,7 +330,7 @@ const BookingContent = () => {
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={icon1} />
+                                <img src={icon1} alt="Upcoming Bookings" />
                             </div>
                             <div>
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
@@ -337,7 +341,11 @@ const BookingContent = () => {
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                             <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img src={upArrow} className="size-[19px]" />
+                                <img
+                                    src={upArrow}
+                                    className="size-[19px]"
+                                    alt="Increase"
+                                />
                                 <h1 className="">+2.86%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
@@ -346,14 +354,14 @@ const BookingContent = () => {
                     {/* end of card 1 */}
                     {/* card 2 */}
                     <div
-                        className="w-full h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={icon2} />
+                                <img src={icon2} alt="Pending Bookings" />
                             </div>
                             <div>
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
@@ -364,7 +372,11 @@ const BookingContent = () => {
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                             <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img src={upArrow} className="size-[19px]" />
+                                <img
+                                    src={upArrow}
+                                    className="size-[19px]"
+                                    alt="Increase"
+                                />
                                 <h1 className="">+2.86%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
@@ -373,14 +385,14 @@ const BookingContent = () => {
                     {/* end of card 2 */}
                     {/* card 3 */}
                     <div
-                        className="w-full h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={icon3} />
+                                <img src={icon3} alt="Cancelled Bookings" />
                             </div>
                             <div>
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
@@ -391,7 +403,11 @@ const BookingContent = () => {
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                             <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img src={upArrow} className="size-[19px]" />
+                                <img
+                                    src={upArrow}
+                                    className="size-[19px]"
+                                    alt="Increase"
+                                />
                                 <h1 className="">+2.86%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
@@ -400,14 +416,14 @@ const BookingContent = () => {
                     {/* end of card 3 */}
                     {/* card 4 */}
                     <div
-                        className="w-full h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={icon4} />
+                                <img src={icon4} alt="Completed Bookings" />
                             </div>
                             <div>
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
@@ -418,7 +434,11 @@ const BookingContent = () => {
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                             <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                <img src={upArrow} className="size-[19px]" />
+                                <img
+                                    src={upArrow}
+                                    className="size-[19px]"
+                                    alt="Increase"
+                                />
                                 <h1 className="">+2.86%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
@@ -429,7 +449,7 @@ const BookingContent = () => {
 
                 {/* mini right */}
                 <div
-                    className="w-[712px] h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
+                    className="min-w-[712px] w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <BookingBarChart />
@@ -437,7 +457,6 @@ const BookingContent = () => {
             </div>
 
             {/* car booking section */}
-
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -486,8 +505,8 @@ const BookingContent = () => {
 
                 {/* Add Booking Popup */}
                 {isAddPopupOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                        <div className="bg-white p-6 rounded-lg w-[500px] shadow-lg">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
+                        <div className="bg-white p-10 rounded-[10px] w-[600px] shadow-lg">
                             <h2 className="text-[18px] font-[700] mb-4">
                                 Add New Booking
                             </h2>
@@ -501,7 +520,7 @@ const BookingContent = () => {
                                         name="id"
                                         value={newBooking.id}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. C-JV1001"
                                     />
                                 </div>
@@ -514,7 +533,7 @@ const BookingContent = () => {
                                         name="bookingDate"
                                         value={newBooking.bookingDate}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. May 4, 2025"
                                     />
                                 </div>
@@ -527,7 +546,7 @@ const BookingContent = () => {
                                         name="clientName"
                                         value={newBooking.clientName}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. Steve Gibson"
                                     />
                                 </div>
@@ -540,7 +559,7 @@ const BookingContent = () => {
                                         name="carModel"
                                         value={newBooking.carModel}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. Honda Civic"
                                     />
                                 </div>
@@ -553,7 +572,7 @@ const BookingContent = () => {
                                         name="carPlate"
                                         value={newBooking.carPlate}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. CBK - 1475"
                                     />
                                 </div>
@@ -566,7 +585,7 @@ const BookingContent = () => {
                                         name="plan"
                                         value={newBooking.plan}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. 7 days"
                                     />
                                 </div>
@@ -579,7 +598,7 @@ const BookingContent = () => {
                                         name="startDate"
                                         value={newBooking.startDate}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. May 10, 2025"
                                     />
                                 </div>
@@ -592,7 +611,7 @@ const BookingContent = () => {
                                         name="endDate"
                                         value={newBooking.endDate}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. May 17, 2025"
                                     />
                                 </div>
@@ -605,7 +624,7 @@ const BookingContent = () => {
                                         name="payment"
                                         value={newBooking.payment}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. $450"
                                     />
                                 </div>
@@ -617,7 +636,7 @@ const BookingContent = () => {
                                         name="paymentStatus"
                                         value={newBooking.paymentStatus}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                     >
                                         <option value="Paid">Paid</option>
                                         <option value="Pending">Pending</option>
@@ -631,7 +650,7 @@ const BookingContent = () => {
                                         name="status"
                                         value={newBooking.status}
                                         onChange={handleInputChange}
-                                        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                     >
                                         <option value="Ongoing">Ongoing</option>
                                         <option value="Returned">
@@ -643,13 +662,13 @@ const BookingContent = () => {
                             <div className="flex justify-end gap-2">
                                 <button
                                     onClick={() => setIsAddPopupOpen(false)}
-                                    className="px-4 py-2 bg-gray-200 rounded text-[14px] font-[500]"
+                                    className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleAddBooking}
-                                    className="px-4 py-2 bg-[#0955AC] text-white rounded text-[14px] font-[500]"
+                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[14px] font-[700]"
                                 >
                                     Add Booking
                                 </button>
@@ -661,6 +680,7 @@ const BookingContent = () => {
                 <CarBookingTableTwo
                     bookings={bookings}
                     setBookings={setBookings}
+                    statusColors={statusColors} // Pass statusColors as a prop
                 />
             </div>
             {/* end */}

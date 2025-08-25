@@ -1,4 +1,4 @@
-import React, { useState , useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Inertia } from "@inertiajs/inertia";
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../assets/vendors/dashboard/settings.svg";
@@ -263,9 +263,8 @@ const UnitContent = () => {
         setShowAddUnit(true);
     };
 
-
     return (
-        <div className="w-full h-auto pr-10 py-10">
+        <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Units</h1>
@@ -305,14 +304,22 @@ const UnitContent = () => {
                             />
                         </div>
                         <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={filterIcon} className="size-[12px]" alt="Filter" />
+                            <img
+                                src={filterIcon}
+                                className="size-[12px]"
+                                alt="Filter"
+                            />
                             <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
                                 Car type
                             </h1>
                             <img src={miniDownArrow} alt="Dropdown" />
                         </div>
                         <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={filterIcon} className="size-[12px]" alt="Filter" />
+                            <img
+                                src={filterIcon}
+                                className="size-[12px]"
+                                alt="Filter"
+                            />
                             <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
                                 Status
                             </h1>
@@ -338,7 +345,7 @@ const UnitContent = () => {
                     {currentUnits.map((unit) => (
                         <div
                             key={unit.id}
-                            className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex flex-row items-center my-10"
+                            className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex lg:flex-row flex-col items-center my-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <img src={car1} alt="Car" />
@@ -372,8 +379,8 @@ const UnitContent = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-row justify-center items-center pl-[100px] gap-20">
-                                    <div className="poppins flex flex-row gap-10 text-[15px] font-[500]">
+                                <div className="flex lg:flex-row flex-col justify-center items-center pl-[40px] gap-20">
+                                    <div className="poppins flex lg:flex-row flex-col gap-10 text-[15px] font-[500]">
                                         <div className="flex flex-col justify-center items-center gap-7">
                                             <img
                                                 src={icon1}
@@ -407,18 +414,31 @@ const UnitContent = () => {
                                             <h1>{unit.fuelType}</h1>
                                         </div>
                                     </div>
-                                    <button className="figtree w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-[#FFFFFF] font-[700]">
+                                    <button
+                                        className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-[#FFFFFF] font-[700]"
+                                        onClick={() =>
+                                            (window.location.href = "/unitDetails")
+                                        }
+                                    >
                                         View
                                     </button>
                                 </div>
                             </div>
                             {/* delete buttons */}
-                            <div className="absolute right-0 w-[143px] h-full bg-[#D8E4F2] flex flex-row justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px]">
+                            <div className="absolute right-0 w-auto min-w-[143px] h-full bg-[#D8E4F2] flex flex-row justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px]">
                                 <div className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer">
-                                    <img src={editIcon} className="size-[24px]" alt="Edit" />
+                                    <img
+                                        src={editIcon}
+                                        className="size-[24px]"
+                                        alt="Edit"
+                                    />
                                 </div>
                                 <div className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer">
-                                    <img src={deleteIcon} className="size-[24px]" alt="Delete" />
+                                    <img
+                                        src={deleteIcon}
+                                        className="size-[24px]"
+                                        alt="Delete"
+                                    />
                                 </div>
                             </div>
                         </div>

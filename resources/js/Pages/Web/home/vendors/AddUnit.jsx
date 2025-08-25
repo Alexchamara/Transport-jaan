@@ -134,9 +134,9 @@ const AddUnit = () => {
   };
 
   return (
-    <div className="w-full mx-auto p-4 sm:p-6 lg:p-8 figtree">
+    <div className="w-full mx-auto p-4 sm:p-6 lg:p-8 poppins">
       <div>
-        <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-8 bebas-neue font-[400]">
+        <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-8 font-[400]">
           {/* Category Section */}
           <section className="bg-[#FFFFFF] p-6 rounded-lg mb-8">
             <h2 className="text-[18px] font-[400] text-gray-800 mb-6">Category</h2>
@@ -916,7 +916,7 @@ const AddUnit = () => {
             <button
               type="button"
               className="px-6 py-2.5 border border-gray-300 text-gray-700 font-[700] figtree rounded-lg focus:outline-none focus:ring-0 transition-colors duration-150"
-              onClick={() => window.location.href = "/vendors/units"}
+              onClick={() => window.location.href = "/units"}
             >
               Cancel
             </button>

@@ -17,7 +17,7 @@ const About = () => {
                     <img src={img1} />
                     <div className="flex flex-col gap-5">
                         <div
-                            className="lg:w-[337px] lg:h-[219px] rounded-[30px] font-[600] text-[#29D3DC] flex flex-col justify-center items-center"
+                            className="lg:w-[337px] lg:h-[219px] p-5 rounded-[30px] font-[600] text-[#29D3DC] flex flex-col justify-center items-center"
                             style={{
                                 background:
                                     "linear-gradient(180deg, #11207D 0%, #1F3AE3 100%)",

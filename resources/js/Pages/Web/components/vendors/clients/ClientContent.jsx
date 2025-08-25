@@ -8,7 +8,7 @@ import ClientTable from "./ClientTable";
 
 const ClientContent = () => {
     return (
-        <div className="w-full h-auto pr-20 py-10">
+        <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Clients</h1>
@@ -37,7 +37,7 @@ const ClientContent = () => {
             {/* end of header section */}
 
             <div
-                className="w-[1126px] h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-10 py-10"
+                className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-10 py-10"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}

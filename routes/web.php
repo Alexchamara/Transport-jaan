@@ -33,16 +33,18 @@ Route::get('/drivers-home', [WebController::class, 'driversHome'])->name('driver
 Route::get('/driver-search-results', [WebController::class, 'driverSearchResults'])->name('driver.search.results');
 Route::get('/driver-details', [WebController::class, 'driverDetails'])->name('driver.details');
 Route::get('/vehicle-checkout', [WebController::class, 'vehicleCheckout'])->name('vehicle.checkout');
+Route::get('/vehicle-payments', [WebController::class, 'vehiclePayments'])->name('vehicle.vehiclePayments');
+
 Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
+Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->name('freight-quotes.store');
+
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
 
-//-------------------------------
 // client routes
 Route::middleware(['auth', 'role:client'])->group(function () {
-
-    //LIKe
+ //LIKe
     Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');
     // Vehicle Reviews
     Route::get('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'index'])
@@ -51,6 +53,8 @@ Route::middleware(['auth', 'role:client'])->group(function () {
         ->name('vehicles.reviews.store')
         ->middleware('auth');
 });
+
+   
 
 Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('home');
 Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
@@ -87,42 +91,64 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')-
         return Inertia::render('Web/home/vendors/Unit');
     })->name('units');
 
-    Route::get('/dashboard', function () {
-        return Inertia::render('Web/home/vendors/Dashboard');
-    })->name('dashboard');
+Route::get('/units', function () {
+    return Inertia::render('Web/home/vendors/Unit');
+})->name('units');
 
-    Route::get('/clients', function () {
-        return Inertia::render('Web/home/vendors/Client');
-    })->name('clients');
+Route::get('/dashboard', function () {
+    return Inertia::render('Web/home/vendors/Dashboard');
+})->name('dashboard');
 
-    Route::get('/expenses', function () {
-        return Inertia::render('Web/home/vendors/Expenses');
-    })->name('expenses');
+Route::get('/clients', function () {
+    return Inertia::render('Web/home/vendors/Client');
+})->name('clients');
 
-    Route::get('/payment', function () {
-        return Inertia::render('Web/home/vendors/Payment');
-    })->name('payment');
+Route::get('/expenses', function () {
+    return Inertia::render('Web/home/vendors/Expenses');
+})->name('expenses');
 
-    Route::get('/tracking', function () {
-        return Inertia::render('Web/home/vendors/Tracking');
-    })->name('tracking');
+Route::get('/payment', function () {
+    return Inertia::render('Web/home/vendors/Payment');
+})->name('payment');
 
-    Route::get('/calendar', function () {
-        return Inertia::render('Web/home/vendors/Calendar');
-    })->name('calendar');
+Route::get('/tracking', function () {
+    return Inertia::render('Web/home/vendors/Tracking');
+})->name('tracking');
 
-    Route::get('/addUnit', function () {
-        return Inertia::render('Web/home/vendors/AddUnit');
-    })->name('addUnit');
+Route::get('/calendar', function () {
+    return Inertia::render('Web/home/vendors/Calendar');
+})->name('calendar');
 
-    Route::get('/mainDashboard', function () {
-        return Inertia::render('Web/home/vendors/MainDashboard');
-    })->name('mainDashboard');
-});
+Route::get('/addUnit', function () {
+    return Inertia::render('Web/home/vendors/AddUnit');
+})->name('addUnit');
+
+Route::get('/mainDashboard', function () {
+    return Inertia::render('Web/home/vendors/MainDashboard');
+})->name('mainDashboard');
+
+Route::get('/unitDetails', function () {
+    return Inertia::render('Web/home/vendors/UnitDetails');
+})->name('mainDashboard');
+// end
+
+
+
+// Client
+Route::get('/ClientDashboard', function () {
+    return Inertia::render('Web/home/client/ClientDashboard');
+})->name('ClientDashboard');
+
+
+
+
+
+
+
 
 
 // vendor - warehouse rent
-Route::get('/vendors/warehouse/unit', function () {
+Route::get('/warehouse/unit', function () {
     return Inertia::render('Web/home/vendors/warehouse/Unit');
 })->name('warehouse.Unit');
 

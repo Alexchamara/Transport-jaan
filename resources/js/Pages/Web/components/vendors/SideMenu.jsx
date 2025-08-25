@@ -15,7 +15,7 @@ const SideMenu = () => {
     const currentPath = window.location.pathname;
 
     return (
-        <div className="poppins w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-5 px-5 rounded-tr-[10px] rounded-br-[10px]">
+        <div className="poppins min-w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-10 px-10 rounded-tr-[10px] rounded-br-[10px]">
             <h1 className="text-[25px] font-[700] text-center uppercase">
                 Company <br /> <span className="text-[#0955AC]">Logo</span>{" "}
             </h1>
@@ -27,9 +27,7 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() =>
-                        (window.location.href = "/vendors/dashboard")
-                    }
+                    onClick={() => (window.location.href = "/dashboard")}
                 >
                     <img src={dashLogo} className="w-[25px]" />
                     <h1>Dashboard</h1>
@@ -40,7 +38,7 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/vendors/bookings")}
+                    onClick={() => (window.location.href = "/bookings")}
                 >
                     <img src={bookLogo} className="w-[25px]" />
                     <h1>Bookings</h1>
@@ -51,7 +49,7 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000]  font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/vendors/units")}
+                    onClick={() => (window.location.href = "/units")}
                 >
                     <img src={uniLogo} className="w-[25px]" />
                     <h1>Units</h1>
@@ -62,7 +60,7 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/vendors/calendar")}
+                    onClick={() => (window.location.href = "/calendar")}
                 >
                     <img src={calendarLogo} className="w-[25px]" />
                     <h1>Calendar</h1>
@@ -73,7 +71,7 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/vendors/clients")}
+                    onClick={() => (window.location.href = "/clients")}
                 >
                     <img src={clientsLogo} className="w-[25px]" />
                     <h1>Clients</h1>
@@ -91,9 +89,7 @@ const SideMenu = () => {
                 </div> */}
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        ["/vendors/payment", "/vendors/expenses"].includes(
-                            currentPath
-                        )
+                        ["/vendors/payment", "/expenses"].includes(currentPath)
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
@@ -115,9 +111,7 @@ const SideMenu = () => {
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() =>
-                                (window.location.href = "/vendors/payment")
-                            }
+                            onClick={() => (window.location.href = "/payment")}
                         >
                             Payment
                         </div>
@@ -127,9 +121,7 @@ const SideMenu = () => {
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() =>
-                                (window.location.href = "/vendors/expenses")
-                            }
+                            onClick={() => (window.location.href = "/expenses")}
                         >
                             Expenses
                         </div>
@@ -141,7 +133,7 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/vendors/tracking")}
+                    onClick={() => (window.location.href = "/tracking")}
                 >
                     <img src={trackLogo} className="w-[25px]" />
                     <h1>Tracking</h1>
@@ -152,7 +144,7 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/vendors/message")}
+                    onClick={() => (window.location.href = "/message")}
                 >
                     <img src={messgLogo} className="w-[25px]" />
                     <h1>Message</h1>
