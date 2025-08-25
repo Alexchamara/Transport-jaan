@@ -58,7 +58,7 @@ class User extends Authenticatable
 
     public function vehicleReviews()
 {
-    return $this->hasMany(VehicleReview::class, 'client_id', 'id');
+       return $this->hasMany(VehicleReview::class);
 }
 
 }
