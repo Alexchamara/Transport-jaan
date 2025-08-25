@@ -35,15 +35,7 @@ const VehicleList = () => {
     <div className="vehicle-list-page">
       <Header />
       <div 
-        className="main-content flex"
-        // style={{
-        //   backgroundImage: `url(${bg})`,
-        //   backgroundSize: 'cover',
-        //   backgroundPosition: 'center',
-        //   backgroundRepeat: 'no-repeat',
-        //   minHeight: 'calc(100vh - 80px)'
-        // }}
-      >
+        className="main-content flex">
         <FilterSidebar searchParams={formData} />
         <div className="vehicle-list-container flex-1">
           <SearchForm 

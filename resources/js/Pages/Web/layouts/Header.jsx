@@ -19,7 +19,7 @@ const Header = () => {
     };
 
     return (
-        <header className="relative z-50 w-full h-auto py-[40px]">
+        <header className="relative z-50 w-full h-auto py-[5px]">
             <div className="poppins font-[500] px-3 sm:px-4 md:px-6 lg:px-10 py-2 sm:py-4 flex items-center justify-between relative">
                 {/* Hamburger always visible, but hide when menu is open */}
                 {!isMenuOpen && (
@@ -55,7 +55,7 @@ const Header = () => {
                 </div>
 
                 {/* right side buttons */}
-                <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+                <div className="md:flex hidden flex-row gap-5 justify-center items-center">
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <img
                             src={search}
@@ -102,6 +102,7 @@ const Header = () => {
                         </button>
                         {/* Navigation */}
                         <nav className="flex flex-col space-y-3 text-[#000000cc] text-[15px] font-medium">
+
                             <Link href="/" className="hover:text-[#0955AC]">
                                 Home
                             </Link>

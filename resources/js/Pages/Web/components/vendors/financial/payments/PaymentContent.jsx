@@ -1,24 +1,20 @@
 import React, { useState } from "react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable"; 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
-
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
-
 import wallet from "../../../../assets/financial/expenses/wallet.svg";
 import income from "../../../../assets/financial/expenses/income.svg";
 import expenses from "../../../../assets/financial/expenses/expenses.svg";
-
 import dotThree from "../../../../assets/financial/expenses/dots3.svg";
-
 import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.svg";
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
-
 import downloadLogo from "../../../../assets/financial/expenses/download.svg";
 import calendar from "../../../../assets/financial/expenses/cal.svg";
-
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
@@ -204,8 +200,8 @@ const PaymentContent = () => {
             statusColor: "#50AE31",
             statusBg: "#6DB4464D",
         },
-        
     ];
+
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedRows, setSelectedRows] = useState(new Set());
@@ -226,11 +222,25 @@ const PaymentContent = () => {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else {
             if (currentPage <= 3) {
-                pages.push(1, 2, 3, '...', totalPages);
+                pages.push(1, 2, 3, "...", totalPages);
             } else if (currentPage >= totalPages - 2) {
-                pages.push(1, '...', totalPages - 2, totalPages - 1, totalPages);
+                pages.push(
+                    1,
+                    "...",
+                    totalPages - 2,
+                    totalPages - 1,
+                    totalPages
+                );
             } else {
-                pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                pages.push(
+                    1,
+                    "...",
+                    currentPage - 1,
+                    currentPage,
+                    currentPage + 1,
+                    "...",
+                    totalPages
+                );
             }
         }
         return pages;
@@ -239,13 +249,11 @@ const PaymentContent = () => {
     const handleRowSelection = (rowIndex) => {
         const actualIndex = startIdx + rowIndex;
         const newSelectedRows = new Set(selectedRows);
-        
         if (newSelectedRows.has(actualIndex)) {
             newSelectedRows.delete(actualIndex);
         } else {
             newSelectedRows.add(actualIndex);
         }
-        
         setSelectedRows(newSelectedRows);
     };
 
@@ -253,9 +261,71 @@ const PaymentContent = () => {
         if (selectedRows.size === currentTransactions.length) {
             setSelectedRows(new Set());
         } else {
-            const allCurrentIndices = currentTransactions.map((_, index) => startIdx + index);
+            const allCurrentIndices = currentTransactions.map(
+                (_, index) => startIdx + index
+            );
             setSelectedRows(new Set(allCurrentIndices));
         }
+    };
+
+    const downloadTableAsPDF = () => {
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.text("Recent Transactions", 14, 20);
+
+        const tableData = transactions.map((txn) => [
+            txn.id,
+            txn.client,
+            txn.car,
+            txn.rentPerDay,
+            txn.days,
+            txn.amount,
+            txn.dueDate,
+            txn.status,
+        ]);
+
+        autoTable(doc, {
+            // Use autoTable directly
+            head: [
+                [
+                    "Invoice Id",
+                    "Client Name",
+                    "Car Model",
+                    "Rent Per Day",
+                    "Days",
+                    "Amount",
+                    "DueDate",
+                    "Status",
+                ],
+            ],
+            body: tableData,
+            startY: 30,
+            theme: "grid",
+            headStyles: {
+                fillColor: [216, 228, 242],
+                textColor: [0, 0, 0],
+                fontStyle: "bold",
+            },
+            styles: {
+                cellPadding: 2,
+                fontSize: 10,
+                textColor: [0, 0, 0],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+            },
+            columnStyles: {
+                0: { cellWidth: 25 },
+                1: { cellWidth: 30 },
+                2: { cellWidth: 30 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 15 },
+                5: { cellWidth: 25 },
+                6: { cellWidth: 25 },
+                7: { cellWidth: 20 },
+            },
+        });
+
+        doc.save("transactions.pdf");
     };
 
     React.useEffect(() => {
@@ -263,7 +333,7 @@ const PaymentContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-20 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Payment</h1>
@@ -280,7 +350,6 @@ const PaymentContent = () => {
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={proPic} />
                     </div>
-
                     <div className="figtree flex flex-col justify-center items-start">
                         <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
@@ -292,10 +361,10 @@ const PaymentContent = () => {
             {/* end of header section */}
 
             {/* mini 4 cards */}
-            <div className="flex flex-row gap-5">
+            <div className="flex flex-row gap-5 w-full">
                 {/* card 1 */}
                 <div
-                    className="w-[360px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -323,7 +392,7 @@ const PaymentContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="w-[360px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -349,10 +418,10 @@ const PaymentContent = () => {
                 </div>
                 {/* end of card 2 */}
 
-                <div className="flex flex-row gap-5">
+                <div className="flex flex-row gap-5 w-full">
                     {/* card 3 */}
                     <div
-                        className="w-[360px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -393,7 +462,9 @@ const PaymentContent = () => {
             >
                 {/* card header */}
                 <div className="flex flex-row justify-between">
-                    <h1 className="text-[24px] font-[700]">Recent Transactions</h1>
+                    <h1 className="text-[24px] font-[700]">
+                        Recent Transactions
+                    </h1>
                     <div className="flex flex-row gap-5">
                         <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} />
@@ -421,7 +492,10 @@ const PaymentContent = () => {
                             />
                             <img src={miniDownArrow} />
                         </div>
-                        <button className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3">
+                        <button
+                            onClick={downloadTableAsPDF}
+                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+                        >
                             <img src={downloadLogo} />
                             <h1>Download</h1>
                         </button>
@@ -436,7 +510,11 @@ const PaymentContent = () => {
                         <input
                             type="checkbox"
                             className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                            checked={selectedRows.size === currentTransactions.length && currentTransactions.length > 0}
+                            checked={
+                                selectedRows.size ===
+                                    currentTransactions.length &&
+                                currentTransactions.length > 0
+                            }
                             onChange={handleSelectAll}
                         />
                         <h1>Invoice Id</h1>
@@ -508,7 +586,9 @@ const PaymentContent = () => {
                         key={startIdx + idx}
                         className="grid grid-cols-9 h-[100px] justify-center items-center text-[15px] font-[500] px-10 border-b-[1.5px] border-[#00000033]"
                         style={{
-                            backgroundColor: selectedRows.has(startIdx + idx) ? '#CCCCCC4F' : 'transparent'
+                            backgroundColor: selectedRows.has(startIdx + idx)
+                                ? "#CCCCCC4F"
+                                : "transparent",
                         }}
                     >
                         <div className="flex flex-row items-center gap-5">
@@ -552,14 +632,20 @@ const PaymentContent = () => {
                 <div className="flex justify-between items-center gap-2 mt-20">
                     {/* Left: Results per page */}
                     <div className="flex items-center">
-                        <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
+                        <span className="mr-3 text-[#00000080] text-[15px]">
+                            Results per page
+                        </span>
                         <select
                             className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                             value={itemsPerPage}
-                            onChange={e => setItemsPerPage(Number(e.target.value))}
+                            onChange={(e) =>
+                                setItemsPerPage(Number(e.target.value))
+                            }
                         >
-                            {perPageOptions.map(opt => (
-                                <option key={opt} value={opt}>{opt}</option>
+                            {perPageOptions.map((opt) => (
+                                <option key={opt} value={opt}>
+                                    {opt}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -573,15 +659,23 @@ const PaymentContent = () => {
                             <span className="text-lg">&#60;</span>
                         </button>
                         {getPageNumbers().map((num, idx) =>
-                            num === '...'
-                                ? <span key={idx} className="px-2">...</span>
-                                : <button
+                            num === "..." ? (
+                                <span key={idx} className="px-2">
+                                    ...
+                                </span>
+                            ) : (
+                                <button
                                     key={num}
-                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num ? ' text-[#0955AC] font-[600] border-[2px] border-[#0955AC]' : 'bg-[#F4F3F3]'}`}
+                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                        currentPage === num
+                                            ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
+                                            : "bg-[#F4F3F3]"
+                                    }`}
                                     onClick={() => goToPage(num)}
                                 >
                                     {num}
                                 </button>
+                            )
                         )}
                         <button
                             className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"

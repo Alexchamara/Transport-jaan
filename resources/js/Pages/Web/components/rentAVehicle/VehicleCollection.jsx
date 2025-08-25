@@ -134,7 +134,7 @@ const VehicleCollection = () => {
     ];
 
     return (
-        <div className="w-full py-12">
+        <div className="w-full py-12 px-10">
             <div className="container mx-auto">
                 <h2 className="bebas-neue text-[40px] font-[400] text-center mb-8">
                     OUR{" "}

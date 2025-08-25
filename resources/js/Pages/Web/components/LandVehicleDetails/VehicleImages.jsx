@@ -10,11 +10,11 @@ const VehicleImages = () => {
         <div className="xl:w-[844px] xl:h-[435px] rounded-[22px]">
             <div className="flex flex-col xl:flex-row justify-center gap-[14px] items-center">
                 <img src={imgOne} className="w-[200px] md:w-[420px]" />
-                <div className="flex flex-col gap-[14px]">
+                <div className="hidden xl:flex flex-col gap-[14px]">
                     <img src={imgTwo} />
                     <img src={imgThree} />
                 </div>
-                <div className="flex flex-col gap-[14px]">
+                <div className="hidden xl:flex flex-col gap-[14px]">
                     <img src={imgFour} />
                     <img src={imgFive} />
                 </div>
