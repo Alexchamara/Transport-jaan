@@ -163,10 +163,10 @@ const CarDetailsTab = () => (
                     </div>
                 </div>
                 <div className="text-[9px] flex flex-col md:flex-row gap-4">
-                    <div className="w-[123px] h-[29px] bg-[#0955AC] text-[#FFFFFF] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
+                    <div className="min-w-[123px] min-h-[29px] px-4 py-2 bg-[#0955AC] text-[#FFFFFF] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
                         CONTACT NUMBER
                     </div>
-                    <div className="w-[123px] h-[29px] border-[1.5px] border-[#0955AC] bg-[#E8EBEF] text-[#0955AC] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
+                    <div className="min-w-[123px] min-h-[29px] px-4 py-2  border-[1.5px] border-[#0955AC] bg-[#E8EBEF] text-[#0955AC] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
                         VIEW PROFILE
                     </div>
                 </div>

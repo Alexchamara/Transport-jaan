@@ -136,9 +136,14 @@ Route::get('/mainDashboard', function () {
 Route::get('/unitDetails', function () {
     return Inertia::render('Web/home/vendors/UnitDetails');
 })->name('mainDashboard');
-
-
 // end
+
+
+
+// Client
+Route::get('/ClientDashboard', function () {
+    return Inertia::render('Web/home/client/ClientDashboard');
+})->name('ClientDashboard');
 
 
 

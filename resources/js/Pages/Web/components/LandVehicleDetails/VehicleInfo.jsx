@@ -33,11 +33,11 @@ const VehicleInfo = () => {
                     </div>
                 </div>
                 <div className="flex flex-row items-center py-10 lg:py-0 gap-5">
-                    <div className="xl:w-[81px] xl:h-[30px] px-4 py-2 rounded-[4px] border-[1px] border-[#00000030] bg-[#EAE9E8] flex flex-row justify-center items-center gap-3">
+                    <div className="min-w-[81px] min-h-[30px] px-4 py-2 rounded-[4px] border-[1px] border-[#00000030] bg-[#EAE9E8] flex flex-row justify-center items-center gap-3 cursor-pointer">
                         <img src={share} />
                         <h1>Share</h1>
                     </div>
-                    <div className="xl:w-[81px] xl:h-[30px] px-4 py-2 rounded-[4px] border-[1px] border-[#0955AC] bg-[#0955AC] text-[#FFFFFF] flex flex-row justify-center items-center gap-3">
+                    <div className="min-w-[81px] min-h-[30px] px-4 py-2 rounded-[4px] border-[1px] border-[#0955AC] bg-[#0955AC] text-[#FFFFFF] flex flex-row justify-center items-center gap-3 cursor-pointer">
                         <img src={heartB2} />
                         <h1>Wishlist</h1>
                     </div>
