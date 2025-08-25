@@ -15,6 +15,7 @@ const Hero = () => {
             setMenuOpen(false); // close sidebar if open
         }
     };
+
     return (
         <div className="flex relative justify-center items-center md:py-10 md:px-20 px-10 poppins">
             <h1

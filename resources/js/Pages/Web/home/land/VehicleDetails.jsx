@@ -33,8 +33,8 @@ const VehicleDetails = () => {
         <div>
             <Header />
             <div className="main-content flex justify-center items-center">
-                <div className="py-10 md:px-10 flex flex-col xl:flex-row justify-center gap-10">
-                    <div className="flex flex-col gap-10 justify-start items-center">
+                <div className="py-10 md:px-10 flex flex-col xl:flex-row justify-between w-full gap-10">
+                    <div className="flex flex-col gap-10 justify-start items-center w-full">
                         <VehicleImages />
                         <VehicleInfo />
                     </div>

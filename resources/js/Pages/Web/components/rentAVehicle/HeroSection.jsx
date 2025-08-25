@@ -73,7 +73,7 @@ const HeroSection = ({ formData, onFormChange, onSubmit }) => {
   };
 
   return (
-    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between min-h-screen px-4 md:px-16 gap-8 overflow-hidden">
+    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between min-h-screen px-4 md:px-16 gap-8 overflow-hidden pb-10">
       <div className="text-black text-left p-8 md:p-0 w-full md:max-w-4xl md:w-1/3 flex-shrink-0 mt-8">
         <div className="w-[50px] h-[5px] bg-[#000000] mb-6 rounded-sm"></div>
         <h1 className="bebas-neue text-[32px] sm:text-[38px] md:text-[45px]/[58px] font-[400] mb-4">

@@ -70,7 +70,7 @@ const TrackingContent = () => {
                     </div>
                     <div className="flex flex-col">
                         {/* card 1 */}
-                        <div className="w-full h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
                             <div className="grid grid-cols-3 justify-center items-center">
                                 <img src={car1} className="h-[104px]" />
                                 <div className="flex flex-col justify-start items-start ml-8">
@@ -90,7 +90,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         {/* card 2 */}
-                        <div className="w-full h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
                             <div className="grid grid-cols-3 justify-center items-center">
                                 <img src={car1} className="h-[104px]" />
                                 <div className="flex flex-col justify-start items-start ml-8">
@@ -110,7 +110,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         {/* card 3 */}
-                        <div className="w-full h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
                             <div className="grid grid-cols-3 justify-center items-center">
                                 <img src={car1} className="h-[104px]" />
                                 <div className="flex flex-col justify-start items-start ml-8">
@@ -130,7 +130,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         {/* card 4 */}
-                        <div className="w-full h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
                             <div className="grid grid-cols-3 justify-center items-center">
                                 <img src={car1} className="h-[104px]" />
                                 <div className="flex flex-col justify-start items-start ml-8">
@@ -150,7 +150,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         {/* card 5 */}
-                        <div className="w-full h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
                             <div className="grid grid-cols-3 justify-center items-center">
                                 <img src={car1} className="h-[104px]" />
                                 <div className="flex flex-col justify-start items-start ml-8">
@@ -170,7 +170,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         {/* card 6 */}
-                        <div className="w-full h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
                             <div className="grid grid-cols-3 justify-center items-center">
                                 <img src={car1} className="h-[104px]" />
                                 <div className="flex flex-col justify-start items-start ml-8">
@@ -190,7 +190,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         {/* card 7 */}
-                        <div className="w-full h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
                             <div className="grid grid-cols-3 justify-center items-center">
                                 <img src={car1} className="h-[104px]" />
                                 <div className="flex flex-col justify-start items-start ml-8">
@@ -210,7 +210,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         {/* card 8 */}
-                        <div className="w-full h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
                             <div className="grid grid-cols-3 justify-center items-center">
                                 <img src={car1} className="h-[104px]" />
                                 <div className="flex flex-col justify-start items-start ml-8">
@@ -230,7 +230,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         {/* card 9 */}
-                        <div className="w-full h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
                             <div className="grid grid-cols-3 justify-center items-center">
                                 <img src={car1} className="h-[104px]" />
                                 <div className="flex flex-col justify-start items-start ml-8">
@@ -249,16 +249,16 @@ const TrackingContent = () => {
                                 </div>
                             </div>
                         </div>
-                        <button className="w-[479px] h-[51px] bg-[#0955AC] rounded-[6px] text-[18px] font-[700] text-[#FFFFFF] my-12">
+                        <button className="w-full min-w-[479px] min-h-[51px] bg-[#0955AC] rounded-[6px] text-[18px] font-[700] text-[#FFFFFF] my-12">
                             Check Availability
                         </button>
                     </div>
                 </div>
                 <div className="w-full h-auto flex flex-col gap-4">
                     <div className="flex flex-row gap-4">
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 w-full">
                             <div
-                                className="w-[265px] h-[128px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
+                                className="min-w-[265px] w-full min-h-[128px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
                             >
                                 <div className="flex flex-row gap-5">
@@ -283,7 +283,7 @@ const TrackingContent = () => {
                                 </div>
                             </div>
                             <div
-                                className="w-[265px] h-[102px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
+                                className="min-w-[265px] w-full min-h-[102px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
                             >
                                 <div className="flex flex-row gap-3">
@@ -312,7 +312,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         <div
-                            className="w-[277px] h-[241px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
+                            className="min-w-[277px] w-full min-h-[241px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <h1 className="text-[24px] font-[700]">

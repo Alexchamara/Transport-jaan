@@ -361,10 +361,10 @@ const PaymentContent = () => {
             {/* end of header section */}
 
             {/* mini 4 cards */}
-            <div className="flex flex-row gap-5">
+            <div className="flex flex-row gap-5 w-full">
                 {/* card 1 */}
                 <div
-                    className="w-[350px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -392,7 +392,7 @@ const PaymentContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="w-[350px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -418,10 +418,10 @@ const PaymentContent = () => {
                 </div>
                 {/* end of card 2 */}
 
-                <div className="flex flex-row gap-5">
+                <div className="flex flex-row gap-5 w-full">
                     {/* card 3 */}
                     <div
-                        className="w-[350px] h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
