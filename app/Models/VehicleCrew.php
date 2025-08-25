@@ -3,21 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class VehicleCrew extends Model
 {
-    use HasFactory;
-
-    protected $table = 'vehicle_crews';
-
-    protected $fillable = [
-        'vehicle_id', 'user_id', 'role',
-        'license_number', 'license_type', 'license_expiry', 'rating',
-    ];
+    protected $guarded = [];
 
     protected $casts = [
         'license_expiry' => 'date',
+        'is_primary'     => 'boolean',
     ];
 
     public function vehicle()
@@ -27,6 +20,6 @@ class VehicleCrew extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(\App\Models\User::class);
     }
 }

@@ -18,7 +18,7 @@ use App\Models\VehicleReview;
 
 class Vehicle extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $fillable = [
         'provider_id',
@@ -64,36 +64,15 @@ class Vehicle extends Model
         'images_json',
         'insurance_docs_json',
     ];
+    protected $guarded = [];
 
     protected $casts = [
-        'gps' => 'bool',
-        'child_seat' => 'bool',
-        'wifi' => 'bool',
-        'insurance_coverage' => 'bool',
-        'rental_price_per_day' => 'decimal:2',
-        'total_rental_price' => 'decimal:2',
-        'deposit_amount' => 'decimal:2',
-        'advance_payment_amount' => 'decimal:2',
-        'latitude' => 'decimal:7',
-        'longitude' => 'decimal:7',
-        'approved_at' => 'datetime',
-        'images_json' => 'array',
-        'insurance_docs_json' => 'array',
+        'gps'                 => 'boolean',
+        'child_seat'          => 'boolean',
+        'wifi'                => 'boolean',
+        'insurance_coverage'  => 'boolean',
     ];
 
-    /** Provider/owner (User) */
-    public function provider()
-    {
-        return $this->belongsTo(User::class, 'provider_id');
-    }
-
-    /** Approver (admin User) */
-    public function approver()
-    {
-        return $this->belongsTo(User::class, 'approved_by');
-    }
-
-    /** Category */
     public function category()
     {
         return $this->belongsTo(VehicleCategory::class, 'category_id');
@@ -116,28 +95,11 @@ class Vehicle extends Model
         return $this->hasOne(SeaVehicleSpec::class);
     }
 
-    /** Media */
     public function media()
     {
         return $this->hasMany(VehicleMedia::class);
     }
 
-    public function images()
-    {
-        return $this->media()->where('media_type', 'image');
-    }
-
-    public function videos()
-    {
-        return $this->media()->where('media_type', 'video');
-    }
-
-    public function primaryImage()
-    {
-        return $this->hasOne(VehicleMedia::class)->where('is_primary', true);
-    }
-
-    /** Documents */
     public function documents()
     {
         return $this->hasMany(VehicleDocument::class);
