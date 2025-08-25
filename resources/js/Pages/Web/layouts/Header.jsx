@@ -47,7 +47,7 @@ const Header = () => {
 
                 {/* Centered Company Name/Logo */}
                 <div
-                    onClick={() => router.visit("/clientRent")}
+                    onClick={() => router.visit("/")}
                     className="absolute left-1/2 transform -translate-x-1/2 text-[16px] sm:text-[20px] md:text-[25px] lg:text-[30px] font-[700] text-black text-center cursor-pointer hover:text-[#0955AC] transition-colors"
                     style={{ minWidth: "120px" }}
                 >
@@ -102,13 +102,9 @@ const Header = () => {
                         </button>
                         {/* Navigation */}
                         <nav className="flex flex-col space-y-3 text-[#000000cc] text-[15px] font-medium">
-                            <Link
-                                href="/"
-                                className="hover:text-[#0955AC]"
-                            >
+                            <Link href="/" className="hover:text-[#0955AC]">
                                 Home
                             </Link>
-
                             <a href="#" className="hover:text-[#0955AC]">
                                 About Us
                             </a>
