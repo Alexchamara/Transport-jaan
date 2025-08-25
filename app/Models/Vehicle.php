@@ -9,7 +9,7 @@ class Vehicle extends Model
 {
     use SoftDeletes;
 
-    protected $guarded = []; // simplify; or list $fillable if you prefer
+    protected $guarded = [];
 
     protected $casts = [
         'gps'                 => 'boolean',

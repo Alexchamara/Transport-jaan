@@ -22,14 +22,12 @@ return new class extends Migration {
             $table->unsignedSmallInteger('manufacture_year')->nullable();
             $table->unsignedSmallInteger('registration_year')->nullable();
 
-            $table->string('registration_number')->nullable()->unique(); // UNIQUE (global)
+            $table->string('registration_number')->nullable()->unique();
             $table->string('colour', 64)->nullable();
 
-            // Enums aligned to controller/request normalization
             $table->enum('condition', ['new','used','refurbished'])->nullable()->index();
             $table->enum('ownership_type', ['company_owned','partner_owned','leased'])->nullable()->index();
 
-            // Capacity & specs (generic)
             $table->unsignedSmallInteger('passenger_capacity')->nullable();
             $table->unsignedInteger('mileage_km')->nullable();
 
@@ -53,12 +51,12 @@ return new class extends Migration {
             $table->text('extra')->nullable();
 
             // Operational
-            $table->enum('status', ['draft','active','inactive'])->default('active')->index();
+            $table->enum('status', ['draft','active','inactive'])->default('inactive')->index();
             $table->enum('approval_status', ['pending','approved','rejected'])->default('pending')->index();
 
             $table->text('description')->nullable();
 
-            // Legacy/ingest helpers (unused by UI but available if needed)
+            // Optional JSON mirrors
             $table->json('images_json')->nullable();
             $table->json('insurance_docs_json')->nullable();
 
@@ -69,6 +67,7 @@ return new class extends Migration {
             $table->index(['provider_id','type']);
         });
     }
+
     public function down(): void
     {
         Schema::dropIfExists('vehicles');

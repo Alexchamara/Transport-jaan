@@ -3,7 +3,6 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\Vendor\VehicleController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -13,16 +12,13 @@ use Inertia\Inertia;
 |--------------------------------------------------------------------------
 */
 
-// Auth (public)
 Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 
-// Landing / marketing
 Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
 Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
 Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blog');
 
-// Client-facing pages
 Route::get('/clientRent', [WebController::class, 'index'])->name('home');
 Route::get('/vehicleList', [WebController::class, 'vehicleList'])->name('vehicle.list');
 Route::get('/vehicleDetails', [WebController::class, 'vehicleDetails'])->name('vehicle.details');
@@ -43,8 +39,9 @@ Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.h
 
 /*
 |--------------------------------------------------------------------------
-| Vendor App Pages (Inertia UI, behind role:vendor)
+| Vendor App Pages (Inertia UI)  /vendors/...
 |--------------------------------------------------------------------------
+| UI pages are behind auth + role:vendor to match your React router.
 */
 Route::middleware(['auth', 'role:vendor'])
     ->prefix('vendors')
@@ -59,7 +56,7 @@ Route::middleware(['auth', 'role:vendor'])
         Route::get('/calendar', fn () => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
         Route::get('/mainDashboard', fn () => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
 
-        // Vendor Units UI
+        // Units UI
         Route::get('/units', fn () => Inertia::render('Web/home/vendors/Unit'))->name('units');
         Route::get('/addUnit', fn () => Inertia::render('Web/home/vendors/AddUnit'))->name('addUnit');
 
@@ -69,31 +66,26 @@ Route::middleware(['auth', 'role:vendor'])
 
 /*
 |--------------------------------------------------------------------------
-| Vendor Backend (JSON APIs & actions)
+| Vendor Backend (JSON APIs & actions)  /vendor/...
 |--------------------------------------------------------------------------
-|
-| - GET  /vendor/vehicles          → index (redirect to vendors.units)
-| - GET  /vendor/vehicles/list     → list (JSON for Units grid)
-| - POST /vendor/vehicles          → store (⚠️ compat for existing forms)
-| - POST /vendor/vehicles/store    → store (canonical)
-| - DELETE /vendor/vehicles/{id}   → destroy
-|
+| The form in AddUnit posts to POST /vendor/vehicles/store
+| Keep these under auth so Inertia can redirect on unauthenticated.
 */
 Route::middleware(['auth'])
     ->prefix('vendor')
     ->name('vendor.')
     ->group(function () {
-        // UI redirect so /vendor/vehicles never 404s
+        // Index redirects to the Units UI (prevents 404 if someone hits /vendor/vehicles)
         Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
 
-        // JSON list for Units grid
+        // JSON list used by Units grid
         Route::get('/vehicles/list', [VehicleController::class, 'list'])->name('vehicles.list');
 
-        // ✅ Accept both /vendor/vehicles and /vendor/vehicles/store for POST
+        // Accept both endpoints for POST (compat + canonical)
         Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store.compat');
         Route::post('/vehicles/store', [VehicleController::class, 'store'])->name('vehicles.store');
 
-        // Delete (trash button)
+        // Delete vehicle
         Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
     });
 

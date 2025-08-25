@@ -154,6 +154,15 @@ const initialState = {
   wifi: false,
   insuranceCoverage: false,
   extra: '',
+  // Prices for features
+  gpsPrice: '',
+  childSeatPrice: '',
+  wifiPrice: '',
+  insuranceCoveragePrice: '',
+  addDriver: false,
+  addDriverPrice: '',
+  // Dynamic features
+  extraFeatures: [], // [{ name:'', price:'' }]
 };
 
 const bodyTypeOptions = ['Sedan', 'SUV', 'Hatchback', 'Truck', 'Van', 'Bus', 'Coupe', 'Convertible', 'Wagon', 'Other'];
@@ -170,12 +179,13 @@ const engineTypeOptions = ['inboard', 'outboard', 'sail', 'hybrid', 'electric', 
 const seaFuelTypeOptions = ['diesel', 'petrol', 'electric', 'other'];
 
 /** Limits */
-const MAX_IMAGES = 16;          // vehicle images max 16
-const MAX_INSURANCE_IMAGES = 5; // insurance photos max 5
+const MAX_IMAGES = 16;
+const MAX_INSURANCE_IMAGES = 5;
 
 const AddUnit = () => {
   const [form, setForm] = useState(initialState);
   const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState(''); // NEW: show fatal/server errors
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Success toast & center modal
@@ -184,14 +194,14 @@ const AddUnit = () => {
   const [showCenterModal, setShowCenterModal] = useState(false);
 
   // Image preview state (vehicle)
-  const [imageFiles, setImageFiles] = useState([]);       // Array<File>
-  const [imagePreviews, setImagePreviews] = useState([]); // Array<objectURL strings>
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
 
   // Insurance photos state
-  const [insuranceFiles, setInsuranceFiles] = useState([]);       // Array<File>
-  const [insurancePreviews, setInsurancePreviews] = useState([]); // Array<objectURL strings>
+  const [insuranceFiles, setInsuranceFiles] = useState([]);
+  const [insurancePreviews, setInsurancePreviews] = useState([]);
 
-  // File input refs (so we can clear inputs on "Add Another")
+  // File input refs
   const imagesInputRef = useRef(null);
   const insuranceInputRef = useRef(null);
   const formRef = useRef(null);
@@ -228,6 +238,7 @@ const AddUnit = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
+    setServerError('');
 
     if (type === 'file') {
       setForm((prev) => ({ ...prev, [name]: files }));
@@ -281,7 +292,7 @@ const AddUnit = () => {
     if (val !== null && val !== undefined) fd.append(key, val);
   };
 
-  /** Light client-side validation for requireds (prevents DB 1048 errors) */
+  /** Light client-side validation */
   const validate = () => {
     const e = {};
     const must = [
@@ -296,7 +307,6 @@ const AddUnit = () => {
       'ownershipType',
       'passengerCapacity',
       'rentalPricePerDay',
-      // Newly required:
       'deposit',
       'advancePayment',
     ];
@@ -323,16 +333,15 @@ const AddUnit = () => {
         }
       );
     }
-
     return e;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setServerError('');
     const v = validate();
     if (Object.keys(v).length) {
       setErrors(v);
-      // Trigger native bubble on the first invalid control
       formRef.current?.reportValidity?.();
       return;
     }
@@ -353,6 +362,11 @@ const AddUnit = () => {
             data.append(`${key}[]`, value[i]);
           }
         }
+      } else if (key === 'extraFeatures') {
+        const safe = Array.isArray(value)
+          ? value.filter((it) => (it?.name || '').trim() !== '')
+          : [];
+        data.append('extraFeatures', JSON.stringify(safe));
       } else if (typeof value === 'boolean') {
         data.append(key, value ? 'true' : 'false');
       } else {
@@ -360,17 +374,29 @@ const AddUnit = () => {
       }
     });
 
+    const csrf =
+      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+      (window.Laravel?.csrfToken ?? '');
+
     router.post('/vendor/vehicles/store', data, {
       forceFormData: true,
       preserveState: true,
+      withCredentials: true,
+      headers: csrf ? { 'X-CSRF-TOKEN': csrf } : {},
+      onBefore: () => {
+        setErrors({});
+        setServerError('');
+      },
       onSuccess: () => {
         setSuccessMsg(props?.flash?.success || 'Unit saved successfully.');
         setShowCenterModal(true);
         setShowSuccess(false);
       },
       onError: (err) => {
-        // No DB error popup/message anymore; just show field-level errors
+        // Field errors or server error
         setErrors(err || {});
+        const sv = (err && (err.server || err.message)) || '';
+        if (sv) setServerError(String(sv));
       },
       onFinish: () => {
         setIsSubmitting(false);
@@ -388,9 +414,35 @@ const AddUnit = () => {
     setInsuranceFiles([]);
     setInsurancePreviews([]);
     setErrors({});
+    setServerError('');
     if (imagesInputRef.current) imagesInputRef.current.value = '';
     if (insuranceInputRef.current) insuranceInputRef.current.value = '';
     setShowCenterModal(false);
+  };
+
+  // Extra Features handlers
+  const addExtraFeature = () => {
+    setForm((prev) => ({
+      ...prev,
+      extraFeatures: [...(prev.extraFeatures || []), { name: '', price: '' }],
+    }));
+  };
+
+  const updateExtraFeature = (idx, field, value) => {
+    setForm((prev) => {
+      const next = [...(prev.extraFeatures || [])];
+      next[idx] = { ...next[idx], [field]: value };
+      return { ...prev, extraFeatures: next };
+    });
+    setErrors((prev) => ({ ...prev, extraFeatures: undefined }));
+  };
+
+  const removeExtraFeature = (idx) => {
+    setForm((prev) => {
+      const next = [...(prev.extraFeatures || [])];
+      next.splice(idx, 1);
+      return { ...prev, extraFeatures: next };
+    });
   };
 
   const labelForNumber =
@@ -437,8 +489,14 @@ const AddUnit = () => {
           onSubmit={handleSubmit}
           encType="multipart/form-data"
           className="space-y-8 bebas-neue font-[400]"
-          noValidate={false}
         >
+          {/* Top-level server error banner */}
+          {serverError ? (
+            <div className="rounded-lg border border-red-300 bg-red-50 text-red-700 p-3 text-sm">
+              {serverError}
+            </div>
+          ) : null}
+
           {/* Category Section */}
           <section className="bg-[#FFFFFF] p-6 rounded-lg mb-8">
             <h2 className="text-[18px] font-[400] text-gray-800 mb-6">Category</h2>
@@ -638,7 +696,7 @@ const AddUnit = () => {
                   </div>
                   {errors.images && <div className="text-red-500 text-xs mt-1">{errors.images}</div>}
 
-                  {/* Vehicle image thumbnails (small) */}
+                  {/* Vehicle image thumbnails */}
                   {imagePreviews.length > 0 && (
                     <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                       {imagePreviews.map((src, i) => (
@@ -1382,7 +1440,7 @@ const AddUnit = () => {
                   {errors.insuranceProvider && <div className="text-red-500 text-xs mt-1">{errors.insuranceProvider}</div>}
                 </div>
 
-                {/* Insurance Photos (max 5, with previews) */}
+                {/* Insurance Photos */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-[14px] font-medium text-gray-700">Insurance Photos</label>
@@ -1506,11 +1564,14 @@ const AddUnit = () => {
                 </div>
               </div>
 
+              {/* Toggles + prices */}
               <div className="space-y-4">
                 <label className="block text-[14px] font-medium text-gray-700">
                   Additional Features <span className="text-gray-400 text-xs">(optional)</span>
                 </label>
-                <div className="flex flex-wrap gap-4">
+
+                {/* GPS */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                   <label className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors duration-150">
                     <input
                       type="checkbox"
@@ -1521,7 +1582,26 @@ const AddUnit = () => {
                     />
                     <span className="ml-2 text-sm text-gray-700">GPS Navigation</span>
                   </label>
-                  {form.category === 'Land' && (
+                  <div className="md:col-span-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name="gpsPrice"
+                      value={form.gpsPrice}
+                      onChange={handleChange}
+                      placeholder="GPS price per day (0.00)"
+                      className={inputClasses('gpsPrice')}
+                      disabled={!form.gps}
+                      {...(form.gps ? req('Enter GPS price.') : {})}
+                    />
+                    {errors.gpsPrice && <div className="text-red-500 text-xs mt-1">{errors.gpsPrice}</div>}
+                  </div>
+                </div>
+
+                {/* Child Seat (Land only) */}
+                {form.category === 'Land' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                     <label className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors duration-150">
                       <input
                         type="checkbox"
@@ -1532,7 +1612,26 @@ const AddUnit = () => {
                       />
                       <span className="ml-2 text-sm text-gray-700">Child Seat</span>
                     </label>
-                  )}
+                    <div className="md:col-span-2">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        name="childSeatPrice"
+                        value={form.childSeatPrice}
+                        onChange={handleChange}
+                        placeholder="Child seat price per day (0.00)"
+                        className={inputClasses('childSeatPrice')}
+                        disabled={!form.childSeat}
+                        {...(form.childSeat ? req('Enter child seat price.') : {})}
+                      />
+                      {errors.childSeatPrice && <div className="text-red-500 text-xs mt-1">{errors.childSeatPrice}</div>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Wi-Fi */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                   <label className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors duration-150">
                     <input
                       type="checkbox"
@@ -1543,6 +1642,25 @@ const AddUnit = () => {
                     />
                     <span className="ml-2 text-sm text-gray-700">Wi-Fi</span>
                   </label>
+                  <div className="md:col-span-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name="wifiPrice"
+                      value={form.wifiPrice}
+                      onChange={handleChange}
+                      placeholder="Wi-Fi price per day (0.00)"
+                      className={inputClasses('wifiPrice')}
+                      disabled={!form.wifi}
+                      {...(form.wifi ? req('Enter Wi-Fi price.') : {})}
+                    />
+                    {errors.wifiPrice && <div className="text-red-500 text-xs mt-1">{errors.wifiPrice}</div>}
+                  </div>
+                </div>
+
+                {/* Insurance Coverage */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                   <label className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors duration-150">
                     <input
                       type="checkbox"
@@ -1553,15 +1671,107 @@ const AddUnit = () => {
                     />
                     <span className="ml-2 text-sm text-gray-700">Insurance Coverage</span>
                   </label>
+                  <div className="md:col-span-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name="insuranceCoveragePrice"
+                      value={form.insuranceCoveragePrice}
+                      onChange={handleChange}
+                      placeholder="Insurance coverage price per day (0.00)"
+                      className={inputClasses('insuranceCoveragePrice')}
+                      disabled={!form.insuranceCoverage}
+                      {...(form.insuranceCoverage ? req('Enter insurance coverage price.') : {})}
+                    />
+                    {errors.insuranceCoveragePrice && <div className="text-red-500 text-xs mt-1">{errors.insuranceCoveragePrice}</div>}
+                  </div>
                 </div>
-                <input
-                  name="extra"
-                  className={inputClasses('extra')}
-                  placeholder="Add more features (comma separated)"
-                  value={form.extra}
-                  onChange={handleChange}
-                />
-                {errors.extra && <div className="text-red-500 text-xs mt-1">{errors.extra}</div>}
+
+                {/* Extra features list (name + price) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[14px] font-medium text-gray-700">
+                      More Features (name + price) <span className="text-gray-400 text-xs">(optional)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addExtraFeature}
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      title="Add feature"
+                    >
+                      <svg className="mr-1 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 5v14M5 12h14" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Add
+                    </button>
+                  </div>
+
+                  {(form.extraFeatures?.length ? form.extraFeatures : []).map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                      <div className="md:col-span-6">
+                        <input
+                          type="text"
+                          placeholder="Feature name (e.g., Baby Stroller)"
+                          className={inputClasses(`extraFeatures_name_${idx}`)}
+                          value={item?.name ?? ''}
+                          onChange={(e) => updateExtraFeature(idx, 'name', e.target.value)}
+                        />
+                      </div>
+                      <div className="md:col-span-4">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          className={inputClasses(`extraFeatures_price_${idx}`)}
+                          value={item?.price ?? ''}
+                          onChange={(e) => updateExtraFeature(idx, 'price', e.target.value)}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <button
+                          type="button"
+                          onClick={() => removeExtraFeature(idx)}
+                          className="w-full px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100"
+                          title="Remove"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add Driver option + price */}
+                <div className="pt-2 border-t border-gray-200" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                  <label className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors duration-150">
+                    <input
+                      type="checkbox"
+                      name="addDriver"
+                      checked={form.addDriver}
+                      onChange={handleChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Add Driver</span>
+                  </label>
+                  <div className="md:col-span-2">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      name="addDriverPrice"
+                      value={form.addDriverPrice}
+                      onChange={handleChange}
+                      placeholder="Driver price per day (0.00)"
+                      className={inputClasses('addDriverPrice')}
+                      disabled={!form.addDriver}
+                      {...(form.addDriver ? req('Enter driver price.') : {})}
+                    />
+                    {errors.addDriverPrice && <div className="text-red-500 text-xs mt-1">{errors.addDriverPrice}</div>}
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -1600,8 +1810,6 @@ const AddUnit = () => {
               )}
             </button>
           </div>
-
-          {/* Removed top-level server error message */}
         </form>
       </div>
     </div>
