@@ -178,6 +178,9 @@ const hullMaterialOptions = ['Fiberglass', 'Aluminum', 'Steel', 'Wood', 'Composi
 const engineTypeOptions = ['inboard', 'outboard', 'sail', 'hybrid', 'electric', 'other'];
 const seaFuelTypeOptions = ['diesel', 'petrol', 'electric', 'other'];
 
+/** NEW: gears irrelevant for these transmission types */
+const isGearsIrrelevant = (tt) => ['automatic', 'cvt'].includes(String(tt || '').toLowerCase());
+
 /** Limits */
 const MAX_IMAGES = 16;
 const MAX_INSURANCE_IMAGES = 5;
@@ -270,6 +273,24 @@ const AddUnit = () => {
       return;
     }
 
+    // text/number/select
+    if (name === 'transmissionType') {
+      const nextVal = value;
+      setForm((prev) => ({
+        ...prev,
+        transmissionType: nextVal,
+        // clear gears if irrelevant
+        gears: isGearsIrrelevant(nextVal) ? '' : prev.gears,
+      }));
+      setErrors((prev) => ({
+        ...prev,
+        transmissionType: undefined,
+        ...(isGearsIrrelevant(value) ? { gears: undefined } : {}),
+      }));
+      setServerError('');
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
@@ -315,11 +336,13 @@ const AddUnit = () => {
     });
 
     if (form.category === 'Land') {
-      ['mileage', 'bodyType', 'fuelType', 'transmissionType', 'gears', 'seats', 'doors', 'fuelTankCapacity'].forEach(
-        (k) => {
-          if (!String(form[k] || '').trim()) e[k] = 'This field is required.';
-        }
-      );
+      ['mileage', 'bodyType', 'fuelType', 'transmissionType', 'seats', 'doors', 'fuelTankCapacity'].forEach((k) => {
+        if (!String(form[k] || '').trim()) e[k] = 'This field is required.';
+      });
+      // Only require gears if transmission is NOT Automatic/CVT
+      if (!isGearsIrrelevant(form.transmissionType)) {
+        if (!String(form.gears || '').trim()) e.gears = 'This field is required.';
+      }
     }
     if (form.category === 'Air') {
       ['aircraft_type', 'crew_required', 'air_fuel_type'].forEach((k) => {
@@ -786,23 +809,26 @@ const AddUnit = () => {
                       {errors.transmissionType && <div className="text-red-500 text-xs mt-1">{errors.transmissionType}</div>}
                     </div>
 
-                    <div className="space-y-2">
-                      <label htmlFor="gears" className="block text-[14px] font-medium text-gray-700">
-                        Number of Gears <Req />
-                      </label>
-                      <input
-                        id="gears"
-                        type="number"
-                        name="gears"
-                        min="1"
-                        className={inputClasses('gears')}
-                        value={form.gears}
-                        onChange={handleChange}
-                        placeholder="Enter number of gears"
-                        {...req('Please enter number of gears.')}
-                      />
-                      {errors.gears && <div className="text-red-500 text-xs mt-1">{errors.gears}</div>}
-                    </div>
+                    {/* Number of Gears (only when NOT Automatic/CVT) */}
+                    {!isGearsIrrelevant(form.transmissionType) && (
+                      <div className="space-y-2">
+                        <label htmlFor="gears" className="block text-[14px] font-medium text-gray-700">
+                          Number of Gears <Req />
+                        </label>
+                        <input
+                          id="gears"
+                          type="number"
+                          name="gears"
+                          min="1"
+                          className={inputClasses('gears')}
+                          value={form.gears}
+                          onChange={handleChange}
+                          placeholder="Enter number of gears"
+                          {...req('Please enter number of gears.')}
+                        />
+                        {errors.gears && <div className="text-red-500 text-xs mt-1">{errors.gears}</div>}
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <label htmlFor="seats" className="block text-[14px] font-medium text-gray-700">
