@@ -1,7 +1,7 @@
 <?php
 
-namespace App\Http\Controllers;
-
+namespace App\Http\Controllers\VehicleControllers\Client;
+use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
 use App\Models\VehicleCategory;
 use Illuminate\Http\Request;

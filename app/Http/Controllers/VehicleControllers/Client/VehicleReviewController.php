@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\VehicleControllers\Client;
 
 use App\Models\Vehicle;
 use App\Models\VehicleReview;

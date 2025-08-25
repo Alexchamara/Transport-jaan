@@ -68,7 +68,7 @@ const VehicleCollection = () => {
                     our customers <br /> with the ultimate driving experience.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-[50px] justify-items-center p-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-[50px] justify-items-center p-5 px-20">
                     {vehicles.map((vehicle) => (
                         <div
                             key={vehicle.id}

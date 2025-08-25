@@ -1,13 +1,12 @@
-import React, { useEffect, useMemo, useState, useId } from "react";
+import React, { useEffect, useState, useId } from "react";
 import { usePage, router } from "@inertiajs/react";
-import ReviewSection from "../vehicleDetails/ReviewSection";
 
-/** Gold star display (read-only, supports halves) */
+/* ========= Read-only stars (supports halves) ========= */
 const StarRating = ({ value = 0, size = 16, color = "#FFC107", gap = 3 }) => {
   const id = useId();
-  const clamped = Math.max(0, Math.min(5, Number(value) || 0));
-  const full = Math.floor(clamped);
-  const hasHalf = clamped - full >= 0.5;
+  const v = Math.max(0, Math.min(5, Number(value) || 0));
+  const full = Math.floor(v);
+  const hasHalf = v - full >= 0.5;
 
   const Star = ({ filled, half }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
@@ -47,7 +46,7 @@ const StarRating = ({ value = 0, size = 16, color = "#FFC107", gap = 3 }) => {
   );
 };
 
-/** Interactive star input (1–5, integer) — no border/ring */
+/* ========= Interactive picker (1–5) ========= */
 const StarPicker = ({
   value = 5,
   onChange,
@@ -58,8 +57,7 @@ const StarPicker = ({
   className = "",
 }) => {
   const [hover, setHover] = useState(null);
-
-  const drawStar = (filled) => (
+  const draw = (filled) => (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
@@ -69,19 +67,15 @@ const StarPicker = ({
       />
     </svg>
   );
-
-  const handleKey = (e) => {
+  const onKey = (e) => {
     if (e.key === "ArrowRight" || e.key === "ArrowUp") {
       e.preventDefault();
       onChange(Math.min(5, (Number(value) || 0) + 1));
     } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
       e.preventDefault();
       onChange(Math.max(1, (Number(value) || 1) - 1));
-    } else if (e.key >= "1" && e.key <= "5") {
-      onChange(Number(e.key));
-    }
+    } else if (e.key >= "1" && e.key <= "5") onChange(Number(e.key));
   };
-
   return (
     <div
       className={`inline-flex items-center ${className}`}
@@ -91,13 +85,13 @@ const StarPicker = ({
       aria-valuemax={5}
       aria-valuenow={value}
       tabIndex={0}
-      onKeyDown={handleKey}
+      onKeyDown={onKey}
       onMouseLeave={() => setHover(null)}
       style={{ gap }}
     >
       {Array.from({ length: 5 }, (_, i) => {
         const idx = i + 1;
-        const isFilled = hover ? idx <= hover : idx <= value;
+        const filled = hover ? idx <= hover : idx <= value;
         return (
           <button
             key={idx}
@@ -108,7 +102,7 @@ const StarPicker = ({
             className="focus:outline-none"
             aria-label={`${idx} star${idx > 1 ? "s" : ""}`}
           >
-            {drawStar(isFilled)}
+            {draw(filled)}
           </button>
         );
       })}
@@ -116,6 +110,16 @@ const StarPicker = ({
   );
 };
 
+/* ========= Helpers ========= */
+const initials = (name = "") =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase())
+    .join("");
+
+/* ========= Component ========= */
 const ReviewsTab = () => {
   const { props } = usePage();
   const vehicle = props?.vehicle || {};
@@ -131,11 +135,9 @@ const ReviewsTab = () => {
       ? Number(vehicle.rating_avg)
       : null;
 
-  // Fresh form every time (no update/delete UI)
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
 
-  // Reset form if vehicle changes
   useEffect(() => {
     setRating(5);
     setComment("");
@@ -153,7 +155,6 @@ const ReviewsTab = () => {
       {
         preserveScroll: true,
         onSuccess: () => {
-          // Clear form and refresh vehicle props (reviews + aggregates)
           setRating(5);
           setComment("");
           router.reload({ only: ["vehicle"] });
@@ -164,19 +165,20 @@ const ReviewsTab = () => {
 
   return (
     <div className="poppins">
+      {/* Header with count */}
       <div className="flex flex-row gap-5 items-center">
         <h1 className="text-[20px] font-[700]">Review</h1>
-        <div className="w-[44px] h-[28px] bg-[#0955AC] rounded-[4px] flex justify-center items-center text-[14px] font-[700] text-[#FFFFFF]">
+        <div className="w-[44px] h-[28px] bg-[#0955AC] rounded-[4px] flex justify-center items-center text-[14px] font-[700] text-white">
           {totalReviews}
         </div>
       </div>
 
+      {/* Average panel */}
       <div className="flex flex-row gap-8 items-center mb-10">
         <div>
           <h1 className="text-[50px] font-[700]">
             {average !== null ? average.toFixed(1) : "—"}
           </h1>
-          {/* Dynamic gold stars for average */}
           <StarRating value={average ?? 0} size={16} />
           <h1 className="text-[#90A3BF] mt-2">{totalReviews}</h1>
         </div>
@@ -192,17 +194,12 @@ const ReviewsTab = () => {
         </div>
       </div>
 
-      {/* Add review form (only for logged-in clients) */}
+      {/* Add review form (clients only) */}
       {authUser?.role === "client" ? (
         <form onSubmit={submit} className="mb-8">
           <div className="flex items-center gap-3 mb-3">
             <label className="text-sm font-semibold">Your rating:</label>
-            <StarPicker
-              value={rating}
-              onChange={setRating}
-              className="ml-1"
-              size={18} // smaller picker
-            />
+            <StarPicker value={rating} onChange={setRating} className="ml-1" size={18} />
           </div>
 
           <textarea
@@ -230,7 +227,67 @@ const ReviewsTab = () => {
         </div>
       )}
 
-      <ReviewSection />
+      {/* ========= Reviews list INSIDE a single card ========= */}
+      <div className="bg-white rounded-2xl border border-[#EDEFF3] shadow-sm overflow-hidden">
+        {Array.isArray(vehicle?.reviews) && vehicle.reviews.length > 0 ? (
+          <ul className="divide-y divide-[#F1F3F7]">
+            {vehicle.reviews.map((r) => {
+              const name = r?.user?.name || "Provider";
+              const dateStr = r?.created_at
+                ? new Date(r.created_at).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "long",
+                    day: "2-digit",
+                  })
+                : "—";
+              const ratingNum = Number(r?.rating) || 0;
+
+              // avatar: image if you have r.user.avatar_url, otherwise initials circle
+              const avatarUrl = r?.user?.avatar_url;
+
+              return (
+                <li key={r.id} className="p-6">
+                  {/* header row: avatar + name on left, date + stars on right */}
+                  <div className="flex items-center gap-4">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={name}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-[#E7EEF9] text-[#1F2A44] flex items-center justify-center text-sm font-semibold">
+                        {initials(name) || "U"}
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[16px] font-[700] text-[#0F172A] truncate">
+                        {name}
+                      </div>
+                      <div className="text-[#CBD5E1] text-[18px] leading-none">—</div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="text-[13px] text-[#90A3BF]">{dateStr}</div>
+                      <StarRating value={ratingNum} size={16} />
+                    </div>
+                  </div>
+
+                  {/* comment */}
+                  <p className="mt-4 text-[14px] leading-7 text-[#1f2937] whitespace-pre-line">
+                    {r?.comment || "—"}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="p-6 text-sm text-[#90A3BF]">
+            No reviews yet. Be the first to share your experience!
+          </div>
+        )}
+      </div>
     </div>
   );
 };

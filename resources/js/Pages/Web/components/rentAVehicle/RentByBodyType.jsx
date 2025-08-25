@@ -39,7 +39,7 @@ const RentByBodyType = () => {
 
   return (
     <div className="w-full py-12">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-20">
         <h2 className="bebas-neue text-[40px] font-[400] text-center mb-8">
           RENT BY <span className="text-[#0955AC]">BODY TYPE</span>
         </h2>

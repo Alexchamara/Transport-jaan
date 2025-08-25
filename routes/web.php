@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
-use App\Http\Controllers\ClientVehicleController;
-use App\Http\Controllers\VehicleLikeController;
-use App\Http\Controllers\VehicleReviewController;
+use App\Http\Controllers\VehicleControllers\Client\ClientVehicleController;
+use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
+use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;

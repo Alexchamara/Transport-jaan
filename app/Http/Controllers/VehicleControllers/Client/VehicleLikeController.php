@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\VehicleControllers\Client;
 
 use Illuminate\Http\Request;
 use App\Models\VehicleLike;
