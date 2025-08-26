@@ -31,6 +31,17 @@ class VehicleController extends Controller
 
         $query = Vehicle::query()
             ->where('provider_id', $userId)
+            ->with([
+                'landSpec:id,vehicle_id,fuel_type,transmission_type',
+                'airSpec:id,vehicle_id,fuel_type',
+                'seaSpec:id,vehicle_id,fuel_type',
+                'media' => function ($q) {
+                    $q->where('media_type', 'image')
+                      ->orderByDesc('is_primary')
+                      ->orderBy('sort_order')
+                      ->select('id','vehicle_id','path','is_primary','sort_order');
+                },
+            ])
             ->latest('id');
 
         if ($q = trim((string) $request->query('q', ''))) {
@@ -58,19 +69,11 @@ class VehicleController extends Controller
         $paginator = $query->paginate($perPage);
 
         $data = $paginator->getCollection()->map(function (Vehicle $v) {
-            $land = class_exists(LandVehicleSpec::class) ? LandVehicleSpec::where('vehicle_id', $v->id)->first() : null;
-            $air  = class_exists(AirVehicleSpec::class)  ? AirVehicleSpec::where('vehicle_id', $v->id)->first()  : null;
-            $sea  = class_exists(SeaVehicleSpec::class)  ? SeaVehicleSpec::where('vehicle_id', $v->id)->first()  : null;
+            $land = $v->landSpec;
+            $air  = $v->airSpec;
+            $sea  = $v->seaSpec;
 
-            $images = Schema::hasTable('vehicle_media')
-                ? VehicleMedia::where('vehicle_id', $v->id)
-                    ->where('media_type', 'image')
-                    ->orderBy('is_primary', 'desc')
-                    ->orderBy('sort_order')
-                    ->pluck('path')
-                    ->values()
-                    ->all()
-                : [];
+            $images = $v->media->pluck('path')->values()->all();
 
             $isApproved  = strtolower((string) $v->approval_status) === 'approved';
             $isActive    = in_array(strtolower((string) $v->status), ['active','available'], true);
@@ -148,7 +151,6 @@ class VehicleController extends Controller
             'condition'         => $condition,
             'ownershipType'     => $ownership,
 
-            // built-in feature toggles
             'gps'               => $request->boolean('gps'),
             'childSeat'         => $request->boolean('childSeat'),
             'wifi'              => $request->boolean('wifi'),
@@ -242,11 +244,10 @@ class VehicleController extends Controller
 
         try {
             $vehicle = DB::transaction(function () use ($request, $type, $condition, $ownership) {
-
                 // ==== VEHICLE CATEGORY (optional) ====
                 $categoryId = null;
                 $vehicleTypeName = trim((string) $request->input('vehicleType',''));
-                if ($vehicleTypeName !== '' && Schema::hasTable('vehicle_categories') && class_exists(VehicleCategory::class)) {
+                if ($vehicleTypeName !== '') {
                     $cat = VehicleCategory::firstOrCreate(
                         ['type' => $type, 'name' => $vehicleTypeName],
                         ['type' => $type, 'name' => $vehicleTypeName]
@@ -254,53 +255,52 @@ class VehicleController extends Controller
                     $categoryId = $cat->id;
                 }
 
-                // ==== VEHICLE ====
-                $vehicle = new Vehicle();
-                $vehicle->provider_id            = $request->user()->id;
-                $vehicle->type                   = $type;
-                $vehicle->category_id            = $categoryId;
-
-                $vehicle->model                  = $request->input('model');
-                $vehicle->manufacturer           = $request->input('manufacture');
-                $vehicle->manufacture_year       = $request->integer('manufactureYear') ?: null;
-                $vehicle->registration_year      = $request->integer('registerYear') ?: null;
-                $vehicle->registration_number    = $request->input('number');
-                $vehicle->colour                 = $request->input('colour');
-
-                $vehicle->condition              = $condition;
-                $vehicle->ownership_type         = $ownership;
-
+                // ==== VEHICLE (mass assign) ====
                 $passengerCapacity = $request->integer('passengerCapacity');
                 if ($passengerCapacity === null && $type === 'land') {
                     $passengerCapacity = $request->integer('seats') ?: null;
                 }
-                $vehicle->passenger_capacity     = $passengerCapacity;
 
-                $vehicle->mileage_km             = $request->integer('mileage') ?: null;
+                $vehicle = Vehicle::create([
+                    'provider_id'            => $request->user()->id,
+                    'type'                   => $type,
+                    'category_id'            => $categoryId,
 
-                $vehicle->rental_price_per_day   = $request->input('rentalPricePerDay');
-                $vehicle->total_rental_price     = $request->input('totalRentalPrice');
-                $vehicle->deposit_amount         = $request->input('deposit');
-                $vehicle->advance_payment_amount = $request->input('advancePayment');
+                    'model'                  => $request->input('model'),
+                    'manufacturer'           => $request->input('manufacture'),
+                    'manufacture_year'       => $request->integer('manufactureYear') ?: null,
+                    'registration_year'      => $request->integer('registerYear') ?: null,
+                    'registration_number'    => $request->input('number'),
+                    'colour'                 => $request->input('colour'),
 
-                $vehicle->insurance_provider     = $request->input('insuranceProvider');
+                    'condition'              => $condition,
+                    'ownership_type'         => $ownership,
 
-                // Built-in toggles still live on vehicles table (booleans)
-                $vehicle->gps                    = $request->boolean('gps');
-                $vehicle->child_seat             = $type === 'land' ? $request->boolean('childSeat') : false;
-                $vehicle->wifi                   = $request->boolean('wifi');
-                $vehicle->insurance_coverage     = $request->boolean('insuranceCoverage');
+                    'passenger_capacity'     => $passengerCapacity,
+                    'mileage_km'             => $request->integer('mileage') ?: null,
 
-                $vehicle->extra                  = $request->input('extra');
+                    'rental_price_per_day'   => $request->input('rentalPricePerDay'),
+                    'total_rental_price'     => $request->input('totalRentalPrice'),
+                    'deposit_amount'         => $request->input('deposit'),
+                    'advance_payment_amount' => $request->input('advancePayment'),
 
-                $vehicle->status                 = 'inactive';
-                $vehicle->approval_status        = 'pending';
-                $vehicle->description            = $request->input('description');
-                $vehicle->save();
+                    'insurance_provider'     => $request->input('insuranceProvider'),
 
-                // ==== TYPE-SPECIFIC SPECS (optional tables) ====
-                if ($type === 'air' && Schema::hasTable('air_vehicle_specs') && class_exists(AirVehicleSpec::class)) {
-                    AirVehicleSpec::updateOrCreate(
+                    'gps'                    => $request->boolean('gps'),
+                    'child_seat'             => $type === 'land' ? $request->boolean('childSeat') : false,
+                    'wifi'                   => $request->boolean('wifi'),
+                    'insurance_coverage'     => $request->boolean('insuranceCoverage'),
+
+                    'extra'                  => $request->input('extra'),
+
+                    'status'                 => 'inactive',
+                    'approval_status'        => 'pending',
+                    'description'            => $request->input('description'),
+                ]);
+
+                // ==== TYPE-SPECIFIC SPECS ====
+                if ($type === 'air') {
+                    $vehicle->airSpec()->updateOrCreate(
                         ['vehicle_id' => $vehicle->id],
                         [
                             'aircraft_type'        => $request->input('aircraft_type'),
@@ -316,8 +316,8 @@ class VehicleController extends Controller
                             'flight_hours_total'   => $request->integer('flight_hours_total') ?: null,
                         ]
                     );
-                } elseif ($type === 'sea' && Schema::hasTable('sea_vehicle_specs') && class_exists(SeaVehicleSpec::class)) {
-                    SeaVehicleSpec::updateOrCreate(
+                } elseif ($type === 'sea') {
+                    $vehicle->seaSpec()->updateOrCreate(
                         ['vehicle_id' => $vehicle->id],
                         [
                             'vessel_type'      => $request->input('vessel_type'),
@@ -335,8 +335,8 @@ class VehicleController extends Controller
                             'water_tank_l'     => $request->input('water_tank_l'),
                         ]
                     );
-                } elseif ($type === 'land' && Schema::hasTable('land_vehicle_specs') && class_exists(LandVehicleSpec::class)) {
-                    LandVehicleSpec::updateOrCreate(
+                } elseif ($type === 'land') {
+                    $vehicle->landSpec()->updateOrCreate(
                         ['vehicle_id' => $vehicle->id],
                         [
                             'body_type'            => $request->input('bodyType'),
@@ -351,12 +351,11 @@ class VehicleController extends Controller
                 }
 
                 // ==== IMAGES ====
-                if (Schema::hasTable('vehicle_media') && $request->hasFile('images')) {
+                if ($request->hasFile('images')) {
                     foreach ($request->file('images') as $i => $file) {
                         if (!$file) continue;
                         $path = $file->store("public/vehicles/{$vehicle->id}/images");
-                        VehicleMedia::create([
-                            'vehicle_id' => $vehicle->id,
+                        $vehicle->media()->create([
                             'media_type' => 'image',
                             'title'      => $file->getClientOriginalName(),
                             'path'       => Storage::url($path),
@@ -367,12 +366,11 @@ class VehicleController extends Controller
                 }
 
                 // ==== INSURANCE DOCS ====
-                if (Schema::hasTable('vehicle_documents') && $request->hasFile('insuranceDocs')) {
+                if ($request->hasFile('insuranceDocs')) {
                     foreach ($request->file('insuranceDocs') as $file) {
                         if (!$file) continue;
                         $path = $file->store("public/vehicles/{$vehicle->id}/documents");
-                        VehicleDocument::create([
-                            'vehicle_id'           => $vehicle->id,
+                        $vehicle->documents()->create([
                             'doc_type'             => 'insurance',
                             'provider_name'        => $request->input('insuranceProvider'),
                             'policy_or_doc_number' => null,
@@ -383,9 +381,7 @@ class VehicleController extends Controller
                     }
                 }
 
-                // ==== ADDITIONAL FEATURES (everything ends up as name+price rows) ====
-
-                // 1) Built-in toggles mapped to rows (optional: only if enabled or price given)
+                // ==== ADDITIONAL FEATURES -> vehicle_feature_pricings ====
                 $featureRows = [];
                 if ($request->boolean('gps') || $request->filled('gpsPrice')) {
                     $featureRows[] = ['name' => 'GPS', 'price' => $request->input('gpsPrice')];
@@ -403,7 +399,7 @@ class VehicleController extends Controller
                     $featureRows[] = ['name' => 'Add Driver', 'price' => $request->input('addDriverPrice')];
                 }
 
-                // 2) Dynamic extras from UI (array or JSON string)
+                // Dynamic extras (array or JSON)
                 $extraFeatures = $request->input('extraFeatures');
                 if (is_string($extraFeatures)) {
                     $decoded = json_decode($extraFeatures, true);
@@ -422,16 +418,13 @@ class VehicleController extends Controller
 
                 $featureRows = array_merge($featureRows, $extraFeatures);
 
-                // 3) Persist rows (one row per feature) into vehicle_feature_pricings
                 if (Schema::hasTable('vehicle_feature_pricings') && !empty($featureRows)) {
-                    // In case you reuse this endpoint for updates someday, clear old rows first
                     VehicleFeaturePricing::where('vehicle_id', $vehicle->id)->delete();
-
                     foreach ($featureRows as $r) {
                         VehicleFeaturePricing::create([
-                            'vehicle_id'                 => $vehicle->id,
-                            'additional_feature_name'    => $r['name'],
-                            'additional_feature_price'   => $r['price'],
+                            'vehicle_id'               => $vehicle->id,
+                            'additional_feature_name'  => $r['name'],
+                            'additional_feature_price' => $r['price'],
                         ]);
                     }
                 }
@@ -459,21 +452,13 @@ class VehicleController extends Controller
         abort_unless($vehicle->provider_id === $request->user()->id, 403);
 
         DB::transaction(function () use ($vehicle) {
-            if (Schema::hasTable('vehicle_media')) {
-                VehicleMedia::where('vehicle_id', $vehicle->id)->delete();
-            }
-            if (Schema::hasTable('vehicle_documents')) {
-                VehicleDocument::where('vehicle_id', $vehicle->id)->delete();
-            }
-            if (Schema::hasTable('land_vehicle_specs')) {
-                LandVehicleSpec::where('vehicle_id', $vehicle->id)->delete();
-            }
-            if (Schema::hasTable('air_vehicle_specs')) {
-                AirVehicleSpec::where('vehicle_id', $vehicle->id)->delete();
-            }
-            if (Schema::hasTable('sea_vehicle_specs')) {
-                SeaVehicleSpec::where('vehicle_id', $vehicle->id)->delete();
-            }
+            // delete children via relations
+            $vehicle->media()->delete();
+            $vehicle->documents()->delete();
+            $vehicle->landSpec()->delete();
+            $vehicle->airSpec()->delete();
+            $vehicle->seaSpec()->delete();
+
             if (Schema::hasTable('vehicle_feature_pricings')) {
                 VehicleFeaturePricing::where('vehicle_id', $vehicle->id)->delete();
             }

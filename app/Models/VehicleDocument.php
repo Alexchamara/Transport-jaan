@@ -1,12 +1,25 @@
 <?php
-
+// app/Models/VehicleDocument.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class VehicleDocument extends Model
 {
-    protected $guarded = [];
+    protected $fillable = [
+        'vehicle_id',
+        'doc_type',              // e.g. insurance
+        'provider_name',
+        'policy_or_doc_number',
+        'issue_date',
+        'expiry_date',
+        'file_path',
+    ];
+
+    protected $casts = [
+        'issue_date' => 'date',
+        'expiry_date'=> 'date',
+    ];
 
     public function vehicle()
     {

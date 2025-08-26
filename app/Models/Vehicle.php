@@ -1,5 +1,5 @@
 <?php
-
+// app/Models/Vehicle.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -22,55 +22,51 @@ class Vehicle extends Model
 
     protected $fillable = [
         'provider_id',
-        'type',
+        'type',                 // land|air|sea
         'category_id',
+
         'model',
         'manufacturer',
         'manufacture_year',
         'registration_year',
         'registration_number',
         'colour',
-        'condition',
-        'ownership_type',
+
+        'condition',            // new|used|refurbished...
+        'ownership_type',       // company_owned|leased|partner_owned
+
         'passenger_capacity',
         'mileage_km',
+
         'rental_price_per_day',
         'total_rental_price',
         'deposit_amount',
         'advance_payment_amount',
-        'currency',
+
         'insurance_provider',
-        'insurance_policy_number',
+
         'gps',
         'child_seat',
         'wifi',
         'insurance_coverage',
+
         'extra',
-        'contact_name',
-        'contact_email',
-        'contact_phone',
-        'address',
-        'city',
-        'state',
-        'postal_code',
-        'country',
-        'latitude',
-        'longitude',
-        'status',
-        'approval_status',
-        'approved_by',
-        'approved_at',
+        'status',               // inactive|active|available...
+        'approval_status',      // pending|approved|rejected
         'description',
-        'images_json',
-        'insurance_docs_json',
     ];
-    protected $guarded = [];
 
     protected $casts = [
-        'gps'                 => 'boolean',
-        'child_seat'          => 'boolean',
-        'wifi'                => 'boolean',
-        'insurance_coverage'  => 'boolean',
+        'gps'                => 'boolean',
+        'child_seat'         => 'boolean',
+        'wifi'               => 'boolean',
+        'insurance_coverage' => 'boolean',
+        'passenger_capacity' => 'integer',
+        'mileage_km'         => 'integer',
+        'rental_price_per_day'   => 'decimal:2',
+        'total_rental_price'     => 'decimal:2',
+        'deposit_amount'         => 'decimal:2',
+        'advance_payment_amount' => 'decimal:2',
     ];
 
     public function category()
@@ -93,6 +89,11 @@ class Vehicle extends Model
     public function seaSpec()
     {
         return $this->hasOne(SeaVehicleSpec::class);
+    }
+
+    public function landSpec()
+    {
+        return $this->hasOne(LandVehicleSpec::class);
     }
 
     public function media()
@@ -155,4 +156,8 @@ class Vehicle extends Model
     return $this->hasMany(VehicleReview::class, 'vehicle_id', 'id');
 }
 
+    public function crew()
+    {
+        return $this->hasMany(VehicleCrew::class);
+    }
 }
