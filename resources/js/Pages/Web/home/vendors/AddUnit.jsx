@@ -231,10 +231,9 @@ const AddUnit = () => {
   }, [imagePreviews, insurancePreviews]);
 
   const inputClasses = (name) =>
-    `w-full rounded-lg px-4 py-2.5 transition duration-150 ease-in-out ${
-      errors[name]
-        ? 'border border-red-500 focus:ring-red-500 focus:border-red-500'
-        : 'border border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+    `w-full rounded-lg px-4 py-2.5 transition duration-150 ease-in-out ${errors[name]
+      ? 'border border-red-500 focus:ring-red-500 focus:border-red-500'
+      : 'border border-gray-300 focus:ring-blue-500 focus:border-blue-500'
     }`;
 
   const selectClasses = inputClasses;
@@ -472,15 +471,15 @@ const AddUnit = () => {
     form.category === 'Air'
       ? 'Aircraft Registration'
       : form.category === 'Sea'
-      ? 'Vessel IMO Number'
-      : 'Vehicle Number';
+        ? 'Vessel IMO Number'
+        : 'Vehicle Number';
 
   const placeholderForNumber =
     form.category === 'Air'
       ? 'Enter aircraft registration'
       : form.category === 'Sea'
-      ? 'Enter IMO number'
-      : 'Enter vehicle number';
+        ? 'Enter IMO number'
+        : 'Enter vehicle number';
 
   const imagesUsed = imageFiles.length;
   const canAddMoreImages = imagesUsed < MAX_IMAGES;
@@ -568,21 +567,6 @@ const AddUnit = () => {
           <section className="bg-[#FFFFFF] p-6 rounded-lg">
             <h2 className="text-[18px] font-[400] text-gray-800 mb-6">Basic Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label htmlFor="model" className="block text-[14px] font-medium text-gray-700">
-                  Model <Req />
-                </label>
-                <input
-                  id="model"
-                  name="model"
-                  className={inputClasses('model')}
-                  value={form.model}
-                  onChange={handleChange}
-                  placeholder="Enter model"
-                  {...req('Please enter the model.')}
-                />
-                {errors.model && <div className="text-red-500 text-xs mt-1">{errors.model}</div>}
-              </div>
 
               <div className="space-y-2">
                 <label htmlFor="manufacture" className="block text-[14px] font-medium text-gray-700">
@@ -599,6 +583,23 @@ const AddUnit = () => {
                 />
                 {errors.manufacture && <div className="text-red-500 text-xs mt-1">{errors.manufacture}</div>}
               </div>
+              <div className="space-y-2">
+                <label htmlFor="model" className="block text-[14px] font-medium text-gray-700">
+                  Model <Req />
+                </label>
+                <input
+                  id="model"
+                  name="model"
+                  className={inputClasses('model')}
+                  value={form.model}
+                  onChange={handleChange}
+                  placeholder="Enter model"
+                  {...req('Please enter the model.')}
+                />
+                {errors.model && <div className="text-red-500 text-xs mt-1">{errors.model}</div>}
+              </div>
+
+
 
               <div className="space-y-2">
                 <label htmlFor="manufactureYear" className="block text-[14px] font-medium text-gray-700">
@@ -695,9 +696,8 @@ const AddUnit = () => {
                       <div className="flex text-sm text-gray-600">
                         <label
                           htmlFor="images"
-                          className={`relative bg-white rounded-md font-medium ${
-                            canAddMoreImages ? 'cursor-pointer text-blue-600 hover:text-blue-500' : 'opacity-50 cursor-not-allowed text-gray-400'
-                          }`}
+                          className={`relative bg-white rounded-md font-medium ${canAddMoreImages ? 'cursor-pointer text-blue-600 hover:text-blue-500' : 'opacity-50 cursor-not-allowed text-gray-400'
+                            }`}
                         >
                           <span>{canAddMoreImages ? 'Upload images' : 'Max reached'}</span>
                           <input
@@ -1480,9 +1480,8 @@ const AddUnit = () => {
                       <div className="flex text-sm text-gray-600">
                         <label
                           htmlFor="insuranceDocs"
-                          className={`relative bg-white rounded-md font-medium ${
-                            canAddMoreInsurance ? 'cursor-pointer text-blue-600 hover:text-blue-500' : 'opacity-50 cursor-not-allowed text-gray-400'
-                          }`}
+                          className={`relative bg-white rounded-md font-medium ${canAddMoreInsurance ? 'cursor-pointer text-blue-600 hover:text-blue-500' : 'opacity-50 cursor-not-allowed text-gray-400'
+                            }`}
                         >
                           <span>{canAddMoreInsurance ? 'Upload photos' : 'Max reached'}</span>
                           <input
@@ -1814,9 +1813,8 @@ const AddUnit = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`inline-flex items-center px-6 py-2.5 border border-transparent font-[700] figtree rounded-lg text-[#FFFFFF] bg-[#0955AC] focus:outline-none focus:ring-0 transition-colors duration-150 ${
-                isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
-              }`}
+              className={`inline-flex items-center px-6 py-2.5 border border-transparent font-[700] figtree rounded-lg text-[#FFFFFF] bg-[#0955AC] focus:outline-none focus:ring-0 transition-colors duration-150 ${isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
             >
               {isSubmitting ? (
                 <>

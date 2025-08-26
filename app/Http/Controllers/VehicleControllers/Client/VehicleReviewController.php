@@ -8,23 +8,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Routing\Controller;
 
-
-
 class VehicleReviewController extends Controller
 {
     public function __construct()
     {
-        // Only logged-in users may create/delete; listing is public
         $this->middleware('auth')->only(['store', 'destroy']);
     }
 
-    /**
-     * Public: list all reviews for a vehicle (JSON).
-     */
+    /** Public: list all reviews for a vehicle (JSON). */
     public function index(Vehicle $vehicle)
     {
         $reviews = $vehicle->reviews()
-            ->with(['client:id,name,country']) // select what you need
+            ->with(['client:id,name,email,country']) // include email for fallback
             ->latest()
             ->get(['id','vehicle_id','client_id','rating','comment','created_at']);
 
@@ -34,14 +29,10 @@ class VehicleReviewController extends Controller
         ]);
     }
 
-    /**
-     * Logged-in CLIENT creates/updates their review.
-     */
+    /** Logged-in CLIENT creates/updates their review. */
     public function store(Request $request, Vehicle $vehicle)
     {
         $user = Auth::user();
-
-        // allow only users with role=client to post
         if (!$user || $user->role !== 'client') {
             abort(403, 'Only clients can post reviews.');
         }
@@ -59,9 +50,7 @@ class VehicleReviewController extends Controller
         return back();
     }
 
-    /**
-     * Optional: client deletes their own review.
-     */
+    /** Optional: client deletes their own review. */
     public function destroy(Vehicle $vehicle)
     {
         $user = Auth::user();

@@ -1,21 +1,41 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { router } from "@inertiajs/react";
 import axios from "axios";
-import info from "../../assets/rentAVehicle/collection/info.png";
-import heartFill from '../../assets/rentAVehicle/collection/heartFill.png';
-import heart from '../../assets/rentAVehicle/collection/heart.png';
+
+// spec icons (same ones you already use)
+import meter from "../../assets/rentAVehicle/collection/meter.png";
+import gearBox from "../../assets/rentAVehicle/collection/gearbox.png";
+import user from "../../assets/rentAVehicle/collection/user.png";
+import gas from "../../assets/rentAVehicle/collection/gas.png";
+import heartFill from "../../assets/rentAVehicle/collection/heartFill.png";
+import heart from "../../assets/rentAVehicle/collection/heart.png";
 
 const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleIds }) => {
-  const [likedVehicles, setLikedVehicles] = useState(likedVehicleIds || []);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [filteredVehicles, setFilteredVehicles] = useState(initialVehicles?.data || []);
-  const itemsPerPage = 6;
+  // normalize input (paginator or array)
+  const vehicles = useMemo(
+    () => (Array.isArray(initialVehicles) ? initialVehicles : (initialVehicles?.data || [])),
+    [initialVehicles]
+  );
 
+  // liked map for O(1) checks
+  const [likedMap, setLikedMap] = useState({});
   useEffect(() => {
-    setFilteredVehicles(initialVehicles?.data || []);
-    setCurrentPage(1);
-    setLikedVehicles(likedVehicleIds || []);
-  }, [initialVehicles, likedVehicleIds]);
+    const m = {};
+    (likedVehicleIds || []).forEach((id) => (m[id] = true));
+    setLikedMap(m);
+  }, [likedVehicleIds]);
+
+  // helper: best image URL
+  const getImg = (v) => {
+    if (v?.primary_image_url) return v.primary_image_url;
+    if (Array.isArray(v?.images) && v.images.length) {
+      if (v.images[0].url) return v.images[0].url;
+      if (v.images[0].image_path) return `/storage/${v.images[0].image_path}`;
+      if (v.images[0].path) return `/storage/${v.images[0].path}`;
+    }
+    if (v?.primaryImage?.path) return `/storage/${v.primaryImage.path}`;
+    return "/placeholder.png";
+  };
 
   const toggleLike = async (vehicleId) => {
     if (!authUser) {
@@ -23,85 +43,93 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
       router.visit("/signin");
       return;
     }
-
     try {
-      const response = await axios.post(route("vehicle.like.toggle"), { vehicle_id: vehicleId });
-      const { likedVehicleIds } = response.data;
-
-      // Sync state with backend
-      setLikedVehicles(likedVehicleIds);
-    } catch (error) {
-      console.error(error);
+      const { data } = await axios.post(route("vehicle.like.toggle"), { vehicle_id: vehicleId });
+      const map = {};
+      (data.likedVehicleIds || []).forEach((id) => (map[id] = true));
+      setLikedMap(map);
+    } catch (e) {
+      console.error(e);
       alert("Something went wrong while liking the vehicle.");
     }
   };
 
-  const handleViewDetails = (vehicle) => {
-    router.visit(`/vehicleDetails/${vehicle.id}`);
-  };
-
-  const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentVehicles = filteredVehicles.slice(startIndex, startIndex + itemsPerPage);
-
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
+  const view = (id) => router.visit(`/vehicleDetails/${id}`);
 
   return (
     <div className="w-full py-6 md:py-12 px-4 md:px-40">
       <div className="container mx-auto">
-        <p className="bebas-neue text-[28px] md:text-[40px] font-[400] mb-6 md:mb-10">
-          we found <span className="text-[#0955AC]">{filteredVehicles.length} cars</span> for you
+        <p className="bebas-neue text-[28px] md:text-[40px] font-[400] mb-8">
+          we found <span className="text-[#0955AC]">{vehicles.length} cars</span> for you
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-15 justify-items-center">
-          {currentVehicles.map((vehicle) => (
+          {vehicles.map((v) => (
             <div
-              key={vehicle.id}
+              key={v.id}
               className="bg-white shadow-md overflow-hidden h-auto w-full max-w-[286px] py-5"
             >
-              <div className="flex items-center justify-center mt-5">
-                <img src={info} alt="info" className="h-[30px] md:h-[36px] w-[180px] md:w-[207px]" />
+              {/* --- top spec row --- */}
+              <div className="pb-4">
+                <div className="grid grid-cols-4 gap-4 text-[#8B8B8B]">
+                  {[
+                    { icon: meter, label: v.mileage_km ?? "-" },
+                    { icon: gearBox, label: v?.landSpec?.transmission_type || "-" },
+                    { icon: user, label: v?.landSpec?.seats || v.passenger_capacity || "-" },
+                    { icon: gas, label: v?.landSpec?.fuel_type || "-" },
+                  ].map((s, i) => (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <img src={s.icon} alt="" className="w-5 h-5 opacity-60" />
+                      <span className="text-[11px] leading-none">{String(s.label)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex items-center justify-center">
+              {/* --- vehicle image --- */}
+              <div className="h-[100px] flex items-start justify-center mb-4">
                 <img
-                  src={vehicle.images?.[0]?.image_path ? `/storage/${vehicle.images[0].image_path}` : 'https://via.placeholder.com/286x150?text=No+Image'}
-                  alt={vehicle.model}
-                  className="w-full h-[120px] md:h-[150px] object-cover"
+                  src={getImg(v)}
+                  alt={v.model || "vehicle"}
+                  className="max-h-full object-contain"
+                  loading="lazy"
                 />
               </div>
 
-              <div className="p-2 flex flex-col items-center justify-center">
-                <h3 className="bebas-neue text-[24px] md:text-[30px] font-[400] text-center">
-                  {vehicle.model.split(" ").map((word, i) => (
-                    <span key={i} className={i === 1 ? "text-[#0955AC]" : ""}>
-                      {word}{" "}
-                    </span>
-                  ))}
+              {/* --- title + price --- */}
+              <div className="text-center">
+                <h3 className="bebas-neue text-[30px] tracking-wide">
+                  {(v.model || "").toUpperCase()}
                 </h3>
-                <p className="poppins font-[700] text-[20px] md:text-[25px]">
-                  {vehicle.rental_price_per_day ?? 89}.00
-                  <span className="text-[#00000080] text-[8px] md:text-[10px] font-[600]"> /day</span>
-                </p>
+                <div className="flex items-end justify-center gap-2">
+                  <div className="font-extrabold text-[28px] md:text-[32px]">
+                    {(Number(v.rental_price_per_day) || 0).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </div>
+                  <div className="text-[#585858] text-sm pb-1">/day</div>
+                </div>
 
-                <div className="flex gap-2 mt-4">
+                {/* --- button row --- */}
+                <div className="mt-5 flex items-center gap-3">
                   <button
-                    onClick={() => handleViewDetails(vehicle)}
-                    className="bg-[#0955AC] text-white px-3 md:px-4 py-1.5 md:py-2 rounded text-sm md:text-base"
+                    onClick={() => view(v.id)}
+                    className="flex-1 h-[42px] rounded bg-[#0955AC] text-white text-[11px] font-[700] tracking-wider"
                   >
-                    View Details
+                    VIEW DETAILS
                   </button>
+
                   <button
-                    onClick={() => toggleLike(vehicle.id)}
-                    className="border border-[#0955AC] text-[#0955AC] px-3 md:px-4 py-1.5 md:py-2 rounded"
+                    onClick={() => toggleLike(v.id)}
+                    className="h-[42px] w-[42px] rounded border border-[#0955AC] grid place-items-center bg-white"
+                    aria-label={likedMap[v.id] ? "Unlike" : "Like"}
                   >
-                    {likedVehicles.includes(vehicle.id) ? (
-                      <img src={heartFill} alt="Liked" className="w-4 h-4 md:w-5 md:h-5" />
-                    ) : (
-                      <img src={heart} alt="Not Liked" className="w-4 h-4 md:w-5 md:h-5" />
-                    )}
+                    <img
+                      src={likedMap[v.id] ? heartFill : heart}
+                      alt=""
+                      className="w-[18px] h-[18px]"
+                    />
                   </button>
                 </div>
               </div>
@@ -109,22 +137,7 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
           ))}
         </div>
 
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-6 md:mt-8 gap-1 md:gap-2">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`px-3 md:px-4 py-1.5 md:py-2 rounded text-sm md:text-base ${currentPage === page
-                    ? "bg-[#0955AC] text-white"
-                    : "bg-white text-[#0955AC] border border-[#0955AC]"
-                  }`}
-              >
-                {page}
-              </button>
-            ))}
-          </div>
-        )}
+
       </div>
     </div>
   );

@@ -110,7 +110,6 @@ const StarPicker = ({
   );
 };
 
-/* ========= Helpers ========= */
 const initials = (name = "") =>
   name
     .split(" ")
@@ -119,7 +118,12 @@ const initials = (name = "") =>
     .map((s) => s[0]?.toUpperCase())
     .join("");
 
-/* ========= Component ========= */
+const displayName = (client) => {
+  const raw = (client?.name || "").trim();
+  if (raw && !/^provider$/i.test(raw)) return raw;         // use real name unless it's "Provider"
+  return client?.email || "Anonymous";                      // fallback to email → Anonymous
+};
+
 const ReviewsTab = () => {
   const { props } = usePage();
   const vehicle = props?.vehicle || {};
@@ -227,12 +231,12 @@ const ReviewsTab = () => {
         </div>
       )}
 
-      {/* ========= Reviews list INSIDE a single card ========= */}
+      {/* Reviews list */}
       <div className="bg-white rounded-2xl border border-[#EDEFF3] shadow-sm overflow-hidden">
         {Array.isArray(vehicle?.reviews) && vehicle.reviews.length > 0 ? (
           <ul className="divide-y divide-[#F1F3F7]">
             {vehicle.reviews.map((r) => {
-              const name = r?.user?.name || "Provider";
+              const name = displayName(r?.client);
               const dateStr = r?.created_at
                 ? new Date(r.created_at).toLocaleDateString(undefined, {
                     year: "numeric",
@@ -242,12 +246,11 @@ const ReviewsTab = () => {
                 : "—";
               const ratingNum = Number(r?.rating) || 0;
 
-              // avatar: image if you have r.user.avatar_url, otherwise initials circle
-              const avatarUrl = r?.user?.avatar_url;
+              // avatar: if you ever add r.client.avatar_url
+              const avatarUrl = r?.client?.avatar_url;
 
               return (
                 <li key={r.id} className="p-6">
-                  {/* header row: avatar + name on left, date + stars on right */}
                   <div className="flex items-center gap-4">
                     {avatarUrl ? (
                       <img
@@ -265,7 +268,9 @@ const ReviewsTab = () => {
                       <div className="text-[16px] font-[700] text-[#0F172A] truncate">
                         {name}
                       </div>
-                      <div className="text-[#CBD5E1] text-[18px] leading-none">—</div>
+                      <div className="text-[#CBD5E1] text-[18px] leading-none">
+                        {r?.client?.country || "—"}
+                      </div>
                     </div>
 
                     <div className="flex flex-col items-end gap-1">
@@ -274,7 +279,6 @@ const ReviewsTab = () => {
                     </div>
                   </div>
 
-                  {/* comment */}
                   <p className="mt-4 text-[14px] leading-7 text-[#1f2937] whitespace-pre-line">
                     {r?.comment || "—"}
                   </p>

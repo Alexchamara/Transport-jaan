@@ -3,22 +3,14 @@ import { usePage } from "@inertiajs/react";
 import proPic from "../../assets/vehicleDetails/proPic.png";
 import arrow from "../../assets/landVehicleDetails/arrow.svg";
 
-/** Small reusable star rating (SVG, gold) */
 const StarRating = ({ value = 0, size = 18, color = "#FFC107", gap = 2 }) => {
-  const id = useId(); // unique ids for gradient/masks per component instance
+  const id = useId();
   const clamped = Math.max(0, Math.min(5, Number(value) || 0));
   const full = Math.floor(clamped);
   const hasHalf = clamped - full >= 0.5;
 
-  // Basic star path (24x24 viewbox)
   const Star = ({ filled, half }) => (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      style={{ display: "inline-block" }}
-      aria-hidden="true"
-    >
+    <svg width={size} height={size} viewBox="0 0 24 24" style={{ display: "inline-block" }} aria-hidden="true">
       <path
         d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
         fill={filled ? color : "none"}
@@ -68,6 +60,12 @@ const formatDate = (iso) => {
   }
 };
 
+const displayName = (client) => {
+  const raw = (client?.name || "").trim();
+  if (raw && !/^provider$/i.test(raw)) return raw;
+  return client?.email || "Anonymous";
+};
+
 const ReviewSection = () => {
   const { props } = usePage();
   const raw = props?.vehicle?.reviews || [];
@@ -76,10 +74,10 @@ const ReviewSection = () => {
     () =>
       raw.map((r) => ({
         id: r.id,
-        name: r?.client?.name ?? "Anonymous", // client from users table
+        name: displayName(r?.client),             // ✅ proper fallback
         location: r?.client?.country ?? r?.client?.location ?? "",
         date: formatDate(r?.created_at),
-        rating: Number(r?.rating ?? 0), // drives gold stars
+        rating: Number(r?.rating ?? 0),
         comment: r?.comment ?? "",
       })),
     [raw]
@@ -97,7 +95,7 @@ const ReviewSection = () => {
   }
 
   return (
-    <div className="plus-jakarta-sans w-auto h-auto xl:h-auto rounded-[10px] py-5  ">
+    <div className="plus-jakarta-sans w-auto h-auto xl:h-auto rounded-[10px] py-5">
       {displayedReviews.map((review) => (
         <div key={review.id} className="flex flex-col gap-3 py-5 text-[12px] font-[500] ">
           <div className="flex flex-col md:flex-row items-center justify-between">
@@ -110,7 +108,6 @@ const ReviewSection = () => {
             </div>
             <div className="flex flex-col items-start lg:items-end gap-2">
               <h1 className="text-[#90A3BF]">{review.date}</h1>
-              {/* Dynamic gold stars per review */}
               <StarRating value={review.rating} size={18} />
             </div>
           </div>
@@ -140,4 +137,3 @@ const ReviewSection = () => {
 };
 
 export default ReviewSection;
-

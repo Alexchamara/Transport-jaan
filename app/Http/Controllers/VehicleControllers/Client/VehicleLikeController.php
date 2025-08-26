@@ -9,7 +9,6 @@ use Illuminate\Routing\Controller;
 
 class VehicleLikeController extends Controller
 {
-    // Only authenticated users can access this controller
     public function __construct()
     {
         $this->middleware('auth');
@@ -17,10 +16,13 @@ class VehicleLikeController extends Controller
 
     public function toggle(Request $request)
     {
-        $user = Auth::user(); // guaranteed by middleware
-        $vehicleId = $request->vehicle_id;
+        $request->validate([
+            'vehicle_id' => ['required', 'integer', 'exists:vehicles,id'],
+        ]);
 
-        // Check if like already exists
+        $user = Auth::user(); // guaranteed by middleware
+        $vehicleId = (int) $request->vehicle_id;
+
         $like = VehicleLike::where('user_id', $user->id)
             ->where('vehicle_id', $vehicleId)
             ->first();
@@ -28,13 +30,13 @@ class VehicleLikeController extends Controller
         if ($like) {
             $like->delete();
         } else {
-            VehicleLike::create([
-                'user_id' => $user->id,
+            // Slightly safer if concurrent calls happen
+            VehicleLike::firstOrCreate([
+                'user_id'    => $user->id,
                 'vehicle_id' => $vehicleId,
             ]);
         }
 
-        // Return the updated list of liked vehicle IDs for the frontend
         $likedVehicleIds = $user->vehicleLikes()->pluck('vehicle_id')->toArray();
 
         return response()->json([
