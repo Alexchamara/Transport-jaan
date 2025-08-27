@@ -11,13 +11,12 @@ use Inertia\Inertia;
 | Public Routes
 |--------------------------------------------------------------------------
 */
-
 Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 
 Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
 Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
-Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blog');
+Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blogExample');
 
 Route::get('/clientRent', [WebController::class, 'index'])->name('home');
 Route::get('/vehicleList', [WebController::class, 'vehicleList'])->name('vehicle.list');
@@ -38,18 +37,16 @@ Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->nam
 
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
-
 // client routes
 Route::middleware(['auth', 'role:client'])->group(function () {});
 
-//warehouse
+// warehouse
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
 
 /*
 |--------------------------------------------------------------------------
 | Vendor App Pages (Inertia UI)  /vendors/...
 |--------------------------------------------------------------------------
-| UI pages are behind auth + role:vendor to match your React router.
 */
 Route::middleware(['auth', 'role:vendor'])
     ->prefix('vendors')
@@ -66,7 +63,9 @@ Route::middleware(['auth', 'role:vendor'])
 
         // Units UI
         Route::get('/units', fn () => Inertia::render('Web/home/vendors/Unit'))->name('units');
-        Route::get('/addUnit', fn () => Inertia::render('Web/home/vendors/AddUnit'))->name('addUnit');
+        Route::get('/addUnit', fn () => Inertia::render('Web/home/vendors/AddUnit'))->name('addUnit'); // create (blank)
+        Route::get('/addUnit/{vehicle}', [VehicleController::class, 'edit'])->name('addUnit.edit');      // edit (prefilled)
+        Route::get('/unitDetails', fn () => Inertia::render('Web/home/vendors/UnitDetails'))->name('unitDetails');
 
         // Warehouse UI
         Route::get('/warehouse/unit', fn () => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('warehouse.unit');
@@ -76,24 +75,25 @@ Route::middleware(['auth', 'role:vendor'])
 |--------------------------------------------------------------------------
 | Vendor Backend (JSON APIs & actions)  /vendor/...
 |--------------------------------------------------------------------------
-| The form in AddUnit posts to POST /vendor/vehicles/store
-| Keep these under auth so Inertia can redirect on unauthenticated.
 */
 Route::middleware(['auth'])
     ->prefix('vendor')
     ->name('vendor.')
     ->group(function () {
-        // Index redirects to the Units UI (prevents 404 if someone hits /vendor/vehicles)
         Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
 
-        // JSON list used by Units grid
+        // grid list
         Route::get('/vehicles/list', [VehicleController::class, 'list'])->name('vehicles.list');
 
-        // Accept both endpoints for POST (compat + canonical)
+        // create
         Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store.compat');
         Route::post('/vehicles/store', [VehicleController::class, 'store'])->name('vehicles.store');
 
-        // Delete vehicle
+        // edit/show + update
+        Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show'])->name('vehicles.show');
+        Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
+
+        // delete
         Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
     });
 
@@ -112,106 +112,28 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile',[ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-//     Route::get('/calendar', function () {
-//         return Inertia::render('Web/home/vendors/Calendar');
-//     })->name('calendar');
+/*
+|--------------------------------------------------------------------------
+| Legacy redirects
+|--------------------------------------------------------------------------
+*/
+Route::redirect('/units', '/vendors/units')->name('units.legacy');
+Route::redirect('/bookings', '/vendors/bookings')->name('bookings.legacy');
+Route::redirect('/clients', '/vendors/clients')->name('clients.legacy');
+Route::redirect('/expenses', '/vendors/expenses')->name('expenses.legacy');
+Route::redirect('/payment', '/vendors/payment')->name('payment.legacy');
+Route::redirect('/tracking', '/vendors/tracking')->name('tracking.legacy');
+Route::redirect('/calendar', '/vendors/calendar')->name('calendar.legacy');
+Route::redirect('/addUnit', '/vendors/addUnit')->name('addUnit.legacy');
+Route::redirect('/unitDetails', '/vendors/unitDetails')->name('unitDetails.legacy');
 
-//     Route::get('/addUnit', function () {
-//         return Inertia::render('Web/home/vendors/AddUnit');
-//     })->name('addUnit');
-
-//     Route::get('/mainDashboard', function () {
-//         return Inertia::render('Web/home/vendors/MainDashboard');
-//     })->name('mainDashboard');
-// });
-
-
-// for now
-Route::get('/bookings', function () {
-    return Inertia::render('Web/home/vendors/Booking');
-})->name('bookings');
-
-Route::get('/units', function () {
-    return Inertia::render('Web/home/vendors/Unit');
-})->name('units');
-
-Route::get('/dashboard', function () {
-    return Inertia::render('Web/home/vendors/Dashboard');
-})->name('dashboard');
-
-Route::get('/clients', function () {
-    return Inertia::render('Web/home/vendors/Client');
-})->name('clients');
-
-Route::get('/expenses', function () {
-    return Inertia::render('Web/home/vendors/Expenses');
-})->name('expenses');
-
-Route::get('/payment', function () {
-    return Inertia::render('Web/home/vendors/Payment');
-})->name('payment');
-
-Route::get('/tracking', function () {
-    return Inertia::render('Web/home/vendors/Tracking');
-})->name('tracking');
-
-Route::get('/calendar', function () {
-    return Inertia::render('Web/home/vendors/Calendar');
-})->name('calendar');
-
-Route::get('/addUnit', function () {
-    return Inertia::render('Web/home/vendors/AddUnit');
-})->name('addUnit');
-
-Route::get('/mainDashboard', function () {
-    return Inertia::render('Web/home/vendors/MainDashboard');
-})->name('mainDashboard');
-
-Route::get('/unitDetails', function () {
-    return Inertia::render('Web/home/vendors/UnitDetails');
-})->name('mainDashboard');
-// end
-
-
-
-// Client
+/*
+|--------------------------------------------------------------------------
+| Client App
+|--------------------------------------------------------------------------
+*/
 Route::get('/ClientDashboard', function () {
     return Inertia::render('Web/home/client/ClientDashboard');
 })->name('ClientDashboard');
-
-
-
-
-
-
-
-
-
-// vendor - warehouse rent
-Route::get('/warehouse/unit', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Unit');
-})->name('warehouse.Unit');
-
-
-
-
-// Route::get('/', function () {
-//     return Inertia::render('Welcome', [
-//         'canLogin' => Route::has('login'),
-//         'canRegister' => Route::has('register'),
-//         'laravelVersion' => Application::VERSION,
-//         'phpVersion' => PHP_VERSION,
-//     ]);
-// });
-
-// Route::get('/dashboard', function () {
-//     return Inertia::render('Dashboard');
-// })->middleware(['auth', 'verified'])->name('dashboard');
-
-// Route::middleware('auth')->group(function () {
-//     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-//     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-//     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-// });
 
 require __DIR__ . '/auth.php';

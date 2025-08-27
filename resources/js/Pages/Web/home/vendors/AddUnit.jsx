@@ -178,8 +178,178 @@ const hullMaterialOptions = ['Fiberglass', 'Aluminum', 'Steel', 'Wood', 'Composi
 const engineTypeOptions = ['inboard', 'outboard', 'sail', 'hybrid', 'electric', 'other'];
 const seaFuelTypeOptions = ['diesel', 'petrol', 'electric', 'other'];
 
-/** NEW: gears irrelevant for these transmission types */
+/** Helpers */
+const norm = (s) => String(s || '').replace(/[\s_\-]+/g, '').toLowerCase();
+const fromOptions = (val, options) => {
+  const v = norm(val);
+  if (!v) return '';
+  const hit = options.find((opt) => norm(opt) === v);
+  return hit || '';
+};
 const isGearsIrrelevant = (tt) => ['automatic', 'cvt'].includes(String(tt || '').toLowerCase());
+
+const mapConditionToUI = (val) => {
+  const v = String(val || '').toLowerCase();
+  if (v === 'new') return 'New';
+  if (v === 'refurbished' || v === 'excellent') return 'Excellent';
+  if (v === 'good' || v === 'used') return 'Good';
+  if (v === 'fair') return 'Fair';
+  if (v === 'needs repair' || v === 'needs_repair') return 'Needs Repair';
+  return '';
+};
+const mapOwnershipToUI = (val) => {
+  const v = String(val || '').toLowerCase();
+  if (v === 'company_owned' || v === 'owned') return 'Owned';
+  if (v === 'financed') return 'Financed';
+  if (v === 'leased') return 'Leased';
+  if (v === 'partner_owned' || v === 'rented') return 'Rented';
+  return '';
+};
+const mapTransmissionToUI = (val) => {
+  const v = String(val || '');
+  if (!v) return '';
+  if (/semi[-_\s]?automatic/i.test(v)) return 'Semi-Automatic';
+  if (/cvt/i.test(v)) return 'CVT';
+  if (/automatic/i.test(v)) return 'Automatic';
+  if (/manual/i.test(v)) return 'Manual';
+  if (/other/i.test(v)) return 'Other';
+  return '';
+};
+const mapYesNo = (b) => !!b;
+
+/** Extract media entries {id?, url} from various shapes (array of strings/objects) */
+const extractMediaEntries = (maybe) => {
+  if (!maybe) return [];
+  const arr = Array.isArray(maybe) ? maybe : [];
+  const out = [];
+  arr.forEach((item) => {
+    if (typeof item === 'string') {
+      out.push({ id: null, url: item });
+    } else if (item && typeof item === 'object') {
+      const id = item.id ?? item.media_id ?? item.uuid ?? item.file_id ?? null;
+      const url =
+        item.url ||
+        item.src ||
+        item.path ||
+        item.preview_url ||
+        item.original_url ||
+        item.full_url ||
+        (item.attributes && (item.attributes.url || item.attributes.src)) ||
+        item.file_path;
+      if (url) out.push({ id, url });
+    }
+  });
+  return out;
+};
+
+/** Extract from Spatie Media Library: vehicle.media filtered by collection name */
+const extractFromSpatieMedia = (media, names) => {
+  if (!Array.isArray(media)) return [];
+  const nameSet = new Set(names.map((n) => String(n || '').toLowerCase()));
+  return media
+    .filter((m) => nameSet.has(String(m.collection_name || '').toLowerCase()))
+    .map((m) => ({
+      id: m.id ?? null,
+      url: m.original_url || m.url || m.preview_url || '',
+    }))
+    .filter((x) => x.url);
+};
+
+/** Find insurance images in many common shapes (docs/fields/Spatie) */
+const extractInsuranceFromDocuments = (docs) => {
+  if (!Array.isArray(docs)) return [];
+  const looksLikeInsurance = (s = '') => /insurance/i.test(String(s));
+
+  const pickUrl = (d) =>
+    d.original_url ||
+    d.full_url ||
+    d.preview_url ||
+    d.url ||
+    d.path ||
+    d.file_path ||
+    d.image ||
+    d.src;
+
+  return docs
+    .filter((d) =>
+      looksLikeInsurance(d?.type) ||
+      looksLikeInsurance(d?.doc_type) ||
+      looksLikeInsurance(d?.document_type) ||
+      looksLikeInsurance(d?.category) ||
+      looksLikeInsurance(d?.label) ||
+      looksLikeInsurance(d?.title) ||
+      looksLikeInsurance(d?.name) ||
+      looksLikeInsurance(d?.collection_name)
+    )
+    .map((d) => ({ id: d.id ?? d.media_id ?? null, url: pickUrl(d) }))
+    .filter((x) => x.url && /\.(png|jpe?g|webp|gif)$/i.test(x.url));
+};
+
+/** tiny helper to dedupe by url */
+const dedupeByUrl = (arr) => {
+  const seen = new Set();
+  return (arr || []).filter(({ url }) => (url && !seen.has(url) ? (seen.add(url), true) : false));
+};
+
+/** Parse extra features from array/JSON/object/string */
+const parseExtraFeatures = (raw, fallbackText = '') => {
+  if (!raw && !fallbackText) return [];
+
+  const fromObject = (obj) => {
+    return Object.entries(obj || {})
+      .map(([k, v]) => ({ name: String(k || '').trim(), price: String(v ?? '').trim() }))
+      .filter((it) => it.name);
+  };
+
+  let data = raw;
+  try {
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (trimmed.startsWith('[') || trimmed.startsWith('{')) data = JSON.parse(trimmed);
+      else if (trimmed) {
+        const parts = trimmed.split(/[|,]/);
+        return parts
+          .map((seg) => {
+            const [name, price] = seg.split(':');
+            return { name: (name || '').trim(), price: (price || '').trim() };
+          })
+          .filter((it) => it.name);
+      }
+    }
+  } catch (_) {}
+
+  if (Array.isArray(data)) {
+    return data
+      .map((it) => {
+        if (typeof it === 'string') {
+          const [name, price] = it.split(':');
+          return { name: (name || '').trim(), price: (price || '').trim() };
+        }
+        if (it && typeof it === 'object') {
+          if ('name' in it || 'price' in it) {
+            return { name: (it.name || '').trim(), price: String(it.price ?? '').trim() };
+          }
+          return fromObject(it)[0] || null;
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.items)) return parseExtraFeatures(data.items);
+    return fromObject(data);
+  }
+
+  if (fallbackText && typeof fallbackText === 'string') {
+    const parts = fallbackText.split(/[|,]/);
+    return parts
+      .map((seg) => ({ name: seg.trim(), price: '' }))
+      .filter((it) => it.name);
+  }
+
+  return [];
+};
 
 /** Limits */
 const MAX_IMAGES = 16;
@@ -188,7 +358,7 @@ const MAX_INSURANCE_IMAGES = 5;
 const AddUnit = () => {
   const [form, setForm] = useState(initialState);
   const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState(''); // NEW: show fatal/server errors
+  const [serverError, setServerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Success toast & center modal
@@ -196,21 +366,27 @@ const AddUnit = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [showCenterModal, setShowCenterModal] = useState(false);
 
-  // Image preview state (vehicle)
+  // New uploads previews
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
-
-  // Insurance photos state
   const [insuranceFiles, setInsuranceFiles] = useState([]);
   const [insurancePreviews, setInsurancePreviews] = useState([]);
+
+  // Existing images (with remove toggles)
+  const [existingImages, setExistingImages] = useState([]); // [{id?, url}]
+  const [existingInsurance, setExistingInsurance] = useState([]); // [{id?, url}]
+  const [removedExistingImages, setRemovedExistingImages] = useState(new Set()); // tokens id:<id> or url:<url>
+  const [removedExistingInsurance, setRemovedExistingInsurance] = useState(new Set());
 
   // File input refs
   const imagesInputRef = useRef(null);
   const insuranceInputRef = useRef(null);
   const formRef = useRef(null);
 
-  // Inertia flash
+  // Inertia props (SSR)
   const { props } = usePage();
+  const isEdit = (props?.mode === 'edit') && !!props?.vehicle?.id;
+  const vehicle = props?.vehicle || null;
 
   useEffect(() => {
     const msg = props?.flash?.success;
@@ -221,6 +397,211 @@ const AddUnit = () => {
       return () => clearTimeout(t);
     }
   }, [props?.flash?.success, showCenterModal]);
+
+  // Prefill form in EDIT mode from SSR props
+  useEffect(() => {
+    if (!isEdit || !vehicle) return;
+
+    // Robust value mapping
+    const bodyTypeVal = fromOptions(vehicle.bodyType ?? vehicle.body_type, bodyTypeOptions);
+    const fuelTypeVal = fromOptions(vehicle.fuelType ?? vehicle.fuel_type, fuelTypeOptions);
+    const transmissionVal = fromOptions(
+      mapTransmissionToUI(vehicle.transmissionType ?? vehicle.transmission_type),
+      transmissionOptions
+    );
+    const conditionVal = fromOptions(mapConditionToUI(vehicle.condition), conditionOptions);
+    const ownershipVal = fromOptions(mapOwnershipToUI(vehicle.ownershipType ?? vehicle.ownership_type), ownershipTypeOptions);
+
+    // Feature prices + toggles with common aliases
+    const gps = vehicle.gps ?? vehicle.gps_navigation ?? vehicle.has_gps ?? false;
+    const childSeat = vehicle.childSeat ?? vehicle.child_seat ?? vehicle.child_seat_available ?? false;
+    const wifi = vehicle.wifi ?? vehicle.has_wifi ?? vehicle.wifi_available ?? false;
+    const insuranceCoverage = vehicle.insuranceCoverage ?? vehicle.insurance_coverage ?? vehicle.insurance_included ?? false;
+    const addDriver = vehicle.addDriver ?? vehicle.add_driver ?? vehicle.driver_available ?? false;
+
+    const gpsPrice = vehicle.gpsPrice ?? vehicle.gps_price ?? '';
+    const childSeatPrice = vehicle.childSeatPrice ?? vehicle.child_seat_price ?? '';
+    const wifiPrice = vehicle.wifiPrice ?? vehicle.wifi_price ?? '';
+    const insuranceCoveragePrice = vehicle.insuranceCoveragePrice ?? vehicle.insurance_coverage_price ?? '';
+    const addDriverPrice = vehicle.addDriverPrice ?? vehicle.add_driver_price ?? '';
+
+    // Extra features sources + fallback to `extra` text
+    const extrasRaw =
+      vehicle.additionalFeatures ??
+      vehicle.additional_features ??
+      vehicle.extraFeatures ??
+      vehicle.extra_features ??
+      vehicle.more_features ??
+      vehicle.features ??
+      vehicle.features_list ??
+      vehicle.options ??
+      vehicle.extra_features_json ??
+      null;
+
+    const next = {
+      // top-level
+      category: vehicle.category || '',
+      vehicleType: vehicle.vehicleType || vehicle.vehicle_type || '',
+      model: vehicle.model || '',
+      manufacture: vehicle.manufacture || vehicle.manufacturer || '',
+      manufactureYear: vehicle.manufactureYear ?? vehicle.manufacture_year ?? '',
+      registerYear: vehicle.registerYear ?? vehicle.register_year ?? '',
+      number: vehicle.number || vehicle.registration || '',
+      colour: vehicle.colour || vehicle.color || '',
+      condition: conditionVal,
+      ownershipType: ownershipVal,
+      passengerCapacity: vehicle.passengerCapacity ?? vehicle.passenger_capacity ?? '',
+      description: vehicle.description || '',
+
+      // insurance quick
+      insuranceProvider: vehicle.insuranceProvider || vehicle.insurance_provider || '',
+
+      // toggles / extras
+      gps: mapYesNo(gps),
+      childSeat: mapYesNo(childSeat),
+      wifi: mapYesNo(wifi),
+      insuranceCoverage: mapYesNo(insuranceCoverage),
+      extra: vehicle.extra || '',
+
+      // land
+      mileage: vehicle.mileage ?? '',
+      bodyType: bodyTypeVal,
+      fuelType: fuelTypeVal,
+      transmissionType: transmissionVal,
+      gears: vehicle.gears ?? '',
+      seats: vehicle.seats ?? '',
+      doors: vehicle.doors ?? '',
+      fuelTankCapacity: vehicle.fuelTankCapacity ?? vehicle.fuel_tank_capacity ?? '',
+
+      // air
+      aircraft_type: vehicle.aircraft_type || '',
+      icao_type_designator: vehicle.icao_type_designator || '',
+      base_airport_iata: vehicle.base_airport_iata || '',
+      base_airport_icao: vehicle.base_airport_icao || '',
+      crew_required: vehicle.crew_required ?? '',
+      range_km: vehicle.range_km ?? '',
+      mtow_kg: vehicle.mtow_kg ?? '',
+      cruising_speed_kts: vehicle.cruising_speed_kts ?? '',
+      air_fuel_type: vehicle.air_fuel_type || '',
+      flight_hours_total: vehicle.flight_hours_total ?? '',
+
+      // sea
+      vessel_type: vehicle.vessel_type || '',
+      hull_material: vehicle.hull_material || '',
+      length_m: vehicle.length_m ?? '',
+      beam_m: vehicle.beam_m ?? '',
+      draft_m: vehicle.draft_m ?? '',
+      engine_type: vehicle.engine_type || '',
+      engine_power_hp: vehicle.engine_power_hp ?? '',
+      sea_fuel_type: vehicle.sea_fuel_type || '',
+      cabins: vehicle.cabins ?? '',
+      berths: vehicle.berths ?? '',
+      toilets: vehicle.toilets ?? '',
+      fuel_tank_l: vehicle.fuel_tank_l ?? '',
+      water_tank_l: vehicle.water_tank_l ?? '',
+
+      // pricing
+      rentalPricePerDay: vehicle.rentalPricePerDay ?? vehicle.rental_price_per_day ?? '',
+      totalRentalPrice: vehicle.totalRentalPrice ?? vehicle.total_rental_price ?? '',
+      deposit: vehicle.deposit ?? '',
+      advancePayment: vehicle.advancePayment ?? vehicle.advance_payment ?? '',
+
+      // optional feature prices
+      gpsPrice,
+      childSeatPrice,
+      wifiPrice,
+      insuranceCoveragePrice,
+      addDriver: mapYesNo(addDriver),
+      addDriverPrice,
+
+      // dynamic features (prefill below)
+      extraFeatures: [],
+    };
+
+    // Parse and attach extra features
+    const parsedExtras = parseExtraFeatures(extrasRaw, vehicle.extra || '');
+    next.extraFeatures = parsedExtras;
+
+    setForm((prev) => ({ ...prev, ...next }));
+
+    // Existing Vehicle Images
+    let existingVehicleImgs = [];
+    if (Array.isArray(vehicle.media)) {
+      existingVehicleImgs = extractFromSpatieMedia(vehicle.media, [
+        'images',
+        'vehicle_images',
+        'vehicles',
+        'vehicle-photos',
+      ]);
+    }
+    if (!existingVehicleImgs.length) {
+      existingVehicleImgs =
+        extractMediaEntries(vehicle.images) ||
+        extractMediaEntries(vehicle.image_urls) ||
+        extractMediaEntries(vehicle.photos) ||
+        [];
+    }
+
+    // Existing Insurance Images — robust discovery
+    let existingInsuranceImgs = [];
+    // 1) Spatie collections
+    if (Array.isArray(vehicle.media)) {
+      existingInsuranceImgs = extractFromSpatieMedia(vehicle.media, [
+        'insurance',
+        'insurance_docs',
+        'insurance_photos',
+        'vehicle-insurance',
+      ]);
+    }
+    // 2) Direct array fields
+    if (!existingInsuranceImgs.length) {
+      existingInsuranceImgs =
+        extractMediaEntries(vehicle.insuranceDocs) ||
+        extractMediaEntries(vehicle.insurance_docs) ||
+        extractMediaEntries(vehicle.insurancePhotos) ||
+        extractMediaEntries(vehicle.insurance_photos) ||
+        [];
+    }
+    // 3) documents[]
+    if (!existingInsuranceImgs.length) {
+      const docs =
+        vehicle.documents ||
+        vehicle.docs ||
+        vehicle.vehicle_documents ||
+        vehicle.mediaDocuments ||
+        [];
+      existingInsuranceImgs = extractInsuranceFromDocuments(docs);
+    }
+    // 4) single string fields
+    if (!existingInsuranceImgs.length) {
+      existingInsuranceImgs = extractMediaEntries(
+        [
+          vehicle.insurance_image,
+          vehicle.insurance_photo,
+          vehicle.insurance,
+          vehicle.insurancePath,
+          vehicle.insurance_path,
+        ].filter(Boolean)
+      );
+    }
+    existingInsuranceImgs = dedupeByUrl(existingInsuranceImgs);
+
+    setExistingImages(existingVehicleImgs);
+    setExistingInsurance(existingInsuranceImgs);
+    setRemovedExistingImages(new Set());
+    setRemovedExistingInsurance(new Set());
+
+    // Clear local inputs / previews
+    setImageFiles([]);
+    setImagePreviews([]);
+    setInsuranceFiles([]);
+    setInsurancePreviews([]);
+    if (imagesInputRef.current) imagesInputRef.current.value = '';
+    if (insuranceInputRef.current) insuranceInputRef.current.value = '';
+    setErrors({});
+    setServerError('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props?.mode, vehicle?.id]); // re-run when record changes
 
   // Revoke object URLs on unmount
   useEffect(() => {
@@ -273,13 +654,11 @@ const AddUnit = () => {
       return;
     }
 
-    // text/number/select
     if (name === 'transmissionType') {
       const nextVal = value;
       setForm((prev) => ({
         ...prev,
         transmissionType: nextVal,
-        // clear gears if irrelevant
         gears: isGearsIrrelevant(nextVal) ? '' : prev.gears,
       }));
       setErrors((prev) => ({
@@ -309,8 +688,75 @@ const AddUnit = () => {
     setInsuranceFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  /** Instantly remove an existing vehicle image from UI and mark for deletion */
+  const removeExistingImageAt = (idx) => {
+    setExistingImages((prev) => {
+      const entry = prev[idx];
+      if (!entry) return prev;
+      const key = entry.id != null ? `id:${entry.id}` : `url:${entry.url}`;
+      setRemovedExistingImages((s) => new Set([...s, key]));
+      const next = [...prev];
+      next.splice(idx, 1);
+      return next;
+    });
+  };
+
+  /** Instantly remove an existing insurance image from UI and mark for deletion */
+  const removeExistingInsuranceAt = (idx) => {
+    setExistingInsurance((prev) => {
+      const entry = prev[idx];
+      if (!entry) return prev;
+      const key = entry.id != null ? `id:${entry.id}` : `url:${entry.url}`;
+      setRemovedExistingInsurance((s) => new Set([...s, key]));
+      const next = [...prev];
+      next.splice(idx, 1);
+      return next;
+    });
+  };
+
   const appendIfPresent = (fd, key, val) => {
     if (val !== null && val !== undefined) fd.append(key, val);
+  };
+
+  /** Build extra-compatible removal payloads (IDs preferred, URL fallback) */
+  const appendRemovalPayloads = (fd) => {
+    const collect = (set) => {
+      const ids = [];
+      const urls = [];
+      set.forEach((token) => {
+        if (token.startsWith('id:')) ids.push(token.slice(3));
+        else if (token.startsWith('url:')) urls.push(token.slice(4));
+      });
+      return { ids, urls };
+    };
+
+    const img = collect(removedExistingImages);
+    const ins = collect(removedExistingInsurance);
+
+    // Vehicle images removal keys (common patterns)
+    img.ids.forEach((v) => fd.append('remove_existing_images[]', v));
+    img.urls.forEach((v) => fd.append('remove_existing_images_by_url[]', v));
+    img.ids.forEach((v) => fd.append('remove_images[]', v));
+    img.ids.forEach((v) => fd.append('delete_images[]', v));
+    img.ids.forEach((v) => fd.append('delete_existing_images[]', v));
+    img.urls.forEach((v) => fd.append('remove_images_by_url[]', v));
+
+    // Insurance images removal keys (common patterns)
+    ins.ids.forEach((v) => fd.append('remove_existing_insurance[]', v));
+    ins.urls.forEach((v) => fd.append('remove_existing_insurance_by_url[]', v));
+    ins.ids.forEach((v) => fd.append('remove_insurance[]', v));
+    ins.ids.forEach((v) => fd.append('delete_insurance[]', v));
+    ins.ids.forEach((v) => fd.append('delete_existing_insurance[]', v));
+    ins.urls.forEach((v) => fd.append('remove_insurance_by_url[]', v));
+
+    // Compact JSON
+    fd.append(
+      'remove_payload_json',
+      JSON.stringify({
+        images: { ids: img.ids, urls: img.urls },
+        insurance: { ids: ins.ids, urls: ins.urls },
+      })
+    );
   };
 
   /** Light client-side validation */
@@ -339,7 +785,6 @@ const AddUnit = () => {
       ['mileage', 'bodyType', 'fuelType', 'transmissionType', 'seats', 'doors', 'fuelTankCapacity'].forEach((k) => {
         if (!String(form[k] || '').trim()) e[k] = 'This field is required.';
       });
-      // Only require gears if transmission is NOT Automatic/CVT
       if (!isGearsIrrelevant(form.transmissionType)) {
         if (!String(form.gears || '').trim()) e.gears = 'This field is required.';
       }
@@ -390,6 +835,7 @@ const AddUnit = () => {
           ? value.filter((it) => (it?.name || '').trim() !== '')
           : [];
         data.append('extraFeatures', JSON.stringify(safe));
+        data.append('extra_features_json', JSON.stringify(safe));
       } else if (typeof value === 'boolean') {
         data.append(key, value ? 'true' : 'false');
       } else {
@@ -397,11 +843,14 @@ const AddUnit = () => {
       }
     });
 
+    // Include removal lists
+    appendRemovalPayloads(data);
+
     const csrf =
       document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
       (window.Laravel?.csrfToken ?? '');
 
-    router.post('/vendor/vehicles/store', data, {
+    const options = {
       forceFormData: true,
       preserveState: true,
       withCredentials: true,
@@ -411,12 +860,11 @@ const AddUnit = () => {
         setServerError('');
       },
       onSuccess: () => {
-        setSuccessMsg(props?.flash?.success || 'Unit saved successfully.');
+        setSuccessMsg(props?.flash?.success || (isEdit ? 'Unit updated successfully.' : 'Unit saved successfully.'));
         setShowCenterModal(true);
         setShowSuccess(false);
       },
       onError: (err) => {
-        // Field errors or server error
         setErrors(err || {});
         const sv = (err && (err.server || err.message)) || '';
         if (sv) setServerError(String(sv));
@@ -424,7 +872,14 @@ const AddUnit = () => {
       onFinish: () => {
         setIsSubmitting(false);
       },
-    });
+    };
+
+    if (isEdit && vehicle?.id) {
+      data.append('_method', 'PUT'); // keep uploads happy
+      router.post(`/vendor/vehicles/${vehicle.id}`, data, options);
+    } else {
+      router.post('/vendor/vehicles/store', data, options);
+    }
   };
 
   // Reset everything when user wants to add another unit
@@ -432,6 +887,10 @@ const AddUnit = () => {
     imagePreviews.forEach((u) => URL.revokeObjectURL(u));
     insurancePreviews.forEach((u) => URL.revokeObjectURL(u));
     setForm(initialState);
+    setExistingImages([]);
+    setExistingInsurance([]);
+    setRemovedExistingImages(new Set());
+    setRemovedExistingInsurance(new Set());
     setImageFiles([]);
     setImagePreviews([]);
     setInsuranceFiles([]);
@@ -468,20 +927,6 @@ const AddUnit = () => {
     });
   };
 
-  const labelForNumber =
-    form.category === 'Air'
-      ? 'Aircraft Registration'
-      : form.category === 'Sea'
-      ? 'Vessel IMO Number'
-      : 'Vehicle Number';
-
-  const placeholderForNumber =
-    form.category === 'Air'
-      ? 'Enter aircraft registration'
-      : form.category === 'Sea'
-      ? 'Enter IMO number'
-      : 'Enter vehicle number';
-
   const imagesUsed = imageFiles.length;
   const canAddMoreImages = imagesUsed < MAX_IMAGES;
   const insuranceUsed = insuranceFiles.length;
@@ -495,7 +940,7 @@ const AddUnit = () => {
         title="Done"
         message={successMsg}
         onClose={handleAddAnother}
-        onPrimary={() => (window.location.href = '/units')}
+        onPrimary={() => (window.location.href = '/vendors/units')}
       />
 
       {/* Success toaster only */}
@@ -640,7 +1085,7 @@ const AddUnit = () => {
 
               <div className="space-y-2">
                 <label htmlFor="number" className="block text-[14px] font-medium text-gray-700">
-                  {labelForNumber} <Req />
+                  {form.category === 'Air' ? 'Aircraft Registration' : form.category === 'Sea' ? 'Vessel IMO Number' : 'Vehicle Number'} <Req />
                 </label>
                 <input
                   id="number"
@@ -648,8 +1093,14 @@ const AddUnit = () => {
                   className={inputClasses('number')}
                   value={form.number}
                   onChange={handleChange}
-                  placeholder={placeholderForNumber}
-                  {...req(`Please enter the ${labelForNumber.toLowerCase()}.`)}
+                  placeholder={
+                    form.category === 'Air'
+                      ? 'Enter aircraft registration'
+                      : form.category === 'Sea'
+                      ? 'Enter IMO number'
+                      : 'Enter vehicle number'
+                  }
+                  {...req('Please enter the registration/number.')}
                 />
                 {errors.number && <div className="text-red-500 text-xs mt-1">{errors.number}</div>}
               </div>
@@ -679,13 +1130,46 @@ const AddUnit = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                {/* Vehicle Images */}
+                {/* Current Vehicle Images (instant cross remove) */}
+                {isEdit && existingImages.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="block text-[14px] font-medium text-gray-700">Current Images</span>
+                      <span className="text-xs text-gray-500">{existingImages.length}</span>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                      {existingImages.map((entry, i) => (
+                        <div
+                          key={`old-img-${entry.id ?? i}`}
+                          className="relative rounded-md overflow-hidden border border-gray-200"
+                        >
+                          <img
+                            src={entry.url}
+                            alt={`existing-${i}`}
+                            className="h-20 w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeExistingImageAt(i)}
+                            className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-black/80 transition"
+                            title="Remove image"
+                            aria-label="Remove image"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Vehicle Images (new uploads) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-[14px] font-medium text-gray-700">
-                      {form.category === 'Air' ? 'Aircraft Images' : form.category === 'Sea' ? 'Vessel Images' : 'Vehicle Images'}
+                      {form.category === 'Air' ? 'Upload Aircraft Images' : form.category === 'Sea' ? 'Upload Vessel Images' : 'Upload Vehicle Images'}
                     </label>
-                    <span className="text-xs text-gray-500">{imagesUsed}/{MAX_IMAGES}</span>
+                    <span className="text-xs text-gray-500">{imageFiles.length}/{MAX_IMAGES}</span>
                   </div>
                   <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-150">
                     <div className="space-y-1 text-center">
@@ -719,7 +1203,7 @@ const AddUnit = () => {
                   </div>
                   {errors.images && <div className="text-red-500 text-xs mt-1">{errors.images}</div>}
 
-                  {/* Vehicle image thumbnails */}
+                  {/* New image thumbnails (uploads in this session) */}
                   {imagePreviews.length > 0 && (
                     <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
                       {imagePreviews.map((src, i) => (
@@ -809,7 +1293,6 @@ const AddUnit = () => {
                       {errors.transmissionType && <div className="text-red-500 text-xs mt-1">{errors.transmissionType}</div>}
                     </div>
 
-                    {/* Number of Gears (only when NOT Automatic/CVT) */}
                     {!isGearsIrrelevant(form.transmissionType) && (
                       <div className="space-y-2">
                         <label htmlFor="gears" className="block text-[14px] font-medium text-gray-700">
@@ -1353,103 +1836,6 @@ const AddUnit = () => {
                   </>
                 )}
 
-                {/* Sea right column */}
-                {form.category === 'Sea' && (
-                  <>
-                    <div className="space-y-2">
-                      <label htmlFor="cabins" className="block text-[14px] font-medium text-gray-700">
-                        Number of Cabins
-                      </label>
-                      <input
-                        id="cabins"
-                        type="number"
-                        name="cabins"
-                        min="0"
-                        max="255"
-                        className={inputClasses('cabins')}
-                        value={form.cabins}
-                        onChange={handleChange}
-                        placeholder="Enter number of cabins"
-                      />
-                      {errors.cabins && <div className="text-red-500 text-xs mt-1">{errors.cabins}</div>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label htmlFor="berths" className="block text-[14px] font-medium text-gray-700">
-                        Number of Berths
-                      </label>
-                      <input
-                        id="berths"
-                        type="number"
-                        name="berths"
-                        min="0"
-                        max="255"
-                        className={inputClasses('berths')}
-                        value={form.berths}
-                        onChange={handleChange}
-                        placeholder="Enter number of berths"
-                      />
-                      {errors.berths && <div className="text-red-500 text-xs mt-1">{errors.berths}</div>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label htmlFor="toilets" className="block text-[14px] font-medium text-gray-700">
-                        Number of Toilets
-                      </label>
-                      <input
-                        id="toilets"
-                        type="number"
-                        name="toilets"
-                        min="0"
-                        max="255"
-                        className={inputClasses('toilets')}
-                        value={form.toilets}
-                        onChange={handleChange}
-                        placeholder="Enter number of toilets"
-                      />
-                      {errors.toilets && <div className="text-red-500 text-xs mt-1">{errors.toilets}</div>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label htmlFor="fuel_tank_l" className="block text-[14px] font-medium text-gray-700">
-                        Fuel Tank Capacity (liters)
-                      </label>
-                      <input
-                        id="fuel_tank_l"
-                        type="number"
-                        name="fuel_tank_l"
-                        min="0"
-                        step="0.01"
-                        max="9999999999.99"
-                        className={inputClasses('fuel_tank_l')}
-                        value={form.fuel_tank_l}
-                        onChange={handleChange}
-                        placeholder="Enter fuel tank capacity"
-                      />
-                      {errors.fuel_tank_l && <div className="text-red-500 text-xs mt-1">{errors.fuel_tank_l}</div>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label htmlFor="water_tank_l" className="block text-[14px] font-medium text-gray-700">
-                        Water Tank Capacity (liters)
-                      </label>
-                      <input
-                        id="water_tank_l"
-                        type="number"
-                        name="water_tank_l"
-                        min="0"
-                        step="0.01"
-                        max="9999999999.99"
-                        className={inputClasses('water_tank_l')}
-                        value={form.water_tank_l}
-                        onChange={handleChange}
-                        placeholder="Enter water tank capacity"
-                      />
-                      {errors.water_tank_l && <div className="text-red-500 text-xs mt-1">{errors.water_tank_l}</div>}
-                    </div>
-                  </>
-                )}
-
                 {/* Insurance quick fields */}
                 <div className="space-y-2">
                   <label htmlFor="insuranceProvider" className="block text-[14px] font-medium text-gray-700">
@@ -1466,11 +1852,11 @@ const AddUnit = () => {
                   {errors.insuranceProvider && <div className="text-red-500 text-xs mt-1">{errors.insuranceProvider}</div>}
                 </div>
 
-                {/* Insurance Photos */}
+                {/* Upload Insurance Photos (new uploads) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="block text-[14px] font-medium text-gray-700">Insurance Photos</label>
-                    <span className="text-xs text-gray-500">{insuranceUsed}/{MAX_INSURANCE_IMAGES}</span>
+                    <label className="block text-[14px] font-medium text-gray-700">Upload Insurance Photos</label>
+                    <span className="text-xs text-gray-500">{insuranceFiles.length}/{MAX_INSURANCE_IMAGES}</span>
                   </div>
                   <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-150">
                     <div className="space-y-1 text-center">
@@ -1523,6 +1909,39 @@ const AddUnit = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Current Insurance Photos (moved BELOW uploads) */}
+                {isEdit && existingInsurance.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="block text-[14px] font-medium text-gray-700">Current Insurance Photos</span>
+                      <span className="text-xs text-gray-500">{existingInsurance.length}</span>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                      {existingInsurance.map((entry, i) => (
+                        <div
+                          key={`old-ins-${entry.id ?? i}`}
+                          className="relative rounded-md overflow-hidden border border-gray-200"
+                        >
+                          <img
+                            src={entry.url}
+                            alt={`ins-${i}`}
+                            className="h-20 w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeExistingInsuranceAt(i)}
+                            className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-black/80 transition"
+                            title="Remove insurance image"
+                            aria-label="Remove insurance image"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -1590,7 +2009,7 @@ const AddUnit = () => {
                 </div>
               </div>
 
-              {/* Toggles + prices */}
+              {/* Additional Features (prefilled) */}
               <div className="space-y-4">
                 <label className="block text-[14px] font-medium text-gray-700">
                   Additional Features <span className="text-gray-400 text-xs">(optional)</span>
@@ -1714,7 +2133,7 @@ const AddUnit = () => {
                   </div>
                 </div>
 
-                {/* Extra features list (name + price) */}
+                {/* More Features (name + price) — prefilled */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-[14px] font-medium text-gray-700">
@@ -1807,7 +2226,7 @@ const AddUnit = () => {
             <button
               type="button"
               className="px-6 py-2.5 border border-gray-300 text-gray-700 font-[700] figtree rounded-lg focus:outline-none focus:ring-0 transition-colors duration-150"
-              onClick={() => window.location.href = "/units"}
+              onClick={() => (window.location.href = '/vendors/units')}
             >
               Cancel
             </button>
@@ -1831,7 +2250,7 @@ const AddUnit = () => {
                   <svg className="mr-2 -ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Save {form.category || 'Unit'}
+                  {isEdit ? 'Update Unit' : `Save ${form.category || 'Unit'}`}
                 </>
               )}
             </button>

@@ -1,5 +1,4 @@
 <?php
-// app/Models/VehicleDocument.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -8,7 +7,7 @@ class VehicleDocument extends Model
 {
     protected $fillable = [
         'vehicle_id',
-        'doc_type',              // e.g. insurance
+        'doc_type',
         'provider_name',
         'policy_or_doc_number',
         'issue_date',
