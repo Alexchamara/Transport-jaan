@@ -143,10 +143,14 @@ Route::get('/unitDetails', function () {
 
 
 
-// Client
-Route::get('/ClientDashboard', function () {
+// Client dashboard
+Route::get('/clientDashboard', function () {
     return Inertia::render('Web/home/client/ClientDashboard');
-})->name('ClientDashboard');
+})->name('clientDashboard');
+
+Route::get('/clientDashboardSettings', function () {
+    return Inertia::render('Web/home/client/ClientDashboardSettings');
+})->name('clientDashboardSettings');
 
 
 

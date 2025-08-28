@@ -93,7 +93,7 @@ const Signup = () => {
                                 });
                             }}
                             disabled={processing}
-                            className="w-[397px] h-[56px] bg-[#2E6099] rounded-[100px] text-[16px] font-[600] flex justify-center items-center cursor-pointer disabled:opacity-50"
+                            className="w-[397px] h-[56px] bg-[#2E6099] rounded-[100px] text-[16px] font-[600] flex justify-center items-center cursor-pointer disabled:opacity-50 px-4 py-2"
                         >
                             {processing ? 'Logging in...' : 'Login'}
                         </button>
@@ -116,7 +116,7 @@ const Signup = () => {
                             <div className="w-[174px] h-[1px] bg-[#FFFFFF80]" />
                         </div>
 
-                        <div className="w-[397px] h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] text-[16px] font-[600] flex flex-row gap-5 justify-center items-center cursor-pointer">
+                        <div className="w-[397px] h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] text-[16px] font-[600] flex flex-row gap-5 justify-center items-center cursor-pointer px-4 py-2">
                             <img src={google} />
                             <h1>Continue with Google</h1>
                         </div>

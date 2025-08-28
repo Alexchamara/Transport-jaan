@@ -8,7 +8,7 @@ import Blog from "../../components/landingPages/Blog";
 import Stories from "../../components/landingPages/Stories";
 import Contact from "../../components/landingPages/Contact";
 import FooterTwo from "../../layouts/FooterTwo";
-import { usePage } from '@inertiajs/react';
+import { usePage } from "@inertiajs/react";
 
 import TravelExploreAnimation from "../../components/landingPages/TravelExploreAnimation";
 
@@ -19,8 +19,8 @@ const LandingPage = () => {
             <div id="home">
                 {/* <Hero /> */}
                 <TravelExploreAnimation />
-  
-//                 <Hero auth={auth} />
+
+                {/* <Hero auth={auth} /> */}
             </div>
             <div id="about">
                 <About />
