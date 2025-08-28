@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-    Car,
-    Plane,
-    Ship,
+    Package,
+    FileText,
+    Truck,
     Calendar,
     MapPin,
     Search,
@@ -14,6 +14,8 @@ import {
     Star,
     CreditCard,
     Clock,
+    ShieldCheck,
+    Weight,
 } from "lucide-react";
 import {
     AreaChart,
@@ -28,135 +30,143 @@ import {
     Cell,
 } from "recharts";
 
-// ---------- Mock Data ----------
+// ---------- Mock Data (Courier Bookings) ----------
 const monthly = [
-    { month: "Jan", land: 22, air: 8, sea: 12 },
-    { month: "Feb", land: 25, air: 7, sea: 14 },
-    { month: "Mar", land: 28, air: 10, sea: 16 },
-    { month: "Apr", land: 30, air: 12, sea: 18 },
-    { month: "May", land: 33, air: 11, sea: 20 },
-    { month: "Jun", land: 31, air: 13, sea: 21 },
-    { month: "Jul", land: 35, air: 15, sea: 22 },
-    { month: "Aug", land: 36, air: 16, sea: 23 },
-    { month: "Sep", land: 34, air: 14, sea: 21 },
-    { month: "Oct", land: 32, air: 13, sea: 19 },
-    { month: "Nov", land: 29, air: 12, sea: 18 },
-    { month: "Dec", land: 27, air: 9, sea: 16 },
+    { month: "Jan", document: 180, parcel: 320, freight: 60 },
+    { month: "Feb", document: 170, parcel: 340, freight: 70 },
+    { month: "Mar", document: 210, parcel: 360, freight: 85 },
+    { month: "Apr", document: 220, parcel: 380, freight: 90 },
+    { month: "May", document: 240, parcel: 400, freight: 95 },
+    { month: "Jun", document: 230, parcel: 420, freight: 100 },
+    { month: "Jul", document: 260, parcel: 450, freight: 110 },
+    { month: "Aug", document: 270, parcel: 460, freight: 120 },
+    { month: "Sep", document: 250, parcel: 430, freight: 105 },
+    { month: "Oct", document: 240, parcel: 410, freight: 100 },
+    { month: "Nov", document: 230, parcel: 395, freight: 95 },
+    { month: "Dec", document: 220, parcel: 380, freight: 90 },
 ];
 
-const fleets = {
-    land: [
+const services = {
+    document: [
         {
-            id: "L-001",
-            name: "SUV – Ranger X",
-            rating: 4.7,
-            location: "Colombo",
-            price: 68,
-            unit: "day",
-        },
-        {
-            id: "L-002",
-            name: "Sedan – Swift S",
-            rating: 4.5,
-            location: "Kandy",
-            price: 45,
-            unit: "day",
-        },
-        {
-            id: "L-003",
-            name: "Van – Comfort Pro",
-            rating: 4.8,
-            location: "Galle",
-            price: 80,
-            unit: "day",
-        },
-    ],
-    air: [
-        {
-            id: "A-101",
-            name: "Cessna 172",
+            id: "D-001",
+            name: "Same‑day: Colombo → Kandy",
             rating: 4.9,
-            location: "Ratmalana",
-            price: 350,
-            unit: "hr",
+            origin: "Colombo",
+            price: 3.5,
+            unit: "doc",
         },
         {
-            id: "A-102",
-            name: "Helicopter – H125",
+            id: "D-002",
+            name: "Express: Colombo → Galle",
             rating: 4.6,
-            location: "Katunayake",
-            price: 1200,
-            unit: "hr",
+            origin: "Colombo",
+            price: 3.0,
+            unit: "doc",
+        },
+        {
+            id: "D-003",
+            name: "Overnight: Kandy → Colombo",
+            rating: 4.7,
+            origin: "Kandy",
+            price: 2.8,
+            unit: "doc",
         },
     ],
-    sea: [
+    parcel: [
         {
-            id: "S-501",
-            name: "Speedboat – Wave 24",
-            rating: 4.4,
-            location: "Trincomalee",
-            price: 180,
-            unit: "hr",
+            id: "P-101",
+            name: "Parcel: Colombo → Jaffna",
+            rating: 4.5,
+            origin: "Colombo",
+            price: 1.2,
+            unit: "kg",
         },
         {
-            id: "S-502",
-            name: "Yacht – Oceanis 38",
-            rating: 4.9,
-            location: "Bentota",
-            price: 950,
-            unit: "day",
+            id: "P-102",
+            name: "Parcel: Colombo → Trincomalee",
+            rating: 4.4,
+            origin: "Colombo",
+            price: 1.1,
+            unit: "kg",
+        },
+        {
+            id: "P-103",
+            name: "Parcel: Galle → Colombo",
+            rating: 4.6,
+            origin: "Galle",
+            price: 1.0,
+            unit: "kg",
+        },
+    ],
+    freight: [
+        {
+            id: "F-501",
+            name: "Freight: Colombo ⇄ BIA Warehouse",
+            rating: 4.3,
+            origin: "Colombo",
+            price: 55,
+            unit: "cbm",
+        },
+        {
+            id: "F-502",
+            name: "Freight: Colombo → Batticaloa",
+            rating: 4.2,
+            origin: "Colombo",
+            price: 48,
+            unit: "cbm",
         },
     ],
 };
 
-const reservations = [
+const bookings = [
     {
-        code: "BK-202508-001",
-        mode: "land",
-        item: "SUV – Ranger X",
-        from: "2025-09-01 09:00",
-        to: "2025-09-05 18:00",
-        pickup: "Colombo",
+        code: "CB-202508-001",
+        mode: "document",
+        item: "Same‑day: Colombo → Kandy",
+        from: "2025-08-29 09:00",
+        to: "2025-08-29 15:00",
+        hub: "Colombo City Hub",
         status: "confirmed",
-        amount: 272,
+        amount: 7.0,
     },
     {
-        code: "BK-202508-002",
-        mode: "air",
-        item: "Cessna 172",
-        from: "2025-09-10 07:00",
-        to: "2025-09-10 11:00",
-        pickup: "Ratmalana",
-        status: "pending",
-        amount: 1400,
-    },
-    {
-        code: "BK-202508-003",
-        mode: "sea",
-        item: "Yacht – Oceanis 38",
-        from: "2025-10-02 12:00",
-        to: "2025-10-04 12:00",
-        pickup: "Bentota",
+        code: "CB-202508-002",
+        mode: "parcel",
+        item: "Parcel: Colombo → Jaffna (3kg)",
+        from: "2025-08-30 17:30",
+        to: "2025-09-01 08:00",
+        hub: "Ratmalana Sort Center",
         status: "paid",
-        amount: 1900,
+        amount: 3.6,
     },
     {
-        code: "BK-202508-004",
-        mode: "land",
-        item: "Van – Comfort Pro",
-        from: "2025-08-28 08:00",
-        to: "2025-08-29 20:00",
-        pickup: "Galle",
+        code: "CB-202508-003",
+        mode: "freight",
+        item: "Freight: Colombo → Batticaloa (2 cbm)",
+        from: "2025-09-02 08:00",
+        to: "2025-09-03 20:00",
+        hub: "Peliyagoda Logistics Park",
+        status: "pending",
+        amount: 96,
+    },
+    {
+        code: "CB-202508-004",
+        mode: "parcel",
+        item: "Parcel: Galle → Colombo (1kg)",
+        from: "2025-08-28 10:00",
+        to: "2025-08-29 14:00",
+        hub: "Galle Hub",
         status: "cancelled",
-        amount: 80,
+        amount: 1.0,
     },
 ];
 
 // ---------- Helpers ----------
 const ModeIcon = ({ mode, className }) => {
-    if (mode === "air") return <Plane className={className} />;
-    if (mode === "sea") return <Ship className={className} />;
-    return <Car className={className} />;
+    if (mode === "document") return <FileText className={className} />;
+    if (mode === "freight") return <Truck className={className} />;
+    return <Package className={className} />; // parcel default
 };
 
 const statusMap = {
@@ -176,28 +186,31 @@ const statusMap = {
 };
 
 const pieData = [
-    { name: "Land", value: monthly.reduce((a, b) => a + b.land, 0) },
-    { name: "Air", value: monthly.reduce((a, b) => a + b.air, 0) },
-    { name: "Sea", value: monthly.reduce((a, b) => a + b.sea, 0) },
+    { name: "Document", value: monthly.reduce((a, b) => a + b.document, 0) },
+    { name: "Parcel", value: monthly.reduce((a, b) => a + b.parcel, 0) },
+    { name: "Freight", value: monthly.reduce((a, b) => a + b.freight, 0) },
 ];
 
 const Hero = () => {
     const [mode, setMode] = useState("all");
     const [q, setQ] = useState("");
-    const [location, setLocation] = useState("all");
+    const [origin, setOrigin] = useState("all");
     const [sort, setSort] = useState("popular");
 
-    const filteredFleets = useMemo(() => {
+    const filteredServices = useMemo(() => {
         const pool =
             mode === "all"
-                ? [...fleets.land, ...fleets.air, ...fleets.sea]
-                : fleets[mode] ?? [];
+                ? [
+                      ...services.document,
+                      ...services.parcel,
+                      ...services.freight,
+                  ]
+                : services[mode] ?? [];
         return pool
-            .filter((f) => {
-                const text = `${f.name} ${f.location}`.toLowerCase();
+            .filter((s) => {
+                const text = `${s.name} ${s.origin}`.toLowerCase();
                 const okQ = q ? text.includes(q.toLowerCase()) : true;
-                const okLoc =
-                    location === "all" ? true : f.location === location;
+                const okLoc = origin === "all" ? true : s.origin === origin;
                 return okQ && okLoc;
             })
             .sort((a, b) => {
@@ -205,22 +218,20 @@ const Hero = () => {
                 if (sort === "rating") return b.rating - a.rating;
                 return b.rating - a.rating; // popular ~ rating
             });
-    }, [mode, q, location, sort]);
+    }, [mode, q, origin, sort]);
 
-    const locations = useMemo(() => {
+    const origins = useMemo(() => {
         const set = new Set([
             "Colombo",
             "Kandy",
             "Galle",
             "Ratmalana",
-            "Katunayake",
-            "Trincomalee",
-            "Bentota",
+            "Peliyagoda",
         ]);
         return ["all", ...Array.from(set)];
     }, []);
 
-    const upcoming = reservations.filter((r) =>
+    const upcoming = bookings.filter((r) =>
         ["confirmed", "paid", "pending"].includes(r.status)
     );
 
@@ -231,12 +242,14 @@ const Hero = () => {
                 <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-col gap-2">
                         <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
-                            <span className="text-[#0955AC]">Vehicle Rentals</span>{" "}
+                            <span className="text-[#0955AC]">
+                                Courier Booking
+                            </span>{" "}
                             Dashboard
                         </h1>
                         <p className="text-slate-600 text-[14px]">
-                            Plan, book, and manage rentals across Land, Air, and
-                            Sea.
+                            Book and manage deliveries for Documents • Parcels •
+                            Freight.
                         </p>
                     </div>
                     <div className="flex gap-2 justify-center items-center">
@@ -251,48 +264,46 @@ const Hero = () => {
 
                 {/* KPI Cards */}
                 <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {/* Card */}
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Car className="h-8 w-8" /> Active Land Rentals
+                                <FileText className="h-8 w-8" /> Docs Today
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                12
+                                86
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            +3 this week
+                            +12 vs yesterday
                         </div>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Plane className="h-8 w-8" /> Scheduled Flight
-                                Hours
+                                <Package className="h-8 w-8" /> Parcels In
+                                Transit
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                47h
+                                312
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            2 upcoming missions
+                            15 hubs active
                         </div>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Ship className="h-8 w-8" /> Sea Trips This
-                                Month
+                                <Truck className="h-8 w-8" /> Freight This Month
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                9
+                                1,030 cbm
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            +2 vs last month
+                            +8% vs last month
                         </div>
                     </div>
                 </div>
@@ -308,19 +319,18 @@ const Hero = () => {
                                         Bookings by Month
                                     </h3>
                                     <p className="text-[14px] text-slate-500 pt-1">
-                                        Land • Air • Sea (year to date)
+                                        Documents • Parcels • Freight (year to
+                                        date)
                                     </p>
                                 </div>
-                                {/* Placeholder view control */}
                                 <button className="inline-flex items-center h-10 px-3 rounded-xl border border-slate-200 text-[12px] font-[600] hover:bg-slate-100">
-                                    <Filter className="mr-2 h-4 w-4" />
-                                    View
+                                    <Filter className="mr-2 h-4 w-4" /> View
                                 </button>
                             </div>
                         </div>
                         <div className="px-10 pb-10 pt-10">
                             <div
-                                className="h-[350px] w-full focus:outline-none focus:border-none"
+                                className="h-[350px] w-full focus:outline-none"
                                 style={{
                                     WebkitTapHighlightColor: "transparent",
                                     outline: "none",
@@ -329,7 +339,7 @@ const Hero = () => {
                                 <ResponsiveContainer
                                     width="100%"
                                     height="100%"
-                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
+                                    className="focus:outline-none"
                                     tabIndex={-1}
                                     style={{
                                         WebkitTapHighlightColor: "transparent",
@@ -342,7 +352,7 @@ const Hero = () => {
                                     >
                                         <defs>
                                             <linearGradient
-                                                id="gLand"
+                                                id="gDoc"
                                                 x1="0"
                                                 y1="0"
                                                 x2="0"
@@ -360,7 +370,7 @@ const Hero = () => {
                                                 />
                                             </linearGradient>
                                             <linearGradient
-                                                id="gAir"
+                                                id="gParcel"
                                                 x1="0"
                                                 y1="0"
                                                 x2="0"
@@ -378,7 +388,7 @@ const Hero = () => {
                                                 />
                                             </linearGradient>
                                             <linearGradient
-                                                id="gSea"
+                                                id="gFreight"
                                                 x1="0"
                                                 y1="0"
                                                 x2="0"
@@ -412,26 +422,26 @@ const Hero = () => {
                                         <RTooltip />
                                         <Area
                                             type="monotone"
-                                            dataKey="land"
-                                            name="Land"
+                                            dataKey="document"
+                                            name="Document"
                                             stroke="#3b82f6"
-                                            fill="url(#gLand)"
+                                            fill="url(#gDoc)"
                                             strokeWidth={4}
                                         />
                                         <Area
                                             type="monotone"
-                                            dataKey="air"
-                                            name="Air"
+                                            dataKey="parcel"
+                                            name="Parcel"
                                             stroke="#0955AC"
-                                            fill="url(#gAir)"
+                                            fill="url(#gParcel)"
                                             strokeWidth={4}
                                         />
                                         <Area
                                             type="monotone"
-                                            dataKey="sea"
-                                            name="Sea"
+                                            dataKey="freight"
+                                            name="Freight"
                                             stroke="#6366f1"
-                                            fill="url(#gSea)"
+                                            fill="url(#gFreight)"
                                             strokeWidth={4}
                                         />
                                     </AreaChart>
@@ -444,7 +454,7 @@ const Hero = () => {
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-10 pt-10">
                             <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                Mode Mix
+                                Category Mix
                             </h3>
                             <p className="text-[14px] text-slate-500 mt-1">
                                 Share of total bookings
@@ -461,7 +471,7 @@ const Hero = () => {
                                 <ResponsiveContainer
                                     width="100%"
                                     height="100%"
-                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
+                                    className="focus:outline-none"
                                     tabIndex={-1}
                                     style={{
                                         WebkitTapHighlightColor: "transparent",
@@ -484,7 +494,7 @@ const Hero = () => {
                                                     fill={
                                                         [
                                                             "#3b82f6",
-                                                            "#3CD0FF",
+                                                            "#0955AC",
                                                             "#6366f1",
                                                         ][i]
                                                     }
@@ -498,15 +508,15 @@ const Hero = () => {
                             <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
                                 <div className="flex items-center gap-2">
                                     <span className="h-5 w-5 rounded-full bg-[#3b82f6]" />{" "}
-                                    Land
+                                    Document
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-[#3CD0FF]" />{" "}
-                                    Air
+                                    <span className="h-5 w-5 rounded-full bg-[#0955AC]" />{" "}
+                                    Parcel
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="h-5 w-5 rounded-full bg-indigo-500" />{" "}
-                                    Sea
+                                    Freight
                                 </div>
                             </div>
                         </div>
@@ -523,8 +533,8 @@ const Hero = () => {
                                 <input
                                     value={q}
                                     onChange={(e) => setQ(e.target.value)}
-                                    placeholder="Search vehicles, aircraft, boats…"
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    placeholder="Search routes, hubs…"
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none"
                                 />
                             </div>
 
@@ -533,29 +543,25 @@ const Hero = () => {
                                 <select
                                     value={mode}
                                     onChange={(e) => setMode(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
                                 >
-                                    <option value="all">All Modes</option>
-                                    <option value="land">Land</option>
-                                    <option value="air">Air</option>
-                                    <option value="sea">Sea</option>
+                                    <option value="all">All Categories</option>
+                                    <option value="document">Document</option>
+                                    <option value="parcel">Parcel</option>
+                                    <option value="freight">Freight</option>
                                 </select>
                             </div>
 
-                            {/* Location select */}
+                            {/* Origin select */}
                             <div>
                                 <select
-                                    value={location}
-                                    onChange={(e) =>
-                                        setLocation(e.target.value)
-                                    }
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    value={origin}
+                                    onChange={(e) => setOrigin(e.target.value)}
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
                                 >
-                                    {locations.map((loc) => (
-                                        <option key={loc} value={loc}>
-                                            {loc === "all"
-                                                ? "All Locations"
-                                                : loc}
+                                    {origins.map((o) => (
+                                        <option key={o} value={o}>
+                                            {o === "all" ? "All Origins" : o}
                                         </option>
                                     ))}
                                 </select>
@@ -566,7 +572,7 @@ const Hero = () => {
                                 <select
                                     value={sort}
                                     onChange={(e) => setSort(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
                                 >
                                     <option value="popular">
                                         Most Popular
@@ -581,15 +587,15 @@ const Hero = () => {
                     </div>
                 </div>
 
-                {/* Fleets & Upcoming */}
+                {/* Services & Upcoming */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-[20px] font-[600]">
-                                Available Fleet
+                                Available Services
                             </h2>
 
-                            {/* Tabs → simple buttons */}
+                            {/* Tabs */}
                             <div className="hidden sm:block">
                                 <div className="rounded-2xl inline-flex gap-2">
                                     {[
@@ -599,19 +605,19 @@ const Hero = () => {
                                             icon: null,
                                         },
                                         {
-                                            val: "land",
-                                            label: "Land",
-                                            icon: Car,
+                                            val: "document",
+                                            label: "Document",
+                                            icon: FileText,
                                         },
                                         {
-                                            val: "air",
-                                            label: "Air",
-                                            icon: Plane,
+                                            val: "parcel",
+                                            label: "Parcel",
+                                            icon: Package,
                                         },
                                         {
-                                            val: "sea",
-                                            label: "Sea",
-                                            icon: Ship,
+                                            val: "freight",
+                                            label: "Freight",
+                                            icon: Truck,
                                         },
                                     ].map(({ val, label, icon: Icon }) => {
                                         const active =
@@ -640,11 +646,11 @@ const Hero = () => {
                             </div>
                         </div>
 
-                        {/* Fleet grid */}
+                        {/* Service grid */}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {filteredFleets.map((f) => (
+                            {filteredServices.map((s) => (
                                 <motion.div
-                                    key={f.id}
+                                    key={s.id}
                                     initial={{ opacity: 0, y: 8 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.25 }}
@@ -654,17 +660,16 @@ const Hero = () => {
                                             <div className="flex items-start justify-between">
                                                 <div>
                                                     <h3 className="text-[18px] font-semibold leading-none tracking-tight">
-                                                        {f.name}
+                                                        {s.name}
                                                     </h3>
                                                     <p className="mt-1 flex items-center gap-2 text-[12px] text-slate-500">
                                                         <MapPin className="h-3.5 w-3.5" />
-                                                        {f.location}
+                                                        {s.origin}
                                                     </p>
                                                 </div>
-                                                {/* Rating badge (static) */}
                                                 <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-semibold bg-slate-50 text-slate-700">
                                                     <Star className="mr-1 h-4 w-4" />
-                                                    {f.rating}
+                                                    {s.rating}
                                                 </span>
                                             </div>
                                         </div>
@@ -674,13 +679,15 @@ const Hero = () => {
                                                 <div className="flex items-center gap-2 text-slate-700">
                                                     <CreditCard className="h-4 w-4" />
                                                     <span className="font-medium">
-                                                        ${f.price}
-                                                    </span>{" "}
-                                                    / {f.unit}
+                                                        {s.unit === "kg" ||
+                                                        s.unit === "cbm"
+                                                            ? `${s.price}/${s.unit}`
+                                                            : `LKR ${s.price}`}
+                                                    </span>
                                                 </div>
                                                 <div className="mt-1 flex items-center gap-2 text-slate-500">
-                                                    <Clock className="h-4 w-4" />{" "}
-                                                    Instant confirm
+                                                    <ShieldCheck className="h-4 w-4" />{" "}
+                                                    Insurance available
                                                 </div>
                                             </div>
                                             <button className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0955AC]">
@@ -692,7 +699,7 @@ const Hero = () => {
                                 </motion.div>
                             ))}
 
-                            {filteredFleets.length === 0 && (
+                            {filteredServices.length === 0 && (
                                 <div className="rounded-2xl border-dashed border border-slate-200 bg-white">
                                     <div className="px-4 py-10 text-center text-slate-500">
                                         No results. Try changing filters.
@@ -708,10 +715,10 @@ const Hero = () => {
                         <div className="rounded-2xl bg-white shadow-sm">
                             <div className="px-10 pt-10 pb-5">
                                 <h3 className="font-semibold leading-none tracking-tight text-[18px]">
-                                    Upcoming Reservations
+                                    Upcoming Deliveries
                                 </h3>
                                 <p className="text-[14px] text-slate-500 mt-1">
-                                    Next trips and rentals
+                                    Next pickups & drop‑offs
                                 </p>
                             </div>
                             <div className="px-10 pb-10 space-y-6 text-[14px]">
@@ -745,7 +752,7 @@ const Hero = () => {
                                             </span>
                                         </div>
                                         <div className="mt-1 text-sm text-slate-500">
-                                            Pickup: {r.pickup}
+                                            Hub: {r.hub}
                                         </div>
                                         <div className="mt-2 flex items-center justify-between text-[12px]">
                                             <span className="text-slate-500">
@@ -772,14 +779,16 @@ const Hero = () => {
                             </div>
                             <div className="px-10 pb-10 grid grid-cols-2 gap-2 font-[500]">
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Car className="mr-2 h-7 w-7" /> Extend Land
+                                    <Package className="mr-2 h-7 w-7" /> Create
+                                    Parcel
                                 </button>
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Plane className="mr-2 h-7 w-7" /> Charter
-                                    Flight
+                                    <FileText className="mr-2 h-7 w-7" /> Send
+                                    Document
                                 </button>
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Ship className="mr-2 h-7 w-7" /> Book Yacht
+                                    <Truck className="mr-2 h-7 w-7" /> Book
+                                    Freight
                                 </button>
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
                                     <Calendar className="mr-2 h-7 w-7" /> Change
@@ -797,7 +806,7 @@ const Hero = () => {
                             Recent Activity
                         </h3>
                         <p className="text-[14px] text-slate-500 mt-1">
-                            Latest bookings and changes
+                            Latest courier bookings and updates
                         </p>
                     </div>
                     <div className="px-10 pb-10">
@@ -805,11 +814,11 @@ const Hero = () => {
                             <table className="w-full table-auto border-separate border-spacing-y-5 text-[14px]">
                                 <thead>
                                     <tr className="text-left text-slate-500">
-                                        <th className="px-3 py-2">Mode</th>
-                                        <th className="px-3 py-2">Item</th>
-                                        <th className="px-3 py-2">From</th>
-                                        <th className="px-3 py-2">To</th>
+                                        <th className="px-3 py-2">Category</th>
+                                        <th className="px-3 py-2">Service</th>
                                         <th className="px-3 py-2">Pickup</th>
+                                        <th className="px-3 py-2">Drop‑off</th>
+                                        <th className="px-3 py-2">Hub</th>
                                         <th className="px-3 py-2">Status</th>
                                         <th className="px-3 py-2 text-right">
                                             Amount
@@ -817,7 +826,7 @@ const Hero = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {reservations.map((r) => (
+                                    {bookings.map((r) => (
                                         <tr
                                             key={r.code}
                                             className="rounded-xl bg-white shadow-sm"
@@ -841,7 +850,7 @@ const Hero = () => {
                                                 {r.to}
                                             </td>
                                             <td className="px-3 py-3 text-slate-600">
-                                                {r.pickup}
+                                                {r.hub}
                                             </td>
                                             <td className="px-3 py-3">
                                                 <span
@@ -853,7 +862,11 @@ const Hero = () => {
                                                 </span>
                                             </td>
                                             <td className="px-3 py-3 text-right font-medium">
-                                                ${r.amount.toFixed(2)}
+                                                {typeof r.amount === "number"
+                                                    ? `LKR ${r.amount.toFixed(
+                                                          2
+                                                      )}`
+                                                    : r.amount}
                                             </td>
                                         </tr>
                                     ))}
@@ -865,8 +878,8 @@ const Hero = () => {
 
                 {/* Footer */}
                 <div className="mt-8 text-center text-xs text-slate-400">
-                    © {new Date().getFullYear()} Rental Portal · Land • Air •
-                    Sea
+                    © {new Date().getFullYear()} Courier Portal · Document •
+                    Parcel • Freight
                 </div>
             </div>
         </div>

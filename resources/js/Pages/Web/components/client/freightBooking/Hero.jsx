@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-    Car,
-    Plane,
     Ship,
+    Plane,
+    Boxes,
     Calendar,
     MapPin,
     Search,
@@ -14,6 +14,7 @@ import {
     Star,
     CreditCard,
     Clock,
+    Weight,
 } from "lucide-react";
 import {
     AreaChart,
@@ -28,135 +29,143 @@ import {
     Cell,
 } from "recharts";
 
-// ---------- Mock Data ----------
+// ---------- Mock Data (Freight Bookings) ----------
 const monthly = [
-    { month: "Jan", land: 22, air: 8, sea: 12 },
-    { month: "Feb", land: 25, air: 7, sea: 14 },
-    { month: "Mar", land: 28, air: 10, sea: 16 },
-    { month: "Apr", land: 30, air: 12, sea: 18 },
-    { month: "May", land: 33, air: 11, sea: 20 },
-    { month: "Jun", land: 31, air: 13, sea: 21 },
-    { month: "Jul", land: 35, air: 15, sea: 22 },
-    { month: "Aug", land: 36, air: 16, sea: 23 },
-    { month: "Sep", land: 34, air: 14, sea: 21 },
-    { month: "Oct", land: 32, air: 13, sea: 19 },
-    { month: "Nov", land: 29, air: 12, sea: 18 },
-    { month: "Dec", land: 27, air: 9, sea: 16 },
+    { month: "Jan", fcl: 220, lcl: 140, air: 80 },
+    { month: "Feb", fcl: 240, lcl: 130, air: 90 },
+    { month: "Mar", fcl: 260, lcl: 160, air: 110 },
+    { month: "Apr", fcl: 280, lcl: 170, air: 120 },
+    { month: "May", fcl: 300, lcl: 190, air: 130 },
+    { month: "Jun", fcl: 290, lcl: 200, air: 150 },
+    { month: "Jul", fcl: 310, lcl: 210, air: 160 },
+    { month: "Aug", fcl: 320, lcl: 215, air: 170 },
+    { month: "Sep", fcl: 300, lcl: 205, air: 155 },
+    { month: "Oct", fcl: 280, lcl: 190, air: 145 },
+    { month: "Nov", fcl: 270, lcl: 185, air: 135 },
+    { month: "Dec", fcl: 260, lcl: 175, air: 120 },
 ];
 
-const fleets = {
-    land: [
+const services = {
+    fcl: [
         {
-            id: "L-001",
-            name: "SUV – Ranger X",
+            id: "FCL-001",
+            name: "CMB (Colombo) → SIN (Singapore)",
             rating: 4.7,
-            location: "Colombo",
-            price: 68,
-            unit: "day",
+            origin: "Colombo Port",
+            price: 1200,
+            unit: "20' container",
         },
         {
-            id: "L-002",
-            name: "Sedan – Swift S",
+            id: "FCL-002",
+            name: "CMB (Colombo) → DXB (Jebel Ali)",
+            rating: 4.6,
+            origin: "Colombo Port",
+            price: 2100,
+            unit: "40' container",
+        },
+        {
+            id: "FCL-003",
+            name: "HBA (Hambantota) → MAA (Chennai)",
             rating: 4.5,
-            location: "Kandy",
+            origin: "Hambantota",
+            price: 980,
+            unit: "20' container",
+        },
+    ],
+    lcl: [
+        {
+            id: "LCL-101",
+            name: "Colombo → Singapore",
+            rating: 4.6,
+            origin: "Colombo Port",
             price: 45,
-            unit: "day",
+            unit: "cbm",
         },
         {
-            id: "L-003",
-            name: "Van – Comfort Pro",
-            rating: 4.8,
-            location: "Galle",
-            price: 80,
-            unit: "day",
+            id: "LCL-102",
+            name: "Colombo → Dubai",
+            rating: 4.5,
+            origin: "Colombo Port",
+            price: 52,
+            unit: "cbm",
+        },
+        {
+            id: "LCL-103",
+            name: "Colombo → Malaysia",
+            rating: 4.4,
+            origin: "Colombo Port",
+            price: 48,
+            unit: "cbm",
         },
     ],
     air: [
         {
-            id: "A-101",
-            name: "Cessna 172",
-            rating: 4.9,
-            location: "Ratmalana",
-            price: 350,
-            unit: "hr",
+            id: "AIR-501",
+            name: "CMB (BIA) → SIN (Changi)",
+            rating: 4.8,
+            origin: "BIA (CMB)",
+            price: 3.9,
+            unit: "kg",
         },
         {
-            id: "A-102",
-            name: "Helicopter – H125",
-            rating: 4.6,
-            location: "Katunayake",
-            price: 1200,
-            unit: "hr",
-        },
-    ],
-    sea: [
-        {
-            id: "S-501",
-            name: "Speedboat – Wave 24",
-            rating: 4.4,
-            location: "Trincomalee",
-            price: 180,
-            unit: "hr",
-        },
-        {
-            id: "S-502",
-            name: "Yacht – Oceanis 38",
-            rating: 4.9,
-            location: "Bentota",
-            price: 950,
-            unit: "day",
+            id: "AIR-502",
+            name: "CMB (BIA) → DXB (Dubai)",
+            rating: 4.7,
+            origin: "BIA (CMB)",
+            price: 4.2,
+            unit: "kg",
         },
     ],
 };
 
-const reservations = [
+const bookings = [
     {
-        code: "BK-202508-001",
-        mode: "land",
-        item: "SUV – Ranger X",
-        from: "2025-09-01 09:00",
-        to: "2025-09-05 18:00",
-        pickup: "Colombo",
+        code: "FB-202508-001",
+        mode: "fcl",
+        item: "20' FCL – Colombo → Singapore",
+        from: "2025-08-30 10:00",
+        to: "2025-09-12 16:00",
+        hub: "Colombo Port",
         status: "confirmed",
-        amount: 272,
+        amount: 1200,
     },
     {
-        code: "BK-202508-002",
-        mode: "air",
-        item: "Cessna 172",
-        from: "2025-09-10 07:00",
-        to: "2025-09-10 11:00",
-        pickup: "Ratmalana",
-        status: "pending",
-        amount: 1400,
-    },
-    {
-        code: "BK-202508-003",
-        mode: "sea",
-        item: "Yacht – Oceanis 38",
-        from: "2025-10-02 12:00",
-        to: "2025-10-04 12:00",
-        pickup: "Bentota",
+        code: "FB-202508-002",
+        mode: "lcl",
+        item: "LCL 4.2 cbm – Colombo → Dubai",
+        from: "2025-08-29 09:30",
+        to: "2025-09-05 18:00",
+        hub: "Colombo Port",
         status: "paid",
-        amount: 1900,
+        amount: 218.4, // 4.2 * 52
     },
     {
-        code: "BK-202508-004",
-        mode: "land",
-        item: "Van – Comfort Pro",
-        from: "2025-08-28 08:00",
-        to: "2025-08-29 20:00",
-        pickup: "Galle",
+        code: "FB-202508-003",
+        mode: "air",
+        item: "Air 180 kg – CMB → SIN",
+        from: "2025-09-02 07:00",
+        to: "2025-09-02 20:30",
+        hub: "BIA (CMB)",
+        status: "pending",
+        amount: 702, // 180 * 3.9
+    },
+    {
+        code: "FB-202508-004",
+        mode: "fcl",
+        item: "40' FCL – Colombo → Jebel Ali",
+        from: "2025-08-26 14:00",
+        to: "2025-09-09 11:00",
+        hub: "Colombo Port",
         status: "cancelled",
-        amount: 80,
+        amount: 2100,
     },
 ];
 
 // ---------- Helpers ----------
 const ModeIcon = ({ mode, className }) => {
     if (mode === "air") return <Plane className={className} />;
-    if (mode === "sea") return <Ship className={className} />;
-    return <Car className={className} />;
+    if (mode === "lcl") return <Boxes className={className} />;
+    return <Ship className={className} />; // fcl default
 };
 
 const statusMap = {
@@ -176,28 +185,27 @@ const statusMap = {
 };
 
 const pieData = [
-    { name: "Land", value: monthly.reduce((a, b) => a + b.land, 0) },
+    { name: "FCL", value: monthly.reduce((a, b) => a + b.fcl, 0) },
+    { name: "LCL", value: monthly.reduce((a, b) => a + b.lcl, 0) },
     { name: "Air", value: monthly.reduce((a, b) => a + b.air, 0) },
-    { name: "Sea", value: monthly.reduce((a, b) => a + b.sea, 0) },
 ];
 
 const Hero = () => {
     const [mode, setMode] = useState("all");
     const [q, setQ] = useState("");
-    const [location, setLocation] = useState("all");
+    const [origin, setOrigin] = useState("all");
     const [sort, setSort] = useState("popular");
 
-    const filteredFleets = useMemo(() => {
+    const filteredServices = useMemo(() => {
         const pool =
             mode === "all"
-                ? [...fleets.land, ...fleets.air, ...fleets.sea]
-                : fleets[mode] ?? [];
+                ? [...services.fcl, ...services.lcl, ...services.air]
+                : services[mode] ?? [];
         return pool
-            .filter((f) => {
-                const text = `${f.name} ${f.location}`.toLowerCase();
+            .filter((s) => {
+                const text = `${s.name} ${s.origin}`.toLowerCase();
                 const okQ = q ? text.includes(q.toLowerCase()) : true;
-                const okLoc =
-                    location === "all" ? true : f.location === location;
+                const okLoc = origin === "all" ? true : s.origin === origin;
                 return okQ && okLoc;
             })
             .sort((a, b) => {
@@ -205,22 +213,14 @@ const Hero = () => {
                 if (sort === "rating") return b.rating - a.rating;
                 return b.rating - a.rating; // popular ~ rating
             });
-    }, [mode, q, location, sort]);
+    }, [mode, q, origin, sort]);
 
-    const locations = useMemo(() => {
-        const set = new Set([
-            "Colombo",
-            "Kandy",
-            "Galle",
-            "Ratmalana",
-            "Katunayake",
-            "Trincomalee",
-            "Bentota",
-        ]);
+    const origins = useMemo(() => {
+        const set = new Set(["Colombo Port", "Hambantota", "BIA (CMB)"]); // ports/hubs
         return ["all", ...Array.from(set)];
     }, []);
 
-    const upcoming = reservations.filter((r) =>
+    const upcoming = bookings.filter((r) =>
         ["confirmed", "paid", "pending"].includes(r.status)
     );
 
@@ -231,12 +231,14 @@ const Hero = () => {
                 <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-col gap-2">
                         <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
-                            <span className="text-[#0955AC]">Vehicle Rentals</span>{" "}
+                            <span className="text-[#0955AC]">
+                                Freight Booking
+                            </span>{" "}
                             Dashboard
                         </h1>
                         <p className="text-slate-600 text-[14px]">
-                            Plan, book, and manage rentals across Land, Air, and
-                            Sea.
+                            Plan, book, and manage shipments across FCL • LCL •
+                            Air.
                         </p>
                     </div>
                     <div className="flex gap-2 justify-center items-center">
@@ -251,48 +253,46 @@ const Hero = () => {
 
                 {/* KPI Cards */}
                 <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {/* Card */}
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Car className="h-8 w-8" /> Active Land Rentals
+                                <Ship className="h-8 w-8" /> TEUs This Month
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                12
+                                612
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            +3 this week
+                            +4% vs last month
                         </div>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Plane className="h-8 w-8" /> Scheduled Flight
-                                Hours
+                                <Boxes className="h-8 w-8" /> LCL in Transit
+                                (cbm)
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                47h
+                                1,420
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            2 upcoming missions
+                            6 groupage lanes
                         </div>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Ship className="h-8 w-8" /> Sea Trips This
-                                Month
+                                <Plane className="h-8 w-8" /> Air Booked (kg)
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                9
+                                18,900
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            +2 vs last month
+                            3 flights this week
                         </div>
                     </div>
                 </div>
@@ -308,19 +308,17 @@ const Hero = () => {
                                         Bookings by Month
                                     </h3>
                                     <p className="text-[14px] text-slate-500 pt-1">
-                                        Land • Air • Sea (year to date)
+                                        FCL • LCL • Air (year to date)
                                     </p>
                                 </div>
-                                {/* Placeholder view control */}
                                 <button className="inline-flex items-center h-10 px-3 rounded-xl border border-slate-200 text-[12px] font-[600] hover:bg-slate-100">
-                                    <Filter className="mr-2 h-4 w-4" />
-                                    View
+                                    <Filter className="mr-2 h-4 w-4" /> View
                                 </button>
                             </div>
                         </div>
                         <div className="px-10 pb-10 pt-10">
                             <div
-                                className="h-[350px] w-full focus:outline-none focus:border-none"
+                                className="h-[350px] w-full focus:outline-none"
                                 style={{
                                     WebkitTapHighlightColor: "transparent",
                                     outline: "none",
@@ -329,7 +327,7 @@ const Hero = () => {
                                 <ResponsiveContainer
                                     width="100%"
                                     height="100%"
-                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
+                                    className="focus:outline-none"
                                     tabIndex={-1}
                                     style={{
                                         WebkitTapHighlightColor: "transparent",
@@ -342,7 +340,7 @@ const Hero = () => {
                                     >
                                         <defs>
                                             <linearGradient
-                                                id="gLand"
+                                                id="gFCL"
                                                 x1="0"
                                                 y1="0"
                                                 x2="0"
@@ -356,29 +354,29 @@ const Hero = () => {
                                                 <stop
                                                     offset="95%"
                                                     stopColor="#3b82f6"
+                                                    stopOpacity={0.02}
+                                                />
+                                            </linearGradient>
+                                            <linearGradient
+                                                id="gLCL"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <stop
+                                                    offset="5%"
+                                                    stopColor="#0955AC"
+                                                    stopOpacity={0.35}
+                                                />
+                                                <stop
+                                                    offset="95%"
+                                                    stopColor="#0955AC"
                                                     stopOpacity={0.02}
                                                 />
                                             </linearGradient>
                                             <linearGradient
                                                 id="gAir"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#0955AC"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#0955AC"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                            <linearGradient
-                                                id="gSea"
                                                 x1="0"
                                                 y1="0"
                                                 x2="0"
@@ -412,26 +410,26 @@ const Hero = () => {
                                         <RTooltip />
                                         <Area
                                             type="monotone"
-                                            dataKey="land"
-                                            name="Land"
+                                            dataKey="fcl"
+                                            name="FCL"
                                             stroke="#3b82f6"
-                                            fill="url(#gLand)"
+                                            fill="url(#gFCL)"
+                                            strokeWidth={4}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="lcl"
+                                            name="LCL"
+                                            stroke="#0955AC"
+                                            fill="url(#gLCL)"
                                             strokeWidth={4}
                                         />
                                         <Area
                                             type="monotone"
                                             dataKey="air"
                                             name="Air"
-                                            stroke="#0955AC"
-                                            fill="url(#gAir)"
-                                            strokeWidth={4}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="sea"
-                                            name="Sea"
                                             stroke="#6366f1"
-                                            fill="url(#gSea)"
+                                            fill="url(#gAir)"
                                             strokeWidth={4}
                                         />
                                     </AreaChart>
@@ -444,7 +442,7 @@ const Hero = () => {
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-10 pt-10">
                             <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                Mode Mix
+                                Category Mix
                             </h3>
                             <p className="text-[14px] text-slate-500 mt-1">
                                 Share of total bookings
@@ -461,7 +459,7 @@ const Hero = () => {
                                 <ResponsiveContainer
                                     width="100%"
                                     height="100%"
-                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
+                                    className="focus:outline-none"
                                     tabIndex={-1}
                                     style={{
                                         WebkitTapHighlightColor: "transparent",
@@ -484,7 +482,7 @@ const Hero = () => {
                                                     fill={
                                                         [
                                                             "#3b82f6",
-                                                            "#3CD0FF",
+                                                            "#0955AC",
                                                             "#6366f1",
                                                         ][i]
                                                     }
@@ -498,15 +496,15 @@ const Hero = () => {
                             <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
                                 <div className="flex items-center gap-2">
                                     <span className="h-5 w-5 rounded-full bg-[#3b82f6]" />{" "}
-                                    Land
+                                    FCL
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-[#3CD0FF]" />{" "}
-                                    Air
+                                    <span className="h-5 w-5 rounded-full bg-[#0955AC]" />{" "}
+                                    LCL
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="h-5 w-5 rounded-full bg-indigo-500" />{" "}
-                                    Sea
+                                    Air
                                 </div>
                             </div>
                         </div>
@@ -523,8 +521,8 @@ const Hero = () => {
                                 <input
                                     value={q}
                                     onChange={(e) => setQ(e.target.value)}
-                                    placeholder="Search vehicles, aircraft, boats…"
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    placeholder="Search routes, ports, airports…"
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none"
                                 />
                             </div>
 
@@ -533,29 +531,25 @@ const Hero = () => {
                                 <select
                                     value={mode}
                                     onChange={(e) => setMode(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
                                 >
-                                    <option value="all">All Modes</option>
-                                    <option value="land">Land</option>
+                                    <option value="all">All Categories</option>
+                                    <option value="fcl">FCL</option>
+                                    <option value="lcl">LCL</option>
                                     <option value="air">Air</option>
-                                    <option value="sea">Sea</option>
                                 </select>
                             </div>
 
-                            {/* Location select */}
+                            {/* Origin select */}
                             <div>
                                 <select
-                                    value={location}
-                                    onChange={(e) =>
-                                        setLocation(e.target.value)
-                                    }
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    value={origin}
+                                    onChange={(e) => setOrigin(e.target.value)}
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
                                 >
-                                    {locations.map((loc) => (
-                                        <option key={loc} value={loc}>
-                                            {loc === "all"
-                                                ? "All Locations"
-                                                : loc}
+                                    {origins.map((o) => (
+                                        <option key={o} value={o}>
+                                            {o === "all" ? "All Origins" : o}
                                         </option>
                                     ))}
                                 </select>
@@ -566,7 +560,7 @@ const Hero = () => {
                                 <select
                                     value={sort}
                                     onChange={(e) => setSort(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
                                 >
                                     <option value="popular">
                                         Most Popular
@@ -581,15 +575,15 @@ const Hero = () => {
                     </div>
                 </div>
 
-                {/* Fleets & Upcoming */}
+                {/* Services & Upcoming */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-[20px] font-[600]">
-                                Available Fleet
+                                Available Services
                             </h2>
 
-                            {/* Tabs → simple buttons */}
+                            {/* Tabs */}
                             <div className="hidden sm:block">
                                 <div className="rounded-2xl inline-flex gap-2">
                                     {[
@@ -599,19 +593,19 @@ const Hero = () => {
                                             icon: null,
                                         },
                                         {
-                                            val: "land",
-                                            label: "Land",
-                                            icon: Car,
+                                            val: "fcl",
+                                            label: "FCL",
+                                            icon: Ship,
+                                        },
+                                        {
+                                            val: "lcl",
+                                            label: "LCL",
+                                            icon: Boxes,
                                         },
                                         {
                                             val: "air",
                                             label: "Air",
                                             icon: Plane,
-                                        },
-                                        {
-                                            val: "sea",
-                                            label: "Sea",
-                                            icon: Ship,
                                         },
                                     ].map(({ val, label, icon: Icon }) => {
                                         const active =
@@ -640,11 +634,11 @@ const Hero = () => {
                             </div>
                         </div>
 
-                        {/* Fleet grid */}
+                        {/* Service grid */}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {filteredFleets.map((f) => (
+                            {filteredServices.map((s) => (
                                 <motion.div
-                                    key={f.id}
+                                    key={s.id}
                                     initial={{ opacity: 0, y: 8 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.25 }}
@@ -654,17 +648,16 @@ const Hero = () => {
                                             <div className="flex items-start justify-between">
                                                 <div>
                                                     <h3 className="text-[18px] font-semibold leading-none tracking-tight">
-                                                        {f.name}
+                                                        {s.name}
                                                     </h3>
                                                     <p className="mt-1 flex items-center gap-2 text-[12px] text-slate-500">
                                                         <MapPin className="h-3.5 w-3.5" />
-                                                        {f.location}
+                                                        {s.origin}
                                                     </p>
                                                 </div>
-                                                {/* Rating badge (static) */}
                                                 <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-semibold bg-slate-50 text-slate-700">
                                                     <Star className="mr-1 h-4 w-4" />
-                                                    {f.rating}
+                                                    {s.rating}
                                                 </span>
                                             </div>
                                         </div>
@@ -674,13 +667,15 @@ const Hero = () => {
                                                 <div className="flex items-center gap-2 text-slate-700">
                                                     <CreditCard className="h-4 w-4" />
                                                     <span className="font-medium">
-                                                        ${f.price}
-                                                    </span>{" "}
-                                                    / {f.unit}
+                                                        {s.unit === "kg" ||
+                                                        s.unit === "cbm"
+                                                            ? `${s.price}/${s.unit}`
+                                                            : `LKR ${s.price}`}
+                                                    </span>
                                                 </div>
                                                 <div className="mt-1 flex items-center gap-2 text-slate-500">
                                                     <Clock className="h-4 w-4" />{" "}
-                                                    Instant confirm
+                                                    Schedule weekly sailings
                                                 </div>
                                             </div>
                                             <button className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0955AC]">
@@ -692,7 +687,7 @@ const Hero = () => {
                                 </motion.div>
                             ))}
 
-                            {filteredFleets.length === 0 && (
+                            {filteredServices.length === 0 && (
                                 <div className="rounded-2xl border-dashed border border-slate-200 bg-white">
                                     <div className="px-4 py-10 text-center text-slate-500">
                                         No results. Try changing filters.
@@ -708,10 +703,10 @@ const Hero = () => {
                         <div className="rounded-2xl bg-white shadow-sm">
                             <div className="px-10 pt-10 pb-5">
                                 <h3 className="font-semibold leading-none tracking-tight text-[18px]">
-                                    Upcoming Reservations
+                                    Upcoming Shipments
                                 </h3>
                                 <p className="text-[14px] text-slate-500 mt-1">
-                                    Next trips and rentals
+                                    Next sailings and flights
                                 </p>
                             </div>
                             <div className="px-10 pb-10 space-y-6 text-[14px]">
@@ -745,7 +740,7 @@ const Hero = () => {
                                             </span>
                                         </div>
                                         <div className="mt-1 text-sm text-slate-500">
-                                            Pickup: {r.pickup}
+                                            Hub: {r.hub}
                                         </div>
                                         <div className="mt-2 flex items-center justify-between text-[12px]">
                                             <span className="text-slate-500">
@@ -772,14 +767,13 @@ const Hero = () => {
                             </div>
                             <div className="px-10 pb-10 grid grid-cols-2 gap-2 font-[500]">
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Car className="mr-2 h-7 w-7" /> Extend Land
+                                    <Ship className="mr-2 h-7 w-7" /> Book FCL
                                 </button>
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Plane className="mr-2 h-7 w-7" /> Charter
-                                    Flight
+                                    <Boxes className="mr-2 h-7 w-7" /> Book LCL
                                 </button>
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Ship className="mr-2 h-7 w-7" /> Book Yacht
+                                    <Plane className="mr-2 h-7 w-7" /> Book Air
                                 </button>
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
                                     <Calendar className="mr-2 h-7 w-7" /> Change
@@ -805,11 +799,11 @@ const Hero = () => {
                             <table className="w-full table-auto border-separate border-spacing-y-5 text-[14px]">
                                 <thead>
                                     <tr className="text-left text-slate-500">
-                                        <th className="px-3 py-2">Mode</th>
-                                        <th className="px-3 py-2">Item</th>
+                                        <th className="px-3 py-2">Category</th>
+                                        <th className="px-3 py-2">Service</th>
                                         <th className="px-3 py-2">From</th>
                                         <th className="px-3 py-2">To</th>
-                                        <th className="px-3 py-2">Pickup</th>
+                                        <th className="px-3 py-2">Hub</th>
                                         <th className="px-3 py-2">Status</th>
                                         <th className="px-3 py-2 text-right">
                                             Amount
@@ -817,7 +811,7 @@ const Hero = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {reservations.map((r) => (
+                                    {bookings.map((r) => (
                                         <tr
                                             key={r.code}
                                             className="rounded-xl bg-white shadow-sm"
@@ -841,7 +835,7 @@ const Hero = () => {
                                                 {r.to}
                                             </td>
                                             <td className="px-3 py-3 text-slate-600">
-                                                {r.pickup}
+                                                {r.hub}
                                             </td>
                                             <td className="px-3 py-3">
                                                 <span
@@ -853,7 +847,11 @@ const Hero = () => {
                                                 </span>
                                             </td>
                                             <td className="px-3 py-3 text-right font-medium">
-                                                ${r.amount.toFixed(2)}
+                                                {typeof r.amount === "number"
+                                                    ? `LKR ${r.amount.toFixed(
+                                                          2
+                                                      )}`
+                                                    : r.amount}
                                             </td>
                                         </tr>
                                     ))}
@@ -865,8 +863,8 @@ const Hero = () => {
 
                 {/* Footer */}
                 <div className="mt-8 text-center text-xs text-slate-400">
-                    © {new Date().getFullYear()} Rental Portal · Land • Air •
-                    Sea
+                    © {new Date().getFullYear()} Freight Portal · FCL • LCL •
+                    Air
                 </div>
             </div>
         </div>

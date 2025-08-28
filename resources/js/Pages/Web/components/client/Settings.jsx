@@ -214,7 +214,7 @@ const Settings = ({ user = {} }) => {
             <div className="max-w-[1300px] mx-auto px-4 md:px-6 lg:px-10 py-20">
                 <div className="mb-8">
                     <h1 className="text-2xl md:text-[35px] font-[700] text-gray-900">
-                        Account Settings
+                        Account <span className="text-[#0955AC]"> Settings</span>
                     </h1>
                     <p className="mt-3 text-gray-600 text-[14px]">
                         Manage your personal info, security, and payment
@@ -231,7 +231,7 @@ const Settings = ({ user = {} }) => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="md:col-span-1">
                                 <div className="flex items-center gap-4">
-                                    <div className="h-40 w-40 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+                                    <div className="sm:h-40 sm:w-40 w-20 h-20 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
                                         {photoPreview ? (
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img
@@ -240,7 +240,7 @@ const Settings = ({ user = {} }) => {
                                                 className="h-full w-full object-cover"
                                             />
                                         ) : (
-                                            <div className="h-full w-full flex items-center justify-center text-gray-400 text-[14px]">
+                                            <div className="h-full w-full flex items-center justify-center text-gray-400 sm:text-[14px] text-[10px]">
                                                 No photo
                                             </div>
                                         )}
@@ -722,14 +722,14 @@ const Settings = ({ user = {} }) => {
                                 clearErrors();
                                 setClientErrors({});
                             }}
-                            className="px-4 py-2 rounded-[10px] font-[700] text-[#0955AC] border border-[#0955AC] disabled:opacity-60"
+                            className="px-4 py-2 rounded-[10px] text-[14px] font-[700] text-[#0955AC] border border-[#0955AC] disabled:opacity-60"
                             disabled={processing}
                         >
                             Reset
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 rounded-[10px] font-[700] bg-[#0955AC] text-[#FFFFFF] disabled:opacity-60"
+                            className="px-4 py-2 rounded-[10px] text-[14px] font-[700] bg-[#0955AC] text-[#FFFFFF] disabled:opacity-60"
                             disabled={processing}
                         >
                             {processing ? "Saving…" : "Save changes"}

@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-    Car,
-    Plane,
-    Ship,
+    Building2,
+    Boxes,
+    Snowflake,
     Calendar,
     MapPin,
     Search,
@@ -14,6 +14,7 @@ import {
     Star,
     CreditCard,
     Clock,
+    ShieldCheck,
 } from "lucide-react";
 import {
     AreaChart,
@@ -28,135 +29,127 @@ import {
     Cell,
 } from "recharts";
 
-// ---------- Mock Data ----------
+// ---------- Mock Data (Warehouse Bookings) ----------
 const monthly = [
-    { month: "Jan", land: 22, air: 8, sea: 12 },
-    { month: "Feb", land: 25, air: 7, sea: 14 },
-    { month: "Mar", land: 28, air: 10, sea: 16 },
-    { month: "Apr", land: 30, air: 12, sea: 18 },
-    { month: "May", land: 33, air: 11, sea: 20 },
-    { month: "Jun", land: 31, air: 13, sea: 21 },
-    { month: "Jul", land: 35, air: 15, sea: 22 },
-    { month: "Aug", land: 36, air: 16, sea: 23 },
-    { month: "Sep", land: 34, air: 14, sea: 21 },
-    { month: "Oct", land: 32, air: 13, sea: 19 },
-    { month: "Nov", land: 29, air: 12, sea: 18 },
-    { month: "Dec", land: 27, air: 9, sea: 16 },
+    { month: "Jan", short: 320, long: 180, cold: 120 },
+    { month: "Feb", short: 340, long: 170, cold: 140 },
+    { month: "Mar", short: 360, long: 210, cold: 160 },
+    { month: "Apr", short: 380, long: 220, cold: 170 },
+    { month: "May", short: 400, long: 240, cold: 180 },
+    { month: "Jun", short: 420, long: 230, cold: 190 },
+    { month: "Jul", short: 450, long: 260, cold: 210 },
+    { month: "Aug", short: 460, long: 270, cold: 220 },
+    { month: "Sep", short: 430, long: 250, cold: 200 },
+    { month: "Oct", short: 410, long: 240, cold: 190 },
+    { month: "Nov", short: 395, long: 230, cold: 180 },
+    { month: "Dec", short: 380, long: 220, cold: 170 },
 ];
 
-const fleets = {
-    land: [
+const facilities = {
+    short: [
         {
-            id: "L-001",
-            name: "SUV – Ranger X",
-            rating: 4.7,
-            location: "Colombo",
-            price: 68,
-            unit: "day",
-        },
-        {
-            id: "L-002",
-            name: "Sedan – Swift S",
-            rating: 4.5,
-            location: "Kandy",
-            price: 45,
-            unit: "day",
-        },
-        {
-            id: "L-003",
-            name: "Van – Comfort Pro",
+            id: "S-001",
+            name: "Colombo City Warehouse – Zone A",
             rating: 4.8,
+            location: "Colombo",
+            price: 1.2,
+            unit: "pallet/day",
+        },
+        {
+            id: "S-002",
+            name: "Galle Port Storage – Bay 3",
+            rating: 4.5,
             location: "Galle",
-            price: 80,
-            unit: "day",
+            price: 1.0,
+            unit: "pallet/day",
         },
     ],
-    air: [
+    long: [
         {
-            id: "A-101",
-            name: "Cessna 172",
-            rating: 4.9,
-            location: "Ratmalana",
-            price: 350,
-            unit: "hr",
+            id: "L-101",
+            name: "Peliyagoda Mega – Block 7",
+            rating: 4.7,
+            location: "Peliyagoda",
+            price: 18,
+            unit: "sqft/month",
         },
         {
-            id: "A-102",
-            name: "Helicopter – H125",
-            rating: 4.6,
-            location: "Katunayake",
-            price: 1200,
-            unit: "hr",
-        },
-    ],
-    sea: [
-        {
-            id: "S-501",
-            name: "Speedboat – Wave 24",
+            id: "L-102",
+            name: "Kandy Inland – Hall B",
             rating: 4.4,
-            location: "Trincomalee",
-            price: 180,
-            unit: "hr",
+            location: "Kandy",
+            price: 15,
+            unit: "sqft/month",
+        },
+    ],
+    cold: [
+        {
+            id: "C-501",
+            name: "Katunayake Cold Room – CR2",
+            rating: 4.9,
+            location: "Katunayake",
+            price: 2.8,
+            unit: "pallet/day",
         },
         {
-            id: "S-502",
-            name: "Yacht – Oceanis 38",
-            rating: 4.9,
-            location: "Bentota",
-            price: 950,
-            unit: "day",
+            id: "C-502",
+            name: "Trincomalee Reefers – Bay 1",
+            rating: 4.6,
+            location: "Trincomalee",
+            price: 3.1,
+            unit: "pallet/day",
         },
     ],
 };
 
-const reservations = [
+const bookings = [
     {
-        code: "BK-202508-001",
-        mode: "land",
-        item: "SUV – Ranger X",
-        from: "2025-09-01 09:00",
+        code: "WB-202508-001",
+        mode: "short",
+        item: "Colombo City Warehouse – Zone A",
+        from: "2025-08-30 09:00",
         to: "2025-09-05 18:00",
-        pickup: "Colombo",
+        hub: "Colombo",
         status: "confirmed",
-        amount: 272,
+        amount: 1.2 * 5 * 20, // 20 pallets x 5 days
     },
     {
-        code: "BK-202508-002",
-        mode: "air",
-        item: "Cessna 172",
-        from: "2025-09-10 07:00",
-        to: "2025-09-10 11:00",
-        pickup: "Ratmalana",
-        status: "pending",
-        amount: 1400,
-    },
-    {
-        code: "BK-202508-003",
-        mode: "sea",
-        item: "Yacht – Oceanis 38",
-        from: "2025-10-02 12:00",
-        to: "2025-10-04 12:00",
-        pickup: "Bentota",
+        code: "WB-202508-002",
+        mode: "long",
+        item: "Peliyagoda Mega – Block 7",
+        from: "2025-09-01 00:00",
+        to: "2025-09-30 23:59",
+        hub: "Peliyagoda",
         status: "paid",
-        amount: 1900,
+        amount: 18 * 120, // 120 sqft
     },
     {
-        code: "BK-202508-004",
-        mode: "land",
-        item: "Van – Comfort Pro",
-        from: "2025-08-28 08:00",
-        to: "2025-08-29 20:00",
-        pickup: "Galle",
+        code: "WB-202508-003",
+        mode: "cold",
+        item: "Katunayake Cold Room – CR2",
+        from: "2025-09-02 08:00",
+        to: "2025-09-06 08:00",
+        hub: "Katunayake",
+        status: "pending",
+        amount: 2.8 * 4 * 10, // 10 pallets, 4 days
+    },
+    {
+        code: "WB-202508-004",
+        mode: "short",
+        item: "Galle Port Storage – Bay 3",
+        from: "2025-08-27 10:00",
+        to: "2025-08-28 18:00",
+        hub: "Galle",
         status: "cancelled",
-        amount: 80,
+        amount: 1.0 * 1 * 8, // 8 pallets x 1 day
     },
 ];
 
 // ---------- Helpers ----------
 const ModeIcon = ({ mode, className }) => {
-    if (mode === "air") return <Plane className={className} />;
-    if (mode === "sea") return <Ship className={className} />;
-    return <Car className={className} />;
+    if (mode === "cold") return <Snowflake className={className} />;
+    if (mode === "long") return <Building2 className={className} />;
+    return <Boxes className={className} />; // short (default)
 };
 
 const statusMap = {
@@ -176,28 +169,27 @@ const statusMap = {
 };
 
 const pieData = [
-    { name: "Land", value: monthly.reduce((a, b) => a + b.land, 0) },
-    { name: "Air", value: monthly.reduce((a, b) => a + b.air, 0) },
-    { name: "Sea", value: monthly.reduce((a, b) => a + b.sea, 0) },
+    { name: "Short‑term", value: monthly.reduce((a, b) => a + b.short, 0) },
+    { name: "Long‑term", value: monthly.reduce((a, b) => a + b.long, 0) },
+    { name: "Cold", value: monthly.reduce((a, b) => a + b.cold, 0) },
 ];
 
 const Hero = () => {
     const [mode, setMode] = useState("all");
     const [q, setQ] = useState("");
-    const [location, setLocation] = useState("all");
+    const [origin, setOrigin] = useState("all");
     const [sort, setSort] = useState("popular");
 
-    const filteredFleets = useMemo(() => {
+    const filtered = useMemo(() => {
         const pool =
             mode === "all"
-                ? [...fleets.land, ...fleets.air, ...fleets.sea]
-                : fleets[mode] ?? [];
+                ? [...facilities.short, ...facilities.long, ...facilities.cold]
+                : facilities[mode] ?? [];
         return pool
-            .filter((f) => {
-                const text = `${f.name} ${f.location}`.toLowerCase();
+            .filter((s) => {
+                const text = `${s.name} ${s.location}`.toLowerCase();
                 const okQ = q ? text.includes(q.toLowerCase()) : true;
-                const okLoc =
-                    location === "all" ? true : f.location === location;
+                const okLoc = origin === "all" ? true : s.location === origin;
                 return okQ && okLoc;
             })
             .sort((a, b) => {
@@ -205,22 +197,21 @@ const Hero = () => {
                 if (sort === "rating") return b.rating - a.rating;
                 return b.rating - a.rating; // popular ~ rating
             });
-    }, [mode, q, location, sort]);
+    }, [mode, q, origin, sort]);
 
-    const locations = useMemo(() => {
+    const origins = useMemo(() => {
         const set = new Set([
             "Colombo",
+            "Peliyagoda",
             "Kandy",
             "Galle",
-            "Ratmalana",
             "Katunayake",
             "Trincomalee",
-            "Bentota",
         ]);
         return ["all", ...Array.from(set)];
     }, []);
 
-    const upcoming = reservations.filter((r) =>
+    const upcoming = bookings.filter((r) =>
         ["confirmed", "paid", "pending"].includes(r.status)
     );
 
@@ -231,12 +222,14 @@ const Hero = () => {
                 <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-col gap-2">
                         <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
-                            <span className="text-[#0955AC]">Vehicle Rentals</span>{" "}
+                            <span className="text-[#0955AC]">
+                                {" "}
+                                Warehouse Booking{" "}
+                            </span>{" "}
                             Dashboard
                         </h1>
                         <p className="text-slate-600 text-[14px]">
-                            Plan, book, and manage rentals across Land, Air, and
-                            Sea.
+                            Reserve Short‑term • Long‑term • Cold storage space.
                         </p>
                     </div>
                     <div className="flex gap-2 justify-center items-center">
@@ -251,48 +244,47 @@ const Hero = () => {
 
                 {/* KPI Cards */}
                 <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {/* Card */}
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Car className="h-8 w-8" /> Active Land Rentals
+                                <Boxes className="h-8 w-8" /> Occupied Pallets
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                12
+                                1,240
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            +3 this week
+                            +5% this week
                         </div>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Plane className="h-8 w-8" /> Scheduled Flight
-                                Hours
+                                <Building2 className="h-8 w-8" /> Active
+                                Contracts
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                47h
+                                87
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            2 upcoming missions
+                            12 expiring in 30 days
                         </div>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Ship className="h-8 w-8" /> Sea Trips This
-                                Month
+                                <Snowflake className="h-8 w-8" /> Cold Storage
+                                Utilization
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                9
+                                78%
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            +2 vs last month
+                            Target: ≥ 80%
                         </div>
                     </div>
                 </div>
@@ -308,19 +300,18 @@ const Hero = () => {
                                         Bookings by Month
                                     </h3>
                                     <p className="text-[14px] text-slate-500 pt-1">
-                                        Land • Air • Sea (year to date)
+                                        Short‑term • Long‑term • Cold (year to
+                                        date)
                                     </p>
                                 </div>
-                                {/* Placeholder view control */}
                                 <button className="inline-flex items-center h-10 px-3 rounded-xl border border-slate-200 text-[12px] font-[600] hover:bg-slate-100">
-                                    <Filter className="mr-2 h-4 w-4" />
-                                    View
+                                    <Filter className="mr-2 h-4 w-4" /> View
                                 </button>
                             </div>
                         </div>
                         <div className="px-10 pb-10 pt-10">
                             <div
-                                className="h-[350px] w-full focus:outline-none focus:border-none"
+                                className="h-[350px] w-full focus:outline-none"
                                 style={{
                                     WebkitTapHighlightColor: "transparent",
                                     outline: "none",
@@ -329,7 +320,7 @@ const Hero = () => {
                                 <ResponsiveContainer
                                     width="100%"
                                     height="100%"
-                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
+                                    className="focus:outline-none"
                                     tabIndex={-1}
                                     style={{
                                         WebkitTapHighlightColor: "transparent",
@@ -342,7 +333,7 @@ const Hero = () => {
                                     >
                                         <defs>
                                             <linearGradient
-                                                id="gLand"
+                                                id="gShort"
                                                 x1="0"
                                                 y1="0"
                                                 x2="0"
@@ -360,7 +351,7 @@ const Hero = () => {
                                                 />
                                             </linearGradient>
                                             <linearGradient
-                                                id="gAir"
+                                                id="gLong"
                                                 x1="0"
                                                 y1="0"
                                                 x2="0"
@@ -378,7 +369,7 @@ const Hero = () => {
                                                 />
                                             </linearGradient>
                                             <linearGradient
-                                                id="gSea"
+                                                id="gCold"
                                                 x1="0"
                                                 y1="0"
                                                 x2="0"
@@ -412,26 +403,26 @@ const Hero = () => {
                                         <RTooltip />
                                         <Area
                                             type="monotone"
-                                            dataKey="land"
-                                            name="Land"
+                                            dataKey="short"
+                                            name="Short‑term"
                                             stroke="#3b82f6"
-                                            fill="url(#gLand)"
+                                            fill="url(#gShort)"
                                             strokeWidth={4}
                                         />
                                         <Area
                                             type="monotone"
-                                            dataKey="air"
-                                            name="Air"
+                                            dataKey="long"
+                                            name="Long‑term"
                                             stroke="#0955AC"
-                                            fill="url(#gAir)"
+                                            fill="url(#gLong)"
                                             strokeWidth={4}
                                         />
                                         <Area
                                             type="monotone"
-                                            dataKey="sea"
-                                            name="Sea"
+                                            dataKey="cold"
+                                            name="Cold"
                                             stroke="#6366f1"
-                                            fill="url(#gSea)"
+                                            fill="url(#gCold)"
                                             strokeWidth={4}
                                         />
                                     </AreaChart>
@@ -444,7 +435,7 @@ const Hero = () => {
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-10 pt-10">
                             <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                Mode Mix
+                                Category Mix
                             </h3>
                             <p className="text-[14px] text-slate-500 mt-1">
                                 Share of total bookings
@@ -461,7 +452,7 @@ const Hero = () => {
                                 <ResponsiveContainer
                                     width="100%"
                                     height="100%"
-                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
+                                    className="focus:outline-none"
                                     tabIndex={-1}
                                     style={{
                                         WebkitTapHighlightColor: "transparent",
@@ -484,7 +475,7 @@ const Hero = () => {
                                                     fill={
                                                         [
                                                             "#3b82f6",
-                                                            "#3CD0FF",
+                                                            "#0955AC",
                                                             "#6366f1",
                                                         ][i]
                                                     }
@@ -498,15 +489,15 @@ const Hero = () => {
                             <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
                                 <div className="flex items-center gap-2">
                                     <span className="h-5 w-5 rounded-full bg-[#3b82f6]" />{" "}
-                                    Land
+                                    Short‑term
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-[#3CD0FF]" />{" "}
-                                    Air
+                                    <span className="h-5 w-5 rounded-full bg-[#0955AC]" />{" "}
+                                    Long‑term
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="h-5 w-5 rounded-full bg-indigo-500" />{" "}
-                                    Sea
+                                    Cold
                                 </div>
                             </div>
                         </div>
@@ -523,8 +514,8 @@ const Hero = () => {
                                 <input
                                     value={q}
                                     onChange={(e) => setQ(e.target.value)}
-                                    placeholder="Search vehicles, aircraft, boats…"
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    placeholder="Search facilities, locations…"
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none"
                                 />
                             </div>
 
@@ -533,29 +524,25 @@ const Hero = () => {
                                 <select
                                     value={mode}
                                     onChange={(e) => setMode(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
                                 >
-                                    <option value="all">All Modes</option>
-                                    <option value="land">Land</option>
-                                    <option value="air">Air</option>
-                                    <option value="sea">Sea</option>
+                                    <option value="all">All Categories</option>
+                                    <option value="short">Short‑term</option>
+                                    <option value="long">Long‑term</option>
+                                    <option value="cold">Cold</option>
                                 </select>
                             </div>
 
-                            {/* Location select */}
+                            {/* Origin select */}
                             <div>
                                 <select
-                                    value={location}
-                                    onChange={(e) =>
-                                        setLocation(e.target.value)
-                                    }
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    value={origin}
+                                    onChange={(e) => setOrigin(e.target.value)}
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
                                 >
-                                    {locations.map((loc) => (
-                                        <option key={loc} value={loc}>
-                                            {loc === "all"
-                                                ? "All Locations"
-                                                : loc}
+                                    {origins.map((o) => (
+                                        <option key={o} value={o}>
+                                            {o === "all" ? "All Locations" : o}
                                         </option>
                                     ))}
                                 </select>
@@ -566,7 +553,7 @@ const Hero = () => {
                                 <select
                                     value={sort}
                                     onChange={(e) => setSort(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
                                 >
                                     <option value="popular">
                                         Most Popular
@@ -581,15 +568,15 @@ const Hero = () => {
                     </div>
                 </div>
 
-                {/* Fleets & Upcoming */}
+                {/* Facilities & Upcoming */}
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-[20px] font-[600]">
-                                Available Fleet
+                                Available Facilities
                             </h2>
 
-                            {/* Tabs → simple buttons */}
+                            {/* Tabs */}
                             <div className="hidden sm:block">
                                 <div className="rounded-2xl inline-flex gap-2">
                                     {[
@@ -599,19 +586,19 @@ const Hero = () => {
                                             icon: null,
                                         },
                                         {
-                                            val: "land",
-                                            label: "Land",
-                                            icon: Car,
+                                            val: "short",
+                                            label: "Short‑term",
+                                            icon: Boxes,
                                         },
                                         {
-                                            val: "air",
-                                            label: "Air",
-                                            icon: Plane,
+                                            val: "long",
+                                            label: "Long‑term",
+                                            icon: Building2,
                                         },
                                         {
-                                            val: "sea",
-                                            label: "Sea",
-                                            icon: Ship,
+                                            val: "cold",
+                                            label: "Cold",
+                                            icon: Snowflake,
                                         },
                                     ].map(({ val, label, icon: Icon }) => {
                                         const active =
@@ -640,11 +627,11 @@ const Hero = () => {
                             </div>
                         </div>
 
-                        {/* Fleet grid */}
+                        {/* Facility grid */}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {filteredFleets.map((f) => (
+                            {filtered.map((s) => (
                                 <motion.div
-                                    key={f.id}
+                                    key={s.id}
                                     initial={{ opacity: 0, y: 8 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.25 }}
@@ -654,17 +641,16 @@ const Hero = () => {
                                             <div className="flex items-start justify-between">
                                                 <div>
                                                     <h3 className="text-[18px] font-semibold leading-none tracking-tight">
-                                                        {f.name}
+                                                        {s.name}
                                                     </h3>
                                                     <p className="mt-1 flex items-center gap-2 text-[12px] text-slate-500">
                                                         <MapPin className="h-3.5 w-3.5" />
-                                                        {f.location}
+                                                        {s.location}
                                                     </p>
                                                 </div>
-                                                {/* Rating badge (static) */}
                                                 <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-semibold bg-slate-50 text-slate-700">
                                                     <Star className="mr-1 h-4 w-4" />
-                                                    {f.rating}
+                                                    {s.rating}
                                                 </span>
                                             </div>
                                         </div>
@@ -674,13 +660,16 @@ const Hero = () => {
                                                 <div className="flex items-center gap-2 text-slate-700">
                                                     <CreditCard className="h-4 w-4" />
                                                     <span className="font-medium">
-                                                        ${f.price}
-                                                    </span>{" "}
-                                                    / {f.unit}
+                                                        {s.unit.includes(
+                                                            "month"
+                                                        )
+                                                            ? `LKR ${s.price}/${s.unit}`
+                                                            : `LKR ${s.price} per ${s.unit}`}
+                                                    </span>
                                                 </div>
                                                 <div className="mt-1 flex items-center gap-2 text-slate-500">
-                                                    <Clock className="h-4 w-4" />{" "}
-                                                    Instant confirm
+                                                    <ShieldCheck className="h-4 w-4" />{" "}
+                                                    24/7 security
                                                 </div>
                                             </div>
                                             <button className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0955AC]">
@@ -692,7 +681,7 @@ const Hero = () => {
                                 </motion.div>
                             ))}
 
-                            {filteredFleets.length === 0 && (
+                            {filtered.length === 0 && (
                                 <div className="rounded-2xl border-dashed border border-slate-200 bg-white">
                                     <div className="px-4 py-10 text-center text-slate-500">
                                         No results. Try changing filters.
@@ -711,7 +700,7 @@ const Hero = () => {
                                     Upcoming Reservations
                                 </h3>
                                 <p className="text-[14px] text-slate-500 mt-1">
-                                    Next trips and rentals
+                                    Next move‑ins & extensions
                                 </p>
                             </div>
                             <div className="px-10 pb-10 space-y-6 text-[14px]">
@@ -745,7 +734,7 @@ const Hero = () => {
                                             </span>
                                         </div>
                                         <div className="mt-1 text-sm text-slate-500">
-                                            Pickup: {r.pickup}
+                                            Site: {r.hub}
                                         </div>
                                         <div className="mt-2 flex items-center justify-between text-[12px]">
                                             <span className="text-slate-500">
@@ -772,14 +761,16 @@ const Hero = () => {
                             </div>
                             <div className="px-10 pb-10 grid grid-cols-2 gap-2 font-[500]">
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Car className="mr-2 h-7 w-7" /> Extend Land
+                                    <Boxes className="mr-2 h-7 w-7" /> Extend
+                                    Short‑term
                                 </button>
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Plane className="mr-2 h-7 w-7" /> Charter
-                                    Flight
+                                    <Building2 className="mr-2 h-7 w-7" /> Renew
+                                    Long‑term
                                 </button>
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Ship className="mr-2 h-7 w-7" /> Book Yacht
+                                    <Snowflake className="mr-2 h-7 w-7" /> Add
+                                    Cold Space
                                 </button>
                                 <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
                                     <Calendar className="mr-2 h-7 w-7" /> Change
@@ -797,7 +788,7 @@ const Hero = () => {
                             Recent Activity
                         </h3>
                         <p className="text-[14px] text-slate-500 mt-1">
-                            Latest bookings and changes
+                            Latest warehouse bookings and changes
                         </p>
                     </div>
                     <div className="px-10 pb-10">
@@ -805,11 +796,11 @@ const Hero = () => {
                             <table className="w-full table-auto border-separate border-spacing-y-5 text-[14px]">
                                 <thead>
                                     <tr className="text-left text-slate-500">
-                                        <th className="px-3 py-2">Mode</th>
-                                        <th className="px-3 py-2">Item</th>
+                                        <th className="px-3 py-2">Category</th>
+                                        <th className="px-3 py-2">Facility</th>
                                         <th className="px-3 py-2">From</th>
                                         <th className="px-3 py-2">To</th>
-                                        <th className="px-3 py-2">Pickup</th>
+                                        <th className="px-3 py-2">Site</th>
                                         <th className="px-3 py-2">Status</th>
                                         <th className="px-3 py-2 text-right">
                                             Amount
@@ -817,7 +808,7 @@ const Hero = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {reservations.map((r) => (
+                                    {bookings.map((r) => (
                                         <tr
                                             key={r.code}
                                             className="rounded-xl bg-white shadow-sm"
@@ -841,7 +832,7 @@ const Hero = () => {
                                                 {r.to}
                                             </td>
                                             <td className="px-3 py-3 text-slate-600">
-                                                {r.pickup}
+                                                {r.hub}
                                             </td>
                                             <td className="px-3 py-3">
                                                 <span
@@ -853,7 +844,8 @@ const Hero = () => {
                                                 </span>
                                             </td>
                                             <td className="px-3 py-3 text-right font-medium">
-                                                ${r.amount.toFixed(2)}
+                                                LKR{" "}
+                                                {Number(r.amount).toFixed(2)}
                                             </td>
                                         </tr>
                                     ))}
@@ -865,8 +857,8 @@ const Hero = () => {
 
                 {/* Footer */}
                 <div className="mt-8 text-center text-xs text-slate-400">
-                    © {new Date().getFullYear()} Rental Portal · Land • Air •
-                    Sea
+                    © {new Date().getFullYear()} Warehouse Portal · Short‑term •
+                    Long‑term • Cold
                 </div>
             </div>
         </div>

@@ -152,6 +152,23 @@ Route::get('/clientDashboardSettings', function () {
     return Inertia::render('Web/home/client/ClientDashboardSettings');
 })->name('clientDashboardSettings');
 
+Route::get('/clientTicketBookingDashboard', function () {
+    return Inertia::render('Web/home/client/ClientTicketBookingDashboard');
+})->name('clientTicketBookingDashboard');
+
+Route::get('/courierBookingDashboard', function () {
+    return Inertia::render('Web/home/client/CourierBookingDashboard');
+})->name('courierBookingDashboard');
+
+Route::get('/warehouseBookingDashboard', function () {
+    return Inertia::render('Web/home/client/WarehouseBookingDashboard');
+})->name('warehouseBookingDashboard');
+
+Route::get('/freightBookingDashboard', function () {
+    return Inertia::render('Web/home/client/FreightBookingDashboard');
+})->name('freightBookingDashboard');
+
+
 
 
 
