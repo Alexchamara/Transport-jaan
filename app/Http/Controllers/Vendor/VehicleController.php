@@ -146,6 +146,29 @@ class VehicleController extends Controller
     }
 
     /**
+     * UI details page (for View button).
+     * GET /vendors/unitDetails/{vehicle}
+     */
+    public function unitDetails(Request $request, Vehicle $vehicle)
+    {
+        $this->authorizeOwner($request, $vehicle);
+
+        // Component path: resources/js/Pages/Web/home/vendors/UnitDetails.jsx
+        return Inertia::render('Web/home/vendors/UnitDetails', [
+            'vehicle' => $this->serializeVehicleForForm($vehicle),
+        ]);
+    }
+
+    /**
+     * (Legacy alias) Some routes may still reference detailsPage().
+     * Proxies to unitDetails() to avoid undefined method errors.
+     */
+    public function detailsPage(Request $request, Vehicle $vehicle)
+    {
+        return $this->unitDetails($request, $vehicle);
+    }
+
+    /**
      * POST /vendor/vehicles/store  (create)
      */
     public function store(Request $request)
@@ -171,6 +194,11 @@ class VehicleController extends Controller
         $this->authorizeOwner($request, $vehicle);
 
         DB::transaction(function () use ($vehicle) {
+            // remove stored policy file if present
+            if ($vehicle->policy_pdf_path) {
+                Storage::disk('public')->delete($vehicle->policy_pdf_path);
+            }
+
             // Remove related records first (to avoid FK issues)
             $vehicle->media()->delete();
             $vehicle->documents()->delete();
@@ -191,15 +219,59 @@ class VehicleController extends Controller
 
         $message = 'Unit deleted successfully.';
 
-        // If it's an API/AJAX call, return JSON
         if ($request->wantsJson()) {
             return response()->json(['ok' => true, 'message' => $message]);
         }
 
-        // For Inertia/normal navigation: redirect with flash (prevents blank overlay)
         return redirect()
             ->route('vendors.units', [], 303)
             ->with('success', $message);
+    }
+
+    /* ======================== NEW: Policy PDF upload/delete ======================== */
+
+    /**
+     * POST /vendor/vehicles/{vehicle}/policy
+     * Upload and save the policy PDF, return its public URL.
+     */
+    public function uploadPolicy(Request $request, Vehicle $vehicle)
+    {
+        $this->authorizeOwner($request, $vehicle);
+
+        $request->validate([
+            'pdf' => ['required', 'file', 'mimes:pdf', 'max:20480'], // 20MB
+        ]);
+
+        // delete old file if exists
+        if ($vehicle->policy_pdf_path) {
+            Storage::disk('public')->delete($vehicle->policy_pdf_path);
+        }
+
+        $path = $request->file('pdf')->store("vehicles/{$vehicle->id}/policies", 'public');
+
+        $vehicle->policy_pdf_path = $path;
+        $vehicle->save();
+
+        return response()->json([
+            'url' => Storage::disk('public')->url($path),
+        ], 201);
+    }
+
+    /**
+     * DELETE /vendor/vehicles/{vehicle}/policy
+     * Remove the stored PDF and clear the DB field.
+     */
+    public function deletePolicy(Request $request, Vehicle $vehicle)
+    {
+        $this->authorizeOwner($request, $vehicle);
+
+        if ($vehicle->policy_pdf_path) {
+            Storage::disk('public')->delete($vehicle->policy_pdf_path);
+            $vehicle->policy_pdf_path = null;
+            $vehicle->save();
+        }
+
+        return response()->noContent();
     }
 
     /* ======================== Helpers ======================== */
@@ -223,7 +295,7 @@ class VehicleController extends Controller
 
     /**
      * Build form-friendly payload to hydrate AddUnit.
-     * (Now includes extraFeatures, named feature prices, and insurancePhotos)
+     * (Now includes extraFeatures, named feature prices, insurancePhotos, and policy_pdf_url)
      */
     private function serializeVehicleForForm(Vehicle $v)
     {
@@ -238,7 +310,7 @@ class VehicleController extends Controller
             'land' => 'Land', 'air' => 'Air', 'sea' => 'Sea', default => ucfirst($v->type ?? 'Land')
         };
 
-        // -------- feature pricing (for Additional Features + named prices) --------
+        // -------- feature pricing --------
         $featureRows = collect();
         if (Schema::hasTable('vehicle_feature_pricings')) {
             $featureRows = VehicleFeaturePricing::where('vehicle_id', $v->id)
@@ -285,7 +357,7 @@ class VehicleController extends Controller
             ->values()
             ->all();
 
-        // -------- insurance photos (images only) --------
+        // insurance photos (images only)
         $insurancePhotos = $v->documents
             ->where('doc_type', 'insurance')
             ->pluck('file_path')
@@ -295,7 +367,7 @@ class VehicleController extends Controller
             ->values()
             ->all();
 
-        // also ship media entries with ids (helps precise deletion)
+        // media entries with ids
         $imageEntries = $v->media->map(fn($m) => ['id' => $m->id, 'url' => $m->path])->values()->all();
 
         return [
@@ -328,12 +400,12 @@ class VehicleController extends Controller
             'wifi'               => (bool) $v->wifi,
             'insuranceCoverage'  => (bool) $v->insurance_coverage,
 
-            // named feature prices (from pricing table if present)
+            // named feature prices
             'gpsPrice'                 => $gpsPrice,
             'childSeatPrice'           => $childSeatPrice,
             'wifiPrice'                => $wifiPrice,
             'insuranceCoveragePrice'   => $insuranceCoveragePrice,
-            'addDriver'                => false, // toggle comes from vehicles table; set in UI from booleans if you persist it
+            'addDriver'                => false,
             'addDriverPrice'           => $addDriverPrice,
 
             'extra'              => $v->extra,
@@ -376,16 +448,19 @@ class VehicleController extends Controller
 
             // media & docs
             'images'             => $v->media->pluck('path')->values()->all(),
-            'imageEntries'       => $imageEntries,            // [{id,url}] — helps front-end send id-based deletes
-            'insurancePhotos'    => $insurancePhotos,         // image URLs for insurance
+            'imageEntries'       => $imageEntries,
+            'insurancePhotos'    => $insurancePhotos,
             'documents'          => $v->documents->map(fn($d) => [
                 'id'   => $d->id,
                 'type' => $d->doc_type,
                 'path' => $d->file_path,
             ])->values()->all(),
 
-            // dynamic extras to hydrate "More Features (optional)"
+            // dynamic extras
             'extraFeatures'      => $extraFeatures,
+
+            // 🔹 policy pdf url
+            'policy_pdf_url'     => $v->policy_pdf_url,
         ];
     }
 

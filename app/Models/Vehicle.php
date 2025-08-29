@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Vehicle extends Model
 {
@@ -43,6 +44,9 @@ class Vehicle extends Model
         'status',               // inactive|active|available...
         'approval_status',      // pending|approved|rejected
         'description',
+
+        // 🔹 add this to store the uploaded policy PDF path on disk
+        'policy_pdf_path',
     ];
 
     protected $casts = [
@@ -57,6 +61,20 @@ class Vehicle extends Model
         'deposit_amount'         => 'decimal:2',
         'advance_payment_amount' => 'decimal:2',
     ];
+
+    // 🔹 expose a URL in JSON
+    protected $appends = ['policy_pdf_url'];
+
+    public function getPolicyPdfUrlAttribute(): ?string
+    {
+        if (!$this->policy_pdf_path) {
+            return null;
+        }
+        // Return a /storage/... URL only if the file exists
+        return Storage::disk('public')->exists($this->policy_pdf_path)
+            ? Storage::disk('public')->url($this->policy_pdf_path)
+            : null;
+    }
 
     public function category()
     {

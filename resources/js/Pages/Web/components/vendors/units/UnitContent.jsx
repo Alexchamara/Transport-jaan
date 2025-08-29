@@ -177,8 +177,9 @@ const UnitContent = () => {
     setPendingDeleteId(null);
   };
 
-  const viewDetails = () => {
-    window.location.href = "/vendors/unitDetails";
+  // ✅ View details with id via Inertia
+  const viewDetails = (unit) => {
+    router.visit(`/vendors/unitDetails/${unit.id}`);
   };
 
   // EDIT → open Add Unit in edit mode (server will prefill props)
@@ -359,7 +360,7 @@ const UnitContent = () => {
 
                   <button
                     className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-white font-[700]"
-                    onClick={viewDetails}
+                    onClick={() => viewDetails(unit)}
                   >
                     View
                   </button>

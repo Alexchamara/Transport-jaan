@@ -67,6 +67,9 @@ Route::middleware(['auth', 'role:vendor'])
         Route::get('/addUnit/{vehicle}', [VehicleController::class, 'edit'])->name('addUnit.edit');      // edit (prefilled)
         Route::get('/unitDetails', fn () => Inertia::render('Web/home/vendors/UnitDetails'))->name('unitDetails');
 
+        // ✅ unit details with id
+        Route::get('/unitDetails/{vehicle}', [VehicleController::class, 'detailsPage'])->name('unitDetails.show');
+
         // Warehouse UI
         Route::get('/warehouse/unit', fn () => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('warehouse.unit');
     });
@@ -95,6 +98,13 @@ Route::middleware(['auth'])
 
         // delete
         Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
+
+        // Policy PDF upload/delete + stream
+        Route::post('/vehicles/{vehicle}/policy', [VehicleController::class, 'uploadPolicy'])->name('vehicles.policy.upload');
+        Route::delete('/vehicles/{vehicle}/policy', [VehicleController::class, 'deletePolicy'])->name('vehicles.policy.delete');
+
+        // 👇 NEW: reliable inline preview
+        Route::get('/vehicles/{vehicle}/policy/view', [VehicleController::class, 'streamPolicy'])->name('vehicles.policy.stream');
     });
 
 /*
