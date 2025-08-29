@@ -15,26 +15,28 @@ import limousineIcon from '../../assets/rentAVehicle/bodyType/limousine.png';
 import convertibleIcon from '../../assets/rentAVehicle/bodyType/convertible.png';
 
 const RentByBodyType = () => {
-  const bodyTypes = [
-    { name: "SUV", icon: suvIcon },
-    { name: "Crossover", icon: crossoverIcon },
-    { name: "Wagon", icon: wagonIcon },
-    { name: "Family MBP", icon: familyMbpIcon },
-    { name: "Sport Coupe", icon: sportCoupe },
-    { name: "Compact", icon: compact },
-    { name: "Coupe", icon: coupeIcon },
-    { name: "Truck", icon: truckIcon },
-    { name: "Sedan", icon: sedanIcon },
-    { name: "Limousine", icon: limousineIcon },
-    { name: "Convertible", icon: convertibleIcon },
-  ];
+const bodyTypes = [
+  { name: "SUV",          icon: suvIcon,          value: "suv" },
+  { name: "Crossover",    icon: crossoverIcon,    value: "suv" },     // treat as SUV
+  { name: "Wagon",        icon: wagonIcon,        value: "other" },
+  { name: "Family MBP",   icon: familyMbpIcon,    value: "van" },      // MPV/van
+  { name: "Sport Coupe",  icon: sportCoupe,       value: "other" },
+  { name: "Compact",      icon: compact,          value: "hatchback" },// or "other"
+  { name: "Coupe",        icon: coupeIcon,        value: "other" },
+  { name: "Truck",        icon: truckIcon,        value: "pickup" },
+  { name: "Sedan",        icon: sedanIcon,        value: "sedan" },
+  { name: "Limousine",    icon: limousineIcon,    value: "other" },
+  { name: "Convertible",  icon: convertibleIcon,  value: "other" },
+];
+
 
   const handleBodyTypeClick = (bodyType) => {
     router.visit('/vehicleList', {
       method: 'get',
-      data: { body_type: bodyType.name.toLowerCase() }, // match DB format
+      data: { bodyType: bodyType.value }, // send normalized enum-safe value
     });
   };
+
 
 
   return (

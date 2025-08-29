@@ -15,7 +15,6 @@ class ClientVehicleController extends Controller
     public function home()
     {
         // -- CASE-INSENSITIVE BRANDS --
-        // Collapse Toyota, TOYOTA, toyota into one entry and pick a display value
         $brands = Vehicle::query()
             ->whereNotNull('manufacturer')
             ->selectRaw('LOWER(manufacturer) AS key_name, MIN(manufacturer) AS display_name')
@@ -23,11 +22,11 @@ class ClientVehicleController extends Controller
             ->orderBy('display_name')
             ->get()
             ->map(fn($row) => [
-                'name' => $row->display_name, // nice-looking label from DB
+                'name' => $row->display_name,
                 'logo' => '/brand-logos/' . strtolower($row->display_name) . '.png',
             ]);
 
-        // Land body types (unchanged)
+        // Land body types (from categories table if you maintain icons per type)
         $bodyTypes = VehicleCategory::where('type', 'land')
             ->orderBy('name')
             ->get()
@@ -36,7 +35,7 @@ class ClientVehicleController extends Controller
                 'icon' => '/body-icons/' . strtolower($c->name) . '.png',
             ]);
 
-        // Sample vehicles (unchanged)
+        // Sample vehicles
         $vehicles = Vehicle::with(['landSpec', 'primaryImage'])
             ->active()
             ->type('land')
@@ -66,6 +65,7 @@ class ClientVehicleController extends Controller
     /** Vehicle List with filters (brand/model case-insensitive) */
     public function vehicleList(Request $request)
     {
+        // Accept both bodyType (camelCase) and body_type (snake_case) from the client
         $filters = $request->only([
             'pickupLocation',
             'pickupDate',
@@ -74,6 +74,7 @@ class ClientVehicleController extends Controller
             'brand',
             'model',
             'bodyType',
+            'body_type',
         ]);
 
         $query = Vehicle::with([
@@ -85,24 +86,31 @@ class ClientVehicleController extends Controller
             ->active()
             ->type('land');
 
+        // ---- Brand filter (case-insensitive) ----
         if (!empty($filters['brand'])) {
-            $brand = mb_strtolower($filters['brand']);
+            $brand = mb_strtolower(trim($filters['brand']));
             $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
         }
 
+        // ---- Model filter (case-insensitive) ----
         if (!empty($filters['model'])) {
-            $model = mb_strtolower($filters['model']);
+            $model = mb_strtolower(trim($filters['model']));
             $query->whereRaw('LOWER(model) = ?', [$model]);
         }
 
-        if (!empty($filters['bodyType'])) {
-            $bodyType = mb_strtolower($filters['bodyType']);
-            $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
+        // ---- Body type filter (case-insensitive, supports bodyType OR body_type) ----
+        $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
+        if (!empty($rawBodyType)) {
+            $bodyType = mb_strtolower(trim($rawBodyType));
+            // Optional: guard against unexpected values (only allow enum values)
+            $allowed = ['sedan','hatchback','suv','van','bus','pickup','jeep','other'];
+            if (in_array($bodyType, $allowed, true)) {
+                $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
+            }
         }
 
         $vehicles = $query->paginate(12)->withQueryString()
             ->through(function (Vehicle $v) {
-                // compute a single primary image path for consistent front-end usage
                 $primary = optional(
                     $v->images->sortByDesc('is_primary')->sortBy('sort_order')->first()
                 )->path;
@@ -113,28 +121,30 @@ class ClientVehicleController extends Controller
                     'manufacturer' => $v->manufacturer,
                     'rental_price_per_day' => $v->rental_price_per_day,
 
-                    // NEW: always present string (usable as `/storage/{primary_image}`)
+                    // consolidated primary image path
                     'primary_image' => $primary,
 
-                    // keep your existing list format too
+                    // images array (legacy + future-proof)
                     'images' => $v->images->map(fn($m) => [
-                        'image_path' => $m->path,   // old consumer
-                        'path' => $m->path,   // future-proof
+                        'image_path' => $m->path,
+                        'path' => $m->path,
                     ])->values(),
 
-                    // include minimal spec bits used by the cards
+                    // minimal specs for cards
                     'landSpec' => [
                         'fuel_type' => $v->landSpec->fuel_type ?? null,
                         'transmission_type' => $v->landSpec->transmission_type ?? null,
                         'seats' => $v->landSpec->seats ?? null,
                     ],
+
                     'passenger_capacity' => $v->passenger_capacity,
                 ];
             });
 
+        // Brand list (filtered by body type if provided)
         $brandCollection = Vehicle::query()
-            ->when(!empty($filters['bodyType']), function ($q) use ($filters) {
-                $bt = mb_strtolower($filters['bodyType']);
+            ->when(!empty($rawBodyType), function ($q) use ($rawBodyType) {
+                $bt = mb_strtolower(trim($rawBodyType));
                 $q->whereHas('landSpec', fn($qq) => $qq->whereRaw('LOWER(body_type) = ?', [$bt]));
             })
             ->selectRaw('LOWER(manufacturer) AS key_name, MIN(manufacturer) AS display_name')
@@ -144,9 +154,10 @@ class ClientVehicleController extends Controller
             ->get()
             ->map(fn($row) => $row->display_name);
 
+        // Model list (optionally narrowed by brand)
         $modelQuery = Vehicle::query();
         if (!empty($filters['brand'])) {
-            $brand = mb_strtolower($filters['brand']);
+            $brand = mb_strtolower(trim($filters['brand']));
             $modelQuery->whereRaw('LOWER(manufacturer) = ?', [$brand]);
         }
         $modelCollection = $modelQuery
@@ -162,14 +173,18 @@ class ClientVehicleController extends Controller
 
         return Inertia::render('Web/home/vehicleList', [
             'vehicles' => $vehicles,
-            'filters' => $filters,
+            'filters' => [
+                ...$filters,
+                // normalize outgoing filter so the frontend has one canonical key
+                'bodyType' => $rawBodyType,
+            ],
             'likedVehicleIds' => $likedVehicleIds,
             'brandCollection' => $brandCollection,
             'modelCollection' => $modelCollection,
         ]);
     }
 
-    /** Vehicle Details Page (unchanged) */
+    /** Vehicle Details Page */
     public function vehicleDetails($idOrSlug)
     {
         $base = Vehicle::query()
@@ -214,10 +229,10 @@ class ClientVehicleController extends Controller
         $myReview = Auth::check() ? $vehicle->reviews->firstWhere('client_id', Auth::id()) : null;
         $authUserId = Auth::id();
 
-        // ---- IMPORTANT: add camelCase aliases for the frontend ----
-        $vehicle->setAttribute('landSpec', $vehicle->landSpec);           // <-- alias for land_spec
-        $vehicle->setAttribute('primaryImage', $vehicle->primaryImage);   // (optional) alias for primary_image
-        $vehicle->setAttribute('images', $vehicle->images);               // keep images array
+        // Frontend-friendly aliases
+        $vehicle->setAttribute('landSpec', $vehicle->landSpec);
+        $vehicle->setAttribute('primaryImage', $vehicle->primaryImage);
+        $vehicle->setAttribute('images', $vehicle->images);
 
         $similarVehicles = Vehicle::query()
             ->active()
@@ -238,5 +253,4 @@ class ClientVehicleController extends Controller
             'authUserId' => $authUserId,
         ]);
     }
-
 }

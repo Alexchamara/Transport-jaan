@@ -167,4 +167,32 @@ class Vehicle extends Model
             ->where('is_primary', true)
             ->ofMany('id', 'max'); // requires MySQL 8+/Postgres
     }
+
+    // Inside class Vehicle extends Model
+    public function bookings()
+    {
+        return $this->hasMany(\App\Models\Booking::class);
+    }
+
+    public function isAvailable(\Carbon\Carbon $from, \Carbon\Carbon $to, ?int $ignoreBookingId = null): bool
+    {
+        $overlap = \App\Models\Booking::where('vehicle_id', $this->id)
+            ->when($ignoreBookingId, fn($q) => $q->where('id', '!=', $ignoreBookingId))
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->whereHas('schedule', function ($q) use ($from, $to) {
+                $q->where('pickup_at', '<', $to)
+                    ->where('dropoff_at', '>', $from);
+            })
+            ->exists();
+
+        return !$overlap;
+    }
+
+    public function vendor()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'vendor_id'); // adjust FK if different
+    }
+
+
+
 }
