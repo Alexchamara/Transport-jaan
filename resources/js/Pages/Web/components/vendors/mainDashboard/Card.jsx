@@ -8,6 +8,16 @@ const Card = ({ title, description, index, subOptions }) => {
             } else {
                 router.visit("/dashboard");
             }
+        } else if (title === "Ticket Booking") {
+            router.visit("/ticketBooking/dashboard");
+        } else if (title === "Courier Service") {
+            router.visit("/courierService/dashboard");
+        } else if (title === "Warehouse Rental") {
+            router.visit("/warehouse/dashboard");
+        } else if (title === "Freight") {
+            router.visit("/freight");
+        } else if (title === "Multimodal") {
+            router.visit("/multimodal");
         } else {
             alert(`Navigating to ${title}...`);
         }

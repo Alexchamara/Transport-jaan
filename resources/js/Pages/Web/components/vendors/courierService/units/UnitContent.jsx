@@ -1,26 +1,23 @@
-import React, { useState , useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Inertia } from "@inertiajs/inertia";
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import {
+  Search,
+  Settings,
+  Bell,
+  UserCircle2,
+  Filter,
+  ChevronDown,
+  Truck,
+  CheckCircle2,
+  Gauge,
+  Cog,
+  Users,
+  Droplet,
+  Pencil,
+  Trash2
+} from "lucide-react";
 
-import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
-import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
-import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
-
-import car1 from "../../../assets/vendors/dashboard/icons/car1.svg";
-import availableIcon from "../../../assets/vendors/units/availableIcon.svg";
-
-import icon1 from "../../../assets/vendors/units/icons/icon1.svg";
-import icon2 from "../../../assets/vendors/units/icons/icon2.svg";
-import icon3 from "../../../assets/vendors/units/icons/icon3.svg";
-import icon4 from "../../../assets/vendors/units/icons/icon4.svg";
-
-import editIcon from "../../../assets/vendors/units/edit.svg";
-import deleteIcon from "../../../assets/vendors/units/delete.svg";
-
-import AddUnit from "../../../home/vendors/AddUnit";
+import AddUnit from "../../../../home/vendors/courierService/AddUnit";
 
 const UnitContent = () => {
     // Sample data array for units
@@ -263,24 +260,23 @@ const UnitContent = () => {
         setShowAddUnit(true);
     };
 
-
     return (
-        <div className="w-full h-auto pr-10 py-10">
+        <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Units</h1>
+                <h1 className="figtree text-[35px] font-[700]">Courier Service Units</h1>
                 <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} alt="Search" />
+                        <Search size={28} />
                     </div>
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} alt="Settings" />
+                        <Settings size={28} />
                     </div>
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} alt="Notifications" />
+                        <Bell size={28} />
                     </div>
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} alt="Profile" />
+                        <UserCircle2 size={28} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
                         <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
@@ -297,26 +293,26 @@ const UnitContent = () => {
                 <div className="flex flex-row items-center justify-between w-full">
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                            <img src={miniSearchIcon} alt="Search" />
+                            <Search size={16} />
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="Search client name, car, etc."
+                                placeholder="Search unit, vehicle, capacity..."
                             />
                         </div>
                         <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={filterIcon} className="size-[12px]" alt="Filter" />
+                            <Filter size={12} />
                             <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Car type
+                                Unit type
                             </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
+                            <ChevronDown size={14} />
                         </div>
                         <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={filterIcon} className="size-[12px]" alt="Filter" />
+                            <Filter size={12} />
                             <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
                                 Status
                             </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
+                            <ChevronDown size={14} />
                         </div>
                     </div>
                     <button
@@ -338,88 +334,95 @@ const UnitContent = () => {
                     {currentUnits.map((unit) => (
                         <div
                             key={unit.id}
-                            className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex flex-row items-center my-10"
+                            className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex lg:flex-row flex-col items-stretch lg:items-stretch my-10 overflow-hidden pr-[160px]"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <img src={car1} alt="Car" />
-                            {/* text section */}
-                            <div className="px-5 py-5 flex flex-row justify-center items-center">
-                                <div>
-                                    <div className="bebas-neue text-[30px] font-[400]">
-                                        <h1>
-                                            {unit.brand}{" "}
-                                            <span className="text-[#0955AC]">
-                                                {unit.model}
-                                            </span>
-                                        </h1>
-                                        <h1>
-                                            ${unit.price}
-                                            <span className="figtree text-[#00000080] text-[15px] font-[600]">
-                                                /day
-                                            </span>
-                                        </h1>
-                                    </div>
-                                    <div className="poppins flex flex-row justify-start items-center gap-8 text-[14px] font-[600]">
-                                        <div className="flex flex-row justify-center items-center gap-3">
-                                            <img
-                                                src={availableIcon}
-                                                className="w-[26px] h-[26px]"
-                                                alt="Status"
-                                            />
-                                            <h1 className="text-[#3C9A34]">
-                                                {unit.status}
-                                            </h1>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex flex-row justify-center items-center pl-[100px] gap-20">
-                                    <div className="poppins flex flex-row gap-10 text-[15px] font-[500]">
-                                        <div className="flex flex-col justify-center items-center gap-7">
-                                            <img
-                                                src={icon1}
-                                                className="w-[26px] h-[26px]"
-                                                alt="Mileage"
-                                            />
-                                            <h1>{unit.mileage}</h1>
-                                        </div>
-                                        <div className="flex flex-col justify-center items-center gap-7">
-                                            <img
-                                                src={icon2}
-                                                className="w-[26px] h-[26px]"
-                                                alt="Transmission"
-                                            />
-                                            <h1>{unit.transmission}</h1>
-                                        </div>
-                                        <div className="flex flex-col justify-center items-center gap-7">
-                                            <img
-                                                src={icon3}
-                                                className="w-[26px] h-[26px]"
-                                                alt="Capacity"
-                                            />
-                                            <h1>{unit.capacity}</h1>
-                                        </div>
-                                        <div className="flex flex-col justify-center items-center gap-7">
-                                            <img
-                                                src={icon4}
-                                                className="w-[26px] h-[26px]"
-                                                alt="Fuel Type"
-                                            />
-                                            <h1>{unit.fuelType}</h1>
-                                        </div>
-                                    </div>
-                                    <button className="figtree w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-[#FFFFFF] font-[700]">
-                                        View
-                                    </button>
-                                </div>
+                            <div className="w-[140px] lg:self-stretch flex items-center justify-center text-[#0955AC] bg-[#F8FAFF] border-r border-[#0000001A]">
+                                <Truck size={80} />
                             </div>
-                            {/* delete buttons */}
-                            <div className="absolute right-0 w-[143px] h-full bg-[#D8E4F2] flex flex-row justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px]">
-                                <div className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer">
-                                    <img src={editIcon} className="size-[24px]" alt="Edit" />
+                            {/* text section */}
+                            <div className="flex-1 px-5 py-5 flex flex-row justify-between items-stretch">
+                              {/* left: title & quick badges */}
+                              <div className="flex-1 pr-6">
+                                <div className="bebas-neue text-[30px] leading-[1.1] font-[400]">
+                                  <h1>
+                                    {unit.brand}{" "}
+                                    <span className="text-[#0955AC]">{unit.model}</span>
+                                  </h1>
                                 </div>
-                                <div className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer">
-                                    <img src={deleteIcon} className="size-[24px]" alt="Delete" />
+
+                                {/* pricing & quick meta */}
+                                <div className="mt-2 flex flex-wrap items-center gap-3">
+                                  <div className="figtree text-[18px] font-[700]">
+                                    ${unit.price}
+                                    <span className="text-[#00000080] text-[14px] font-[600]">/km</span>
+                                  </div>
+                                  <div className="px-2 h-[22px] rounded-[4px] bg-[#EAF2FF] border border-[#0955AC33] text-[#0955AC] text-[12px] font-[600] flex items-center">
+                                    Units available: {unit.unitsCount}
+                                  </div>
+                                  <div className="px-2 h-[22px] rounded-[4px] bg-[#E9F7EE] border border-[#3C9A3433] text-[#3C9A34] text-[12px] font-[700] flex items-center">
+                                    {unit.status}
+                                  </div>
                                 </div>
+
+                                {/* route/service badges (example placeholders; wire to your data if available) */}
+                                <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
+                                  <span className="px-2 py-[2px] rounded-[4px] bg-[#F3F3F3] border border-[#0000001A] text-[#00000099]">Urban</span>
+                                  <span className="px-2 py-[2px] rounded-[4px] bg-[#F3F3F3] border border-[#0000001A] text-[#00000099]">Intercity</span>
+                                  <span className="px-2 py-[2px] rounded-[4px] bg-[#F3F3F3] border border-[#0000001A] text-[#00000099]">Same‑day</span>
+                                </div>
+                              </div>
+
+                              {/* middle: courier specs */}
+                              <div className="flex flex-col lg:flex-row gap-10 items-center justify-center px-6 border-l border-[#0000001A]">
+                                <div className="poppins grid grid-cols-2 gap-x-12 gap-y-6 text-[15px] font-[600]">
+                                  <div className="flex items-center gap-3">
+                                    <Users className="w-[22px] h-[22px]" />
+                                    <div className="flex flex-col leading-tight">
+                                      <span className="text-[#00000080] text-[12px] font-[600]">Load capacity</span>
+                                      <span>{unit.capacity}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <Droplet className="w-[22px] h-[22px]" />
+                                    <div className="flex flex-col leading-tight">
+                                      <span className="text-[#00000080] text-[12px] font-[600]">Fuel</span>
+                                      <span>{unit.fuelType}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <Cog className="w-[22px] h-[22px]" />
+                                    <div className="flex flex-col leading-tight">
+                                      <span className="text-[#00000080] text-[12px] font-[600]">Transmission</span>
+                                      <span>{unit.transmission}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <Gauge className="w-[22px] h-[22px]" />
+                                    <div className="flex flex-col leading-tight">
+                                      <span className="text-[#00000080] text-[12px] font-[600]">Mileage</span>
+                                      <span>{unit.mileage}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <button
+                                  className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700]"
+                                  onClick={() => (window.location.href = "/courierService/unitDetails")}
+                                >
+                                  Assign
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* actions rail */}
+                            <div className="absolute right-0 w-[160px] h-full bg-[#D8E4F2] flex flex-col lg:flex-col justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px]">
+                              <div className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-white/60">
+                                <Pencil className="size-[24px]" />
+                              </div>
+                              <div className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-white/60">
+                                <Trash2 className="size-[24px]" />
+                              </div>
                             </div>
                         </div>
                     ))}

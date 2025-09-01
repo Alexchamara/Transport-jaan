@@ -95,7 +95,12 @@ Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.h
 // });
 
 
-// for now
+
+
+
+// for now ==================================================
+
+// vendors dashboard - vehicle rental
 Route::get('/bookings', function () {
     return Inertia::render('Web/home/vendors/Booking');
 })->name('bookings');
@@ -138,8 +143,153 @@ Route::get('/mainDashboard', function () {
 
 Route::get('/unitDetails', function () {
     return Inertia::render('Web/home/vendors/UnitDetails');
-})->name('mainDashboard');
+})->name('unitDetails');
 // end
+
+
+
+// vendor dashboard - warehouse
+Route::get('/warehouse/bookings', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Booking');
+})->name('warehouse.bookings');
+
+Route::get('/warehouse/units', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Unit');
+})->name('warehouse.units');
+
+Route::get('/warehouse/dashboard', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Dashboard');
+})->name('warehouse.dashboard');
+
+Route::get('/warehouse/clients', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Client');
+})->name('warehouse.clients');
+
+Route::get('/warehouse/expenses', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Expenses');
+})->name('warehouse.expenses');
+
+Route::get('/warehouse/payment', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Payment');
+})->name('warehouse.payment');
+
+Route::get('/warehouse/tracking', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Tracking');
+})->name('warehouse.tracking');
+
+Route::get('/warehouse/calendar', function () {
+    return Inertia::render('Web/home/vendors/warehouse/Calendar');
+})->name('warehouse.calendar');
+
+Route::get('/warehouse/addUnit', function () {
+    return Inertia::render('Web/home/vendors/warehouse/AddUnit');
+})->name('warehouse.addUnit');
+
+Route::get('/warehouse/unitDetails', function () {
+    return Inertia::render('Web/home/vendors/warehouse/UnitDetails');
+})->name('warehouse.unitDetails');
+
+
+
+// vendor dashboard - ticket booking
+Route::get('/ticketBooking/bookings', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/Booking');
+})->name('ticketBooking.bookings');
+
+Route::get('/ticketBooking/units', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/Unit');
+})->name('ticketBooking.units');
+
+Route::get('/ticketBooking/dashboard', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/Dashboard');
+})->name('ticketBooking.dashboard');
+
+Route::get('/ticketBooking/clients', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/Client');
+})->name('ticketBooking.clients');
+
+Route::get('/ticketBooking/expenses', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/Expenses');
+})->name('ticketBooking.expenses');
+
+Route::get('/ticketBooking/payment', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/Payment');
+})->name('ticketBooking.payment');
+
+Route::get('/ticketBooking/tracking', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/Tracking');
+})->name('ticketBooking.tracking');
+
+Route::get('/ticketBooking/calendar', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/Calendar');
+})->name('ticketBooking.calendar');
+
+Route::get('/ticketBooking/addUnit', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/AddUnit');
+})->name('ticketBooking.addUnit');
+
+Route::get('/ticketBooking/unitDetails', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/UnitDetails');
+})->name('ticketBooking.unitDetails');
+
+
+
+
+
+// vendor dashboard - courier service
+Route::get('/courierService/bookings', function () {
+    return Inertia::render('Web/home/vendors/courierService/Booking');
+})->name('courierService.bookings');
+
+Route::get('/courierService/units', function () {
+    return Inertia::render('Web/home/vendors/courierService/Unit');
+})->name('ticketBooking.units');
+
+Route::get('/courierService/dashboard', function () {
+    return Inertia::render('Web/home/vendors/courierService/Dashboard');
+})->name('courierService.dashboard');
+
+Route::get('/courierService/clients', function () {
+    return Inertia::render('Web/home/vendors/courierService/Client');
+})->name('courierService.clients');
+
+Route::get('/courierService/expenses', function () {
+    return Inertia::render('Web/home/vendors/courierService/Expenses');
+})->name('courierService.expenses');
+
+Route::get('/courierService/payment', function () {
+    return Inertia::render('Web/home/vendors/courierService/Payment');
+})->name('courierService.payment');
+
+Route::get('/courierService/tracking', function () {
+    return Inertia::render('Web/home/vendors/courierService/Tracking');
+})->name('courierService.tracking');
+
+Route::get('/courierService/calendar', function () {
+    return Inertia::render('Web/home/vendors/courierService/Calendar');
+})->name('courierService.calendar');
+
+Route::get('/courierService/addUnit', function () {
+    return Inertia::render('Web/home/vendors/courierService/AddUnit');
+})->name('courierService.addUnit');
+
+Route::get('/courierService/unitDetails', function () {
+    return Inertia::render('Web/home/vendors/courierService/UnitDetails');
+})->name('courierService.unitDetails');
+
+
+
+// end ==================================================
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -173,14 +323,6 @@ Route::get('/freightBookingDashboard', function () {
 
 
 
-
-
-
-
-// vendor - warehouse rent
-Route::get('/warehouse/unit', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Unit');
-})->name('warehouse.Unit');
 
 
 

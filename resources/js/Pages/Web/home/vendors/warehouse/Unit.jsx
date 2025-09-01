@@ -1,6 +1,6 @@
 import React from 'react'
 import SideMenu from '../../../components/vendors/warehouse/SideMenu';
-import UnitContent from '../../../components/vendors/warehouse/UnitContent';
+import UnitContent from '../../../components/vendors/warehouse/units/UnitContent';
 
 const Unit = () => {
   return (
