@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { usePage, router } from "@inertiajs/react";
 import Header from "../../layouts/Header";
 import car from "../../assets/vehicleCheckout/car.svg";
@@ -7,7 +7,10 @@ import icon2 from "../../assets/vehicleCheckout/icon2.svg";
 import icon3 from "../../assets/vehicleCheckout/icon3.svg";
 import icon4 from "../../assets/vehicleCheckout/icon4.svg";
 import tick from "../../assets/vehicleCheckout/tick.svg";
-import { route } from "ziggy-js"; // keep for POST route
+import { route } from "ziggy-js";
+import QuoteModal from "../../components/LandVehicleDetails/QuoteModal"; // adjust path if different
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const Summary = () => {
   const { props } = usePage();
@@ -23,14 +26,19 @@ const Summary = () => {
   // derived amounts
   const baseTotal = n(booking?.price_per_day) * n(booking?.rental_days);
   const addonsTotal = n(booking?.addons_total);
-  const subtotal = n(booking?.subtotal); // base + addons
-  const total = n(booking?.total_amount); // grand total
+  const subtotal = n(booking?.subtotal);        // base + addons
+  const total = n(booking?.total_amount);       // grand total
 
-  // advance cap from DB, capped to total
-  const advanceCap = Math.min(n(booking?.advance_amount), total);
+  // payments from backend (prefer paid rows from booking_payments)
+  const payments = Array.isArray(booking?.payments) ? booking.payments : [];
+  const paidFromRows = payments
+    .filter((p) => (p?.status || "").toLowerCase() === "paid")
+    .reduce((sum, p) => sum + n(p?.amount_paid), 0);
 
-  // Due amount = To pay (Full) - To pay (Advance)
-  const dueAmount = Math.max(total - advanceCap, 0);
+  // fallback to booking-level aggregate if present
+  const paidRaw = paidFromRows > 0 ? paidFromRows : n(booking?.amount_paid ?? booking?.advance_paid_amount ?? 0);
+  const paidType = paidRaw >= total ? "full" : paidRaw > 0 ? "advance" : "none";
+  const dueAmount = Math.max(total - paidRaw, 0);
 
   const handleBackBooking = () => {
     router.visit(route("bookings.checkout"), {
@@ -59,6 +67,62 @@ const Summary = () => {
   const onlyDate = (dt) => (dt ? new Date(dt).toLocaleDateString() : "—");
   const onlyTime = (dt) =>
     dt ? new Date(dt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
+
+  /* ===================== QUOTATION (DOWNLOAD SUMMARY) ===================== */
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const quoteRef = useRef(null);
+
+  const addonLines = useMemo(() => {
+    const list = Array.isArray(booking?.addons) ? booking.addons : [];
+    return list.map((a) => ({
+      id: a.id ?? `${a.name}-${a.qty}`,
+      name: a.name,
+      qty: n(a.qty || 1),
+      price: n(a.price || a.unit_price || 0),
+      line_total: n(a.line_total || a.total || n(a.price) * n(a.qty || 1)),
+    }));
+  }, [booking?.addons]);
+
+  const downloadSummaryPDF = async () => {
+    if (!quoteRef.current) return;
+
+    const canvas = await html2canvas(quoteRef.current, {
+      scale: Math.min(3, window.devicePixelRatio || 2),
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      letterRendering: true,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4"); // 210 x 297mm
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 12;
+    const contentW = pageW - margin * 2;
+
+    const imgW = contentW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    let heightLeft = imgH;
+
+    pdf.addImage(imgData, "PNG", margin, margin, imgW, imgH);
+    heightLeft -= pageH - margin * 2;
+
+    while (heightLeft > 0) {
+      pdf.addPage();
+      const offset = margin - (imgH - heightLeft);
+      pdf.addImage(imgData, "PNG", margin, offset, imgW, imgH);
+      heightLeft -= pageH - margin * 2;
+    }
+
+    const fileName = `summary_quotation_${(vehicle?.manufacturer || "vehicle")
+      .toString()
+      .replace(/\s+/g, "-")
+      .toLowerCase()}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+    pdf.save(fileName);
+  };
+  /* ======================================================================= */
 
   return (
     <div>
@@ -166,7 +230,7 @@ const Summary = () => {
               </div>
             </div>
 
-            {/* actions (second button is non-functional and looks like DONE) */}
+            {/* actions */}
             <div className="flex xl:flex-row flex-col items-center gap-5 justify-between poppins">
               <div
                 onClick={handleDone}
@@ -176,10 +240,10 @@ const Summary = () => {
                 DONE
               </div>
 
-              {/* Non-functional button, same style as DONE */}
               <div
                 className="md:w-[425px] w-auto h-[50px] bg-[#0955AC] text-[#FFFFFF] text-[12px] font-[700] flex justify-center items-center rounded-[5px] cursor-pointer p-5"
                 role="button"
+                onClick={() => setShowQuoteModal(true)}
               >
                 DOWNLOAD SUMMARY
               </div>
@@ -229,7 +293,7 @@ const Summary = () => {
               </div>
             </div>
 
-            {/* Payment Details (unchanged) */}
+            {/* Payment Details */}
             <div className="poppins md:w-[459px] h-auto bg-[#F4F3F3] rounded-[10px] px-10 py-10" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
               <h2 className="text-[16px] font-[700] mb-4">Payment Details</h2>
 
@@ -276,14 +340,18 @@ const Summary = () => {
                   <span>To pay (Full)</span>
                   <span className="font-[700]">{money(total)}</span>
                 </div>
-                <div className="flex justify-between text-[12px] text-[#000000B2]">
-                  <span>To pay (Advance)</span>
-                  <span className="font-[600]">{money(advanceCap)}</span>
-                </div>
+
+                {/* What has actually been paid (from backend) */}
+                {paidType !== "none" && (
+                  <div className="flex justify-between text-[12px] text-[#000000B2]">
+                    <span>{paidType === "full" ? "Paid (Full)" : "Paid (Advance)"}</span>
+                    <span className="font-[600]">{money(paidRaw)}</span>
+                  </div>
+                )}
 
                 <div className="w-full h-[1px] bg-[#CDD0D4] my-3" />
                 <div className="flex justify-between text-[13px]">
-                  <span>Due amount (Full − Advance)</span>
+                  <span>{paidType === "full" ? "Amount Due" : "Due amount (Full − Paid)"}</span>
                   <span className="font-[700]">{money(dueAmount)}</span>
                 </div>
               </div>
@@ -292,6 +360,155 @@ const Summary = () => {
           </div>
         </div>
       </div>
+
+      {/* ===================== QUOTATION MODAL (PRINT VIEW) ===================== */}
+      <QuoteModal open={showQuoteModal} onClose={() => setShowQuoteModal(false)}>
+        {/* Only this inner box is captured to PDF */}
+        <div ref={quoteRef} className="p-2">
+          {/* HEADER */}
+          <div className="flex flex-row justify-between items-center">
+            <div className="figtree text-[16px] font-[600]">
+              <h1>{props?.vendor?.name || "Vendor name"}</h1>
+              <h1>{props?.vendor?.address || "Vendor Address"}</h1>
+              <h1>{props?.vendor?.phone || "Vendor Contact Number"}</h1>
+              <h1>{props?.vendor?.email || "Vendor Email"}</h1>
+            </div>
+
+            <div className="text-center poppins text-[25px] font-[700] uppercase">
+              <h1>
+                Company <br /> <span className="text-[#0955AC]">Logo</span>
+              </h1>
+            </div>
+          </div>
+
+          <div className="figtree flex flex-row justify-end text-[35px] font-[700] text-[#0955AC]">
+            <h1>Quotation</h1>
+          </div>
+
+          {/* BILL TO + META */}
+          <div className="flex flex-row justify-between items-end">
+            <div className="text-[16px] font-[600]">
+              <h1 className="text-[#0955AC]">Bill To</h1>
+              <h1>{props?.customer?.name || booking?.customer_name || "Client Name"}</h1>
+              <h1>{props?.customer?.address || booking?.customer_address || "Client Address"}</h1>
+              <h1>{props?.customer?.phone || booking?.customer_phone || "Client contact number"}</h1>
+            </div>
+
+            <div className="text-right text-[16px] font-[600]">
+              <h1>
+                <span className="text-[#0955AC]">Quotation No:</span> #{booking?.id || "—"}
+              </h1>
+              <h1>
+                <span className="text-[#0955AC]">Quotation Date:</span> {new Date().toLocaleDateString()}
+              </h1>
+              <h1>
+                <span className="text-[#0955AC]">Due Date:</span> —
+              </h1>
+            </div>
+          </div>
+
+          {/* TABLE HEADER */}
+          <div className="w-full h-[36px] bg-[#0955AC] mt-10 flex flex-row justify-center items-center text-[#FFFFFF] px-10 text-[14px] font-[700]">
+            <h1 className="w-[260px]">Description</h1>
+            <h1 className="w-[120px]">QTY.</h1>
+            <h1 className="w-[140px]">UNIT price</h1>
+            <h1 className="w-[140px] text-end">Sub Total</h1>
+          </div>
+
+          {/* VEHICLE ROW */}
+          <div className="w-full h-[36px] flex flex-row justify-center items-center px-10 text-[14px] font-[600] mt-5">
+            <h1 className="w-[260px]">{vehicle?.manufacturer} {vehicle?.model}</h1>
+            <h1 className="w-[120px]">{booking?.rental_days || "-"} {booking?.rental_days === 1 ? "Day" : "Days"}</h1>
+            <h1 className="w-[140px]">{n(booking?.price_per_day).toFixed(2)}</h1>
+            <h1 className="w-[140px] text-end">{(n(booking?.price_per_day) * n(booking?.rental_days)).toFixed(2)}</h1>
+          </div>
+
+          {/* ADDON ROWS */}
+          {addonLines.map((line) => (
+            <div key={line.id} className="w-full h-[36px] flex flex-row justify-center items-center px-10 text-[14px] font-[600]">
+              <h1 className="w-[260px]">{line.name}</h1>
+              <h1 className="w-[120px]">{line.qty}</h1>
+              <h1 className="w-[140px]">{line.price.toFixed(2)}</h1>
+              <h1 className="w-[140px] text-end">{line.line_total.toFixed(2)}</h1>
+            </div>
+          ))}
+
+          <div className="w-full h-[1.5px] bg-[#0955AC] my-5" />
+
+          {/* TOTALS */}
+          <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
+            <h1 className="w-[140px]">Subtotal</h1>
+            <h1 className="w-[140px] text-end">{subtotal.toFixed(2)}</h1>
+          </div>
+
+          {n(booking?.deposit_amount) > 0 && (
+            <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
+              <h1 className="w-[140px]">Refundable deposit</h1>
+              <h1 className="w-[140px] text-end">{n(booking?.deposit_amount).toFixed(2)}</h1>
+            </div>
+          )}
+
+          <div className="flex justify-end items-center">
+            <div className="flex flex-row items-center border-t-[1px] border-b-[1px] w-[340px] px-10 h-[39px] bg-[#E8EBEF] border-[#0955AC] text-[14px] font-[700] text-[#0955AC]">
+              <h1 className="w-[200px]">Total ({C})</h1>
+              <h1 className="w-[140px] text-end">{total.toFixed(2)}</h1>
+            </div>
+          </div>
+
+          {/* Paid / Advance / Due badges */}
+          <div className="mt-3 px-10 text-[12px]">
+            {paidType === "full" && (
+              <div className="flex items-center justify-between rounded-md bg-green-50 border border-green-600 px-3 py-2">
+                <span className="font-semibold text-green-700">PAID IN FULL</span>
+                <span className="font-semibold text-green-700">{money(paidRaw)}</span>
+              </div>
+            )}
+            {paidType === "advance" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between rounded-md bg-amber-50 border border-amber-600 px-3 py-2">
+                  <span className="font-semibold text-amber-700">ADVANCE PAID</span>
+                  <span className="font-semibold text-amber-700">{money(paidRaw)}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-md bg-blue-50 border border-blue-600 px-3 py-2">
+                  <span className="font-semibold text-blue-700">REMAINING DUE</span>
+                  <span className="font-semibold text-blue-700">{money(dueAmount)}</span>
+                </div>
+              </div>
+            )}
+            {paidType === "none" && (
+              <div className="flex items-center justify-between rounded-md bg-blue-50 border border-blue-600 px-3 py-2">
+                <span className="font-semibold text-blue-700">AMOUNT DUE</span>
+                <span className="font-semibold text-blue-700">{money(dueAmount)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* NOTES */}
+          <div className="mt-4">
+            <h1 className="text-[14px] font-[700] text-[#0955AC]">Trip Details</h1>
+            <div className="text-[12px]">
+              <div>Pick-up: {schedule?.pickup_location || "—"} — {onlyDate(schedule?.pickup_at)} {onlyTime(schedule?.pickup_at)}</div>
+              <div>Drop-off: {schedule?.dropoff_location || "—"} — {onlyDate(schedule?.dropoff_at)} {onlyTime(schedule?.dropoff_at)}</div>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h1 className="text-[14px] font-[700] text-[#0955AC]">Terms and Conditions</h1>
+            <h1 className="text-[14px] font-[500]">Payment is due in 14 days</h1>
+          </div>
+        </div>
+
+        {/* Download button (not captured in PDF) */}
+        <div className="flex justify-center items-center mt-4">
+          <div
+            className="w-[231px] h-[41px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[600] text-[12px] poppins flex justify-center items-center cursor-pointer"
+            onClick={downloadSummaryPDF}
+          >
+            Download summary (PDF)
+          </div>
+        </div>
+      </QuoteModal>
+      {/* =================== /QUOTATION MODAL =================== */}
     </div>
   );
 };

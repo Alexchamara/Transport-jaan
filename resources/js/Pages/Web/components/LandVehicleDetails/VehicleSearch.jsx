@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
 import clock from "../../assets/landVehicleDetails/clock.svg";
@@ -7,6 +7,8 @@ import useScrollLock from "./useScrollLock";
 import axios from "axios";
 import Swal from "sweetalert2";
 import "sweetalert2/dist/sweetalert2.min.css";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const { props } = usePage();
@@ -121,7 +123,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
     }
   };
 
-  // ✅ UPDATED: pre-check availability; show SweetAlert if unavailable
+  // pre-check availability; show SweetAlert if unavailable
   const continueToCheckout = async () => {
     if (!vehicleId || !pickupDate || !dropoffDate) {
       showCenter("Please fill pick-up and drop-off first.", "Missing info", "info");
@@ -129,7 +131,6 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
     }
 
     try {
-      // ping quote endpoint first; if it's 422 we show popup & stop
       await axios.get(route("bookings.quote"), {
         params: {
           vehicle_id: vehicleId,
@@ -141,7 +142,6 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
         },
       });
 
-      // available -> proceed to checkout
       router.visit(route("bookings.checkout"), {
         method: "get",
         data: {
@@ -169,122 +169,178 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
     }
   };
 
+  /* ===================== DOWNLOAD QUOTATION AS-IS ===================== */
+  const quoteRef = useRef(null);
+
+  const downloadQuote = async () => {
+    if (!quoteRef.current) return;
+
+    // Render the exact content to a canvas (crisp + white background)
+    const canvas = await html2canvas(quoteRef.current, {
+      scale: 3,              // sharper text
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      letterRendering: true,
+    });
+    const imgData = canvas.toDataURL("image/png");
+
+    // Build an A4 PDF with clean margins
+    const pdf = new jsPDF("p", "mm", "a4");    // 210 x 297 mm
+    const pageW = pdf.internal.pageSize.getWidth();   // 210
+    const pageH = pdf.internal.pageSize.getHeight();  // 297
+    const margin = 12;                                  // mm (left/right/top/bottom)
+    const contentW = pageW - margin * 2;
+
+    // Scale image to fit width within margins
+    const imgW = contentW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    // Add first page
+    let heightLeft = imgH;
+    let y = margin;
+
+    pdf.addImage(imgData, "PNG", margin, y, imgW, imgH);
+    heightLeft -= (pageH - margin * 2);
+
+    // Additional pages (crop by shifting image upward but keeping same margins)
+    while (heightLeft > 0) {
+      pdf.addPage();
+      const offset = margin - (imgH - heightLeft);
+      pdf.addImage(imgData, "PNG", margin, offset, imgW, imgH);
+      heightLeft -= (pageH - margin * 2);
+    }
+
+    const fileName = `quotation_${(vehicle?.manufacturer || "vehicle")
+      .toString()
+      .replace(/\s+/g, "-")
+      .toLowerCase()}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+    pdf.save(fileName);
+  };
+
+  /* =================================================================== */
+
   return (
     <div className="px-5 xl:px-0">
       <QuoteModal open={showQuoteModal} onClose={() => setShowQuoteModal(false)}>
-        <div className="flex flex-row justify-between items-center">
-          <div className="figtree text-[16px] font-[600]">
-            <h1>Vendor name</h1>
-            <h1>Vendor Address </h1>
-            <h1>Vendor Contact Number</h1>
-            <h1>Vendor Email</h1>
+        {/* Everything inside this wrapper is exported to PDF */}
+        <div ref={quoteRef}>
+          <div className="flex flex-row justify-between items-center">
+            <div className="figtree text-[16px] font-[600]">
+              <h1>Vendor name</h1>
+              <h1>Vendor Address </h1>
+              <h1>Vendor Contact Number</h1>
+              <h1>Vendor Email</h1>
+            </div>
 
+            <div className="text-center poppins text-[25px] font-[700] uppercase">
+              <h1>
+                Company <br /> <span className="text-[#0955AC]">Logo</span>
+              </h1>
+            </div>
           </div>
 
-          <div className="text-center poppins text-[25px] font-[700] uppercase">
-            <h1>
-              Company <br /> <span className="text-[#0955AC]">Logo</span>
-            </h1>
-          </div>
-        </div>
-
-        <div className="figtree flex flex-row justify-end text-[35px] font-[700] text-[#0955AC]">
-          <h1>Quotation</h1>
-        </div>
-
-        <div className="flex flex-row justify-between items-end">
-          <div className="text-[16px] font-[600]">
-            <h1 className="text-[#0955AC]">Bill To</h1>
-            <h1>Client Name</h1>
-            <h1>Client Adress </h1>
-            <h1>Client contact number</h1>
-
-
+          <div className="figtree flex flex-row justify-end text-[35px] font-[700] text-[#0955AC]">
+            <h1>Quotation</h1>
           </div>
 
-          <div className="text-right text-[16px] font-[600]">
-            <h1>
-              <span className="text-[#0955AC]">Quotation No:</span> #123456
-            </h1>
-            <h1>
-              <span className="text-[#0955AC]">Quotation Date:</span>{" "}
-              {new Date().toLocaleDateString()}
-            </h1>
-            <h1>
-              <span className="text-[#0955AC]">Due Date:</span> —
-            </h1>
+          <div className="flex flex-row justify-between items-end">
+            <div className="text-[16px] font-[600]">
+              <h1 className="text-[#0955AC]">Bill To</h1>
+              <h1>Client Name</h1>
+              <h1>Client Adress </h1>
+              <h1>Client contact number</h1>
+            </div>
+
+            <div className="text-right text-[16px] font-[600]">
+              <h1>
+                <span className="text-[#0955AC]">Quotation No:</span> #123456
+              </h1>
+              <h1>
+                <span className="text-[#0955AC]">Quotation Date:</span>{" "}
+                {new Date().toLocaleDateString()}
+              </h1>
+              <h1>
+                <span className="text-[#0955AC]">Due Date:</span> —
+              </h1>
+            </div>
           </div>
-        </div>
 
-        <div className="w-full h-[36px] bg-[#0955AC] mt-10 flex flex-row justify-center items-center text-[#FFFFFF] px-10 text-[14px] font-[700]">
-          <h1 className="w-[200px]">Description</h1>
-          <h1 className="w-[140px]">QTY.</h1>
-          <h1 className="w-[140px]">UNIT price</h1>
-          <h1 className="w-[140px] text-end">Sub Total</h1>
-        </div>
+          <div className="w-full h-[36px] bg-[#0955AC] mt-10 flex flex-row justify-center items-center text-[#FFFFFF] px-10 text-[14px] font-[700]">
+            <h1 className="w-[200px]">Description</h1>
+            <h1 className="w-[140px]">QTY.</h1>
+            <h1 className="w-[140px]">UNIT price</h1>
+            <h1 className="w-[140px] text-end">Sub Total</h1>
+          </div>
 
-        <div className="w-full h-[36px] flex flex-row justify-center items-center px-10 text-[14px] font-[600] mt-5">
-          <h1 className="w-[200px]">
-            {vehicle?.manufacturer} {vehicle?.model}
-          </h1>
-          <h1 className="w-[140px]">
-            {quote?.rental_days || "-"} {quote?.rental_days === 1 ? "Day" : "Days"}
-          </h1>
-          <h1 className="w-[140px]">
-            {quote ? Number(quote.price_per_day).toFixed(2) : "-"}
-          </h1>
-          <h1 className="w-[140px] text-end">
-            {quote ? (quote.price_per_day * quote.rental_days).toFixed(2) : "-"}
-          </h1>
-        </div>
-
-        {(quote?.addons_lines || []).map((line, idx) => (
-          <div
-            key={idx}
-            className="w-full h-[36px] flex flex-row justify-center items-center px-10 text-[14px] font-[600]"
-          >
-            <h1 className="w-[200px]">{line.name}</h1>
-            <h1 className="w-[140px]">{line.qty}</h1>
-            <h1 className="w-[140px]">{Number(line.price).toFixed(2)}</h1>
+          <div className="w-full h-[36px] flex flex-row justify-center items-center px-10 text-[14px] font-[600] mt-5">
+            <h1 className="w-[200px]">
+              {vehicle?.manufacturer} {vehicle?.model}
+            </h1>
+            <h1 className="w-[140px]">
+              {quote?.rental_days || "-"} {quote?.rental_days === 1 ? "Day" : "Days"}
+            </h1>
+            <h1 className="w-[140px]">
+              {quote ? Number(quote.price_per_day).toFixed(2) : "-"}
+            </h1>
             <h1 className="w-[140px] text-end">
-              {Number(line.line_total).toFixed(2)}
+              {quote ? (quote.price_per_day * quote.rental_days).toFixed(2) : "-"}
             </h1>
           </div>
-        ))}
 
-        <div className="w-full h-[1.5px] bg-[#0955AC] my-5" />
+          {(quote?.addons_lines || []).map((line, idx) => (
+            <div
+              key={idx}
+              className="w-full h-[36px] flex flex-row justifycenter items-center px-10 text-[14px] font-[600]"
+            >
+              <h1 className="w-[200px]">{line.name}</h1>
+              <h1 className="w-[140px]">{line.qty}</h1>
+              <h1 className="w-[140px]">{Number(line.price).toFixed(2)}</h1>
+              <h1 className="w-[140px] text-end">
+                {Number(line.line_total).toFixed(2)}
+              </h1>
+            </div>
+          ))}
 
-        <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
-          <h1 className="w-[140px]">Subtotal</h1>
-          <h1 className="w-[140px] text-end">
-            {quote ? Number(quote.subtotal).toFixed(2) : "-"}
-          </h1>
-        </div>
+          <div className="w-full h-[1.5px] bg-[#0955AC] my-5" />
 
-        <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
-          <h1 className="w-[140px]">Sales Tax (5%)</h1>
-          <h1 className="w-[140px] text-end">—</h1>
-        </div>
-
-        <div className="flex justify-end items-center">
-          <div className="flex flex-row items-center border-t-[1px] border-b-[1px] w-[340px] px-10 h-[39px] bg-[#E8EBEF] border-[#0955AC] text-[14px] font-[700] text-[#0955AC]">
-            <h1 className="w-[140px]">Total (USD)</h1>
+          <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
+            <h1 className="w-[140px]">Subtotal</h1>
             <h1 className="w-[140px] text-end">
-              {quote ? Number(quote.total).toFixed(2) : "-"}
+              {quote ? Number(quote.subtotal).toFixed(2) : "-"}
             </h1>
           </div>
+
+          <div className="w-full h-[36px] flex flex-row justify-end items-center px-10 text-[14px] font-[600]">
+            <h1 className="w-[140px]">Sales Tax (5%)</h1>
+            <h1 className="w-[140px] text-end">—</h1>
+          </div>
+
+          <div className="flex justify-end items-center">
+            <div className="flex flex-row items-center border-t-[1px] border-b-[1px] w-[340px] px-10 h-[39px] bg-[#E8EBEF] border-[#0955AC] text-[14px] font-[700] text-[#0955AC]">
+              <h1 className="w-[140px]">Total (USD)</h1>
+              <h1 className="w-[140px] text-end">
+                {quote ? Number(quote.total).toFixed(2) : "-"}
+              </h1>
+            </div>
+          </div>
+
+          <h1 className="text-[14px] font-[700] text-[#0955AC]">Terms and Conditions</h1>
+          <h1 className="text-[14px] font-[500]">Payment is due in 14 days</h1>
         </div>
 
-        <h1 className="text-[14px] font-[700] text-[#0955AC]">Terms and Conditions</h1>
-        <h1 className="text-[14px] font-[500]">Payment is due in 14 days</h1>
-
+        {/* Download button (not included in the PDF capture) */}
         <div className="flex justify-center items-center">
-          <div className="w-[231px] h-[41px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[600] text-[12px] poppins flex justify-center items-center cursor-pointer">
+          <div
+            className="w-[231px] h-[41px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[600] text-[12px] poppins flex justify-center items-center cursor-pointer"
+            onClick={downloadQuote}
+          >
             Download quotation
           </div>
         </div>
       </QuoteModal>
 
+      {/* ==== Sidebar card (unchanged) ==== */}
       <div className="poppins w-auto h-auto xl:w-[440px] xl:h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-10 py-10 xl:px-20 px-10">
         <div className="text-[25px] font-[700]">
           <h1>

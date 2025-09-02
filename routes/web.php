@@ -41,14 +41,14 @@ Route::get('/driver-details', [WebController::class, 'driverDetails'])->name('dr
 | Public Vehicle Browsing
 |--------------------------------------------------------------------------
 */
-// Route::get('/clientRent', [WebController::class, 'index'])->name('home');
+// Route::get('/clientRent', [WebController::class, 'index'])->name('client.home');
 Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('client.home');
 Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
 Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
 
 /*
 |--------------------------------------------------------------------------
-| Booking Flow (Client)
+|  (Client)
 |--------------------------------------------------------------------------
 */
 Route::get('/bookings/quote', [ClientBookingController::class, 'quote'])->name('bookings.quote');
