@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Vehicle extends Model
 {
@@ -67,24 +69,44 @@ class Vehicle extends Model
     }
 
     public function category()
+    // existing relations
+    public function category() { return $this->belongsTo(VehicleCategory::class, 'category_id'); }
+    public function airSpec()  { return $this->hasOne(AirVehicleSpec::class); }
+    public function seaSpec()  { return $this->hasOne(SeaVehicleSpec::class); }
+    public function landSpec() { return $this->hasOne(LandVehicleSpec::class); }
+    public function media()    { return $this->hasMany(VehicleMedia::class); }
+    public function documents(){ return $this->hasMany(VehicleDocument::class); }
+    public function crew()     { return $this->hasMany(VehicleCrew::class); }
+
+    // --- new: policy relations/accessors ---
+    public function policies(): HasMany
     {
-        return $this->belongsTo(VehicleCategory::class, 'category_id');
+        return $this->hasMany(\App\Models\VehiclePolicy::class);
     }
 
-    public function airSpec()
+    public function policy(): HasOne
     {
-        return $this->hasOne(AirVehicleSpec::class);
+        return $this->hasOne(\App\Models\VehiclePolicy::class)->latestOfMany();
     }
     public function seaSpec()
+
+    // Optional guard to avoid crashes pre-migration
+    protected static function hasPolicyTable(): bool
     {
-        return $this->hasOne(SeaVehicleSpec::class);
+        static $ok = null;
+        if ($ok !== null) return $ok;
+        try { $ok = \Schema::hasTable('vehicle_policies'); } catch (\Throwable $e) { $ok = false; }
+        return $ok;
     }
     public function landSpec()
+
+    public function getPolicyPdfUrlAttribute(): ?string
     {
-        return $this->hasOne(LandVehicleSpec::class);
+        if (!self::hasPolicyTable()) return null;
+        return $this->policy?->url;
     }
 
-    public function media()
+    public function getPolicyStreamUrlAttribute(): ?string
     {
         return $this->hasMany(VehicleMedia::class);
     }
@@ -107,6 +129,10 @@ class Vehicle extends Model
         return $this->belongsToMany(User::class, 'vehicle_crews')
             ->withPivot(['id', 'role', 'license_number', 'license_type', 'license_expiry', 'rating', 'is_primary'])
             ->withTimestamps();
+        if (!self::hasPolicyTable()) return null;
+        return $this->policy
+            ? route('vendor.vehicles.policy.stream', ['vehicle' => $this->id])
+            : null;
     }
 
     public function reviews()
