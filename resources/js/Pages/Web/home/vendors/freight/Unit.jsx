@@ -1,6 +1,6 @@
 import React from 'react'
-import SideMenu from '../../components/vendors/SideMenu';
-import UnitContent from '../../components/vendors/units/UnitContent';
+import SideMenu from '../../../components/vendors/freight/SideMenu';
+import UnitContent from '../../../components/vendors/freight/units/UnitContent';
 
 const Unit = () => {
   return (

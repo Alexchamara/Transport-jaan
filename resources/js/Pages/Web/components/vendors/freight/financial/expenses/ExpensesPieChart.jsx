@@ -1,6 +1,6 @@
 import React from "react";
 import { PieChart, Pie, Cell } from "recharts";
-import miniArrow from "../../../../assets/financial/expenses/miniArrow.svg";
+import miniArrow from "../../../../../assets/financial/expenses/miniArrow.svg";
 
 const data = [
     { name: "Vehicle Maintenance", value: 3000, percent: 65, color: "#344B8E" },

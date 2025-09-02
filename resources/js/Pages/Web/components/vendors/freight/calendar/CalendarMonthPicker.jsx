@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import dropdown from "../../../assets/vendors/calendar/dropDown.svg"
+import dropdown from "../../../../assets/vendors/calendar/dropDown.svg"
 
 const months = [
   "January", "February", "March", "April", "May", "June",

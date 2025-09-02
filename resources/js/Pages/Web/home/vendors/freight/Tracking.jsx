@@ -1,6 +1,6 @@
 import React from "react";
-import SideMenu from "../../components/vendors/SideMenu";
-import TrackingContent from "../../components/vendors/tracking/TrackingContent";
+import SideMenu from "../../../components/vendors/freight/SideMenu";
+import TrackingContent from "../../../components/vendors/freight/tracking/TrackingContent";
 
 const Tracking = () => {
     return (

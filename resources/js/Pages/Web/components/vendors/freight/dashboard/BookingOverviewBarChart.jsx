@@ -1,5 +1,5 @@
 import React from "react";
-import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
+import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
 const bookingData = [
   { name: "Jan", bookings: 450 },

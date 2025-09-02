@@ -1,22 +1,22 @@
 import React, { useState } from "react";
 
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
+import settings from "../../../../assets/vendors/dashboard/settings.svg";
+import bell from "../../../../assets/vendors/dashboard/bell.svg";
+import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 
-import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
+import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 
-import icon1 from "../../../assets/vendors/booking/icons/icon1.svg";
-import icon2 from "../../../assets/vendors/booking/icons/icon2.svg";
-import icon3 from "../../../assets/vendors/booking/icons/icon3.svg";
-import icon4 from "../../../assets/vendors/booking/icons/icon4.svg";
+import icon1 from "../../../../assets/vendors/booking/icons/icon1.svg";
+import icon2 from "../../../../assets/vendors/booking/icons/icon2.svg";
+import icon3 from "../../../../assets/vendors/booking/icons/icon3.svg";
+import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
 
-import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
-import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
-import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
+import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.svg";
+import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
+import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
-import CarBookingTableTwo from "../../../components/vendors/bookings/CarBookingTableTwo";
+import CarBookingTableTwo from "../../../../components/vendors/freight/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
 
 

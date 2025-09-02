@@ -1,14 +1,14 @@
 import React from "react";
 
-import VehicleImages from "../../../components/vendors/units/VehicleImages";
-import VehicleInfo from "../../../components/vendors/units/VehicleInfo";
+import VehicleImages from "../../../../components/vendors/units/VehicleImages";
+import VehicleInfo from "../../../../components/vendors/units/VehicleInfo";
 
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
+import settings from "../../../../assets/vendors/dashboard/settings.svg";
+import bell from "../../../../assets/vendors/dashboard/bell.svg";
+import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 
-import backArrow from "../../../assets/vendors/units/backArrow.svg";
+import backArrow from "../../../../assets/vendors/units/backArrow.svg";
 
 const UnitDetailsContent = () => {
     return (
@@ -41,7 +41,7 @@ const UnitDetailsContent = () => {
             <div>
                 <div
                     className="flex flex-row gap-5 items-center cursor-pointer"
-                    onClick={() => (window.location.href = "/units")}
+                    onClick={() => (window.location.href = "/freight/units")}
                 >
                     <img src={backArrow} />
                     <h1 className="text-[22px] font-[500] text-[#00000080]">

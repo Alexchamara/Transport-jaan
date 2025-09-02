@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import dashLogo from "../../assets/vendors/dashboard/dashLogo.svg";
-import bookLogo from "../../assets/vendors/dashboard/bookLogo.svg";
-import uniLogo from "../../assets/vendors/dashboard/uniLogo.svg";
-import calendarLogo from "../../assets/vendors/dashboard/calendarLogo.svg";
-import clientsLogo from "../../assets/vendors/dashboard/clientsLogo.svg";
-import driversLogo from "../../assets/vendors/dashboard/driversLogo.svg";
-import finLogo from "../../assets/vendors/dashboard/finLogo.svg";
-import trackLogo from "../../assets/vendors/dashboard/trackLogo.svg";
-import messgLogo from "../../assets/vendors/dashboard/messgLogo.svg";
-import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg";
+import dashLogo from "../../../assets/vendors/dashboard/dashLogo.svg";
+import bookLogo from "../../../assets/vendors/dashboard/bookLogo.svg";
+import uniLogo from "../../../assets/vendors/dashboard/uniLogo.svg";
+import calendarLogo from "../../../assets/vendors/dashboard/calendarLogo.svg";
+import clientsLogo from "../../../assets/vendors/dashboard/clientsLogo.svg";
+import driversLogo from "../../../assets/vendors/dashboard/driversLogo.svg";
+import finLogo from "../../../assets/vendors/dashboard/finLogo.svg";
+import trackLogo from "../../../assets/vendors/dashboard/trackLogo.svg";
+import messgLogo from "../../../assets/vendors/dashboard/messgLogo.svg";
+import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg";
 
 const SideMenu = () => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
@@ -23,55 +23,55 @@ const SideMenu = () => {
             <div className="relative figtree flex flex-col items-start gap-10 text-[24px] font-[500] text-[#00000066] h-full py-10">
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/dashboard"
+                        currentPath === "/vendors/freight/dashboard"
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/dashboard")}
+                    onClick={() => (window.location.href = "/freight/dashboard")}
                 >
                     <img src={dashLogo} className="w-[25px]" />
                     <h1>Dashboard</h1>
                 </div>
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/bookings"
+                        currentPath === "/vendors/freight/bookings"
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/bookings")}
+                    onClick={() => (window.location.href = "/freight/bookings")}
                 >
                     <img src={bookLogo} className="w-[25px]" />
                     <h1>Bookings</h1>
                 </div>
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/units"
+                        currentPath === "/vendors/freight/units"
                             ? "bg-[#0955AC29] text-[#000000]  font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/units")}
+                    onClick={() => (window.location.href = "/freight/units")}
                 >
                     <img src={uniLogo} className="w-[25px]" />
                     <h1>Units</h1>
                 </div>
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/calendar"
+                        currentPath === "/vendors/freight/calendar"
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/calendar")}
+                    onClick={() => (window.location.href = "/freight/calendar")}
                 >
                     <img src={calendarLogo} className="w-[25px]" />
                     <h1>Calendar</h1>
                 </div>
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/clients"
+                        currentPath === "/vendors/freight/clients"
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/clients")}
+                    onClick={() => (window.location.href = "/freight/clients")}
                 >
                     <img src={clientsLogo} className="w-[25px]" />
                     <h1>Clients</h1>
@@ -89,7 +89,7 @@ const SideMenu = () => {
                 </div> */}
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        ["/vendors/payment", "/expenses"].includes(currentPath)
+                        ["/vendors/freight/payment", "/freight/expenses"].includes(currentPath)
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
@@ -107,21 +107,21 @@ const SideMenu = () => {
                     <div className="ml-10 mb-2 w-40 bg-white flex flex-col text-[24px] font-[500]">
                         <div
                             className={`px-4 py-2 cursor-pointer rounded-lg ${
-                                currentPath === "/vendors/payment"
+                                currentPath === "/vendors/freight/payment"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() => (window.location.href = "/payment")}
+                            onClick={() => (window.location.href = "/freight/payment")}
                         >
                             Payment
                         </div>
                         <div
                             className={`px-4 py-2 cursor-pointer rounded-lg ${
-                                currentPath === "/vendors/expenses"
+                                currentPath === "/vendors/freight/expenses"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() => (window.location.href = "/expenses")}
+                            onClick={() => (window.location.href = "/freight/expenses")}
                         >
                             Expenses
                         </div>
@@ -129,22 +129,22 @@ const SideMenu = () => {
                 )}
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/tracking"
+                        currentPath === "/vendors/freight/tracking"
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/tracking")}
+                    onClick={() => (window.location.href = "/freight/tracking")}
                 >
                     <img src={trackLogo} className="w-[25px]" />
                     <h1>Tracking</h1>
                 </div>
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/message"
+                        currentPath === "/vendors/freight/message"
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/message")}
+                    onClick={() => (window.location.href = "/freight/message")}
                 >
                     <img src={messgLogo} className="w-[25px]" />
                     <h1>Message</h1>

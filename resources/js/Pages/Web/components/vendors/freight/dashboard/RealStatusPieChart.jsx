@@ -1,8 +1,8 @@
 import React from "react";
 import { PieChart, Pie, Cell } from "recharts";
 
-import up from "../../../assets/vendors/dashboard/icons/up.svg"
-import down from "../../../assets/vendors/dashboard/icons/down.svg"
+import up from "../../../../assets/vendors/dashboard/icons/up.svg"
+import down from "../../../../assets/vendors/dashboard/icons/down.svg"
 
 
 const data = [

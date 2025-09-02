@@ -1,6 +1,6 @@
 import React from "react";
-import SideMenu from "../../components/vendors/SideMenu";
-import ClientContent from "../../components/vendors/clients/ClientContent";
+import SideMenu from "../../../components/vendors/freight/SideMenu";
+import ClientContent from "../../../components/vendors/freight/clients/ClientContent";
 
 const Client = () => {
     return (

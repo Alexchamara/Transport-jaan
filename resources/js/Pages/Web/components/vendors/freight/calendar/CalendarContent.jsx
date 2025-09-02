@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
+import settings from "../../../../assets/vendors/dashboard/settings.svg";
+import bell from "../../../../assets/vendors/dashboard/bell.svg";
+import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 
-import proPicTwo from "../../../assets/vendors/tracking/proPic.svg";
-import car1 from "../../../assets/vendors/dashboard/icons/car1.svg";
+import proPicTwo from "../../../../assets/vendors/tracking/proPic.svg";
+import car1 from "../../../../assets/vendors/dashboard/icons/car1.svg";
 
-import leftArrow from "../../../assets/vendors/calendar/leftArrow.svg";
-import miniDownArrow from "../../../assets/vendors/calendar/miniDown.svg";
+import leftArrow from "../../../../assets/vendors/calendar/leftArrow.svg";
+import miniDownArrow from "../../../../assets/vendors/calendar/miniDown.svg";
 
 import CalendarMonthPicker from "./CalendarMonthPicker";
 import CalendarGrid from "./CalendarGrid";

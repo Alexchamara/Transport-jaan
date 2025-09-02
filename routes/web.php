@@ -38,6 +38,10 @@ Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->nam
 
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
+// ticket booking
+Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
+
+
 
 // client routes
 Route::middleware(['auth', 'role:client'])->group(function () {});
@@ -276,6 +280,62 @@ Route::get('/courierService/addUnit', function () {
 Route::get('/courierService/unitDetails', function () {
     return Inertia::render('Web/home/vendors/courierService/UnitDetails');
 })->name('courierService.unitDetails');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// vendor dashboard - freight
+Route::get('/freight/bookings', function () {
+    return Inertia::render('Web/home/vendors/freight/Booking');
+})->name('freight.bookings');
+
+Route::get('/freight/units', function () {
+    return Inertia::render('Web/home/vendors/freight/Unit');
+})->name('freight.units');
+
+Route::get('/freight/dashboard', function () {
+    return Inertia::render('Web/home/vendors/freight/Dashboard');
+})->name('freight.dashboard');
+
+Route::get('/freight/clients', function () {
+    return Inertia::render('Web/home/vendors/freight/Client');
+})->name('courierService.clients');
+
+Route::get('/freight/expenses', function () {
+    return Inertia::render('Web/home/vendors/freight/Expenses');
+})->name('freight.expenses');
+
+Route::get('/freight/payment', function () {
+    return Inertia::render('Web/home/vendors/freight/Payment');
+})->name('freight.payment');
+
+Route::get('/freight/tracking', function () {
+    return Inertia::render('Web/home/vendors/freight/Tracking');
+})->name('freight.tracking');
+
+Route::get('/freight/calendar', function () {
+    return Inertia::render('Web/home/vendors/freight/Calendar');
+})->name('freight.calendar');
+
+Route::get('/freight/addUnit', function () {
+    return Inertia::render('Web/home/vendors/freight/AddUnit');
+})->name('freight.addUnit');
+
+Route::get('/freight/unitDetails', function () {
+    return Inertia::render('Web/home/vendors/freight/UnitDetails');
+})->name('freight.unitDetails');
+
+
 
 
 

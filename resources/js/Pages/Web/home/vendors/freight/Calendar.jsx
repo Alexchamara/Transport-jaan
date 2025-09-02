@@ -1,6 +1,6 @@
 import React from 'react'
-import SideMenu from '../../components/vendors/SideMenu';
-import CalendarContent from '../../components/vendors/calendar/CalendarContent';
+import SideMenu from '../../../components/vendors/freight/SideMenu';
+import CalendarContent from '../../../components/vendors/freight/calendar/CalendarContent';
 
 const Calendar = () => {
   return (

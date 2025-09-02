@@ -194,6 +194,11 @@ public function freightQuoteStore(Request $request)
         return Inertia::render('Web/home/flight/TicketBooking');
     }
 
+    public function ticketBooking()
+    {
+        return Inertia::render('Web/home/ticketBooking/TicketBooking');
+    }
+
     public function landingPage()
     {
         return Inertia::render('Web/home/landingPages/LandingPage',[

@@ -9,7 +9,7 @@ import {
   Legend,
   Title,
 } from "chart.js";
-import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
+import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, Title);
 

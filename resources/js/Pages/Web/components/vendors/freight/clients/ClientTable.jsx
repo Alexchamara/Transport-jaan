@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
-import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
-import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
-import file from "../../../assets/vendors/clients/file.svg";
-import proPic from "../../../assets/vendors/clients/proPic.svg";
+import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
+import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
+import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
+import file from "../../../../assets/vendors/clients/file.svg";
+import proPic from "../../../../assets/vendors/clients/proPic.svg";
 
 const ClientTable = () => {
     const [clients, setClients] = useState([

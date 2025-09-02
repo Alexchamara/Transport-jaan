@@ -1,21 +1,21 @@
 import React from "react";
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
+import settings from "../../../../assets/vendors/dashboard/settings.svg";
+import bell from "../../../../assets/vendors/dashboard/bell.svg";
+import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 
-import map from "../../../assets/vendors/tracking/map.svg";
-import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
-import settingsTwo from "../../../assets/vendors/tracking/settings.svg";
-import car1 from "../../../assets/vendors/dashboard/icons/car1.svg";
-import car3 from "../../../assets/vendors/dashboard/icons/car3.svg";
-import miniCarIcon from "../../../assets/vendors/tracking/minicarIcon.svg";
-import proPicTwo from "../../../assets/vendors/tracking/proPic.svg";
+import map from "../../../../assets/vendors/tracking/map.svg";
+import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
+import settingsTwo from "../../../../assets/vendors/tracking/settings.svg";
+import car1 from "../../../../assets/vendors/dashboard/icons/car1.svg";
+import car3 from "../../../../assets/vendors/dashboard/icons/car3.svg";
+import miniCarIcon from "../../../../assets/vendors/tracking/minicarIcon.svg";
+import proPicTwo from "../../../../assets/vendors/tracking/proPic.svg";
 
-import cal from "../../../assets/vendors/tracking/cal.svg";
-import cal2 from "../../../assets/vendors/tracking/cal2.svg";
-import time from "../../../assets/vendors/tracking/time.svg";
-import distance from "../../../assets/vendors/tracking/distance.svg";
+import cal from "../../../../assets/vendors/tracking/cal.svg";
+import cal2 from "../../../../assets/vendors/tracking/cal2.svg";
+import time from "../../../../assets/vendors/tracking/time.svg";
+import distance from "../../../../assets/vendors/tracking/distance.svg";
 
 const TrackingContent = () => {
     return (

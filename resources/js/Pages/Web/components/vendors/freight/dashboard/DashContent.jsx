@@ -1,34 +1,34 @@
 import React from "react";
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
+import settings from "../../../../assets/vendors/dashboard/settings.svg";
+import bell from "../../../../assets/vendors/dashboard/bell.svg";
+import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 
-import dollarIcon from "../../../assets/vendors/dashboard/icons/dollarIcon.svg";
-import carIcon from "../../../assets/vendors/dashboard/icons/carIcon.svg";
-import icon from "../../../assets/vendors/dashboard/icons/icon.svg";
-import icon2 from "../../../assets/vendors/dashboard/icons/icon2.svg";
-import bookingIcon from "../../../assets/vendors/dashboard/icons/bookingIcon.svg";
-import wheelIcon from "../../../assets/vendors/dashboard/icons/wheelIcon.svg";
-import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
-import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
+import dollarIcon from "../../../../assets/vendors/dashboard/icons/dollarIcon.svg";
+import carIcon from "../../../../assets/vendors/dashboard/icons/carIcon.svg";
+import icon from "../../../../assets/vendors/dashboard/icons/icon.svg";
+import icon2 from "../../../../assets/vendors/dashboard/icons/icon2.svg";
+import bookingIcon from "../../../../assets/vendors/dashboard/icons/bookingIcon.svg";
+import wheelIcon from "../../../../assets/vendors/dashboard/icons/wheelIcon.svg";
+import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
+import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 import BookingOverviewBarChart from "./BookingOverviewBarChart";
 import EarningSummaryChart from "./EarningSummaryChart";
 import RealStatusPieChart from "./RealStatusPieChart";
 import CarBookingTable from "./CarBookingTable";
 
-import car from "../../../assets/vendors/dashboard/icons/car.svg";
-import date from "../../../assets/vendors/dashboard/icons/date.svg";
-import clock from "../../../assets/vendors/dashboard/icons/clock.svg";
+import car from "../../../../assets/vendors/dashboard/icons/car.svg";
+import date from "../../../../assets/vendors/dashboard/icons/date.svg";
+import clock from "../../../../assets/vendors/dashboard/icons/clock.svg";
 
-import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
-import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
+import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.svg";
+import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 
-import car1 from "../../../assets/vendors/dashboard/icons/car1.svg";
+import car1 from "../../../../assets/vendors/dashboard/icons/car1.svg";
 // import car2 from "../../../assets/vendors/dashboard/icons/car2.svg";
-import car3 from "../../../assets/vendors/dashboard/icons/car3.svg";
+import car3 from "../../../../assets/vendors/dashboard/icons/car3.svg";
 
-import cal from "../../../assets/vendors/dashboard/icons/cal.svg";
+import cal from "../../../../assets/vendors/dashboard/icons/cal.svg";
 
 const carTypes = [
     { name: "Hatchback", percent: 45, img: car1 },

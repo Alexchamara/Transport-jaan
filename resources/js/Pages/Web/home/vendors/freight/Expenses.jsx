@@ -1,6 +1,6 @@
 import React from "react";
-import SideMenu from "../../components/vendors/SideMenu";
-import ExpensesContent from "../../components/vendors/financial/expenses/ExpensesContent";
+import SideMenu from "../../../components/vendors/freight/SideMenu";
+import ExpensesContent from "../../../components/vendors/freight/financial/expenses/ExpensesContent";
 
 const Expenses = () => {
     return (

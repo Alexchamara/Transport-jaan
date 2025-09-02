@@ -1,6 +1,6 @@
 import React from "react";
-import SideMenu from "../../components/vendors/SideMenu";
-import PaymentContent from "../../components/vendors/financial/payments/PaymentContent";
+import SideMenu from "../../../components/vendors/freight/SideMenu";
+import PaymentContent from "../../../components/vendors/freight/financial/payments/PaymentContent";
 
 const Payment = () => {
     return (

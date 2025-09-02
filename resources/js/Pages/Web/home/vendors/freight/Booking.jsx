@@ -1,6 +1,6 @@
 import React from "react";
-import SideMenu from "../../components/vendors/SideMenu";
-import BookingContent from "../../components/vendors/bookings/BookingContent";
+import SideMenu from "../../../components/vendors/freight/SideMenu";
+import BookingContent from "../../../components/vendors/freight/bookings/BookingContent";
 
 const Booking = () => {
     return (

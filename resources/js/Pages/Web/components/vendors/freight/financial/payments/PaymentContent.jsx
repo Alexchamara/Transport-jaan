@@ -1,22 +1,22 @@
 import React, { useState } from "react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable"; 
-import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
-import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
-import wallet from "../../../../assets/financial/expenses/wallet.svg";
-import income from "../../../../assets/financial/expenses/income.svg";
-import expenses from "../../../../assets/financial/expenses/expenses.svg";
-import dotThree from "../../../../assets/financial/expenses/dots3.svg";
-import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.svg";
-import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
-import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
-import downloadLogo from "../../../../assets/financial/expenses/download.svg";
-import calendar from "../../../../assets/financial/expenses/cal.svg";
-import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
-import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
+import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
+import settings from "../../../../../assets/vendors/dashboard/settings.svg";
+import bell from "../../../../../assets/vendors/dashboard/bell.svg";
+import proPic from "../../../../../assets/vendors/dashboard/proPic.svg";
+import upArrow from "../../../../../assets/vendors/dashboard/icons/upArrow.svg";
+import wallet from "../../../../../assets/financial/expenses/wallet.svg";
+import income from "../../../../../assets/financial/expenses/income.svg";
+import expenses from "../../../../../assets/financial/expenses/expenses.svg";
+import dotThree from "../../../../../assets/financial/expenses/dots3.svg";
+import filterIcon from "../../../../../assets/vendors/dashboard/icons/filterIcon.svg";
+import miniSearchIcon from "../../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
+import miniDownArrow from "../../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
+import downloadLogo from "../../../../../assets/financial/expenses/download.svg";
+import calendar from "../../../../../assets/financial/expenses/cal.svg";
+import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
+import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
 const PaymentContent = () => {
     const transactions = [

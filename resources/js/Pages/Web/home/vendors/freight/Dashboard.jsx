@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import SideMenu from "../../components/vendors/SideMenu";
-import DashContent from "../../components/vendors/dashboard/DashContent";
+import SideMenu from "../../../components/vendors/freight/SideMenu";
+import DashContent from "../../../components/vendors/freight/dashboard/DashContent";
 import { Menu } from "lucide-react"; // simple clean icon
 
 const Dashboard = () => {
