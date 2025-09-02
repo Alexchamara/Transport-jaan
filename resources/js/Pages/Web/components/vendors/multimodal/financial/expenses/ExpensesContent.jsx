@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable"; 
+import autoTable from "jspdf-autotable";
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -17,205 +17,194 @@ import downloadLogo from "../../../../../assets/financial/expenses/download.svg"
 import calendar from "../../../../../assets/financial/expenses/cal.svg";
 import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
+import CashflowChart from "./CashflowChart";
+import ExpensesPieChart from "./ExpensesPieChart";
 
-const PaymentContent = () => {
-    const transactions = [
+const ExpensesContent = () => {
+    const expensesData = [
         {
-            id: "JV-L001",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
+            name: "Oil Change",
+            category: {
+                label: "Vehicle Maintenance",
+                width: "w-[133px]",
+                color: "#2E4683",
+            },
+            quantity: 12,
             amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
+            date: "2025.08.10",
+            status: {
+                label: "Completed",
+                border: "#50AE31",
+                bg: "#6DB4464D",
+                text: "#50AE31",
+            },
         },
         {
-            id: "JV-L002",
-            client: "Alice Jhonson",
-            car: "Tucson Hyundai",
-            rentPerDay: "$2000",
-            days: "04",
+            name: "Fuel Purchase",
+            category: { label: "Fuel", width: "w-[58px]", color: "#2E4683" },
+            quantity: 12,
             amount: "$2000",
-            dueDate: "2025.08.10",
-            status: "Pending",
-            statusColor: "#F0BB0D",
-            statusBg: "#FFCD294D",
+            date: "2025.08.10",
+            status: {
+                label: "Completed",
+                border: "#50AE31",
+                bg: "#6DB4464D",
+                text: "#50AE31",
+            },
         },
         {
-            id: "JV-L003",
-            client: "Alice Jhonson",
-            car: "Tucson Hyundai",
-            rentPerDay: "$2000",
-            days: "04",
-            amount: "$2000",
-            dueDate: "2025.08.10",
-            status: "Pending",
-            statusColor: "#F0BB0D",
-            statusBg: "#FFCD294D",
+            name: "Insurance Payment",
+            category: {
+                label: "Insurance",
+                width: "w-[82px]",
+                color: "#39CEF3",
+            },
+            quantity: 12,
+            amount: "$1500",
+            date: "2025.08.10",
+            status: {
+                label: "Pending",
+                border: "#F0BB0D",
+                bg: "#FFCD294D",
+                text: "#F0BB0D",
+            },
         },
         {
-            id: "JV-L004",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
+            name: "Vehicle Maintenance",
+            category: {
+                label: "Insurance",
+                width: "w-[82px]",
+                color: "#39CEF3",
+            },
+            quantity: 12,
+            amount: "$1500",
+            date: "2025.08.10",
+            status: {
+                label: "Pending",
+                border: "#F0BB0D",
+                bg: "#FFCD294D",
+                text: "#F0BB0D",
+            },
         },
         {
-            id: "JV-L005",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
+            name: "Tire Replacement",
+            category: {
+                label: "Insurance",
+                width: "w-[82px]",
+                color: "#39CEF3",
+            },
+            quantity: 12,
+            amount: "$1500",
+            date: "2025.08.10",
+            status: {
+                label: "Pending",
+                border: "#F0BB0D",
+                bg: "#FFCD294D",
+                text: "#F0BB0D",
+            },
         },
         {
-            id: "JV-L006",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
+            name: "Staff Salary",
+            category: {
+                label: "Insurance",
+                width: "w-[82px]",
+                color: "#39CEF3",
+            },
+            quantity: 12,
+            amount: "$1500",
+            date: "2025.08.10",
+            status: {
+                label: "Pending",
+                border: "#F0BB0D",
+                bg: "#FFCD294D",
+                text: "#F0BB0D",
+            },
         },
         {
-            id: "JV-L007",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
+            name: "Vehicle Maintenance",
+            category: {
+                label: "Insurance",
+                width: "w-[82px]",
+                color: "#39CEF3",
+            },
+            quantity: 12,
+            amount: "$1500",
+            date: "2025.08.10",
+            status: {
+                label: "Pending",
+                border: "#F0BB0D",
+                bg: "#FFCD294D",
+                text: "#F0BB0D",
+            },
         },
         {
-            id: "JV-L008",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
+            name: "Staff Salary",
+            category: {
+                label: "Insurance",
+                width: "w-[82px]",
+                color: "#39CEF3",
+            },
+            quantity: 12,
+            amount: "$1500",
+            date: "2025.08.10",
+            status: {
+                label: "Pending",
+                border: "#F0BB0D",
+                bg: "#FFCD294D",
+                text: "#F0BB0D",
+            },
         },
         {
-            id: "JV-L009",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
+            name: "Fuel Purchase",
+            category: {
+                label: "Insurance",
+                width: "w-[82px]",
+                color: "#39CEF3",
+            },
+            quantity: 12,
+            amount: "$1500",
+            date: "2025.08.10",
+            status: {
+                label: "Pending",
+                border: "#F0BB0D",
+                bg: "#FFCD294D",
+                text: "#F0BB0D",
+            },
         },
         {
-            id: "JV-L0010",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0011",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0012",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0013",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0014",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0015",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
+            name: "Insurance Payment",
+            category: {
+                label: "Insurance",
+                width: "w-[82px]",
+                color: "#39CEF3",
+            },
+            quantity: 12,
+            amount: "$1500",
+            date: "2025.08.10",
+            status: {
+                label: "Pending",
+                border: "#F0BB0D",
+                bg: "#FFCD294D",
+                text: "#F0BB0D",
+            },
         },
     ];
 
+    // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    const [selectedRows, setSelectedRows] = useState(new Set());
     const perPageOptions = [5, 10, 20, 50];
-    const totalPages = Math.ceil(transactions.length / itemsPerPage);
+    const totalPages = Math.ceil(expensesData.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
-    const currentTransactions = transactions.slice(startIdx, endIdx);
+    const currentExpenses = expensesData.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
+    // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
         const pages = [];
         if (totalPages <= 5) {
@@ -246,55 +235,29 @@ const PaymentContent = () => {
         return pages;
     };
 
-    const handleRowSelection = (rowIndex) => {
-        const actualIndex = startIdx + rowIndex;
-        const newSelectedRows = new Set(selectedRows);
-        if (newSelectedRows.has(actualIndex)) {
-            newSelectedRows.delete(actualIndex);
-        } else {
-            newSelectedRows.add(actualIndex);
-        }
-        setSelectedRows(newSelectedRows);
-    };
-
-    const handleSelectAll = () => {
-        if (selectedRows.size === currentTransactions.length) {
-            setSelectedRows(new Set());
-        } else {
-            const allCurrentIndices = currentTransactions.map(
-                (_, index) => startIdx + index
-            );
-            setSelectedRows(new Set(allCurrentIndices));
-        }
-    };
-
+    // Function to download table as PDF
     const downloadTableAsPDF = () => {
         const doc = new jsPDF();
         doc.setFontSize(18);
         doc.text("Recent Transactions", 14, 20);
 
-        const tableData = transactions.map((txn) => [
-            txn.id,
-            txn.client,
-            txn.car,
-            txn.rentPerDay,
-            txn.days,
-            txn.amount,
-            txn.dueDate,
-            txn.status,
+        const tableData = expensesData.map((expense) => [
+            expense.name,
+            expense.category.label,
+            expense.quantity.toString(),
+            expense.amount,
+            expense.date,
+            expense.status.label,
         ]);
 
         autoTable(doc, {
-            // Use autoTable directly
             head: [
                 [
-                    "Invoice Id",
-                    "Client Name",
-                    "Car Model",
-                    "Rent Per Day",
-                    "Days",
+                    "Expenses",
+                    "Category",
+                    "Quantity",
                     "Amount",
-                    "DueDate",
+                    "Date",
                     "Status",
                 ],
             ],
@@ -314,20 +277,19 @@ const PaymentContent = () => {
                 lineColor: [0, 0, 0],
             },
             columnStyles: {
-                0: { cellWidth: 25 },
+                0: { cellWidth: 40 },
                 1: { cellWidth: 30 },
-                2: { cellWidth: 30 },
+                2: { cellWidth: 20 },
                 3: { cellWidth: 25 },
-                4: { cellWidth: 15 },
-                5: { cellWidth: 25 },
-                6: { cellWidth: 25 },
-                7: { cellWidth: 20 },
+                4: { cellWidth: 25 },
+                5: { cellWidth: 20 },
             },
         });
 
-        doc.save("transactions.pdf");
+        doc.save("expenses.pdf");
     };
 
+    // Reset to first page when itemsPerPage changes
     React.useEffect(() => {
         setCurrentPage(1);
     }, [itemsPerPage]);
@@ -336,7 +298,7 @@ const PaymentContent = () => {
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Freight Payment</h1>
+                <h1 className="figtree text-[35px] font-[700]">Multimodal Expenses</h1>
                 <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
@@ -454,6 +416,33 @@ const PaymentContent = () => {
                 </div>
             </div>
 
+            {/* bar chart and pie chart section */}
+            <div className="flex flex-row w-full gap-8">
+                <div
+                    className="min-w-[730px] min-h-[426px] bg-[#FFFFFF] rounded-[10px]"
+                    style={{
+                        boxShadow: "4px 4px 4px #0000001A",
+                    }}
+                >
+                    <CashflowChart />
+                </div>
+                <div
+                    className="min-w-[339px] w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
+                    style={{
+                        boxShadow: "4px 4px 4px #0000001A",
+                    }}
+                >
+                    <div className="w-full flex flex-row justify-between items-center ">
+                        <h2 className="text-[24px] font-bold mb-2 w-full text-left">
+                            Expenses Breakdown
+                        </h2>
+                        <img src={dotThree} />
+                    </div>
+                    <ExpensesPieChart />
+                </div>
+            </div>
+
+            {/* Transaction table */}
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
                 style={{
@@ -506,46 +495,26 @@ const PaymentContent = () => {
                 {/* expenses table */}
                 {/* table headings */}
                 <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
-                    <div className="flex flex-row gap-3 items-center">
+                    <div className="flex flex-row gap-5 items-center col-span-2">
                         <input
                             type="checkbox"
                             className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                            checked={
-                                selectedRows.size ===
-                                    currentTransactions.length &&
-                                currentTransactions.length > 0
-                            }
-                            onChange={handleSelectAll}
                         />
-                        <h1>Invoice Id</h1>
+                        <h1>Expenses</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center col-span-2">
+                        <h1>Category</h1>
                         <div className="flex flex-col justify-center items-center">
                             <img src={miniUp} className="w-[6px] h-[4px]" />
                             <img src={miniDown} className="w-[6px] h-[4px]" />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
-                        <h1>Client Name</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Car Model</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center ml-5">
-                        <h1>Rent Per Day</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center ml-10">
-                        <h1>Days</h1>
+                        <h1>Quantity</h1>
                         <div className="flex flex-col justify-center items-center">
                             <img src={miniUp} className="w-[6px] h-[4px]" />
                             <img src={miniDown} className="w-[6px] h-[4px]" />
@@ -559,7 +528,7 @@ const PaymentContent = () => {
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
-                        <h1>DueDate</h1>
+                        <h1>Date</h1>
                         <div className="flex flex-col justify-center items-center">
                             <img src={miniUp} className="w-[6px] h-[4px]" />
                             <img src={miniDown} className="w-[6px] h-[4px]" />
@@ -581,41 +550,46 @@ const PaymentContent = () => {
                     </div>
                 </div>
                 {/* end */}
-                {currentTransactions.map((txn, idx) => (
+
+                {/* expenses rows */}
+                {currentExpenses.map((expense, idx) => (
                     <div
-                        key={startIdx + idx}
-                        className="grid grid-cols-9 h-[100px] justify-center items-center text-[15px] font-[500] px-10 border-b-[1.5px] border-[#00000033]"
-                        style={{
-                            backgroundColor: selectedRows.has(startIdx + idx)
-                                ? "#CCCCCC4F"
-                                : "transparent",
-                        }}
+                        key={expense.name + startIdx + idx}
+                        className="grid grid-cols-9 text-[15px] font-[500] px-10 h-[100px] border-b-[1.5px] border-[#00000033] items-center"
                     >
-                        <div className="flex flex-row items-center gap-5">
+                        <div className="flex flex-row gap-5 col-span-2">
                             <input
                                 type="checkbox"
                                 className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                                checked={selectedRows.has(startIdx + idx)}
-                                onChange={() => handleRowSelection(idx)}
                             />
-                            <h1>{txn.id}</h1>
+                            <h1>{expense.name}</h1>
                         </div>
-                        <div className="">{txn.client}</div>
-                        <div>{txn.car}</div>
-                        <div className="ml-5">{txn.rentPerDay}</div>
-                        <div className="ml-10">{txn.days}</div>
-                        <div>{txn.amount}</div>
-                        <div>{txn.dueDate}</div>
+                        <div className={`col-span-2`}>
+                            <div
+                                className={` ${expense.category.width} h-[20px] bg-[#E8E8E8] rounded-[4px] text-[10px] flex flex-row justify-start items-center gap-3 px-2`}
+                            >
+                                <div
+                                    className="size-[10px] rounded-[2px]"
+                                    style={{
+                                        backgroundColor: expense.category.color,
+                                    }}
+                                ></div>
+                                <h1>{expense.category.label}</h1>
+                            </div>
+                        </div>
+                        <div className="">{expense.quantity}</div>
+                        <div>{expense.amount}</div>
+                        <div>{expense.date}</div>
                         <div>
                             <div
-                                className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
+                                className="w-[72px] h-[20px] border-[1.5px] text-[10px] flex justify-center items-center rounded-[4px]"
                                 style={{
-                                    border: `1px solid ${txn.statusColor}`,
-                                    background: txn.statusBg,
-                                    color: txn.statusColor,
+                                    borderColor: expense.status.border,
+                                    background: expense.status.bg,
+                                    color: expense.status.text,
                                 }}
                             >
-                                {txn.status}
+                                {expense.status.label}
                             </div>
                         </div>
                         <div className="flex flex-row justify-center items-center gap-2">
@@ -628,6 +602,8 @@ const PaymentContent = () => {
                         </div>
                     </div>
                 ))}
+                {/* end */}
+
                 {/* Pagination Controls and Results per page inline */}
                 <div className="flex justify-between items-center gap-2 mt-20">
                     {/* Left: Results per page */}
@@ -691,4 +667,4 @@ const PaymentContent = () => {
     );
 };
 
-export default PaymentContent;
+export default ExpensesContent;

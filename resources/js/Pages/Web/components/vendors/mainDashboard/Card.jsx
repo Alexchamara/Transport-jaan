@@ -17,7 +17,7 @@ const Card = ({ title, description, index, subOptions }) => {
         } else if (title === "Freight") {
             router.visit("/freight/dashboard");
         } else if (title === "Multimodal") {
-            router.visit("/multimodal");
+            router.visit("/multimodal/dashboard");
         } else {
             alert(`Navigating to ${title}...`);
         }

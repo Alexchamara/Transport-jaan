@@ -44,7 +44,7 @@ const DashContent = () => {
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Freight Dashboard</h1>
+                <h1 className="figtree text-[35px] font-[700]">Multimodal Dashboard</h1>
                 <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />

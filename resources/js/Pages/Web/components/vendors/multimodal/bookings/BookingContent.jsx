@@ -16,7 +16,7 @@ import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.sv
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
-import CarBookingTableTwo from "../../../../components/vendors/freight/bookings/CarBookingTableTwo";
+import CarBookingTableTwo from "../../../../components/vendors/multimodal/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
 
 
@@ -293,7 +293,7 @@ const BookingContent = () => {
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Freight Bookings</h1>
+                <h1 className="figtree text-[35px] font-[700]">Multimodal Bookings</h1>
                 <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
                         <img src={search} alt="Search" />

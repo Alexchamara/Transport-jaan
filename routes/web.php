@@ -40,6 +40,10 @@ Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->n
 
 // ticket booking
 Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
+Route::get('/trainTicketBookingDetails', [WebController::class, 'TrainTicketBookingDetails'])->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
+Route::get('/busTicketBookingDetails', [WebController::class, 'busTicketBookingDetails'])->name('busTicketBookingDetails.busTicketBookingDetails');
+Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
+
 
 
 
@@ -238,8 +242,6 @@ Route::get('/ticketBooking/unitDetails', function () {
 
 
 
-
-
 // vendor dashboard - courier service
 Route::get('/courierService/bookings', function () {
     return Inertia::render('Web/home/vendors/courierService/Booking');
@@ -280,17 +282,6 @@ Route::get('/courierService/addUnit', function () {
 Route::get('/courierService/unitDetails', function () {
     return Inertia::render('Web/home/vendors/courierService/UnitDetails');
 })->name('courierService.unitDetails');
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -336,6 +327,47 @@ Route::get('/freight/unitDetails', function () {
 })->name('freight.unitDetails');
 
 
+
+// vendor dashboard - multimodal
+Route::get('/multimodal/bookings', function () {
+    return Inertia::render('Web/home/vendors/multimodal/Booking');
+})->name('multimodal.bookings');
+
+Route::get('/multimodal/units', function () {
+    return Inertia::render('Web/home/vendors/multimodal/Unit');
+})->name('freight.units');
+
+Route::get('/multimodal/dashboard', function () {
+    return Inertia::render('Web/home/vendors/multimodal/Dashboard');
+})->name('multimodal.dashboard');
+
+Route::get('/multimodal/clients', function () {
+    return Inertia::render('Web/home/vendors/multimodal/Client');
+})->name('multimodal.clients');
+
+Route::get('/multimodal/expenses', function () {
+    return Inertia::render('Web/home/vendors/multimodal/Expenses');
+})->name('multimodal.expenses');
+
+Route::get('/multimodal/payment', function () {
+    return Inertia::render('Web/home/vendors/multimodal/Payment');
+})->name('multimodal.payment');
+
+Route::get('/multimodal/tracking', function () {
+    return Inertia::render('Web/home/vendors/multimodal/Tracking');
+})->name('multimodal.tracking');
+
+Route::get('/multimodal/calendar', function () {
+    return Inertia::render('Web/home/vendors/multimodal/Calendar');
+})->name('multimodal.calendar');
+
+Route::get('/multimodal/addUnit', function () {
+    return Inertia::render('Web/home/vendors/multimodal/AddUnit');
+})->name('multimodal.addUnit');
+
+Route::get('/multimodal/unitDetails', function () {
+    return Inertia::render('Web/home/vendors/multimodal/UnitDetails');
+})->name('multimodal.unitDetails');
 
 
 

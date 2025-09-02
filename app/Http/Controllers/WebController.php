@@ -189,15 +189,35 @@ public function freightQuoteStore(Request $request)
 
 
 
+
     public function freightTicketBooking()
     {
-        return Inertia::render('Web/home/flight/TicketBooking');
+        return Inertia::render('Web/home/ticketBooking/TicketBooking');
     }
 
     public function ticketBooking()
     {
         return Inertia::render('Web/home/ticketBooking/TicketBooking');
     }
+
+    public function TrainTicketBookingDetails()
+    {
+        return Inertia::render('Web/home/ticketBooking/TrainTicketBookingDetails');
+    }
+    
+    public function busTicketBookingDetails()
+    {
+        return Inertia::render('Web/home/ticketBooking/BusTicketBookingDetails');
+    }
+
+    public function flightBooking()
+    {
+        return Inertia::render('Web/home/ticketBooking/FlightBooking');
+    }
+
+
+
+
 
     public function landingPage()
     {
