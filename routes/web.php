@@ -98,7 +98,7 @@ Route::middleware(['auth', 'role:vendor'])
     ->group(function () {
         Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/Dashboard'))->name('dashboard');
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
-        Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/Booking'))->name('bookings');
+        //Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/Booking'))->name('bookings');
         Route::get('/clients', fn() => Inertia::render('Web/home/vendors/Client'))->name('clients');
         Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
         Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
@@ -162,20 +162,20 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Legacy redirects
-|--------------------------------------------------------------------------
-*/
-Route::redirect('/units', '/vendors/units')->name('units.legacy');
-Route::redirect('/bookings', '/vendors/bookings')->name('bookings.legacy');
-Route::redirect('/clients', '/vendors/clients')->name('clients.legacy');
-Route::redirect('/expenses', '/vendors/expenses')->name('expenses.legacy');
-Route::redirect('/payment', '/vendors/payment')->name('payment.legacy');
-Route::redirect('/tracking', '/vendors/tracking')->name('tracking.legacy');
-Route::redirect('/calendar', '/vendors/calendar')->name('calendar.legacy');
-Route::redirect('/addUnit', '/vendors/addUnit')->name('addUnit.legacy');
-Route::redirect('/unitDetails', '/vendors/unitDetails')->name('unitDetails.legacy');
+// /*
+// |--------------------------------------------------------------------------
+// | Legacy redirects
+// |--------------------------------------------------------------------------
+// */
+// Route::redirect('/units', '/vendors/units')->name('units.legacy');
+// Route::redirect('/bookings', '/vendors/bookings')->name('bookings.legacy');
+// Route::redirect('/clients', '/vendors/clients')->name('clients.legacy');
+// Route::redirect('/expenses', '/vendors/expenses')->name('expenses.legacy');
+// Route::redirect('/payment', '/vendors/payment')->name('payment.legacy');
+// Route::redirect('/tracking', '/vendors/tracking')->name('tracking.legacy');
+// Route::redirect('/calendar', '/vendors/calendar')->name('calendar.legacy');
+// Route::redirect('/addUnit', '/vendors/addUnit')->name('addUnit.legacy');
+// Route::redirect('/unitDetails', '/vendors/unitDetails')->name('unitDetails.legacy');
 
 /*
 |--------------------------------------------------------------------------
