@@ -160,46 +160,41 @@ class VehicleController extends Controller
     }
 
     /**
-     * (Legacy alias) Some routes may still reference detailsPage().
-     * Proxies to unitDetails() to avoid undefined method errors.
+     * (Legacy alias)
      */
     public function detailsPage(Request $request, Vehicle $vehicle)
     {
         return $this->unitDetails($request, $vehicle);
     }
 
-    /**
-     * POST /vendor/vehicles/store  (create)
-     */
     public function store(Request $request)
     {
         return $this->persist($request);
     }
 
-    /**
-     * PUT /vendor/vehicles/{vehicle} (update)
-     */
     public function update(Request $request, Vehicle $vehicle)
     {
         $this->authorizeOwner($request, $vehicle);
         return $this->persist($request, $vehicle);
     }
 
-    /**
-     * DELETE /vendor/vehicles/{vehicle}
-     * (Fix: redirect with flash for Inertia so no blank overlay, JSON for XHR)
-     */
     public function destroy(Request $request, Vehicle $vehicle)
     {
         $this->authorizeOwner($request, $vehicle);
 
         DB::transaction(function () use ($vehicle) {
-            // remove stored policy file if present
-            if ($vehicle->policy_pdf_path) {
-                Storage::disk('public')->delete($vehicle->policy_pdf_path);
+            // 🔻 Also delete policy rows/files if the table exists
+            if (Schema::hasTable('vehicle_policies')) {
+                $rows = DB::table('vehicle_policies')->where('vehicle_id', $vehicle->id)->get();
+                foreach ($rows as $row) {
+                    $disk = $row->disk ?: 'public';
+                    if ($row->file_path) {
+                        try { Storage::disk($disk)->delete($row->file_path); } catch (\Throwable $e) {}
+                    }
+                }
+                DB::table('vehicle_policies')->where('vehicle_id', $vehicle->id)->delete();
             }
 
-            // Remove related records first (to avoid FK issues)
             $vehicle->media()->delete();
             $vehicle->documents()->delete();
             $vehicle->landSpec()->delete();
@@ -228,52 +223,6 @@ class VehicleController extends Controller
             ->with('success', $message);
     }
 
-    /* ======================== NEW: Policy PDF upload/delete ======================== */
-
-    /**
-     * POST /vendor/vehicles/{vehicle}/policy
-     * Upload and save the policy PDF, return its public URL.
-     */
-    public function uploadPolicy(Request $request, Vehicle $vehicle)
-    {
-        $this->authorizeOwner($request, $vehicle);
-
-        $request->validate([
-            'pdf' => ['required', 'file', 'mimes:pdf', 'max:20480'], // 20MB
-        ]);
-
-        // delete old file if exists
-        if ($vehicle->policy_pdf_path) {
-            Storage::disk('public')->delete($vehicle->policy_pdf_path);
-        }
-
-        $path = $request->file('pdf')->store("vehicles/{$vehicle->id}/policies", 'public');
-
-        $vehicle->policy_pdf_path = $path;
-        $vehicle->save();
-
-        return response()->json([
-            'url' => Storage::disk('public')->url($path),
-        ], 201);
-    }
-
-    /**
-     * DELETE /vendor/vehicles/{vehicle}/policy
-     * Remove the stored PDF and clear the DB field.
-     */
-    public function deletePolicy(Request $request, Vehicle $vehicle)
-    {
-        $this->authorizeOwner($request, $vehicle);
-
-        if ($vehicle->policy_pdf_path) {
-            Storage::disk('public')->delete($vehicle->policy_pdf_path);
-            $vehicle->policy_pdf_path = null;
-            $vehicle->save();
-        }
-
-        return response()->noContent();
-    }
-
     /* ======================== Helpers ======================== */
 
     private function authorizeOwner(Request $request, Vehicle $vehicle): void
@@ -294,8 +243,7 @@ class VehicleController extends Controller
     }
 
     /**
-     * Build form-friendly payload to hydrate AddUnit.
-     * (Now includes extraFeatures, named feature prices, insurancePhotos, and policy_pdf_url)
+     * Build payload for AddUnit + UnitDetails pages.
      */
     private function serializeVehicleForForm(Vehicle $v)
     {
@@ -310,23 +258,20 @@ class VehicleController extends Controller
             'land' => 'Land', 'air' => 'Air', 'sea' => 'Sea', default => ucfirst($v->type ?? 'Land')
         };
 
-        // -------- feature pricing --------
+        // feature pricing
         $featureRows = collect();
         if (Schema::hasTable('vehicle_feature_pricings')) {
             $featureRows = VehicleFeaturePricing::where('vehicle_id', $v->id)
                 ->get(['additional_feature_name as name', 'additional_feature_price as price']);
         }
 
-        $norm = function ($s) {
-            return strtolower(trim(preg_replace('/[\s_\-]+/',' ', (string)$s)));
-        };
-
+        $norm = fn ($s) => strtolower(trim(preg_replace('/[\s_\-]+/',' ', (string)$s)));
         $namedMap = [
-            'gps'                 => ['gps'],
-            'childSeat'           => ['child seat','child_seat','childseat'],
-            'wifi'                => ['wi fi','wi-fi','wifi'],
-            'insuranceCoverage'   => ['insurance coverage','insurance_coverage','insurance'],
-            'addDriver'           => ['add driver','additional driver','driver'],
+            'gps'               => ['gps'],
+            'childSeat'         => ['child seat','child_seat','childseat'],
+            'wifi'              => ['wi fi','wi-fi','wifi'],
+            'insuranceCoverage' => ['insurance coverage','insurance_coverage','insurance'],
+            'addDriver'         => ['add driver','additional driver','driver'],
         ];
 
         $pickPrice = function (array $aliases) use ($featureRows, $norm) {
@@ -345,30 +290,43 @@ class VehicleController extends Controller
 
         $namedAllFlat = collect($namedMap)->flatten()->map($norm)->all();
         $extraFeatures = $featureRows
-            ->filter(function ($r) use ($namedAllFlat, $norm) {
-                return !in_array($norm($r->name), $namedAllFlat, true);
-            })
-            ->map(function ($r) {
-                return [
-                    'name'  => (string) $r->name,
-                    'price' => $r->price === null ? '' : (string) $r->price,
-                ];
-            })
+            ->filter(fn($r) => !in_array($norm($r->name), $namedAllFlat, true))
+            ->map(fn($r) => [
+                'name'  => (string) $r->name,
+                'price' => $r->price === null ? '' : (string) $r->price,
+            ])
             ->values()
             ->all();
 
-        // insurance photos (images only)
+        // insurance images
         $insurancePhotos = $v->documents
             ->where('doc_type', 'insurance')
             ->pluck('file_path')
-            ->filter(function ($path) {
-                return preg_match('/\.(jpe?g|png|gif|webp)$/i', (string)$path);
-            })
+            ->filter(fn($p) => preg_match('/\.(jpe?g|png|gif|webp)$/i', (string)$p))
             ->values()
             ->all();
 
-        // media entries with ids
         $imageEntries = $v->media->map(fn($m) => ['id' => $m->id, 'url' => $m->path])->values()->all();
+
+        // 🔻 Policy URLs (safe even if table not migrated yet)
+        $policyStreamUrl = null;
+        $policyPdfUrl    = null;
+        if (Schema::hasTable('vehicle_policies')) {
+            $row = DB::table('vehicle_policies')
+                ->where('vehicle_id', $v->id)
+                ->orderByDesc('id')
+                ->first();
+
+            if ($row) {
+                $policyStreamUrl = route('vendor.vehicles.policy.stream', ['vehicle' => $v->id]);
+                $disk = $row->disk ?: 'public';
+                try {
+                    $policyPdfUrl = Storage::disk($disk)->url($row->file_path);
+                } catch (\Throwable $e) {
+                    $policyPdfUrl = null;
+                }
+            }
+        }
 
         return [
             'id'                 => $v->id,
@@ -409,8 +367,9 @@ class VehicleController extends Controller
             'addDriverPrice'           => $addDriverPrice,
 
             'extra'              => $v->extra,
+            'description'        => $v->description, // << shows in UI
 
-            // land specifics
+            // land
             'bodyType'           => $v->landSpec?->body_type,
             'fuelType'           => $v->landSpec?->fuel_type,
             'transmissionType'   => $v->landSpec?->transmission_type,
@@ -419,7 +378,7 @@ class VehicleController extends Controller
             'doors'              => $v->landSpec?->doors,
             'fuelTankCapacity'   => $v->landSpec?->fuel_tank_capacity_l,
 
-            // air specifics
+            // air
             'aircraft_type'        => $v->airSpec?->aircraft_type,
             'icao_type_designator' => $v->airSpec?->icao_type_designator,
             'base_airport_iata'    => $v->airSpec?->base_airport_iata,
@@ -431,7 +390,7 @@ class VehicleController extends Controller
             'air_fuel_type'        => $v->airSpec?->fuel_type,
             'flight_hours_total'   => $v->airSpec?->flight_hours_total,
 
-            // sea specifics
+            // sea
             'vessel_type'        => $v->seaSpec?->vessel_type,
             'hull_material'      => $v->seaSpec?->hull_material,
             'length_m'           => $v->seaSpec?->length_m,
@@ -459,18 +418,17 @@ class VehicleController extends Controller
             // dynamic extras
             'extraFeatures'      => $extraFeatures,
 
-            // 🔹 policy pdf url
-            'policy_pdf_url'     => $v->policy_pdf_url,
+            // 🔻 Policy URLs for PoliciesTab.jsx
+            'policy_pdf_url'     => $policyPdfUrl,
+            'policy_stream_url'  => $policyStreamUrl,
         ];
     }
 
     /**
-     * Shared create/update logic.
-     * If $vehicle is null => create, else update.
+     * Create/Update
      */
     private function persist(Request $request, Vehicle $vehicle = null)
     {
-        // ---------- Normalize ----------
         $type = $this->normalizeCategory($request, $vehicle?->type ?? 'land');
 
         $conditionRaw = strtolower(trim((string) $request->input('condition', '')));
@@ -505,7 +463,6 @@ class VehicleController extends Controller
             'addDriver'         => $request->boolean('addDriver'),
         ]);
 
-        // ---------- Validate ----------
         $rules = [
             'category'           => ['required', Rule::in(['land','air','sea'])],
             'vehicleType'        => ['nullable','string','max:100'],
@@ -561,7 +518,7 @@ class VehicleController extends Controller
             'deposit'            => ['nullable','numeric','min:0'],
             'advancePayment'     => ['nullable','numeric','min:0'],
 
-            // toggles
+            // toggles & prices
             'gps'                      => ['nullable','boolean'],
             'childSeat'                => ['nullable','boolean'],
             'wifi'                     => ['nullable','boolean'],
@@ -574,7 +531,7 @@ class VehicleController extends Controller
             'addDriverPrice'           => ['nullable','numeric','min:0'],
 
             // free-text notes
-            'extra'              => ['nullable','string'],
+            'extra'                    => ['nullable','string'],
 
             // dynamic extras
             'extraFeatures'           => ['nullable'],
@@ -582,11 +539,11 @@ class VehicleController extends Controller
             'extraFeatures.*.price'   => ['sometimes','numeric','min:0'],
 
             // insurance quick
-            'insuranceProvider'  => ['nullable','string','max:255'],
+            'insuranceProvider'       => ['nullable','string','max:255'],
 
             // uploads
-            'images.*'           => ['nullable','file','mimes:jpg,jpeg,png,webp,gif','max:10240'],
-            'insuranceDocs.*'    => ['nullable','file','mimes:pdf,doc,docx,png,jpg,jpeg,webp,gif','max:10240'],
+            'images.*'                => ['nullable','file','mimes:jpg,jpeg,png,webp,gif','max:10240'],
+            'insuranceDocs.*'         => ['nullable','file','mimes:pdf,doc,docx,png,jpg,jpeg,webp,gif','max:10240'],
         ];
 
         if ($vehicle) {
@@ -611,7 +568,7 @@ class VehicleController extends Controller
                     $categoryId = $cat->id;
                 }
 
-                // mass assign
+                // passenger capacity inference
                 $passengerCapacity = $request->integer('passengerCapacity');
                 if ($passengerCapacity === null && $type === 'land') {
                     $passengerCapacity = $request->integer('seats') ?: null;
@@ -648,6 +605,7 @@ class VehicleController extends Controller
 
                     'extra'                  => $request->input('extra'),
 
+                    // Save description from form
                     'description'            => $request->input('description'),
                 ];
 
@@ -661,10 +619,10 @@ class VehicleController extends Controller
                     ]));
                 }
 
-                // ---------- handle removals (existing media/docs) ----------
+                // removals
                 $this->applyRemovals($request, $vehicle);
 
-                // ---------- type specifics ----------
+                // specifics
                 if ($type === 'air') {
                     $vehicle->airSpec()->updateOrCreate(
                         ['vehicle_id' => $vehicle->id],
@@ -716,7 +674,7 @@ class VehicleController extends Controller
                     );
                 }
 
-                // ---------- uploads (append) ----------
+                // uploads (append)
                 if ($request->hasFile('images')) {
                     $currentMax = (int) ($vehicle->media()->max('sort_order') ?? 0);
                     foreach ($request->file('images') as $i => $file) {
@@ -747,7 +705,7 @@ class VehicleController extends Controller
                     }
                 }
 
-                // ---------- additional features ----------
+                // additional features
                 $featureRows = [];
                 if ($request->boolean('gps') || $request->filled('gpsPrice')) {
                     $featureRows[] = ['name' => 'GPS', 'price' => $request->input('gpsPrice')];
@@ -810,12 +768,8 @@ class VehicleController extends Controller
         }
     }
 
-    /**
-     * Apply removals of existing images/insurance docs based on request payload.
-     */
     private function applyRemovals(Request $request, Vehicle $vehicle): void
     {
-        // Accept multiple field names and the compact JSON
         $collectIds = function (array $fields) use ($request): array {
             $out = [];
             foreach ($fields as $f) {
@@ -839,14 +793,12 @@ class VehicleController extends Controller
             return array_values(array_unique(array_filter($out)));
         };
 
-        // From individual arrays
         $imgIds  = $collectIds(['remove_existing_images','remove_images','delete_images','delete_existing_images']);
         $imgUrls = $collectUrls(['remove_existing_images_by_url','remove_images_by_url']);
 
         $insIds  = $collectIds(['remove_existing_insurance','remove_insurance','delete_insurance','delete_existing_insurance']);
         $insUrls = $collectUrls(['remove_existing_insurance_by_url','remove_insurance_by_url']);
 
-        // From compact JSON
         if ($json = $request->input('remove_payload_json')) {
             $data = json_decode($json, true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($data)) {
@@ -857,7 +809,6 @@ class VehicleController extends Controller
             }
         }
 
-        // Delete media (images)
         if ($imgIds) {
             $medias = $vehicle->media()->whereIn('id', $imgIds)->get();
             foreach ($medias as $m) {
@@ -873,7 +824,6 @@ class VehicleController extends Controller
             $vehicle->media()->whereIn('path', $imgUrls)->delete();
         }
 
-        // Delete insurance documents (images) by id/url
         if ($insIds) {
             $docs = $vehicle->documents()->where('doc_type','insurance')->whereIn('id', $insIds)->get();
             foreach ($docs as $d) {
@@ -890,15 +840,12 @@ class VehicleController extends Controller
         }
     }
 
-    /**
-     * Delete a file stored on the 'public' disk when you only have its public URL.
-     */
     private function unlinkPublicUrl(?string $url): void
     {
         if (!$url) return;
-        $base = rtrim(asset('storage'), '/'); // e.g. https://domain/storage
+        $base = rtrim(asset('storage'), '/');
         if (Str::startsWith($url, $base)) {
-            $relative = ltrim(Str::after($url, $base), '/');   // e.g. vehicles/123/images/abc.jpg
+            $relative = ltrim(Str::after($url, $base), '/');
             Storage::disk('public')->delete($relative);
         }
     }

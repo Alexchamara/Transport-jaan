@@ -1,12 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-/**
- * Props:
- *  - vehicleId (number|string|undefined)
- *  - initialPdfUrl (string|null)
- */
 const PoliciesTab = ({ vehicleId, initialPdfUrl = null }) => {
-  // Resolve ID from prop / Inertia / query / path — unchanged behavior
   const resolvedVehicleId = useMemo(() => {
     if (vehicleId) return Number(vehicleId);
     const inertiaId = window?.Inertia?.page?.props?.vehicle?.id ?? null;
@@ -23,8 +17,8 @@ const PoliciesTab = ({ vehicleId, initialPdfUrl = null }) => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState("");
+  const [error, setError] = useState("");
 
-  // CSRF helpers (same pattern you used)
   const getMetaCsrf = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
     window?.Laravel?.csrfToken ||
@@ -43,8 +37,11 @@ const PoliciesTab = ({ vehicleId, initialPdfUrl = null }) => {
       ...(xsrf ? { "X-XSRF-TOKEN": xsrf } : {}),
     };
   };
+  const parseMaybeJson = async (res) => {
+    const txt = await res.text();
+    try { return JSON.parse(txt); } catch { return { _raw: txt }; }
+  };
 
-  // Fetch once to get stream url if none provided
   useEffect(() => {
     if (pdfUrl || !resolvedVehicleId) return;
     (async () => {
@@ -55,7 +52,6 @@ const PoliciesTab = ({ vehicleId, initialPdfUrl = null }) => {
         });
         if (!res.ok) return;
         const json = await res.json();
-        // Prefer robust stream URL (works even without symlink)
         const stream = json?.policy_stream_url;
         const publicUrl = json?.policy_pdf_url;
         setPdfUrl(stream || publicUrl || null);
@@ -64,23 +60,27 @@ const PoliciesTab = ({ vehicleId, initialPdfUrl = null }) => {
   }, [resolvedVehicleId, pdfUrl]);
 
   const onFileChange = (e) => {
+    setError("");
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.type !== "application/pdf") {
-      alert("Please upload a PDF file.");
+      setError("Please upload a PDF file.");
+      e.target.value = "";
+      return;
+    }
+    const MAX_MB = 20;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setError(`File too large. Max ${MAX_MB}MB.`);
       e.target.value = "";
       return;
     }
     setFileToUpload(file);
-    // instant local preview; after save we will switch to stream url
-    setPdfUrl(URL.createObjectURL(file));
+    setPdfUrl(URL.createObjectURL(file)); // local preview
   };
 
   const onSave = async () => {
-    if (!resolvedVehicleId) {
-      alert("vehicleId is required to save the PDF.");
-      return;
-    }
+    setError("");
+    if (!resolvedVehicleId) return setError("vehicleId is required.");
     if (!fileToUpload) {
       setToast("Nothing to save.");
       setTimeout(() => setToast(""), 1200);
@@ -98,22 +98,33 @@ const PoliciesTab = ({ vehicleId, initialPdfUrl = null }) => {
         headers: authHeaders(),
         body: form,
       });
-      if (!res.ok) throw new Error(await res.text());
+
+      if (!res.ok) {
+        const data = await parseMaybeJson(res);
+        if (res.status === 419) setError("CSRF token mismatch (419). Refresh and try again.");
+        else if (res.status === 422) {
+          const e = data?.errors || {};
+          setError(e?.pdf?.[0] || e?.policy?.[0] || e?.file?.[0] || "Validation error (422).");
+        } else setError(data?.message || "Upload failed.");
+        return;
+      }
+
       const json = await res.json();
-      // 👇 switch preview to stream endpoint so “Not Found” never appears
-      setPdfUrl(json?.stream_url || json?.url || null);
+      const newUrl = json?.policy_stream_url || json?.policy_pdf_url || json?.url || null;
+      setPdfUrl(newUrl);
       setFileToUpload(null);
       setToast("Saved successfully");
       setTimeout(() => setToast(""), 1400);
     } catch (err) {
       console.error(err);
-      alert("Failed to save PDF.");
+      setError("Failed to save PDF. See console.");
     } finally {
       setSaving(false);
     }
   };
 
   const removePdf = async () => {
+    setError("");
     if (!resolvedVehicleId) return;
     setDeleting(true);
     try {
@@ -122,21 +133,24 @@ const PoliciesTab = ({ vehicleId, initialPdfUrl = null }) => {
         credentials: "same-origin",
         headers: authHeaders(),
       });
-      if (!res.ok && res.status !== 204) throw new Error(await res.text());
+      if (!res.ok && res.status !== 204) {
+        const data = await parseMaybeJson(res);
+        setError(data?.message || "Failed to remove PDF.");
+        return;
+      }
       setPdfUrl(null);
       setFileToUpload(null);
       setToast("Removed");
       setTimeout(() => setToast(""), 1200);
     } catch (err) {
       console.error(err);
-      alert("Failed to remove PDF.");
+      setError("Failed to remove PDF. See console.");
     } finally {
       setDeleting(false);
     }
   };
 
-  // Add viewer flags when using stream endpoint
-  const viewerUrl = useMemo(() => {
+  const viewerUrl = React.useMemo(() => {
     if (!pdfUrl) return null;
     const isStream = /\/vendor\/vehicles\/\d+\/policy\/view/.test(pdfUrl);
     return isStream ? `${pdfUrl}#toolbar=0&navpanes=0&view=FitH` : pdfUrl;
@@ -152,12 +166,20 @@ const PoliciesTab = ({ vehicleId, initialPdfUrl = null }) => {
         </div>
       )}
 
+      {error && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">
+          {error}
+        </div>
+      )}
+
       <h1 className="text-[20px] font-[600] mb-4">Added Important Information</h1>
 
       <div className="flex items-center gap-3 mb-6">
-        <label className={`cursor-pointer px-4 py-2 rounded-md text-sm font-semibold text-white ${
-          noId || saving || deleting ? "bg-[#9bb7de] cursor-not-allowed" : "bg-[#0955AC] hover:bg-[#074183]"
-        }`}>
+        <label
+          className={`cursor-pointer px-4 py-2 rounded-md text-sm font-semibold text-white ${
+            noId || saving || deleting ? "bg-[#9bb7de] cursor-not-allowed" : "bg-[#0955AC] hover:bg-[#074183]"
+          }`}
+        >
           Upload PDF
           <input
             type="file"

@@ -1,5 +1,6 @@
+// resources/js/Pages/Web/components/vendors/units/UnitContent.jsx
 import React, { useEffect, useState } from "react";
-import { router } from "@inertiajs/react"; // ⬅️ use the React adapter router
+import { router } from "@inertiajs/react";
 
 // top bar icons
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
@@ -15,6 +16,7 @@ import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIc
 import car1 from "../../../assets/vendors/dashboard/icons/car1.svg";
 import availableIcon from "../../../assets/vendors/units/availableIcon.svg";
 
+// spec icons
 import icon1 from "../../../assets/vendors/units/icons/icon1.svg"; // mileage
 import icon2 from "../../../assets/vendors/units/icons/icon2.svg"; // transmission
 import icon3 from "../../../assets/vendors/units/icons/icon3.svg"; // capacity
@@ -26,6 +28,30 @@ import deleteIcon from "../../../assets/vendors/units/delete.svg";
 
 // modal
 import AddUnit from "../../../home/vendors/AddUnit";
+
+/* ---------- helpers ---------- */
+const nbsp = (s) => (typeof s === "string" ? s.replace(/ /g, "\u00A0") : s);
+
+// consistent, compact View button
+const ViewButton = ({ onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="figtree w-[140px] h-[40px] bg-[#0A55AC] hover:bg-[#0a4b97] rounded-[6px] text-[16px] text-white font-[700] flex items-center justify-center"
+  >
+    View
+  </button>
+);
+
+// equal-width spec tile (centered, no wrapping)
+const Spec = ({ icon, label, alt }) => (
+  <div className="flex flex-col items-center justify-center w-[120px] min-w-[120px] text-center gap-1.5">
+    <img src={icon} className="w-[22px] h-[22px]" alt={alt || "spec"} />
+    <span className="text-[13px] font-[600] leading-tight whitespace-nowrap">
+      {label ?? "-"}
+    </span>
+  </div>
+);
 
 const UnitContent = () => {
   const [showAddUnit, setShowAddUnit] = useState(false);
@@ -52,7 +78,7 @@ const UnitContent = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
-  // fetch list
+  /* ---------- fetch list ---------- */
   const fetchUnits = async (url = null) => {
     setLoading(true);
     try {
@@ -132,7 +158,7 @@ const UnitContent = () => {
     }
   };
 
-  // delete flow (modal + router.delete with optimistic UI)
+  /* ---------- delete flow ---------- */
   const requestDelete = (id) => {
     setPendingDeleteId(id);
     setConfirmOpen(true);
@@ -142,33 +168,28 @@ const UnitContent = () => {
     if (!pendingDeleteId) return;
     const id = pendingDeleteId;
 
-    // close modal immediately
     setConfirmOpen(false);
     setPendingDeleteId(null);
 
-    // optimistic remove from the list
+    // optimistic update
     setUnitsPage((prev) => ({
       ...prev,
       data: prev.data.filter((u) => u.id !== id),
       total: Math.max(0, (prev.total || 1) - 1),
     }));
 
-    // CSRF token for Laravel
     const csrf =
-      document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
-      (window.Laravel?.csrfToken ?? '');
+      document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
+      (window.Laravel?.csrfToken ?? "");
 
-    // call backend
     router.delete(`/vendor/vehicles/${id}`, {
       preserveScroll: true,
-      headers: csrf ? { 'X-CSRF-TOKEN': csrf } : {},
+      headers: csrf ? { "X-CSRF-TOKEN": csrf } : {},
       onError: (errors) => {
         console.error("Delete failed", errors);
-        // rollback: refetch if backend failed
-        fetchUnits();
+        fetchUnits(); // rollback
         alert("Failed to delete the unit.");
       },
-      // onSuccess: () => fetchUnits(), // optional full refresh
     });
   };
 
@@ -177,51 +198,39 @@ const UnitContent = () => {
     setPendingDeleteId(null);
   };
 
-  // ✅ View details with id via Inertia
-  const viewDetails = (unit) => {
-    router.visit(`/vendors/unitDetails/${unit.id}`);
-  };
-
-  // EDIT → open Add Unit in edit mode (server will prefill props)
-  const editUnit = (unit) => {
-    router.visit(`/vendors/addUnit/${unit.id}`);
-  };
+  // View / Edit
+  const viewDetails = (unit) => router.visit(`/vendors/unitDetails/${unit.id}`);
+  const editUnit = (unit) => router.visit(`/vendors/addUnit/${unit.id}`);
 
   return (
     <div className="w-full h-auto pr-5 py-10">
       {/* Header */}
       <div className="flex flex-row gap-5 justify-between items-center">
-        <h1 className="figtree text-[35px] font-[700]">Units</h1>
-        <div className="flex flex-row gap-5">
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <img src={search} alt="Search" />
-          </div>
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <img src={settings} alt="Settings" />
-          </div>
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <img src={bell} alt="Notifications" />
-          </div>
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <img src={proPic} alt="Profile" />
-          </div>
+        <h1 className="figtree text-[30px] font-[700]">Units</h1>
+        <div className="flex flex-row gap-3">
+          {[search, settings, bell, proPic].map((src, i) => (
+            <div key={i} className="size-[50px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+              <img src={src} alt="" />
+            </div>
+          ))}
           <div className="figtree flex flex-col justify-center items-start">
-            <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
-            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Vendor</h1>
+            <h1 className="text-[18px] font-[700]">Steve Gibson</h1>
+            <h1 className="text-[14px] font-[600] text-[#7B7B7A]">Vendor</h1>
           </div>
         </div>
       </div>
 
-      {/* Search / Filters */}
-      <div className="flex flex-row justify-between mt-10 mb-5">
+      {/* Search / Filters (BORDERLESS) */}
+      <div className="flex flex-row justify-between mt-8 mb-4">
         <div className="flex flex-row items-center justify-between w-full">
-          <div className="flex flex-row gap-5 justify-center items-center">
+          <div className="flex flex-row gap-4 justify-center items-center">
             {/* Search */}
-            <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-              <img src={miniSearchIcon} alt="Search" />
+            <div className="w-[240px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-3">
+              <img src={miniSearchIcon} alt="Search" className="mr-2" />
               <input
                 type="text"
-                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                className="w-full bg-transparent text-[13px] placeholder:text-[#7B7BACC] border-0 outline-none ring-0 focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none"
+                style={{ boxShadow: "none" }}
                 placeholder="Search brand, model…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -230,10 +239,11 @@ const UnitContent = () => {
             </div>
 
             {/* Category */}
-            <div className="w-[180px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-3">
-              <img src={filterIcon} className="size-[12px]" alt="Filter" />
+            <div className="w-[170px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-2">
+              <img src={filterIcon} className="size-[12px] mr-2" alt="Filter" />
               <select
-                className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none w-full mx-2 border-none focus:outline-none focus:ring-0 appearance-none"
+                className="w-full bg-transparent text-[13px] font-[500] text-[#7B7BACC] appearance-none border-0 outline-none ring-0 focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none"
+                style={{ boxShadow: "none" }}
                 value={category}
                 onChange={(e) => onCategoryChange(e.target.value)}
               >
@@ -245,10 +255,11 @@ const UnitContent = () => {
             </div>
 
             {/* Status */}
-            <div className="w-[180px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-3">
-              <img src={filterIcon} className="size-[12px]" alt="Filter" />
+            <div className="w-[170px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-2">
+              <img src={filterIcon} className="size-[12px] mr-2" alt="Filter" />
               <select
-                className="text-[14px] font-[500] text-[#7B7BACC] bg-transparent outline-none w-full mx-2 border-none focus:outline-none focus:ring-0 appearance-none"
+                className="w-full bg-transparent text-[13px] font-[500] text-[#7B7BACC] appearance-none border-0 outline-none ring-0 focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none"
+                style={{ boxShadow: "none" }}
                 value={status}
                 onChange={(e) => onStatusChange(e.target.value)}
               >
@@ -261,7 +272,7 @@ const UnitContent = () => {
           </div>
 
           <button
-            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+            className="w-[120px] h-[34px] bg-[#0955AC] text-[13px] rounded-[6px] text-white font-[700]"
             onClick={handleAddUnitClick}
           >
             Add Unit
@@ -274,126 +285,102 @@ const UnitContent = () => {
         <AddUnit />
       ) : (
         <>
-          {loading && (
-            <div className="text-sm text-gray-600 my-4">Loading units…</div>
-          )}
-
+          {loading && <div className="text-sm text-gray-600 my-3">Loading units…</div>}
           {!loading && unitsPage.data.length === 0 && (
-            <div className="text-sm text-gray-600 my-4">
-              No units found. Try adjusting your search or filters.
-            </div>
+            <div className="text-sm text-gray-600 my-3">No units found. Try adjusting your filters.</div>
           )}
 
           {/* Cards */}
           {unitsPage.data.map((unit) => (
             <div
               key={unit.id}
-              className="relative w-auto h-auto min-h-[157px] bg-white rounded-[10px] flex lg:flex-row flex-col items-center my-10"
-              style={{ boxShadow: "4px 4px 4px #0000001A" }}
+              className="relative w-auto bg-white rounded-[10px] my-6 shadow-[4px_4px_4px_#0000001A]"
             >
-              {/* FIXED-SIZE IMAGE BOX */}
-              <div className="shrink-0 w-[260px] h-[157px] overflow-hidden rounded-l-[10px] border border-[#E5E7EB] bg-[#F8FAFC]">
-                <img
-                  src={unit.image || car1}
-                  alt="Vehicle"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
+              <div className="flex items-stretch">
+                {/* IMAGE (stretch to card height) */}
+                <div className="shrink-0 w-[260px] overflow-hidden rounded-l-[10px] self-stretch">
+                  <img
+                    src={unit.image || car1}
+                    alt="Vehicle"
+                    className="block w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
 
-              <div className="px-5 py-5 flex flex-row justify-center items-center">
-                <div>
-                  <div className="bebas-neue text-[30px] font-[400]">
-                    <h1>
-                      {unit.brand}{" "}
-                      <span className="text-[#0955AC]">{unit.model}</span>
-                    </h1>
-                    <h1>
-                      ${Number(unit.price ?? 0).toFixed(0)}
-                      <span className="figtree text-[#00000080] text-[15px] font-[600]">
-                        /day
-                      </span>
-                    </h1>
+                {/* CONTENT */}
+                <div className="flex-1 px-6 py-5">
+                  {/* HEADER: Model + View */}
+                  <div className="flex items-center justify-between gap-6">
+                    <div className="min-w-0">
+                      <div className="bebas-neue text-[28px] leading-7">
+                        <span className="truncate block">
+                          {unit.brand} <span className="text-[#0955AC]">{unit.model}</span>
+                        </span>
+                      </div>
+                      <div className="bebas-neue text-[24px] leading-6">
+                        ${Number(unit.price ?? 0).toFixed(0)}
+                        <span className="figtree text-[#00000080] text-[14px] font-[600]">/day</span>
+                      </div>
+
+                      {/* Status */}
+                      <div className="poppins flex items-center gap-2 mt-1 text-[13px] font-[600]">
+                        <img src={availableIcon} className="w-[16px] h-[16px]" alt="Status" />
+                        <span
+                          className={
+                            (unit.status || "") === "Available"
+                              ? "text-[#3C9A34]"
+                              : (unit.status || "") === "Pending"
+                              ? "text-[#D97706]"
+                              : "text-[#6B7280]"
+                          }
+                        >
+                          {unit.status || "—"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <ViewButton onClick={() => viewDetails(unit)} />
                   </div>
 
-                  <div className="poppins flex flex-row justify-start items-center gap-8 text-[14px] font-[600]">
-                    <div className="flex flex-row justify-center items-center gap-3">
-                      <img
-                        src={availableIcon}
-                        className="w-[26px] h-[26px]"
-                        alt="Status"
-                      />
-                      <h1
-                        className={
-                          (unit.status || "") === "Available"
-                            ? "text-[#3C9A34]"
-                            : (unit.status || "") === "Pending"
-                            ? "text-[#D97706]"
-                            : "text-[#6B7280]"
-                        }
-                      >
-                        {unit.status || "—"}
-                      </h1>
-                    </div>
+                  {/* SPECS row */}
+                  <div className="mt-5 flex justify-between items-center gap-6">
+                    <Spec icon={icon1} alt="Mileage"      label={unit.mileage ?? "-"} />
+                    <Spec icon={icon2} alt="Transmission" label={unit.transmission ?? "-"} />
+                    <Spec icon={icon3} alt="Capacity"     label={unit.capacity ? nbsp(unit.capacity) : "-"} />
+                    <Spec icon={icon4} alt="Fuel"         label={unit.fuel_type ?? unit.fuelType ?? "-"} />
                   </div>
                 </div>
 
-                <div className="flex lg:flex-row flex-col justify-center items-center pl-[40px] gap-20">
-                  <div className="poppins flex lg:flex-row flex-col gap-10 text-[15px] font-[500]">
-                    <div className="flex flex-col justify-center items-center gap-7">
-                      <img src={icon1} className="w-[26px] h-[26px]" alt="Mileage" />
-                      <h1>{unit.mileage ?? "-"}</h1>
-                    </div>
-                    <div className="flex flex-col justify-center items-center gap-7">
-                      <img src={icon2} className="w-[26px] h-[26px]" alt="Transmission" />
-                      <h1>{unit.transmission ?? "-"}</h1>
-                    </div>
-                    <div className="flex flex-col justify-center items-center gap-7">
-                      <img src={icon3} className="w-[26px] h-[26px]" alt="Capacity" />
-                      <h1>{unit.capacity ?? "-"}</h1>
-                    </div>
-                    <div className="flex flex-col justify-center items-center gap-7">
-                      <img src={icon4} className="w-[26px] h-[26px]" alt="Fuel Type" />
-                      <h1>{unit.fuel_type ?? unit.fuelType ?? "-"}</h1>
-                    </div>
-                  </div>
-
+                {/* ACTIONS rail */}
+                <div className="w-[150px] bg-[#D8E4F2] rounded-r-[10px] py-4 flex flex-col justify-center items-center gap-4">
                   <button
-                    className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-white font-[700]"
-                    onClick={() => viewDetails(unit)}
+                    type="button"
+                    className="size-[40px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[6px] flex justify-center items-center"
+                    onClick={() => editUnit(unit)}
+                    aria-label="Edit"
                   >
-                    View
+                    <img src={editIcon} className="size-[22px]" alt="" />
                   </button>
-                </div>
-              </div>
-
-              {/* right actions */}
-              <div className="absolute right-0 w-auto min-w-[143px] h-full bg-[#D8E4F2] flex flex-row justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px]">
-                <div
-                  className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
-                  onClick={() => editUnit(unit)}
-                >
-                  <img src={editIcon} className="size-[24px]" alt="Edit" />
-                </div>
-                <div
-                  className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
-                  onClick={() => requestDelete(unit.id)}
-                >
-                  <img src={deleteIcon} className="size-[24px]" alt="Delete" />
+                  <button
+                    type="button"
+                    className="size-[40px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[6px] flex justify-center items-center"
+                    onClick={() => requestDelete(unit.id)}
+                    aria-label="Delete"
+                  >
+                    <img src={deleteIcon} className="size-[22px]" alt="" />
+                  </button>
                 </div>
               </div>
             </div>
           ))}
 
           {/* Pagination + per-page */}
-          <div className="flex justify-between items-center gap-2 mt-20">
+          <div className="flex justify-between items-center gap-2 mt-12">
             {/* Left: Results per page */}
             <div className="flex items-center">
-              <span className="mr-3 text-[#00000080] text-[15px]">
-                Results per page
-              </span>
+              <span className="mr-3 text-[#00000080] text-[14px]">Results per page</span>
               <select
-                className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] w/[71px] h/[40px] outline-none border-none focus:outline-none focus:ring-0 appearance-none"
+                className="rounded px-3 py-1 font-[600] text-[15px] bg-[#F4F3F3] outline-none border-0 ring-0 focus:outline-none focus:ring-0"
                 value={itemsPerPage}
                 onChange={(e) => onPerPageChange(Number(e.target.value))}
               >
@@ -420,8 +407,8 @@ const UnitContent = () => {
                 .map((l, idx) => (
                   <button
                     key={idx}
-                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
-                      l.active ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]" : ""
+                    className={`px-3 py-1 text-[15px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                      l.active ? "text-[#0955AC] border-[2px] border-[#0955AC]" : ""
                     }`}
                     onClick={() => goToLink(l)}
                     disabled={!l.url}
@@ -443,21 +430,12 @@ const UnitContent = () => {
 
       {/* ===== Delete Confirm Modal ===== */}
       {confirmOpen && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center"
-          aria-modal="true"
-          role="dialog"
-        >
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" aria-modal="true" role="dialog">
           {/* backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={cancelDelete}
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={cancelDelete} />
           {/* modal */}
-          <div className="relative bg-white rounded-xl shadow-xl w/full max-w-md mx-4 p-6">
-            <h2 className="text-xl font-semibold mb-2 text-center">
-              Are you sure?
-            </h2>
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <h2 className="text-xl font-semibold mb-2 text-center">Are you sure?</h2>
             <p className="text-gray-600 text-center mb-6">
               Do you really want to delete this unit? This action cannot be undone.
             </p>

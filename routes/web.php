@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\Vendor\VehicleController;
+use App\Http\Controllers\VehiclePolicyController; // ✅ dedicated PDF controller
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -37,10 +38,10 @@ Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->nam
 
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
-// client routes
+// Client routes (reserved)
 Route::middleware(['auth', 'role:client'])->group(function () {});
 
-// warehouse
+// Warehouse (public landing)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
 
 /*
@@ -63,11 +64,9 @@ Route::middleware(['auth', 'role:vendor'])
 
         // Units UI
         Route::get('/units', fn () => Inertia::render('Web/home/vendors/Unit'))->name('units');
-        Route::get('/addUnit', fn () => Inertia::render('Web/home/vendors/AddUnit'))->name('addUnit'); // create (blank)
-        Route::get('/addUnit/{vehicle}', [VehicleController::class, 'edit'])->name('addUnit.edit');      // edit (prefilled)
+        Route::get('/addUnit', fn () => Inertia::render('Web/home/vendors/AddUnit'))->name('addUnit');
+        Route::get('/addUnit/{vehicle}', [VehicleController::class, 'edit'])->name('addUnit.edit');
         Route::get('/unitDetails', fn () => Inertia::render('Web/home/vendors/UnitDetails'))->name('unitDetails');
-
-        // ✅ unit details with id
         Route::get('/unitDetails/{vehicle}', [VehicleController::class, 'detailsPage'])->name('unitDetails.show');
 
         // Warehouse UI
@@ -83,28 +82,19 @@ Route::middleware(['auth'])
     ->prefix('vendor')
     ->name('vendor.')
     ->group(function () {
+        // Vehicles CRUD
         Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
-
-        // grid list
         Route::get('/vehicles/list', [VehicleController::class, 'list'])->name('vehicles.list');
-
-        // create
-        Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store.compat');
+        Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store.compat'); // legacy compat
         Route::post('/vehicles/store', [VehicleController::class, 'store'])->name('vehicles.store');
-
-        // edit/show + update
         Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show'])->name('vehicles.show');
         Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
-
-        // delete
         Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
 
-        // Policy PDF upload/delete + stream
-        Route::post('/vehicles/{vehicle}/policy', [VehicleController::class, 'uploadPolicy'])->name('vehicles.policy.upload');
-        Route::delete('/vehicles/{vehicle}/policy', [VehicleController::class, 'deletePolicy'])->name('vehicles.policy.delete');
-
-        // 👇 NEW: reliable inline preview
-        Route::get('/vehicles/{vehicle}/policy/view', [VehicleController::class, 'streamPolicy'])->name('vehicles.policy.stream');
+        // ✅ Final PDF policy routes (dedicated controller)
+        Route::post('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'store'])->name('vehicles.policy.store');
+        Route::delete('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'destroy'])->name('vehicles.policy.destroy');
+        Route::get('/vehicles/{vehicle}/policy/view', [VehiclePolicyController::class, 'stream'])->name('vehicles.policy.stream');
     });
 
 /*

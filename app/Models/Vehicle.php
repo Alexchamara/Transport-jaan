@@ -4,7 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Vehicle extends Model
 {
@@ -44,70 +45,61 @@ class Vehicle extends Model
         'status',               // inactive|active|available...
         'approval_status',      // pending|approved|rejected
         'description',
-
-        // 🔹 add this to store the uploaded policy PDF path on disk
-        'policy_pdf_path',
     ];
 
     protected $casts = [
-        'gps'                => 'boolean',
-        'child_seat'         => 'boolean',
-        'wifi'               => 'boolean',
-        'insurance_coverage' => 'boolean',
-        'passenger_capacity' => 'integer',
-        'mileage_km'         => 'integer',
+        'gps'                    => 'boolean',
+        'child_seat'             => 'boolean',
+        'wifi'                   => 'boolean',
+        'insurance_coverage'     => 'boolean',
+        'passenger_capacity'     => 'integer',
+        'mileage_km'             => 'integer',
         'rental_price_per_day'   => 'decimal:2',
         'total_rental_price'     => 'decimal:2',
         'deposit_amount'         => 'decimal:2',
         'advance_payment_amount' => 'decimal:2',
     ];
 
-    // 🔹 expose a URL in JSON
-    protected $appends = ['policy_pdf_url'];
+    // existing relations
+    public function category() { return $this->belongsTo(VehicleCategory::class, 'category_id'); }
+    public function airSpec()  { return $this->hasOne(AirVehicleSpec::class); }
+    public function seaSpec()  { return $this->hasOne(SeaVehicleSpec::class); }
+    public function landSpec() { return $this->hasOne(LandVehicleSpec::class); }
+    public function media()    { return $this->hasMany(VehicleMedia::class); }
+    public function documents(){ return $this->hasMany(VehicleDocument::class); }
+    public function crew()     { return $this->hasMany(VehicleCrew::class); }
+
+    // --- new: policy relations/accessors ---
+    public function policies(): HasMany
+    {
+        return $this->hasMany(\App\Models\VehiclePolicy::class);
+    }
+
+    public function policy(): HasOne
+    {
+        return $this->hasOne(\App\Models\VehiclePolicy::class)->latestOfMany();
+    }
+
+    // Optional guard to avoid crashes pre-migration
+    protected static function hasPolicyTable(): bool
+    {
+        static $ok = null;
+        if ($ok !== null) return $ok;
+        try { $ok = \Schema::hasTable('vehicle_policies'); } catch (\Throwable $e) { $ok = false; }
+        return $ok;
+    }
 
     public function getPolicyPdfUrlAttribute(): ?string
     {
-        if (!$this->policy_pdf_path) {
-            return null;
-        }
-        // Return a /storage/... URL only if the file exists
-        return Storage::disk('public')->exists($this->policy_pdf_path)
-            ? Storage::disk('public')->url($this->policy_pdf_path)
+        if (!self::hasPolicyTable()) return null;
+        return $this->policy?->url;
+    }
+
+    public function getPolicyStreamUrlAttribute(): ?string
+    {
+        if (!self::hasPolicyTable()) return null;
+        return $this->policy
+            ? route('vendor.vehicles.policy.stream', ['vehicle' => $this->id])
             : null;
-    }
-
-    public function category()
-    {
-        return $this->belongsTo(VehicleCategory::class, 'category_id');
-    }
-
-    public function airSpec()
-    {
-        return $this->hasOne(AirVehicleSpec::class);
-    }
-
-    public function seaSpec()
-    {
-        return $this->hasOne(SeaVehicleSpec::class);
-    }
-
-    public function landSpec()
-    {
-        return $this->hasOne(LandVehicleSpec::class);
-    }
-
-    public function media()
-    {
-        return $this->hasMany(VehicleMedia::class);
-    }
-
-    public function documents()
-    {
-        return $this->hasMany(VehicleDocument::class);
-    }
-
-    public function crew()
-    {
-        return $this->hasMany(VehicleCrew::class);
     }
 }

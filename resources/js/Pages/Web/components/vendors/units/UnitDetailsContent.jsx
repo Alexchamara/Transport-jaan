@@ -1,4 +1,3 @@
-// resources/js/Pages/Web/components/vendors/units/UnitDetailsContent.jsx
 import React from "react";
 
 import VehicleImages from "../../../components/vendors/units/VehicleImages";
@@ -14,7 +13,6 @@ import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 import backArrow from "../../../assets/vendors/units/backArrow.svg";
 
 const UnitDetailsContent = ({ vehicle }) => {
-  // Strip out empty / obvious placeholders so no dummy images render
   const images = Array.isArray(vehicle?.images)
     ? vehicle.images.filter(
         (u) =>
@@ -23,6 +21,10 @@ const UnitDetailsContent = ({ vehicle }) => {
           !/placeholder|dummy|sample|car1\.svg/i.test(u)
       )
     : [];
+
+  const title =
+    (vehicle?.manufacture ? `${vehicle.manufacture} ` : "") +
+    (vehicle?.model ?? "");
 
   return (
     <div className="w-full h-auto pr-5 py-10">
@@ -48,7 +50,6 @@ const UnitDetailsContent = ({ vehicle }) => {
           </div>
         </div>
       </div>
-      {/* /Header */}
 
       {/* Back breadcrumb */}
       <div>
@@ -62,20 +63,24 @@ const UnitDetailsContent = ({ vehicle }) => {
           </h1>
         </div>
 
+        {title && (
+          <div className="mt-2 text-[18px] font-[600] text-[#111827]">
+            {title}
+          </div>
+        )}
+
         {/* Content */}
         <div className="py-10 md:px-10 flex flex-col xl:flex-row justify-center gap-10">
           <div className="w-full max-w-6xl bg-white rounded-[10px] p-6 sm:p-8">
-            {/* Images block */}
+            {/* Images */}
             <div className="w-full rounded-xl border border-[#E5E7EB] overflow-hidden">
               <VehicleImages images={images} />
             </div>
 
-            {/* The tabbed content (this already contains the PoliciesTab inside) */}
+            {/* Tabs (VehicleInfo should render CarDetailsTab and read vehicle.description) */}
             <div className="w-full mt-8 rounded-xl border border-[#E5E7EB] p-4 sm:p-6">
               <VehicleInfo vehicle={vehicle} />
             </div>
-
-           
           </div>
         </div>
         {/* /Content */}

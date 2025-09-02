@@ -56,10 +56,6 @@ return new class extends Migration {
 
             $table->text('description')->nullable();
 
-            // Optional JSON mirrors
-            $table->json('images_json')->nullable();
-            $table->json('insurance_docs_json')->nullable();
-
             $table->timestamps();
             $table->softDeletes();
 
