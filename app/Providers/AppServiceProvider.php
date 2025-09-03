@@ -12,7 +12,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Override PHP settings for file uploads
+        ini_set('upload_max_filesize', '50M');
+        ini_set('post_max_size', '100M');
+        ini_set('max_file_uploads', '20');
+        ini_set('max_execution_time', '300');
+        ini_set('memory_limit', '512M');
     }
 
     /**

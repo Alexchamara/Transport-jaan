@@ -146,6 +146,10 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('v
     Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Booking'))->name('bookings');
     Route::get('/units', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('units');
 
+    // API endpoints for warehouse data
+    Route::get('/api/units', [WarehouseUnitController::class, 'index'])->name('api.units');
+    Route::get('/api/units/{id}', [WarehouseUnitController::class, 'show'])->name('api.units.show');
+
     // Accept warehouse unit creation (frontend posts to /vendors/warehouse/units)
     Route::post('/units', [WarehouseUnitController::class, 'store'])->name('units.store');
 

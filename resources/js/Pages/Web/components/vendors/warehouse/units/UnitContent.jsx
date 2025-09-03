@@ -11,67 +11,82 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 import AddUnit from "../../../../home/vendors/warehouse/AddUnit";
 
 const UnitContent = () => {
-  // Sample data array for warehouse units based on Warehouse model
-  const units = [
-    {
-      id: 1,
-      name: "Central Cold Storage A",
-      address: "123 Industrial Ave, Warehouse District",
-      latitude: 6.9271,
-      longitude: 79.8612,
-      total_area: 2500.00,
-      capacity: 5000.00,
-      type: "Cold Storage",
-      amenities: ["Temperature Control", "Loading Dock", "Security", "CCTV"],
-      pricing_model: "per_sqft_monthly",
-      price: 15.50,
-      status: "Available",
-      is_active: true,
-      availability_status: "Available",
-    },
-    {
-      id: 2,
-      name: "Dry Storage Warehouse B",
-      address: "456 Commerce Blvd, Industrial Zone",
-      latitude: 6.9344,
-      longitude: 79.8428,
-      total_area: 3200.00,
-      capacity: 8000.00,
-      type: "Dry Storage",
-      amenities: ["Forklift Access", "Loading Bay", "Security", "Fire Safety"],
-      pricing_model: "per_pallet_monthly",
-      price: 120.00,
-      status: "Occupied",
-      is_active: true,
-      availability_status: "Occupied",
-    },
-    {
-      id: 3,
-      name: "Climate Controlled Unit C",
-      address: "789 Storage St, Commercial District",
-      latitude: 6.9157,
-      longitude: 79.8739,
-      total_area: 1800.00,
-      capacity: 3500.00,
-      type: "Climate Controlled",
-      amenities: ["Climate Control", "Humidity Control", "Security", "24/7 Access"],
-      pricing_model: "per_sqft_monthly",
-      price: 22.75,
-      status: "Available",
-      is_active: true,
-      availability_status: "Available",
-    },
-  ];
+  // State for warehouse units data
+  const [units, setUnits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Pagination state
+  // Pagination and filter state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUnits, setTotalUnits] = useState(0);
   const [showAddUnit, setShowAddUnit] = useState(false);
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  
   const perPageOptions = [5, 10, 20, 50];
-  const totalPages = Math.ceil(units.length / itemsPerPage);
-  const startIdx = (currentPage - 1) * itemsPerPage;
-  const endIdx = startIdx + itemsPerPage;
-  const currentUnits = units.slice(startIdx, endIdx);
+
+  // Fetch warehouse units from API
+  const fetchUnits = async (page = 1, perPage = 10, search = "", type = "", status = "") => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: perPage.toString(),
+      });
+      
+      if (search) params.append('search', search);
+      if (type) params.append('type', type);
+      if (status) params.append('status', status);
+
+      const response = await fetch(`/vendors/warehouse/api/units?${params}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      setUnits(data.data || []);
+      setCurrentPage(data.current_page || 1);
+      setTotalPages(data.last_page || 1);
+      setTotalUnits(data.total || 0);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching warehouse units:', err);
+      setError('Failed to load warehouse units. Please try again.');
+      setUnits([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchUnits(currentPage, itemsPerPage, searchTerm, typeFilter, statusFilter);
+  }, [currentPage, itemsPerPage]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      setCurrentPage(1); // Reset to first page when filtering
+      fetchUnits(1, itemsPerPage, searchTerm, typeFilter, statusFilter);
+    }, 500);
+
+    return () => clearTimeout(delayedSearch);
+  }, [searchTerm, typeFilter, statusFilter, itemsPerPage]);
 
   const goToPage = (page) => {
     if (page < 1 || page > totalPages) return;
@@ -95,11 +110,6 @@ const UnitContent = () => {
     return pages;
   };
 
-  // Reset to first page when itemsPerPage changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [itemsPerPage]);
-
   // Handle Add Unit button click
   const handleAddUnitClick = () => {
     setShowAddUnit(true);
@@ -111,8 +121,12 @@ const UnitContent = () => {
         return 'text-[#3C9A34]';
       case 'Occupied':
         return 'text-[#D97706]';
-      case 'Maintenance':
+      case 'Pending Approval':
+        return 'text-[#F59E0B]';
+      case 'Rejected':
         return 'text-[#DC2626]';
+      case 'Inactive':
+        return 'text-[#7B7B7A]';
       default:
         return 'text-[#7B7B7A]';
     }
@@ -149,16 +163,42 @@ const UnitContent = () => {
           <div className="flex flex-row gap-5 justify-center items-center">
             <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
               <img src={miniSearchIcon} alt="Search" />
-              <input type="text" className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]" placeholder="Search warehouse name, address..." />
+              <input 
+                type="text" 
+                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]" 
+                placeholder="Search warehouse name, address..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
             <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
               <img src={filterIcon} className="size-[12px]" alt="Filter" />
-              <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">Type</h1>
+              <select 
+                className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="">All Types</option>
+                <option value="Cold Storage">Cold Storage</option>
+                <option value="Dry Storage">Dry Storage</option>
+                <option value="Climate Controlled">Climate Controlled</option>
+                <option value="General Storage">General Storage</option>
+              </select>
               <img src={miniDownArrow} alt="Dropdown" />
             </div>
             <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
               <img src={filterIcon} className="size-[12px]" alt="Filter" />
-              <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">Status</h1>
+              <select 
+                className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">All Status</option>
+                <option value="Available">Available</option>
+                <option value="Occupied">Occupied</option>
+                <option value="Pending">Pending</option>
+                <option value="Inactive">Inactive</option>
+              </select>
               <img src={miniDownArrow} alt="Dropdown" />
             </div>
           </div>
@@ -173,94 +213,188 @@ const UnitContent = () => {
         <AddUnit />
       ) : (
         <>
-          {/* Warehouse units cards */}
-          {currentUnits.map((unit) => (
-            <div key={unit.id} className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex flex-col lg:flex-row items-center my-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-              {/* text section */}
-              <div className="px-5 py-5 w-full">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  <div>
-                    <div className="bebas-neue text-[28px] font-[400]">
-                      <h1>
-                        {unit.name} <span className="text-[#0955AC]">[{unit.type}]</span>
-                      </h1>
-                    </div>
-                    <div className="poppins text-[14px] font-[600] flex gap-4">
-                      <span className={`${statusColor(unit.status)}`}>{unit.availability_status}</span>
-                      <span className="text-[#7B7B7A]">Type: {unit.type}</span>
-                      <span className="text-[#7B7B7A]">Model: {unit.pricing_model}</span>
-                    </div>
-                    <div className="poppins text-[12px] text-[#7B7B7A] mt-1">
-                      <span>{unit.address}</span>
-                    </div>
-                  </div>
-                  <div className="figtree text-right">
-                    <div className="text-[20px] font-[700]">Area: {unit.total_area} sqft</div>
-                    <div className="text-[14px] text-[#7B7B7A]">Capacity: {unit.capacity} units</div>
-                  </div>
-                </div>
+          {/* Loading state */}
+          {loading && (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC]"></div>
+              <span className="ml-3 text-[#7B7B7A]">Loading warehouse units...</span>
+            </div>
+          )}
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4 text-[14px] poppins">
-                  <div>
-                    <div className="text-[#7B7B7A]">Coordinates</div>
-                    <div className="font-[600]">{unit.latitude}, {unit.longitude}</div>
-                  </div>
-                  <div>
-                    <div className="text-[#7B7B7A]">Price</div>
-                    <div className="font-[600]">${unit.price}</div>
-                  </div>
-                  <div>
-                    <div className="text-[#7B7B7A]">Pricing Model</div>
-                    <div className="font-[600]">{unit.pricing_model.replace(/_/g, ' ')}</div>
-                  </div>
-                  <div>
-                    <div className="text-[#7B7B7A]">Amenities</div>
-                    <div className="font-[600]">{unit.amenities.slice(0, 2).join(', ')}{unit.amenities.length > 2 ? '...' : ''}</div>
-                  </div>
-                  <div>
-                    <div className="text-[#7B7B7A]">Active</div>
-                    <div className="font-[600]">{unit.is_active ? 'Yes' : 'No'}</div>
-                  </div>
-                  <div className="flex items-center lg:justify-end">
-                    <button className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-[#FFFFFF] font-[700]" onClick={() => (window.location.href = "/warehouse/unitDetails")}>
-                      View
-                    </button>
-                  </div>
-                </div>
+          {/* Error state */}
+          {error && !loading && (
+            <div className="flex justify-center items-center py-20">
+              <div className="text-center">
+                <div className="text-red-500 text-lg font-semibold mb-2">Error</div>
+                <div className="text-[#7B7B7A] mb-4">{error}</div>
+                <button 
+                  onClick={() => fetchUnits(currentPage, itemsPerPage, searchTerm, typeFilter, statusFilter)}
+                  className="px-4 py-2 bg-[#0955AC] text-white rounded-md hover:bg-[#074A94] transition-colors"
+                >
+                  Try Again
+                </button>
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Empty state */}
+          {!loading && !error && units.length === 0 && (
+            <div className="flex justify-center items-center py-20">
+              <div className="text-center">
+                <div className="text-[#7B7B7A] text-lg font-semibold mb-2">No warehouse units found</div>
+                <div className="text-[#7B7B7A] mb-4">
+                  {searchTerm || typeFilter || statusFilter 
+                    ? "Try adjusting your search or filters" 
+                    : "Start by adding your first warehouse unit"}
+                </div>
+                <button 
+                  onClick={handleAddUnitClick}
+                  className="px-4 py-2 bg-[#0955AC] text-white rounded-md hover:bg-[#074A94] transition-colors"
+                >
+                  Add Warehouse Unit
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Warehouse units cards */}
+          {!loading && !error && units.length > 0 && (
+            <>
+              {units.map((unit) => (
+                <div key={unit.id} className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex flex-col lg:flex-row items-center my-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                  {/* text section */}
+                  <div className="px-5 py-5 w-full">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                      <div>
+                        <div className="bebas-neue text-[28px] font-[400]">
+                          <h1>
+                            {unit.name} <span className="text-[#0955AC]">[{unit.type}]</span>
+                          </h1>
+                        </div>
+                        <div className="poppins text-[14px] font-[600] flex gap-4">
+                          <span className={`${statusColor(unit.status)}`}>{unit.availability_status}</span>
+                          <span className="text-[#7B7B7A]">Type: {unit.type}</span>
+                          <span className="text-[#7B7B7A]">Model: {unit.pricing_model?.replace(/_/g, ' ')}</span>
+                        </div>
+                        <div className="poppins text-[12px] text-[#7B7B7A] mt-1">
+                          <span>{unit.address}</span>
+                        </div>
+                        {unit.approval_status && unit.approval_status !== 'approved' && (
+                          <div className="poppins text-[12px] mt-1">
+                            <span className={`px-2 py-1 rounded text-white text-xs ${
+                              unit.approval_status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}>
+                              {unit.approval_status === 'pending' ? 'Pending Approval' : 'Rejected'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="figtree text-right">
+                        <div className="text-[20px] font-[700]">Area: {unit.total_area || 'N/A'} sqft</div>
+                        <div className="text-[14px] text-[#7B7B7A]">Capacity: {unit.capacity || 'N/A'} units</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4 text-[14px] poppins">
+                      <div>
+                        <div className="text-[#7B7B7A]">Coordinates</div>
+                        <div className="font-[600]">
+                          {unit.latitude && unit.longitude ? `${unit.latitude}, ${unit.longitude}` : 'N/A'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[#7B7B7A]">Price</div>
+                        <div className="font-[600]">${unit.price || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div className="text-[#7B7B7A]">Pricing Model</div>
+                        <div className="font-[600]">{unit.pricing_model?.replace(/_/g, ' ') || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <div className="text-[#7B7B7A]">Amenities</div>
+                        <div className="font-[600]">
+                          {unit.amenities && unit.amenities.length > 0 
+                            ? `${unit.amenities.slice(0, 2).join(', ')}${unit.amenities.length > 2 ? '...' : ''}`
+                            : 'None'
+                          }
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[#7B7B7A]">Active</div>
+                        <div className="font-[600]">{unit.is_active ? 'Yes' : 'No'}</div>
+                      </div>
+                      <div className="flex items-center lg:justify-end">
+                        <button 
+                          className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-[#FFFFFF] font-[700] hover:bg-[#074A94] transition-colors" 
+                          onClick={() => (window.location.href = `/vendors/warehouse/unitDetails?id=${unit.id}`)}
+                        >
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Results info */}
+              <div className="text-[#7B7B7A] text-sm mb-4">
+                Showing {units.length} of {totalUnits} warehouse units
+              </div>
+            </>
+          )}
 
           {/* Pagination Controls and Results per page */}
-          <div className="flex justify-between items-center gap-2 mt-20">
-            {/* Left: Results per page */}
-            <div className="flex items-center">
-              <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
-              <select className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none" value={itemsPerPage} onChange={(e) => setItemsPerPage(Number(e.target.value))}>
-                {perPageOptions.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
+          {!loading && !error && totalPages > 1 && (
+            <div className="flex justify-between items-center gap-2 mt-20">
+              {/* Left: Results per page */}
+              <div className="flex items-center">
+                <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
+                <select 
+                  className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none" 
+                  value={itemsPerPage} 
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                >
+                  {perPageOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Right: Pagination */}
+              <div className="flex items-center gap-2">
+                <button 
+                  className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 hover:bg-[#E5E5E5] transition-colors" 
+                  onClick={() => goToPage(currentPage - 1)} 
+                  disabled={currentPage === 1}
+                >
+                  <span className="text-lg">&#60;</span>
+                </button>
+                {getPageNumbers().map((num, idx) =>
+                  num === "..." ? (
+                    <span key={idx} className="px-2">...</span>
+                  ) : (
+                    <button 
+                      key={num} 
+                      className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] hover:bg-[#E5E5E5] transition-colors ${
+                        currentPage === num 
+                          ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC] bg-[#F4F3F3]" 
+                          : "bg-[#F4F3F3]"
+                      }`} 
+                      onClick={() => goToPage(num)}
+                    >
+                      {num}
+                    </button>
+                  )
+                )}
+                <button 
+                  className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 hover:bg-[#E5E5E5] transition-colors" 
+                  onClick={() => goToPage(currentPage + 1)} 
+                  disabled={currentPage === totalPages}
+                >
+                  <span className="text-lg">&#62;</span>
+                </button>
+              </div>
             </div>
-            {/* Right: Pagination */}
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1}>
-                <span className="text-lg">&#60;</span>
-              </button>
-              {getPageNumbers().map((num, idx) =>
-                num === "..." ? (
-                  <span key={idx} className="px-2">...</span>
-                ) : (
-                  <button key={num} className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]" : "bg-[#F4F3F3]"}`} onClick={() => goToPage(num)}>
-                    {num}
-                  </button>
-                )
-              )}
-              <button className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages}>
-                <span className="text-lg">&#62;</span>
-              </button>
-            </div>
-          </div>
+          )}
         </>
       )}
     </div>

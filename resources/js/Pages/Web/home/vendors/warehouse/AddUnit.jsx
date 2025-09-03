@@ -86,6 +86,30 @@ const AddUnit = () => {
     if (type === 'file') {
       if (name === 'images') {
         const list = Array.from(files || []);
+        
+        // Validate file count
+        const totalImages = imageFiles.length + list.length;
+        if (totalImages > 20) {
+          setErrors(prev => ({ ...prev, images: 'You can upload a maximum of 20 images.' }));
+          return;
+        }
+        
+        // Validate file sizes
+        const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+        const invalidFiles = list.filter(file => file.size > maxSize);
+        if (invalidFiles.length > 0) {
+          setErrors(prev => ({ ...prev, images: `Some images are too large. Maximum size is 50MB per image.` }));
+          return;
+        }
+        
+        // Validate file types
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const invalidTypes = list.filter(file => !allowedTypes.includes(file.type));
+        if (invalidTypes.length > 0) {
+          setErrors(prev => ({ ...prev, images: 'Only JPEG, PNG, GIF, and WebP images are allowed.' }));
+          return;
+        }
+        
         const nextFiles = [...imageFiles, ...list];
         setImageFiles(nextFiles);
         const newUrls = list.map((f) => URL.createObjectURL(f));
@@ -103,11 +127,51 @@ const AddUnit = () => {
         }
       } else if (name === 'documents') {
         const list = Array.from(files || []);
+        
+        // Validate file count
+        const totalDocs = documentFiles.length + list.length;
+        if (totalDocs > 20) {
+          setErrors(prev => ({ ...prev, documents: 'You can upload a maximum of 20 documents.' }));
+          return;
+        }
+        
+        // Validate file sizes
+        const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+        const invalidFiles = list.filter(file => file.size > maxSize);
+        if (invalidFiles.length > 0) {
+          setErrors(prev => ({ ...prev, documents: `Some documents are too large. Maximum size is 50MB per document.` }));
+          return;
+        }
+        
+        // Validate file types
+        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+        const invalidTypes = list.filter(file => !allowedTypes.includes(file.type));
+        if (invalidTypes.length > 0) {
+          setErrors(prev => ({ ...prev, documents: 'Only PDF, DOC, DOCX, and TXT files are allowed.' }));
+          return;
+        }
+        
         const nextFiles = [...documentFiles, ...list];
         setDocumentFiles(nextFiles);
         setForm((prev) => ({ ...prev, documents: nextFiles }));
       } else if (name === 'terms_pdf') {
         const file = files && files[0] ? files[0] : null;
+        
+        if (file) {
+          // Validate file size
+          const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+          if (file.size > maxSize) {
+            setErrors(prev => ({ ...prev, terms_pdf: 'Terms PDF file is too large. Maximum size is 50MB.' }));
+            return;
+          }
+          
+          // Validate file type
+          if (file.type !== 'application/pdf') {
+            setErrors(prev => ({ ...prev, terms_pdf: 'Only PDF files are allowed for terms and conditions.' }));
+            return;
+          }
+        }
+        
         setTermsPdfFile(file);
         setForm((prev) => ({ ...prev, terms_pdf: file }));
         if (file) setTermsPdfUrl(URL.createObjectURL(file));
@@ -627,7 +691,7 @@ const AddUnit = () => {
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF, WebP up to 50MB each (max 20 images)</p>
                   </div>
                 </div>
                 {errors.images && <div className="text-[#DC2626] text-[12px] mt-1">{errors.images}</div>}
@@ -657,7 +721,7 @@ const AddUnit = () => {
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">PDF, DOCX up to 10MB</p>
+                    <p className="text-xs text-gray-500">PDF, DOC, DOCX, TXT up to 50MB each (max 20 files)</p>
                   </div>
                 </div>
                 {documentFiles.length > 0 && (
