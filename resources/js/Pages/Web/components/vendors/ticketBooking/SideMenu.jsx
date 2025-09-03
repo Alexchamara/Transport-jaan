@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import {
-  LayoutDashboard,
-  Ticket,
-  BusFront,
-  Calendar,
-  Users,
-  Wallet,
-  MapPin,
-  MessageSquare,
-  Settings,
-  LogOut
+    LayoutDashboard,
+    Ticket,
+    BusFront,
+    Calendar,
+    Users,
+    Wallet,
+    MapPin,
+    MessageSquare,
+    Settings,
+    LogOut,
 } from "lucide-react";
 
 const SideMenu = () => {
@@ -18,7 +18,10 @@ const SideMenu = () => {
 
     return (
         <div className="poppins min-w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-10 px-10 rounded-tr-[10px] rounded-br-[10px]">
-            <h1 className="text-[25px] font-[700] text-center uppercase">
+            <h1
+                className="text-[25px] font-[700] text-center uppercase cursor-pointer"
+                onClick={() => (window.location.href = "/mainDashboard")}
+            >
                 Company <br /> <span className="text-[#0955AC]">Logo</span>{" "}
             </h1>
 
@@ -29,7 +32,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/ticketBooking/dashboard")}
+                    onClick={() =>
+                        (window.location.href = "/ticketBooking/dashboard")
+                    }
                 >
                     <LayoutDashboard size={25} />
                     <h1>Dashboard</h1>
@@ -40,7 +45,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/ticketBooking/bookings")}
+                    onClick={() =>
+                        (window.location.href = "/ticketBooking/bookings")
+                    }
                 >
                     <Ticket size={25} />
                     <h1>Bookings</h1>
@@ -62,7 +69,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/ticketBooking/calendar")}
+                    onClick={() =>
+                        (window.location.href = "/ticketBooking/calendar")
+                    }
                 >
                     <Calendar size={25} />
                     <h1>Calendar</h1>
@@ -73,7 +82,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/ticketBooking/clients")}
+                    onClick={() =>
+                        (window.location.href = "/ticketBooking/clients")
+                    }
                 >
                     <Users size={25} />
                     <h1>Clients</h1>
@@ -91,7 +102,10 @@ const SideMenu = () => {
                 </div> */}
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        ["/vendors/ticketBooking/payment", "/ticketBooking/expenses"].includes(currentPath)
+                        [
+                            "/vendors/ticketBooking/payment",
+                            "/ticketBooking/expenses",
+                        ].includes(currentPath)
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
@@ -113,17 +127,24 @@ const SideMenu = () => {
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() => (window.location.href = "/ticketBooking/payment")}
+                            onClick={() =>
+                                (window.location.href =
+                                    "/ticketBooking/payment")
+                            }
                         >
                             Payment
                         </div>
                         <div
                             className={`px-4 py-2 cursor-pointer rounded-lg ${
-                                currentPath === "/vendors/ticketBooking/expenses"
+                                currentPath ===
+                                "/vendors/ticketBooking/expenses"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() => (window.location.href = "/ticketBooking/expenses")}
+                            onClick={() =>
+                                (window.location.href =
+                                    "/ticketBooking/expenses")
+                            }
                         >
                             Expenses
                         </div>
@@ -135,7 +156,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/ticketBooking/settingsPage")}
+                    onClick={() =>
+                        (window.location.href = "/ticketBooking/settingsPage")
+                    }
                 >
                     <Settings size={25} />
                     <h1>Settings</h1>

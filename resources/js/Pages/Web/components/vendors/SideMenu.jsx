@@ -18,7 +18,7 @@ const SideMenu = () => {
 
     return (
         <div className="poppins min-w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-10 px-10 rounded-tr-[10px] rounded-br-[10px]">
-            <h1 className="text-[25px] font-[700] text-center uppercase">
+            <h1 className="text-[25px] font-[700] text-center uppercase cursor-pointer" onClick={() => (window.location.href = "/mainDashboard")}>
                 Company <br /> <span className="text-[#0955AC]">Logo</span>{" "}
             </h1>
 

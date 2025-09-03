@@ -12,14 +12,18 @@ import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg";
 
 import { Settings } from "lucide-react";
 
-
 const SideMenu = () => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
     const currentPath = window.location.pathname;
 
     return (
         <div className="poppins min-w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-10 px-10 rounded-tr-[10px] rounded-br-[10px]">
-            <h1 className="text-[25px] font-[700] text-center uppercase">
+            <h1
+                className="text-[25px] font-[700] text-center uppercase cursor-pointer"
+                onClick={() =>
+                    (window.location.href = "/mainDashboard")
+                }
+            >
                 Company <br /> <span className="text-[#0955AC]">Logo</span>{" "}
             </h1>
 
@@ -30,7 +34,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/multimodal/dashboard")}
+                    onClick={() =>
+                        (window.location.href = "/multimodal/dashboard")
+                    }
                 >
                     <img src={dashLogo} className="w-[25px]" />
                     <h1>Dashboard</h1>
@@ -41,7 +47,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/multimodal/bookings")}
+                    onClick={() =>
+                        (window.location.href = "/multimodal/bookings")
+                    }
                 >
                     <img src={bookLogo} className="w-[25px]" />
                     <h1>Bookings</h1>
@@ -63,7 +71,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/multimodal/calendar")}
+                    onClick={() =>
+                        (window.location.href = "/multimodal/calendar")
+                    }
                 >
                     <img src={calendarLogo} className="w-[25px]" />
                     <h1>Calendar</h1>
@@ -74,7 +84,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/multimodal/clients")}
+                    onClick={() =>
+                        (window.location.href = "/multimodal/clients")
+                    }
                 >
                     <img src={clientsLogo} className="w-[25px]" />
                     <h1>Clients</h1>
@@ -92,7 +104,10 @@ const SideMenu = () => {
                 </div> */}
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        ["/vendors/multimodal/payment", "/multimodal/expenses"].includes(currentPath)
+                        [
+                            "/vendors/multimodal/payment",
+                            "/multimodal/expenses",
+                        ].includes(currentPath)
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
@@ -114,7 +129,9 @@ const SideMenu = () => {
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() => (window.location.href = "/multimodal/payment")}
+                            onClick={() =>
+                                (window.location.href = "/multimodal/payment")
+                            }
                         >
                             Payment
                         </div>
@@ -124,7 +141,9 @@ const SideMenu = () => {
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() => (window.location.href = "/multimodal/expenses")}
+                            onClick={() =>
+                                (window.location.href = "/multimodal/expenses")
+                            }
                         >
                             Expenses
                         </div>
@@ -136,7 +155,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/multimodal/tracking")}
+                    onClick={() =>
+                        (window.location.href = "/multimodal/tracking")
+                    }
                 >
                     <img src={trackLogo} className="w-[25px]" />
                     <h1>Tracking</h1>
@@ -147,7 +168,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/multimodal/message")}
+                    onClick={() =>
+                        (window.location.href = "/multimodal/message")
+                    }
                 >
                     <img src={messgLogo} className="w-[25px]" />
                     <h1>Message</h1>

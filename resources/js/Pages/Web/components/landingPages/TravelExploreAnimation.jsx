@@ -430,7 +430,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                         className="overflow-x-auto scroll-smooth snap-x snap-mandatory"
                                         style={{ scrollbarWidth: "none" }}
                                     >
-                                        <div className="flex gap-4 py-4 px-5">
+                                        <div className="flex gap-4 py-10 px-10">
                                             {IMAGES.map((item, i) => (
                                                 <motion.button
                                                     key={item.url + i}
@@ -521,6 +521,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                                             ease: "easeOut",
                                                         }}
                                                     />
+                                                    <div className="pointer-events-none absolute inset-0 bg-black/40" />
                                                     <motion.div
                                                         className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
                                                         initial={false}
