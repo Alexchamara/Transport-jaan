@@ -1,4 +1,5 @@
 import React from "react";
+import BusCard from "./BusCard";
 
 const HeroDetailsTwo = () => {
     const trips = [
@@ -88,6 +89,10 @@ const HeroDetailsTwo = () => {
 
     return (
         <section className="mx-auto w-full max-w-6xl px-6 py-8">
+            <div className="mb-20">
+                <BusCard />
+            </div>
+
             {/* Toolbar */}
             <div className="sticky top-0 z-10 -mx-6 mb-4 border-b bg-white/80 px-6 py-5 backdrop-blur">
                 <div className="flex flex-wrap items-center gap-4">

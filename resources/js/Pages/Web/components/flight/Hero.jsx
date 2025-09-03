@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 
-
 import flightImage from "../../assets/rentAVehicle/flight.svg";
 import train from "../../assets/ticketBooking/train.jpg";
 import bus from "../../assets/ticketBooking/bus2.jpg";
@@ -45,9 +44,9 @@ const Hero = () => {
             {/* Content */}
             <div
                 style={{ position: "relative", zIndex: 2 }}
-                className="py-20 px-10 flex flex-row gap-20 justify-center items-center overflow-hidden"
+                className="py-20 px-10 flex flex-col xl:flex-row gap-20 justify-center items-center overflow-hidden"
             >
-                <div className="flex flex-col items-center max-w-[600px]">
+                <div className="flex flex-col items-center max-w-[600px] xl:order-1 order-2">
                     <div className="">
                         <div className="w-[125px] h-[5px] bg-[#000000] mb-6 rounded-sm"></div>
                         <h1 className="bebas-neue text-[68px]/[70px] font-[400] mb-4">
@@ -76,7 +75,7 @@ const Hero = () => {
                 </div>
 
                 {/* Images Section */}
-                <div className="bebas-neue hidden md:flex flex-row items-stretch h-[500px] lg:h-[680px] gap-4 w-full md:w-1/2 flex-shrink-0">
+                <div className="xl:order-2 order-1 bebas-neue hidden md:flex flex-row items-stretch h-[500px] xl:h-[680px] gap-4 w-full md:w-1/2 flex-shrink-0">
                     {imageOrder.map((type, idx) => (
                         <div
                             key={type}
