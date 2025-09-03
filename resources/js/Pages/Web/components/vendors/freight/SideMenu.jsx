@@ -10,6 +10,8 @@ import trackLogo from "../../../assets/vendors/dashboard/trackLogo.svg";
 import messgLogo from "../../../assets/vendors/dashboard/messgLogo.svg";
 import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg";
 
+import { Settings } from "lucide-react";
+
 const SideMenu = () => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
     const currentPath = window.location.pathname;
@@ -27,7 +29,9 @@ const SideMenu = () => {
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/freight/dashboard")}
+                    onClick={() =>
+                        (window.location.href = "/freight/dashboard")
+                    }
                 >
                     <img src={dashLogo} className="w-[25px]" />
                     <h1>Dashboard</h1>
@@ -89,7 +93,10 @@ const SideMenu = () => {
                 </div> */}
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        ["/vendors/freight/payment", "/freight/expenses"].includes(currentPath)
+                        [
+                            "/vendors/freight/payment",
+                            "/freight/expenses",
+                        ].includes(currentPath)
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
@@ -111,7 +118,9 @@ const SideMenu = () => {
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() => (window.location.href = "/freight/payment")}
+                            onClick={() =>
+                                (window.location.href = "/freight/payment")
+                            }
                         >
                             Payment
                         </div>
@@ -121,7 +130,9 @@ const SideMenu = () => {
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
-                            onClick={() => (window.location.href = "/freight/expenses")}
+                            onClick={() =>
+                                (window.location.href = "/freight/expenses")
+                            }
                         >
                             Expenses
                         </div>
@@ -148,6 +159,19 @@ const SideMenu = () => {
                 >
                     <img src={messgLogo} className="w-[25px]" />
                     <h1>Message</h1>
+                </div>
+                <div
+                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
+                        currentPath === "/vendors/freight/settingsPage"
+                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                            : "text-[#00000066]"
+                    }`}
+                    onClick={() =>
+                        (window.location.href = "/freight/settingsPage")
+                    }
+                >
+                    <Settings size={25} />
+                    <h1>Settings</h1>
                 </div>
                 <div className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer">
                     <img src={logOutLogo} className="w-[25px]" />

@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "@inertiajs/react";
 import BusCard from "./BusCard";
 
 const HeroDetailsTwo = () => {
@@ -126,9 +127,10 @@ const HeroDetailsTwo = () => {
             {/* Results list */}
             <div className="space-y-6">
                 {trips.map((trip) => (
-                    <div
+                    <Link
+                        href="/busTicketBookingPreview"
                         key={trip.id}
-                        className="rounded-xl border border-gray-300 bg-white p-8 shadow-md transition hover:shadow-xl"
+                        className="block rounded-xl border border-gray-300 bg-white p-8 shadow-md transition hover:shadow-xl"
                     >
                         <div className="grid grid-cols-12 items-center gap-8">
                             {/* Left meta */}
@@ -296,7 +298,7 @@ const HeroDetailsTwo = () => {
                                 </span>
                             </div>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
         </section>

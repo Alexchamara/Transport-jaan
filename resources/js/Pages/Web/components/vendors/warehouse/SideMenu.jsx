@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LayoutDashboard, Building2, Boxes, Calendar, Users, Wallet, Route, MessageSquare, LogOut } from "lucide-react";
+import { LayoutDashboard, Building2, Boxes, Calendar, Users, Wallet, Route, Settings, LogOut } from "lucide-react";
 
 const SideMenu = () => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
@@ -131,14 +131,14 @@ const SideMenu = () => {
                 </div>
                 <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/message"
+                        currentPath === "/vendors/warehouse/settingsPage"
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/warehouse/message")}
+                    onClick={() => (window.location.href = "/warehouse/settingsPage")}
                 >
-                    <MessageSquare className="w-[25px] h-[25px]" />
-                    <h1>Message</h1>
+                    <Settings className="w-[25px] h-[25px]" />
+                    <h1>Settings</h1>
                 </div>
                 <div className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer">
                     <LogOut className="w-[25px] h-[25px]" />

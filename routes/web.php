@@ -41,7 +41,9 @@ Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->n
 // ticket booking
 Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
 Route::get('/trainTicketBookingDetails', [WebController::class, 'TrainTicketBookingDetails'])->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
+Route::get('/trainTicketBookingPreview', [WebController::class, 'trainTicketBookingPreview'])->name('trainTicketBookingPreview.trainTicketBookingPreview');
 Route::get('/busTicketBookingDetails', [WebController::class, 'busTicketBookingDetails'])->name('busTicketBookingDetails.busTicketBookingDetails');
+Route::get('/busTicketBookingPreview', [WebController::class, 'busTicketBookingPreview'])->name('busTicketBookingPreview.busTicketBookingPreview');
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
 
 
@@ -152,6 +154,11 @@ Route::get('/mainDashboard', function () {
 Route::get('/unitDetails', function () {
     return Inertia::render('Web/home/vendors/UnitDetails');
 })->name('unitDetails');
+
+Route::get('/settingsPage', function () {
+    return Inertia::render('Web/home/vendors/SettingsPage');
+})->name('settingsPage');
+
 // end
 
 
@@ -197,6 +204,10 @@ Route::get('/warehouse/unitDetails', function () {
     return Inertia::render('Web/home/vendors/warehouse/UnitDetails');
 })->name('warehouse.unitDetails');
 
+Route::get('/warehouse/settingsPage', function () {
+    return Inertia::render('Web/home/vendors/warehouse/SettingsPage');
+})->name('warehouse.settingsPage');
+
 
 
 // vendor dashboard - ticket booking
@@ -239,6 +250,10 @@ Route::get('/ticketBooking/addUnit', function () {
 Route::get('/ticketBooking/unitDetails', function () {
     return Inertia::render('Web/home/vendors/ticketBooking/UnitDetails');
 })->name('ticketBooking.unitDetails');
+
+Route::get('/ticketBooking/settingsPage', function () {
+    return Inertia::render('Web/home/vendors/ticketBooking/SettingsPage');
+})->name('ticketBooking.settingsPage');
 
 
 
@@ -283,6 +298,10 @@ Route::get('/courierService/unitDetails', function () {
     return Inertia::render('Web/home/vendors/courierService/UnitDetails');
 })->name('courierService.unitDetails');
 
+Route::get('/courierService/settingsPage', function () {
+    return Inertia::render('Web/home/vendors/courierService/SettingsPage');
+})->name('courierService.settingsPage');
+
 
 
 // vendor dashboard - freight
@@ -325,6 +344,10 @@ Route::get('/freight/addUnit', function () {
 Route::get('/freight/unitDetails', function () {
     return Inertia::render('Web/home/vendors/freight/UnitDetails');
 })->name('freight.unitDetails');
+
+Route::get('/freight/settingsPage', function () {
+    return Inertia::render('Web/home/vendors/freight/SettingsPage');
+})->name('freight.settingsPage');
 
 
 
@@ -369,6 +392,10 @@ Route::get('/multimodal/unitDetails', function () {
     return Inertia::render('Web/home/vendors/multimodal/UnitDetails');
 })->name('multimodal.unitDetails');
 
+
+Route::get('/multimodal/settingsPage', function () {
+    return Inertia::render('Web/home/vendors/multimodal/SettingsPage');
+})->name('multimodal.settingsPage');
 
 
 // end ==================================================

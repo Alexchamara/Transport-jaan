@@ -8,6 +8,7 @@ import {
   Wallet,
   MapPin,
   MessageSquare,
+  Settings,
   LogOut
 } from "lucide-react";
 
@@ -128,17 +129,17 @@ const SideMenu = () => {
                         </div>
                     </div>
                 )}
-                {/* <div
+                <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/ticketBooking/tracking"
+                        currentPath === "/vendors/ticketBooking/settingsPage"
                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                             : "text-[#00000066]"
                     }`}
-                    onClick={() => (window.location.href = "/ticketBooking/tracking")}
+                    onClick={() => (window.location.href = "/ticketBooking/settingsPage")}
                 >
-                    <MapPin size={25} />
-                    <h1>Tracking</h1>
-                </div> */}
+                    <Settings size={25} />
+                    <h1>Settings</h1>
+                </div>
                 {/* <div
                     className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
                         currentPath === "/vendors/ticketBooking/message"
