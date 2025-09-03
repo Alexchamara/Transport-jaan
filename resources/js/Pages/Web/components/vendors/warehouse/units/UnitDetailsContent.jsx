@@ -15,7 +15,7 @@ const UnitDetailsContent = () => {
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Units</h1>
+                <h1 className="figtree text-[35px] font-[700]">Warehouse Units</h1>
                 <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} alt="Search" />
@@ -45,7 +45,7 @@ const UnitDetailsContent = () => {
                 >
                     <img src={backArrow} />
                     <h1 className="text-[22px] font-[500] text-[#00000080]">
-                        Units / Unit Details
+                        Warehouse Units / Unit Details
                     </h1>
                 </div>
                 <div className="py-10 md:px-10 flex flex-col xl:flex-row justify-center gap-10">

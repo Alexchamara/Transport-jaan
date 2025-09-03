@@ -33,209 +33,93 @@ const BookingContent = () => {
 
     const [bookings, setBookings] = useState([
         {
-            id: "W-JW1001",
+            id: "WB-001",
             bookingDate: "May 4, 2025",
             clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
+            warehouseName: "Central Cold Storage A",
+            warehouseUnit: "WH-A12",
+            purpose: "Food Storage",
+            specialRequirements: "Temperature -18°C",
+            durationUnit: "months",
+            durationValue: 3,
+            quantity: 50,
             startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
+            endDate: "August 10, 2025",
+            totalPrice: "$1200",
             paymentStatus: "Paid",
             paymentStatusColor: paymentStatusColors.Paid.color,
             paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
+            status: "active",
             statusBg: statusColors.Ongoing.bg,
             statusText: statusColors.Ongoing.text,
+            notes: "Client prefers morning deliveries",
         },
         {
-            id: "W-JW1002",
+            id: "WB-002",
             bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$300",
+            clientName: "Sarah Johnson",
+            warehouseName: "Dry Storage Warehouse B",
+            warehouseUnit: "WH-B15",
+            purpose: "Inventory Storage",
+            specialRequirements: "24/7 access required",
+            durationUnit: "weeks",
+            durationValue: 8,
+            quantity: 75,
+            startDate: "May 15, 2025",
+            endDate: "July 10, 2025",
+            totalPrice: "$800",
             paymentStatus: "Pending",
             paymentStatusColor: paymentStatusColors.Pending.color,
             paymentStatusBg: paymentStatusColors.Pending.bg,
-            status: "Ongoing",
+            status: "active",
             statusBg: statusColors.Ongoing.bg,
             statusText: statusColors.Ongoing.text,
+            notes: "Regular inventory checks needed",
         },
         {
-            id: "W-JW1003",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
+            id: "WB-003",
+            bookingDate: "April 28, 2025",
+            clientName: "Mike Chen",
+            warehouseName: "Climate Controlled Unit C",
+            warehouseUnit: "WH-C08",
+            purpose: "Document Storage",
+            specialRequirements: "Humidity control essential",
+            durationUnit: "months",
+            durationValue: 6,
+            quantity: 25,
+            startDate: "May 1, 2025",
+            endDate: "November 1, 2025",
+            totalPrice: "$1500",
             paymentStatus: "Paid",
             paymentStatusColor: paymentStatusColors.Paid.color,
             paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
+            status: "active",
             statusBg: statusColors.Ongoing.bg,
             statusText: statusColors.Ongoing.text,
+            notes: "Important legal documents",
         },
         {
-            id: "W-JW1004",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
+            id: "WB-004",
+            bookingDate: "May 2, 2025",
+            clientName: "Lisa Wang",
+            warehouseName: "Central Cold Storage A",
+            warehouseUnit: "WH-A05",
+            purpose: "Pharmaceutical Storage",
+            specialRequirements: "Temperature 2-8°C, Security access",
+            durationUnit: "months",
+            durationValue: 12,
+            quantity: 100,
+            startDate: "May 8, 2025",
+            endDate: "May 8, 2026",
+            totalPrice: "$3600",
             paymentStatus: "Paid",
             paymentStatusColor: paymentStatusColors.Paid.color,
             paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
+            status: "active",
             statusBg: statusColors.Ongoing.bg,
             statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "W-JW1005",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "W-JW1006",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "W-JW1007",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "W-JW1008",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "W-JW1009",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "W-JW1010",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "W-JW1011",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
-        {
-            id: "W-JW1012",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            carModel: "Cold Storage",
-            carPlate: "WH-A12",
-            plan: "30 days",
-            startDate: "May 10, 2025",
-            endDate: "May 17, 2025",
-            payment: "$1200",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "Ongoing",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-        },
+            notes: "Pharmaceutical grade storage required",
+        }
     ]);
 
     const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
@@ -243,14 +127,19 @@ const BookingContent = () => {
         id: "",
         bookingDate: "",
         clientName: "",
-        carModel: "",
-        carPlate: "",
-        plan: "",
+        warehouseName: "",
+        warehouseUnit: "",
+        purpose: "",
+        specialRequirements: "",
+        durationUnit: "months",
+        durationValue: "",
+        quantity: "",
         startDate: "",
         endDate: "",
-        payment: "",
+        totalPrice: "",
         paymentStatus: "Pending",
-        status: "Ongoing",
+        status: "active",
+        notes: "",
     });
 
     // Handle input changes for the form
@@ -278,14 +167,19 @@ const BookingContent = () => {
             id: "",
             bookingDate: "",
             clientName: "",
-            carModel: "",
-            carPlate: "",
-            plan: "",
+            warehouseName: "",
+            warehouseUnit: "",
+            purpose: "",
+            specialRequirements: "",
+            durationUnit: "months",
+            durationValue: "",
+            quantity: "",
             startDate: "",
             endDate: "",
-            payment: "",
+            totalPrice: "",
             paymentStatus: "Pending",
-            status: "Ongoing",
+            status: "active",
+            notes: "",
         });
     };
 
@@ -469,7 +363,7 @@ const BookingContent = () => {
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="Search client name, storage, etc."
+                                placeholder="Search client, warehouse, purpose..."
                             />
                         </div>
                         <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
@@ -479,7 +373,7 @@ const BookingContent = () => {
                                 alt="Filter"
                             />
                             <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Storage type
+                                Warehouse type
                             </h1>
                             <img src={miniDownArrow} alt="Dropdown" />
                         </div>
@@ -506,9 +400,9 @@ const BookingContent = () => {
                 {/* Add Booking Popup */}
                 {isAddPopupOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                        <div className="bg-white p-10 rounded-[10px] w-[600px] shadow-lg">
+                        <div className="bg-white p-10 rounded-[10px] w-[800px] max-h-[80vh] overflow-y-auto shadow-lg">
                             <h2 className="text-[18px] font-[700] mb-4">
-                                Add New Booking
+                                Add New Warehouse Booking
                             </h2>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="mb-4">
@@ -521,7 +415,7 @@ const BookingContent = () => {
                                         value={newBooking.id}
                                         onChange={handleInputChange}
                                         className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. W-JW1001"
+                                        placeholder="e.g. WB-001"
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -552,25 +446,25 @@ const BookingContent = () => {
                                 </div>
                                 <div className="mb-4">
                                     <label className="block text-[14px] font-[500] mb-1">
-                                        Storage Type
+                                        Warehouse Name
                                     </label>
                                     <input
                                         type="text"
-                                        name="carModel"
-                                        value={newBooking.carModel}
+                                        name="warehouseName"
+                                        value={newBooking.warehouseName}
                                         onChange={handleInputChange}
                                         className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. Cold Storage"
+                                        placeholder="e.g. Central Cold Storage A"
                                     />
                                 </div>
                                 <div className="mb-4">
                                     <label className="block text-[14px] font-[500] mb-1">
-                                        Unit / Slot
+                                        Warehouse Unit
                                     </label>
                                     <input
                                         type="text"
-                                        name="carPlate"
-                                        value={newBooking.carPlate}
+                                        name="warehouseUnit"
+                                        value={newBooking.warehouseUnit}
                                         onChange={handleInputChange}
                                         className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. WH-A12"
@@ -578,15 +472,70 @@ const BookingContent = () => {
                                 </div>
                                 <div className="mb-4">
                                     <label className="block text-[14px] font-[500] mb-1">
-                                        Plan
+                                        Purpose
                                     </label>
                                     <input
                                         type="text"
-                                        name="plan"
-                                        value={newBooking.plan}
+                                        name="purpose"
+                                        value={newBooking.purpose}
                                         onChange={handleInputChange}
                                         className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. 30 days"
+                                        placeholder="e.g. Food Storage"
+                                    />
+                                </div>
+                                <div className="mb-4 col-span-2">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Special Requirements
+                                    </label>
+                                    <textarea
+                                        name="specialRequirements"
+                                        value={newBooking.specialRequirements}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. Temperature -18°C, 24/7 access"
+                                        rows="2"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Duration Unit
+                                    </label>
+                                    <select
+                                        name="durationUnit"
+                                        value={newBooking.durationUnit}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                    >
+                                        <option value="days">Days</option>
+                                        <option value="weeks">Weeks</option>
+                                        <option value="months">Months</option>
+                                        <option value="years">Years</option>
+                                    </select>
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Duration Value
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="durationValue"
+                                        value={newBooking.durationValue}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. 3"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Quantity
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        value={newBooking.quantity}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. 50"
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -612,17 +561,17 @@ const BookingContent = () => {
                                         value={newBooking.endDate}
                                         onChange={handleInputChange}
                                         className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
-                                        placeholder="e.g. May 17, 2025"
+                                        placeholder="e.g. August 10, 2025"
                                     />
                                 </div>
                                 <div className="mb-4">
                                     <label className="block text-[14px] font-[500] mb-1">
-                                        Payment Amount
+                                        Total Price
                                     </label>
                                     <input
                                         type="text"
-                                        name="payment"
-                                        value={newBooking.payment}
+                                        name="totalPrice"
+                                        value={newBooking.totalPrice}
                                         onChange={handleInputChange}
                                         className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                         placeholder="e.g. $1200"
@@ -652,11 +601,23 @@ const BookingContent = () => {
                                         onChange={handleInputChange}
                                         className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                     >
-                                        <option value="Ongoing">Ongoing</option>
-                                        <option value="Returned">
-                                            Returned
-                                        </option>
+                                        <option value="active">Active</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
                                     </select>
+                                </div>
+                                <div className="mb-4 col-span-2">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Notes
+                                    </label>
+                                    <textarea
+                                        name="notes"
+                                        value={newBooking.notes}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="Additional notes or special instructions"
+                                        rows="2"
+                                    />
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2">

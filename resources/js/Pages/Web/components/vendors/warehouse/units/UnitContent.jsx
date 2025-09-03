@@ -11,52 +11,55 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 import AddUnit from "../../../../home/vendors/warehouse/AddUnit";
 
 const UnitContent = () => {
-  // Sample data array for warehouse items
+  // Sample data array for warehouse units based on Warehouse model
   const units = [
     {
       id: 1,
-      sku: "RM-001",
-      name: "Green Tea Leaves",
-      category: "Raw Material",
-      uom: "kg",
-      qty: 240,
-      minStock: 100,
-      location: "Aisle A3 / Bin B12",
-      status: "In Stock",
-      cost: 6.5,
-      price: 9.0,
-      batch: "B-25-001",
-      expiry: "2026-03-10",
+      name: "Central Cold Storage A",
+      address: "123 Industrial Ave, Warehouse District",
+      latitude: 6.9271,
+      longitude: 79.8612,
+      total_area: 2500.00,
+      capacity: 5000.00,
+      type: "Cold Storage",
+      amenities: ["Temperature Control", "Loading Dock", "Security", "CCTV"],
+      pricing_model: "per_sqft_monthly",
+      price: 15.50,
+      status: "Available",
+      is_active: true,
+      availability_status: "Available",
     },
     {
       id: 2,
-      sku: "PK-010",
-      name: "500ml Bottles",
-      category: "Packaging",
-      uom: "pcs",
-      qty: 1200,
-      minStock: 500,
-      location: "Aisle P1 / Bin P05",
-      status: "In Stock",
-      cost: 0.12,
-      price: 0.25,
-      batch: "PK-25-010",
-      expiry: "",
+      name: "Dry Storage Warehouse B",
+      address: "456 Commerce Blvd, Industrial Zone",
+      latitude: 6.9344,
+      longitude: 79.8428,
+      total_area: 3200.00,
+      capacity: 8000.00,
+      type: "Dry Storage",
+      amenities: ["Forklift Access", "Loading Bay", "Security", "Fire Safety"],
+      pricing_model: "per_pallet_monthly",
+      price: 120.00,
+      status: "Occupied",
+      is_active: true,
+      availability_status: "Occupied",
     },
     {
       id: 3,
-      sku: "FG-200",
-      name: "Premium Tea - 200g",
-      category: "Finished Goods",
-      uom: "pcs",
-      qty: 18,
-      minStock: 50,
-      location: "Aisle F2 / Bin F09",
-      status: "Low Stock",
-      cost: 2.9,
-      price: 4.5,
-      batch: "FG-25-200",
-      expiry: "2025-12-01",
+      name: "Climate Controlled Unit C",
+      address: "789 Storage St, Commercial District",
+      latitude: 6.9157,
+      longitude: 79.8739,
+      total_area: 1800.00,
+      capacity: 3500.00,
+      type: "Climate Controlled",
+      amenities: ["Climate Control", "Humidity Control", "Security", "24/7 Access"],
+      pricing_model: "per_sqft_monthly",
+      price: 22.75,
+      status: "Available",
+      is_active: true,
+      availability_status: "Available",
     },
   ];
 
@@ -104,11 +107,11 @@ const UnitContent = () => {
 
   const statusColor = (status) => {
     switch (status) {
-      case 'In Stock':
+      case 'Available':
         return 'text-[#3C9A34]';
-      case 'Low Stock':
+      case 'Occupied':
         return 'text-[#D97706]';
-      case 'Out of Stock':
+      case 'Maintenance':
         return 'text-[#DC2626]';
       default:
         return 'text-[#7B7B7A]';
@@ -146,11 +149,11 @@ const UnitContent = () => {
           <div className="flex flex-row gap-5 justify-center items-center">
             <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
               <img src={miniSearchIcon} alt="Search" />
-              <input type="text" className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]" placeholder="Search SKU, item, category..." />
+              <input type="text" className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]" placeholder="Search warehouse name, address..." />
             </div>
             <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
               <img src={filterIcon} className="size-[12px]" alt="Filter" />
-              <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">Category</h1>
+              <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">Type</h1>
               <img src={miniDownArrow} alt="Dropdown" />
             </div>
             <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
@@ -160,7 +163,7 @@ const UnitContent = () => {
             </div>
           </div>
           <button className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]" onClick={handleAddUnitClick}>
-            Add Unit
+            Add Warehouse
           </button>
         </div>
       </div>
@@ -170,7 +173,7 @@ const UnitContent = () => {
         <AddUnit />
       ) : (
         <>
-          {/* Units cards */}
+          {/* Warehouse units cards */}
           {currentUnits.map((unit) => (
             <div key={unit.id} className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex flex-col lg:flex-row items-center my-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
               {/* text section */}
@@ -179,41 +182,44 @@ const UnitContent = () => {
                   <div>
                     <div className="bebas-neue text-[28px] font-[400]">
                       <h1>
-                        {unit.name} <span className="text-[#0955AC]">[{unit.sku}]</span>
+                        {unit.name} <span className="text-[#0955AC]">[{unit.type}]</span>
                       </h1>
                     </div>
                     <div className="poppins text-[14px] font-[600] flex gap-4">
-                      <span className={`{statusColor(unit.status)}`}>{unit.status}</span>
-                      <span className="text-[#7B7B7A]">Category: {unit.category}</span>
-                      <span className="text-[#7B7B7A]">UOM: {unit.uom}</span>
+                      <span className={`${statusColor(unit.status)}`}>{unit.availability_status}</span>
+                      <span className="text-[#7B7B7A]">Type: {unit.type}</span>
+                      <span className="text-[#7B7B7A]">Model: {unit.pricing_model}</span>
+                    </div>
+                    <div className="poppins text-[12px] text-[#7B7B7A] mt-1">
+                      <span>{unit.address}</span>
                     </div>
                   </div>
                   <div className="figtree text-right">
-                    <div className="text-[20px] font-[700]">Qty: {unit.qty} {unit.uom}</div>
-                    <div className="text-[14px] text-[#7B7B7A]">Reorder at: {unit.minStock} {unit.uom}</div>
+                    <div className="text-[20px] font-[700]">Area: {unit.total_area} sqft</div>
+                    <div className="text-[14px] text-[#7B7B7A]">Capacity: {unit.capacity} units</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4 text-[14px] poppins">
                   <div>
-                    <div className="text-[#7B7B7A]">Location</div>
-                    <div className="font-[600]">{unit.location}</div>
-                  </div>
-                  <div>
-                    <div className="text-[#7B7B7A]">Cost</div>
-                    <div className="font-[600]">${unit.cost}</div>
+                    <div className="text-[#7B7B7A]">Coordinates</div>
+                    <div className="font-[600]">{unit.latitude}, {unit.longitude}</div>
                   </div>
                   <div>
                     <div className="text-[#7B7B7A]">Price</div>
                     <div className="font-[600]">${unit.price}</div>
                   </div>
                   <div>
-                    <div className="text-[#7B7B7A]">Batch</div>
-                    <div className="font-[600]">{unit.batch}</div>
+                    <div className="text-[#7B7B7A]">Pricing Model</div>
+                    <div className="font-[600]">{unit.pricing_model.replace(/_/g, ' ')}</div>
                   </div>
                   <div>
-                    <div className="text-[#7B7B7A]">Expiry</div>
-                    <div className="font-[600]">{unit.expiry || '-'}</div>
+                    <div className="text-[#7B7B7A]">Amenities</div>
+                    <div className="font-[600]">{unit.amenities.slice(0, 2).join(', ')}{unit.amenities.length > 2 ? '...' : ''}</div>
+                  </div>
+                  <div>
+                    <div className="text-[#7B7B7A]">Active</div>
+                    <div className="font-[600]">{unit.is_active ? 'Yes' : 'No'}</div>
                   </div>
                   <div className="flex items-center lg:justify-end">
                     <button className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-[#FFFFFF] font-[700]" onClick={() => (window.location.href = "/warehouse/unitDetails")}>

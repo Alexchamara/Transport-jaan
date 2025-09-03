@@ -95,7 +95,7 @@ const DashContent = () => {
                                         </div>
                                         <div>
                                             <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                                New Vendors
+                                                Active Bookings
                                             </h1>
                                             <h1 className="text-[26px] font-[700]">
                                                 350
@@ -335,14 +335,14 @@ const DashContent = () => {
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row justify-between">
-                        <h1 className="text-[24px] font-[700]">Warehouse Vendors</h1>
+                        <h1 className="text-[24px] font-[700]">Warehouse Clients</h1>
                         <div className="flex flex-row gap-5">
                             <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                                 <Search size={16} />
                                 <input
                                     type="text"
                                     className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                    placeholder="Search vendor name, company, etc."
+                                    placeholder="Search client name, company, etc."
                                 />
                             </div>
                             <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">

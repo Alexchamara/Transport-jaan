@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\WarehouseControllers\Vendor\WarehouseUnitController;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
@@ -128,20 +129,40 @@ Route::prefix('client')->as('client.')->group(function () {
             ->name('vehicles.policy.preview');
     });
 });
+// vendor routes
+Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
+    Route::get('/mainDashboard', function () {
+        return Inertia::render('Web/home/vendors/MainDashboard');
+    })->name('mainDashboard');
 
+});
 
-/*
-|--------------------------------------------------------------------------
-| Vendor App (Inertia UI)  /vendors/...
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth', 'role:vendor'])
-    ->prefix('vendors')
-    ->name('vendors.')
-    ->group(function () {
-        // Dashboard with real props
-        Route::get('/dashbord', [DashboardController::class, 'index'])->name('dashboard'); // spelling kept
-        Route::get('/dashboard', [DashboardController::class, 'index']); // alias
+// Warehouse (vendor-only) under /vendors/warehouse/*
+Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
+    // Redirect /vendors/warehouse -> /vendors/warehouse/dashboard
+    Route::get('/', fn () => redirect()->route('vendors.warehouse.dashboard'))->name('home');
+
+    // Warehouse pages
+    Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Booking'))->name('bookings');
+    Route::get('/units', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('units');
+
+    // Accept warehouse unit creation (frontend posts to /vendors/warehouse/units)
+    Route::post('/units', [WarehouseUnitController::class, 'store'])->name('units.store');
+
+    Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/warehouse/Dashboard'))->name('dashboard');
+    Route::get('/clients', fn() => Inertia::render('Web/home/vendors/warehouse/Client'))->name('clients');
+    Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/warehouse/Expenses'))->name('expenses');
+    Route::get('/payment', fn() => Inertia::render('Web/home/vendors/warehouse/Payment'))->name('payment');
+    Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/warehouse/Tracking'))->name('tracking');
+    Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/warehouse/Calendar'))->name('calendar');
+    Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/warehouse/AddUnit'))->name('addUnit');
+    Route::get('/unitDetails', fn() => Inertia::render('Web/home/vendors/warehouse/UnitDetails'))->name('unitDetails');
+});
+
+// Backward-compat: if any UI still links to /warehouse/*, redirect to /vendors/warehouse/* (protect with same middleware)
+Route::middleware(['auth', 'role:vendor'])->get('/warehouse/{path}', function (string $path) {
+    return redirect('/vendors/warehouse/' . ltrim($path, '/'));
+})->where('path', '.*');
 
         // Bookings page with DB-fed props (table + chart)
         Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
@@ -167,7 +188,7 @@ Route::middleware(['auth', 'role:vendor'])
 
         // Drivers UI
         Route::get('/drivers', fn () => Inertia::render('Web/components/vendors/driver/Driver'))->name('drivers');
-    });
+    
 
 /*
 |--------------------------------------------------------------------------
@@ -254,9 +275,9 @@ Route::redirect('/addUnit', '/vendors/addUnit')->name('addUnit.legacy');
 Route::redirect('/unitDetails', '/vendors/unitDetails')->name('unitDetails.legacy');
 Route::redirect('/dashboard', '/vendors/dashbord')->name('dashboard.legacy');
 
-Route::get('/mainDashboard', function () {
-    return Inertia::render('Web/home/vendors/MainDashboard');
-})->name('mainDashboard');
+// Route::get('/mainDashboard', function () {
+//     return Inertia::render('Web/home/vendors/MainDashboard');
+// })->name('mainDashboard');
 
 Route::get('/unitDetails', function () {
     return Inertia::render('Web/home/vendors/UnitDetails');
@@ -315,6 +336,7 @@ Route::get('/warehouse/settingsPage', function () {
     return Inertia::render('Web/home/vendors/warehouse/SettingsPage');
 })->name('warehouse.settingsPage');
 
+// vendor dashboard - warehouse (all protected under auth + role:vendor in group above)
 
 
 // vendor dashboard - ticket booking
