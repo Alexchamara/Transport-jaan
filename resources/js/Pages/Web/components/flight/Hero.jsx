@@ -57,7 +57,7 @@ const Hero = () => {
                             </span> simple{" "}
                             <span className="text-[#0955AC]">search</span>.
                         </h1>
-                        <p className="poppins py-5 text-[12px]/[20px] md:text-[14px]/[33px] font-[400] text-[#000000] text-justify mb-10 md:mb-20">
+                        <p className="poppins py-5 text-[12px]/[20px] md:text-[14px]/[33px] font-[400] text-[#000000] text-justify mb-10">
                             Lorem ipsum dolor sit amet, consectetur adipiscing
                             elit. Donec semper eu risus ut ornare. In bibendum
                             tempus sapien, tristique consectetur purus
