@@ -139,27 +139,32 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')-
 
 // Warehouse (vendor-only) under /vendors/warehouse/*
 Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
-    // Redirect /vendors/warehouse -> /vendors/warehouse/dashboard
-    Route::get('/', fn () => redirect()->route('vendors.warehouse.dashboard'))->name('home');
-
-    // Warehouse pages
-    Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Booking'))->name('bookings');
-    Route::get('/units', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('units');
-
-    // API endpoints for warehouse data
-    Route::get('/api/units', [WarehouseUnitController::class, 'index'])->name('api.units');
-    Route::get('/api/units/{id}', [WarehouseUnitController::class, 'show'])->name('api.units.show');
-
-    // Accept warehouse unit creation (frontend posts to /vendors/warehouse/units)
-    Route::post('/units', [WarehouseUnitController::class, 'store'])->name('units.store');
-
     Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/warehouse/Dashboard'))->name('dashboard');
+    Route::get('/units', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('units');
+    Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/warehouse/AddUnit'))->name('addUnit');
+    Route::get('/editUnit/{id}', fn($id) => Inertia::render('Web/home/vendors/warehouse/EditUnit', ['unitId' => $id]))->name('editUnit');
+    Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Booking'))->name('bookings');
     Route::get('/clients', fn() => Inertia::render('Web/home/vendors/warehouse/Client'))->name('clients');
     Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/warehouse/Expenses'))->name('expenses');
     Route::get('/payment', fn() => Inertia::render('Web/home/vendors/warehouse/Payment'))->name('payment');
     Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/warehouse/Tracking'))->name('tracking');
     Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/warehouse/Calendar'))->name('calendar');
-    Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/warehouse/AddUnit'))->name('addUnit');
+
+    // API routes for warehouse units
+    Route::get('/api/units', [WarehouseUnitController::class, 'index'])->name('api.units.index');
+    Route::post('/api/units', [WarehouseUnitController::class, 'store'])->name('api.units.store');
+    Route::get('/api/units/{id}', [WarehouseUnitController::class, 'show'])->name('api.units.show');
+    Route::put('/api/units/{id}', [WarehouseUnitController::class, 'update'])->name('api.units.update');
+    Route::patch('/api/units/{id}', [WarehouseUnitController::class, 'update'])->name('api.units.patch');
+    Route::patch('/api/units/{id}/status', [WarehouseUnitController::class, 'updateStatus'])->name('api.units.updateStatus');
+    Route::delete('/api/units/{id}', [WarehouseUnitController::class, 'destroy'])->name('api.units.destroy');
+});
+
+// Admin routes for warehouse approval (requires admin role)
+Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admin.warehouse.')->group(function () {
+    Route::patch('/api/units/{id}/approve', [WarehouseUnitController::class, 'approve'])->name('api.units.approve');
+    Route::patch('/api/units/{id}/reject', [WarehouseUnitController::class, 'reject'])->name('api.units.reject');
+
     Route::get('/unitDetails', fn() => Inertia::render('Web/home/vendors/warehouse/UnitDetails'))->name('unitDetails');
 });
 

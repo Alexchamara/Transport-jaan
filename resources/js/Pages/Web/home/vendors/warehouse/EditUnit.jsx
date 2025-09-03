@@ -1,38 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import { usePage } from '@inertiajs/react';
+import SideMenu from '../../../components/vendors/warehouse/SideMenu';
 
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
-import backArrow from "../../../assets/vendors/units/backArrow.svg";
-
-const initialState = {
-  // Basic Information
-  name: '',
-  address: '',
-  latitude: '',
-  longitude: '',
-  total_area: '',
-  capacity: '',
-  type: '',
-  
-  // Pricing
-  pricing_model: '',
-  price: '',
-  
-  // Features & Media
-  amenities: [],
-  images: [],
-  documents: [],
-  // special single file
-  terms_pdf: null,
-  
-  // Terms & Status
-  terms_conditions: '',
-  is_active: true,
-};
+// Header icons
+import search from '../../../assets/vendors/dashboard/searchIcon.svg';
+import settings from '../../../assets/vendors/dashboard/settings.svg';
+import bell from '../../../assets/vendors/dashboard/bell.svg';
+import proPic from '../../../assets/vendors/dashboard/proPic.svg';
+import backArrow from '../../../assets/vendors/units/backArrow.svg';
 
 const warehouseTypes = [
   'Cold Storage', 'Dry Storage', 'Climate Controlled', 'Hazmat Storage', 
@@ -50,32 +26,166 @@ const defaultAmenities = [
   'Refrigeration', 'Power Backup', 'Internet Access', 'Office Space'
 ];
 
-const AddUnit = () => {
-  const [form, setForm] = useState(initialState);
+const EditUnit = () => {
+  const { unitId } = usePage().props;
+  const [form, setForm] = useState({
+    name: '',
+    address: '',
+    latitude: '',
+    longitude: '',
+    total_area: '',
+    capacity: '',
+    type: '',
+    pricing_model: '',
+    price: '',
+    amenities: [],
+    terms_conditions: '',
+    is_active: true,
+  });
+
+  const [originalData, setOriginalData] = useState(null);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [errorItems, setErrorItems] = useState([]);
+  const [changedFields, setChangedFields] = useState([]);
   const [amenityInput, setAmenityInput] = useState('');
   const [amenityOptions, setAmenityOptions] = useState(defaultAmenities);
 
-  // image previews
-  const [imageFiles, setImageFiles] = useState([]); // File[]
-  const [imagePreviews, setImagePreviews] = useState([]); // string[] object URLs
+  // Existing files
+  const [existingImages, setExistingImages] = useState([]);
+  const [existingDocuments, setExistingDocuments] = useState([]);
+  const [existingTermsPdf, setExistingTermsPdf] = useState(null);
+  
+  // Store original file paths for removal (separate from display URLs)
+  const [originalImagePaths, setOriginalImagePaths] = useState([]);
+  const [originalDocumentPaths, setOriginalDocumentPaths] = useState([]);
+  const [originalTermsPdfPath, setOriginalTermsPdfPath] = useState(null);
 
-  // documents (general, not terms)
-  const [documentFiles, setDocumentFiles] = useState([]); // File[]
+  // New files
+  const [newImageFiles, setNewImageFiles] = useState([]);
+  const [newImagePreviews, setNewImagePreviews] = useState([]);
+  const [newDocumentFiles, setNewDocumentFiles] = useState([]);
+  const [newTermsPdfFile, setNewTermsPdfFile] = useState(null);
+  const [newTermsPdfUrl, setNewTermsPdfUrl] = useState('');
 
-  // terms pdf preview
-  const [termsPdfFile, setTermsPdfFile] = useState(null); // File | null
-  const [termsPdfUrl, setTermsPdfUrl] = useState('');
+  // Files to remove
+  const [imagesToRemove, setImagesToRemove] = useState([]);
+  const [documentsToRemove, setDocumentsToRemove] = useState([]);
+  const [removeTermsPdf, setRemoveTermsPdf] = useState(false);
 
   // Google Maps
   const mapScriptLoadedRef = useRef(false);
   const autoInputRef = useRef(null);
   const autocompleteRef = useRef(null);
   const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  // Load warehouse data
+  useEffect(() => {
+    const fetchWarehouseData = async () => {
+      try {
+        const response = await fetch(`/vendors/warehouse/api/units/${unitId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch warehouse data');
+        }
+        const data = await response.json();
+        
+        setOriginalData(data);
+        setForm({
+          name: data.name || '',
+          address: data.address || '',
+          latitude: data.latitude || '',
+          longitude: data.longitude || '',
+          total_area: data.total_area || '',
+          capacity: data.capacity || '',
+          type: data.type || '',
+          pricing_model: data.pricing_model || '',
+          price: data.price || '',
+          amenities: data.amenities || [],
+          terms_conditions: data.terms_conditions || '',
+          is_active: data.is_active !== undefined ? data.is_active : true,
+        });
+
+        // Set existing files - images and documents come as URLs, we need to extract paths
+        setExistingImages(data.images || []);
+        setExistingDocuments(data.documents || []);
+        setExistingTermsPdf(data.terms_pdf_path || null);
+        
+        // Store original file paths for removal (extract from URLs)
+        const imagePaths = (data.images || []).map(url => {
+          // Extract path from URL like /storage/warehouse/images/filename.jpg
+          return url.startsWith('/storage/') ? url.replace('/storage/', '') : url;
+        });
+        const documentPaths = (data.documents || []).map(url => {
+          return url.startsWith('/storage/') ? url.replace('/storage/', '') : url;
+        });
+        const termsPdfPath = data.terms_pdf_path && data.terms_pdf_path.startsWith('/storage/') 
+          ? data.terms_pdf_path.replace('/storage/', '') 
+          : data.terms_pdf_path;
+          
+        setOriginalImagePaths(imagePaths);
+        setOriginalDocumentPaths(documentPaths);
+        setOriginalTermsPdfPath(termsPdfPath);
+
+        // Add custom amenities to options
+        if (data.amenities) {
+          const customAmenities = data.amenities.filter(amenity => !defaultAmenities.includes(amenity));
+          if (customAmenities.length > 0) {
+            setAmenityOptions(prev => [...prev, ...customAmenities]);
+          }
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching warehouse data:', error);
+        setErrorItems(['Failed to load warehouse data. Please try again.']);
+        setShowErrorModal(true);
+        setLoading(false);
+      }
+    };
+
+    if (unitId) {
+      fetchWarehouseData();
+    }
+  }, [unitId]);
+
+  // Detect changes
+  useEffect(() => {
+    if (!originalData) return;
+
+    const changes = [];
+    
+    if (form.name !== originalData.name) changes.push('Name');
+    if (form.address !== originalData.address) changes.push('Address');
+    if (String(form.latitude) !== String(originalData.latitude || '')) changes.push('Latitude');
+    if (String(form.longitude) !== String(originalData.longitude || '')) changes.push('Longitude');
+    if (String(form.total_area) !== String(originalData.total_area || '')) changes.push('Total Area');
+    if (String(form.capacity) !== String(originalData.capacity || '')) changes.push('Capacity');
+    if (form.type !== originalData.type) changes.push('Type');
+    if (form.pricing_model !== originalData.pricing_model) changes.push('Pricing Model');
+    if (String(form.price) !== String(originalData.price || '')) changes.push('Price');
+    if (form.terms_conditions !== (originalData.terms_conditions || '')) changes.push('Terms & Conditions');
+    if (form.is_active !== originalData.is_active) changes.push('Active Status');
+    
+    // Check amenities changes
+    const originalAmenities = originalData.amenities || [];
+    const currentAmenities = form.amenities || [];
+    if (JSON.stringify(originalAmenities.sort()) !== JSON.stringify(currentAmenities.sort())) {
+      changes.push('Amenities');
+    }
+
+    // Check file changes
+    if (newImageFiles.length > 0) changes.push('New Images');
+    if (imagesToRemove.length > 0) changes.push('Removed Images');
+    if (newDocumentFiles.length > 0) changes.push('New Documents');
+    if (documentsToRemove.length > 0) changes.push('Removed Documents');
+    if (newTermsPdfFile) changes.push('New Terms PDF');
+    if (removeTermsPdf) changes.push('Removed Terms PDF');
+
+    setChangedFields(changes);
+  }, [form, originalData, newImageFiles, imagesToRemove, newDocumentFiles, documentsToRemove, newTermsPdfFile, removeTermsPdf]);
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -94,58 +204,48 @@ const AddUnit = () => {
         const list = Array.from(files || []);
         
         // Validate file count
-        const totalImages = imageFiles.length + list.length;
+        const totalImages = existingImages.length - imagesToRemove.length + newImageFiles.length + list.length;
         if (totalImages > 20) {
           setErrors(prev => ({ ...prev, images: 'You can upload a maximum of 20 images.' }));
           return;
         }
         
         // Validate file sizes
-        const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
         const invalidFiles = list.filter(file => file.size > maxSize);
         if (invalidFiles.length > 0) {
-          setErrors(prev => ({ ...prev, images: `Some images are too large. Maximum size is 50MB per image.` }));
+          setErrors(prev => ({ ...prev, images: `Some images are too large. Maximum size is 10MB per image.` }));
           return;
         }
         
         // Validate file types
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
         const invalidTypes = list.filter(file => !allowedTypes.includes(file.type));
         if (invalidTypes.length > 0) {
-          setErrors(prev => ({ ...prev, images: 'Only JPEG, PNG, GIF, and WebP images are allowed.' }));
+          setErrors(prev => ({ ...prev, images: 'Only JPEG, PNG, GIF, WebP, and SVG images are allowed.' }));
           return;
         }
         
-        const nextFiles = [...imageFiles, ...list];
-        setImageFiles(nextFiles);
+        const nextFiles = [...newImageFiles, ...list];
+        setNewImageFiles(nextFiles);
         const newUrls = list.map((f) => URL.createObjectURL(f));
-        setImagePreviews((prev) => [...prev, ...newUrls]);
-        // keep minimal in form to serialize counts
-        setForm((prev) => ({ ...prev, images: nextFiles }));
+        setNewImagePreviews((prev) => [...prev, ...newUrls]);
         
-        // Clear image error if images are added
-        if (nextFiles.length > 0 && errors.images) {
-          setErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors.images;
-            return newErrors;
-          });
-        }
       } else if (name === 'documents') {
         const list = Array.from(files || []);
         
         // Validate file count
-        const totalDocs = documentFiles.length + list.length;
+        const totalDocs = existingDocuments.length - documentsToRemove.length + newDocumentFiles.length + list.length;
         if (totalDocs > 20) {
           setErrors(prev => ({ ...prev, documents: 'You can upload a maximum of 20 documents.' }));
           return;
         }
         
         // Validate file sizes
-        const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
         const invalidFiles = list.filter(file => file.size > maxSize);
         if (invalidFiles.length > 0) {
-          setErrors(prev => ({ ...prev, documents: `Some documents are too large. Maximum size is 50MB per document.` }));
+          setErrors(prev => ({ ...prev, documents: `Some documents are too large. Maximum size is 10MB per document.` }));
           return;
         }
         
@@ -157,17 +257,17 @@ const AddUnit = () => {
           return;
         }
         
-        const nextFiles = [...documentFiles, ...list];
-        setDocumentFiles(nextFiles);
-        setForm((prev) => ({ ...prev, documents: nextFiles }));
+        const nextFiles = [...newDocumentFiles, ...list];
+        setNewDocumentFiles(nextFiles);
+        
       } else if (name === 'terms_pdf') {
         const file = files && files[0] ? files[0] : null;
         
         if (file) {
           // Validate file size
-          const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+          const maxSize = 10 * 1024 * 1024; // 10MB in bytes
           if (file.size > maxSize) {
-            setErrors(prev => ({ ...prev, terms_pdf: 'Terms PDF file is too large. Maximum size is 50MB.' }));
+            setErrors(prev => ({ ...prev, terms_pdf: 'Terms PDF file is too large. Maximum size is 10MB.' }));
             return;
           }
           
@@ -178,32 +278,14 @@ const AddUnit = () => {
           }
         }
         
-        setTermsPdfFile(file);
-        setForm((prev) => ({ ...prev, terms_pdf: file }));
-        if (file) setTermsPdfUrl(URL.createObjectURL(file));
-        
-        // Clear terms error if PDF is uploaded (and no inline terms required)
-        if (file && errors.terms_conditions) {
-          setErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors.terms_conditions;
-            return newErrors;
-          });
-        }
+        setNewTermsPdfFile(file);
+        if (file) setNewTermsPdfUrl(URL.createObjectURL(file));
+        if (file) setRemoveTermsPdf(false); // If uploading new, don't remove existing
       }
     } else if (type === 'checkbox') {
       setForm((prev) => ({ ...prev, [name]: checked }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
-      
-      // Special handling for terms_conditions - clear error if user types and has content
-      if (name === 'terms_conditions' && value.trim() && errors.terms_conditions) {
-        setErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors.terms_conditions;
-          return newErrors;
-        });
-      }
     }
   };
 
@@ -214,6 +296,59 @@ const AddUnit = () => {
         ? prev.amenities.filter(a => a !== amenity)
         : [...prev.amenities, amenity]
     }));
+  };
+
+  const addAmenity = () => {
+    const trimmed = amenityInput.trim();
+    if (!trimmed) return;
+    if (!amenityOptions.includes(trimmed)) setAmenityOptions((prev) => [...prev, trimmed]);
+    setForm((prev) => ({ 
+      ...prev, 
+      amenities: prev.amenities.includes(trimmed) ? prev.amenities : [...prev.amenities, trimmed] 
+    }));
+    setAmenityInput('');
+  };
+
+  const removeNewImageAt = (index) => {
+    setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewImagePreviews((prev) => {
+      const arr = [...prev];
+      const [url] = arr.splice(index, 1);
+      if (url) URL.revokeObjectURL(url);
+      return arr;
+    });
+  };
+
+  const removeExistingImage = (imageUrl) => {
+    // Find the corresponding original path
+    const index = existingImages.indexOf(imageUrl);
+    if (index !== -1 && originalImagePaths[index]) {
+      setImagesToRemove(prev => [...prev, originalImagePaths[index]]);
+    }
+  };
+
+  const restoreExistingImage = (imageUrl) => {
+    // Find the corresponding original path
+    const index = existingImages.indexOf(imageUrl);
+    if (index !== -1 && originalImagePaths[index]) {
+      setImagesToRemove(prev => prev.filter(img => img !== originalImagePaths[index]));
+    }
+  };
+
+  const removeExistingDocument = (docUrl) => {
+    // Find the corresponding original path
+    const index = existingDocuments.indexOf(docUrl);
+    if (index !== -1 && originalDocumentPaths[index]) {
+      setDocumentsToRemove(prev => [...prev, originalDocumentPaths[index]]);
+    }
+  };
+
+  const restoreExistingDocument = (docUrl) => {
+    // Find the corresponding original path
+    const index = existingDocuments.indexOf(docUrl);
+    if (index !== -1 && originalDocumentPaths[index]) {
+      setDocumentsToRemove(prev => prev.filter(doc => doc !== originalDocumentPaths[index]));
+    }
   };
 
   const validateForm = () => {
@@ -257,20 +392,20 @@ const AddUnit = () => {
       newErrors.longitude = 'Longitude must be between -180 and 180';
     }
 
-    // Terms & Conditions validation - require either inline terms or PDF upload
-    if (!form.terms_conditions.trim() && !termsPdfFile) {
+    // Terms & Conditions validation
+    const hasInlineTerms = form.terms_conditions.trim();
+    const hasExistingPdf = existingTermsPdf && !removeTermsPdf;
+    const hasNewPdf = newTermsPdfFile;
+    
+    if (!hasInlineTerms && !hasExistingPdf && !hasNewPdf) {
       newErrors.terms_conditions = 'Terms & Conditions are required - please provide either inline terms or upload a PDF';
     }
 
-    // Images validation - require at least one image
-    if (imageFiles.length === 0) {
+    // Images validation - require at least one image after all operations
+    const remainingImages = existingImages.length - imagesToRemove.length + newImageFiles.length;
+    if (remainingImages === 0) {
       newErrors.images = 'At least one warehouse image is required';
     }
-
-    // Optional: Documents validation (uncomment if you want to require documents)
-    // if (documentFiles.length === 0) {
-    //   newErrors.documents = 'At least one legal document is required';
-    // }
 
     return newErrors;
   };
@@ -278,12 +413,18 @@ const AddUnit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Check if there are any changes
+    if (changedFields.length === 0) {
+      setErrorItems(['No changes detected. Please make some changes before saving.']);
+      setShowErrorModal(true);
+      return;
+    }
+    
     // Validate form
     const validationErrors = validateForm();
     
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      // Show error messages in modal
       const errorList = Object.values(validationErrors);
       setErrorItems(errorList);
       setShowErrorModal(true);
@@ -298,17 +439,13 @@ const AddUnit = () => {
   const confirmSubmit = async () => {
     setShowConfirmModal(false);
     
-    // Clear form immediately after confirmation
-    setForm(initialState);
-    setImageFiles([]);
-    setImagePreviews([]);
-    setDocumentFiles([]);
-    setTermsPdfFile(null);
-    setTermsPdfUrl('');
-    
     try {
       const data = new FormData();
-      // append primitives
+      
+      // Add method override for Laravel to handle PUT request properly
+      data.append('_method', 'PUT');
+      
+      // Basic form data
       data.append('name', form.name);
       data.append('address', form.address);
       data.append('latitude', form.latitude || '');
@@ -321,32 +458,75 @@ const AddUnit = () => {
       data.append('terms_conditions', form.terms_conditions || '');
       data.append('is_active', form.is_active ? '1' : '0');
       data.append('amenities', JSON.stringify(form.amenities || []));
-      // files
-      imageFiles.forEach((f) => data.append('images[]', f));
-      documentFiles.forEach((f) => data.append('documents[]', f));
-      if (termsPdfFile) data.append('terms_pdf', termsPdfFile);
+      
+      // File operations
+      newImageFiles.forEach((f) => data.append('images[]', f));
+      newDocumentFiles.forEach((f) => data.append('documents[]', f));
+      if (newTermsPdfFile) data.append('terms_pdf', newTermsPdfFile);
+      
+      // Files to remove - use the stored original paths
+      if (imagesToRemove.length > 0) {
+        imagesToRemove.forEach(filePath => data.append('remove_images[]', filePath));
+      }
+      if (documentsToRemove.length > 0) {
+        documentsToRemove.forEach(filePath => data.append('remove_documents[]', filePath));
+      }
+      if (removeTermsPdf) {
+        data.append('remove_terms_pdf', '1');
+      }
 
-      Inertia.post('/vendors/warehouse/units', data, {
-        forceFormData: true,
-        onError: (err) => {
-          setErrors(err);
-          // flatten error messages for modal display
-          const list = Object.values(err || {}).flat().map((msg) => String(msg));
-          setErrorItems(list);
-          setShowErrorModal(true);
+      // Get CSRF token from meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
+      const response = await fetch(`/vendors/warehouse/api/units/${unitId}`, {
+        method: 'POST',
+        headers: {
+          ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
+          'X-Requested-With': 'XMLHttpRequest',
         },
-        preserveState: true,
-        onSuccess: () => {
-          // show success modal
-          setShowSuccessModal(true);
-        }
+        body: data,
       });
+
+      if (!response.ok) {
+        if (response.status === 422) {
+          // Validation errors
+          const errorData = await response.json();
+          const validationErrors = errorData.errors || {};
+          setErrors(validationErrors);
+          
+          // Flatten validation errors for display
+          const errorList = Object.values(validationErrors).flat().map((msg) => String(msg));
+          setErrorItems(errorList);
+          setShowErrorModal(true);
+          return;
+        } else if (response.status === 419) {
+          // CSRF token mismatch
+          setErrorItems(['CSRF token mismatch. Please refresh the page and try again.']);
+          setShowErrorModal(true);
+          return;
+        } else if (response.status === 413) {
+          // Payload too large
+          setErrorItems(['The uploaded files are too large. Please reduce file sizes and try again.']);
+          setShowErrorModal(true);
+          return;
+        } else {
+          // Other errors
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `Server error: ${response.status}`);
+        }
+      }
+
+      // Success
+      setShowSuccessModal(true);
+      
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Error updating warehouse:', error);
       setErrorItems([error?.message || 'Something went wrong. Please try again.']);
       setShowErrorModal(true);
     }
-  };  // Google Maps script loader and autocomplete
+  };
+
+  // Google Maps script loader and autocomplete
   useEffect(() => {
     if (!googleApiKey || mapScriptLoadedRef.current) return;
     const script = document.createElement('script');
@@ -363,7 +543,12 @@ const AddUnit = () => {
           if (!place || !place.geometry) return;
           const lat = place.geometry.location.lat();
           const lng = place.geometry.location.lng();
-          setForm((prev) => ({...prev, address: place.formatted_address || prev.address, latitude: lat, longitude: lng }));
+          setForm((prev) => ({
+            ...prev, 
+            address: place.formatted_address || prev.address, 
+            latitude: lat, 
+            longitude: lng 
+          }));
         });
       }
     };
@@ -383,34 +568,28 @@ const AddUnit = () => {
     });
   };
 
-  const addAmenity = () => {
-    const trimmed = amenityInput.trim();
-    if (!trimmed) return;
-    if (!amenityOptions.includes(trimmed)) setAmenityOptions((prev) => [...prev, trimmed]);
-    setForm((prev) => ({ ...prev, amenities: prev.amenities.includes(trimmed) ? prev.amenities : [...prev.amenities, trimmed] }));
-    setAmenityInput('');
-  };
-
-  const removeImageAt = (index) => {
-    setImageFiles((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => {
-      const arr = [...prev];
-      const [url] = arr.splice(index, 1);
-      if (url) URL.revokeObjectURL(url);
-      return arr;
-    });
-    
-    // Check if we need to show image error after removal
-    const remainingImages = imageFiles.filter((_, i) => i !== index);
-    if (remainingImages.length === 0) {
-      setErrors(prev => ({ ...prev, images: 'At least one warehouse image is required' }));
-    }
-  };
+  if (loading) {
+    return (
+      <div className="bg-[#E5E5E5] h-auto">
+        <div className="flex flex-row gap-10 h-auto">
+          <SideMenu />
+          <div className="w-full h-auto pr-5 py-10 poppins">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-lg text-gray-600">Loading warehouse data...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full h-auto pr-5 py-10 poppins">
+    <div className="bg-[#E5E5E5] h-auto">
+      <div className="flex flex-row gap-10 h-auto">
+        <SideMenu />
+        <div className="w-full h-auto pr-5 py-10 poppins">
       {/* Header section */}
-      {/* <div className="flex flex-row gap-5 justify-between items-center">
+      <div className="flex flex-row gap-5 justify-between items-center">
         <h1 className="figtree text-[35px] font-[700]">Warehouse Units</h1>
         <div className="flex flex-row gap-5">
           <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
@@ -427,12 +606,10 @@ const AddUnit = () => {
           </div>
           <div className="figtree flex flex-col justify-center items-start">
             <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
-            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-              Vendor
-            </h1>
+            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Vendor</h1>
           </div>
         </div>
-      </div> */}
+      </div>
       {/* end of header section */}
       
       {/* Breadcrumb navigation */}
@@ -443,13 +620,26 @@ const AddUnit = () => {
         >
           <img src={backArrow} alt="Back" />
           <h1 className="text-[22px] font-[500] text-[#00000080]">
-            Warehouse Units / Add Unit
+            Warehouse Units / Edit Unit
           </h1>
         </div>
       </div>
-      
+
+      {/* Changes indicator */}
+      {changedFields.length > 0 && (
+        <div className="mt-6 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 text-amber-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"></path>
+            </svg>
+            <span className="text-amber-800 font-medium">Changes detected:</span>
+            <span className="text-amber-700 ml-2">{changedFields.join(', ')}</span>
+          </div>
+        </div>
+      )}
+
       {/* Action buttons */}
-      <div className="flex justify-end gap-3 pt-6 pb-4">
+      <div className="flex justify-end gap-3 mt-6 mb-6">
         <button 
           type="button" 
           className="w-[100px] h-[40px] border border-[#7B7B7A] text-[#7B7B7A] font-[600] rounded-[6px] text-[14px] hover:bg-gray-50"
@@ -461,8 +651,9 @@ const AddUnit = () => {
           type="submit" 
           form="warehouse-form"
           className="w-[120px] h-[40px] bg-[#0955AC] text-[#FFFFFF] font-[600] rounded-[6px] text-[14px] hover:bg-[#0844A0]"
+          disabled={changedFields.length === 0}
         >
-          Save Warehouse
+          Save Changes
         </button>
       </div>
 
@@ -606,6 +797,7 @@ const AddUnit = () => {
                 {errors.capacity && <div className="text-[#DC2626] text-[12px] mt-1">{errors.capacity}</div>}
               </div>
             </div>
+            
             {mapPreviewUrl && (
               <div className="mt-6">
                 <label className="block text-[14px] font-medium text-gray-700 mb-2">Map Preview</label>
@@ -697,16 +889,47 @@ const AddUnit = () => {
               />
               {errors.terms_conditions && <div className="text-[#DC2626] text-[12px] mt-1">{errors.terms_conditions}</div>}
             </div>
+            
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Existing Terms PDF */}
+              {existingTermsPdf && !removeTermsPdf && (
+                <div className="space-y-2">
+                  <label className="block text-[14px] font-medium text-gray-700">Current Terms PDF</label>
+                  <div className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Terms & Conditions PDF</span>
+                      <div className="flex gap-2">
+                        <a href={existingTermsPdf} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">View</a>
+                        <button type="button" onClick={() => setRemoveTermsPdf(true)} className="text-red-600 text-sm hover:underline">Remove</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Removed Terms PDF indicator */}
+              {removeTermsPdf && (
+                <div className="space-y-2">
+                  <label className="block text-[14px] font-medium text-gray-700">Terms PDF</label>
+                  <div className="border rounded-lg p-4 bg-red-50 border-red-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-red-700">Terms PDF marked for removal</span>
+                      <button type="button" onClick={() => setRemoveTermsPdf(false)} className="text-blue-600 text-sm hover:underline">Restore</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* New Terms PDF Upload */}
               <div>
-                <label className="block text-[14px] font-medium text-gray-700">Upload Terms & Conditions (PDF)</label>
+                <label className="block text-[14px] font-medium text-gray-700">Upload New Terms & Conditions (PDF)</label>
                 <input id="terms_pdf" name="terms_pdf" type="file" accept="application/pdf" onChange={handleChange} className="mt-2" />
-                {termsPdfFile && (
+                {newTermsPdfFile && (
                   <div className="mt-3">
-                    <p className="text-sm text-gray-700">Selected: {termsPdfFile.name}</p>
-                    {termsPdfUrl && (
+                    <p className="text-sm text-gray-700">Selected: {newTermsPdfFile.name}</p>
+                    {newTermsPdfUrl && (
                       <div className="mt-2 border rounded-lg overflow-hidden h-64">
-                        <iframe title="terms-preview" src={termsPdfUrl} className="w-full h-full" />
+                        <iframe title="terms-preview" src={newTermsPdfUrl} className="w-full h-full" />
                       </div>
                     )}
                   </div>
@@ -715,12 +938,38 @@ const AddUnit = () => {
             </div>
           </section>
 
-          {/* Media & Documents */}
+          {/* Images & Documents */}
           <section className="bg-[#FFFFFF] p-6 rounded-lg">
             <h2 className="text-[18px] font-[400] text-gray-800 mb-6">Images & Documents</h2>
+            
+            {/* Existing Images */}
+            {existingImages.length > 0 && (
+              <div className="mb-6">
+                <label className="block text-[14px] font-medium text-gray-700 mb-2">Current Images</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {existingImages.map((imageUrl, idx) => {
+                    const isRemoved = originalImagePaths[idx] && imagesToRemove.includes(originalImagePaths[idx]);
+                    return (
+                      <div key={imageUrl} className={`relative group ${isRemoved ? 'opacity-50' : ''}`}>
+                        <img src={imageUrl} alt={`existing-${idx}`} className="w-full h-28 object-cover rounded-lg border" />
+                        <div className="absolute top-1 right-1 flex gap-1">
+                          {isRemoved ? (
+                            <button type="button" onClick={() => restoreExistingImage(imageUrl)} className="bg-green-600 text-white text-xs px-2 py-1 rounded opacity-90 hover:opacity-100">Restore</button>
+                          ) : (
+                            <button type="button" onClick={() => removeExistingImage(imageUrl)} className="bg-red-600 text-white text-xs px-2 py-1 rounded opacity-90 hover:opacity-100">Remove</button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* New Images Upload */}
               <div className="space-y-2">
-                <label className="block text-[14px] font-medium text-gray-700">Warehouse Images *</label>
+                <label className="block text-[14px] font-medium text-gray-700">Add New Warehouse Images</label>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-150">
                   <div className="space-y-1 text-center">
                     <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
@@ -729,28 +978,63 @@ const AddUnit = () => {
                     <div className="flex text-sm text-gray-600">
                       <label htmlFor="images" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
                         <span>Upload images</span>
-                        <input id="images" name="images" type="file" multiple accept="image/*" onChange={handleChange} className="sr-only" />
+                        <input id="images" name="images" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/svg+xml" onChange={handleChange} className="sr-only" />
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, GIF, WebP up to 50MB each (max 20 images)</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF, WebP, SVG up to 10MB each (max 20 images total)</p>
                   </div>
                 </div>
                 {errors.images && <div className="text-[#DC2626] text-[12px] mt-1">{errors.images}</div>}
-                {imagePreviews.length > 0 && (
+                
+                {/* New Image Previews */}
+                {newImagePreviews.length > 0 && (
                   <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {imagePreviews.map((src, idx) => (
+                    {newImagePreviews.map((src, idx) => (
                       <div key={src} className="relative group">
-                        <img src={src} alt={`preview-${idx}`} className="w-full h-28 object-cover rounded-lg border" />
-                        <button type="button" onClick={() => removeImageAt(idx)} className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-1 rounded opacity-90 hover:opacity-100">Remove</button>
+                        <img src={src} alt={`new-preview-${idx}`} className="w-full h-28 object-cover rounded-lg border border-green-200" />
+                        <div className="absolute top-1 left-1 bg-green-600 text-white text-xs px-1 py-0.5 rounded">New</div>
+                        <button type="button" onClick={() => removeNewImageAt(idx)} className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 py-1 rounded opacity-90 hover:opacity-100">Remove</button>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
+              {/* Documents Section */}
               <div className="space-y-2">
-                <label className="block text-[14px] font-medium text-gray-700">Legal Documents</label>
+                {/* Existing Documents */}
+                {existingDocuments.length > 0 && (
+                  <div className="mb-4">
+                    <label className="block text-[14px] font-medium text-gray-700 mb-2">Current Documents</label>
+                    <div className="space-y-2">
+                      {existingDocuments.map((docUrl, idx) => {
+                        const isRemoved = originalDocumentPaths[idx] && documentsToRemove.includes(originalDocumentPaths[idx]);
+                        return (
+                          <div key={docUrl} className={`flex items-center justify-between p-2 border rounded ${isRemoved ? 'bg-red-50 border-red-200' : 'bg-gray-50'}`}>
+                            <div className="flex items-center">
+                              <svg className="w-5 h-5 text-gray-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd"></path>
+                              </svg>
+                              <span className="text-sm text-gray-700">Document {idx + 1}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <a href={docUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">View</a>
+                              {isRemoved ? (
+                                <button type="button" onClick={() => restoreExistingDocument(docUrl)} className="text-green-600 text-sm hover:underline">Restore</button>
+                              ) : (
+                                <button type="button" onClick={() => removeExistingDocument(docUrl)} className="text-red-600 text-sm hover:underline">Remove</button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* New Documents Upload */}
+                <label className="block text-[14px] font-medium text-gray-700">Add New Legal Documents</label>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition-colors duration-150">
                   <div className="space-y-1 text-center">
                     <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
@@ -759,29 +1043,51 @@ const AddUnit = () => {
                     <div className="flex text-sm text-gray-600">
                       <label htmlFor="documents" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
                         <span>Upload documents</span>
-                        <input id="documents" name="documents" type="file" multiple accept=".pdf,.doc,.docx,.txt" onChange={handleChange} className="sr-only" />
+                        <input id="documents" name="documents" type="file" multiple accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={handleChange} className="sr-only" />
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">PDF, DOC, DOCX, TXT up to 50MB each (max 20 files)</p>
+                    <p className="text-xs text-gray-500">PDF, DOC, DOCX, TXT up to 10MB each (max 20 files total)</p>
                   </div>
                 </div>
-                {documentFiles.length > 0 && (
-                  <ul className="mt-3 list-disc list-inside text-sm text-gray-700 space-y-1">
-                    {documentFiles.map((f, idx) => (
-                      <li key={`${f.name}-${idx}`}>{f.name}</li>
-                    ))}
-                  </ul>
+                
+                {/* New Documents List */}
+                {newDocumentFiles.length > 0 && (
+                  <div className="mt-3">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">New Documents:</h4>
+                    <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                      {newDocumentFiles.map((f, idx) => (
+                        <li key={`${f.name}-${idx}`} className="flex items-center justify-between">
+                          <span>{f.name}</span>
+                          <span className="text-green-600 text-xs">New</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             </div>
           </section>
 
           {/* Form Actions */}
-          <div className="pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-600 text-center">
-              Please review all information before submitting your warehouse for approval.
-            </p>
+          <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-200">
+            <button type="button" className="px-6 py-2.5 border border-gray-300 text-gray-700 font-[700] figtree rounded-lg focus:outline-none" onClick={() => (window.location.href = '/vendors/warehouse/units')}>
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={changedFields.length === 0}
+              className={`inline-flex items-center px-6 py-2.5 border border-transparent font-[700] figtree rounded-lg text-[#FFFFFF] focus:outline-none ${
+                changedFields.length === 0 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-[#0955AC] hover:bg-[#074087]'
+              }`}
+            >
+              <svg className="mr-2 -ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Save Changes
+            </button>
           </div>
         </form>
       </div>
@@ -791,17 +1097,23 @@ const AddUnit = () => {
         <div className="fixed inset-0 bg-[#FFFFFF70] backdrop-blur-[14px] flex items-center justify-center z-50">
           <div className="figtree text-[#222222] text-[16px] font-[400] bg-white rounded-[20px] p-8 w-[643px] max-w-[90%] shadow-lg flex flex-col items-center relative">
             <button
-              onClick={() => setShowSuccessModal(false)}
+              onClick={() => {
+                setShowSuccessModal(false);
+                window.location.href = '/vendors/warehouse/units';
+              }}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"
               aria-label="Close"
             >
               ✕
             </button>
-            <h2 className="text-[28px] font-[600] mt-2">Success</h2>
-            <p className="mt-2 text-[#6B6B6B] text-center">Your warehouse was created and submitted for approval.</p>
+            <h2 className="text-[28px] font-[600] mt-2">Changes Saved</h2>
+            <p className="mt-2 text-[#6B6B6B] text-center">Your warehouse has been updated and submitted for approval.</p>
             <div className="mt-6 flex gap-3">
               <button
-                onClick={() => setShowSuccessModal(false)}
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  window.location.href = '/vendors/warehouse/units';
+                }}
                 className="figtree w-[160px] h-[44px] bg-[#0955AC] text-[14px] font-[700] text-white rounded-[12px] hover:bg-[#074087] transition-colors"
               >
                 Done
@@ -829,7 +1141,7 @@ const AddUnit = () => {
               ✕
             </button>
             <h2 className="text-[28px] font-[600] mt-2">
-              {errorItems.some(item => item.includes('required') || item.includes('must be')) ? 'Please Complete Required Fields' : 'Submission Failed'}
+              {errorItems.some(item => item.includes('required') || item.includes('must be')) ? 'Please Complete Required Fields' : 'Update Failed'}
             </h2>
             <p className="mt-2 text-[#6B6B6B]">
               {errorItems.some(item => item.includes('required') || item.includes('must be')) ? 'Please fill in all required fields:' : 'Please fix the following issues:'}
@@ -862,10 +1174,22 @@ const AddUnit = () => {
             >
               ✕
             </button>
-            <h2 className="text-[28px] font-[600] mt-2">Confirm Submission</h2>
+            <h2 className="text-[28px] font-[600] mt-2">Confirm Changes</h2>
             <p className="mt-2 text-[#6B6B6B] text-center">
-              Are you sure you want to submit this warehouse for approval? Please review all information before proceeding.
+              Are you sure you want to save these changes? The warehouse will be resubmitted for approval.
             </p>
+            
+            {changedFields.length > 0 && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg w-full">
+                <h3 className="text-sm font-semibold text-blue-800 mb-2">Changes to be saved:</h3>
+                <ul className="text-sm text-blue-700 list-disc list-inside">
+                  {changedFields.map((field, idx) => (
+                    <li key={idx}>{field}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setShowConfirmModal(false)}
@@ -877,14 +1201,16 @@ const AddUnit = () => {
                 onClick={confirmSubmit}
                 className="figtree w-[180px] h-[44px] bg-[#0955AC] text-[14px] font-[700] text-white rounded-[12px] hover:bg-[#074087] transition-colors"
               >
-                Submit Warehouse
+                Save Changes
               </button>
             </div>
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default AddUnit;
+export default EditUnit;

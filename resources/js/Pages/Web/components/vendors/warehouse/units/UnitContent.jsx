@@ -28,6 +28,11 @@ const UnitContent = () => {
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   
+  // Toggle status states
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [unitToToggle, setUnitToToggle] = useState(null);
+  const [isToggling, setIsToggling] = useState(false);
+  
   const perPageOptions = [5, 10, 20, 50];
 
   // Fetch warehouse units from API
@@ -113,6 +118,72 @@ const UnitContent = () => {
   // Handle Add Unit button click
   const handleAddUnitClick = () => {
     setShowAddUnit(true);
+  };
+
+  // Handle toggle active/inactive status
+  const handleToggleStatus = (unit) => {
+    setUnitToToggle(unit);
+    setShowConfirmModal(true);
+  };
+
+  // Confirm and execute the toggle
+  const confirmToggleStatus = async () => {
+    if (!unitToToggle) return;
+    
+    setIsToggling(true);
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
+      const response = await fetch(`/vendors/warehouse/api/units/${unitToToggle.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
+        },
+        body: JSON.stringify({
+          is_active: !unitToToggle.is_active
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to update unit status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      // Update the unit in the local state using the response data
+      setUnits(prevUnits => 
+        prevUnits.map(unit => 
+          unit.id === unitToToggle.id 
+            ? { 
+                ...unit, 
+                is_active: result.unit.is_active,
+                status: result.unit.status,
+                availability_status: result.unit.availability_status
+              }
+            : unit
+        )
+      );
+
+      // Close modal and reset state
+      setShowConfirmModal(false);
+      setUnitToToggle(null);
+      
+    } catch (error) {
+      console.error('Error toggling unit status:', error);
+      alert('Failed to update unit status. Please try again.');
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  // Cancel toggle
+  const cancelToggle = () => {
+    setShowConfirmModal(false);
+    setUnitToToggle(null);
   };
 
   const statusColor = (status) => {
@@ -279,15 +350,25 @@ const UnitContent = () => {
                         <div className="poppins text-[12px] text-[#7B7B7A] mt-1">
                           <span>{unit.address}</span>
                         </div>
-                        {unit.approval_status && unit.approval_status !== 'approved' && (
-                          <div className="poppins text-[12px] mt-1">
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {unit.approval_status && unit.approval_status !== 'approved' && (
                             <span className={`px-2 py-1 rounded text-white text-xs ${
                               unit.approval_status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
                             }`}>
                               {unit.approval_status === 'pending' ? 'Pending Approval' : 'Rejected'}
                             </span>
-                          </div>
-                        )}
+                          )}
+                          <span className={`px-2 py-1 rounded text-white text-xs font-semibold ${
+                            unit.is_active ? 'bg-green-600' : 'bg-gray-500'
+                          }`}>
+                            {unit.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                          {unit.approval_status === 'approved' && (
+                            <span className="px-2 py-1 rounded text-white text-xs bg-blue-600">
+                              Approved
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="figtree text-right">
                         <div className="text-[20px] font-[700]">Area: {unit.total_area || 'N/A'} sqft</div>
@@ -323,12 +404,29 @@ const UnitContent = () => {
                         <div className="text-[#7B7B7A]">Active</div>
                         <div className="font-[600]">{unit.is_active ? 'Yes' : 'No'}</div>
                       </div>
-                      <div className="flex items-center lg:justify-end">
+                      <div className="flex flex-col items-center lg:items-end gap-2">
                         <button 
-                          className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-[#FFFFFF] font-[700] hover:bg-[#074A94] transition-colors" 
+                          className="figtree min-w-[100px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#074A94] transition-colors" 
                           onClick={() => (window.location.href = `/vendors/warehouse/unitDetails?id=${unit.id}`)}
                         >
                           View
+                        </button>
+                        <button 
+                          className="figtree min-w-[100px] h-[44px] bg-[#F59E0B] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#D97706] transition-colors" 
+                          onClick={() => (window.location.href = `/vendors/warehouse/editUnit/${unit.id}`)}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          className={`figtree min-w-[100px] h-[44px] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] transition-colors ${
+                            unit.is_active 
+                              ? 'bg-[#DC2626] hover:bg-[#B91C1C]' 
+                              : 'bg-[#16A34A] hover:bg-[#15803D]'
+                          }`}
+                          onClick={() => handleToggleStatus(unit)}
+                          title={unit.is_active ? 'Deactivate warehouse unit' : 'Activate warehouse unit'}
+                        >
+                          {unit.is_active ? 'Deactivate' : 'Activate'}
                         </button>
                       </div>
                     </div>
@@ -396,6 +494,54 @@ const UnitContent = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && unitToToggle && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-[400px] max-w-[90%] shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Confirm Status Change
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to {unitToToggle.is_active ? 'deactivate' : 'activate'} the warehouse unit 
+              <span className="font-semibold"> "{unitToToggle.name}"</span>?
+            </p>
+            <div className="text-sm text-gray-500 mb-6">
+              {unitToToggle.is_active 
+                ? "Deactivating will make this unit unavailable for bookings."
+                : unitToToggle.approval_status === 'approved' 
+                  ? "Activating will make this unit available for bookings immediately."
+                  : "Activating will prepare this unit for availability once it's approved by admin."
+              }
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelToggle}
+                disabled={isToggling}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmToggleStatus}
+                disabled={isToggling}
+                className={`px-4 py-2 text-white rounded-md transition-colors disabled:opacity-50 ${
+                  unitToToggle.is_active 
+                    ? 'bg-red-600 hover:bg-red-700' 
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {isToggling 
+                  ? 'Updating...' 
+                  : unitToToggle.is_active 
+                    ? 'Deactivate' 
+                    : 'Activate'
+                }
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
