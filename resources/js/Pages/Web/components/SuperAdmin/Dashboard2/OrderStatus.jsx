@@ -95,11 +95,6 @@ const OrderStatus = () => {
                         <input
                             type="checkbox"
                             className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
-                            style={{
-                                boxShadow: "none",
-                                WebkitAppearance: "none",
-                                MozAppearance: "none",
-                            }}
                         />
                         <h1 className="text-white text-[10px] font-[600]">
                             Order
@@ -121,11 +116,6 @@ const OrderStatus = () => {
                         <input
                             type="checkbox"
                             className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
-                            style={{
-                                boxShadow: "none",
-                                WebkitAppearance: "none",
-                                MozAppearance: "none",
-                            }}
                         />
                         <h1 className="text-white text-[10px] font-[600]">
                             Status
@@ -142,23 +132,16 @@ const OrderStatus = () => {
                             Total
                         </h1>
                     </div>
-                    <div className="flex flex-row justify-start items-center gap-2 w-[60px]"></div>
+                    <div className="flex flex-row justify-start items-center gap-2 w-[60px]">
+                    </div>
                 </div>
                 {/* Rows */}
                 {mockData.map((item, index) => (
-                    <div
-                        key={index}
-                        className="flex flex-row justify-between bg-[#0A1330]"
-                    >
+                    <div key={index} className="flex flex-row justify-between bg-[#0A1330]">
                         <div className="flex flex-row justify-start items-center gap-2 w-[50px] px-[10px]">
                             <input
                                 type="checkbox"
                                 className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
-                                style={{
-                                    boxShadow: "none",
-                                    WebkitAppearance: "none",
-                                    MozAppearance: "none",
-                                }}
                             />
                             <h1 className="text-white text-[10px] font-[600]">
                                 {item.orderId}
@@ -179,19 +162,10 @@ const OrderStatus = () => {
                         </div>
                         <div
                             className="flex flex-row justify-center items-center w-[80px] border border-[${item.statusBg}] bg-[${item.statusBg}] rounded-[5px] gap-1 px-1"
-                            style={{
-                                borderColor: item.statusBg,
-                                backgroundColor: item.statusBg,
-                            }}
+                            style={{ borderColor: item.statusBg, backgroundColor: item.statusBg }}
                         >
-                            <div
-                                className="w-1 h-1 rounded-full"
-                                style={{ backgroundColor: item.statusColor }}
-                            />
-                            <h1
-                                className="text-[${item.statusColor}] text-[10px] font-[600] rounded-[5px]"
-                                style={{ color: item.statusColor }}
-                            >
+                            <div className="w-1 h-1 rounded-full" style={{ backgroundColor: item.statusColor }} />
+                            <h1 className="text-[${item.statusColor}] text-[10px] font-[600] rounded-[5px]" style={{ color: item.statusColor }}>
                                 {item.status}
                             </h1>
                         </div>

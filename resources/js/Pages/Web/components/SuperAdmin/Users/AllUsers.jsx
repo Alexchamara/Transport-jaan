@@ -1,249 +1,144 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { router } from "@inertiajs/react";
-import Eye from "../../../assets/superAdmin/eye.png";
+import React from "react";
+import User from "../../../assets/superAdmin/Users Icon.png";
+import Change from "../../../assets/superAdmin/Change Icon.svg";
+import Phone from "../../../assets/superAdmin/Phone Icon.svg";
+import Location from "../../../assets/superAdmin/Map Pin Icon.svg";
+import Company from "../../../assets/superAdmin/Bag Simple Icon.svg";
+import Status from "../../../assets/superAdmin/Check Icon.svg";
+import AvatarM from "../../../assets/superAdmin/Avatar CircleM.svg";
+import Avatars from "../../../assets/superAdmin/Avatars.svg";
+import Google from "../../../assets/superAdmin/Google.svg";
+import Youtube from "../../../assets/superAdmin/Youtube.svg";
+import Facebook from "../../../assets/superAdmin/Facebook.svg";
+import Pinterest from "../../../assets/superAdmin/Pinterest.svg";
+import Twitter from "../../../assets/superAdmin/Twitter.svg";
+import Twitch from "../../../assets/superAdmin/Twitch.svg";
+import Spotify from "../../../assets/superAdmin/Spotify.svg";
+import Reddit from "../../../assets/superAdmin/Reddit.svg";
+import LinkedIn from "../../../assets/superAdmin/Linked In.svg";
+import Edit from "../../../assets/superAdmin/Pencil Icon.svg";
+import Bin from "../../../assets/superAdmin/Bin Icon.svg";
 
-// User Details Modal with Status Management
-
-// User Details Modal
-const UserDetailsModal = ({ user, onClose }) => {
-    const [isUpdating, setIsUpdating] = useState(false);
-
-    const handleStatusChange = async (newStatus) => {
-        setIsUpdating(true);
-
-        router.post(`/superadmin/users/${user.id}/status`,
-            { status: newStatus },
-            {
-                onSuccess: () => {
-                    router.reload();
-                    onClose();
-                },
-                onError: (errors) => {
-                    console.error('Status update failed:', errors);
-                },
-                onFinish: () => setIsUpdating(false)
-            }
-        );
-    };
-
-    const getStatusActionButtons = () => {
-        const buttons = [];
-
-        switch (user.status) {
-            case 'verified':
-                buttons.push(
-                    <motion.button
-                        key="block"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('blocked')}
-                        disabled={isUpdating}
-                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
-                    >
-                        {isUpdating ? 'Updating...' : 'Block User'}
-                    </motion.button>
-                );
-                break;
-
-            case 'blocked':
-                buttons.push(
-                    <motion.button
-                        key="unblock"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('verified')}
-                        disabled={isUpdating}
-                        className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md disabled:opacity-50"
-                    >
-                        {isUpdating ? 'Updating...' : 'Unblock User'}
-                    </motion.button>
-                );
-                break;
-
-            case 'unverified':
-                buttons.push(
-                    <motion.button
-                        key="verify"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('verified')}
-                        disabled={isUpdating}
-                        className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md disabled:opacity-50"
-                    >
-                        {isUpdating ? 'Updating...' : 'Verify User'}
-                    </motion.button>,
-                    <motion.button
-                        key="reject"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('rejected')}
-                        disabled={isUpdating}
-                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
-                    >
-                        {isUpdating ? 'Updating...' : 'Reject User'}
-                    </motion.button>
-                );
-                break;
-
-            case 'rejected':
-                buttons.push(
-                    <motion.button
-                        key="verify"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('verified')}
-                        disabled={isUpdating}
-                        className="bg-[#FDB52A] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#E0A01F] transition-colors duration-50 shadow-md disabled:opacity-50"
-                    >
-                        {isUpdating ? 'Updating...' : 'Reinstate User'}
-                    </motion.button>
-                );
-                break;
-
-            default:
-                break;
-        }
-
-        return buttons;
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-lg flex justify-center items-center z-50"
-        >
-            <motion.div
-                initial={{ scale: 0.8, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-8 rounded-2xl text-white w-[650px] max-w-[90vw] shadow-2xl"
-            >
-                <h2 className="text-2xl font-semibold mb-6 text-center">User Details</h2>
-
-                <div className="space-y-3">
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">Name:</span>
-                        <span>{user.name}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">Email:</span>
-                        <span>{user.email}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">Phone:</span>
-                        <span>{user.phone || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">Address:</span>
-                        <span>{user.address || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">Country:</span>
-                        <span>{user.country || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">Date of Birth:</span>
-                        <span>{user.date_of_birth || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">Role:</span>
-                        <span className="capitalize">{user.role}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">Status:</span>
-                        <span className={`capitalize ${
-                            user.status === 'verified' ? 'text-green-400' :
-                            user.status === 'unverified' ? 'text-yellow-400' :
-                            'text-red-400'
-                        }`}>
-                            {user.status}
-                        </span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">Registered:</span>
-                        <span>{user.regDate}</span>
-                    </div>
-                </div>
-
-                {/* Status Action Buttons */}
-
-                {/* Status Action Buttons */}
-                <div className="mt-6 border-t border-gray-600 pt-4 w-full">
-                    <h3 className="text-lg font-medium mb-3 text-center">Status Management</h3>
-                    <div className="mt-8 flex gap-4 justify-center">
-                        {getStatusActionButtons()}
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 1 }}
-                            className="bg-[#0955AC] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#074a92] transition-colors duration-50 shadow-md"
-                            onClick={onClose}
-                        >
-                            Close
-                        </motion.button>
-                    </div>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-const AllUsers = ({ users = [] }) => {
-    const [selectedUser, setSelectedUser] = useState(null);
-    const [showDetailsModal, setShowDetailsModal] = useState(false);
-
-    const getStatusStyles = (status) => {
-        switch (status) {
-            case 'verified':
-                return {
-                    border: "border-[#05C16880]",
-                    bg: "bg-[#05C16833]",
-                    dot: "bg-[#14CA74]",
-                    text: "text-[#14CA74]",
-                };
-            case 'unverified':
-                return {
-                    border: "border-[#FFB01633]",
-                    bg: "bg-[#FFB01633]",
-                    dot: "bg-[#FDB52A]",
-                    text: "text-[#FDB52A]",
-                };
-            case 'blocked':
-            case 'rejected':
-                return {
-                    border: "border-[#FF5A6533]",
-                    bg: "bg-[#FF5A6533]",
-                    dot: "bg-[#FF5A65]",
-                    text: "text-[#FF5A65]",
-                };
-            default:
-                return {
-                    border: "border-[#343B4F]",
-                    bg: "bg-[#0B1739]",
-                    dot: "bg-[#AEB9E1]",
-                    text: "text-[#AEB9E1]",
-                };
-        }
-    };
-
-    const handleViewDetails = (user) => {
-        setSelectedUser(user);
-        setShowDetailsModal(true);
-    };
-
-    const closeModals = () => {
-        setSelectedUser(null);
-        setShowDetailsModal(false);
-    };
+const AllUsers = () => {
+    const mockData = [
+        {
+            name: "Jhone Carter",
+            email: "john@google.com",
+            phone: "(414) 907 - 1274",
+            location: "United States",
+            company: "Google",
+            companyLogo: Google,
+            status: "Online",
+            statusColor: "#14CA74",
+            statusBg: "#05C16833",
+        },
+        {
+            name: "Sophie Moore",
+            email: "sophie@webflow.com",
+            phone: "(240) 480 - 4277",
+            location: "United Kingdom",
+            company: "YouTube",
+            companyLogo: Youtube,
+            status: "Offline",
+            statusColor: "#AEB9E1",
+            statusBg: "#F1F1F333",
+        },
+        {
+            name: "Matt Cannon",
+            email: "info@mattcannon.com",
+            phone: "(318) 698 - 9889",
+            location: "Australia",
+            company: "Facebook",
+            companyLogo: Facebook,
+            status: "Offline",
+            statusColor: "#AEB9E1",
+            statusBg: "#F1F1F333",
+        },
+        {
+            name: "Emma Wilson",
+            email: "emma@example.com",
+            phone: "(555) 123 - 4567",
+            location: "Canada",
+            company: "Pinterest",
+            companyLogo: Pinterest,
+            status: "Online",
+            statusColor: "#14CA74",
+            statusBg: "#05C16833",
+        },
+        {
+            name: "Liam Smith",
+            email: "liam@team.com",
+            phone: "(777) 987 - 6543",
+            location: "Germany",
+            company: "Twitter",
+            companyLogo: Twitter,
+            status: "Online",
+            statusColor: "#14CA74",
+            statusBg: "#05C16833",
+        },
+        {
+            name: "Olivia Brown",
+            email: "olivia@facebook.com",
+            phone: "(222) 333 - 4444",
+            location: "France",
+            company: "Reddit",
+            companyLogo: Reddit,
+            status: "Offline",
+            statusColor: "#AEB9E1",
+            statusBg: "#F1F1F333",
+        },
+        {
+            name: "Noah Davis",
+            email: "noah@google.com",
+            phone: "(888) 555 - 1234",
+            location: "Italy",
+            company: "Twitch",
+            companyLogo: Twitch,
+            status: "Online",
+            statusColor: "#14CA74",
+            statusBg: "#05C16833",
+        },
+        {
+            name: "Ava Taylor",
+            email: "ava@webflow.com",
+            phone: "(999) 111 - 2222",
+            location: "Spain",
+            company: "Spotify",
+            companyLogo: Spotify,
+            status: "Offline",
+            statusColor: "#AEB9E1",
+            statusBg: "#F1F1F333",
+        },
+        {
+            name: "Ethan Wilson",
+            email: "ethan@facebook.com",
+            phone: "(444) 666 - 7777",
+            location: "Japan",
+            company: "LinkedIn",
+            companyLogo: LinkedIn,
+            status: "Online",
+            statusColor: "#14CA74",
+            statusBg: "#05C16833",
+        },
+        {
+            name: "Isabella Lee",
+            email: "isabella@google.com",
+            phone: "(333) 444 - 5555",
+            location: "Brazil",
+            company: "YouTube",
+            companyLogo: Youtube,
+            status: "Offline",
+            statusColor: "#AEB9E1",
+            statusBg: "#F1F1F333",
+        },
+    ];
 
     return (
         <div className="poppins flex flex-col items-center min-h-screen w-full gap-1">
             <div className="w-[962px] flex flex-row justify-between items-center text-white text-[16px] font-500 pt-6">
                 <h1>All Users</h1>
                 <h1 className="text-[#0955AC] text-[14px] font-400">
-                    {users.length > 0 ? `1 - ${users.length}` : '0'}{" "}
-                    <span className="text-[#AEB9E1]">of {users.length}</span>
+                    1 - 10 <span className="text-[#AEB9E1]">of 256</span>
                 </h1>
             </div>
             <div className="w-full">
@@ -253,98 +148,156 @@ const AllUsers = ({ users = [] }) => {
             {/* Header */}
             <div className="flex flex-row justify-center items-center w-full h-[61px]">
                 <div className="flex flex-row justify-start items-start w-full px-[35px]">
-                    <div className="flex flex-row justify-start items-center gap-4 w-[180px]">
-                        <h1 className="text-white text-[10px] font-400">User Name</h1>
+                    {/* Name */}
+                    <div className="flex flex-row justify-start items-center gap-4 w-[220px]">
+                        <input
+                            type="checkbox"
+                            className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
+                        />
+                        <div className="flex flex-row justify-center items-center gap-1">
+                            <img src={User} className="size-[10px]" />
+                            <h1 className="text-white text-[10px] font-400">
+                                Name
+                            </h1>
+                            <img src={Change} />
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[230px]">Email</h1>
+
+                    {/* Phone */}
+                    <div className="flex flex-row justify-start items-start gap-4 w-[150px]">
+                        <div className="flex flex-row justify-start items-start gap-1">
+                            <img src={Phone} className="size-[10px]" />
+                            <h1 className="text-white text-[10px] font-400">
+                                Phone
+                            </h1>
+                            <img src={Change} />
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[150px]">Phone</h1>
+
+                    {/* Location */}
+                    <div className="flex flex-row justify-start items-center gap-4 w-[200px]">
+                        <div className="flex flex-row justify-start items-center gap-1">
+                            <img src={Location} className="size-[10px]" />
+                            <h1 className="text-white text-[10px] font-400">
+                                Location
+                            </h1>
+                            <img src={Change} />
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[100px]">Role</h1>
+
+                    {/* Company */}
+                    <div className="flex flex-row justify-start items-center gap-4 w-[200px]">
+                        <div className="flex flex-row justify-start items-center gap-1">
+                            <img src={Company} className="size-[10px]" />
+                            <h1 className="text-white text-[10px] font-400">
+                                Company
+                            </h1>
+                            <img src={Change} />
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[150px]">Registration Date</h1>
+
+                    {/* Status */}
+                    <div className="flex flex-row justify-start items-center gap-4 w-[150px]">
+                        <div className="flex flex-row justify-start items-center gap-1">
+                            <img src={Status} className="size-[10px]" />
+                            <h1 className="text-white text-[10px] font-400">
+                                Status
+                            </h1>
+                            <img src={Change} />
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[100px]">Status</h1>
-                    </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400"></h1>
-                    </div>
+
+                    {/* Delete */}
+                    <div className="flex flex-row justify-start items-center gap-4 w-[60px]"></div>
                 </div>
             </div>
 
             {/* Rows */}
-            {users.length === 0 ? (
-                <div className="text-white text-[12px] font-400 w-full text-center py-8">
-                    No users found.
-                </div>
-            ) : (
-                users.map((user, index) => {
-                    const statusStyles = getStatusStyles(user.status);
-                    return (
-                        <div
-                            key={index}
-                            className="flex flex-row justify-center items-center w-full h-[61px]"
-                        >
-                            <div className="flex flex-row justify-start items-start w-full px-[35px]">
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[180px]">
+            {mockData.map((user, index) => (
+                <div
+                    key={index}
+                    className="flex flex-row justify-center items-center w-full h-[61px]"
+                >
+                    <div className="flex flex-row justify-start items-center w-full px-[35px]">
+                        {/* 1st Col */}
+                        <div className="flex flex-row justify-start items-center gap-4 w-[220px]">
+                            <input
+                                type="checkbox"
+                                className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
+                            />
+                            <div className="flex flex-row justify-start items-center gap-1">
+                                <img
+                                    src={index % 2 === 0 ? AvatarM : Avatars}
+                                    className="size-[28px]"
+                                />
+                                <div className="flex flex-col">
+                                    <h1 className="text-white text-[10px] font-400">
                                         {user.name}
                                     </h1>
-                                </div>
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[230px]">
+                                    <h2 className="text-[#AEB9E1] text-[10px] font-500">
                                         {user.email}
-                                    </h1>
-                                </div>
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[150px]">
-                                        {user.phone}
-                                    </h1>
-                                </div>
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[100px] capitalize">
-                                        {user.role}
-                                    </h1>
-                                </div>
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[150px]">
-                                        {user.regDate}
-                                    </h1>
-                                </div>
-                                <div className="w-[100px]">
-                                    <div
-                                        className={`flex flex-row justify-center items-center gap-1 border ${statusStyles.border} ${statusStyles.bg} px-[6px] py-[2px] rounded-[5px] w-[70px]`}
-                                    >
-                                        <div className={`w-1 h-1 rounded-full ${statusStyles.dot}`} />
-                                        <h1 className={`${statusStyles.text} text-[10px] font-500 capitalize`}>
-                                            {user.status}
-                                        </h1>
-                                    </div>
-                                </div>
-                                <div className="w-[20px]">
-                                    <button
-                                        onClick={() => handleViewDetails(user)}
-                                        className="hover:scale-110 transition-transform"
-                                        title="View Details"
-                                    >
-                                        <img src={Eye} alt="View" className="w-4 h-4" />
-                                    </button>
+                                    </h2>
                                 </div>
                             </div>
                         </div>
-                    );
-                })
-            )}
 
-            {/* User Details Modal */}
-            {showDetailsModal && selectedUser && (
-                <UserDetailsModal user={selectedUser} onClose={closeModals} />
-            )}
+                        {/* 2nd Col */}
+                        <div>
+                            <h1 className="text-[#AEB9E1] text-[10px] font-500 flex flex-row justify-start items-center w-[150px]">
+                                {user.phone}
+                            </h1>
+                        </div>
+
+                        {/* 3rd Col */}
+                        <div>
+                            <h1 className="text-[#AEB9E1] text-[10px] font-500 flex flex-row justify-start items-center w-[200px]">
+                                {user.location}
+                            </h1>
+                        </div>
+
+                        {/* 4th Col */}
+                        <div className="flex flex-row justify-start items-center w-[200px]">
+                            <img
+                                src={user.companyLogo}
+                                className="size-[30px]"
+                            />
+                            <h1 className="text-[#AEB9E1] text-[10px] font-500 flex flex-row items-center">
+                                {user.company}
+                            </h1>
+                        </div>
+
+                        {/* 5th Col */}
+                        <div className="w-[150px]">
+                            <div
+                                className="flex flex-row justify-center items-center gap-1 border border-[${user.statusBg}] bg-[${user.statusBg}] px-[6px] py-[2px] rounded-[5px] w-[70px]"
+                                style={{
+                                    borderColor: user.statusBg,
+                                    backgroundColor: user.statusBg,
+                                }}
+                            >
+                                <div
+                                    className="w-1 h-1 rounded-full"
+                                    style={{
+                                        backgroundColor: user.statusColor,
+                                    }}
+                                />
+                                <h1
+                                    className="text-[${user.statusColor}] text-[10px] font-500 flex flex-row justify-center items-center"
+                                    style={{ color: user.statusColor }}
+                                >
+                                    {user.status}
+                                </h1>
+                            </div>
+                        </div>
+
+                        {/* 6th Col */}
+                        <div className="flex flex-row gap-2 w-[60px]">
+                            <img src={Edit} className="size-[12px]" />
+                            <img src={Bin} className="size-[12px]" />
+                        </div>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 };

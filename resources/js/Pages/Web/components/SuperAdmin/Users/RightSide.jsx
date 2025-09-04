@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import Search from "../../../assets/superAdmin/Search.png";
 import UserGroup from "../../../assets/superAdmin/User group Icon.svg";
 import DotsThreeY from "../../../assets/superAdmin/DotsThreeY.svg";
@@ -9,47 +9,8 @@ import AllUsers from "../../SuperAdmin/Users/AllUsers";
 import DropDownB from "../../../assets/superAdmin/Chevron DownB.svg";
 import ArrowLeftB from "../../../assets/superAdmin/Arrow LeftB.svg";
 import ArrowRight from "../../../assets/superAdmin/Arrow Right.svg";
-import { Link, router } from "@inertiajs/react";
-
-const RightSide = ({ users = [], counts = {}, filters = {} }) => {
-    const [searchTerm, setSearchTerm] = useState(filters.search || '');
-    const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
-    const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
-
-    const handleSearch = (e) => {
-        if (e.key === 'Enter') {
-            performSearch();
-        }
-    };
-
-    const performSearch = () => {
-        router.get('/superadmin/Users', {
-            search: searchTerm,
-            role: roleFilter,
-            status: statusFilter
-        }, {
-            preserveState: true,
-            replace: true
-        });
-    };
-
-    const handleFilterChange = (filterType, value) => {
-        const newFilters = {
-            search: searchTerm,
-            role: roleFilter,
-            status: statusFilter,
-            [filterType]: value
-        };
-
-        if (filterType === 'role') setRoleFilter(value);
-        if (filterType === 'status') setStatusFilter(value);
-
-        router.get('/superadmin/Users', newFilters, {
-            preserveState: true,
-            replace: true
-        });
-    };
-
+import { Link } from "@inertiajs/react";
+const RightSide = () => {
     return (
         <div className="flex flex-col gap-5 poppins">
             <div className="flex flex-col gap-5">
@@ -66,23 +27,15 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                             />
                             <input
                                 placeholder="Search for..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                onKeyPress={handleSearch}
                                 className="bg-transparent text-[#ffffff] text-[12px] outline-none border-none focus:outline-none focus:ring-0 p-2 w-full"
                             />
                         </div>
                     </div>
 
-                    <Link
-                        className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm"
-                        href={route('superadmin.users.create')}
-                    >
+                    <Link className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm" href="/SuperAdmin/AddUser">
                         <h1>Add user</h1>
                     </Link>
                 </div>
-
-               
             </div>
 
             {/* Cards */}
@@ -99,7 +52,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                                     Total Users
                                 </h1>
                                 <h2 className="text-[#AEB9E1] text-[12px] font-400">
-                                    {counts.total || 0}
+                                    250
                                 </h2>
                             </div>
                         </div>
@@ -116,10 +69,10 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                             </div>
                             <div>
                                 <h1 className="text-white text-[16px] font-500">
-                                    Clients
+                                    New Users
                                 </h1>
                                 <h2 className="text-[#AEB9E1] text-[12px] font-400">
-                                    {counts.clients || 0}
+                                    15
                                 </h2>
                             </div>
                         </div>
@@ -136,10 +89,10 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                             </div>
                             <div>
                                 <h1 className="text-white text-[16px] font-500">
-                                    Vendors
+                                    Top Users
                                 </h1>
                                 <h2 className="text-[#AEB9E1] text-[12px] font-400">
-                                    {counts.vendors || 0}
+                                    200
                                 </h2>
                             </div>
                         </div>
@@ -156,10 +109,10 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                             </div>
                             <div>
                                 <h1 className="text-white text-[16px] font-500">
-                                    Verified
+                                    Other Users
                                 </h1>
                                 <h2 className="text-[#AEB9E1] text-[12px] font-400">
-                                    {counts.verified || 0}
+                                    35
                                 </h2>
                             </div>
                         </div>
@@ -168,42 +121,16 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                 </div>
             </div>
 
-             {/* Filter buttons */}
-                <div className="flex flex-row gap-4 mx-12">
-                    <select
-                        value={roleFilter}
-                        onChange={(e) => handleFilterChange('role', e.target.value)}
-                        className="w-[110px] text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
-                    >
-                        <option value="all">All Roles</option>
-                        <option value="client">Clients</option>
-                        <option value="vendor">Vendors</option>
-                        <option value="freight">Freight Users</option>
-                    </select>
-
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => handleFilterChange('status', e.target.value)}
-                        className="w-[110px] text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="verified">Verified</option>
-                        <option value="unverified">Unverified</option>
-                        <option value="blocked">Blocked</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                </div>
-  
             <div className="w-[1125px] h-auto mx-[48px] ">
                 <div className="w-[1035px] h-auto border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
-                    <AllUsers users={users} />
+                    <AllUsers />
                 </div>
             </div>
 
             <div>
                 <div className="flex flex-row justify-between items-center mt-5 mx-[48px] w-[1032px]">
                     <h1 className="text-white text-[12px] font-500">
-                        {users.length > 0 ? `1 - ${users.length}` : '0'} of {counts.total || 0}
+                        1 - 10 of 460
                     </h1>
                     <h1 className="text-[#AEB9E1] text-[12px] font-500 flex flex-row justify-center items-center gap-6">
                         Rows per page:

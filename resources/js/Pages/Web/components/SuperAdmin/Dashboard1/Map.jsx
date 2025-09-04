@@ -1,6 +1,7 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import externalR from "../../../assets/superAdmin/Arrow External Right.png";
+import exportIcon from "../../../assets/superAdmin/Export Icon.png";
 import Wmap from "../../../assets/superAdmin/Wmap.png";
 
 const Map = () => {
@@ -34,7 +35,10 @@ const Map = () => {
                                 <div className="flex flex-row gap-2 md:gap-4">
                                     <button className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0A1330] bg-[#0A1330] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm">
                                         <h1>Export</h1>
-                                        
+                                        <img
+                                            src={exportIcon}
+                                            className="size-[12px] md:w-[10px] md:h-[10px]"
+                                        />
                                     </button>
                                 </div>
                             </div>

@@ -1,7 +1,6 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-
-// remove the export icon
+import exportIcon from "../../../assets/superAdmin/Export icon.png";
 
 const WebsiteVisitors = () => {
     const data = [

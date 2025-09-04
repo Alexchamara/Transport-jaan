@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
 import RightSide from '../../components/SuperAdmin/Dashboard1/RightSide';
 
@@ -28,11 +28,10 @@ const Dashboard = ({ userStats }) => {
         <SideMenu />
       </div>
       <div className='sm:w-full md:w-auto lg:w-auto'>
-        <RightSide userStats={userStats} />
+        <RightSide />
       </div>
     </div>
   )
 }
 
-export default Dashboard;
-
+export default Dashboard

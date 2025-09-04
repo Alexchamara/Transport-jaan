@@ -57,11 +57,6 @@ const RecentOrders = () => {
                         <input
                             type="checkbox"
                             className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
-                            style={{
-                                boxShadow: "none",
-                                WebkitAppearance: "none",
-                                MozAppearance: "none",
-                            }}
                         />
                         <h1 className="text-white text-[10px] font-[600]">
                             Order
@@ -77,11 +72,6 @@ const RecentOrders = () => {
                         <input
                             type="checkbox"
                             className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
-                            style={{
-                                boxShadow: "none",
-                                WebkitAppearance: "none",
-                                MozAppearance: "none",
-                            }}
                         />
                         <h1 className="text-white text-[10px] font-[600]">
                             Status
@@ -98,20 +88,13 @@ const RecentOrders = () => {
                     <div
                         key={index}
                         className={`flex flex-row justify-between ${
-                            index % 2 === 0
-                                ? "bg-[#0A1330] h-[46.400390625px]"
-                                : ""
+                            index % 2 === 0 ? "bg-[#0A1330] h-[46.400390625px]" : ""
                         }`}
                     >
                         <div className="flex flex-row justify-start items-center gap-2 w-[50px] px-[10px]">
                             <input
                                 type="checkbox"
                                 className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
-                                style={{
-                                    boxShadow: "none",
-                                    WebkitAppearance: "none",
-                                    MozAppearance: "none",
-                                }}
                             />
                             <h1 className="text-white text-[10px] font-[600]">
                                 {item.orderId}
@@ -120,9 +103,7 @@ const RecentOrders = () => {
                         <div className="flex flex-row justify-start items-center gap-2 w-[100px]">
                             <h1
                                 className={`text-[10px] font-[600] ${
-                                    index % 2 === 0
-                                        ? "text-white"
-                                        : "text-[#AEB9E1]"
+                                    index % 2 === 0 ? "text-white" : "text-[#AEB9E1]"
                                 }`}
                             >
                                 {item.date}
@@ -131,16 +112,11 @@ const RecentOrders = () => {
                         <div className="flex flex-row justify-center items-center">
                             <div
                                 className="flex flex-row justify-center items-center gap-1 h-[20px] rounded-[5px] w-[65px] px-[6px]"
-                                style={{
-                                    borderColor: item.statusBg,
-                                    backgroundColor: item.statusBg,
-                                }}
+                                style={{ borderColor: item.statusBg, backgroundColor: item.statusBg }}
                             >
                                 <div
                                     className="size-[5px] rounded-full"
-                                    style={{
-                                        backgroundColor: item.statusColor,
-                                    }}
+                                    style={{ backgroundColor: item.statusColor }}
                                 />
                                 <h1
                                     className="text-[10px] font-[600]"
