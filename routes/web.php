@@ -522,6 +522,21 @@ Route::get('/SuperAdmin/Vender', function () {
     return Inertia::render('Web/home/SuperAdmin/NewVender');
 })->name('SuperAdmin.NewVender');
 
+Route::get('/SuperAdmin/Dashboard', function () {
+    return Inertia::render('Web/home/SuperAdmin/Dashboard');
+})->name('SuperAdmin.Dashboard');
+
+Route::get('/SuperAdmin/Analytics', function () {
+    return Inertia::render('Web/home/SuperAdmin/Analytics');
+})->name('SuperAdmin.Analytics');
+
+Route::get('/SuperAdmin/Users', function () {
+    return Inertia::render('Web/home/SuperAdmin/Users');
+})->name('SuperAdmin.Users');
+
+Route::get('/SuperAdmin/AddUser', function () {
+    return Inertia::render('Web/home/SuperAdmin/AddUser');
+})->name('SuperAdmin.AddUser');
 
 Route::get('/warehouse/units', function () {
     return Inertia::render('Web/home/vendors/warehouse/Unit');

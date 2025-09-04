@@ -8,7 +8,7 @@ const AddUser = () => {
             <div className="sm:w-full md:w-auto lg:w-auto">
                 <SideMenu />
             </div>
-            <div className="sm:w-full md:w-auto lg:w-auto h-auto">
+            <div className="sm:w-full md:w-auto lg:w-auto h-full">
                 <RightSide />
             </div>
         </div>
