@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import view from '../../assets/superAdmin/Views Icon.png'
 import dotsThreeIcon from '../../assets/superAdmin/Dots Three Icon.png'
 import users from '../../assets/superAdmin/Users Icon.png'
@@ -146,4 +146,4 @@ const Cards = () => {
   )
 }
 
-export default Cards;
+export default Cards

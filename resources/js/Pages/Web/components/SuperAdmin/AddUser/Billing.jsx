@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import Phone from "../../../assets/superAdmin/Phone IconW.svg";
 import Bag from "../../../assets/superAdmin/Bag Simple IconW.svg";
 import Location from "../../../assets/superAdmin/Map Pin IconW.svg";
