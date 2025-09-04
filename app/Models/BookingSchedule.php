@@ -8,8 +8,10 @@ class BookingSchedule extends Model
 {
     protected $fillable = [
         'booking_id',
-        'pickup_at','pickup_location',
-        'dropoff_at','dropoff_location',
+        'pickup_at',
+        'dropoff_at',
+        'pickup_location',
+        'dropoff_location',
     ];
 
     protected $casts = [
@@ -17,5 +19,8 @@ class BookingSchedule extends Model
         'dropoff_at' => 'datetime',
     ];
 
-    public function booking(){ return $this->belongsTo(Booking::class); }
+    public function booking()
+    {
+        return $this->belongsTo(Booking::class);
+    }
 }

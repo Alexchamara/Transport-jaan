@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-
 class Vehicle extends Model
 {
     use HasFactory, SoftDeletes;
@@ -69,16 +68,13 @@ class Vehicle extends Model
         return $this->belongsTo(User::class, 'provider_id');
     }
 
-    // existing relations
     public function category() { return $this->belongsTo(VehicleCategory::class, 'category_id'); }
     public function airSpec()  { return $this->hasOne(AirVehicleSpec::class); }
     public function seaSpec()  { return $this->hasOne(SeaVehicleSpec::class); }
     public function landSpec() { return $this->hasOne(LandVehicleSpec::class); }
     public function media()    { return $this->hasMany(VehicleMedia::class); }
 
-
-
-    // --- new: policy relations/accessors ---
+    // --- policy relations/accessors (existing) ---
     public function policies(): HasMany
     {
         return $this->hasMany(\App\Models\VehiclePolicy::class);
@@ -89,7 +85,6 @@ class Vehicle extends Model
         return $this->hasOne(\App\Models\VehiclePolicy::class)->latestOfMany();
     }
 
-    // Optional guard to avoid crashes pre-migration
     protected static function hasPolicyTable(): bool
     {
         static $ok = null;
@@ -111,20 +106,11 @@ class Vehicle extends Model
             ? route('vendor.vehicles.policy.stream', ['vehicle' => $this->id])
             : null;
     }
-    public function documents()
-    {
-        return $this->hasMany(VehicleDocument::class);
-    }
 
-    public function insuranceDocuments()
-    {
-        return $this->documents()->where('doc_type', 'insurance');
-    }
+    public function documents() { return $this->hasMany(VehicleDocument::class); }
+    public function insuranceDocuments() { return $this->documents()->where('doc_type', 'insurance'); }
 
-    public function crew()
-    {
-        return $this->hasMany(VehicleCrew::class);
-    } // keep only this
+    public function crew() { return $this->hasMany(VehicleCrew::class); }
     public function crewMembers()
     {
         return $this->belongsToMany(User::class, 'vehicle_crews')
@@ -132,33 +118,70 @@ class Vehicle extends Model
             ->withTimestamps();
     }
 
-    public function reviews()
+    public function reviews() { return $this->hasMany(VehicleReview::class, 'vehicle_id'); }
+    public function likes() { return $this->hasMany(VehicleLike::class); }
+    public function featurePricings() { return $this->hasMany(VehicleFeaturePricing::class); }
+
+    /* ===================== Maintenance ===================== */
+
+    protected static function hasMaintenanceTable(): bool
     {
-        return $this->hasMany(VehicleReview::class, 'vehicle_id');
+        static $ok = null;
+        if ($ok !== null) return $ok;
+        try { $ok = \Schema::hasTable('vehicle_maintenances'); } catch (\Throwable $e) { $ok = false; }
+        return $ok;
     }
-    public function likes()
+
+    public function maintenances(): HasMany
     {
-        return $this->hasMany(VehicleLike::class);
+        return $this->hasMany(\App\Models\VehicleMaintenance::class);
     }
-    public function featurePricings()
+
+    public function hasMaintenanceBetween(\Carbon\Carbon $from, \Carbon\Carbon $to): bool
     {
-        return $this->hasMany(VehicleFeaturePricing::class);
+        if (!self::hasMaintenanceTable()) return false;
+
+        return \App\Models\VehicleMaintenance::where('vehicle_id', $this->id)
+            ->whereDate('start_date', '<', $to->toDateString())
+            ->whereDate('end_date',   '>', $from->toDateString())
+            ->exists();
+        }
+
+    public function currentMaintenance(): ?\App\Models\VehicleMaintenance
+    {
+        if (!self::hasMaintenanceTable()) return null;
+
+        $today = now()->toDateString();
+        return $this->maintenances()
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->orderByDesc('start_date')
+            ->first();
+    }
+
+    public function scopeWithoutMaintenanceBetween($q, $from, $to)
+    {
+        if (!self::hasMaintenanceTable()) return $q;
+
+        $fromC = $from instanceof \Carbon\Carbon ? $from : \Carbon\Carbon::parse($from);
+        $toC   = $to   instanceof \Carbon\Carbon ? $to   : \Carbon\Carbon::parse($to);
+
+        return $q->whereDoesntHave('maintenances', function ($qq) use ($fromC, $toC) {
+            $qq->whereDate('start_date', '<', $toC->toDateString())
+               ->whereDate('end_date',   '>', $fromC->toDateString());
+        });
     }
 
     /* -------- Scopes -------- */
 
-    public function scopeType($q, string $type)
-    {
-        return $q->where('type', $type);
-    }
+    public function scopeType($q, string $type) { return $q->where('type', $type); }
 
-    // Active & approved in one go (matches your intent)
     public function scopeActive($q)
     {
         return $q->where('status', 'active')->where('approval_status', 'approved');
     }
 
-    /* -------- Convenience Accessors (optional) -------- */
+    /* -------- Accessors -------- */
 
     public function getPrimaryImageUrlAttribute(): ?string
     {
@@ -178,44 +201,37 @@ class Vehicle extends Model
 
     public function images()
     {
-        // Only image-type media
         return $this->hasMany(VehicleMedia::class)->where('media_type', 'image');
     }
 
     public function primaryImage()
     {
-        // The one primary image (fast & safe)
         return $this->hasOne(VehicleMedia::class)
             ->where('media_type', 'image')
             ->where('is_primary', true)
-            ->ofMany('id', 'max'); // requires MySQL 8+/Postgres
+            ->ofMany('id', 'max');
     }
 
-    // Inside class Vehicle extends Model
-    public function bookings()
-    {
-        return $this->hasMany(\App\Models\Booking::class);
-    }
+    public function bookings() { return $this->hasMany(\App\Models\Booking::class); }
 
+    public function vendor() { return $this->belongsTo(\App\Models\User::class, 'vendor_id'); }
+
+    /** Availability considers BOTH bookings and maintenance */
     public function isAvailable(\Carbon\Carbon $from, \Carbon\Carbon $to, ?int $ignoreBookingId = null): bool
     {
-        $overlap = \App\Models\Booking::where('vehicle_id', $this->id)
+        $bookingOverlap = \App\Models\Booking::where('vehicle_id', $this->id)
             ->when($ignoreBookingId, fn($q) => $q->where('id', '!=', $ignoreBookingId))
             ->whereIn('status', ['pending', 'confirmed'])
             ->whereHas('schedule', function ($q) use ($from, $to) {
-                $q->where('pickup_at', '<', $to)
-                    ->where('dropoff_at', '>', $from);
+                $q->where('pickup_at', '<', $to)->where('dropoff_at', '>', $from);
+            })
+            ->orWhere(function ($q) use ($from, $to) {
+                $q->whereDate('start_date', '<', $to->toDateString())
+                  ->whereDate('end_date',   '>', $from->toDateString());
             })
             ->exists();
 
-        return !$overlap;
+        $maintenanceOverlap = $this->hasMaintenanceBetween($from, $to);
+        return !$bookingOverlap && !$maintenanceOverlap;
     }
-
-    public function vendor()
-    {
-        return $this->belongsTo(\App\Models\User::class, 'vendor_id'); // adjust FK if different
-    }
-
-
-
 }

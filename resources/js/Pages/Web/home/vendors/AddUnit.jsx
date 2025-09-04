@@ -85,7 +85,7 @@ const initialState = {
   gpsPrice: "", childSeatPrice: "", wifiPrice: "", insuranceCoveragePrice: "", addDriver: false, addDriverPrice: "",
   extraFeatures: [],
 };
-const bodyTypeOptions = ["Sedan","SUV","Hatchback","Truck","Van","Bus","Coupe","Convertible","Wagon","Other"];
+const bodyTypeOptions = ["Sedan","SUV","Hatchback","Truck","Van","Bus","Coupe","Convertible","Wagon","Other","crossover","Limousine","Family MBP","Sport Coupe","Compact"];
 const fuelTypeOptions = ["Petrol","Diesel","Electric","Hybrid","CNG","LPG","Other"];
 const transmissionOptions = ["Manual","Automatic","Semi-Automatic","CVT","Other"];
 const conditionOptions = ["New","Excellent","Good","Fair","Needs Repair"];
