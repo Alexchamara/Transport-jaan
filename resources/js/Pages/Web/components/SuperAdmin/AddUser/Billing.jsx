@@ -49,10 +49,12 @@ const BasicInformation = () => {
                                             </h2>
                                         </div>
                                     </div>
-                                    <img
-                                        src={Close}
-                                        className="absolute top-[12.8px] left-[523.95px]"
-                                    />
+                                    <button>
+                                        <img
+                                            src={Close}
+                                            className="absolute top-[12.8px] left-[523.95px]"
+                                        />
+                                    </button>
                                 </div>
 
                                 {/* Mastercard */}
@@ -77,10 +79,12 @@ const BasicInformation = () => {
                                             </h2>
                                         </div>
                                     </div>
-                                    <img
-                                        src={Close}
-                                        className="absolute top-[12.8px] left-[523.95px]"
-                                    />
+                                    <button>
+                                        <img
+                                            src={Close}
+                                            className="absolute top-[12.8px] left-[523.95px]"
+                                        />
+                                    </button>
                                 </div>
 
                                 {/* American Express */}
@@ -105,10 +109,12 @@ const BasicInformation = () => {
                                             </h2>
                                         </div>
                                     </div>
-                                    <img
-                                        src={Close}
-                                        className="absolute top-[12.8px] left-[523.95px]"
-                                    />
+                                    <button>
+                                        <img
+                                            src={Close}
+                                            className="absolute top-[12.8px] left-[523.95px]"
+                                        />
+                                    </button>
                                 </div>
                                 <button className="flex flex-row gap-2 items-center">
                                     <img
