@@ -350,6 +350,11 @@ const UnitContent = () => {
                         <div className="poppins text-[12px] text-[#7B7B7A] mt-1">
                           <span>{unit.address}</span>
                         </div>
+                        {unit.description && (
+                          <div className="poppins text-[12px] text-[#666666] mt-2 line-clamp-2">
+                            {unit.description}
+                          </div>
+                        )}
                         <div className="flex flex-wrap gap-2 mt-1">
                           {unit.approval_status && unit.approval_status !== 'approved' && (
                             <span className={`px-2 py-1 rounded text-white text-xs ${
@@ -407,7 +412,7 @@ const UnitContent = () => {
                       <div className="flex flex-col items-center lg:items-end gap-2">
                         <button 
                           className="figtree min-w-[100px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#074A94] transition-colors" 
-                          onClick={() => (window.location.href = `/vendors/warehouse/unitDetails?id=${unit.id}`)}
+                          onClick={() => (window.location.href = `/vendors/warehouse/unitDetails/${unit.id}`)}
                         >
                           View
                         </button>

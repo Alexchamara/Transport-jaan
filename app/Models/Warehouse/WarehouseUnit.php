@@ -12,6 +12,7 @@ class WarehouseUnit extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'description',
         'address',
         'latitude',
         'longitude',

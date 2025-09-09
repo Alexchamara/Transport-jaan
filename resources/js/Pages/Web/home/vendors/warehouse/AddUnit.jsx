@@ -11,6 +11,7 @@ import backArrow from "../../../assets/vendors/units/backArrow.svg";
 const initialState = {
   // Basic Information
   name: '',
+  description: '',
   address: '',
   latitude: '',
   longitude: '',
@@ -326,7 +327,7 @@ const AddUnit = () => {
       documentFiles.forEach((f) => data.append('documents[]', f));
       if (termsPdfFile) data.append('terms_pdf', termsPdfFile);
 
-      Inertia.post('/vendors/warehouse/units', data, {
+      Inertia.post('/vendors/warehouse/api/units', data, {
         forceFormData: true,
         onError: (err) => {
           setErrors(err);
@@ -520,6 +521,20 @@ const AddUnit = () => {
                   ))}
                 </select>
                 {errors.pricing_model && <div className="text-[#DC2626] text-[12px] mt-1">{errors.pricing_model}</div>}
+              </div>
+
+              <div className="space-y-2 col-span-full">
+                <label htmlFor="description" className="block text-[14px] font-[600] text-[#000000]">Description</label>
+                <textarea 
+                  id="description" 
+                  name="description" 
+                  rows="3"
+                  className="w-full border border-[#D1D5DB] rounded-[6px] px-4 py-3 focus:ring-2 focus:ring-[#0955AC] focus:border-[#0955AC] text-[14px]" 
+                  value={form.description} 
+                  onChange={handleChange} 
+                  placeholder="Describe your warehouse facility, special features, location benefits, etc." 
+                />
+                {errors.description && <div className="text-[#DC2626] text-[12px] mt-1">{errors.description}</div>}
               </div>
 
               <div className="space-y-2 col-span-full">

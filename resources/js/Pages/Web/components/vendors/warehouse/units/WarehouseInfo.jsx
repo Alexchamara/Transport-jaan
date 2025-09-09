@@ -13,6 +13,7 @@ const WarehouseInfo = ({ warehouseData = {} }) => {
     // Default data if none provided
     const defaultData = {
         name: "Loading...",
+        description: "",
         type: "N/A",
         address: "Loading...",
         total_area: 0,
@@ -112,6 +113,14 @@ const WarehouseInfo = ({ warehouseData = {} }) => {
             <div className="mt-3 text-[12px] text-[#7B7B7A]">
                 <span>{data.address}</span>
             </div>
+
+            {/* Description */}
+            {data.description && (
+                <div className="mt-3 text-[12px] text-[#444444]">
+                    <div className="text-[#7B7B7A] font-[600] mb-1">Description</div>
+                    <div>{data.description}</div>
+                </div>
+            )}
 
             {/* Quick Info Section */}
             <div className="py-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-[12px] poppins">

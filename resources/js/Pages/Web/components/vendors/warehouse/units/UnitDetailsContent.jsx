@@ -10,20 +10,16 @@ import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 
 import backArrow from "../../../../assets/vendors/units/backArrow.svg";
 
-const UnitDetailsContent = () => {
+const UnitDetailsContent = ({ unitId }) => {
     const [warehouseData, setWarehouseData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    // Get warehouse unit ID from URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const unitId = urlParams.get('id');
 
     useEffect(() => {
         if (unitId) {
             fetchWarehouseDetails(unitId);
         } else {
-            setError('Warehouse unit ID not found in URL');
+            setError('Warehouse unit ID not provided');
             setLoading(false);
         }
     }, [unitId]);
@@ -86,7 +82,7 @@ const UnitDetailsContent = () => {
             <div>
                 <div
                     className="flex flex-row gap-5 items-center cursor-pointer"
-                    onClick={() => (window.location.href = "/warehouse/units")}
+                    onClick={() => (window.location.href = "/vendors/warehouse/units")}
                 >
                     <img src={backArrow} alt="Back" />
                     <h1 className="text-[22px] font-[500] text-[#00000080]">
