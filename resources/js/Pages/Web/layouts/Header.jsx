@@ -71,7 +71,7 @@ const Header = () => {
                     <div
                         className="size-[27px] md:size-[55px] flex justify-center items-center cursor-pointer"
                         onClick={() =>
-                            (window.location.href = "/mainDashboard")
+                            (window.location.href = "/clientDashboard")
                         }
                     >
                         <img
