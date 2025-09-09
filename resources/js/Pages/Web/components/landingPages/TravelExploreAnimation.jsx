@@ -1,5 +1,6 @@
-import React, { useRef, useState, useEffect } from "react";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import React, { useRef, useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 import img1 from "../../assets/landingPages/hero/landvehiclerental.jpg";
 import img2 from "../../assets/landingPages/hero/seavehiclebooking.jpg";
@@ -22,19 +23,6 @@ const IMAGES = [
     { title: "Ticket Booking", url: img7 },
 ];
 
-// Framer Motion variants for smoother card state transitions
-const CARD_VARIANTS = {
-    active: {
-        scale: 1.02,
-        opacity: 1,
-        transition: { type: "spring", stiffness: 320, damping: 28 },
-    },
-    inactive: {
-        scale: 1,
-        opacity: 1,
-        transition: { type: "spring", stiffness: 280, damping: 26 },
-    },
-};
 
 const TravelExploreAnimation = ({ auth }) => {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -42,6 +30,19 @@ const TravelExploreAnimation = ({ auth }) => {
     const scrollerRef = useRef(null);
     const cardRefs = useRef([]);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    const [isPrevMorph, setIsPrevMorph] = useState(false);
+    const [tempCardIndex, setTempCardIndex] = useState(null);
+
+    // Compute a rotating order of cards so the carousel behaves like a queue
+    const queueOrder = useMemo(() => {
+        const order = [];
+        for (let k = 1; k < IMAGES.length; k++) {
+            order.push((activeIndex + k) % IMAGES.length);
+        }
+        return order; // excludes the active index; starts from next and wraps around
+    }, [activeIndex]);
+
 
     // Scroll to section by id
     const handleScroll = (id) => {
@@ -52,31 +53,26 @@ const TravelExploreAnimation = ({ auth }) => {
         }
     };
 
-    // Keyboard arrows
-    useEffect(() => {
-        const onKey = (e) => {
-            if (e.key === "ArrowRight") {
-                setShowCarousel(true);
-                setActiveIndex((i) => Math.min(i + 1, IMAGES.length - 1));
-            } else if (e.key === "ArrowLeft") {
-                setShowCarousel(true);
-                setActiveIndex((i) => Math.max(i - 1, 0));
-            }
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, []);
+    // Smoothly move the horizontal rail by ~one card
+    const getCardStep = () => {
+        const scroller = scrollerRef.current;
+        if (!scroller) return 320; // sensible fallback
+        const firstBtn = scroller.querySelector('button.group');
+        if (!firstBtn) return 320;
+        const style = window.getComputedStyle(firstBtn);
+        const marginRight = parseFloat(style.marginRight || '0');
+        return firstBtn.offsetWidth + marginRight;
+    };
 
-    // Keep active card centered in view
-    useEffect(() => {
-        const el = cardRefs.current[activeIndex];
-        if (el)
-            el.scrollIntoView({
-                behavior: "smooth",
-                inline: "center",
-                block: "nearest",
-            });
-    }, [activeIndex]);
+    const scrollByStep = (dir = 1) => {
+        const scroller = scrollerRef.current;
+        if (!scroller) return;
+        const step = getCardStep();
+        scroller.scrollBy({ left: dir * step, behavior: 'smooth' });
+    };
+
+
+
 
     // Proximity trigger to RIGHT edge (hover near right side to show the carousel)
     useEffect(() => {
@@ -96,27 +92,36 @@ const TravelExploreAnimation = ({ auth }) => {
         };
     }, [showCarousel]);
 
+    const handlePrev = () => {
+        const prev = (activeIndex - 1 + IMAGES.length) % IMAGES.length;
+        setIsPrevMorph(true);
+        setTempCardIndex(activeIndex); // current background will shrink into its card
+        setActiveIndex(prev);          // swap immediately; background stays bound to temp via layoutId until animation ends
+    };
+
     return (
         <div>
-            <LayoutGroup>
                 <div className="relative h-screen w-full flex flex-col justify-center items-end overflow-hidden">
                     {/* Background crossfade */}
                     <div className="absolute inset-0 z-10">
-                        <AnimatePresence initial={false} mode="wait">
-                            <motion.img
-                                key={IMAGES[activeIndex].url}
-                                src={IMAGES[activeIndex].url}
-                                alt="Background"
-                                className="h-full w-full object-cover"
-                                initial={{ opacity: 0, scale: 1.04 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.995 }}
-                                transition={{ duration: 0.6, ease: "easeOut" }}
-                            />
-                        </AnimatePresence>
-
-                        {/* Darken & subtle blur to help foreground contrast */}
-                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+                      <motion.div
+                        key={isPrevMorph ? `bg-${tempCardIndex}` : `bg-${activeIndex}`}
+                        className={`absolute inset-0 ${isPrevMorph ? 'z-30' : 'z-10'}`}
+                        layoutId={`card-${isPrevMorph && tempCardIndex !== null ? tempCardIndex : activeIndex}`}
+                        onLayoutAnimationComplete={() => {
+                          if (isPrevMorph) {
+                            setIsPrevMorph(false);
+                            setTempCardIndex(null);
+                          }
+                        }}
+                      >
+                        <img
+                          src={IMAGES[isPrevMorph && tempCardIndex !== null ? tempCardIndex : activeIndex].url}
+                          alt="Background"
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/40" />
+                      </motion.div>
 
                         {/* NAVBAR OVERLAY (inside background, on every image) */}
                         <div className="absolute inset-x-0 top-0 z-30 pointer-events-none">
@@ -344,243 +349,107 @@ const TravelExploreAnimation = ({ auth }) => {
                         {/* END NAVBAR OVERLAY */}
 
                         {/* Caption (blurs when carousel is open) */}
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={`caption-${activeIndex}`}
-                                className="absolute inset-0 z-20 flex items-center justify-center px-5"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 20 }}
-                                transition={{ duration: 0.35, ease: "easeOut" }}
-                            >
-                                {/* Title card stays centered */}
-                                <motion.div
-                                    layoutId={`title-${activeIndex}`}
-                                    animate={{
-                                        filter: showCarousel
-                                            ? "blur(6px)"
-                                            : "blur(0px)",
-                                        opacity: showCarousel ? 0.6 : 1,
-                                    }}
-                                    transition={{
-                                        duration: 0.25,
-                                        ease: "easeOut",
-                                    }}
-                                    className={`relative inline-flex justify-center items-center max-w-[90vw] flex-col gap-1 rounded-2xl px-4 py-3 uppercase
+                        <div className="absolute inset-0 z-20 flex items-center justify-center px-5">
+                            {/* Title card stays centered */}
+                            <div
+                                className={`relative inline-flex justify-center items-center max-w-[90vw] flex-col gap-1 rounded-2xl px-4 py-3 uppercase
         ${showCarousel ? "pointer-events-none" : ""}`}
-                                    aria-hidden={
-                                        showCarousel ? "true" : "false"
-                                    }
-                                    style={{ willChange: "filter, opacity" }}
+                                aria-hidden={
+                                    showCarousel ? "true" : "false"
+                                }
+                            >
+                                <h2
+                                    className="text-2xl sm:text-3xl md:text-4xl xl:text-[54px] font-[700] text-white drop-shadow"
                                 >
-                                    <motion.h2
-                                        layoutId={`title-text-${activeIndex}`}
-                                        className="text-2xl sm:text-3xl md:text-4xl xl:text-[54px] font-[700] text-white drop-shadow"
-                                    >
-                                        {IMAGES[activeIndex].title}
-                                    </motion.h2>
-                                    <motion.p
-                                        layoutId={`caption-text-${activeIndex}`}
-                                        className="text-base sm:text-lg md:text-xl text-white/80 font-[500] mt-5 drop-shadow text-center"
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 10 }}
-                                        transition={{ duration: 0.35, ease: "easeOut" }}
-                                    >
-                                        Discover more about {IMAGES[activeIndex].title} and explore endless possibilities.
-                                    </motion.p>
-                                </motion.div>
+                                    {IMAGES[activeIndex].title}
+                                </h2>
+                                <p
+                                    className="text-base sm:text-lg md:text-xl text-white/80 font-[500] mt-5 drop-shadow text-center"
+                                >
+                                    Discover more about {IMAGES[activeIndex].title} and explore endless possibilities.
+                                </p>
+                            </div>
 
-                                {/* Subtitle as a sibling, pinned to screen bottom */}
-                                <motion.p
-                                    layoutId={`subtitle-text-${activeIndex}`}
-                                    animate={{
-                                        filter: showCarousel
-                                            ? "blur(6px)"
-                                            : "blur(0px)",
-                                        opacity: showCarousel ? 0.6 : 1,
-                                    }}
-                                    transition={{
-                                        duration: 0.25,
-                                        ease: "easeOut",
-                                    }}
-                                    className="pointer-events-none absolute inset-x-0 bottom-12 sm:bottom-10 text-center text-white/85 text-[5px] md:text-base px-4"
-                                >
-                                    Click a card to focus • Hover near the right
-                                    edge to show cards • Use ← →
-                                </motion.p>
-                            </motion.div>
-                        </AnimatePresence>
+                            {/* Subtitle as a sibling, pinned to screen bottom */}
+                            <p
+                                className="pointer-events-none absolute inset-x-0 bottom-12 sm:bottom-10 text-center text-white/85 text-[5px] md:text-base px-4"
+                            >
+                                Click a card to focus • Hover near the right
+                                edge to show cards • Use ← →
+                            </p>
+                        </div>
                     </div>
 
                     {/* Horizontal card rail */}
-                    <AnimatePresence initial={false}>
+                    <>
                         {showCarousel && (
-                            <motion.div
-                                key="card-rail"
-                                initial={{ opacity: 0, x: -40 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -160 }}
-                                transition={{ duration: 0.35, ease: "easeOut" }}
-                                className="relative z-10 mt-6 flex justify-end items-center w-full"
+                            <div
+                                className="relative z-20 mt-6 flex justify-end items-center w-full"
                             >
                                 <div className="xl:max-w-[1000px]">
                                     <div
                                         ref={scrollerRef}
-                                        className="overflow-x-auto scroll-smooth snap-x snap-mandatory"
+                                        className="overflow-x-auto scroll-smooth snap-x snap-mandatory px-10 py-10"
                                         style={{ scrollbarWidth: "none" }}
                                     >
-                                        <div className="flex gap-4 py-10 px-10">
-                                            {IMAGES.map((item, i) => (
-                                                <motion.button
-                                                    key={item.url + i}
-                                                    ref={(el) => {
-                                                        if (el)
-                                                            cardRefs.current[
-                                                                i
-                                                            ] = el;
-                                                    }}
-                                                    onClick={() => {
-                                                        setActiveIndex(i);
-                                                        // Nudge the selected card to the RIGHT edge of the scroller before hiding
-                                                        requestAnimationFrame(
-                                                            () => {
-                                                                const el =
-                                                                    cardRefs
-                                                                        .current[
-                                                                        i
-                                                                    ];
-                                                                const scroller =
-                                                                    scrollerRef.current;
-                                                                if (
-                                                                    el &&
-                                                                    scroller
-                                                                ) {
-                                                                    const cardLeft =
-                                                                        el.offsetLeft;
-                                                                    const cardWidth =
-                                                                        el.offsetWidth;
-                                                                    const containerWidth =
-                                                                        scroller.clientWidth;
-                                                                    const maxScroll =
-                                                                        scroller.scrollWidth -
-                                                                        containerWidth;
-                                                                    const target =
-                                                                        Math.min(
-                                                                            Math.max(
-                                                                                cardLeft -
-                                                                                    (containerWidth -
-                                                                                        cardWidth),
-                                                                                0
-                                                                            ),
-                                                                            maxScroll
-                                                                        );
-                                                                    scroller.scrollTo(
-                                                                        {
-                                                                            left: target,
-                                                                            behavior:
-                                                                                "smooth",
-                                                                        }
-                                                                    );
-                                                                }
-                                                            }
-                                                        );
-                                                        // Hide the carousel after a brief delay so the scroll can start
-                                                        setTimeout(
-                                                            () =>
-                                                                setShowCarousel(
-                                                                    false
-                                                                ),
-                                                            220
-                                                        );
-                                                    }}
-                                                    layout
-                                                    variants={CARD_VARIANTS}
-                                                    animate={
-                                                        i === activeIndex
-                                                            ? "active"
-                                                            : "inactive"
-                                                    }
-                                                    initial={false}
-                                                    className={`group relative shrink-0 w-[40vw] sm:w-[30vw] md:w-[300px] aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl ring-2 focus:outline-none focus-visible:ring-4 snap-end ${
-                                                        i === activeIndex
-                                                            ? "ring-white/80"
-                                                            : "ring-white/10"
-                                                    }`}
-                                                    whileTap={{ scale: 0.985 }}
-                                                    whileHover={{ y: -2 }}
-                                                >
-                                                    <motion.img
-                                                        src={item.url}
-                                                        alt={item.title}
-                                                        className="h-full w-full object-cover"
-                                                        layout
-                                                        transition={{
-                                                            type: "tween",
-                                                            duration: 0.35,
-                                                            ease: "easeOut",
-                                                        }}
-                                                    />
-                                                    <div className="pointer-events-none absolute inset-0 bg-black/40" />
-                                                    <motion.div
-                                                        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
-                                                        initial={false}
-                                                        animate={{
-                                                            opacity:
-                                                                i ===
-                                                                activeIndex
-                                                                    ? 1
-                                                                    : 0.8,
-                                                        }}
-                                                        transition={{
-                                                            duration: 0.25,
-                                                        }}
-                                                    />
-                                                    <div className="pointer-events-none absolute left-3 bottom-3 hidden sm:block">
-                                                        <div className="rounded-md px-2 py-1 text-white/90 text-xs backdrop-blur-md bg-black/20 ring-1 ring-white/15">
-                                                            {item.title}
-                                                        </div>
-                                                    </div>
-                                                </motion.button>
+                                        <div className="flex gap-4">
+                                          <AnimatePresence initial={false}>
+                                            {queueOrder.map((idx) => (
+                                              <motion.div
+                                                key={IMAGES[idx].url}
+                                                ref={(el) => { if (el) cardRefs.current[idx] = el; }}
+                                                layoutId={`card-${idx}`}
+                                                className={`group relative shrink-0 w-[40vw] sm:w-[30vw] md:w-[300px] aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl ring-2 snap-end ring-white/10 cursor-default`}
+                                              >
+                                                <img
+                                                  src={IMAGES[idx].url}
+                                                  alt={IMAGES[idx].title}
+                                                  className="h-full w-full object-cover"
+                                                />
+                                                <div className="pointer-events-none absolute inset-0 bg-black/40" />
+                                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                                                <div className="pointer-events-none absolute left-3 bottom-3 hidden sm:block">
+                                                  <div className="rounded-md px-2 py-1 text-white/90 text-xs backdrop-blur-md bg-black/20 ring-1 ring-white/15">
+                                                    {IMAGES[idx].title}
+                                                  </div>
+                                                </div>
+                                              </motion.div>
                                             ))}
+                                          </AnimatePresence>
                                         </div>
                                     </div>
                                 </div>
-                            </motion.div>
+                            </div>
                         )}
-                    </AnimatePresence>
+                    </>
 
-                    {/* Dots */}
-                    <AnimatePresence>
+                    {/* On-screen arrow controls */}
+                    <>
                         {showCarousel && (
-                            <motion.div
-                                key="dots"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="pointer-events-auto absolute inset-x-0 bottom-6 flex items-center justify-center gap-2 z-20"
+                            <div
+                                className="pointer-events-auto absolute inset-x-0 bottom-20 sm:bottom-24 flex items-center justify-center gap-4 z-20"
                             >
-                                {IMAGES.map((_, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => {
-                                            setShowCarousel(true);
-                                            setActiveIndex(i);
-                                        }}
-                                        className={`h-2.5 w-2.5 rounded-full transition-opacity duration-200 ${
-                                            i === activeIndex
-                                                ? "bg-white/90"
-                                                : "bg-white/40 hover:bg-white/60"
-                                        }`}
-                                        aria-label={`Go to slide ${i + 1}`}
-                                    />
-                                ))}
-                            </motion.div>
+                                <button
+                                    onClick={handlePrev}
+                                    aria-label="Previous"
+                                    className="rounded-full bg-white/80 hover:bg-white text-black backdrop-blur px-4 py-2 text-sm md:text-base shadow"
+                                >
+                                    ← Prev
+                                </button>
+                                <button
+                                    onClick={() => {
+                                      const next = (activeIndex + 1) % IMAGES.length;
+                                      setActiveIndex(next); // the next card will expand into the background via shared layoutId
+                                    }}
+                                    aria-label="Next"
+                                    className="rounded-full bg-white/80 hover:bg-white text-black backdrop-blur px-4 py-2 text-sm md:text-base shadow"
+                                >
+                                    Next →
+                                </button>
+                            </div>
                         )}
-                    </AnimatePresence>
+                    </>
                 </div>
-            </LayoutGroup>
         </div>
     );
 };
