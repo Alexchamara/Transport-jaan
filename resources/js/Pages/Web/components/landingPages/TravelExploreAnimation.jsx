@@ -389,7 +389,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                 <div className="xl:max-w-[1000px]">
                                     <div
                                         ref={scrollerRef}
-                                        className="overflow-x-auto scroll-smooth snap-x snap-mandatory px-10 py-10"
+                                        className="overflow-hidden touch-pan-y scroll-smooth snap-x snap-mandatory px-10 py-10"
                                         style={{ scrollbarWidth: "none" }}
                                     >
                                         <div className="flex gap-4">
