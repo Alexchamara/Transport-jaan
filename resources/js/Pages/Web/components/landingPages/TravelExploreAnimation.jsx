@@ -92,12 +92,6 @@ const TravelExploreAnimation = ({ auth }) => {
         };
     }, [showCarousel]);
 
-    const handlePrev = () => {
-        const prev = (activeIndex - 1 + IMAGES.length) % IMAGES.length;
-        setIsPrevMorph(true);
-        setTempCardIndex(activeIndex); // current background will shrink into its card
-        setActiveIndex(prev);          // swap immediately; background stays bound to temp via layoutId until animation ends
-    };
 
     return (
         <div>
@@ -107,6 +101,8 @@ const TravelExploreAnimation = ({ auth }) => {
                       <motion.div
                         key={isPrevMorph ? `bg-${tempCardIndex}` : `bg-${activeIndex}`}
                         className={`absolute inset-0 ${isPrevMorph ? 'z-30' : 'z-10'}`}
+                        layout
+                        transition={{ layout: { duration: 0.2, ease: [0.25, 1, 0.5, 1] } }}
                         layoutId={`card-${isPrevMorph && tempCardIndex !== null ? tempCardIndex : activeIndex}`}
                         onLayoutAnimationComplete={() => {
                           if (isPrevMorph) {
@@ -389,7 +385,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                 <div className="xl:max-w-[1000px]">
                                     <div
                                         ref={scrollerRef}
-                                        className="overflow-x-auto scroll-smooth snap-x snap-mandatory px-10 py-10"
+                                        className="overflow-hidden touch-pan-y scroll-smooth snap-x snap-mandatory px-10 py-10"
                                         style={{ scrollbarWidth: "none" }}
                                     >
                                         <div className="flex gap-4">
@@ -398,6 +394,8 @@ const TravelExploreAnimation = ({ auth }) => {
                                               <motion.div
                                                 key={IMAGES[idx].url}
                                                 ref={(el) => { if (el) cardRefs.current[idx] = el; }}
+                                                layout
+                                                transition={{ layout: { duration: 1.5, ease: [0.25, 1, 0.5, 1] } }}
                                                 layoutId={`card-${idx}`}
                                                 className={`group relative shrink-0 w-[40vw] sm:w-[30vw] md:w-[300px] aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl ring-2 snap-end ring-white/10 cursor-default`}
                                               >
@@ -429,13 +427,6 @@ const TravelExploreAnimation = ({ auth }) => {
                             <div
                                 className="pointer-events-auto absolute inset-x-0 bottom-20 sm:bottom-24 flex items-center justify-center gap-4 z-20"
                             >
-                                <button
-                                    onClick={handlePrev}
-                                    aria-label="Previous"
-                                    className="rounded-full bg-white/80 hover:bg-white text-black backdrop-blur px-4 py-2 text-sm md:text-base shadow"
-                                >
-                                    ← Prev
-                                </button>
                                 <button
                                     onClick={() => {
                                       const next = (activeIndex + 1) % IMAGES.length;
