@@ -41,7 +41,7 @@ const Summary = () => {
   const dueAmount = Math.max(total - paidRaw, 0);
 
   const handleBackBooking = () => {
-    router.visit(route("bookings.checkout"), {
+    router.visit(route("client.bookings.checkout"), {
       method: "get",
       preserveScroll: true,
       data: { vehicle_id: vehicle?.id },
@@ -49,7 +49,7 @@ const Summary = () => {
   };
 
   const handlePaymentBooking = () => {
-    router.visit(route("bookings.payments", booking.id), {
+    router.visit(route("client.bookings.payments", booking.id), {
       method: "get",
       preserveScroll: true,
     });

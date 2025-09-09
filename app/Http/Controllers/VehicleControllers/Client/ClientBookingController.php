@@ -322,7 +322,7 @@ class ClientBookingController extends Controller
             return $booking->fresh(['schedule', 'addons']);
         });
 
-        return redirect()->route('bookings.payments', $booking->id)
+        return redirect()->route('client.bookings.payments', $booking->id)
             ->with('success', 'Booking created. Continue with payment.');
     }
 
@@ -408,7 +408,7 @@ class ClientBookingController extends Controller
             $request->session()->forget(['booking_trip']);
         });
 
-        return redirect()->route('bookings.summary', $booking->id)
+        return redirect()->route('client.bookings.summary', $booking->id)
             ->with('success', 'Booking confirmed!');
     }
 

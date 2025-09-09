@@ -67,30 +67,49 @@ Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicl
 |  (Client)
 |--------------------------------------------------------------------------
 */
-Route::get('/bookings/quote', [ClientBookingController::class, 'quote'])->name('bookings.quote');
-Route::get('/vehicles/{vehicle}/extras', [ClientBookingController::class, 'extras'])
-    ->name('vehicles.extras');
+Route::prefix('client')->as('client.')->group(function () {
+    Route::get('/bookings/quote', [ClientBookingController::class, 'quote'])
+        ->name('bookings.quote');
 
-Route::patch('/bookings/{booking}/addons', [ClientBookingController::class, 'updateAddons'])
-    ->name('bookings.updateAddons');
+    Route::get('/vehicles/{vehicle}/extras', [ClientBookingController::class, 'extras'])
+        ->name('vehicles.extras');
 
+    Route::patch('/bookings/{booking}/addons', [ClientBookingController::class, 'updateAddons'])
+        ->name('bookings.updateAddons');
 
-Route::middleware(['auth', 'role:client'])->group(function () {
-    Route::get('/bookings/checkout', [ClientBookingController::class, 'showCheckout'])->name('bookings.checkout');
-    Route::post('/bookings', [ClientBookingController::class, 'store'])->name('bookings.store');
-    Route::get('/bookings/{booking}/payments', [ClientBookingController::class, 'payments'])->name('bookings.payments');
-    Route::post('/bookings/{booking}/confirm', [ClientBookingController::class, 'confirm'])->name('bookings.confirm');
-    Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])->name('bookings.summary');
-    Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])->name('bookings.cancel');
+    Route::middleware(['auth', 'role:client'])->group(function () {
+        Route::get('/bookings/checkout', [ClientBookingController::class, 'showCheckout'])
+            ->name('bookings.checkout');
 
-    Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');
-    Route::get('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'index'])->name('vehicles.reviews.index');
-    Route::post('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'store'])->name('vehicles.reviews.store');
-    Route::get(
-        '/vehicles/{vehicle}/policy/preview',
-        [ClientVehicleController::class, 'policyPreview']
-    )->name('vehicles.policy.preview');
+        Route::post('/bookings', [ClientBookingController::class, 'store'])
+            ->name('bookings.store');
+
+        Route::get('/bookings/{booking}/payments', [ClientBookingController::class, 'payments'])
+            ->name('bookings.payments');
+
+        Route::post('/bookings/{booking}/confirm', [ClientBookingController::class, 'confirm'])
+            ->name('bookings.confirm');
+
+        Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])
+            ->name('bookings.summary');
+
+        Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])
+            ->name('bookings.cancel');
+
+        Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])
+            ->name('vehicle.like.toggle');
+
+        Route::get('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'index'])
+            ->name('vehicles.reviews.index');
+
+        Route::post('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'store'])
+            ->name('vehicles.reviews.store');
+
+        Route::get('/vehicles/{vehicle}/policy/preview', [ClientVehicleController::class, 'policyPreview'])
+            ->name('vehicles.policy.preview');
+    });
 });
+
 
 /*
 |--------------------------------------------------------------------------
@@ -173,10 +192,10 @@ Route::middleware('auth')->group(function () {
 // |--------------------------------------------------------------------------
 // */
 Route::redirect('/units', '/vendors/units')->name('units.legacy');
-//Route::redirect('/bookings', '/vendors/bookings')->name('bookings.legacy');
+Route::redirect('/bookings', '/vendors/bookings')->name('bookings.legacy');
 Route::redirect('/clients', '/vendors/clients')->name('clients.legacy');
 Route::redirect('/expenses', '/vendors/expenses')->name('expenses.legacy');
-//Route::redirect('/payment', '/vendors/payment')->name('payment.legacy');
+Route::redirect('/payment', '/vendors/payment')->name('payment.legacy');
 Route::redirect('/tracking', '/vendors/tracking')->name('tracking.legacy');
 Route::redirect('/calendar', '/vendors/calendar')->name('calendar.legacy');
 Route::redirect('/addUnit', '/vendors/addUnit')->name('addUnit.legacy');

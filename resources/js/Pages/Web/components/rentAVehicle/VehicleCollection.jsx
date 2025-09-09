@@ -33,7 +33,7 @@ const VehicleCollection = () => {
       return;
     }
     try {
-      const { data } = await axios.post(route("vehicle.like.toggle"), {
+      const { data } = await axios.post(route("client.vehicle.like.toggle"), {
         vehicle_id: vehicleId,
       });
       const next = {};

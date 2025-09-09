@@ -99,15 +99,18 @@ const VehicleCheckoutContent = () => {
           dropoff_time: String(q.dropoff_time),
         });
         if (q.exclude_booking_id) {
-          params.append("exclude_booking_id", String(q.exclude_booking_id)); // NEW
+          params.append("exclude_booking_id", String(q.exclude_booking_id));
         }
         addons.forEach((a, i) => {
           params.append(`addons[${i}][name]`, a.name);
           params.append(`addons[${i}][qty]`, String(a.qty || 1));
         });
-        const res = await fetch(`/bookings/quote?${params.toString()}`, {
+
+        // ✅ use prefixed route name
+        const res = await fetch(`${route("client.bookings.quote")}?${params.toString()}`, {
           headers: { Accept: "application/json" },
         });
+
         if (!res.ok) throw new Error("Quote failed");
         setQuote(await res.json());
       } catch {
@@ -149,7 +152,7 @@ const VehicleCheckoutContent = () => {
     }
 
     router.post(
-      route("bookings.store"),
+      route("client.bookings.store"),
       {
         vehicle_id: vehicle.id,
         pickup_location: q.pickup_location || "",
@@ -174,8 +177,12 @@ const VehicleCheckoutContent = () => {
     );
   };
 
-  const handleConfirmBooking = () => router.visit("/summary", { method: "get", preserveScroll: true });
-  const handleVehicleList = () => router.visit("/vehicleList", { method: "get", preserveScroll: true });
+  // ✅ use named, prefixed routes for navigation too
+  const handleConfirmBooking = () =>
+    router.visit(route("client.bookings.checkout"), { method: "get", preserveScroll: true });
+
+  const handleVehicleList = () =>
+    router.visit(route("client.vehicle.list"), { method: "get", preserveScroll: true });
 
   /* ---------------- Derived values ---------------- */
   const currency = quote?.currency || vehicle?.currency || "$";
@@ -194,7 +201,10 @@ const VehicleCheckoutContent = () => {
         <div className="flex flex-col gap-10">
           {/* progress header */}
           <div className="flex flex-row items-start justify-center pb-10">
-            <div className="md:flex flex-col hidden justify-center items-center gap-3 cursor-pointer" onClick={handleVehicleList}>
+            <div
+              className="md:flex flex-col hidden justify-center items-center gap-3 cursor-pointer"
+              onClick={handleVehicleList}
+            >
               <div className="w-[18px] h-[18px] rounded-full bg-[#1565c0]" style={{ boxShadow: "0 0 10px 8px #1565c088" }} />
               <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Select Car</h1>
             </div>
@@ -204,12 +214,18 @@ const VehicleCheckoutContent = () => {
               <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Booking Info</h1>
             </div>
             <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
-            <div className="flex flex-col justify-center items-center gap-3 cursor-pointer" onClick={handlePaymentBooking}>
+            <div
+              className="flex flex-col justify-center items-center gap-3 cursor-pointer"
+              onClick={handlePaymentBooking}
+            >
               <div className="w-[22px] h-[22px] rounded-full border-[2px] border-[#1565c0]" />
               <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Payments</h1>
             </div>
             <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
-            <div className="md:flex flex-col justify-center hidden items-center cursor-pointer" onClick={handleConfirmBooking}>
+            <div
+              className="md:flex flex-col justify-center hidden items-center cursor-pointer"
+              onClick={handleConfirmBooking}
+            >
               <div className="w-[22px] h-[22px] rounded-full border-[2px] border-[#1565c0]" />
               <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Booking Confirmation</h1>
             </div>
@@ -287,7 +303,7 @@ const VehicleCheckoutContent = () => {
                         onChange={(e) => setPhone(e.target.value)}
                         inputMode="tel"
                         autoComplete="tel"
-                        pattern="^\+?\d{7,15}$"
+                        pattern="^\\+?\\d{7,15}$"
                         title="Phone number must be 7–15 digits, optional leading +"
                         className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                         placeholder="Enter your phone number"

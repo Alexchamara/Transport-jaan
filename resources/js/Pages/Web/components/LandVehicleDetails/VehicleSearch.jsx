@@ -49,7 +49,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   useEffect(() => {
     if ((!serverExtras || serverExtras.length === 0) && vehicleId) {
       axios
-        .get(route("vehicles.extras", vehicleId))
+        .get(route("client.vehicles.extras", vehicleId))
         .then(({ data }) => setServerExtras(data?.extras || []))
         .catch(() => { });
     }
@@ -102,7 +102,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
       return;
     }
     try {
-      const { data } = await axios.get(route("bookings.quote"), {
+      const { data } = await axios.get(route("client.bookings.quote"), {
         params: {
           vehicle_id: vehicleId,
           pickup_date: pickupDate,
@@ -131,7 +131,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
     }
 
     try {
-      await axios.get(route("bookings.quote"), {
+      await axios.get(route("client.bookings.quote"), {
         params: {
           vehicle_id: vehicleId,
           pickup_date: pickupDate,
@@ -142,7 +142,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
         },
       });
 
-      router.visit(route("bookings.checkout"), {
+      router.visit(route("client.bookings.checkout"), {
         method: "get",
         data: {
           vehicle_id: vehicleId,

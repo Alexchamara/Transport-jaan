@@ -77,14 +77,14 @@ const Payments = () => {
     formData.append("payment_option", paymentOption);
     if (slipNumber) formData.append("slip_number", slipNumber);
     if (slipPdf && selectedPayment === "Bank Transfer") formData.append("slip_pdf", slipPdf);
-    router.post(route("bookings.confirm", booking.id), formData, {
+    router.post(route("client.bookings.confirm", booking.id), formData, {
       forceFormData: true,
       preserveScroll: true,
     });
   };
 
   const handleBackBooking = () => {
-    router.visit(route("bookings.checkout"), {
+    router.visit(route("client.bookings.checkout"), {
       method: "get",
       preserveScroll: true,
       data: { vehicle_id: booking?.vehicle_id },
@@ -92,7 +92,7 @@ const Payments = () => {
   };
 
   const handlePaymentBooking = () => {
-    router.visit(route("bookings.payments", booking?.id), {
+    router.visit(route("client.bookings.payments", booking?.id), {
       method: "get",
       preserveScroll: true,
     });
@@ -120,7 +120,7 @@ const Payments = () => {
     if (!vehicle?.id) return;
     // GET /vehicles/{vehicle}/extras -> from your controller::extras()
     axios
-      .get(route("vehicles.extras", vehicle.id))
+      .get(route("client.vehicles.extras", vehicle.id))
       .then(({ data }) => {
         const list = Array.isArray(data?.extras) ? data.extras : [];
         setCatalog(
@@ -159,7 +159,7 @@ const Payments = () => {
 
     try {
       setToggling(true);
-      const { data } = await axios.patch(route("bookings.updateAddons", booking.id), {
+      const { data } = await axios.patch(route("client.bookings.updateAddons", booking.id), {
         addons: payload,
       });
       if (data?.booking) setBooking(data.booking); // refresh everything on the card

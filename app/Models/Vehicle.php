@@ -96,7 +96,7 @@ class Vehicle extends Model
         if (!self::hasPolicyTable()) return null;
 
         return $this->policy
-            ? route('vehicles.policy.preview', ['vehicle' => $this->id])
+            ? route('client.vehicles.policy.preview', ['vehicle' => $this->id])
             : null;
     }
 

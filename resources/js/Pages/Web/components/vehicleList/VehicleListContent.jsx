@@ -44,7 +44,7 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
       return;
     }
     try {
-      const { data } = await axios.post(route("vehicle.like.toggle"), { vehicle_id: vehicleId });
+      const { data } = await axios.post(route("client.vehicle.like.toggle"), { vehicle_id: vehicleId });
       const map = {};
       (data.likedVehicleIds || []).forEach((id) => (map[id] = true));
       setLikedMap(map);
