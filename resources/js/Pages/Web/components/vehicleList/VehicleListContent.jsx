@@ -67,7 +67,7 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
           {vehicles.map((v) => (
             <div
               key={v.id}
-              className="bg-white shadow-md overflow-hidden h-auto w-full max-w-[286px] py-5"
+              className="bg-[#EAEAE9] shadow-md overflow-hidden h-auto w-full max-w-[286px] py-5"
             >
               {/* --- top spec row --- */}
               <div className="pb-4">
@@ -87,13 +87,19 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
               </div>
 
               {/* --- vehicle image --- */}
-              <div className="h-[100px] flex items-start justify-center mb-4">
-                <img
-                  src={getImg(v)}
-                  alt={v.model || "vehicle"}
-                  className="max-h-full object-contain"
-                  loading="lazy"
-                />
+              <div className="mx-auto w-[90%] mb-4">
+                <div className="relative h-[180px] sm:h-[210px] md:h-[240px] rounded-xl overflow-hidden ring-1 ring-gray-200 bg-gray-100">
+                  <img
+                    src={getImg(v)}
+                    alt={v.model || "vehicle"}
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      // e.currentTarget.src = placeholderImg; // optional fallback
+                    }}
+                  />
+                </div>
               </div>
 
               {/* --- title + price --- */}
@@ -112,7 +118,7 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
                 </div>
 
                 {/* --- button row --- */}
-                <div className="mt-5 flex items-center gap-3">
+                <div className="mt-5 flex items-center gap-3 px-4">
                   <button
                     onClick={() => view(v.id)}
                     className="flex-1 h-[42px] rounded bg-[#0955AC] text-white text-[11px] font-[700] tracking-wider"
@@ -123,7 +129,7 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
                   <button
                     onClick={() => toggleLike(v.id)}
                     className="h-[42px] w-[42px] rounded border border-[#0955AC] grid place-items-center bg-white"
-                    aria-label={likedMap[v.id] ? "Unlike" : "Like"}
+                    aria-label={likedMap[v.id] ? 'Unlike' : 'Like'}
                   >
                     <img
                       src={likedMap[v.id] ? heartFill : heart}
@@ -132,6 +138,7 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
                     />
                   </button>
                 </div>
+
               </div>
             </div>
           ))}

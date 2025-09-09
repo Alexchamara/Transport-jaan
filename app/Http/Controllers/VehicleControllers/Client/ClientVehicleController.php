@@ -7,6 +7,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ClientVehicleController extends Controller
@@ -26,7 +27,7 @@ class ClientVehicleController extends Controller
                 'logo' => '/brand-logos/' . strtolower($row->display_name) . '.png',
             ]);
 
-        // Land body types (from categories table if you maintain icons per type)
+        // Land body types (from categories)
         $bodyTypes = VehicleCategory::where('type', 'land')
             ->orderBy('name')
             ->get()
@@ -35,29 +36,36 @@ class ClientVehicleController extends Controller
                 'icon' => '/body-icons/' . strtolower($c->name) . '.png',
             ]);
 
-        // Sample vehicles
-        $vehicles = Vehicle::with(['landSpec', 'primaryImage'])
+        // Vehicles: send browser-usable image URLs
+        $vehicles = Vehicle::with(['landSpec', 'images', 'primaryImage'])
             ->active()
             ->type('land')
             ->take(12)
             ->get()
-            ->map(fn($v) => [
-                'id' => $v->id,
-                'model' => $v->model,
-                'manufacturer' => $v->manufacturer,
-                'rental_price_per_day' => $v->rental_price_per_day,
-                'primary_image' => $v->primaryImage?->path,
-                'landSpec' => $v->landSpec,
-            ]);
+            ->map(function ($v) {
+                $primaryUrl = $v->primary_image_url
+                    ?? optional($v->images->sortByDesc('is_primary')->sortBy('sort_order')->first())->url;
+
+                return [
+                    'id'                   => $v->id,
+                    'model'                => $v->model,
+                    'manufacturer'         => $v->manufacturer,
+                    'rental_price_per_day' => $v->rental_price_per_day,
+                    'primary_image_url'    => $primaryUrl,
+                    'landSpec'             => $v->landSpec,
+                    'mileage_km'           => $v->mileage_km,
+                    'passenger_capacity'   => $v->passenger_capacity,
+                ];
+            });
 
         $likedVehicleIds = Auth::check()
             ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
             : [];
 
         return Inertia::render('Web/home/HomePage', [
-            'brands' => $brands,
-            'bodyTypes' => $bodyTypes,
-            'vehicles' => $vehicles,
+            'brands'          => $brands,
+            'bodyTypes'       => $bodyTypes,
+            'vehicles'        => $vehicles,
             'likedVehicleIds' => $likedVehicleIds,
         ]);
     }
@@ -65,7 +73,6 @@ class ClientVehicleController extends Controller
     /** Vehicle List with filters (brand/model case-insensitive) */
     public function vehicleList(Request $request)
     {
-        // Accept both bodyType (camelCase) and body_type (snake_case) from the client
         $filters = $request->only([
             'pickupLocation',
             'pickupDate',
@@ -86,23 +93,19 @@ class ClientVehicleController extends Controller
             ->active()
             ->type('land');
 
-        // ---- Brand filter (case-insensitive) ----
         if (!empty($filters['brand'])) {
             $brand = mb_strtolower(trim($filters['brand']));
             $query->whereRaw('LOWER(manufacturer) = ?', [$brand]);
         }
 
-        // ---- Model filter (case-insensitive) ----
         if (!empty($filters['model'])) {
             $model = mb_strtolower(trim($filters['model']));
             $query->whereRaw('LOWER(model) = ?', [$model]);
         }
 
-        // ---- Body type filter (case-insensitive, supports bodyType OR body_type) ----
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
             $bodyType = mb_strtolower(trim($rawBodyType));
-            // Optional: guard against unexpected values (only allow enum values)
             $allowed = ['sedan','hatchback','suv','van','bus','pickup','jeep','other'];
             if (in_array($bodyType, $allowed, true)) {
                 $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
@@ -111,37 +114,37 @@ class ClientVehicleController extends Controller
 
         $vehicles = $query->paginate(12)->withQueryString()
             ->through(function (Vehicle $v) {
-                $primary = optional(
+                $primaryMedia = optional(
                     $v->images->sortByDesc('is_primary')->sortBy('sort_order')->first()
-                )->path;
+                );
 
                 return [
-                    'id' => $v->id,
-                    'model' => $v->model,
-                    'manufacturer' => $v->manufacturer,
+                    'id'                   => $v->id,
+                    'model'                => $v->model,
+                    'manufacturer'         => $v->manufacturer,
                     'rental_price_per_day' => $v->rental_price_per_day,
 
-                    // consolidated primary image path
-                    'primary_image' => $primary,
+                    'primary_image_url'    => $primaryMedia?->url,
 
-                    // images array (legacy + future-proof)
                     'images' => $v->images->map(fn($m) => [
-                        'image_path' => $m->path,
-                        'path' => $m->path,
+                        'id'         => $m->id,
+                        'title'      => $m->title,
+                        'url'        => $m->url,
+                        'is_primary' => (bool) $m->is_primary,
+                        'sort_order' => (int) $m->sort_order,
                     ])->values(),
 
-                    // minimal specs for cards
                     'landSpec' => [
-                        'fuel_type' => $v->landSpec->fuel_type ?? null,
+                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
                         'transmission_type' => $v->landSpec->transmission_type ?? null,
-                        'seats' => $v->landSpec->seats ?? null,
+                        'seats'             => $v->landSpec->seats ?? null,
                     ],
 
+                    'mileage_km'         => $v->mileage_km,
                     'passenger_capacity' => $v->passenger_capacity,
                 ];
             });
 
-        // Brand list (filtered by body type if provided)
         $brandCollection = Vehicle::query()
             ->when(!empty($rawBodyType), function ($q) use ($rawBodyType) {
                 $bt = mb_strtolower(trim($rawBodyType));
@@ -154,7 +157,6 @@ class ClientVehicleController extends Controller
             ->get()
             ->map(fn($row) => $row->display_name);
 
-        // Model list (optionally narrowed by brand)
         $modelQuery = Vehicle::query();
         if (!empty($filters['brand'])) {
             $brand = mb_strtolower(trim($filters['brand']));
@@ -172,15 +174,14 @@ class ClientVehicleController extends Controller
             : [];
 
         return Inertia::render('Web/home/vehicleList', [
-            'vehicles' => $vehicles,
-            'filters' => [
+            'vehicles'         => $vehicles,
+            'filters'          => [
                 ...$filters,
-                // normalize outgoing filter so the frontend has one canonical key
                 'bodyType' => $rawBodyType,
             ],
-            'likedVehicleIds' => $likedVehicleIds,
-            'brandCollection' => $brandCollection,
-            'modelCollection' => $modelCollection,
+            'likedVehicleIds'  => $likedVehicleIds,
+            'brandCollection'  => $brandCollection,
+            'modelCollection'  => $modelCollection,
         ]);
     }
 
@@ -198,6 +199,7 @@ class ClientVehicleController extends Controller
                 'provider',
                 'reviews' => fn($q) => $q->latest(),
                 'reviews.client:id,name,email,country',
+                'policy',
             ])
             ->withAvg('reviews as rating_avg', 'rating')
             ->withCount('reviews as reviews_count')
@@ -226,13 +228,24 @@ class ClientVehicleController extends Controller
             ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
             : [];
         $vehicle->setAttribute('is_liked', Auth::check() && in_array($vehicle->id, $likedVehicleIds, true));
-        $myReview = Auth::check() ? $vehicle->reviews->firstWhere('client_id', Auth::id()) : null;
+        $myReview   = Auth::check() ? $vehicle->reviews->firstWhere('client_id', Auth::id()) : null;
         $authUserId = Auth::id();
 
-        // Frontend-friendly aliases
+        // Frontend-friendly aliases (include URLs)
         $vehicle->setAttribute('landSpec', $vehicle->landSpec);
         $vehicle->setAttribute('primaryImage', $vehicle->primaryImage);
-        $vehicle->setAttribute('images', $vehicle->images);
+        $vehicle->setAttribute('primary_image_url', $vehicle->primary_image_url);
+        $vehicle->setAttribute('images', $vehicle->images->map(fn($m) => [
+            'id'         => $m->id,
+            'title'      => $m->title,
+            'url'        => $m->url,
+            'is_primary' => (bool) $m->is_primary,
+            'sort_order' => (int) $m->sort_order,
+        ]));
+
+        // Policy URLs for UI
+        $vehicle->setAttribute('policy_pdf_url', $vehicle->policy_pdf_url);
+        $vehicle->setAttribute('policy_stream_url', $vehicle->policy_stream_url);
 
         $similarVehicles = Vehicle::query()
             ->active()
@@ -242,15 +255,37 @@ class ClientVehicleController extends Controller
             ->when($vehicle->manufacturer, fn($q) => $q->where('manufacturer', $vehicle->manufacturer))
             ->with(['primaryImage'])
             ->take(8)
-            ->get();
+            ->get()
+            ->map(fn($v) => [
+                'id'                   => $v->id,
+                'model'                => $v->model,
+                'manufacturer'         => $v->manufacturer,
+                'primary_image_url'    => $v->primary_image_url,
+                'rental_price_per_day' => $v->rental_price_per_day,
+            ]);
 
         return Inertia::render('Web/home/land/VehicleDetails', [
-            'vehicle' => $vehicle,
-            'similarVehicles' => $similarVehicles,
-            'ratingBreakdown' => $ratingBreakdown,
-            'likedVehicleIds' => $likedVehicleIds,
-            'myReview' => $myReview,
-            'authUserId' => $authUserId,
+            'vehicle'          => $vehicle,
+            'similarVehicles'  => $similarVehicles,
+            'ratingBreakdown'  => $ratingBreakdown,
+            'likedVehicleIds'  => $likedVehicleIds,
+            'myReview'         => $myReview,
+            'authUserId'       => $authUserId,
         ]);
+    }
+
+    /** Stream the policy PDF inline for preview (client public route) */
+    public function policyPreview(Vehicle $vehicle)
+    {
+        $policy = $vehicle->policy;
+        abort_if(!$policy, 404, 'No policy found for this vehicle.');
+
+        $disk = $policy->disk ?: 'public';
+        $path = $policy->file_path;
+
+        $filename = $policy->original_name ?: 'policy.pdf';
+        $headers  = ['Content-Type' => $policy->mime_type ?: 'application/pdf'];
+
+        return Storage::disk($disk)->response($path, $filename, $headers);
     }
 }

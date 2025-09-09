@@ -8,14 +8,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-
 class Vehicle extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'provider_id',
-        'type',                 // land|air|sea
+        'type',
         'category_id',
         'model',
         'manufacturer',
@@ -23,8 +22,8 @@ class Vehicle extends Model
         'registration_year',
         'registration_number',
         'colour',
-        'condition',            // new|used|refurbished
-        'ownership_type',       // company_owned|partner_owned|leased
+        'condition',
+        'ownership_type',
         'passenger_capacity',
         'mileage_km',
         'rental_price_per_day',
@@ -38,8 +37,8 @@ class Vehicle extends Model
         'wifi',
         'insurance_coverage',
         'extra',
-        'status',               // draft|active|inactive
-        'approval_status',      // pending|approved|rejected
+        'status',
+        'approval_status',
         'description',
         'images_json',
         'insurance_docs_json',
@@ -62,34 +61,21 @@ class Vehicle extends Model
         'insurance_docs_json' => 'array',
     ];
 
+    // Expose primary image URL in JSON
+    protected $appends = ['primary_image_url'];
+
     /* -------- Relations -------- */
-
-    public function provider()
-    {
-        return $this->belongsTo(User::class, 'provider_id');
-    }
-
-    // existing relations
+    public function provider() { return $this->belongsTo(User::class, 'provider_id'); }
     public function category() { return $this->belongsTo(VehicleCategory::class, 'category_id'); }
     public function airSpec()  { return $this->hasOne(AirVehicleSpec::class); }
     public function seaSpec()  { return $this->hasOne(SeaVehicleSpec::class); }
     public function landSpec() { return $this->hasOne(LandVehicleSpec::class); }
     public function media()    { return $this->hasMany(VehicleMedia::class); }
 
+    // Policies
+    public function policies(): HasMany { return $this->hasMany(\App\Models\VehiclePolicy::class); }
+    public function policy(): HasOne    { return $this->hasOne(\App\Models\VehiclePolicy::class)->latestOfMany(); }
 
-
-    // --- new: policy relations/accessors ---
-    public function policies(): HasMany
-    {
-        return $this->hasMany(\App\Models\VehiclePolicy::class);
-    }
-
-    public function policy(): HasOne
-    {
-        return $this->hasOne(\App\Models\VehiclePolicy::class)->latestOfMany();
-    }
-
-    // Optional guard to avoid crashes pre-migration
     protected static function hasPolicyTable(): bool
     {
         static $ok = null;
@@ -101,69 +87,47 @@ class Vehicle extends Model
     public function getPolicyPdfUrlAttribute(): ?string
     {
         if (!self::hasPolicyTable()) return null;
-        return $this->policy?->url;
+        return $this->policy?->url; // direct public URL
     }
 
+    // ✅ Point to client route (public) for inline preview
     public function getPolicyStreamUrlAttribute(): ?string
     {
         if (!self::hasPolicyTable()) return null;
+
         return $this->policy
-            ? route('vendor.vehicles.policy.stream', ['vehicle' => $this->id])
+            ? route('vehicles.policy.preview', ['vehicle' => $this->id])
             : null;
     }
-    public function documents()
-    {
-        return $this->hasMany(VehicleDocument::class);
-    }
 
-    public function insuranceDocuments()
-    {
-        return $this->documents()->where('doc_type', 'insurance');
-    }
+    public function documents()          { return $this->hasMany(VehicleDocument::class); }
+    public function insuranceDocuments() { return $this->documents()->where('doc_type', 'insurance'); }
 
-    public function crew()
-    {
-        return $this->hasMany(VehicleCrew::class);
-    } // keep only this
+    public function crew() { return $this->hasMany(VehicleCrew::class); }
     public function crewMembers()
     {
         return $this->belongsToMany(User::class, 'vehicle_crews')
-            ->withPivot(['id', 'role', 'license_number', 'license_type', 'license_expiry', 'rating', 'is_primary'])
+            ->withPivot(['id','role','license_number','license_type','license_expiry','rating','is_primary'])
             ->withTimestamps();
     }
 
-    public function reviews()
-    {
-        return $this->hasMany(VehicleReview::class, 'vehicle_id');
-    }
-    public function likes()
-    {
-        return $this->hasMany(VehicleLike::class);
-    }
-    public function featurePricings()
-    {
-        return $this->hasMany(VehicleFeaturePricing::class);
-    }
+    public function reviews()         { return $this->hasMany(VehicleReview::class, 'vehicle_id'); }
+    public function likes()           { return $this->hasMany(VehicleLike::class); }
+    public function featurePricings() { return $this->hasMany(VehicleFeaturePricing::class); }
 
     /* -------- Scopes -------- */
+    public function scopeType($q, string $type) { return $q->where('type', $type); }
+    public function scopeActive($q)             { return $q->where('status','active')->where('approval_status','approved'); }
 
-    public function scopeType($q, string $type)
-    {
-        return $q->where('type', $type);
-    }
-
-    // Active & approved in one go (matches your intent)
-    public function scopeActive($q)
-    {
-        return $q->where('status', 'active')->where('approval_status', 'approved');
-    }
-
-    /* -------- Convenience Accessors (optional) -------- */
-
+    /* -------- Accessors -------- */
     public function getPrimaryImageUrlAttribute(): ?string
     {
-        $primary = $this->media()->where('media_type', 'image')->where('is_primary', true)->first();
-        return $primary?->path;
+        $primary = $this->media()
+            ->where('media_type', 'image')
+            ->where('is_primary', true)
+            ->first();
+
+        return $primary?->url; // uses VehicleMedia::getUrlAttribute()
     }
 
     public function getAverageRatingAttribute(): float
@@ -178,44 +142,29 @@ class Vehicle extends Model
 
     public function images()
     {
-        // Only image-type media
         return $this->hasMany(VehicleMedia::class)->where('media_type', 'image');
     }
 
     public function primaryImage()
     {
-        // The one primary image (fast & safe)
         return $this->hasOne(VehicleMedia::class)
             ->where('media_type', 'image')
             ->where('is_primary', true)
-            ->ofMany('id', 'max'); // requires MySQL 8+/Postgres
+            ->ofMany('id', 'max');
     }
 
-    // Inside class Vehicle extends Model
-    public function bookings()
-    {
-        return $this->hasMany(\App\Models\Booking::class);
-    }
+    public function bookings() { return $this->hasMany(\App\Models\Booking::class); }
 
     public function isAvailable(\Carbon\Carbon $from, \Carbon\Carbon $to, ?int $ignoreBookingId = null): bool
     {
         $overlap = \App\Models\Booking::where('vehicle_id', $this->id)
             ->when($ignoreBookingId, fn($q) => $q->where('id', '!=', $ignoreBookingId))
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->whereHas('schedule', function ($q) use ($from, $to) {
-                $q->where('pickup_at', '<', $to)
-                    ->where('dropoff_at', '>', $from);
-            })
+            ->whereIn('status', ['pending','confirmed'])
+            ->whereHas('schedule', fn($q) => $q->where('pickup_at','<',$to)->where('dropoff_at','>',$from))
             ->exists();
 
         return !$overlap;
     }
 
-    public function vendor()
-    {
-        return $this->belongsTo(\App\Models\User::class, 'vendor_id'); // adjust FK if different
-    }
-
-
-
+    public function vendor() { return $this->belongsTo(\App\Models\User::class, 'vendor_id'); }
 }

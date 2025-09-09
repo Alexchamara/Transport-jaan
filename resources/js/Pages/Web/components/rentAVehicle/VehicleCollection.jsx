@@ -10,6 +10,9 @@ import gas from "../../assets/rentAVehicle/collection/gas.png";
 import heartFill from "../../assets/rentAVehicle/collection/heartFill.png";
 import heart from "../../assets/rentAVehicle/collection/heart.png";
 
+// bundled placeholder (resources/js/assets/placeholder.jpg)
+import placeholderImg from "@/assets/placeholder.jpg";
+
 const VehicleCollection = () => {
   const { vehicles, likedVehicleIds, authUser } = usePage().props;
 
@@ -51,14 +54,18 @@ const VehicleCollection = () => {
 
   // choose the best available image URL
   const getVehicleImageSrc = (v) => {
-    if (v?.primary_image_url) return v.primary_image_url;               // preferred (backend-built)
+    if (v?.primary_image_url) return v.primary_image_url; // preferred (backend-built)
+
     if (Array.isArray(v?.images) && v.images.length) {
-      if (v.images[0].url) return v.images[0].url;                      // backend-built
-      if (v.images[0].image_path) return `/storage/${v.images[0].image_path}`;
-      if (v.images[0].path) return `/storage/${v.images[0].path}`;
+      if (v.images[0]?.url) return v.images[0].url;       // backend-built
+      if (v.images[0]?.image_path) return `/storage/${v.images[0].image_path}`;
+      if (v.images[0]?.path) return `/storage/${v.images[0].path}`;
     }
+
     if (v?.primaryImage?.path) return `/storage/${v.primaryImage.path}`;
-    return "/placeholder.png";
+
+    // bundled fallback (no 404)
+    return placeholderImg;
   };
 
   return (
@@ -102,11 +109,18 @@ const VehicleCollection = () => {
 
               {/* Vehicle Image */}
               <div className="flex items-center justify-center p-2 sm:p-3 md:p-4">
-                <img
-                  src={getVehicleImageSrc(vehicle)}
-                  alt={vehicle.model || "Vehicle"}
-                  className="w-full h-auto object-contain"
-                />
+                <div className="relative w-full h-[180px] sm:h-[200px] md:h-[220px] overflow-hidden bg-white rounded">
+                  <img
+                    src={getVehicleImageSrc(vehicle)}
+                    alt={vehicle.model || "Vehicle"}
+                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = placeholderImg;
+                    }}
+                    loading="lazy"
+                  />
+                </div>
               </div>
 
               {/* Vehicle Info */}
