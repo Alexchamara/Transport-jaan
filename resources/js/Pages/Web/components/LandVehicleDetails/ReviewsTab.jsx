@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useId } from "react";
 import { usePage, router } from "@inertiajs/react";
+import { route } from "ziggy-js";
 
 /* ========= Read-only stars (supports halves) ========= */
 const StarRating = ({ value = 0, size = 16, color = "#FFC107", gap = 3 }) => {
@@ -120,8 +121,8 @@ const initials = (name = "") =>
 
 const displayName = (client) => {
   const raw = (client?.name || "").trim();
-  if (raw && !/^provider$/i.test(raw)) return raw;         // use real name unless it's "Provider"
-  return client?.email || "Anonymous";                      // fallback to email → Anonymous
+  if (raw && !/^provider$/i.test(raw)) return raw; // use real name unless it's literally "Provider"
+  return client?.email || "Anonymous";
 };
 
 const ReviewsTab = () => {
@@ -147,20 +148,22 @@ const ReviewsTab = () => {
     setComment("");
   }, [vehicle?.id]);
 
-  const canSubmit = rating >= 1 && rating <= 5 && Boolean(vehicle?.id);
+  const canSubmit =
+    rating >= 1 && rating <= 5 && Boolean(vehicle?.id) && authUser?.role === "client";
 
   const submit = (e) => {
     e.preventDefault();
-    if (!authUser || authUser.role !== "client" || !canSubmit) return;
+    if (!canSubmit) return;
 
     router.post(
-      `/vehicles/${vehicle.id}/reviews`,
+      route("client.vehicles.reviews.store", vehicle.id),
       { rating, comment },
       {
         preserveScroll: true,
         onSuccess: () => {
           setRating(5);
           setComment("");
+          // Refresh only what we need; adjust the partials to match your controller props.
           router.reload({ only: ["vehicle"] });
         },
       }
@@ -187,7 +190,7 @@ const ReviewsTab = () => {
           <h1 className="text-[#90A3BF] mt-2">{totalReviews}</h1>
         </div>
 
-        {/* keep your static gray bars */}
+        {/* Static distribution bars (replace with real histogram if you expose it) */}
         <div className="flex flex-col gap-2 mt-5">
           {[5, 4, 3, 2, 1].map((n) => (
             <div key={n} className="flex flex-row justify-center items-center gap-3">
@@ -245,8 +248,6 @@ const ReviewsTab = () => {
                   })
                 : "—";
               const ratingNum = Number(r?.rating) || 0;
-
-              // avatar: if you ever add r.client.avatar_url
               const avatarUrl = r?.client?.avatar_url;
 
               return (
