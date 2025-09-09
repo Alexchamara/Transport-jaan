@@ -17,10 +17,10 @@ const LandingPage = () => {
     return (
         <div className="bg-[#000000] text-[#FFFFFF]">
             <div id="home">
-                <Hero />
-                {/* <TravelExploreAnimation /> */}
+                {/* <Hero /> */}
+                <TravelExploreAnimation />
 
-                {/*                 <Hero auth={auth} /> */}
+                {/* <Hero auth={auth} /> */}
             </div>
             <div id="about">
                 <About />

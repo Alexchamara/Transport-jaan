@@ -104,7 +104,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                     </div>
                 </div>
                 <div className="flex flex-row gap-2 items-center">
-                    <h1>Car Model</h1>
+                    <h1>Storage Type / Unit</h1>
                     <div className="flex flex-col justify-center items-center">
                         <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
                         <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
@@ -152,6 +152,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                     <div>{booking.clientName}</div>
                     <div>
                         <h1>{booking.carModel}</h1>
+                        <div className="text-[11px] text-[#00000099] leading-tight">Unit / Slot</div>
                         <div className="w-[87px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
                             {booking.carPlate}
                         </div>

@@ -56,19 +56,24 @@ const Header = () => {
 
                 {/* right side buttons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
+                    {/* <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <img
                             src={search}
                             className="size-[18px] md:w-[24px] md:h-[23px]"
                         />
-                    </div>
+                    </div> */}
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <img
                             src={bell}
                             className="size-[18px] md:w-[24px] md:h-[23px]"
                         />
                     </div>
-                    <div className="size-[27px] md:size-[55px] flex justify-center items-center">
+                    <div
+                        className="size-[27px] md:size-[55px] flex justify-center items-center cursor-pointer"
+                        onClick={() =>
+                            (window.location.href = "/mainDashboard")
+                        }
+                    >
                         <img
                             src={proPic}
                             className="size-[18px] md:size-[55px]"
@@ -102,7 +107,6 @@ const Header = () => {
                         </button>
                         {/* Navigation */}
                         <nav className="flex flex-col space-y-3 text-[#000000cc] text-[15px] font-medium">
-
                             <Link href="/" className="hover:text-[#0955AC]">
                                 Home
                             </Link>
