@@ -15,6 +15,9 @@ use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 // NEW: maintenance controller for vendor vehicle actions
 use App\Http\Controllers\Vendor\VehicleMaintenanceController;
 
+// ✅ NEW: Drivers (Vendor) JSON controller
+use App\Http\Controllers\Vendor\DriverController;
+
 /*
 |--------------------------------------------------------------------------
 | Public Routes (marketing / landing)
@@ -113,6 +116,11 @@ Route::middleware(['auth', 'role:vendor'])
 
         Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
         Route::get('/warehouse/unit', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('warehouse.unit');
+
+        // ✅ NEW: Drivers UI
+        // Renders resources/js/Pages/Web/components/vendors/driver/Driver.jsx
+        Route::get('/drivers', fn () => Inertia::render('Web/components/vendors/driver/Driver'))
+            ->name('drivers');
     });
 
 /*
@@ -148,6 +156,13 @@ Route::middleware(['auth'])
         Route::post('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'store'])->name('vehicles.policy.store');
         Route::delete('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'destroy'])->name('vehicles.policy.destroy');
         Route::get('/vehicles/{vehicle}/policy/view', [VehiclePolicyController::class, 'stream'])->name('vehicles.policy.stream');
+
+        // ✅ NEW: Drivers JSON CRUD
+        Route::get('/drivers', [DriverController::class, 'index'])->name('drivers.index');
+        Route::post('/drivers', [DriverController::class, 'store'])->name('drivers.store');
+        Route::get('/drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');
+        Route::put('/drivers/{driver}', [DriverController::class, 'update'])->name('drivers.update');
+        Route::delete('/drivers/{driver}', [DriverController::class, 'destroy'])->name('drivers.destroy');
     });
 
 /*

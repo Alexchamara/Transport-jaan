@@ -134,6 +134,40 @@ const AddUnit = () => {
 
   const [editModalOpen,setEditModalOpen]=useState(false);
 
+  /* ---------- Driver picker state & helpers ---------- */
+  const [driverModalOpen, setDriverModalOpen] = useState(false);
+  const [drivers, setDrivers] = useState([]);
+  const [driverLoading, setDriverLoading] = useState(false);
+  const [driverQuery, setDriverQuery] = useState("");
+  const [selectedDriver, setSelectedDriver] = useState(null); // {id, full_name, phone, vehicle_type, vehicle_no}
+
+  const getJson = async (url) => {
+    const res = await fetch(url, {
+      credentials: "same-origin",
+      headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
+
+  const fetchDrivers = async () => {
+    setDriverLoading(true);
+    try {
+      const u = new URL("/vendor/drivers", window.location.origin);
+      u.searchParams.set("per_page", "50");
+      u.searchParams.set("sort", "full_name");
+      u.searchParams.set("dir", "asc");
+      const q = driverQuery?.trim();
+      // If your API supports a dedicated status param, prefer: u.searchParams.set("status","Active");
+      u.searchParams.set("q", q ? `${q} Active` : "Active");
+      const data = await getJson(u.toString());
+      setDrivers(Array.isArray(data?.data) ? data.data : []);
+    } finally {
+      setDriverLoading(false);
+    }
+  };
+  /* --------------------------------------------------- */
+
   useEffect(()=>{ const msg=props?.flash?.success; if(msg && !showCenterModal){ setSuccessMsg(msg); setShowSuccess(true); const t=setTimeout(()=>setShowSuccess(false),2500); return()=>clearTimeout(t);} },[props?.flash?.success,showCenterModal]);
 
   useEffect(()=>{ setEditModalOpen(!!isEdit); },[isEdit]);
@@ -189,6 +223,19 @@ const AddUnit = () => {
     };
     next.extraFeatures = parseExtraFeatures(extrasRaw, vehicle.extra || "");
     setForm((prev)=>({ ...prev, ...next }));
+
+    // Pre-fill driver if present
+    const maybeId = vehicle.driver_id || vehicle.driverId;
+    const maybeName = vehicle.driver_name || vehicle.driverName;
+    if (maybeId) {
+      setSelectedDriver({
+        id: maybeId,
+        full_name: maybeName || "Assigned driver",
+        phone: vehicle.driver_phone || "",
+        vehicle_type: vehicle.driver_vehicle_type || "",
+        vehicle_no: vehicle.driver_vehicle_no || "",
+      });
+    }
 
     let existingVehicleImgs=[];
     if(Array.isArray(vehicle.media)) existingVehicleImgs=extractFromSpatieMedia(vehicle.media,["images","vehicle_images","vehicles","vehicle-photos"]);
@@ -274,6 +321,8 @@ const AddUnit = () => {
     }
     if(form.category==="Air"){ ["aircraft_type","crew_required","air_fuel_type"].forEach((k)=>{ if(!String(form[k]||"").trim()) e[k]="This field is required."; }); }
     if(form.category==="Sea"){ ["vessel_type","hull_material","length_m","beam_m","draft_m","engine_type","engine_power_hp","sea_fuel_type"].forEach((k)=>{ if(!String(form[k]||"").trim()) e[k]="This field is required."; }); }
+    // If Add Driver checked but none selected:
+    if (form.addDriver && !selectedDriver?.id) e.addDriver = "Please select a driver.";
     return e;
   };
 
@@ -305,6 +354,11 @@ const AddUnit = () => {
       if(form.fuelTankCapacity!==undefined) data.set("fuel_tank_capacity_l",String(form.fuelTankCapacity));
     }
 
+    // include selected driver if Add Driver is checked
+    if (form.addDriver && selectedDriver?.id) {
+      data.append("driver_id", String(selectedDriver.id));
+    }
+
     const csrf=document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || (window.Laravel?.csrfToken ?? "");
     const options={
       forceFormData:true, preserveState:true, withCredentials:true, headers:csrf?{"X-CSRF-TOKEN":csrf}:{},
@@ -323,6 +377,7 @@ const AddUnit = () => {
     setForm(initialState); setExistingImages([]); setExistingInsurance([]);
     setRemovedExistingImages(new Set()); setRemovedExistingInsurance(new Set());
     setImageFiles([]); setImagePreviews([]); setInsuranceFiles([]); setInsurancePreviews([]);
+    setSelectedDriver(null);
     setErrors({}); setServerError(""); if(imagesInputRef.current) imagesInputRef.current.value=""; if(insuranceInputRef.current) insuranceInputRef.current.value="";
     setShowCenterModal(false);
   };
@@ -333,6 +388,104 @@ const AddUnit = () => {
 
   const imagesUsed=imageFiles.length, canAddMoreImages=imagesUsed<MAX_IMAGES;
   const insuranceUsed=insuranceFiles.length, canAddMoreInsurance=insuranceUsed<MAX_INSURANCE_IMAGES;
+
+  const DriverPickerModal = (
+    <EditModalShell
+      open={driverModalOpen}
+      title="Choose Driver"
+      onClose={() => setDriverModalOpen(false)}
+    >
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        {/* Search row */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 w-full sm:max-w-md">
+            <input
+              value={driverQuery}
+              onChange={(e) => setDriverQuery(e.target.value)}
+              placeholder="Search drivers by name, phone, license…"
+              className="w-full rounded-[10px] border border-[#E5E5E5] bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-[#0955AC]"
+            />
+            <button
+              type="button"
+              onClick={fetchDrivers}
+              className="h-[40px] px-4 rounded-[10px] bg-[#F3F3F3] text-[#0955AC] font-[700]"
+            >
+              Search
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setDriverQuery(""); fetchDrivers(); }}
+            className="h-[40px] px-4 rounded-[10px] border border-[#E5E5E5] bg-white hover:bg-gray-50"
+          >
+            Clear
+          </button>
+        </div>
+
+        {/* Results */}
+        <div className="mt-5">
+          {driverLoading ? (
+            <div className="w-full py-10 text-center text-gray-500">Loading drivers…</div>
+          ) : drivers.length === 0 ? (
+            <div className="w-full py-10 text-center text-gray-500">No drivers found.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {drivers.map((d) => (
+                <div
+                  key={d.id}
+                  className="bg-white rounded-[10px] border border-[#E5E5E5] p-4 flex flex-col gap-2"
+                  style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-[16px] font-[700] text-[#000000CC]">
+                      {d.full_name}
+                    </div>
+                    <span
+                      className={`px-2 py-0.5 rounded-[6px] text-xs ${
+                        d.status === "Active"
+                          ? "bg-[#C5E6F9] text-[#0955AC]"
+                          : "bg-[#FFDBDF] text-[#7B7B7A]"
+                      }`}
+                    >
+                      {d.status}
+                    </span>
+                  </div>
+                  <div className="text-[14px] text-[#00000080]">
+                    {d.phone || "-"}
+                  </div>
+                  <div className="text-[14px] text-[#00000080]">
+                    {d.vehicle_type || "—"} • {d.vehicle_no || "—"}
+                  </div>
+                  <div className="text-[12px] text-[#7B7B7A]">
+                    License: {d.license_no || "—"} {d.license_expiry ? `• Exp: ${d.license_expiry}` : ""}
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDriver({
+                          id: d.id,
+                          full_name: d.full_name,
+                          phone: d.phone,
+                          vehicle_type: d.vehicle_type,
+                          vehicle_no: d.vehicle_no,
+                        });
+                        setDriverModalOpen(false);
+                      }}
+                      className="h-[35px] px-4 rounded-[6px] bg-[#0955AC] text-white font-[700]"
+                    >
+                      Select
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </EditModalShell>
+  );
 
   const FormMarkup = (
     <div className="px-4 sm:px-6 lg:px-8 py-6 figtree">
@@ -832,6 +985,62 @@ const AddUnit = () => {
                     {errors.addDriverPrice && <div className="text-red-500 text-xs mt-1">{errors.addDriverPrice}</div>}
                   </div>
                 </div>
+
+                {/* selected / pick driver */}
+                {form.addDriver && (
+                  <div className="mt-4">
+                    {selectedDriver ? (
+                      <div
+                        className="w-full bg-[#FFFFFF] rounded-[10px] border border-[#E5E5E5] px-4 py-4 flex items-center justify-between"
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-[16px] font-[700] text-[#000000CC]">
+                            {selectedDriver.full_name}
+                          </span>
+                          <span className="text-[14px] text-[#00000080]">
+                            {selectedDriver.phone || "-"} • {selectedDriver.vehicle_type || "—"} • {selectedDriver.vehicle_no || "—"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setDriverModalOpen(true); fetchDrivers(); }}
+                            className="h-[35px] px-4 rounded-[6px] bg-[#F3F3F3] text-[#0955AC] font-[700]"
+                          >
+                            Change
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDriver(null)}
+                            className="h-[35px] px-4 rounded-[6px] bg-[#FFDBDF] text-[#7B7B7A] font-[700]"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="w-full bg-[#FFFFFF] rounded-[10px] border border-dashed border-[#E5E5E5] px-4 py-6 flex items-center justify-between"
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                      >
+                        <div className="text-[14px] text-[#00000080]">
+                          No driver selected.
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setDriverModalOpen(true); fetchDrivers(); }}
+                          className="h-[35px] px-4 rounded-[6px] bg-[#0955AC] text-white font-[700]"
+                        >
+                          Select Driver
+                        </button>
+                      </div>
+                    )}
+                    {/* Hidden field for backend fallback */}
+                    <input type="hidden" name="driver_id" value={selectedDriver?.id || ""} />
+                    {errors.addDriver && <div className="text-red-500 text-xs mt-2">{errors.addDriver}</div>}
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -875,6 +1084,10 @@ const AddUnit = () => {
             </div>
           </header>
         )}
+
+        {/* Driver picker modal (global to page) */}
+        {DriverPickerModal}
+
         {!isEdit ? (
           FormMarkup
         ) : (
