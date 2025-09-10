@@ -357,4 +357,26 @@ class WebController extends Controller
             'searchParams' => $searchParams
         ]);
     }
+
+    public function warehouseDetails(Request $request)
+    {
+        $warehouseData = $request->get('warehouse');
+        
+        if (!$warehouseData) {
+            return redirect()->route('warehouse.list');
+        }
+
+        // Get related warehouses (same type, different warehouse)
+        $relatedWarehouses = WarehouseUnit::where('approval_status', 'approved')
+            ->where('is_active', true)
+            ->where('type', $warehouseData['type'] ?? '')
+            ->where('id', '!=', $warehouseData['id'])
+            ->limit(3)
+            ->get();
+
+        return Inertia::render('Web/home/warehouse/WarehouseDetails', [
+            'warehouse' => $warehouseData,
+            'relatedWarehouses' => $relatedWarehouses
+        ]);
+    }
 }

@@ -1,11 +1,12 @@
 <?php
 
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WebController;
+use App\Http\Controllers\WarehouseControllers\Client\WarehouseBookingController;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\WarehouseControllers\Vendor\WarehouseUnitController;
-
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\WebController;
 
 // Vendor controllers
 use App\Http\Controllers\Vendor\VehicleController;
@@ -73,6 +74,43 @@ Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('fli
 // Warehouse (public landing)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
 Route::get('/warehouseList', [WebController::class, 'warehouseList'])->name('warehouse.list');
+Route::get('/warehouseDetails', [WebController::class, 'warehouseDetails'])->name('warehouse.details');
+
+// Warehouse booking flow
+Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function () {
+    // Public routes (category selection)
+    Route::get('/', [WarehouseBookingController::class, 'category'])->name('category');
+
+    // Warehouse listing by type (public)
+    Route::get('/bookings/{type}', [WarehouseBookingController::class, 'index'])->name('index');
+
+    // Protected routes (require authentication)
+    Route::middleware(['auth'])->group(function () {
+        // Booking form for specific warehouse
+        Route::get('/bookings/{type}/{id}', [WarehouseBookingController::class, 'details'])->name('details');
+        
+        // Checkout page
+        Route::get('/checkout', [WarehouseBookingController::class, 'checkout'])->name('checkout');
+        
+        // Payment page
+        Route::get('/payments', [WarehouseBookingController::class, 'payments'])->name('payments');
+        
+        // Process booking
+        Route::post('/book', [WarehouseBookingController::class, 'store'])->name('store');
+        
+        // Booking summary/confirmation
+        Route::get('/summary/{bookingId?}', [WarehouseBookingController::class, 'summary'])->name('summary');
+        
+        // User's booking list
+        Route::get('/my-bookings', [WarehouseBookingController::class, 'list'])->name('list');
+        
+        // Show specific booking
+        Route::get('/booking/{id}', [WarehouseBookingController::class, 'show'])->name('show');
+        
+        // Cancel booking
+        Route::patch('/booking/{id}/cancel', [WarehouseBookingController::class, 'cancel'])->name('cancel');
+    });
+});
 
 /*
 |--------------------------------------------------------------------------

@@ -51,6 +51,13 @@ const WarehouseListContent = ({ warehouses: initialWarehouses }) => {
     });
   };
 
+  const handleBookWarehouse = (warehouse) => {
+    // You can implement booking logic here
+    // For now, it will show an alert
+    console.log('Booking warehouse:', warehouse);
+    alert(`Booking functionality for ${warehouse.name} will be implemented soon!`);
+  };
+
   // Calculate pagination
   const totalPages = Math.ceil(filteredWarehouses.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
