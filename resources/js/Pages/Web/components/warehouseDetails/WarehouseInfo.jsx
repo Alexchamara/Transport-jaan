@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { usePage } from "@inertiajs/react";
+import share from "../../assets/landVehicleDetails/share.svg";
+import star from "../../assets/driverBooking/star.svg";
+import heartB2 from "../../assets/landVehicleDetails/heartB2.svg";
 
 const WarehouseInfo = () => {
   const { props } = usePage();
@@ -28,64 +31,81 @@ const WarehouseInfo = () => {
   };
 
   const tabs = [
-    { id: 'details', label: 'Details' },
-    { id: 'amenities', label: 'Amenities' },
+    { id: 'details', label: 'Warehouse Details' },
     { id: 'policies', label: 'Policies' },
-    { id: 'location', label: 'Location' }
+    { id: 'amenities', label: 'Amenities' },
+    { id: 'location', label: 'Location' },
   ];
 
   return (
     <>
-      <div className="w-full bg-white rounded-lg shadow-lg overflow-hidden">
-        {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-[#0955AC] to-[#0744A0] text-white">
-          <h1 className="bebas-neue text-[32px] md:text-[40px] font-[400] mb-2">
-            {warehouse.name}
-          </h1>
-          <div className="flex flex-wrap items-center gap-4 text-sm poppins">
-            <span className="flex items-center">
-              📍 {warehouse.address}
-            </span>
-            <span className="flex items-center">
-              🏭 {warehouse.type?.charAt(0).toUpperCase() + warehouse.type?.slice(1)}
-            </span>
+      <div className="poppins w-full h-auto p-10 xl:p-0">
+        {/* Small label above title */}
+        <h1 className="text-[12px] font-[600] text-[#00000080]">
+          {warehouse.type ? warehouse.type.charAt(0).toUpperCase() + warehouse.type.slice(1) : 'Warehouse'}
+        </h1>
+
+        {/* Title, availability and actions */}
+        <div className="flex flex-col md:flex-row justify-between">
+          <div className="flex flex-col md:flex-row gap-5">
+            <h1 className="bebas-neue text-[30px]">
+              {warehouse.name}
+            </h1>
+
+            <div className="flex flex-row items-center gap-2">
+              <div className="w-[10px] h-[10px] rounded-full bg-[#3C9A34]" />
+              <h1 className="text-[#3C9A34] text-[10px]">Available</h1>
+            </div>
           </div>
-          <div className="mt-4">
-            <div className="flex flex-col">
-              <span className="text-[24px] md:text-[32px] font-bold poppins">
-                {formatPrice(warehouse.monthly_rate || warehouse.price)}
-              </span>
-              <span className="text-lg opacity-90">
-                /{warehouse.pricing_model || 'month'}
-              </span>
-              {warehouse.final_amount && warehouse.final_amount !== warehouse.monthly_rate && (
-                <span className="text-sm opacity-75 mt-1">
-                  Total: {formatPrice(warehouse.final_amount)} (incl. fees & tax)
-                </span>
-              )}
+          <div className="flex flex-row items-center py-10 lg:py-0 gap-5">
+            <div className="min-w-[81px] min-h-[30px] px-4 py-2 rounded-[4px] border-[1px] border-[#00000030] bg-[#EAE9E8] flex flex-row justify-center items-center gap-3 cursor-pointer">
+              <img src={share} />
+              <h1>Share</h1>
+            </div>
+            <div className="min-w-[81px] min-h-[30px] px-4 py-2 rounded-[4px] border-[1px] border-[#0955AC] bg-[#0955AC] text-[#FFFFFF] flex flex-row justify-center items-center gap-3 cursor-pointer">
+              <img src={heartB2} />
+              <h1>Wishlist</h1>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-3 px-4 text-center font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'text-[#0955AC] border-b-2 border-[#0955AC] bg-blue-50'
-                  : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Optional: rating or pricing line */}
+        {(warehouse.reviews_count || warehouse.rating) ? (
+          <div className="flex flex-row gap-5 text-[12px] font-[600]">
+            <img src={star} />
+            <h1>{warehouse.rating || '4.8'}</h1>
+            {warehouse.reviews_count && (
+              <h1 className="underline">{warehouse.reviews_count} Reviews</h1>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-row gap-3 text-[12px] font-[600] text-[#00000080]">
+            <span className="text-[#0955AC] font-[700]">
+              {formatPrice(warehouse.monthly_rate || warehouse.price)}
+            </span>
+            <span>/ {warehouse.pricing_model || 'month'}</span>
+          </div>
+        )}
+
+        {/* Tabs - vehicle style */}
+        <div className="py-10">
+          <div className="flex flex-row xl:gap-20 gap-5 xl:px-20 text-[12px] font-[600] text-[#00000080] border-b-[2px] border-[#0000001F]">
+            {tabs.map((tab) => (
+              <h1
+                key={tab.id}
+                className={`border-b-[2px] pb-5 xl:w-[92px] flex justify-center items-center cursor-pointer ${
+                  activeTab === tab.id ? 'border-[#0955AC] text-[#0955AC]' : ''
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </h1>
+            ))}
+          </div>
         </div>
 
         {/* Tab Content */}
-        <div className="p-6">
+        <div className="p-0">
           {activeTab === 'details' && (
             <div className="space-y-4">
               <h3 className="bebas-neue text-[20px] text-[#0955AC] mb-4">WAREHOUSE DETAILS</h3>

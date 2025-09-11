@@ -20,28 +20,28 @@ const Suggestions = () => {
 
   if (!relatedWarehouses || relatedWarehouses.length === 0) {
     return (
-      <div className="w-full max-w-[400px] bg-white rounded-lg shadow-lg p-6">
-        <h3 className="bebas-neue text-[20px] text-[#0955AC] mb-4 text-center">
-          SIMILAR WAREHOUSES
+      <div className="w-auto h-auto md:w-[440px] min-h-[200px] bg-[#F4F3F3] rounded-[19px] px-8 xl:px-8 py-8">
+        <h3 className="bebas-neue text-[28px] text-center">
+          you <span className="text-[#0955AC]">also</span> might <span className="text-[#0955AC]">like</span> this
         </h3>
         <div className="text-center py-8">
-          <p className="text-gray-500 poppins">No similar warehouses found</p>
+          <p className="text-[#00000080] poppins">No similar warehouses found</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-[400px] bg-white rounded-lg shadow-lg p-6">
-      <h3 className="bebas-neue text-[20px] text-[#0955AC] mb-6 text-center">
-        SIMILAR WAREHOUSES
+    <div className="w-auto h-auto md:w-[440px] min-h-[643px] bg-[#F4F3F3] rounded-[19px] px-8 xl:px-8 py-8">
+      <h3 className="bebas-neue text-[28px] text-center">
+        you <span className="text-[#0955AC]">also</span> might <span className="text-[#0955AC]">like</span> this
       </h3>
-      
-      <div className="space-y-4">
+
+      <div className="py-6 space-y-4">
         {relatedWarehouses.map((warehouse) => (
           <div
             key={warehouse.id}
-            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+            className="poppins border-b-[1px] border-[#00000033] pb-[16px] cursor-pointer"
             onClick={() => handleViewDetails(warehouse)}
           >
             <div className="flex gap-3">
@@ -56,25 +56,19 @@ const Suggestions = () => {
               
               {/* Warehouse Info */}
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-gray-800 truncate poppins text-sm">
+                <h4 className="bebas-neue text-[16px] truncate">
                   {warehouse.name}
                 </h4>
-                <p className="text-xs text-gray-500 mb-1 poppins truncate">
-                  📍 {warehouse.address}
-                </p>
-                <p className="text-xs text-gray-500 mb-2 poppins">
-                  📦 {warehouse.total_area?.toLocaleString()} sq ft
-                </p>
+                <p className="text-[10px] text-[#00000080] mb-1 poppins truncate">📍 {warehouse.address}</p>
+                <p className="text-[10px] text-[#00000080] mb-2 poppins">📦 {warehouse.total_area?.toLocaleString()} sq ft</p>
                 
                 {/* Price */}
                 <div className="flex items-center justify-between">
                   <span className="text-[#0955AC] font-bold text-sm poppins">
                     US$ {(warehouse.monthly_rate || warehouse.price)?.toLocaleString() || '0'}
-                    <span className="text-xs font-normal text-gray-500">/{warehouse.pricing_model || 'month'}</span>
+                    <span className="text-xs font-normal text-[#00000080]">/{warehouse.pricing_model || 'month'}</span>
                   </span>
-                  
-                  {/* Type Badge */}
-                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full capitalize poppins">
+                  <span className="bg-[#E8EBEF] text-[#0955AC] text-[10px] px-2 py-1 rounded capitalize poppins">
                     {warehouse.type}
                   </span>
                 </div>
@@ -85,13 +79,13 @@ const Suggestions = () => {
                     {warehouse.amenities.slice(0, 2).map((amenity, index) => (
                       <span 
                         key={index}
-                        className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded poppins"
+                        className="bg-[#E8EBEF] text-[#00000080] text-[10px] px-2 py-1 rounded poppins"
                       >
                         {amenity}
                       </span>
                     ))}
                     {warehouse.amenities.length > 2 && (
-                      <span className="text-xs text-gray-400 poppins">
+                      <span className="text-[10px] text-[#00000061] poppins">
                         +{warehouse.amenities.length - 2} more
                       </span>
                     )}
@@ -101,21 +95,23 @@ const Suggestions = () => {
             </div>
             
             {/* View Details Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleViewDetails(warehouse);
-              }}
-              className="w-full mt-3 bg-[#0955AC] text-white py-2 rounded-lg text-sm font-medium hover:bg-[#0744A0] transition-colors poppins"
-            >
-              View Details
-            </button>
+            <div className="flex justify-end mt-3">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewDetails(warehouse);
+                }}
+                className="w-[120px] h-[29px] bg-[#0955AC] rounded-[5px] text-white text-[12px] font-[700] poppins"
+              >
+                more details
+              </button>
+            </div>
           </div>
         ))}
       </div>
       
       {/* View All Link */}
-      <div className="mt-6 text-center">
+      <div className="mt-4 text-center">
         <button
           onClick={() => router.visit('/warehouseList')}
           className="text-[#0955AC] font-medium hover:underline poppins text-sm"
