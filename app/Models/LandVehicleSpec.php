@@ -1,5 +1,5 @@
 <?php
-// app/Models/LandVehicleSpec.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -21,10 +21,13 @@ class LandVehicleSpec extends Model
     ];
 
     protected $casts = [
-        'gears'                => 'integer',
-        'seats'                => 'integer',
-        'doors'                => 'integer',
-        'fuel_tank_capacity_l' => 'decimal:2',
+        'body_type'           => 'string',
+        'fuel_type'           => 'string',
+        'transmission_type'   => 'string',
+        'gears'               => 'integer',
+        'seats'               => 'integer',
+        'doors'               => 'integer',
+        'fuel_tank_capacity_l'=> 'decimal:2',
     ];
 
     public function vehicle()

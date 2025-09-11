@@ -1,18 +1,26 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\WebController;
-use App\Http\Controllers\Vendor\VehicleController;
-use App\Http\Controllers\VehiclePolicyController; // ✅ dedicated PDF controller
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WebController;
 
+// Vendor controllers
+use App\Http\Controllers\Vendor\VehicleController;
+use App\Http\Controllers\Vendor\DashboardController;              // dashboard props
+use App\Http\Controllers\Vendor\BookingController as VendorBookingController; // bookings props
+use App\Http\Controllers\Vendor\VehicleMaintenanceController;
+use App\Http\Controllers\Vendor\DriverController;
+
+// PDFs
+use App\Http\Controllers\VehiclePolicyController;
+
+// Client-side browsing/controllers
 use App\Http\Controllers\VehicleControllers\Client\ClientVehicleController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +38,7 @@ Route::get('/courier-service', [WebController::class, 'courierService'])->name('
 Route::get('/book-a-ticket', [WebController::class, 'bookATicket'])->name('book.a.ticket');
 Route::get('/booking-home', [WebController::class, 'bookingHome'])->name('booking.home');
 Route::get('/cargo-freight', [WebController::class, 'cargoFreight'])->name('cargo.freight');
+
 Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
 Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->name('freight-quotes.store');
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
@@ -37,6 +46,7 @@ Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->n
 Route::get('/drivers-home', [WebController::class, 'driversHome'])->name('drivers.home');
 Route::get('/driver-search-results', [WebController::class, 'driverSearchResults'])->name('driver.search.results');
 Route::get('/driver-details', [WebController::class, 'driverDetails'])->name('driver.details');
+
 Route::get('/vehicle-checkout', [WebController::class, 'vehicleCheckout'])->name('vehicle.checkout');
 Route::get('/vehicle-payments', [WebController::class, 'vehiclePayments'])->name('vehicle.vehiclePayments');
 
@@ -67,14 +77,13 @@ Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.h
 | Public Vehicle Browsing
 |--------------------------------------------------------------------------
 */
-// Route::get('/clientRent', [WebController::class, 'index'])->name('client.home');
 Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('client.home');
 Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
 Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
 
 /*
 |--------------------------------------------------------------------------
-|  (Client)
+| Client booking flow (some public screens + protected actions)
 |--------------------------------------------------------------------------
 */
 Route::prefix('client')->as('client.')->group(function () {
@@ -130,14 +139,20 @@ Route::middleware(['auth', 'role:vendor'])
     ->prefix('vendors')
     ->name('vendors.')
     ->group(function () {
-        Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/Dashboard'))->name('dashboard');
-        Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
-        Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/Booking'))->name('bookings');
-        Route::get('/clients', fn() => Inertia::render('Web/home/vendors/Client'))->name('clients');
-        Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
-        Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
-        Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
-        Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
+        // Dashboard with real props
+        Route::get('/dashbord', [DashboardController::class, 'index'])->name('dashboard'); // spelling kept
+        Route::get('/dashboard', [DashboardController::class, 'index']); // alias
+
+        // Bookings page with DB-fed props (table + chart)
+        Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
+
+        // Other pages (shells)
+        Route::get('/mainDashboard', fn () => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
+        Route::get('/clients', fn () => Inertia::render('Web/home/vendors/Client'))->name('clients');
+        Route::get('/expenses', fn () => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
+        Route::get('/payment', fn () => Inertia::render('Web/home/vendors/Payment'))->name('payment');
+        Route::get('/tracking', fn () => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
+        Route::get('/calendar', fn () => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
 
         // Units UI
         Route::get('/units', fn() => Inertia::render('Web/home/vendors/Unit'))->name('units');
@@ -146,8 +161,12 @@ Route::middleware(['auth', 'role:vendor'])
         Route::get('/unitDetails', fn() => Inertia::render('Web/home/vendors/UnitDetails'))->name('unitDetails');
         Route::get('/unitDetails/{vehicle}', [VehicleController::class, 'detailsPage'])->name('unitDetails.show');
 
+        // Warehouse UI
         Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
-        Route::get('/warehouse/unit', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('warehouse.unit');
+        Route::get('/warehouse/unit', fn () => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('warehouse.unit');
+
+        // Drivers UI
+        Route::get('/drivers', fn () => Inertia::render('Web/components/vendors/driver/Driver'))->name('drivers');
     });
 
 /*
@@ -168,10 +187,22 @@ Route::middleware(['auth'])
         Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
         Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
 
-        // ✅ Final PDF policy routes (dedicated controller)
+        // Maintenance
+        Route::post('/vehicles/{vehicle}/maintenance', [VehicleMaintenanceController::class, 'store'])->name('vehicles.maintenance.store');
+        Route::get('/vehicles/{vehicle}/bookings/overlaps', [VehicleMaintenanceController::class, 'overlaps'])->name('vehicles.bookings.overlaps');
+        Route::post('/vehicles/maintenance/notify', [VehicleMaintenanceController::class, 'notify'])->name('vehicles.maintenance.notify');
+
+        // PDF policy
         Route::post('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'store'])->name('vehicles.policy.store');
         Route::delete('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'destroy'])->name('vehicles.policy.destroy');
         Route::get('/vehicles/{vehicle}/policy/view', [VehiclePolicyController::class, 'stream'])->name('vehicles.policy.stream');
+
+        // Drivers JSON CRUD
+        Route::get('/drivers', [DriverController::class, 'index'])->name('drivers.index');
+        Route::post('/drivers', [DriverController::class, 'store'])->name('drivers.store');
+        Route::get('/drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');
+        Route::put('/drivers/{driver}', [DriverController::class, 'update'])->name('drivers.update');
+        Route::delete('/drivers/{driver}', [DriverController::class, 'destroy'])->name('drivers.destroy');
     });
 
 /*
@@ -179,17 +210,13 @@ Route::middleware(['auth'])
 | Client dashboard
 |--------------------------------------------------------------------------
 */
-Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->name('ClientDashboard');
+Route::get('/ClientDashboard', fn () => Inertia::render('Web/home/client/ClientDashboard'))->name('ClientDashboard');
 
 /*
 |--------------------------------------------------------------------------
 | Profile / App Shell
 |--------------------------------------------------------------------------
 */
-// Route::get('/dashboard', fn () => Inertia::render('Dashboard'))
-//     ->middleware(['auth', 'verified'])
-//     ->name('dashboard');
-
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -213,12 +240,19 @@ Route::redirect('/unitDetails', '/vendors/unitDetails')->name('unitDetails.legac
 
 /*
 |--------------------------------------------------------------------------
-| Client App
+| Legacy redirects
 |--------------------------------------------------------------------------
 */
-Route::get('/ClientDashboard', function () {
-    return Inertia::render('Web/home/client/ClientDashboard');
-})->name('ClientDashboard');
+Route::redirect('/units', '/vendors/units')->name('units.legacy');
+Route::redirect('/clients', '/vendors/clients')->name('clients.legacy');
+Route::redirect('/bookings', '/vendors/bookings')->name('bookings.legacy');
+Route::redirect('/expenses', '/vendors/expenses')->name('expenses.legacy');
+Route::redirect('/payment', '/vendors/payment')->name('payment.legacy');
+Route::redirect('/tracking', '/vendors/tracking')->name('tracking.legacy');
+Route::redirect('/calendar', '/vendors/calendar')->name('calendar.legacy');
+Route::redirect('/addUnit', '/vendors/addUnit')->name('addUnit.legacy');
+Route::redirect('/unitDetails', '/vendors/unitDetails')->name('unitDetails.legacy');
+Route::redirect('/dashboard', '/vendors/dashbord')->name('dashboard.legacy');
 
 Route::get('/mainDashboard', function () {
     return Inertia::render('Web/home/vendors/MainDashboard');

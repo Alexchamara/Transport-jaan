@@ -1,5 +1,5 @@
 // resources/js/Pages/Web/components/vendors/units/UnitContent.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { router } from "@inertiajs/react";
 
 // top bar icons
@@ -29,8 +29,25 @@ import deleteIcon from "../../../assets/vendors/units/delete.svg";
 // modal
 import AddUnit from "../../../home/vendors/AddUnit";
 
-/* ---------- helpers ---------- */
+/* ------------------------- helpers & constants ------------------------- */
+
 const nbsp = (s) => (typeof s === "string" ? s.replace(/ /g, "\u00A0") : s);
+
+// centralized routes so you can change in one place
+const ROUTES = {
+  overlaps: (id, start, end) =>
+    `/vendor/vehicles/${id}/bookings/overlaps?${new URLSearchParams({
+      start,
+      end,
+    }).toString()}`,
+  maintenanceCreate: (id) => `/vendor/vehicles/${id}/maintenance`,
+  maintenanceNotify: () => `/vendor/vehicles/maintenance/notify`,
+};
+
+const getCsrf = () =>
+  document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
+  window.Laravel?.csrfToken ||
+  "";
 
 // consistent, compact View button
 const ViewButton = ({ onClick }) => (
@@ -43,6 +60,23 @@ const ViewButton = ({ onClick }) => (
   </button>
 );
 
+// “Action” button with an eye icon
+const ActionButton = ({ onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="figtree h-[40px] px-3 bg-white border border-[#0A55AC] text-[#0A55AC] hover:bg-[#0a4b970D] rounded-[6px] text-[16px] font-[700] flex items-center gap-2"
+    title="Actions"
+  >
+    {/* eye icon */}
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="12" cy="12" r="3" strokeWidth="2" />
+    </svg>
+    Action
+  </button>
+);
+
 // equal-width spec tile (centered, no wrapping)
 const Spec = ({ icon, label, alt }) => (
   <div className="flex flex-col items-center justify-center w-[120px] min-w-[120px] text-center gap-1.5">
@@ -52,6 +86,284 @@ const Spec = ({ icon, label, alt }) => (
     </span>
   </div>
 );
+
+/* --------------------------- Action Modal --------------------------- */
+
+const MaintenanceActionModal = ({
+  open,
+  unit,
+  onClose,
+  onMaintenanceSaved, // optional: callback to refresh list, etc.
+}) => {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("Scheduled maintenance");
+
+  const [checking, setChecking] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+
+  const [overlaps, setOverlaps] = useState([]); // [{id, reference, client: {name,email,phone}, start_date, end_date}]
+  const [error, setError] = useState("");
+  const [okMsg, setOkMsg] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    // reset when opening
+    setStartDate("");
+    setEndDate("");
+    setReason("Scheduled maintenance");
+    setOverlaps([]);
+    setError("");
+    setOkMsg("");
+
+    // lock scroll
+    document.documentElement.classList.add("overflow-hidden");
+    document.body.classList.add("overflow-hidden");
+    return () => {
+      document.documentElement.classList.remove("overflow-hidden");
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [open]);
+
+  const today = useMemo(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
+  if (!open || !unit) return null;
+
+  const validate = () => {
+    if (!startDate || !endDate) return "Please select both start and end dates.";
+    if (endDate < startDate) return "End date cannot be before start date.";
+    return "";
+  };
+
+  const doCheckOverlaps = async () => {
+    setError("");
+    setOkMsg("");
+    const v = validate();
+    if (v) {
+      setError(v);
+      return;
+    }
+    setChecking(true);
+    try {
+      const res = await fetch(ROUTES.overlaps(unit.id, startDate, endDate), {
+        credentials: "same-origin",
+      });
+      if (!res.ok) throw new Error(`Overlap check failed: ${res.status}`);
+      const json = await res.json();
+      setOverlaps(Array.isArray(json) ? json : json.data || []);
+      setOkMsg("Checked availability.");
+    } catch (e) {
+      setError(e.message || "Failed to check bookings.");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const doCreateMaintenance = async () => {
+    setError("");
+    setOkMsg("");
+    const v = validate();
+    if (v) {
+      setError(v);
+      return;
+    }
+    setCreating(true);
+    try {
+      const csrf = getCsrf();
+      const res = await fetch(ROUTES.maintenanceCreate(unit.id), {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          start_date: startDate,
+          end_date: endDate,
+          reason,
+        }),
+      });
+      if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+      setOkMsg("Maintenance window saved.");
+      onMaintenanceSaved?.();
+    } catch (e) {
+      setError(e.message || "Failed to save maintenance window.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const doNotifyClients = async () => {
+    setError("");
+    setOkMsg("");
+    if (!overlaps.length) {
+      setError("There are no overlapping bookings to notify.");
+      return;
+    }
+    setNotifying(true);
+    try {
+      const csrf = getCsrf();
+      const bookingIds = overlaps.map((b) => b.id).filter(Boolean);
+      const res = await fetch(ROUTES.maintenanceNotify(), {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          vehicle_id: unit.id,
+          start_date: startDate,
+          end_date: endDate,
+          reason,
+          booking_ids: bookingIds,
+        }),
+      });
+      if (!res.ok) throw new Error(`Email send failed: ${res.status}`);
+      setOkMsg("Email sent to affected client(s).");
+    } catch (e) {
+      setError(e.message || "Failed to send email notifications.");
+    } finally {
+      setNotifying(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4">
+        {/* header */}
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-xl font-semibold">
+            Action – Maintenance for <span className="text-[#0955AC]">{unit.brand} {unit.model}</span>
+          </h2>
+          <button
+            onClick={onClose}
+            className="h-9 w-9 grid place-items-center rounded-full hover:bg-gray-100"
+            title="Close"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* content */}
+        <div className="p-6 space-y-5">
+          {/* form */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start date</label>
+              <input
+                type="date"
+                min={today}
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End date</label>
+              <input
+                type="date"
+                min={startDate || today}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+              <input
+                type="text"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Scheduled maintenance"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* actions row */}
+          <div className="flex flex-wrap gap-3 pt-1">
+            <button
+              onClick={doCheckOverlaps}
+              disabled={checking}
+              className={`px-4 py-2 rounded-lg border border-gray-300 font-semibold ${checking ? "opacity-70 cursor-not-allowed" : "hover:bg-gray-50"}`}
+            >
+              {checking ? "Checking…" : "Check Bookings"}
+            </button>
+            <button
+              onClick={doCreateMaintenance}
+              disabled={creating}
+              className={`px-4 py-2 rounded-lg bg-[#0955AC] text-white font-semibold ${creating ? "opacity-70 cursor-not-allowed" : "hover:bg-[#0a4b97]"}`}
+            >
+              {creating ? "Saving…" : "Save Maintenance"}
+            </button>
+            <button
+              onClick={doNotifyClients}
+              disabled={notifying || !overlaps.length}
+              className={`px-4 py-2 rounded-lg font-semibold ${overlaps.length ? "bg-green-600 text-white hover:bg-green-700" : "bg-gray-200 text-gray-600 cursor-not-allowed"}`}
+              title={overlaps.length ? "Send email to affected client(s)" : "No overlapping bookings"}
+            >
+              {notifying ? "Sending Emails…" : `Notify Client${overlaps.length > 1 ? "s" : ""} (${overlaps.length})`}
+            </button>
+          </div>
+
+          {/* messages */}
+          {(error || okMsg) && (
+            <div className={`${error ? "text-red-700 bg-red-50 border-red-200" : "text-green-700 bg-green-50 border-green-200"} border rounded-lg px-3 py-2 text-sm`}>
+              {error || okMsg}
+            </div>
+          )}
+
+          {/* overlaps list */}
+          <div className="mt-2">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">Overlapping bookings</h3>
+            {overlaps.length === 0 ? (
+              <p className="text-sm text-gray-600">None detected for the selected dates.</p>
+            ) : (
+              <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr className="text-left text-gray-700">
+                      <th className="px-3 py-2 font-semibold">Booking #</th>
+                      <th className="px-3 py-2 font-semibold">Client</th>
+                      <th className="px-3 py-2 font-semibold">Email</th>
+                      <th className="px-3 py-2 font-semibold">Phone</th>
+                      <th className="px-3 py-2 font-semibold">From</th>
+                      <th className="px-3 py-2 font-semibold">To</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {overlaps.map((b) => (
+                      <tr key={b.id} className="border-t border-gray-200">
+                        <td className="px-3 py-2">{b.reference || b.id}</td>
+                        <td className="px-3 py-2">{b.client?.name || "-"}</td>
+                        <td className="px-3 py-2">{b.client?.email || "-"}</td>
+                        <td className="px-3 py-2">{b.client?.phone || "-"}</td>
+                        <td className="px-3 py-2">{b.start_date}</td>
+                        <td className="px-3 py-2">{b.end_date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ------------------------------ Main ------------------------------ */
 
 const UnitContent = () => {
   const [showAddUnit, setShowAddUnit] = useState(false);
@@ -77,6 +389,9 @@ const UnitContent = () => {
   // delete confirm modal state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
+  // action modal
+  const [actionUnit, setActionUnit] = useState(null);
 
   /* ---------- fetch list ---------- */
   const fetchUnits = async (url = null) => {
@@ -178,9 +493,7 @@ const UnitContent = () => {
       total: Math.max(0, (prev.total || 1) - 1),
     }));
 
-    const csrf =
-      document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
-      (window.Laravel?.csrfToken ?? "");
+    const csrf = getCsrf();
 
     router.delete(`/vendor/vehicles/${id}`, {
       preserveScroll: true,
@@ -309,8 +622,8 @@ const UnitContent = () => {
 
                 {/* CONTENT */}
                 <div className="flex-1 px-6 py-5">
-                  {/* HEADER: Model + View */}
-                  <div className="flex items-center justify-between gap-6">
+                  {/* HEADER: Model + View + Action */}
+                  <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <div className="bebas-neue text-[28px] leading-7">
                         <span className="truncate block">
@@ -319,6 +632,7 @@ const UnitContent = () => {
                       </div>
                       <div className="bebas-neue text-[24px] leading-6">
                         ${Number(unit.price ?? 0).toFixed(0)}
+                        {/* ✅ FIXED LINE BELOW */}
                         <span className="figtree text-[#00000080] text-[14px] font-[600]">/day</span>
                       </div>
 
@@ -339,7 +653,10 @@ const UnitContent = () => {
                       </div>
                     </div>
 
-                    <ViewButton onClick={() => viewDetails(unit)} />
+                    <div className="flex items-center gap-2">
+                      <ViewButton onClick={() => viewDetails(unit)} />
+                      <ActionButton onClick={() => setActionUnit(unit)} />
+                    </div>
                   </div>
 
                   {/* SPECS row */}
@@ -428,7 +745,7 @@ const UnitContent = () => {
         </>
       )}
 
-      {/* ===== Delete Confirm Modal ===== */}
+      {/* Delete Confirm Modal */}
       {confirmOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center" aria-modal="true" role="dialog">
           {/* backdrop */}
@@ -456,7 +773,14 @@ const UnitContent = () => {
           </div>
         </div>
       )}
-      {/* ===== /Delete Confirm Modal ===== */}
+
+      {/* Action Modal */}
+      <MaintenanceActionModal
+        open={!!actionUnit}
+        unit={actionUnit}
+        onClose={() => setActionUnit(null)}
+        onMaintenanceSaved={() => fetchUnits()}
+      />
     </div>
   );
 };

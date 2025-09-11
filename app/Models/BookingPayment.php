@@ -11,5 +11,11 @@ class BookingPayment extends Model
         'slip_number','slip_path','tx_reference',
     ];
 
+    protected $casts = [
+        'amount_paid' => 'float',
+        'created_at'  => 'datetime',
+        'updated_at'  => 'datetime',
+    ];
+
     public function booking(){ return $this->belongsTo(Booking::class); }
 }
