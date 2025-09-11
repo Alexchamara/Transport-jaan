@@ -3,7 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\Vendor\VehicleController;
-use App\Http\Controllers\VehiclePolicyController; // ✅ dedicated PDF controller
+use App\Http\Controllers\Vendor\DashboardController; // ✅ NEW
+use App\Http\Controllers\VehiclePolicyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -12,10 +13,7 @@ use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 
-// NEW: maintenance controller for vendor vehicle actions
 use App\Http\Controllers\Vendor\VehicleMaintenanceController;
-
-// ✅ NEW: Drivers (Vendor) JSON controller
 use App\Http\Controllers\Vendor\DriverController;
 
 /*
@@ -47,7 +45,6 @@ Route::get('/vehicle-payments', [WebController::class, 'vehiclePayments'])->name
 Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
 Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->name('freight-quotes.store');
-
 Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
 
 // Client routes (reserved)
@@ -96,8 +93,9 @@ Route::middleware(['auth', 'role:vendor'])
     ->prefix('vendors')
     ->name('vendors.')
     ->group(function () {
-        Route::get('/dashbord', fn() => Inertia::render('Web/home/vendors/Dashboard'))->name('dashboard'); // main
-        Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/Dashboard')); // alias
+        // ✅ Use controller so props are injected
+        Route::get('/dashbord', [DashboardController::class, 'index'])->name('dashboard'); // main
+        Route::get('/dashboard', [DashboardController::class, 'index']); // alias
 
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
         Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/Booking'))->name('bookings');
@@ -117,10 +115,8 @@ Route::middleware(['auth', 'role:vendor'])
         Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
         Route::get('/warehouse/unit', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('warehouse.unit');
 
-        // ✅ NEW: Drivers UI
-        // Renders resources/js/Pages/Web/components/vendors/driver/Driver.jsx
-        Route::get('/drivers', fn () => Inertia::render('Web/components/vendors/driver/Driver'))
-            ->name('drivers');
+        // Drivers UI
+        Route::get('/drivers', fn () => Inertia::render('Web/components/vendors/driver/Driver'))->name('drivers');
     });
 
 /*
@@ -141,23 +137,17 @@ Route::middleware(['auth'])
         Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
         Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
 
-        // --- Maintenance (JSON) -------------------------------
-        Route::post('/vehicles/{vehicle}/maintenance', [VehicleMaintenanceController::class, 'store'])
-            ->name('vehicles.maintenance.store');  // POST /vendor/vehicles/{id}/maintenance
+        // Maintenance
+        Route::post('/vehicles/{vehicle}/maintenance', [VehicleMaintenanceController::class, 'store'])->name('vehicles.maintenance.store');
+        Route::get('/vehicles/{vehicle}/bookings/overlaps', [VehicleMaintenanceController::class, 'overlaps'])->name('vehicles.bookings.overlaps');
+        Route::post('/vehicles/maintenance/notify', [VehicleMaintenanceController::class, 'notify'])->name('vehicles.maintenance.notify');
 
-        Route::get('/vehicles/{vehicle}/bookings/overlaps', [VehicleMaintenanceController::class, 'overlaps'])
-            ->name('vehicles.bookings.overlaps');  // GET  /vendor/vehicles/{id}/bookings/overlaps
-
-        Route::post('/vehicles/maintenance/notify', [VehicleMaintenanceController::class, 'notify'])
-            ->name('vehicles.maintenance.notify'); // POST /vendor/vehicles/maintenance/notify
-        // -------------------------------------------------------
-
-        // PDF policy routes
+        // PDF policy
         Route::post('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'store'])->name('vehicles.policy.store');
         Route::delete('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'destroy'])->name('vehicles.policy.destroy');
         Route::get('/vehicles/{vehicle}/policy/view', [VehiclePolicyController::class, 'stream'])->name('vehicles.policy.stream');
 
-        // ✅ NEW: Drivers JSON CRUD
+        // Drivers JSON CRUD
         Route::get('/drivers', [DriverController::class, 'index'])->name('drivers.index');
         Route::post('/drivers', [DriverController::class, 'store'])->name('drivers.store');
         Route::get('/drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');

@@ -17,6 +17,8 @@ class BookingSchedule extends Model
     protected $casts = [
         'pickup_at'  => 'datetime',
         'dropoff_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function booking()

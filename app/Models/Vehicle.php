@@ -22,8 +22,8 @@ class Vehicle extends Model
         'registration_year',
         'registration_number',
         'colour',
-        'condition',            // new|used|refurbished
-        'ownership_type',       // company_owned|partner_owned|leased
+        'condition',
+        'ownership_type',
         'passenger_capacity',
         'mileage_km',
         'rental_price_per_day',
@@ -37,8 +37,8 @@ class Vehicle extends Model
         'wifi',
         'insurance_coverage',
         'extra',
-        'status',               // draft|active|inactive
-        'approval_status',      // pending|approved|rejected
+        'status',
+        'approval_status',
         'description',
         'images_json',
         'insurance_docs_json',
@@ -64,6 +64,12 @@ class Vehicle extends Model
     /* -------- Relations -------- */
 
     public function provider()
+    {
+        return $this->belongsTo(User::class, 'provider_id');
+    }
+
+    // Keep this method name if other code calls ->vendor(), but map it to provider_id
+    public function vendor()
     {
         return $this->belongsTo(User::class, 'provider_id');
     }
@@ -121,6 +127,7 @@ class Vehicle extends Model
     public function reviews() { return $this->hasMany(VehicleReview::class, 'vehicle_id'); }
     public function likes() { return $this->hasMany(VehicleLike::class); }
     public function featurePricings() { return $this->hasMany(VehicleFeaturePricing::class); }
+    public function bookings() { return $this->hasMany(\App\Models\Booking::class); }
 
     /* ===================== Maintenance ===================== */
 
@@ -145,7 +152,7 @@ class Vehicle extends Model
             ->whereDate('start_date', '<', $to->toDateString())
             ->whereDate('end_date',   '>', $from->toDateString())
             ->exists();
-        }
+    }
 
     public function currentMaintenance(): ?\App\Models\VehicleMaintenance
     {
@@ -212,26 +219,21 @@ class Vehicle extends Model
             ->ofMany('id', 'max');
     }
 
-    public function bookings() { return $this->hasMany(\App\Models\Booking::class); }
-
-    public function vendor() { return $this->belongsTo(\App\Models\User::class, 'vendor_id'); }
-
     /** Availability considers BOTH bookings and maintenance */
     public function isAvailable(\Carbon\Carbon $from, \Carbon\Carbon $to, ?int $ignoreBookingId = null): bool
     {
+        // Overlap with bookings via schedule
         $bookingOverlap = \App\Models\Booking::where('vehicle_id', $this->id)
             ->when($ignoreBookingId, fn($q) => $q->where('id', '!=', $ignoreBookingId))
-            ->whereIn('status', ['pending', 'confirmed'])
+            ->whereIn('status', ['pending', 'confirmed', 'Ongoing']) // adjust as needed
             ->whereHas('schedule', function ($q) use ($from, $to) {
-                $q->where('pickup_at', '<', $to)->where('dropoff_at', '>', $from);
-            })
-            ->orWhere(function ($q) use ($from, $to) {
-                $q->whereDate('start_date', '<', $to->toDateString())
-                  ->whereDate('end_date',   '>', $from->toDateString());
+                $q->where('pickup_at', '<', $to)
+                  ->where('dropoff_at', '>', $from);
             })
             ->exists();
 
         $maintenanceOverlap = $this->hasMaintenanceBetween($from, $to);
+
         return !$bookingOverlap && !$maintenanceOverlap;
     }
 }
