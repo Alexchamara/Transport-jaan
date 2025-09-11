@@ -389,8 +389,15 @@ const UnitContent = () => {
                         </div>
                       </div>
                       <div>
-                        <div className="text-[#7B7B7A]">Price</div>
-                        <div className="font-[600]">${unit.price || 'N/A'}</div>
+                        <div className="text-[#7B7B7A]">Monthly Rate</div>
+                        <div className="font-[600]">
+                          ${unit.monthly_rate || unit.price || 'N/A'}
+                        </div>
+                        {unit.final_amount && unit.final_amount !== unit.monthly_rate && (
+                          <div className="text-xs text-gray-500">
+                            Total: ${unit.final_amount}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <div className="text-[#7B7B7A]">Pricing Model</div>

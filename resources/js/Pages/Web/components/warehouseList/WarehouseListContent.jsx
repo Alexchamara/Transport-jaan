@@ -141,7 +141,7 @@ const WarehouseListContent = ({ warehouses: initialWarehouses }) => {
                   )}
                   
                   <p className="poppins font-[700] text-[20px] md:text-[25px] mb-4">
-                    US$ {warehouse.price?.toLocaleString() || '0'}
+                    US$ {(warehouse.monthly_rate || warehouse.price)?.toLocaleString() || '0'}
                     <span className="text-[#00000080] text-[8px] md:text-[10px] font-[600]"> /{warehouse.pricing_model || 'month'}</span>
                   </p>
                   

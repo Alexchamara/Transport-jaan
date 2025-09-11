@@ -75,6 +75,7 @@ class WarehouseUnitController extends Controller
             return [
                 'id' => $unit->id,
                 'name' => $unit->name,
+                'description' => $unit->description,
                 'address' => $unit->address,
                 'latitude' => $unit->latitude,
                 'longitude' => $unit->longitude,
@@ -84,6 +85,16 @@ class WarehouseUnitController extends Controller
                 'amenities' => $unit->amenities ?? [],
                 'pricing_model' => $unit->pricing_model,
                 'price' => $unit->price,
+                
+                // Detailed pricing fields
+                'monthly_rate' => $unit->monthly_rate,
+                'security_deposit' => $unit->security_deposit,
+                'setup_fee' => $unit->setup_fee,
+                'tax_rate' => $unit->tax_rate,
+                'total_amount' => $unit->total_amount,
+                'tax_amount' => $unit->tax_amount,
+                'final_amount' => $unit->final_amount,
+                
                 'status' => $this->getUnitStatus($unit),
                 'is_active' => $unit->is_active,
                 'availability_status' => $this->getAvailabilityStatus($unit),
@@ -204,17 +215,33 @@ class WarehouseUnitController extends Controller
             $termsPdfPath = $request->file('terms_pdf')->store('warehouse/terms', 'public');
         }
 
+        // Helper function to convert empty strings to null for numeric fields
+        $nullIfEmpty = function($value) {
+            return ($value === '' || $value === null) ? null : $value;
+        };
+
         $unit = WarehouseUnit::create([
             'user_id' => Auth::id(),
             'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
             'address' => $validated['address'],
-            'latitude' => $validated['latitude'] ?? null,
-            'longitude' => $validated['longitude'] ?? null,
-            'total_area' => $validated['total_area'] ?? null,
-            'capacity' => $validated['capacity'] ?? null,
+            'latitude' => $nullIfEmpty($validated['latitude'] ?? null),
+            'longitude' => $nullIfEmpty($validated['longitude'] ?? null),
+            'total_area' => $nullIfEmpty($validated['total_area'] ?? null),
+            'capacity' => $nullIfEmpty($validated['capacity'] ?? null),
             'type' => $validated['type'],
             'pricing_model' => $validated['pricing_model'],
-            'price' => $validated['price'] ?? null,
+            'price' => $nullIfEmpty($validated['price'] ?? null),
+            
+            // Detailed pricing fields
+            'monthly_rate' => $nullIfEmpty($validated['monthly_rate'] ?? null),
+            'security_deposit' => $nullIfEmpty($validated['security_deposit'] ?? null),
+            'setup_fee' => $nullIfEmpty($validated['setup_fee'] ?? null),
+            'tax_rate' => $nullIfEmpty($validated['tax_rate'] ?? null),
+            'total_amount' => $nullIfEmpty($validated['total_amount'] ?? null),
+            'tax_amount' => $nullIfEmpty($validated['tax_amount'] ?? null),
+            'final_amount' => $nullIfEmpty($validated['final_amount'] ?? null),
+            
             'amenities' => $amenities,
             'images' => $imagePaths,
             'documents' => $docPaths,
@@ -259,6 +286,7 @@ class WarehouseUnitController extends Controller
         return response()->json([
             'id' => $unit->id,
             'name' => $unit->name,
+            'description' => $unit->description,
             'address' => $unit->address,
             'latitude' => $unit->latitude,
             'longitude' => $unit->longitude,
@@ -268,6 +296,16 @@ class WarehouseUnitController extends Controller
             'amenities' => $unit->amenities ?? [],
             'pricing_model' => $unit->pricing_model,
             'price' => $unit->price,
+            
+            // Detailed pricing fields
+            'monthly_rate' => $unit->monthly_rate,
+            'security_deposit' => $unit->security_deposit,
+            'setup_fee' => $unit->setup_fee,
+            'tax_rate' => $unit->tax_rate,
+            'total_amount' => $unit->total_amount,
+            'tax_amount' => $unit->tax_amount,
+            'final_amount' => $unit->final_amount,
+            
             'images' => $imageUrls,
             'documents' => $documentUrls,
             'terms_conditions' => $unit->terms_conditions,
@@ -313,6 +351,14 @@ class WarehouseUnitController extends Controller
                     'per_pallet_daily', 'flat_rate_monthly', 'flat_rate_daily'
                 ])],
                 'price' => ['nullable', 'numeric', 'min:0'],
+                // Detailed pricing fields
+                'monthly_rate' => ['nullable', 'numeric', 'min:0'],
+                'security_deposit' => ['nullable', 'numeric', 'min:0'],
+                'setup_fee' => ['nullable', 'numeric', 'min:0'],
+                'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+                'total_amount' => ['nullable', 'numeric', 'min:0'],
+                'tax_amount' => ['nullable', 'numeric', 'min:0'],
+                'final_amount' => ['nullable', 'numeric', 'min:0'],
                 'amenities' => ['nullable', 'string'], // JSON encoded
                 'images.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:10240'], // 10MB max per image
                 'documents.*' => ['nullable', 'file', 'mimes:pdf,doc,docx,txt', 'max:10240'], // 10MB max per document
@@ -400,17 +446,30 @@ class WarehouseUnitController extends Controller
             $termsPdfPath = $request->file('terms_pdf')->store('warehouse/terms', 'public');
         }
 
+        // Helper function to convert empty strings to null for numeric fields
+        $nullIfEmpty = function($value) {
+            return ($value === '' || $value === null) ? null : $value;
+        };
+
         // Update the unit
         $unit->update([
             'name' => $validated['name'],
             'address' => $validated['address'],
-            'latitude' => $validated['latitude'] ?? null,
-            'longitude' => $validated['longitude'] ?? null,
-            'total_area' => $validated['total_area'] ?? null,
-            'capacity' => $validated['capacity'] ?? null,
+            'latitude' => $nullIfEmpty($validated['latitude'] ?? null),
+            'longitude' => $nullIfEmpty($validated['longitude'] ?? null),
+            'total_area' => $nullIfEmpty($validated['total_area'] ?? null),
+            'capacity' => $nullIfEmpty($validated['capacity'] ?? null),
             'type' => $validated['type'],
             'pricing_model' => $validated['pricing_model'],
-            'price' => $validated['price'] ?? null,
+            'price' => $nullIfEmpty($validated['price'] ?? null),
+            // Detailed pricing fields
+            'monthly_rate' => $nullIfEmpty($validated['monthly_rate'] ?? null),
+            'security_deposit' => $nullIfEmpty($validated['security_deposit'] ?? null),
+            'setup_fee' => $nullIfEmpty($validated['setup_fee'] ?? null),
+            'tax_rate' => $nullIfEmpty($validated['tax_rate'] ?? null),
+            'total_amount' => $nullIfEmpty($validated['total_amount'] ?? null),
+            'tax_amount' => $nullIfEmpty($validated['tax_amount'] ?? null),
+            'final_amount' => $nullIfEmpty($validated['final_amount'] ?? null),
             'amenities' => $amenities,
             'images' => array_values($currentImages), // Re-index array
             'documents' => array_values($currentDocuments), // Re-index array

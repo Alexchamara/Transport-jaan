@@ -12,6 +12,15 @@ const WarehouseCheckoutContent = () => {
     const [warehouseInfo, setWarehouseInfo] = useState(null);
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [pricingDetails, setPricingDetails] = useState({
+        monthly_rate: 0,
+        security_deposit: 0,
+        setup_fee: 0,
+        tax_rate: 0,
+        total_amount: 0,
+        tax_amount: 0,
+        final_amount: 0
+    });
     const [formData, setFormData] = useState({
         company_name: '',
         contact_person: '',
@@ -57,6 +66,13 @@ const WarehouseCheckoutContent = () => {
         }
     }, []);
     
+    // Recalculate pricing when booking data or warehouse info changes
+    useEffect(() => {
+        if (warehouseInfo && bookingData) {
+            calculatePricing(warehouseInfo);
+        }
+    }, [warehouseInfo, bookingData]);
+    
     /**
      * Fetches warehouse details from the server based on warehouse ID
      * 
@@ -79,6 +95,8 @@ const WarehouseCheckoutContent = () => {
             
             if (response.data) {
                 setWarehouseInfo(response.data);
+                // Calculate pricing based on warehouse data and booking duration
+                calculatePricing(response.data);
             }
         } catch (error) {
             console.error('Error fetching warehouse details:', error);
@@ -97,6 +115,88 @@ const WarehouseCheckoutContent = () => {
         } finally {
             setIsSubmitting(false);
         }
+    };
+    
+    /**
+     * Calculates pricing details based on warehouse unit pricing and booking duration
+     * 
+     * @param {object} warehouse - The warehouse unit data
+     */
+    const calculatePricing = (warehouse) => {
+        if (!warehouse || !bookingData) return;
+        
+        // Extract duration months from booking data (default to 1)
+        const duration = parseDuration(bookingData.storage_duration) || 1;
+        
+        // Get pricing from warehouse unit
+        const monthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || 0);
+        const securityDeposit = parseFloat(warehouse.security_deposit || 0);
+        const setupFee = parseFloat(warehouse.setup_fee || 0);
+        const taxRate = parseFloat(warehouse.tax_rate || 0.10); // Default 10%
+        
+        // Calculate additional services cost
+        let addOnsCost = 0;
+        if (bookingData.climate_controlled) {
+            addOnsCost += 50; // Climate control add-on per month
+        }
+        
+        // Calculate totals
+        const monthlyTotal = monthlyRate + addOnsCost;
+        const subtotal = (monthlyTotal * duration) + setupFee + securityDeposit;
+        const taxAmount = subtotal * taxRate;
+        const finalAmount = subtotal + taxAmount;
+        
+        setPricingDetails({
+            monthly_rate: monthlyRate,
+            security_deposit: securityDeposit,
+            setup_fee: setupFee,
+            tax_rate: taxRate,
+            add_ons_cost: addOnsCost,
+            monthly_total: monthlyTotal,
+            duration: duration,
+            subtotal: subtotal,
+            total_amount: subtotal,
+            tax_amount: taxAmount,
+            final_amount: finalAmount
+        });
+    };
+    
+    /**
+     * Parses duration string to get number of months
+     * 
+     * @param {string} durationStr - Duration string like "1 Month", "6 Months"
+     * @returns {number} Number of months
+     */
+    const parseDuration = (durationStr) => {
+        if (!durationStr) return 1;
+        
+        const match = durationStr.match(/(\d+)\s*(month|months)/i);
+        if (match) {
+            return parseInt(match[1]);
+        }
+        
+        // Handle other duration formats
+        if (durationStr.toLowerCase().includes('week')) {
+            const weekMatch = durationStr.match(/(\d+)\s*week/i);
+            return weekMatch ? Math.ceil(parseInt(weekMatch[1]) / 4) : 1;
+        }
+        
+        return 1; // Default to 1 month
+    };
+    
+    /**
+     * Formats currency for display
+     * 
+     * @param {number} amount - Amount to format
+     * @returns {string} Formatted currency string
+     */
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(amount || 0);
     };
     
     /**
@@ -577,14 +677,14 @@ const WarehouseCheckoutContent = () => {
                             </div>
                             <div className="flex flex-col gap-3">
                                 <h1 className="figtree text-[20px] font-[700] ">
-                                    Central Storage Facility - Bay A
+                                    {warehouseInfo?.name || 'Central Storage Facility - Bay A'}
                                 </h1>
                                 <div className="poppins flex flex-row gap-5 text-[9px] text-[#000000B2] font-[500]">
                                     <div className="flex flex-col gap-2 justify-center items-center">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                         </svg>
-                                        <h1>5,000 sq ft</h1>
+                                        <h1>{warehouseInfo?.total_area ? `${warehouseInfo.total_area.toLocaleString()} sq ft` : '5,000 sq ft'}</h1>
                                     </div>
                                     <div className="flex flex-col gap-2 justify-center items-center">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -596,13 +696,21 @@ const WarehouseCheckoutContent = () => {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                         </svg>
-                                        <h1>Climate Control</h1>
+                                        <h1>
+                                            {warehouseInfo?.amenities?.includes('climate_control') || bookingData?.climate_controlled 
+                                                ? 'Climate Control' 
+                                                : 'Standard Storage'}
+                                        </h1>
                                     </div>
                                     <div className="flex flex-col gap-2 justify-center items-center">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
-                                        <h1>24/7 Access</h1>
+                                        <h1>
+                                            {warehouseInfo?.amenities?.includes('24_7_access') || bookingData?.access_frequency === 'daily' 
+                                                ? '24/7 Access' 
+                                                : 'Business Hours'}
+                                        </h1>
                                     </div>
                                 </div>
                             </div>
@@ -619,17 +727,17 @@ const WarehouseCheckoutContent = () => {
                                 <div className="figtree flex flex-col gap-10 text-[14px] font-[500] text-[#00000080]">
                                     <div>
                                         <h1 className="text-[16px] font-[700] text-[#000000]">
-                                            Move-in: Central Storage Facility
+                                            Location: {warehouseInfo?.address || 'Premium Location'}
                                         </h1>
-                                        <h1>Move-in Date: June 23rd, 2025</h1>
-                                        <h1>Move-in Time: 10:00 AM</h1>
+                                        <h1>Move-in Date: {bookingData?.move_in_date || 'June 23rd, 2025'}</h1>
+                                        <h1>Move-in Time: {bookingData?.move_in_time || '10:00 AM'}</h1>
                                     </div>
                                     <div>
                                         <h1 className="text-[16px] font-[700] text-[#000000]">
-                                            Storage Duration: 6 Months
+                                            Storage Duration: {bookingData?.storage_duration || '6 Months'}
                                         </h1>
-                                        <h1>Storage Type: General Storage</h1>
-                                        <h1>Required Space: 1,000 sq ft</h1>
+                                        <h1>Storage Type: {bookingData?.storage_type || 'General Storage'}</h1>
+                                        <h1>Required Space: {bookingData?.required_space || '1,000'} sq ft</h1>
                                     </div>
                                 </div>
                             </div>
@@ -659,62 +767,71 @@ const WarehouseCheckoutContent = () => {
                                             Storage Space
                                         </h1>
                                         <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                            <h1>1,000 sq ft</h1>
+                                            <h1>{bookingData?.required_space || warehouseInfo?.total_area || '1,000'} sq ft</h1>
                                             <h1 className="text-[#0955AC]">
-                                                (General Storage)
+                                                ({bookingData?.storage_type || 'General Storage'})
                                             </h1>
                                         </div>
                                     </div>
                                     <div className="text-[#000000CC]">
-                                        $850/month
+                                        {formatCurrency(pricingDetails.monthly_rate)}/month
                                     </div>
                                 </div>
-                                <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
-                                    <div>
-                                        <h1 className="text-[#000000CC]">
-                                            Security Package
-                                        </h1>
-                                        <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                            <h1>24/7 Monitoring</h1>
-                                            <h1 className="text-[#0955AC]">
-                                                (Standard)
+                                
+                                {pricingDetails.security_deposit > 0 && (
+                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 py-2 font-[500]">
+                                        <div>
+                                            <h1 className="text-[#000000CC]">
+                                                Security Deposit
                                             </h1>
+                                            <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
+                                                <h1>One-time payment</h1>
+                                            </div>
+                                        </div>
+                                        <div className="text-[#000000CC]">
+                                            {formatCurrency(pricingDetails.security_deposit)}
                                         </div>
                                     </div>
-                                    <div className="text-[#000000CC]">
-                                        Included
-                                    </div>
-                                </div>
-                                <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-                                    <div>
-                                        <h1 className="text-[#000000CC]">
-                                            Setup Fee
-                                        </h1>
-                                        <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                            <h1>One-time charge</h1>
+                                )}
+                                
+                                {pricingDetails.setup_fee > 0 && (
+                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 py-2 font-[500]">
+                                        <div>
+                                            <h1 className="text-[#000000CC]">
+                                                Setup Fee
+                                            </h1>
+                                            <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
+                                                <h1>One-time charge</h1>
+                                            </div>
+                                        </div>
+                                        <div className="text-[#000000CC]">
+                                            {formatCurrency(pricingDetails.setup_fee)}
                                         </div>
                                     </div>
-                                    <div className="text-[#000000CC]">
-                                        $150
-                                    </div>
-                                </div>
+                                )}
+                                
                                 <div className="w-full h-[1px] bg-[#CDD0D4]" />
 
-                                <h1 className="font-[600] mt-5 text-[#000000D9]">
-                                    Add-ons
-                                </h1>
+                                {pricingDetails.add_ons_cost > 0 && (
+                                    <>
+                                        <h1 className="font-[600] mt-5 text-[#000000D9]">
+                                            Add-ons
+                                        </h1>
 
-                                {/* checkbox section */}
-                                <div className="flex flex-col justify-center text-[12px] font-[500] mt-5">
-                                    <div className="flex flex-col md:flex-row justify-between w-full px-5">
-                                        <div className="flex flex-row md:justify-center items-center gap-4">
-                                            <h1>Climate Control</h1>
-                                        </div>
-                                        <h1>+$50/month</h1>
-                                    </div>
-                                </div>
+                                        {bookingData?.climate_controlled && (
+                                            <div className="flex flex-col justify-center text-[12px] font-[500] mt-5">
+                                                <div className="flex flex-col md:flex-row justify-between w-full px-5">
+                                                    <div className="flex flex-row md:justify-center items-center gap-4">
+                                                        <h1>Climate Control</h1>
+                                                    </div>
+                                                    <h1>+{formatCurrency(50)}/month</h1>
+                                                </div>
+                                            </div>
+                                        )}
 
-                                <div className="w-full h-[1px] bg-[#CDD0D4] mt-5" />
+                                        <div className="w-full h-[1px] bg-[#CDD0D4] mt-5" />
+                                    </>
+                                )}
 
                                 <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
                                     <div>
@@ -722,25 +839,42 @@ const WarehouseCheckoutContent = () => {
                                             Monthly Total
                                         </h1>
                                         <div className="flex flex-col md:flex-row gap-3 text-[#00000061] mt-3">
-                                            <h1>Storage + Add-ons</h1>
+                                            <h1>Storage {pricingDetails.add_ons_cost > 0 ? '+ Add-ons' : ''}</h1>
                                         </div>
                                     </div>
                                     <div className="text-[#000000CC] text-[12px] font-[500]">
-                                        $900
+                                        {formatCurrency(pricingDetails.monthly_total)}
                                     </div>
                                 </div>
+
+                                {pricingDetails.tax_amount > 0 && (
+                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 pb-2 font-[500]">
+                                        <div>
+                                            <h1 className="text-[#000000CC]">
+                                                Tax ({(pricingDetails.tax_rate * 100).toFixed(1)}%)
+                                            </h1>
+                                        </div>
+                                        <div className="text-[#000000CC] text-[12px] font-[500]">
+                                            {formatCurrency(pricingDetails.tax_amount)}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex flex-col md:flex-row justify-between w-full px-5 pb-5 font-[500]">
                                     <div>
                                         <h1 className="text-[#000000CC]">
-                                            6 Month Total
+                                            {pricingDetails.duration > 1 ? `${pricingDetails.duration} Month Total` : 'Total Amount'}
                                         </h1>
                                         <div className="flex flex-col md:flex-row gap-3 text-[#00000061] mt-3">
-                                            <h1>Including setup fee</h1>
+                                            <h1>
+                                                {pricingDetails.setup_fee > 0 || pricingDetails.security_deposit > 0 
+                                                    ? 'Including fees & deposit' 
+                                                    : 'Final amount'}
+                                            </h1>
                                         </div>
                                     </div>
                                     <div className="text-[#000000CC] text-[16px] font-[700]">
-                                        $5,550
+                                        {formatCurrency(pricingDetails.final_amount)}
                                     </div>
                                 </div>
                             </div>

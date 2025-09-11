@@ -45,7 +45,9 @@ const WarehouseDetails = () => {
         return {
             ...warehouse,
             name: warehouse.name,
-            price: warehouse.price,
+            price: warehouse.monthly_rate || warehouse.price,
+            monthly_rate: warehouse.monthly_rate,
+            final_amount: warehouse.final_amount,
             image: warehouse.image,
         };
     }, [warehouse]);

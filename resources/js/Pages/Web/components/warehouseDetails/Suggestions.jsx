@@ -69,7 +69,7 @@ const Suggestions = () => {
                 {/* Price */}
                 <div className="flex items-center justify-between">
                   <span className="text-[#0955AC] font-bold text-sm poppins">
-                    US$ {warehouse.price?.toLocaleString() || '0'}
+                    US$ {(warehouse.monthly_rate || warehouse.price)?.toLocaleString() || '0'}
                     <span className="text-xs font-normal text-gray-500">/{warehouse.pricing_model || 'month'}</span>
                   </span>
                   

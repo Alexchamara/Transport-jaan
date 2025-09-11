@@ -51,12 +51,19 @@ const WarehouseInfo = () => {
             </span>
           </div>
           <div className="mt-4">
-            <span className="text-[24px] md:text-[32px] font-bold poppins">
-              {formatPrice(warehouse.price)}
-            </span>
-            <span className="text-lg ml-2 opacity-90">
-              /{warehouse.pricing_model || 'month'}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-[24px] md:text-[32px] font-bold poppins">
+                {formatPrice(warehouse.monthly_rate || warehouse.price)}
+              </span>
+              <span className="text-lg opacity-90">
+                /{warehouse.pricing_model || 'month'}
+              </span>
+              {warehouse.final_amount && warehouse.final_amount !== warehouse.monthly_rate && (
+                <span className="text-sm opacity-75 mt-1">
+                  Total: {formatPrice(warehouse.final_amount)} (incl. fees & tax)
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

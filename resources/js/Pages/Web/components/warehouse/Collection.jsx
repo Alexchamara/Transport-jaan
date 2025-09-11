@@ -159,7 +159,7 @@ const Collection = () => {
                                         <div className="py-5 poppins px-5">
                                             <div className="flex flex-row justify-between text-[25px] font-[700]">
                                                 <h1>
-                                                    {warehouse.price}{" "}
+                                                    ${(warehouse.monthly_rate || warehouse.price)?.toLocaleString() || '0'}{" "}
                                                     <span className="text-[10px] font-[600] text-[#00000080]">
                                                         / month
                                                     </span>

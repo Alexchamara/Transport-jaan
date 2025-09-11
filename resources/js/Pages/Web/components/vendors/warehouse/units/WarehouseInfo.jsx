@@ -20,6 +20,16 @@ const WarehouseInfo = ({ warehouseData = {} }) => {
         capacity: 0,
         pricing_model: "N/A",
         price: 0,
+        
+        // Detailed pricing
+        monthly_rate: 0,
+        security_deposit: 0,
+        setup_fee: 0,
+        tax_rate: 0,
+        total_amount: 0,
+        tax_amount: 0,
+        final_amount: 0,
+        
         amenities: [],
         availability_status: "Unknown",
         rating: 0,
@@ -97,8 +107,63 @@ const WarehouseInfo = ({ warehouseData = {} }) => {
                 </div>
                 <div className="flex flex-col md:flex-row items-center gap-5">
                     <div className="figtree text-right">
-                        <div className="text-[20px] font-[700]">${data.price}</div>
-                        <div className="text-[12px] text-[#7B7B7A]">{formatPricingModel(data.pricing_model)}</div>
+                        <div className="space-y-1">
+                            <div className="text-[20px] font-[700]">
+                                ${data.monthly_rate || data.price}
+                            </div>
+                            <div className="text-[12px] text-[#7B7B7A]">
+                                {formatPricingModel(data.pricing_model)}
+                            </div>
+                            
+                            {/* Detailed Pricing Breakdown */}
+                            {(data.security_deposit || data.setup_fee || data.tax_rate || data.final_amount) && (
+                                <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-left border">
+                                    <div className="font-semibold text-[#444444] mb-1">Pricing Details:</div>
+                                    
+                                    {data.monthly_rate && (
+                                        <div className="flex justify-between">
+                                            <span>Monthly Rate:</span>
+                                            <span>${data.monthly_rate}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {data.security_deposit && (
+                                        <div className="flex justify-between">
+                                            <span>Security Deposit:</span>
+                                            <span>${data.security_deposit}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {data.setup_fee && (
+                                        <div className="flex justify-between">
+                                            <span>Setup Fee:</span>
+                                            <span>${data.setup_fee}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {data.tax_rate && (
+                                        <div className="flex justify-between">
+                                            <span>Tax Rate:</span>
+                                            <span>{data.tax_rate}%</span>
+                                        </div>
+                                    )}
+                                    
+                                    {data.tax_amount && (
+                                        <div className="flex justify-between text-gray-600">
+                                            <span>Tax Amount:</span>
+                                            <span>${data.tax_amount}</span>
+                                        </div>
+                                    )}
+                                    
+                                    {data.final_amount && (
+                                        <div className="flex justify-between font-semibold text-[#444444] border-t pt-1 mt-1">
+                                            <span>Total (incl. tax):</span>
+                                            <span>${data.final_amount}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -30,6 +30,7 @@ const EditUnit = () => {
   const { unitId } = usePage().props;
   const [form, setForm] = useState({
     name: '',
+    description: '',
     address: '',
     latitude: '',
     longitude: '',
@@ -38,6 +39,16 @@ const EditUnit = () => {
     type: '',
     pricing_model: '',
     price: '',
+    
+    // Detailed Pricing
+    monthly_rate: '',
+    security_deposit: '',
+    setup_fee: '',
+    tax_rate: '',
+    total_amount: '',
+    tax_amount: '',
+    final_amount: '',
+    
     amenities: [],
     terms_conditions: '',
     is_active: true,
@@ -95,6 +106,7 @@ const EditUnit = () => {
         setOriginalData(data);
         setForm({
           name: data.name || '',
+          description: data.description || '',
           address: data.address || '',
           latitude: data.latitude || '',
           longitude: data.longitude || '',
@@ -103,6 +115,16 @@ const EditUnit = () => {
           type: data.type || '',
           pricing_model: data.pricing_model || '',
           price: data.price || '',
+          
+          // Detailed Pricing
+          monthly_rate: data.monthly_rate || '',
+          security_deposit: data.security_deposit || '',
+          setup_fee: data.setup_fee || '',
+          tax_rate: data.tax_rate || '',
+          total_amount: data.total_amount || '',
+          tax_amount: data.tax_amount || '',
+          final_amount: data.final_amount || '',
+          
           amenities: data.amenities || [],
           terms_conditions: data.terms_conditions || '',
           is_active: data.is_active !== undefined ? data.is_active : true,
@@ -166,6 +188,14 @@ const EditUnit = () => {
     if (form.type !== originalData.type) changes.push('Type');
     if (form.pricing_model !== originalData.pricing_model) changes.push('Pricing Model');
     if (String(form.price) !== String(originalData.price || '')) changes.push('Price');
+    
+    // Detailed pricing changes
+    if (String(form.monthly_rate) !== String(originalData.monthly_rate || '')) changes.push('Monthly Rate');
+    if (String(form.security_deposit) !== String(originalData.security_deposit || '')) changes.push('Security Deposit');
+    if (String(form.setup_fee) !== String(originalData.setup_fee || '')) changes.push('Setup Fee');
+    if (String(form.tax_rate) !== String(originalData.tax_rate || '')) changes.push('Tax Rate');
+    if (String(form.final_amount) !== String(originalData.final_amount || '')) changes.push('Final Amount');
+    
     if (form.terms_conditions !== (originalData.terms_conditions || '')) changes.push('Terms & Conditions');
     if (form.is_active !== originalData.is_active) changes.push('Active Status');
     
@@ -186,6 +216,25 @@ const EditUnit = () => {
 
     setChangedFields(changes);
   }, [form, originalData, newImageFiles, imagesToRemove, newDocumentFiles, documentsToRemove, newTermsPdfFile, removeTermsPdf]);
+
+  // Calculate pricing totals automatically
+  const calculatePricingTotals = () => {
+    const monthlyRate = parseFloat(form.monthly_rate) || 0;
+    const securityDeposit = parseFloat(form.security_deposit) || 0;
+    const setupFee = parseFloat(form.setup_fee) || 0;
+    const taxRate = parseFloat(form.tax_rate) || 0;
+
+    const subtotal = monthlyRate + securityDeposit + setupFee;
+    const taxAmount = (subtotal * taxRate) / 100;
+    const finalAmount = subtotal + taxAmount;
+
+    setForm(prevForm => ({
+      ...prevForm,
+      total_amount: subtotal.toFixed(2),
+      tax_amount: taxAmount.toFixed(2),
+      final_amount: finalAmount.toFixed(2)
+    }));
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -384,6 +433,23 @@ const EditUnit = () => {
       newErrors.price = 'Price must be a positive number';
     }
 
+    // Detailed pricing validation
+    if (!form.monthly_rate || isNaN(form.monthly_rate) || parseFloat(form.monthly_rate) <= 0) {
+      newErrors.monthly_rate = 'Monthly rate is required and must be a positive number';
+    }
+
+    if (form.security_deposit && (isNaN(form.security_deposit) || parseFloat(form.security_deposit) < 0)) {
+      newErrors.security_deposit = 'Security deposit must be a positive number';
+    }
+
+    if (form.setup_fee && (isNaN(form.setup_fee) || parseFloat(form.setup_fee) < 0)) {
+      newErrors.setup_fee = 'Setup fee must be a positive number';
+    }
+
+    if (form.tax_rate && (isNaN(form.tax_rate) || parseFloat(form.tax_rate) < 0 || parseFloat(form.tax_rate) > 100)) {
+      newErrors.tax_rate = 'Tax rate must be between 0 and 100 percent';
+    }
+
     if (form.latitude && (isNaN(form.latitude) || parseFloat(form.latitude) < -90 || parseFloat(form.latitude) > 90)) {
       newErrors.latitude = 'Latitude must be between -90 and 90';
     }
@@ -447,6 +513,7 @@ const EditUnit = () => {
       
       // Basic form data
       data.append('name', form.name);
+      data.append('description', form.description || '');
       data.append('address', form.address);
       data.append('latitude', form.latitude || '');
       data.append('longitude', form.longitude || '');
@@ -455,6 +522,16 @@ const EditUnit = () => {
       data.append('type', form.type);
       data.append('pricing_model', form.pricing_model);
       data.append('price', form.price || '');
+      
+      // Detailed pricing fields
+      data.append('monthly_rate', form.monthly_rate || '');
+      data.append('security_deposit', form.security_deposit || '');
+      data.append('setup_fee', form.setup_fee || '');
+      data.append('tax_rate', form.tax_rate || '');
+      data.append('total_amount', form.total_amount || '');
+      data.append('tax_amount', form.tax_amount || '');
+      data.append('final_amount', form.final_amount || '');
+      
       data.append('terms_conditions', form.terms_conditions || '');
       data.append('is_active', form.is_active ? '1' : '0');
       data.append('amenities', JSON.stringify(form.amenities || []));
@@ -554,6 +631,11 @@ const EditUnit = () => {
     };
     document.body.appendChild(script);
   }, [googleApiKey]);
+
+  // Run calculation whenever pricing fields change
+  useEffect(() => {
+    calculatePricingTotals();
+  }, [form.monthly_rate, form.security_deposit, form.setup_fee, form.tax_rate]);
 
   const mapPreviewUrl = useMemo(() => {
     if (!form.latitude || !form.longitude) return '';
@@ -816,7 +898,7 @@ const EditUnit = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div className="space-y-2">
-                <label htmlFor="price" className="block text-[14px] font-medium text-gray-700">Price</label>
+                <label htmlFor="price" className="block text-[14px] font-medium text-gray-700">Basic Price (Legacy)</label>
                 <input 
                   id="price" 
                   type="number" 
@@ -842,6 +924,118 @@ const EditUnit = () => {
                   />
                   <span className="ml-2 text-sm text-gray-700">Active Warehouse</span>
                 </label>
+              </div>
+            </div>
+
+            {/* Detailed Pricing Section */}
+            <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Detailed Pricing</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="monthly_rate" className="block text-[14px] font-medium text-gray-700">Monthly Rate ($) *</label>
+                  <input 
+                    id="monthly_rate"
+                    type="number"
+                    name="monthly_rate"
+                    min="0"
+                    step="0.01"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={form.monthly_rate}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    required
+                  />
+                  {errors.monthly_rate && <div className="text-red-600 text-sm mt-1">{errors.monthly_rate}</div>}
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="security_deposit" className="block text-[14px] font-medium text-gray-700">Security Deposit ($)</label>
+                  <input 
+                    id="security_deposit"
+                    type="number"
+                    name="security_deposit"
+                    min="0"
+                    step="0.01"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={form.security_deposit}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                  />
+                  {errors.security_deposit && <div className="text-red-600 text-sm mt-1">{errors.security_deposit}</div>}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="setup_fee" className="block text-[14px] font-medium text-gray-700">Setup Fee ($)</label>
+                  <input 
+                    id="setup_fee"
+                    type="number"
+                    name="setup_fee"
+                    min="0"
+                    step="0.01"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={form.setup_fee}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                  />
+                  {errors.setup_fee && <div className="text-red-600 text-sm mt-1">{errors.setup_fee}</div>}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="tax_rate" className="block text-[14px] font-medium text-gray-700">Tax Rate (%)</label>
+                  <input 
+                    id="tax_rate"
+                    type="number"
+                    name="tax_rate"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={form.tax_rate}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                  />
+                  {errors.tax_rate && <div className="text-red-600 text-sm mt-1">{errors.tax_rate}</div>}
+                </div>
+
+                {/* Calculated fields - read only with gray background */}
+                <div className="space-y-2">
+                  <label htmlFor="total_amount" className="block text-[14px] font-medium text-gray-700">Total Amount (before tax) ($)</label>
+                  <input 
+                    id="total_amount"
+                    type="number"
+                    name="total_amount"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-100 text-gray-600"
+                    value={form.total_amount}
+                    readOnly
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="tax_amount" className="block text-[14px] font-medium text-gray-700">Tax Amount ($)</label>
+                  <input 
+                    id="tax_amount"
+                    type="number"
+                    name="tax_amount"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-100 text-gray-600"
+                    value={form.tax_amount}
+                    readOnly
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label htmlFor="final_amount" className="block text-[14px] font-medium text-gray-700">Final Amount (total incl. tax) ($)</label>
+                  <input 
+                    id="final_amount"
+                    type="number"
+                    name="final_amount"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-100 text-gray-600 font-semibold"
+                    value={form.final_amount}
+                    readOnly
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
             </div>
           </section>
