@@ -80,34 +80,29 @@ Route::get('/warehouseDetails', [WebController::class, 'warehouseDetails'])->nam
 Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function () {
     // Public routes (category selection)
     Route::get('/', [WarehouseBookingController::class, 'category'])->name('category');
-
+    
     // Warehouse listing by type (public)
     Route::get('/bookings/{type}', [WarehouseBookingController::class, 'index'])->name('index');
-
+    
+    // Warehouse details and booking form (public, but form submission requires auth)
+    Route::get('/bookings/{type}/{id}', [WarehouseBookingController::class, 'details'])->name('details');
+    
+    // Public checkout and payment pages
+    Route::get('/checkout', [WarehouseBookingController::class, 'checkout'])->name('checkout');
+    Route::get('/payments', [WarehouseBookingController::class, 'payments'])->name('payments');
+    
+    // Booking endpoints used by frontend
+    Route::post('/book', [WarehouseBookingController::class, 'store'])->name('book');
+    Route::post('/store', [WarehouseBookingController::class, 'store'])->name('store');
+    
     // Protected routes (require authentication)
     Route::middleware(['auth'])->group(function () {
-        // Booking form for specific warehouse
-        Route::get('/bookings/{type}/{id}', [WarehouseBookingController::class, 'details'])->name('details');
-        
-        // Checkout page
-        Route::get('/checkout', [WarehouseBookingController::class, 'checkout'])->name('checkout');
-        
-        // Payment page
-        Route::get('/payments', [WarehouseBookingController::class, 'payments'])->name('payments');
-        
-        // Process booking
-        Route::post('/book', [WarehouseBookingController::class, 'store'])->name('store');
-        
         // Booking summary/confirmation
         Route::get('/summary/{bookingId?}', [WarehouseBookingController::class, 'summary'])->name('summary');
         
-        // User's booking list
+        // User's booking management
         Route::get('/my-bookings', [WarehouseBookingController::class, 'list'])->name('list');
-        
-        // Show specific booking
         Route::get('/booking/{id}', [WarehouseBookingController::class, 'show'])->name('show');
-        
-        // Cancel booking
         Route::patch('/booking/{id}/cancel', [WarehouseBookingController::class, 'cancel'])->name('cancel');
     });
 });
@@ -120,6 +115,11 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
 Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('client.home');
 Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
 Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
+// API Routes for frontend functionality
+Route::prefix('api')->name('api.')->group(function () {
+    // Warehouse API endpoints
+    Route::get('/warehouse-units/{id}', [WarehouseBookingController::class, 'getWarehouseUnit'])->name('warehouse-units.show');
+});
 
 /*
 |--------------------------------------------------------------------------

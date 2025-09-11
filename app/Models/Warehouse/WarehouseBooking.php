@@ -13,37 +13,72 @@ class WarehouseBooking extends Model
     protected $fillable = [
         'user_id',
         'warehouse_unit_id',
+        'booking_reference',
+        'status',
+        
+        // Company Information
         'company_name',
         'contact_person',
-        'email',
         'phone',
+        'email',
+        'company_address',
+        
+        // Storage Requirements
         'storage_type',
         'required_space',
-        'storage_duration',
-        'move_in_date',
-        'move_in_time',
-        'move_out_date',
-        'move_out_time',
+        'goods_type',
         'goods_description',
-        'special_handling',
-        'access_frequency',
-        'climate_controlled',
-        'insurance_required',
+        'estimated_weight',
         'special_requirements',
-        'status',
-        'booking_date',
+        'amenities',
+        
+        // Duration & Scheduling
+        'start_date',
+        'end_date',
+        'duration_months',
+        'access_hours',
+        'special_instructions',
+        
+        // Pricing
+        'monthly_rate',
+        'security_deposit',
+        'setup_fee',
         'total_amount',
+        'tax_amount',
+        'final_amount',
+        
+        // Payment Information
+        'payment_method',
         'payment_status',
+        'payment_date',
+        'transaction_reference',
+        'payment_option',
+        'payment_reference',
+        
+        // Additional Fields
+        'terms_accepted',
+        'insurance_required',
+        'notes',
+        'documents',
     ];
 
     protected $casts = [
-        'move_in_date' => 'date',
-        'move_out_date' => 'date',
-        'booking_date' => 'datetime',
-        'climate_controlled' => 'boolean',
+        'start_date' => 'date',
+        'end_date' => 'date',
+        'payment_date' => 'datetime',
+        'terms_accepted' => 'boolean',
         'insurance_required' => 'boolean',
         'required_space' => 'decimal:2',
+        'estimated_weight' => 'decimal:2',
+        'monthly_rate' => 'decimal:2',
+        'security_deposit' => 'decimal:2',
+        'setup_fee' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
+        'final_amount' => 'decimal:2',
+        'special_requirements' => 'json',
+        'amenities' => 'json',
+        'documents' => 'json',
     ];
 
     /**
@@ -84,6 +119,6 @@ class WarehouseBooking extends Model
     public function canBeCancelled()
     {
         return in_array($this->status, ['pending', 'confirmed']) && 
-               $this->move_in_date > now()->addDays(1);
+               $this->start_date > now()->addDays(1);
     }
 }

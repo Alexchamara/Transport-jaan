@@ -1,16 +1,165 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
 
 const WarehousePayments = () => {
     const [selectedPayment, setSelectedPayment] = useState("Credit Card");
     const [slipNumber, setSlipNumber] = useState("");
     const [slipPdf, setSlipPdf] = useState(null);
+    const [bookingData, setBookingData] = useState(null);
+    const [termsAccepted, setTermsAccepted] = useState(false);
+    const [paymentOption, setPaymentOption] = useState("full"); // full or deposit
+    const [errors, setErrors] = useState({});
+    
+    // Load saved booking data from session storage when component mounts
+    useEffect(() => {
+        const savedData = sessionStorage.getItem('warehouseBookingData');
+        if (savedData) {
+            try {
+                const parsedData = JSON.parse(savedData);
+                setBookingData(parsedData);
+            } catch (error) {
+                console.error('Error parsing saved booking data:', error);
+                toast.error('Error loading booking information');
+            }
+        } else {
+            // No saved data, redirect back to booking page
+            toast.error('No booking information found. Please start the booking process again.');
+            setTimeout(() => {
+                router.visit('/warehouse-bookings/', {
+                    method: 'get'
+                });
+            }, 2000);
+        }
+    }, []);
 
     const handleConfirmBooking = () => {
-        router.visit("/warehouse-bookings/summary", {
-            method: "get",
-            preserveScroll: true,
-        });
+        // Validate required fields
+        const newErrors = {};
+        
+        if (!termsAccepted) {
+            newErrors.terms = 'You must accept the terms and conditions';
+        }
+        
+        if (selectedPayment === "Bank Transfer") {
+            if (!slipNumber.trim()) {
+                newErrors.slipNumber = 'Reference number is required for bank transfers';
+            }
+            
+            if (!slipPdf) {
+                newErrors.slipPdf = 'Payment receipt is required for bank transfers';
+            }
+        }
+        
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            toast.error('Please fix the errors before proceeding');
+            return;
+        }
+        
+        // All validations passed - save payment data
+        const paymentData = {
+            payment_method: selectedPayment,
+            payment_option: paymentOption,
+            reference_number: slipNumber || null,
+            payment_receipt: slipPdf ? 'uploaded' : null,
+        };
+        
+        // Update session storage with payment data
+        if (bookingData) {
+            const updatedBookingData = {
+                ...bookingData,
+                payment: paymentData
+            };
+            sessionStorage.setItem('warehouseBookingData', JSON.stringify(updatedBookingData));
+            
+            // Save to database via API
+            const formattedData = {
+                warehouse_id: updatedBookingData.warehouse_id || (updatedBookingData.warehouse?.id) || updatedBookingData.id,
+                company_name: updatedBookingData.company_name || updatedBookingData.companyName || '',
+                contact_person: updatedBookingData.contact_person || updatedBookingData.contactPerson || `${updatedBookingData.firstName || ''} ${updatedBookingData.lastName || ''}`.trim(),
+                email: updatedBookingData.email || updatedBookingData.contactEmail || '',
+                phone: updatedBookingData.phone || updatedBookingData.contactPhone || updatedBookingData.phoneNumber || '',
+                company_address: updatedBookingData.company_address || updatedBookingData.companyAddress || '',
+                storage_type: updatedBookingData.storage_type || updatedBookingData.storageType || 'General Storage',
+                required_space: updatedBookingData.required_space || updatedBookingData.requiredSpace || updatedBookingData.spaceNeeded || 1000,
+                goods_type: updatedBookingData.goods_type || updatedBookingData.goodsType || 'General',
+                goods_description: updatedBookingData.goods_description || updatedBookingData.goodsDescription || 'General goods',
+                estimated_weight: updatedBookingData.estimated_weight || updatedBookingData.estimatedWeight || null,
+                special_requirements: updatedBookingData.special_requirements || updatedBookingData.specialRequirements || null,
+                amenities: updatedBookingData.amenities || null,
+                start_date: updatedBookingData.start_date || updatedBookingData.startDate || updatedBookingData.moveInDate || '2025-09-15',
+                end_date: updatedBookingData.end_date || updatedBookingData.endDate || null,
+                duration_months: updatedBookingData.duration_months || updatedBookingData.durationMonths || updatedBookingData.storageDuration || null,
+                access_hours: updatedBookingData.access_hours || updatedBookingData.accessHours || '24/7',
+                special_instructions: updatedBookingData.special_instructions || updatedBookingData.specialInstructions || null,
+                monthly_rate: updatedBookingData.monthly_rate || updatedBookingData.monthlyRate || updatedBookingData.price || 1000,
+                security_deposit: updatedBookingData.security_deposit || updatedBookingData.securityDeposit || 0,
+                setup_fee: updatedBookingData.setup_fee || updatedBookingData.setupFee || 0,
+                total_amount: updatedBookingData.total_amount || updatedBookingData.totalAmount || 1000,
+                tax_amount: updatedBookingData.tax_amount || updatedBookingData.taxAmount || 0,
+                final_amount: updatedBookingData.final_amount || updatedBookingData.finalAmount || 1000,
+                terms_accepted: termsAccepted,
+                insurance_required: updatedBookingData.insurance_required || updatedBookingData.insuranceRequired || false,
+                notes: updatedBookingData.notes || null,
+                payment_method: paymentData.payment_method.toLowerCase().replace(' ', '_'),
+                payment_option: paymentData.payment_option,
+                payment_reference: paymentData.reference_number
+            };
+            
+            console.log('Original booking data:', updatedBookingData);
+            console.log('Formatted data to send:', formattedData);
+            
+            // Show loading message
+            toast.info('Processing your booking...');
+            
+            // Send booking data to server using axios
+            axios.post('/warehouse-bookings/book', formattedData)
+                .then(response => {
+                    const data = response.data;
+                    if (data.success) {
+                        // Show success message
+                        toast.success('Booking created successfully!');
+                        
+                        // Clear form data from session storage
+                        sessionStorage.removeItem('warehouseBookingData');
+                        
+                        // Navigate to summary page (with booking ID if available)
+                        setTimeout(() => {
+                            if (data.booking_id) {
+                                router.visit(`/warehouse-bookings/summary/${data.booking_id}`, {
+                                    method: "get",
+                                    preserveScroll: true,
+                                });
+                            } else {
+                                router.visit("/warehouse-bookings/summary", {
+                                    method: "get",
+                                    preserveScroll: true,
+                                });
+                            }
+                        }, 1500);
+                    } else {
+                        toast.error(data.message || 'Failed to create booking');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving booking:', error);
+                    toast.error('An error occurred while processing your booking');
+                    
+                    // Still navigate to summary page (fallback)
+                    setTimeout(() => {
+                        router.visit("/warehouse-bookings/summary", {
+                            method: "get",
+                            preserveScroll: true,
+                        });
+                    }, 1500);
+                });
+        } else {
+            // No booking data found
+            toast.error('No booking information found');
+        }
     };
 
     const handleBackBooking = () => {
@@ -36,6 +185,7 @@ const WarehousePayments = () => {
 
     return (
         <div>
+            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
             <div className="flex flex-col xl:flex-row justify-center items-center xl:items-start px-10 py-10 gap-10">
                 <div className="flex flex-col gap-10">
                     <div className="flex flex-row items-start justify-center pb-10">
@@ -221,7 +371,10 @@ const WarehousePayments = () => {
                                 <input
                                     type="radio"
                                     name="paymentOption"
-                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent  focus:outline-none transition-colors mt-[1.5px] cursor-pointer"
+                                    value="full"
+                                    checked={paymentOption === "full"}
+                                    onChange={() => setPaymentOption("full")}
+                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent focus:outline-none transition-colors mt-[1.5px] cursor-pointer"
                                 />
                                 <div className="poppins text-[12px] flex flex-col justify-center items-start">
                                     <h1 className="font-[600]">
@@ -236,7 +389,10 @@ const WarehousePayments = () => {
                                 <input
                                     type="radio"
                                     name="paymentOption"
-                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent  focus:outline-none transition-colors mt-[1.5px] cursor-pointer"
+                                    value="deposit"
+                                    checked={paymentOption === "deposit"}
+                                    onChange={() => setPaymentOption("deposit")}
+                                    className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:ring-transparent focus:outline-none transition-colors mt-[1.5px] cursor-pointer"
                                 />
                                 <div className="poppins text-[12px] flex flex-col justify-center items-start">
                                     <h1 className="font-[600]">
@@ -267,7 +423,7 @@ const WarehousePayments = () => {
                         </div>
                     </div>
 
-                    <div
+                        <div
                         className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-[72px] bg-[#D8E4F2] px-5 py-5"
                         style={{
                             borderLeftWidth: "0.2px",
@@ -279,6 +435,8 @@ const WarehousePayments = () => {
                             <input
                                 className="size-[20px] border-[0.5px] border-[#0955AC] bg-[#FFFFFF] rounded-[4px] cursor-pointer focus:ring-transparent"
                                 type="checkbox"
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
                             />
                             <div>
                                 <h1 className="">
@@ -294,11 +452,14 @@ const WarehousePayments = () => {
                                 <h1>
                                     I confirm that I am authorized to make this payment and that all information is accurate.
                                 </h1>
+                                {errors.terms && (
+                                    <div className="text-red-500 text-xs mt-1">
+                                        {errors.terms}
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    </div>
-
-                    <div>
+                    </div>                    <div>
                         <div
                             onClick={handleBackBooking}
                             className="rounded-[5px] flex justify-center items-center text-[#0955AC] font-[700] text-[12px] lg:w-[874px] h-[50px] border-[2px] border-[#0955AC] px-5 cursor-pointer transition-colors"

@@ -16,7 +16,7 @@ const WarehouseDetails = () => {
         if (!auth?.user) {
             // If not logged in, redirect to sign-in page with redirect URL
             const bookingUrl = `/warehouse-bookings/bookings/${warehouse.type || 'general'}/${warehouse.id}`;
-            router.visit('/login', {
+            router.visit('/signin', {
                 method: 'get',
                 data: {
                     redirect: bookingUrl,

@@ -1,18 +1,180 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
-
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 
 const WarehouseCheckoutContent = () => {
     const [countryCode, setCountryCode] = useState("lk");
-    const [phone, setPhone] = useState("");
+    const [bookingData, setBookingData] = useState(null);
+    const [warehouseInfo, setWarehouseInfo] = useState(null);
+    const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formData, setFormData] = useState({
+        company_name: '',
+        contact_person: '',
+        email: '',
+        phone: '',
+        agree_terms: false
+    });
 
+    // Load saved booking data from session storage when component mounts
+    useEffect(() => {
+        const savedData = sessionStorage.getItem('warehouseBookingData');
+        
+        if (savedData) {
+            try {
+                const parsedData = JSON.parse(savedData);
+                setBookingData(parsedData);
+                
+                // Populate form fields with saved data if available
+                setFormData({
+                    company_name: parsedData.company_name || '',
+                    contact_person: parsedData.contact_person || '',
+                    email: parsedData.email || '',
+                    phone: parsedData.phone || '',
+                    agree_terms: false
+                });
+                
+                // If warehouse_id is available, fetch warehouse details
+                if (parsedData.warehouse_id) {
+                    fetchWarehouseDetails(parsedData.warehouse_id);
+                }
+            } catch (error) {
+                console.error('Error parsing saved booking data:', error);
+                toast.error('Error loading saved booking information');
+            }
+        } else {
+            // No saved data, redirect back to booking page
+            toast.error('No booking information found. Please start the booking process again.');
+            setTimeout(() => {
+                router.visit('/warehouse-bookings/', {
+                    method: 'get'
+                });
+            }, 2000);
+        }
+    }, []);
+    
+    /**
+     * Fetches warehouse details from the server based on warehouse ID
+     * 
+     * This function:
+     * 1. Makes an API request to get warehouse details
+     * 2. Updates the warehouseInfo state with the response
+     * 3. Handles errors gracefully without disrupting the UI
+     * 
+     * @param {number|string} warehouseId - The ID of the warehouse to fetch
+     */
+    const fetchWarehouseDetails = async (warehouseId) => {
+        try {
+            // Set loading state if needed
+            setIsSubmitting(true);
+            
+            // Try to fetch warehouse details
+            const response = await axios.get(`/api/warehouse-units/${warehouseId}`, {
+                timeout: 10000 // 10 second timeout
+            });
+            
+            if (response.data) {
+                setWarehouseInfo(response.data);
+            }
+        } catch (error) {
+            console.error('Error fetching warehouse details:', error);
+            // Don't show error to user as this is background data fetching
+            // Just log it and continue with what data we have
+            if (error.response) {
+                // Server responded with an error status (4xx, 5xx)
+                console.error('Server error:', error.response.data);
+            } else if (error.request) {
+                // Request made but no response received (network issues)
+                console.error('Network error - no response received');
+            } else {
+                // Error in setting up the request
+                console.error('Request setup error:', error.message);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
+    /**
+     * Handles input changes in the checkout form
+     * 
+     * This function:
+     * 1. Updates the form data state with new values
+     * 2. Clears errors for the field being edited
+     * 
+     * @param {Event} e - The input change event
+     */
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        const newValue = type === 'checkbox' ? checked : value;
+        
+        setFormData(prev => ({
+            ...prev,
+            [name]: newValue
+        }));
+        
+        // Clear errors when user starts typing
+        if (errors[name]) {
+            setErrors(prev => {
+                const newErrors = {...prev};
+                delete newErrors[name];
+                return newErrors;
+            });
+        }
+    };
+    
+    /**
+     * Validates the checkout form
+     * 
+     * Currently validates:
+     * - Terms and conditions acceptance
+     * 
+     * @returns {boolean} True if form is valid, false otherwise
+     */
+    const validateCheckoutForm = () => {
+        const newErrors = {};
+        let isValid = true;
+        
+        // Validate terms acceptance
+        if (!formData.agree_terms) {
+            newErrors.agree_terms = 'You must accept the terms and conditions';
+            isValid = false;
+        }
+        
+        setErrors(newErrors);
+        return isValid;
+    };
+    
+    /**
+     * Handles navigation to the payment page
+     * 
+     * This function:
+     * 1. Validates the checkout form
+     * 2. If valid, updates the session storage with latest form data
+     * 3. Navigates to the payment page
+     * 4. If invalid, shows error notification
+     */
     const handlePaymentBooking = () => {
-        router.visit("/warehouse-bookings/payments", {
-            method: "get",
-            preserveScroll: true,
-        });
+        if (validateCheckoutForm()) {
+            // Update session storage with latest form data
+            const updatedBookingData = {
+                ...bookingData,
+                ...formData
+            };
+            
+            sessionStorage.setItem('warehouseBookingData', JSON.stringify(updatedBookingData));
+            
+            router.visit("/warehouse-bookings/payments", {
+                method: "get",
+                preserveScroll: true,
+            });
+        } else {
+            toast.error('Please fix the errors before proceeding');
+        }
     };
 
     const handleConfirmBooking = () => {
@@ -31,6 +193,7 @@ const WarehouseCheckoutContent = () => {
 
     return (
         <div>
+            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
             <div className="flex flex-col xl:flex-row justify-center items-center xl:items-start px-10 py-10 gap-10">
                 <div className="flex flex-col gap-10">
                     <div className="flex flex-row items-start justify-center pb-10">
@@ -101,36 +264,54 @@ const WarehouseCheckoutContent = () => {
                                 <label className="text-[10px]/[24px] font-[600]">
                                     Company Name :
                                 </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.company_name ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <input
+                                        name="company_name"
+                                        value={formData.company_name}
+                                        onChange={handleInputChange}
                                         className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                                         placeholder="Your Company Ltd."
                                     />
                                 </div>
+                                {errors.company_name && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.company_name}</p>
+                                )}
                             </div>
 
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
                                     Contact Person :
                                 </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.contact_person ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <input
+                                        name="contact_person"
+                                        value={formData.contact_person}
+                                        onChange={handleInputChange}
                                         className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                                         placeholder="John Doe"
                                     />
                                 </div>
+                                {errors.contact_person && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.contact_person}</p>
+                                )}
                             </div>
 
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
                                     Email :
                                 </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.email ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <input
+                                        name="email"
+                                        value={formData.email}
+                                        onChange={handleInputChange}
                                         className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                                         placeholder="john@company.com"
                                     />
                                 </div>
+                                {errors.email && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.email}</p>
+                                )}
                             </div>
 
                             <div>
@@ -140,8 +321,13 @@ const WarehouseCheckoutContent = () => {
                                 <div className="md:w-[374px] w-auto h-[49px]">
                                     <PhoneInput
                                         country={countryCode}
-                                        value={phone}
-                                        onChange={(phone) => setPhone(phone)}
+                                        value={formData.phone}
+                                        onChange={(phone) => {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                phone: phone
+                                            }));
+                                        }}
                                         containerStyle={{
                                             width: "100%",
                                             height: "49px",
@@ -150,7 +336,7 @@ const WarehouseCheckoutContent = () => {
                                             width: "100%",
                                             height: "49px",
                                             borderRadius: "5px",
-                                            border: "1px solid #0000004D",
+                                            border: errors.phone ? "1px solid #ef4444" : "1px solid #0000004D",
                                             fontSize: "12px",
                                             fontWeight: "500",
                                         }}
@@ -161,6 +347,9 @@ const WarehouseCheckoutContent = () => {
                                         }}
                                         placeholder="Enter phone number"
                                     />
+                                    {errors.phone && (
+                                        <p className="text-red-500 text-[10px] mt-1">{errors.phone}</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -184,13 +373,11 @@ const WarehouseCheckoutContent = () => {
                                     Storage Type :
                                 </label>
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <select className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080]">
-                                        <option>General Storage</option>
-                                        <option>Cold Storage</option>
-                                        <option>Hazardous Materials</option>
-                                        <option>Electronics</option>
-                                        <option>Food & Beverages</option>
-                                        <option>Pharmaceutical</option>
+                                    <select 
+                                        disabled 
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080] bg-gray-100"
+                                    >
+                                        <option>{bookingData?.storage_type || 'General Storage'}</option>
                                     </select>
                                 </div>
                             </div>
@@ -202,8 +389,9 @@ const WarehouseCheckoutContent = () => {
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                                     <input
                                         type="number"
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                        placeholder="1000"
+                                        value={bookingData?.required_space || ''}
+                                        readOnly
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] bg-gray-100"
                                     />
                                 </div>
                             </div>
@@ -213,14 +401,11 @@ const WarehouseCheckoutContent = () => {
                                     Storage Duration :
                                 </label>
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <select className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080]">
-                                        <option>1 Week</option>
-                                        <option>2 Weeks</option>
-                                        <option>1 Month</option>
-                                        <option>3 Months</option>
-                                        <option>6 Months</option>
-                                        <option>12 Months</option>
-                                        <option>Long Term (2+ years)</option>
+                                    <select 
+                                        disabled 
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080] bg-gray-100"
+                                    >
+                                        <option>{bookingData?.storage_duration || '1 Month'}</option>
                                     </select>
                                 </div>
                             </div>
@@ -230,11 +415,11 @@ const WarehouseCheckoutContent = () => {
                                     Access Frequency :
                                 </label>
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <select className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080]">
-                                        <option>Daily</option>
-                                        <option>Weekly</option>
-                                        <option>Monthly</option>
-                                        <option>Rarely</option>
+                                    <select 
+                                        disabled 
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080] bg-gray-100"
+                                    >
+                                        <option>{bookingData?.access_frequency || 'Weekly'}</option>
                                     </select>
                                 </div>
                             </div>
@@ -245,9 +430,11 @@ const WarehouseCheckoutContent = () => {
                                 </label>
                                 <div className="w-full min-h-[98px] border-[1px] border-[#0000004D] rounded-[5px]">
                                     <textarea
-                                        className="w-full h-full px-3 py-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] resize-none"
+                                        className="w-full h-full px-3 py-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] resize-none bg-gray-100"
                                         placeholder="Describe the items you plan to store..."
                                         rows="4"
+                                        value={bookingData?.goods_description || ''}
+                                        readOnly
                                     />
                                 </div>
                             </div>
@@ -327,7 +514,10 @@ const WarehouseCheckoutContent = () => {
                     >
                         <div className="flex flex-row gap-5 text-[10px] font-[400]">
                             <input
-                                className="size-[20px] border-[0.5px] border-[#0955AC] bg-[#FFFFFF] rounded-[4px] cursor-pointer focus:ring-transparent"
+                                name="agree_terms"
+                                checked={formData.agree_terms}
+                                onChange={handleInputChange}
+                                className={`size-[20px] border-[0.5px] ${errors.agree_terms ? 'border-red-500 ring-1 ring-red-500' : 'border-[#0955AC]'} bg-[#FFFFFF] rounded-[4px] cursor-pointer focus:ring-transparent`}
                                 type="checkbox"
                             />
                             <div>
@@ -344,6 +534,9 @@ const WarehouseCheckoutContent = () => {
                                 <h1>
                                     I confirm that the information provided is accurate and I am authorized to make this booking.
                                 </h1>
+                                {errors.agree_terms && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.agree_terms}</p>
+                                )}
                             </div>
                         </div>
                     </div>
