@@ -4,7 +4,6 @@ import search from "../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
-
 import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
 
 import icon1 from "../../../assets/vendors/booking/icons/icon1.svg";
@@ -12,14 +11,10 @@ import icon2 from "../../../assets/vendors/booking/icons/icon2.svg";
 import icon3 from "../../../assets/vendors/booking/icons/icon3.svg";
 import icon4 from "../../../assets/vendors/booking/icons/icon4.svg";
 
-import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
-import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
-import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
-
-import CarBookingTableTwo from "../../../components/vendors/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
+import CarBookingTableTwo from "./CarBookingTableTwo";
 
-/** ---- color lookups (kept outside so they don't reallocate) ---- */
+// ----- color lookups -----
 const paymentStatusColors = {
   Paid: { color: "#3B8F31", bg: "#ACE199" },
   Pending: { color: "#FF6060", bg: "#FF60608C" },
@@ -30,7 +25,7 @@ const statusColors = {
   Cancelled: { bg: "#FF6060", text: "#FFFFFF" },
 };
 
-/** decorate a raw booking with the derived color fields your table expects */
+// decorate a booking with table-friendly color fields
 const decorateBooking = (b) => ({
   ...b,
   paymentStatusColor: paymentStatusColors[b.paymentStatus]?.color ?? "#7B7B7A",
@@ -39,70 +34,20 @@ const decorateBooking = (b) => ({
   statusText: statusColors[b.status]?.text ?? "#000000",
 });
 
-const BookingContent = ({ initialBookings = [], useApi = false }) => {
+const BookingContent = ({
+  initialBookings = [],
+  bookingData = [], // [{name:'Jan', done:120, cancelled:12}, ...]
+  vendorUser = { name: "Vendor", role: "Vendor" },
+}) => {
   const [bookings, setBookings] = useState(() =>
     (initialBookings || []).map(decorateBooking)
   );
 
-  // OPTIONAL: load from API instead of props. Set useApi={true}
   useEffect(() => {
-    if (!useApi) return;
-    (async () => {
-      try {
-        const res = await fetch("/api/vendor/bookings");
-        const rows = await res.json();
-        setBookings(rows.map(decorateBooking));
-      } catch (e) {
-        console.error("Failed to load bookings", e);
-      }
-    })();
-  }, [useApi]);
-
-  // if props change at runtime, keep in sync
-  useEffect(() => {
-    if (useApi) return; // API mode controls state
     setBookings((initialBookings || []).map(decorateBooking));
-  }, [initialBookings, useApi]);
+  }, [initialBookings]);
 
-  const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
-  const [newBooking, setNewBooking] = useState({
-    id: "",
-    bookingDate: "",
-    clientName: "",
-    carModel: "",
-    carPlate: "",
-    plan: "",
-    startDate: "",
-    endDate: "",
-    payment: "",
-    paymentStatus: "Pending",
-    status: "Ongoing",
-  });
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewBooking((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddBooking = () => {
-    setBookings((prev) => [...prev, decorateBooking(newBooking)]);
-    setIsAddPopupOpen(false);
-    setNewBooking({
-      id: "",
-      bookingDate: "",
-      clientName: "",
-      carModel: "",
-      carPlate: "",
-      plan: "",
-      startDate: "",
-      endDate: "",
-      payment: "",
-      paymentStatus: "Pending",
-      status: "Ongoing",
-    });
-  };
-
-  /** --------- KPIs derived from data instead of hard-coded --------- */
+  // KPIs derived from current bookings
   const kpis = useMemo(() => {
     const today = new Date();
     const parse = (s) => (s ? new Date(s) : null);
@@ -139,114 +84,118 @@ const BookingContent = ({ initialBookings = [], useApi = false }) => {
           </div>
 
           <div className="figtree flex flex-col justify-center items-start">
-            <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
-            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Vendor</h1>
+            <h1 className="text-[20px] font-[700]">{vendorUser?.name ?? "Vendor"}</h1>
+            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">{vendorUser?.role ?? "Vendor"}</h1>
           </div>
         </div>
       </div>
 
       {/* KPI row */}
       <div className="flex flex-row gap-10 justify-between py-20 w-full">
-        {/* left cards */}
         <div className="flex flex-col gap-8 w-full">
           {/* Upcoming */}
-          <div className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-            <div className="flex flex-row gap-5 justify-center items-center">
+          <div className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3 shadow-sm"
+               style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+            <div className="flex flex-row gap-5 items-center">
               <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                 <img src={icon1} alt="Upcoming Bookings" />
               </div>
               <div>
-                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">Upcoming Bookings</h1>
-                <h1 className="text-[26px] font-[700]">{kpis.upcoming}</h1>
+                <div className="text-[16px] font-[500] text-[#7B7B7A]">Upcoming Bookings</div>
+                <div className="text-[26px] font-[700]">{kpis.upcoming}</div>
               </div>
             </div>
             <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
               <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                <img src={upArrow} className="size-[19px]" alt="Increase" />
-                <h1>+2.86%</h1>
+                <img src={upArrow} className="size-[19px]" alt="" />
+                <span>+2.86%</span>
               </div>
-              <h1 className="text-[#7B7B7A]">from last week</h1>
+              <span className="text-[#7B7B7A]">from last week</span>
             </div>
           </div>
 
           {/* Pending */}
-          <div className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-            <div className="flex flex-row gap-5 justify-center items-center">
+          <div className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
+               style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+            <div className="flex flex-row gap-5 items-center">
               <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                 <img src={icon2} alt="Pending Bookings" />
               </div>
               <div>
-                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">Pending Bookings</h1>
-                <h1 className="text-[26px] font-[700]">{kpis.pending}</h1>
+                <div className="text-[16px] font-[500] text-[#7B7B7A]">Pending Bookings</div>
+                <div className="text-[26px] font-[700]">{kpis.pending}</div>
               </div>
             </div>
             <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
               <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                <img src={upArrow} className="size-[19px]" alt="Increase" />
-                <h1>+2.86%</h1>
+                <img src={upArrow} className="size-[19px]" alt="" />
+                <span>+2.86%</span>
               </div>
-              <h1 className="text-[#7B7B7A]">from last week</h1>
+              <span className="text-[#7B7B7A]">from last week</span>
             </div>
           </div>
 
           {/* Cancelled */}
-          <div className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-            <div className="flex flex-row gap-5 justify-center items-center">
+          <div className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
+               style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+            <div className="flex flex-row gap-5 items-center">
               <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                 <img src={icon3} alt="Cancelled Bookings" />
               </div>
               <div>
-                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">Cancelled Bookings</h1>
-                <h1 className="text-[26px] font-[700]">{kpis.cancelled}</h1>
+                <div className="text-[16px] font-[500] text-[#7B7B7A]">Cancelled Bookings</div>
+                <div className="text-[26px] font-[700]">{kpis.cancelled}</div>
               </div>
             </div>
             <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
               <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                <img src={upArrow} className="size-[19px]" alt="Increase" />
-                <h1>+2.86%</h1>
+                <img src={upArrow} className="size-[19px]" alt="" />
+                <span>+2.86%</span>
               </div>
-              <h1 className="text-[#7B7B7A]">from last week</h1>
+              <span className="text-[#7B7B7A]">from last week</span>
             </div>
           </div>
 
           {/* Completed */}
-          <div className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-            <div className="flex flex-row gap-5 justify-center items-center">
+          <div className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
+               style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+            <div className="flex flex-row gap-5 items-center">
               <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                 <img src={icon4} alt="Completed Bookings" />
               </div>
               <div>
-                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">Completed Bookings</h1>
-                <h1 className="text-[26px] font-[700]">{kpis.completed}</h1>
+                <div className="text-[16px] font-[500] text-[#7B7B7A]">Completed Bookings</div>
+                <div className="text-[26px] font-[700]">{kpis.completed}</div>
               </div>
             </div>
             <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
               <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                <img src={upArrow} className="size-[19px]" alt="Increase" />
-                <h1>+2.86%</h1>
+                <img src={upArrow} className="size-[19px]" alt="" />
+                <span>+2.86%</span>
               </div>
-              <h1 className="text-[#7B7B7A]">from last week</h1>
+              <span className="text-[#7B7B7A]">from last week</span>
             </div>
           </div>
         </div>
 
-        {/* right chart */}
-        <div className="min-w-[712px] w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-          {/* No demo data is passed here; chart renders empty until you pass bookingData if you want */}
-          <BookingBarChart />
+        {/* Right: Chart */}
+        <div className="min-w-[712px] w-full min-h-[437px] bg-white rounded-[10px] flex items-center justify-center"
+             style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+          <BookingBarChart bookingData={bookingData} />
         </div>
       </div>
 
-      {/* table box */}
-      <div className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+      {/* Table */}
+      <div className="w-full bg-white rounded-[10px] py-10 px-10" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
         <div className="flex flex-row justify-between">
-          <h1 className="text-[24px] font-[700]">Car Booking</h1>
-          {/* controls ... */}
+          <h2 className="text-[24px] font-[700]">Car Booking</h2>
         </div>
 
-        {/* Add Booking Popup ... (unchanged) */}
-
-        <CarBookingTableTwo bookings={bookings} setBookings={setBookings} statusColors={statusColors} />
+        <CarBookingTableTwo
+          bookings={Array.isArray(bookings) ? bookings : []}
+          setBookings={setBookings}
+          statusColors={statusColors}
+        />
       </div>
     </div>
   );

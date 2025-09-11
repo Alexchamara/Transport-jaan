@@ -53,13 +53,13 @@ class Booking extends Model
 
     public function getStartDateAttribute(): ?Carbon
     {
-        $d = $this->schedule->pickup_at ?? null;
+        $d = $this->schedule?->pickup_at; // ✅ null-safe
         return $d ? Carbon::parse($d) : null;
     }
 
     public function getEndDateAttribute(): ?Carbon
     {
-        $d = $this->schedule->dropoff_at ?? null;
+        $d = $this->schedule?->dropoff_at; // ✅ null-safe
         return $d ? Carbon::parse($d) : null;
     }
 
