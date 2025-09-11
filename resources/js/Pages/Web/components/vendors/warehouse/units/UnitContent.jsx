@@ -203,6 +203,24 @@ const UnitContent = () => {
     }
   };
 
+  // Helper: get first available image URL for a unit
+  const getFirstImageUrl = (unit) => {
+    if (unit?.thumbnail_url) return unit.thumbnail_url;
+    const candidates = [unit?.images, unit?.image_urls, unit?.photos, unit?.gallery, unit?.media].filter(Boolean);
+    for (const arr of candidates) {
+      if (Array.isArray(arr) && arr.length > 0) {
+        const first = arr[0];
+        if (typeof first === 'string') return first;
+        if (first && typeof first === 'object') {
+          return first.url || first.path || first.src || first.link || null;
+        }
+      }
+    }
+    if (typeof unit?.image === 'string') return unit.image;
+    if (unit?.image && typeof unit.image === 'object') return unit.image.url || unit.image.path || null;
+    return null;
+  };
+
   return (
     <div className="w-full h-auto pr-5 py-10">
       {/* Header section */}
@@ -328,124 +346,162 @@ const UnitContent = () => {
             </div>
           )}
 
-          {/* Warehouse units cards */}
+          {/* Warehouse units cards (styled like vehicle cards) */}
           {!loading && !error && units.length > 0 && (
             <>
-              {units.map((unit) => (
-                <div key={unit.id} className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex flex-col lg:flex-row items-center my-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-                  {/* text section */}
-                  <div className="px-5 py-5 w-full">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                      <div>
-                        <div className="bebas-neue text-[28px] font-[400]">
-                          <h1>
-                            {unit.name} <span className="text-[#0955AC]">[{unit.type}]</span>
-                          </h1>
-                        </div>
-                        <div className="poppins text-[14px] font-[600] flex gap-4">
-                          <span className={`${statusColor(unit.status)}`}>{unit.availability_status}</span>
-                          <span className="text-[#7B7B7A]">Type: {unit.type}</span>
-                          <span className="text-[#7B7B7A]">Model: {unit.pricing_model?.replace(/_/g, ' ')}</span>
-                        </div>
-                        <div className="poppins text-[12px] text-[#7B7B7A] mt-1">
-                          <span>{unit.address}</span>
-                        </div>
-                        {unit.description && (
-                          <div className="poppins text-[12px] text-[#666666] mt-2 line-clamp-2">
-                            {unit.description}
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {unit.approval_status && unit.approval_status !== 'approved' && (
-                            <span className={`px-2 py-1 rounded text-white text-xs ${
-                              unit.approval_status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
-                            }`}>
-                              {unit.approval_status === 'pending' ? 'Pending Approval' : 'Rejected'}
-                            </span>
-                          )}
-                          <span className={`px-2 py-1 rounded text-white text-xs font-semibold ${
-                            unit.is_active ? 'bg-green-600' : 'bg-gray-500'
-                          }`}>
-                            {unit.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                          {unit.approval_status === 'approved' && (
-                            <span className="px-2 py-1 rounded text-white text-xs bg-blue-600">
-                              Approved
-                            </span>
-                          )}
-                        </div>
+              {units.map((unit) => {
+                const imageUrl = getFirstImageUrl(unit);
+                return (
+                <div
+                  key={unit.id}
+                  className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex lg:flex-row flex-col items-center my-10"
+                  style={{ boxShadow: '4px 4px 4px #0000001A' }}
+                >
+                  {/* Left visual (image or placeholder) */}
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt="Warehouse image"
+                      className="w-[220px] h-[157px] object-cover rounded-l-[10px]"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-[220px] h-[157px] bg-[#E8EBEF] rounded-l-[10px]" />
+                  )}
+
+                  {/* Content section */}
+                  <div className="px-5 py-5 flex flex-row justify-center items-center w-full">
+                    <div className="flex-1">
+                      <div className="bebas-neue text-[28px] font-[400]">
+                        <h1>
+                          {unit.name}{' '}
+                          <span className="text-[#0955AC]">[{unit.type}]</span>
+                        </h1>
                       </div>
-                      <div className="figtree text-right">
-                        <div className="text-[20px] font-[700]">Area: {unit.total_area || 'N/A'} sqft</div>
-                        <div className="text-[14px] text-[#7B7B7A]">Capacity: {unit.capacity || 'N/A'} units</div>
+                      <div className="poppins text-[14px] font-[600] flex flex-wrap gap-6 items-center">
+                        <span className={`${statusColor(unit.status)}`}>
+                          {unit.availability_status}
+                        </span>
+                        <span className="text-[#7B7B7A]">
+                          Pricing: {unit.pricing_model?.replace(/_/g, ' ') || 'N/A'}
+                        </span>
+                        <span className="text-[#7B7B7A]">
+                          Area: {unit.total_area || 'N/A'} sqft
+                        </span>
+                        <span className="text-[#7B7B7A]">
+                          Capacity: {unit.capacity || 'N/A'}
+                        </span>
+                      </div>
+                      <div className="poppins text-[12px] text-[#7B7B7A] mt-1">
+                        <span>{unit.address}</span>
+                      </div>
+                      {unit.description && (
+                        <div className="poppins text-[12px] text-[#666666] mt-2 line-clamp-2">
+                          {unit.description}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {unit.approval_status && unit.approval_status !== 'approved' && (
+                          <span
+                            className={`px-2 py-1 rounded text-white text-xs ${
+                              unit.approval_status === 'pending'
+                                ? 'bg-yellow-500'
+                                : 'bg-red-500'
+                            }`}
+                          >
+                            {unit.approval_status === 'pending'
+                              ? 'Pending Approval'
+                              : 'Rejected'}
+                          </span>
+                        )}
+                        <span
+                          className={`px-2 py-1 rounded text-white text-xs font-semibold ${
+                            unit.is_active ? 'bg-green-600' : 'bg-gray-500'
+                          }`}
+                        >
+                          {unit.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        {unit.approval_status === 'approved' && (
+                          <span className="px-2 py-1 rounded text-white text-xs bg-blue-600">
+                            Approved
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4 text-[14px] poppins">
-                      <div>
-                        <div className="text-[#7B7B7A]">Coordinates</div>
-                        <div className="font-[600]">
-                          {unit.latitude && unit.longitude ? `${unit.latitude}, ${unit.longitude}` : 'N/A'}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[#7B7B7A]">Monthly Rate</div>
-                        <div className="font-[600]">
-                          ${unit.monthly_rate || unit.price || 'N/A'}
-                        </div>
-                        {unit.final_amount && unit.final_amount !== unit.monthly_rate && (
-                          <div className="text-xs text-gray-500">
-                            Total: ${unit.final_amount}
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-[#7B7B7A]">Pricing Model</div>
-                        <div className="font-[600]">{unit.pricing_model?.replace(/_/g, ' ') || 'N/A'}</div>
-                      </div>
-                      <div>
-                        <div className="text-[#7B7B7A]">Amenities</div>
-                        <div className="font-[600]">
-                          {unit.amenities && unit.amenities.length > 0 
-                            ? `${unit.amenities.slice(0, 2).join(', ')}${unit.amenities.length > 2 ? '...' : ''}`
-                            : 'None'
-                          }
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[#7B7B7A]">Active</div>
-                        <div className="font-[600]">{unit.is_active ? 'Yes' : 'No'}</div>
-                      </div>
-                      <div className="flex flex-col items-center lg:items-end gap-2">
-                        <button 
-                          className="figtree min-w-[100px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#074A94] transition-colors" 
-                          onClick={() => (window.location.href = `/vendors/warehouse/unitDetails/${unit.id}`)}
-                        >
+                    {/* Actions column */}
+                    <div className="flex flex-col items-center gap-2 pl-[40px]">
+                      <button
+                        className="figtree min-w-[100px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#074A94] transition-colors"
+                        onClick={() => (window.location.href = `/vendors/warehouse/unitDetails/${unit.id}`)}
+                        title="View"
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-5 h-5"
+                            aria-hidden="true"
+                          >
+                            <path d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12z" />
+                            <circle cx="12" cy="12" r="3.25" />
+                          </svg>
                           View
-                        </button>
-                        <button 
-                          className="figtree min-w-[100px] h-[44px] bg-[#F59E0B] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#D97706] transition-colors" 
-                          onClick={() => (window.location.href = `/vendors/warehouse/editUnit/${unit.id}`)}
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          className={`figtree min-w-[100px] h-[44px] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] transition-colors ${
-                            unit.is_active 
-                              ? 'bg-[#DC2626] hover:bg-[#B91C1C]' 
-                              : 'bg-[#16A34A] hover:bg-[#15803D]'
-                          }`}
-                          onClick={() => handleToggleStatus(unit)}
-                          title={unit.is_active ? 'Deactivate warehouse unit' : 'Activate warehouse unit'}
-                        >
-                          {unit.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </div>
+                        </span>
+                      </button>
+                      <button
+                        className="figtree min-w-[100px] h-[44px] bg-[#F59E0B] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#D97706] transition-colors"
+                        onClick={() => (window.location.href = `/vendors/warehouse/editUnit/${unit.id}`)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className={`figtree min-w-[100px] h-[44px] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] transition-colors ${
+                          unit.is_active
+                            ? 'bg-[#DC2626] hover:bg-[#B91C1C]'
+                            : 'bg-[#16A34A] hover:bg-[#15803D]'
+                        }`}
+                        onClick={() => handleToggleStatus(unit)}
+                        title={unit.is_active ? 'Deactivate warehouse unit' : 'Activate warehouse unit'}
+                      >
+                        {unit.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
                     </div>
                   </div>
+
+                  {/* Right side action bar (icons textual to avoid extra imports) */}
+                  <div className="absolute right-0 w-auto min-w-[143px] h-full bg-[#D8E4F2] flex flex-col justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px] px-3">
+                    <button
+                      className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
+                      onClick={() => (window.location.href = `/vendors/warehouse/unitDetails/${unit.id}`)}
+                      title="View Details"
+                    >
+                      👁
+                    </button>
+                    <button
+                      className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
+                      onClick={() => (window.location.href = `/vendors/warehouse/editUnit/${unit.id}`)}
+                      title="Edit"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
+                      onClick={() => alert('Delete action not implemented')}
+                      title="Delete"
+                    >
+                      🗑
+                    </button>
+                  </div>
                 </div>
-              ))}
-              
+                );
+              })}
+
               {/* Results info */}
               <div className="text-[#7B7B7A] text-sm mb-4">
                 Showing {units.length} of {totalUnits} warehouse units

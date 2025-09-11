@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import WarehouseBookingService from "../../../../../../services/WarehouseBookingService";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
@@ -16,7 +17,7 @@ import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.sv
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
-import CarBookingTableTwo from "../../../../components/vendors/bookings/CarBookingTableTwo";
+import WarehouseBookingTable from "./WarehouseBookingTable";
 import BookingBarChart from "./BookingBarChart";
 
 
@@ -31,96 +32,71 @@ const BookingContent = () => {
         Returned: { bg: "#3B8F31", text: "#FFCD29" }, // Dark green background, yellow text
     };
 
-    const [bookings, setBookings] = useState([
-        {
-            id: "WB-001",
-            bookingDate: "May 4, 2025",
-            clientName: "Steve Gibson",
-            warehouseName: "Central Cold Storage A",
-            warehouseUnit: "WH-A12",
-            purpose: "Food Storage",
-            specialRequirements: "Temperature -18°C",
-            durationUnit: "months",
-            durationValue: 3,
-            quantity: 50,
-            startDate: "May 10, 2025",
-            endDate: "August 10, 2025",
-            totalPrice: "$1200",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "active",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-            notes: "Client prefers morning deliveries",
-        },
-        {
-            id: "WB-002",
-            bookingDate: "May 4, 2025",
-            clientName: "Sarah Johnson",
-            warehouseName: "Dry Storage Warehouse B",
-            warehouseUnit: "WH-B15",
-            purpose: "Inventory Storage",
-            specialRequirements: "24/7 access required",
-            durationUnit: "weeks",
-            durationValue: 8,
-            quantity: 75,
-            startDate: "May 15, 2025",
-            endDate: "July 10, 2025",
-            totalPrice: "$800",
-            paymentStatus: "Pending",
-            paymentStatusColor: paymentStatusColors.Pending.color,
-            paymentStatusBg: paymentStatusColors.Pending.bg,
-            status: "active",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-            notes: "Regular inventory checks needed",
-        },
-        {
-            id: "WB-003",
-            bookingDate: "April 28, 2025",
-            clientName: "Mike Chen",
-            warehouseName: "Climate Controlled Unit C",
-            warehouseUnit: "WH-C08",
-            purpose: "Document Storage",
-            specialRequirements: "Humidity control essential",
-            durationUnit: "months",
-            durationValue: 6,
-            quantity: 25,
-            startDate: "May 1, 2025",
-            endDate: "November 1, 2025",
-            totalPrice: "$1500",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "active",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-            notes: "Important legal documents",
-        },
-        {
-            id: "WB-004",
-            bookingDate: "May 2, 2025",
-            clientName: "Lisa Wang",
-            warehouseName: "Central Cold Storage A",
-            warehouseUnit: "WH-A05",
-            purpose: "Pharmaceutical Storage",
-            specialRequirements: "Temperature 2-8°C, Security access",
-            durationUnit: "months",
-            durationValue: 12,
-            quantity: 100,
-            startDate: "May 8, 2025",
-            endDate: "May 8, 2026",
-            totalPrice: "$3600",
-            paymentStatus: "Paid",
-            paymentStatusColor: paymentStatusColors.Paid.color,
-            paymentStatusBg: paymentStatusColors.Paid.bg,
-            status: "active",
-            statusBg: statusColors.Ongoing.bg,
-            statusText: statusColors.Ongoing.text,
-            notes: "Pharmaceutical grade storage required",
-        }
-    ]);
+    const [bookings, setBookings] = useState([]);
+    const [stats, setStats] = useState({
+        upcoming_bookings: 0,
+        pending_bookings: 0,
+        cancelled_bookings: 0,
+        completed_bookings: 0
+    });
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Fetch bookings and stats from API
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [bookingsResponse, statsResponse] = await Promise.all([
+                    WarehouseBookingService.getBookings(),
+                    WarehouseBookingService.getBookingStats()
+                ]);
+                
+                if (bookingsResponse.success) {
+                    const formattedBookings = bookingsResponse.data.map(booking => 
+                        WarehouseBookingService.formatBookingForDisplay(booking)
+                    );
+                    setBookings(formattedBookings);
+                }
+                
+                if (statsResponse.success) {
+                    setStats(statsResponse.data);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                setError('Failed to load booking data');
+                // Fallback to sample data if API fails
+                setBookings([
+                    {
+                        id: "WB-001",
+                        bookingDate: "September 8, 2025",
+                        clientName: "Fresh Foods Ltd",
+                        warehouseName: "Central Cold Storage A",
+                        warehouseUnit: "WH-A12",
+                        purpose: "Food Storage",
+                        specialRequirements: "Temperature -18°C, FDA compliant",
+                        durationUnit: "months",
+                        durationValue: 6,
+                        quantity: 200,
+                        startDate: "September 15, 2025",
+                        endDate: "March 15, 2026",
+                        totalPrice: "$2,400",
+                        paymentStatus: "Pending",
+                        paymentStatusColor: paymentStatusColors.Pending.color,
+                        paymentStatusBg: paymentStatusColors.Pending.bg,
+                        status: "pending",
+                        statusBg: "#FFA500",
+                        statusText: "#FFFFFF",
+                        notes: "New client booking requiring approval for frozen goods storage",
+                    }
+                ]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
     const [newBooking, setNewBooking] = useState({
@@ -230,7 +206,7 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Upcoming Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
+                                <h1 className="text-[26px] font-[700]">{stats.upcoming_bookings || 0}</h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -261,7 +237,7 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Pending Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">234</h1>
+                                <h1 className="text-[26px] font-[700]">{stats.pending_bookings || 0}</h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -292,7 +268,7 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Cancelled Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">24</h1>
+                                <h1 className="text-[26px] font-[700]">{stats.cancelled_bookings || 0}</h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -323,7 +299,7 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Completed Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
+                                <h1 className="text-[26px] font-[700]">{stats.completed_bookings || 0}</h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -638,11 +614,21 @@ const BookingContent = () => {
                     </div>
                 )}
 
-                <CarBookingTableTwo
-                    bookings={bookings}
-                    setBookings={setBookings}
-                    statusColors={statusColors} // Pass statusColors as a prop
-                />
+                {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <div className="text-[18px] text-gray-600">Loading bookings...</div>
+                    </div>
+                ) : error ? (
+                    <div className="flex justify-center items-center py-20">
+                        <div className="text-[18px] text-red-600">{error}</div>
+                    </div>
+                ) : (
+                    <WarehouseBookingTable
+                        bookings={bookings}
+                        setBookings={setBookings}
+                        statusColors={statusColors} // Pass statusColors as a prop
+                    />
+                )}
             </div>
             {/* end */}
         </div>
