@@ -71,7 +71,7 @@ class Vehicle extends Model
         return $this->belongsTo(User::class, 'provider_id');
     }
 
-    // Keep this method name if other code calls ->vendor(), but map it to provider_id
+    // Keep this alias if other code calls ->vendor(), but map it to provider_id
     public function vendor()
     {
         return $this->belongsTo(User::class, 'provider_id');
@@ -125,10 +125,7 @@ class Vehicle extends Model
     public function reviews()         { return $this->hasMany(VehicleReview::class, 'vehicle_id'); }
     public function likes()           { return $this->hasMany(VehicleLike::class); }
     public function featurePricings() { return $this->hasMany(VehicleFeaturePricing::class); }
-    public function reviews() { return $this->hasMany(VehicleReview::class, 'vehicle_id'); }
-    public function likes() { return $this->hasMany(VehicleLike::class); }
-    public function featurePricings() { return $this->hasMany(VehicleFeaturePricing::class); }
-    public function bookings() { return $this->hasMany(\App\Models\Booking::class); }
+    public function bookings()        { return $this->hasMany(\App\Models\Booking::class); }
 
     /* ===================== Maintenance ===================== */
 
@@ -182,9 +179,6 @@ class Vehicle extends Model
 
     /* -------- Scopes -------- */
     public function scopeType($q, string $type) { return $q->where('type', $type); }
-    public function scopeActive($q)             { return $q->where('status','active')->where('approval_status','approved'); }
-
-    public function scopeType($q, string $type) { return $q->where('type', $type); }
 
     public function scopeActive($q)
     {
@@ -226,8 +220,6 @@ class Vehicle extends Model
             ->ofMany('id', 'max');
     }
 
-    public function bookings() { return $this->hasMany(\App\Models\Booking::class); }
-
     /** Availability considers BOTH bookings and maintenance */
     public function isAvailable(\Carbon\Carbon $from, \Carbon\Carbon $to, ?int $ignoreBookingId = null): bool
     {
@@ -245,6 +237,4 @@ class Vehicle extends Model
 
         return !$bookingOverlap && !$maintenanceOverlap;
     }
-
-    public function vendor() { return $this->belongsTo(\App\Models\User::class, 'vendor_id'); }
 }
