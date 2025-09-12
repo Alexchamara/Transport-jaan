@@ -13,17 +13,6 @@ return new class extends Migration
     {
         Schema::create('flight_bookings', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('email');
-            $table->string('phone');
-            $table->string('subject');
-            $table->text('special_requests')->nullable();
-            $table->enum('trip_type', ['oneway', 'return']);
-            $table->date('departure_date');
-            $table->date('return_date')->nullable();
-            $table->string('departure_airport');
-            $table->string('arriving_airport');
-            $table->enum('status', ['pending', 'confirmed', 'cancelled'])->default('pending');
             $table->timestamps();
         });
     }
