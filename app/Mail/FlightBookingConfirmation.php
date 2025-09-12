@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\FlightBooking;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -9,15 +10,16 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class FlightBookingConfirmation extends Mailable
+class FlightBookingConfirmation extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     /**
      * Create a new message instance.
      */
-    public function __construct()
-    {
+    public function __construct(
+        public FlightBooking $flightBooking
+    ) {
         //
     }
 
@@ -27,7 +29,7 @@ class FlightBookingConfirmation extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Flight Booking Confirmation',
+            subject: 'Flight Booking Confirmation - ' . $this->flightBooking->subject,
         );
     }
 
@@ -37,7 +39,10 @@ class FlightBookingConfirmation extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.name',
+            view: 'emails.flight-booking-confirmation',
+            with: [
+                'booking' => $this->flightBooking,
+            ],
         );
     }
 
