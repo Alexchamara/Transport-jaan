@@ -10,8 +10,7 @@ const WAREHOUSE_TYPES = [
 
 const PRICING_MODELS = [
     { value: 'hourly', label: 'Per Hour' },
-    { value: 'daily', l                                value={data.base_price}
-                                onChange={e => setData('base_price', e.target.value)}el: 'Per Day' },
+    { value: 'daily', label: 'Per Day' },
     { value: 'monthly', label: 'Per Month' },
 ];
 

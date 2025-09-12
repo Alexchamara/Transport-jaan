@@ -1,6 +1,7 @@
 import React from "react";
 import ReviewSection from "../../vehicleDetails/ReviewSection";
-import starSec from "../../../assets/landVehicleDetails/starsSec.svg";
+// Adjust depth: units (this folder) -> vendors (..1) -> components (..2) then into assets
+import starSec from "../../../../assets/landVehicleDetails/starsSec.svg";
 
 const ReviewsTab = () => (
     <div className="poppins">
