@@ -9,6 +9,8 @@ const locations = [
     { code: "HRI", name: "Mattala Rajapaksa International Airport", city: "Hambantota", country: "Sri Lanka" },
     { code: "ACJ", name: "Anuradhapura Airport", city: "Anuradhapura", country: "Sri Lanka" },
     { code: "JAF", name: "Jaffna Airport", city: "Jaffna", country: "Sri Lanka" },
+
+    
     // International destinations
     { code: "DXB", name: "Dubai International Airport", city: "Dubai", country: "UAE" },
     { code: "DOH", name: "Hamad International Airport", city: "Doha", country: "Qatar" },
@@ -102,6 +104,8 @@ const LocationDropdown = ({ label, name, value, onChange, placeholder, errors })
             {errors && (
                 <p className="text-red-500 text-xs mt-1">{errors}</p>
             )}
+
+            
             {/* Dropdown List */}
             {isOpen && filteredLocations.length > 0 && (
                 <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto mt-1">
