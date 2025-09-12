@@ -1,145 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "@inertiajs/react";
 
-// Sample airport/location data - you can replace this with API data
-const locations = [
-    // Major international airports
-    { code: "BIA", name: "Bandaranaike International Airport", city: "Colombo", country: "Sri Lanka" },
-    { code: "RML", name: "Ratmalana Airport", city: "Colombo", country: "Sri Lanka" },
-    { code: "HRI", name: "Mattala Rajapaksa International Airport", city: "Hambantota", country: "Sri Lanka" },
-    { code: "ACJ", name: "Anuradhapura Airport", city: "Anuradhapura", country: "Sri Lanka" },
-    { code: "JAF", name: "Jaffna Airport", city: "Jaffna", country: "Sri Lanka" },
-
-    // International destinations
-    { code: "DXB", name: "Dubai International Airport", city: "Dubai", country: "UAE" },
-    { code: "DOH", name: "Hamad International Airport", city: "Doha", country: "Qatar" },
-    { code: "SIN", name: "Singapore Changi Airport", city: "Singapore", country: "Singapore" },
-    { code: "BKK", name: "Suvarnabhumi Airport", city: "Bangkok", country: "Thailand" },
-    { code: "KUL", name: "Kuala Lumpur International Airport", city: "Kuala Lumpur", country: "Malaysia" },
-    { code: "DEL", name: "Indira Gandhi International Airport", city: "New Delhi", country: "India" },
-    { code: "BOM", name: "Chhatrapati Shivaji International Airport", city: "Mumbai", country: "India" },
-    { code: "MAA", name: "Chennai International Airport", city: "Chennai", country: "India" },
-    { code: "LHR", name: "London Heathrow Airport", city: "London", country: "UK" },
-    { code: "JFK", name: "John F. Kennedy International Airport", city: "New York", country: "USA" },
-    { code: "LAX", name: "Los Angeles International Airport", city: "Los Angeles", country: "USA" },
-    { code: "NRT", name: "Narita International Airport", city: "Tokyo", country: "Japan" },
-    { code: "ICN", name: "Incheon International Airport", city: "Seoul", country: "South Korea" },
-    { code: "HKG", name: "Hong Kong International Airport", city: "Hong Kong", country: "Hong Kong" },
-    { code: "SYD", name: "Sydney Kingsford Smith Airport", city: "Sydney", country: "Australia" },
-];
-
-// LocationDropdown component
-const LocationDropdown = ({ label, id, value, onChange, placeholder }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState(value);
-    const [filteredLocations, setFilteredLocations] = useState([]);
-
-    const handleInputChange = (e) => {
-        const term = e.target.value;
-        setSearchTerm(term);
-        onChange(term);
-
-        if (term.length > 0) {
-            const filtered = locations.filter(location =>
-                location.name.toLowerCase().includes(term.toLowerCase()) ||
-                location.city.toLowerCase().includes(term.toLowerCase()) ||
-                location.code.toLowerCase().includes(term.toLowerCase()) ||
-                location.country.toLowerCase().includes(term.toLowerCase())
-            );
-            setFilteredLocations(filtered);
-            setIsOpen(true);
-        } else {
-            setIsOpen(false);
-        }
-    };
-
-    const handleLocationSelect = (location) => {
-        const selectedValue = `${location.name} (${location.code})`;
-        setSearchTerm(selectedValue);
-        onChange(selectedValue);
-        setIsOpen(false);
-    };
-
-    const handleInputFocus = () => {
-        if (searchTerm.length > 0) {
-            const filtered = locations.filter(location =>
-                location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                location.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                location.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                location.country.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setFilteredLocations(filtered);
-            setIsOpen(true);
-        }
-    };
-
-    const handleInputBlur = () => {
-        // Delay hiding dropdown to allow for click events
-        setTimeout(() => setIsOpen(false), 150);
-    };
-
-    return (
-        <div className="relative">
-            <label htmlFor={id} className="block mb-1">
-                {label}
-            </label>
-            <input
-                type="text"
-                id={id}
-                value={searchTerm}
-                onChange={handleInputChange}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                placeholder={placeholder}
-                className="appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
-                autoComplete="off"
-            />
-
-            {/* Dropdown List */}
-            {isOpen && filteredLocations.length > 0 && (
-                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto mt-1">
-                    {filteredLocations.slice(0, 10).map((location, index) => (
-                        <div
-                            key={`${location.code}-${index}`}
-                            onClick={() => handleLocationSelect(location)}
-                            className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        >
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <div className="font-medium text-[#286BB6] text-sm">
-                                        {location.name}
-                                    </div>
-                                    <div className="text-gray-500 text-xs">
-                                        {location.city}, {location.country}
-                                    </div>
-                                </div>
-                                <div className="text-[#0955AC] font-bold text-xs bg-blue-100 px-2 py-1 rounded">
-                                    {location.code}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
 const FlightCard = () => {
-    const [formData, setFormData] = useState({
-        pickupLocation: '',
-        pickupDate: '',
-        dropoffLocation: '',
-        dropoffDate: ''
-    });
-
-    const handleInputChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
-
     return (
         <div className="bg-white/95 rounded-[20px] shadow-xl ring-1 ring-[#0955AC]/15 overflow-hidden">
             {/* Header (UI only, no field changes) */}
@@ -154,14 +16,19 @@ const FlightCard = () => {
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
                     {/* Pick-up Location */}
-                    <LocationDropdown
-                        label="Pick-up Location"
-                        id="pickupLocation"
-                        value={formData.pickupLocation}
-                        onChange={(value) => handleInputChange('pickupLocation', value)}
-                        placeholder="Search departure airport"
-                    />
-
+                    <div>
+                        <label htmlFor="pickupLocation" className="block mb-1">
+                            Pick-up Location
+                        </label>
+                        <input
+                            type="text"
+                            id="pickupLocation"
+                            // value={formData.pickupLocation}
+                            // onChange={handleInputChange}
+                            placeholder="Search a location"
+                            className="appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                        />
+                    </div>
                     {/* Pick-up Date */}
                     <div>
                         <label htmlFor="pickupDate" className="block mb-1">
@@ -170,8 +37,8 @@ const FlightCard = () => {
                         <input
                             type="text"
                             id="pickupDate"
-                            value={formData.pickupDate}
-                            onChange={(e) => handleInputChange('pickupDate', e.target.value)}
+                            // value={formData.pickupDate}
+                            // onChange={handleInputChange}
                             placeholder="DD/MM/YYYY"
                             className="w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
                             onFocus={(e) => (e.target.type = "date")}
@@ -182,14 +49,19 @@ const FlightCard = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
                     {/* Drop-off Location */}
-                    <LocationDropdown
-                        label="Drop-off Location"
-                        id="dropoffLocation"
-                        value={formData.dropoffLocation}
-                        onChange={(value) => handleInputChange('dropoffLocation', value)}
-                        placeholder="Search destination airport"
-                    />
-
+                    <div>
+                        <label htmlFor="dropoffLocation" className="block mb-1">
+                            Drop-off Location
+                        </label>
+                        <input
+                            type="text"
+                            id="dropoffLocation"
+                            // value={formData.dropoffLocation}
+                            // onChange={handleInputChange}
+                            placeholder="Search a location"
+                            className="w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                        />
+                    </div>
                     {/* Drop-off Date */}
                     <div>
                         <label htmlFor="dropoffDate" className="block mb-1">
@@ -198,8 +70,8 @@ const FlightCard = () => {
                         <input
                             type="text"
                             id="dropoffDate"
-                            value={formData.dropoffDate}
-                            onChange={(e) => handleInputChange('dropoffDate', e.target.value)}
+                            // value={formData.dropoffDate}
+                            // onChange={handleInputChange}
                             placeholder="DD/MM/YYYY"
                             className="border-[1px] border-[#0000001A] rounded-[8px] p-[16px] w-full leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
                             onFocus={(e) => (e.target.type = "date")}
@@ -210,7 +82,7 @@ const FlightCard = () => {
 
                 {/* Action Button (unchanged behavior) */}
                 <Link
-                    href={`/flightBooking?departure=${encodeURIComponent(formData.pickupLocation)}&arrival=${encodeURIComponent(formData.dropoffLocation)}&departureDate=${formData.pickupDate}&returnDate=${formData.dropoffDate}`}
+                    href="/flightBooking"
                     type="submit"
                     // onClick={handleFindVehicleClick}
                     className="bg-[#0955AC] text-white font-bold h-[56px] w-full rounded-[10px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#07448a] transition-colors flex justify-center items-center"
