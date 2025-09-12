@@ -84,7 +84,6 @@ Route::post('/bus-bookings', [BusController::class, 'store'])->name('bus-booking
 Route::get('/bus-booking-success/{reference}', [BusController::class, 'bookingSuccess'])->name('bus.booking.success');
 Route::get('/busTicketBookingPreview', [WebController::class, 'busTicketBookingPreview'])->name('busTicketBookingPreview.busTicketBookingPreview');
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
-Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store');
 
 
 
