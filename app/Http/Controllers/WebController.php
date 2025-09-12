@@ -364,9 +364,9 @@ class WebController extends Controller
     {
         // Get approved and active warehouses from database
         $searchParams = $request->all();
-
-        $query = WarehouseUnit::where('approval_status', 'approved')
-            ->where('is_active', true);
+        
+        $query = WarehouseUnit::approved()
+            ->active();
 
         // Apply filters based on search parameters
 
@@ -459,8 +459,8 @@ class WebController extends Controller
         }
 
         // Get related warehouses (same type, different warehouse)
-        $relatedWarehouses = WarehouseUnit::where('approval_status', 'approved')
-            ->where('is_active', true)
+        $relatedWarehouses = WarehouseUnit::approved()
+            ->active()
             ->where('type', $warehouseData['type'] ?? '')
             ->where('id', '!=', $warehouseData['id'])
             ->limit(3)

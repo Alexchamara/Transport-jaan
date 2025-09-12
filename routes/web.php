@@ -598,7 +598,7 @@ Route::get('/courierService/bookings', function () {
 
 Route::get('/courierService/units', function () {
     return Inertia::render('Web/home/vendors/courierService/Unit');
-})->name('ticketBooking.units');
+})->name('courierService.units');
 
 Route::get('/courierService/dashboard', function () {
     return Inertia::render('Web/home/vendors/courierService/Dashboard');
@@ -653,7 +653,7 @@ Route::get('/freight/dashboard', function () {
 
 Route::get('/freight/clients', function () {
     return Inertia::render('Web/home/vendors/freight/Client');
-})->name('courierService.clients');
+})->name('freight.clients');
 
 Route::get('/freight/expenses', function () {
     return Inertia::render('Web/home/vendors/freight/Expenses');
@@ -691,8 +691,8 @@ Route::get('/multimodal/bookings', function () {
 })->name('multimodal.bookings');
 
 Route::get('/multimodal/units', function () {
-    return Inertia::render('Web/home/vendors/multimodal/Unit');
-})->name('freight.units');
+    return Inertia::render('Web/home/multimodal/MultimodalUnits');
+})->name('multimodal.units');
 
 Route::get('/multimodal/dashboard', function () {
     return Inertia::render('Web/home/vendors/multimodal/Dashboard');

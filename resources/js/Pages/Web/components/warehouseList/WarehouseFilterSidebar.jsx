@@ -4,9 +4,6 @@ import { router } from "@inertiajs/react";
 const WarehouseFilterSidebar = ({ searchParams }) => {
   const [selectedWarehouseType, setSelectedWarehouseType] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectedPrice, setSelectedPrice] = useState("");
-  const [selectedFeatures, setSelectedFeatures] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -15,16 +12,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
     }
     if (searchParams?.location) {
       setSelectedLocation(searchParams.location.toLowerCase());
-    }
-    if (searchParams?.size) {
-      setSelectedSize(searchParams.size.toLowerCase());
-    }
-    if (searchParams?.price) {
-      setSelectedPrice(searchParams.price.toLowerCase());
-    }
-    if (searchParams?.features) {
-      const featuresArray = Array.isArray(searchParams.features) ? searchParams.features : [searchParams.features];
-      setSelectedFeatures(featuresArray);
     }
   }, [searchParams]);
 
@@ -49,53 +36,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
     router.get('/warehouseList', {
       ...searchParams,
       location: newLocation
-    }, {
-      preserveState: true,
-      preserveScroll: true,
-      replace: true
-    });
-  };
-
-  const handleSizeChange = (size) => {
-    const newSize = selectedSize === size ? "" : size;
-    setSelectedSize(newSize);
-    
-    router.get('/warehouseList', {
-      ...searchParams,
-      size: newSize
-    }, {
-      preserveState: true,
-      preserveScroll: true,
-      replace: true
-    });
-  };
-
-  const handlePriceChange = (price) => {
-    const newPrice = selectedPrice === price ? "" : price;
-    setSelectedPrice(newPrice);
-    
-    router.get('/warehouseList', {
-      ...searchParams,
-      price: newPrice
-    }, {
-      preserveState: true,
-      preserveScroll: true,
-      replace: true
-    });
-  };
-
-  const handleFeatureChange = (feature) => {
-    let newFeatures;
-    if (selectedFeatures.includes(feature)) {
-      newFeatures = selectedFeatures.filter(f => f !== feature);
-    } else {
-      newFeatures = [...selectedFeatures, feature];
-    }
-    setSelectedFeatures(newFeatures);
-    
-    router.get('/warehouseList', {
-      ...searchParams,
-      features: newFeatures.length > 0 ? newFeatures : undefined
     }, {
       preserveState: true,
       preserveScroll: true,
@@ -223,8 +163,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="size"
                 value="small"
                 className="mr-1.5"
-                checked={selectedSize === "small"}
-                onChange={() => handleSizeChange("small")}
               />
               <label htmlFor="small">Under 5,000</label>
             </div>
@@ -238,8 +176,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="size"
                 value="medium"
                 className="mr-1.5"
-                checked={selectedSize === "medium"}
-                onChange={() => handleSizeChange("medium")}
               />
               <label htmlFor="medium">5,000 - 20,000</label>
             </div>
@@ -253,8 +189,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="size"
                 value="large"
                 className="mr-1.5"
-                checked={selectedSize === "large"}
-                onChange={() => handleSizeChange("large")}
               />
               <label htmlFor="large">20,000 - 50,000</label>
             </div>
@@ -268,8 +202,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="size"
                 value="xlarge"
                 className="mr-1.5"
-                checked={selectedSize === "xlarge"}
-                onChange={() => handleSizeChange("xlarge")}
               />
               <label htmlFor="xlarge">50,000+</label>
             </div>
@@ -289,8 +221,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="price"
                 value="0-5000"
                 className="mr-1.5"
-                checked={selectedPrice === "0-5000"}
-                onChange={() => handlePriceChange("0-5000")}
               />
               <label htmlFor="price0_5000">US$ 0 - US$ 5,000</label>
             </div>
@@ -304,8 +234,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="price"
                 value="5000-15000"
                 className="mr-1.5"
-                checked={selectedPrice === "5000-15000"}
-                onChange={() => handlePriceChange("5000-15000")}
               />
               <label htmlFor="price5000_15000">US$ 5,000 - US$ 15,000</label>
             </div>
@@ -319,8 +247,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="price"
                 value="15000-30000"
                 className="mr-1.5"
-                checked={selectedPrice === "15000-30000"}
-                onChange={() => handlePriceChange("15000-30000")}
               />
               <label htmlFor="price15000_30000">US$ 15,000 - US$ 30,000</label>
             </div>
@@ -334,8 +260,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="price"
                 value="30000plus"
                 className="mr-1.5"
-                checked={selectedPrice === "30000plus"}
-                onChange={() => handlePriceChange("30000plus")}
               />
               <label htmlFor="price30000plus">US$ 30,000+</label>
             </div>
@@ -355,8 +279,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="features"
                 value="loading_dock"
                 className="mr-1.5"
-                checked={selectedFeatures.includes("loading_dock")}
-                onChange={() => handleFeatureChange("loading_dock")}
               />
               <label htmlFor="loading_dock">Loading Dock</label>
             </div>
@@ -370,8 +292,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="features"
                 value="climate_control"
                 className="mr-1.5"
-                checked={selectedFeatures.includes("climate_control")}
-                onChange={() => handleFeatureChange("climate_control")}
               />
               <label htmlFor="climate_control">Climate Control</label>
             </div>
@@ -385,8 +305,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="features"
                 value="security_system"
                 className="mr-1.5"
-                checked={selectedFeatures.includes("security_system")}
-                onChange={() => handleFeatureChange("security_system")}
               />
               <label htmlFor="security_system">24/7 Security</label>
             </div>
@@ -400,8 +318,6 @@ const WarehouseFilterSidebar = ({ searchParams }) => {
                 name="features"
                 value="office_space"
                 className="mr-1.5"
-                checked={selectedFeatures.includes("office_space")}
-                onChange={() => handleFeatureChange("office_space")}
               />
               <label htmlFor="office_space">Office Space</label>
             </div>

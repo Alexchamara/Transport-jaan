@@ -10,7 +10,8 @@ const WAREHOUSE_TYPES = [
 
 const PRICING_MODELS = [
     { value: 'hourly', label: 'Per Hour' },
-    { value: 'daily', label: 'Per Day' },
+    { value: 'daily', l                                value={data.base_price}
+                                onChange={e => setData('base_price', e.target.value)}el: 'Per Day' },
     { value: 'monthly', label: 'Per Month' },
 ];
 
@@ -44,7 +45,7 @@ export default function WarehouseForm({ warehouse = null, onSubmit }) {
         type: warehouse?.type ?? '',
         amenities: warehouse?.amenities ?? [],
         pricing_model: warehouse?.pricing_model ?? '',
-        price: warehouse?.price ?? '',
+        base_price: warehouse?.base_price ?? '',
         // Detailed Pricing
         monthly_rate: warehouse?.monthly_rate ?? '',
         security_deposit: warehouse?.security_deposit ?? '',
@@ -416,16 +417,16 @@ export default function WarehouseForm({ warehouse = null, onSubmit }) {
                             </div>
                             <input
                                 type="number"
-                                value={data.price}
-                                onChange={e => setData('price', e.target.value)}
+                                value={data.base_price}
+                                onChange={e => setData('base_price', e.target.value)}
                                 className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 required
                                 min="0"
                                 step="0.01"
                             />
                         </div>
-                        {errors.price && (
-                            <p className="mt-1 text-sm text-red-600">{errors.price}</p>
+                        {errors.base_price && (
+                            <p className="mt-1 text-sm text-red-600">{errors.base_price}</p>
                         )}
                     </div>
 

@@ -97,11 +97,34 @@ const EditUnit = () => {
   useEffect(() => {
     const fetchWarehouseData = async () => {
       try {
-        const response = await fetch(`/vendors/warehouse/api/units/${unitId}`);
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(`/vendors/warehouse/api/units/${unitId}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          credentials: 'same-origin',
+        });
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch warehouse data');
+          if (response.status === 404) {
+            throw new Error('Warehouse unit not found');
+          } else if (response.status === 403) {
+            throw new Error('You do not have permission to edit this warehouse unit');
+          } else {
+            throw new Error(`Failed to fetch warehouse data (Status: ${response.status})`);
+          }
         }
+        
         const data = await response.json();
+        
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid response format received from server');
+        }
         
         setOriginalData(data);
         setForm({
@@ -125,23 +148,32 @@ const EditUnit = () => {
           tax_amount: data.tax_amount || '',
           final_amount: data.final_amount || '',
           
-          amenities: data.amenities || [],
+          amenities: Array.isArray(data.amenities) ? data.amenities : [],
           terms_conditions: data.terms_conditions || '',
           is_active: data.is_active !== undefined ? data.is_active : true,
         });
 
-        // Set existing files - images and documents come as URLs, we need to extract paths
-        setExistingImages(data.images || []);
-        setExistingDocuments(data.documents || []);
+        // Set existing files - images and documents come as URLs
+        const imagesArray = Array.isArray(data.images) ? data.images : [];
+        const documentsArray = Array.isArray(data.documents) ? data.documents : [];
+        
+        setExistingImages(imagesArray);
+        setExistingDocuments(documentsArray);
         setExistingTermsPdf(data.terms_pdf_path || null);
         
         // Store original file paths for removal (extract from URLs)
-        const imagePaths = (data.images || []).map(url => {
+        const imagePaths = imagesArray.map(url => {
           // Extract path from URL like /storage/warehouse/images/filename.jpg
-          return url.startsWith('/storage/') ? url.replace('/storage/', '') : url;
+          if (typeof url === 'string') {
+            return url.startsWith('/storage/') ? url.replace('/storage/', '') : url;
+          }
+          return url;
         });
-        const documentPaths = (data.documents || []).map(url => {
-          return url.startsWith('/storage/') ? url.replace('/storage/', '') : url;
+        const documentPaths = documentsArray.map(url => {
+          if (typeof url === 'string') {
+            return url.startsWith('/storage/') ? url.replace('/storage/', '') : url;
+          }
+          return url;
         });
         const termsPdfPath = data.terms_pdf_path && data.terms_pdf_path.startsWith('/storage/') 
           ? data.terms_pdf_path.replace('/storage/', '') 
@@ -152,7 +184,7 @@ const EditUnit = () => {
         setOriginalTermsPdfPath(termsPdfPath);
 
         // Add custom amenities to options
-        if (data.amenities) {
+        if (Array.isArray(data.amenities)) {
           const customAmenities = data.amenities.filter(amenity => !defaultAmenities.includes(amenity));
           if (customAmenities.length > 0) {
             setAmenityOptions(prev => [...prev, ...customAmenities]);
@@ -162,7 +194,7 @@ const EditUnit = () => {
         setLoading(false);
       } catch (error) {
         console.error('Error fetching warehouse data:', error);
-        setErrorItems(['Failed to load warehouse data. Please try again.']);
+        setErrorItems([error.message || 'Failed to load warehouse data. Please try again.']);
         setShowErrorModal(true);
         setLoading(false);
       }
@@ -170,6 +202,10 @@ const EditUnit = () => {
 
     if (unitId) {
       fetchWarehouseData();
+    } else {
+      setErrorItems(['Invalid warehouse unit ID']);
+      setShowErrorModal(true);
+      setLoading(false);
     }
   }, [unitId]);
 
@@ -560,22 +596,31 @@ const EditUnit = () => {
         headers: {
           ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),
           'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
         },
         body: data,
+        credentials: 'same-origin',
       });
 
+      // Handle different response scenarios
       if (!response.ok) {
         if (response.status === 422) {
           // Validation errors
-          const errorData = await response.json();
-          const validationErrors = errorData.errors || {};
-          setErrors(validationErrors);
-          
-          // Flatten validation errors for display
-          const errorList = Object.values(validationErrors).flat().map((msg) => String(msg));
-          setErrorItems(errorList);
-          setShowErrorModal(true);
-          return;
+          try {
+            const errorData = await response.json();
+            const validationErrors = errorData.errors || {};
+            setErrors(validationErrors);
+            
+            // Flatten validation errors for display
+            const errorList = Object.values(validationErrors).flat().map((msg) => String(msg));
+            setErrorItems(errorList.length > 0 ? errorList : ['Validation failed']);
+            setShowErrorModal(true);
+            return;
+          } catch (parseError) {
+            setErrorItems(['Invalid response format. Please try again.']);
+            setShowErrorModal(true);
+            return;
+          }
         } else if (response.status === 419) {
           // CSRF token mismatch
           setErrorItems(['CSRF token mismatch. Please refresh the page and try again.']);
@@ -586,11 +631,35 @@ const EditUnit = () => {
           setErrorItems(['The uploaded files are too large. Please reduce file sizes and try again.']);
           setShowErrorModal(true);
           return;
+        } else if (response.status === 404) {
+          // Not found
+          setErrorItems(['Warehouse unit not found. It may have been deleted.']);
+          setShowErrorModal(true);
+          return;
+        } else if (response.status === 403) {
+          // Forbidden
+          setErrorItems(['You do not have permission to edit this warehouse unit.']);
+          setShowErrorModal(true);
+          return;
         } else {
           // Other errors
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `Server error: ${response.status}`);
+          try {
+            const errorData = await response.json();
+            throw new Error(errorData.message || errorData.error || `Server error: ${response.status}`);
+          } catch (parseError) {
+            throw new Error(`Server error: ${response.status}. Please try again.`);
+          }
         }
+      }
+
+      // Parse successful response
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        console.error('Error parsing success response:', parseError);
+        // Even if we can't parse the response, the update was successful
+        responseData = { success: true, message: 'Warehouse unit updated successfully.' };
       }
 
       // Success

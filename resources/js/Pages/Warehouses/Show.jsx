@@ -26,7 +26,7 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
             daily: '/day',
             monthly: '/month'
         };
-        const displayPrice = warehouse.monthly_rate || warehouse.price;
+        const displayPrice = warehouse.monthly_rate || warehouse.base_price;
         return `$${displayPrice}${priceUnit[pricingModel]}`;
     };
 
@@ -59,7 +59,7 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
                 break;
         }
 
-        const baseRate = warehouse.monthly_rate || warehouse.price;
+        const baseRate = warehouse.monthly_rate || warehouse.base_price;
         const price = duration * baseRate * data.quantity;
 
         setCalculatedDuration(durationText);

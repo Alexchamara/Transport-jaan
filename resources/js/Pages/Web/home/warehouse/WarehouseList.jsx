@@ -1,52 +1,48 @@
-import React, { useState } from "react";
-import { Head } from "@inertiajs/react";
+import React, { useState, useEffect } from "react";
+import { Head, usePage } from "@inertiajs/react";
 import Header from "../../layouts/Header";
-import Footer from "../../layouts/Footer";
 import WarehouseFilterSidebar from "../../components/warehouseList/WarehouseFilterSidebar";
 import WarehouseSearchForm from "../../components/warehouseList/WarehouseSearchForm";
 import WarehouseListContent from "../../components/warehouseList/WarehouseListContent";
 
-const WarehouseList = ({ warehouses, searchParams }) => {
+const WarehouseList = () => {
+  const { props } = usePage();
+
   const [formData, setFormData] = useState({
-    warehouseLocation: searchParams?.warehouseLocation || '',
-    requiredSpace: searchParams?.requiredSpace || '',
-    moveinDate: searchParams?.moveinDate || '',
-    leaseDuration: searchParams?.leaseDuration || ''
+    warehouseLocation: "",
+    requiredSpace: "",
+    moveinDate: "",
+    leaseDuration: "",
   });
 
-  const handleFormChange = (newFormData) => {
-    setFormData(newFormData);
+  useEffect(() => {
+    if (props.filters) {
+      setFormData((prevData) => ({
+        ...prevData,
+        ...props.filters,
+      }));
+    }
+  }, [props.filters]);
+
+  const handleFormChange = (newData) => {
+    setFormData(newData);
   };
 
   return (
-    <div>
+    <div className="warehouse-list-page">
       <Head title="Find Warehouses - Transport Jaan" />
       <Header />
-      
-      <div className="bg-[#FBFCFF] min-h-screen">
-        {/* Search Form Section */}
-        <div className="bg-[#0B1B3B] pt-20 pb-10">
-          <div className="container mx-auto flex justify-center">
-            <WarehouseSearchForm 
-              formData={formData} 
-              onFormChange={handleFormChange} 
-            />
-          </div>
-        </div>
-
-        {/* Main Content Section */}
-        <div className="container mx-auto flex">
-          {/* Filter Sidebar */}
-          <WarehouseFilterSidebar searchParams={searchParams} />
-          
-          {/* Warehouse List Content */}
-          <div className="flex-1">
-            <WarehouseListContent warehouses={warehouses} />
-          </div>
+      <div className="main-content flex">
+        <WarehouseFilterSidebar searchParams={formData} />
+        <div className="warehouse-list-container flex-1">
+          <WarehouseSearchForm formData={formData} onFormChange={handleFormChange} />
+          <WarehouseListContent
+            warehouses={props.warehouses}
+            authUser={props.auth?.user}                
+            likedWarehouseIds={props.likedWarehouseIds} 
+          />
         </div>
       </div>
-      
-      <Footer />
     </div>
   );
 };
