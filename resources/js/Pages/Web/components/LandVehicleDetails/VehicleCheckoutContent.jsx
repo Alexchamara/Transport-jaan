@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
+import { Clock } from "lucide-react";
 import car from "../../assets/vehicleCheckout/car.svg";
 import icon1 from "../../assets/vehicleCheckout/icon1.svg";
 import icon2 from "../../assets/vehicleCheckout/icon2.svg";
@@ -83,8 +84,14 @@ const VehicleCheckoutContent = () => {
   const [quote, setQuote] = useState(null);
   const [quoting, setQuoting] = useState(false);
 
+  // Local editable time state (so user can pick times via clock button)
+  const [pickupTime, setPickupTime] = useState(q.pickup_time || "");
+  const [dropoffTime, setDropoffTime] = useState(q.dropoff_time || "");
+  const [showPickupTimePicker, setShowPickupTimePicker] = useState(false);
+  const [showDropoffTimePicker, setShowDropoffTimePicker] = useState(false);
+
   useEffect(() => {
-    if (!vehicle?.id || !q.pickup_date || !q.pickup_time || !q.dropoff_date || !q.dropoff_time) {
+    if (!vehicle?.id || !q.pickup_date || !pickupTime || !q.dropoff_date || !dropoffTime) {
       setQuote(null);
       return;
     }
@@ -94,9 +101,9 @@ const VehicleCheckoutContent = () => {
         const params = new URLSearchParams({
           vehicle_id: String(vehicle.id),
           pickup_date: String(q.pickup_date),
-          pickup_time: String(q.pickup_time),
+          pickup_time: String(pickupTime),
           dropoff_date: String(q.dropoff_date),
-          dropoff_time: String(q.dropoff_time),
+          dropoff_time: String(dropoffTime),
         });
         if (q.exclude_booking_id) {
           params.append("exclude_booking_id", String(q.exclude_booking_id));
@@ -120,7 +127,7 @@ const VehicleCheckoutContent = () => {
       }
     }, 200);
     return () => clearTimeout(t);
-  }, [vehicle?.id, q.pickup_date, q.pickup_time, q.dropoff_date, q.dropoff_time, q.exclude_booking_id, addons]);
+  }, [vehicle?.id, q.pickup_date, pickupTime, q.dropoff_date, dropoffTime, q.exclude_booking_id, addons]);
 
   /* ---------------- Submit / validation ---------------- */
   const validate = () => {
@@ -142,7 +149,7 @@ const VehicleCheckoutContent = () => {
 
   const handlePaymentBooking = () => {
     if (!vehicle?.id) return alert("Vehicle is missing. Please select a vehicle.");
-    if (!q.pickup_date || !q.pickup_time || !q.dropoff_date || !q.dropoff_time) {
+    if (!q.pickup_date || !pickupTime || !q.dropoff_date || !dropoffTime) {
       return alert("Missing pickup/dropoff dates or times.");
     }
     const { ok, cleanedPhone } = validate();
@@ -158,9 +165,9 @@ const VehicleCheckoutContent = () => {
         pickup_location: q.pickup_location || "",
         dropoff_location: q.dropoff_location || "",
         pickup_date: q.pickup_date,
-        pickup_time: q.pickup_time,
+  pickup_time: pickupTime,
         dropoff_date: q.dropoff_date,
-        dropoff_time: q.dropoff_time,
+  dropoff_time: dropoffTime,
         addons,
         first_name: firstName,
         last_name: lastName,
@@ -425,12 +432,48 @@ const VehicleCheckoutContent = () => {
                   <div>
                     <h1 className="text-[16px] font-[700] text-[#000000]">Pick up: {q.pickup_location || "—"}</h1>
                     <h1>Pick-up Date : {q.pickup_date || "—"}</h1>
-                    <h1>Pick-up Time : {q.pickup_time || "—"}</h1>
+                    <div className="flex items-center gap-2">
+                      <h1>Pick-up Time : {pickupTime || "—"}</h1>
+                      <button
+                        type="button"
+                        onClick={() => setShowPickupTimePicker((s) => !s)}
+                        className="p-1 rounded hover:bg-white/40"
+                        title="Select pick-up time"
+                      >
+                        <Clock size={16} />
+                      </button>
+                    </div>
+                    {showPickupTimePicker && (
+                      <input
+                        type="time"
+                        value={pickupTime}
+                        onChange={(e) => setPickupTime(e.target.value)}
+                        className="mt-2 px-2 py-1 text-[12px] rounded border border-[#00000026] bg-white"
+                      />
+                    )}
                   </div>
                   <div>
                     <h1 className="text-[16px] font-[700] text-[#000000]">Drop off: {q.dropoff_location || "—"}</h1>
                     <h1>Drop-off Date : {q.dropoff_date || "—"}</h1>
-                    <h1>Drop-off Time : {q.dropoff_time || "—"}</h1>
+                    <div className="flex items-center gap-2">
+                      <h1>Drop-off Time : {dropoffTime || "—"}</h1>
+                      <button
+                        type="button"
+                        onClick={() => setShowDropoffTimePicker((s) => !s)}
+                        className="p-1 rounded hover:bg-white/40"
+                        title="Select drop-off time"
+                      >
+                        <Clock size={16} />
+                      </button>
+                    </div>
+                    {showDropoffTimePicker && (
+                      <input
+                        type="time"
+                        value={dropoffTime}
+                        onChange={(e) => setDropoffTime(e.target.value)}
+                        className="mt-2 px-2 py-1 text-[12px] rounded border border-[#00000026] bg-white"
+                      />
+                    )}
                   </div>
                 </div>
               </div>

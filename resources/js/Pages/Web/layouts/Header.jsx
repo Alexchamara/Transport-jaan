@@ -282,13 +282,13 @@ const Header = () => {
                             ) : (
                                 <>
                                     <Link
-                                        href="/login"
+                                        href="/signin"
                                         className="h-[40px] border-2 border-[#0955AC] rounded px-3 py-2 text-[#0955AC] text-[12px] font-bold hover:bg-[#0955AC] hover:text-white flex justify-center items-center"
                                     >
                                         Login
                                     </Link>
                                     <Link
-                                        href="/register"
+                                        href="/signup"
                                         className="bg-[#0955AC] h-[40px] rounded border-2 border-[#0955AC] px-3 py-2 text-white font-bold text-[12px] flex justify-center items-center"
                                     >
                                         Register

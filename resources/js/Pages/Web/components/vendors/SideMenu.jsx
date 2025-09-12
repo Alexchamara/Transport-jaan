@@ -11,6 +11,7 @@ import messgLogo from "../../assets/vendors/dashboard/messgLogo.svg";
 import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg";
 
 import { Settings } from "lucide-react";
+import { Link } from "@inertiajs/react";
 
 const SideMenu = () => {
   const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
@@ -158,10 +159,15 @@ const SideMenu = () => {
           <h1>Message</h1>
         </div>
 
-        <div className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer">
-          <img src={logOutLogo} className="w/[25px]" />
+        <Link
+          href="/logout"
+          method="post"
+          as="button"
+          className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer"
+        >
+          <img src={logOutLogo} className="w-[25px]" />
           <h1>Logout</h1>
-        </div>
+        </Link>
       </div>
     </div>
   );

@@ -36,7 +36,7 @@ class AuthenticatedSessionController extends Controller
         $role = Auth::user()->role;
         
         $redirectTo = match($role) {
-            'client' => route('home'),
+            'client' => route('landingPage.home'),
             'vendor' => route('vendors.mainDashboard'),
             'admin' => route('landingPage.home'),
             default => route('landingPage.home'),

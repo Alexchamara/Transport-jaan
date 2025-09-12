@@ -34,6 +34,22 @@ const TravelExploreAnimation = ({ auth }) => {
     const [isPrevMorph, setIsPrevMorph] = useState(false);
     const [tempCardIndex, setTempCardIndex] = useState(null);
 
+    // Determine dashboard URL by user role
+    const getDashboardUrl = () => {
+        const role = auth && auth.user ? auth.user.role : null;
+        switch (role) {
+            case 'vendor':
+                return '/vendors/mainDashboard';
+            case 'client':
+                return '/clientDashboard';
+            case 'admin':
+                // No dedicated admin dashboard route yet; fallback to landing page
+                return '/';
+            default:
+                return '/';
+        }
+    };
+
     // Compute a rotating order of cards so the carousel behaves like a queue
     const queueOrder = useMemo(() => {
         const order = [];
@@ -176,26 +192,13 @@ const TravelExploreAnimation = ({ auth }) => {
                                         {/* Auth Section */}
                                         <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[700]">
                                             {auth && auth.user ? (
-                                                <>
-                                                    {auth.user.role ===
-                                                        "vendor" && (
-                                                        <Link
-                                                            href="/vendors/mainDashboard"
-                                                            className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[18px] font-medium"
-                                                        >
-                                                            Dashboard
-                                                        </Link>
-                                                    )}
-                                                    {auth.user.role ===
-                                                        "client" && (
-                                                        <Link
-                                                            href="/"
-                                                            className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[18px] font-medium"
-                                                        >
-                                                            Dashboard
-                                                        </Link>
-                                                    )}
-                                                </>
+                                                // Logged in: show single Dashboard button with Login styling
+                                                <Link
+                                                    href={getDashboardUrl()}
+                                                    className="lg:w-[137px] h-[38px] bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer text-[#FFFFFF]"
+                                                >
+                                                    Dashboard
+                                                </Link>
                                             ) : (
                                                 <>
                                                     <div
@@ -298,26 +301,13 @@ const TravelExploreAnimation = ({ auth }) => {
                                             </div>
                                             <div className="mt-6 flex flex-row gap-3">
                                                 {auth && auth.user ? (
-                                                    <>
-                                                        {auth.user.role ===
-                                                            "vendor" && (
-                                                            <Link
-                                                                href="/vendors/mainDashboard"
-                                                                className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
-                                                            >
-                                                                Dashboard
-                                                            </Link>
-                                                        )}
-                                                        {auth.user.role ===
-                                                            "client" && (
-                                                            <Link
-                                                                href="/"
-                                                                className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
-                                                            >
-                                                                Dashboard
-                                                            </Link>
-                                                        )}
-                                                    </>
+                                                    // Logged in (mobile): single Dashboard button with Login styling
+                                                    <Link
+                                                        href={getDashboardUrl()}
+                                                        className="bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer text-white"
+                                                    >
+                                                        Dashboard
+                                                    </Link>
                                                 ) : (
                                                     <>
                                                         <div
