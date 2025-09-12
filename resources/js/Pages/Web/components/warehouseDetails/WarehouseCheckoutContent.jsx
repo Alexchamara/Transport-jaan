@@ -473,11 +473,24 @@ const WarehouseCheckoutContent = () => {
                                     Storage Type :
                                 </label>
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <select 
-                                        disabled 
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080] bg-gray-100"
+                                    <select
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
+                                        value={bookingData?.storage_type ?? 'General Storage'}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({
+                                                ...(prev || {}),
+                                                storage_type: value,
+                                                // If selecting Climate Controlled, align the climate_controlled flag
+                                                climate_controlled: value.toLowerCase().includes('climate')
+                                            }));
+                                        }}
                                     >
-                                        <option>{bookingData?.storage_type || 'General Storage'}</option>
+                                        <option value="General Storage">General Storage</option>
+                                        <option value="Climate Controlled">Climate Controlled</option>
+                                        <option value="Cold Storage">Cold Storage</option>
+                                        <option value="Hazardous Materials">Hazardous Materials</option>
+                                        <option value="Document Storage">Document Storage</option>
                                     </select>
                                 </div>
                             </div>
@@ -489,9 +502,16 @@ const WarehouseCheckoutContent = () => {
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                                     <input
                                         type="number"
-                                        value={bookingData?.required_space || ''}
-                                        readOnly
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] bg-gray-100"
+                                        min={0}
+                                        value={bookingData?.required_space ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({
+                                                ...(prev || {}),
+                                                required_space: value === '' ? '' : Number(value)
+                                            }));
+                                        }}
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                                     />
                                 </div>
                             </div>
@@ -501,11 +521,21 @@ const WarehouseCheckoutContent = () => {
                                     Storage Duration :
                                 </label>
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <select 
-                                        disabled 
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080] bg-gray-100"
+                                    <select
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
+                                        value={bookingData?.storage_duration ?? '1 Month'}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({
+                                                ...(prev || {}),
+                                                storage_duration: value
+                                            }));
+                                        }}
                                     >
-                                        <option>{bookingData?.storage_duration || '1 Month'}</option>
+                                        <option value="1 Month">1 Month</option>
+                                        <option value="3 Months">3 Months</option>
+                                        <option value="6 Months">6 Months</option>
+                                        <option value="12 Months">12 Months</option>
                                     </select>
                                 </div>
                             </div>
@@ -515,11 +545,20 @@ const WarehouseCheckoutContent = () => {
                                     Access Frequency :
                                 </label>
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <select 
-                                        disabled 
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080] bg-gray-100"
+                                    <select
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
+                                        value={bookingData?.access_frequency ?? 'weekly'}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({
+                                                ...(prev || {}),
+                                                access_frequency: value
+                                            }));
+                                        }}
                                     >
-                                        <option>{bookingData?.access_frequency || 'Weekly'}</option>
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
                                     </select>
                                 </div>
                             </div>
@@ -530,11 +569,17 @@ const WarehouseCheckoutContent = () => {
                                 </label>
                                 <div className="w-full min-h-[98px] border-[1px] border-[#0000004D] rounded-[5px]">
                                     <textarea
-                                        className="w-full h-full px-3 py-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] resize-none bg-gray-100"
+                                        className="w-full h-full px-3 py-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] resize-none"
                                         placeholder="Describe the items you plan to store..."
                                         rows="4"
-                                        value={bookingData?.goods_description || ''}
-                                        readOnly
+                                        value={bookingData?.goods_description ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({
+                                                ...(prev || {}),
+                                                goods_description: value
+                                            }));
+                                        }}
                                     />
                                 </div>
                             </div>
