@@ -210,7 +210,7 @@ const FlightCard = () => {
 
                 {/* Action Button (unchanged behavior) */}
                 <Link
-                    href="/flightBooking"
+                    href={`/flightBooking?departure=${encodeURIComponent(formData.pickupLocation)}&arrival=${encodeURIComponent(formData.dropoffLocation)}&departureDate=${formData.pickupDate}&returnDate=${formData.dropoffDate}`}
                     type="submit"
                     // onClick={handleFindVehicleClick}
                     className="bg-[#0955AC] text-white font-bold h-[56px] w-full rounded-[10px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#07448a] transition-colors flex justify-center items-center"

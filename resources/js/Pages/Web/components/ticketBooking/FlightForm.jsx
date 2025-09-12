@@ -146,6 +146,30 @@ const FlightForm = () => {
         arriving_airport: '',
     });
 
+    // Get URL parameters and auto-populate fields
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const departure = urlParams.get('departure');
+        const arrival = urlParams.get('arrival');
+        const departureDate = urlParams.get('departureDate');
+        const returnDate = urlParams.get('returnDate');
+
+        if (departure) {
+            setData(prev => ({ ...prev, departure_airport: departure }));
+        }
+        if (arrival) {
+            setData(prev => ({ ...prev, arriving_airport: arrival }));
+        }
+        if (departureDate) {
+            setData(prev => ({ ...prev, departure_date: departureDate }));
+        }
+        if (returnDate && returnDate !== '') {
+            setData(prev => ({ ...prev, return_date: returnDate, trip_type: 'return' }));
+        } else if (departureDate) {
+            setData(prev => ({ ...prev, trip_type: 'oneway' }));
+        }
+    }, []);
+
     const handleSubmit = (e) => {
         e.preventDefault();
         post(route('flight-bookings.store'), {
@@ -298,42 +322,22 @@ const FlightForm = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-4">
-                    <div>
-                        <label className="block mb-1">
-                            Departure Airport *
-                        </label>
-                        <input
-                            type="text"
-                            name="departure_airport"
-                            value={data.departure_airport}
-                            onChange={handleInputChange}
-                            placeholder="Enter departure airport"
-                            className={`w-full border rounded-[8px] p-[16px] ${
-                                errors.departure_airport ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            required
-                        />
-                        {errors.departure_airport && (
-                            <p className="text-red-500 text-xs mt-1">{errors.departure_airport}</p>
-                        )}
-                    </div>
-                    <div>
-                        <label className="block mb-1">Arriving Airport *</label>
-                        <input
-                            type="text"
-                            name="arriving_airport"
-                            value={data.arriving_airport}
-                            onChange={handleInputChange}
-                            placeholder="Enter arriving airport"
-                            className={`w-full border rounded-[8px] p-[16px] ${
-                                errors.arriving_airport ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            required
-                        />
-                        {errors.arriving_airport && (
-                            <p className="text-red-500 text-xs mt-1">{errors.arriving_airport}</p>
-                        )}
-                    </div>
+                    <LocationDropdown
+                        label="Departure Airport *"
+                        name="departure_airport"
+                        value={data.departure_airport}
+                        onChange={handleInputChange}
+                        placeholder="Enter departure airport"
+                        errors={errors.departure_airport}
+                    />
+                    <LocationDropdown
+                        label="Arriving Airport *"
+                        name="arriving_airport"
+                        value={data.arriving_airport}
+                        onChange={handleInputChange}
+                        placeholder="Enter arriving airport"
+                        errors={errors.arriving_airport}
+                    />
                 </div>
 
                 <div className="w-full mb-6">
