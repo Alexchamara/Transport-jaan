@@ -86,6 +86,9 @@ Route::get('/busTicketBookingPreview', [WebController::class, 'busTicketBookingP
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
 Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store');
 
+
+
+
 // Warehouse (public landing)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
 Route::get('/warehouses/search', [WebController::class, 'warehouseList'])->name('warehouses.search');
