@@ -1,4 +1,5 @@
-import React from "react";
+
+ import React from "react";
 import Hero from "../../components/landingPages/Hero";
 import About from "../../components/landingPages/About";
 import Service from "../../components/landingPages/Service";
@@ -21,6 +22,7 @@ const LandingPage = () => {
                 <TravelExploreAnimation auth={auth} />
 
                 {/* <Hero auth={auth} /> */}
+                {/*                 <Hero auth={auth} /> */}
             </div>
             <div id="about">
                 <About />
