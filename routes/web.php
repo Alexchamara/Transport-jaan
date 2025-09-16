@@ -73,6 +73,11 @@ Route::get('/vehicle-payments', [WebController::class, 'vehiclePayments'])->name
 
 Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 
+Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
+
+// Client routes (reserved)
+Route::middleware(['auth', 'role:client'])->group(function () {});
+// ticket booking
 // Ticket booking (public screens)
 Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
 Route::get('/trainTicketBookingDetails', [TrainController::class, 'search'])->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
