@@ -21,9 +21,14 @@ return new class extends Migration {
             $table->enum('status', ['Active', 'Inactive'])->default('Active');
             $table->text('address')->nullable();
             $table->text('notes')->nullable();
+
+            // NEW image storage paths (public disk)
+            $table->string('license_photo_path', 191)->nullable();
+            $table->string('nic_photo_path', 191)->nullable();
+
             $table->timestamps();
 
-            // individual indexes (NO composite index)
+            // indexes
             $table->index('full_name');
             $table->index('phone');
             $table->index('email');
