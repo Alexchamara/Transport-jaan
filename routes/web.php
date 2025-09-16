@@ -1,5 +1,9 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\FlightBookingController;
@@ -8,8 +12,6 @@ use App\Http\Controllers\BusController;
 use App\Http\Controllers\WarehouseControllers\Client\WarehouseBookingController;
 use App\Http\Controllers\User\UserDashboardController;
 use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 use App\Http\Controllers\WarehouseControllers\Vendor\WarehouseUnitController;
 
 // Vendor controllers
@@ -395,7 +397,7 @@ Route::middleware(['auth']) // remove 'auth' here temporarily if testing unauthe
 
 /*
 |--------------------------------------------------------------------------
-| Client dashboard
+| Client dashboard (public shell)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:client'])
@@ -819,4 +821,86 @@ Route::get('/freightBookingDashboard', function () {
 //     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 // });
 
+/*
+|--------------------------------------------------------------------------
+| Extra vendor dashboards (warehouse / ticket / courier / freight / multimodal)
+|  — generated compactly (no routes removed)
+|--------------------------------------------------------------------------
+*/
+$sections = [
+    'warehouse'     => 'Web/home/vendors/warehouse',
+    'ticketBooking' => 'Web/home/vendors/ticketBooking',
+    'courierService'=> 'Web/home/vendors/courierService',
+    'freight'       => 'Web/home/vendors/freight',
+    'multimodal'    => 'Web/home/vendors/multimodal',
+];
+
+$pages = [
+    // view folder => route path/name
+    'Booking'      => 'bookings',
+    'Unit'         => 'units',
+    'Dashboard'    => 'dashboard',
+    'Client'       => 'clients',
+    'Expenses'     => 'expenses',
+    'Payment'      => 'payment',
+    'Tracking'     => 'tracking',
+    'Calendar'     => 'calendar',
+    'AddUnit'      => 'addUnit',
+    'UnitDetails'  => 'unitDetails',
+    'SettingsPage' => 'settingsPage',
+];
+
+foreach ($sections as $slug => $baseView) {
+    Route::prefix($slug)->group(function () use ($slug, $baseView, $pages, $render) {
+        foreach ($pages as $view => $route) {
+            Route::get("/{$route}", $render("{$baseView}/{$view}"))->name("{$slug}.{$route}");
+        }
+    });
+}
+
+/*
+|--------------------------------------------------------------------------
+| Client dashboards (public shells)
+|--------------------------------------------------------------------------
+*/
+Route::get('/clientDashboard',           $render('Web/home/client/ClientDashboard'))->name('clientDashboard');
+Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->name('clientDashboardSettings');
+Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->name('clientTicketBookingDashboard');
+Route::get('/courierBookingDashboard',   $render('Web/home/client/CourierBookingDashboard'))->name('courierBookingDashboard');
+Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
+Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');
+
+/*
+|--------------------------------------------------------------------------
+| Keep your global compat route (not removed)
+|--------------------------------------------------------------------------
+*/
+Route::post('/drivers/{driver}', [DriverController::class, 'update'])->name('drivers.update.compat');
+
+/*
+|--------------------------------------------------------------------------
+| Storage streaming/downloading helpers
+| (lets /storage/... work even without the public/storage symlink)
+|--------------------------------------------------------------------------
+*/
+Route::get('/storage/{path}', function ($path) {
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    return Storage::disk('public')->response($path);
+})->where('path', '.*');
+
+Route::get('/storage/download/{path}', function ($path) {
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    $name = request()->query('name');
+    return Storage::disk('public')->download($path, $name ?: basename($path));
+})->where('path', '.*');
+
+/*
+|--------------------------------------------------------------------------
+| Auth scaffolding
+|--------------------------------------------------------------------------
+*/
 require __DIR__ . '/auth.php';
