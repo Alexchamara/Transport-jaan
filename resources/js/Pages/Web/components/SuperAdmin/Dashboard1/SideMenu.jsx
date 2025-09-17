@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
-import homepng from "../../../assets/superAdmin/home.png";
+import homepng from "../../../assets/superAdmin/HomeB.svg";
+import homepngW from "../../../assets/superAdmin/HomeW.svg";
 import drop from "../../../assets/superAdmin/Chevron Down.png";
 import dropl from "../../../assets/superAdmin/Chevron Right.png";
 import features from "../../../assets/superAdmin/Features Icon.png";
+import featuresW from "../../../assets/superAdmin/Features IconW.svg";
 import users from "../../../assets/superAdmin/Users Icon.png";
+import usersW from "../../../assets/superAdmin/Users IconW.svg";
 import pricing from "../../../assets/superAdmin/Pricing Icon.png";
 import integrations from "../../../assets/superAdmin/Integrations Icon.png";
 import settings from "../../../assets/superAdmin/Settings Icon.png";
@@ -13,10 +16,12 @@ import person from "../../../assets/superAdmin/person.png";
 import LogoutB from '../../../assets/superAdmin/logoutB.png';
 import LogoutR from '../../../assets/superAdmin/logoutR.png';
 import arrow_r from "../../../assets/superAdmin/Arrow Right.png";
+import { Link } from "@inertiajs/react";
 
 import { Link, router } from "@inertiajs/react";
 
 const SideMenu = () => {
+    const [activeSubsection, setActiveSubsection] = useState("Reports"); // Default active
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [isModelsOpen, setIsModelsOpen] = useState(false);
     const [isAccountOpen, setIsAccountOpen] = useState(false);
@@ -98,68 +103,77 @@ const SideMenu = () => {
     };
 
     return (
-        <div className="w-[300px] h-[1200px] sm:w-[250px] md:w-[300px] lg:w-[300px]">
+        <div className="w-[300px] h-[1000px] sm:w-[250px] md:w-[300px] lg:w-[300px]">
             <div className="flex flex-col gap-5 px-[28px] py-[32px] shadow-lg shadow-[#0105114D] sm:px-4 md:px-[28px] lg:px-[28px]">
-                <h1 className="text-white text-[25px] font-bold poppins mb-8 sm:text-[20px] md:text-[25px] lg:text-[25px]">
+                <Link
+                    href="/SuperAdmin/Dashboard"
+                    className="text-white text-[25px] font-bold poppins mb-8 sm:text-[20px] md:text-[25px] lg:text-[25px] cursor-pointer"
+                    onClick={() => handleMenuClick("Dashboard")}
+                >
                     COMPANY LOGO
-                </h1>
-                <div className="py-[8px]">
-                    <div className="relative w-[244px] h-[42px] sm:w-[200px] md:w-[244px] lg:w-[244px]">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 sm:left-2 md:left-3 lg:left-3">
-                            <Search size={16} />
-                        </span>
-                        <input
-                            type="text"
-                            placeholder="Search for..."
-                            className="w-full h-full pl-10 pr-3 py-2 rounded-md border-2 border-[#343B4F] focus:outline-none bg-[#181A2A] text-white placeholder-[#AEB9E1]/400 sm:pl-8 md:pl-10 lg:pl-10"
-                        />
-                    </div>
-                </div>
-                <div className="w-[244px] flex flex-col py-[10px] sm:w-[200px] md:w-[244px] lg:w-[244px]">
+                </Link>
+
+                {/* Main Menu */}
+                <div className="w-[244px] flex flex-col gap-2 py-[10px] sm:w-[200px] md:w-[244px] lg:w-[244px]">
+                    {/* Dashboard */}
                     <div
-                        className="w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer hover:bg-[#181A2A] rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] sm:gap-3 md:gap-5 lg:gap-5"
-                        onClick={toggleDashboard}
-                        role="button"
-                        aria-expanded={isDashboardOpen}
-                        aria-controls="dashboard-dropdown"
+                        className={`w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] ${
+                            activeSubsection === "Dashboard"
+                                ? "bg-[#181A2A]"
+                                : "hover:bg-[#181A2A]"
+                        }`}
+                        onClick={() => handleMenuClick("Dashboard")}
+                        onMouseEnter={() => setHoveredSection("Dashboard")}
+                        onMouseLeave={() => setHoveredSection(null)}
                     >
-                        <div className="flex flex-row justify-center items-center gap-2 sm:gap-1 md:gap-2 lg:gap-2">
-                            <img src={homepng} className="size-[14px] sm:size-[12px] md:size-[14px] lg:size-[14px]" />
-                            <h1 className="text-[#0955AC] font-[500] text-[18px] sm:text-[16px] md:text-[18px] lg:text-[18px]">
+                        <div className="flex flex-row items-center gap-2">
+                            <img
+                                src={
+                                    hoveredSection === "Dashboard" ||
+                                    activeSubsection === "Dashboard"
+                                        ? homepngW
+                                        : homepng
+                                }
+                                className="size-[14px]"
+                            />
+                            <h1
+                                className={`font-[500] text-[18px] ${
+                                    activeSubsection === "Dashboard" ||
+                                    hoveredSection === "Dashboard"
+                                        ? "text-white"
+                                        : "text-[#AEB9E1]"
+                                }`}
+                            >
                                 Dashboard
                             </h1>
                         </div>
                         <img
                             src={isDashboardOpen ? drop : dropl}
-                            className="size-[12px] transition-transform duration-300 sm:size-[10px] md:size-[12px] lg:size-[12px]"
+                            className="size-[12px] transition-transform duration-300"
                             alt={isDashboardOpen ? "Collapse" : "Expand"}
                         />
                     </div>
+
+                    {/* Dashboard Dropdown */}
                     <div
-                        id="dashboard-dropdown"
                         className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
                             isDashboardOpen
-                                ? "max-h-[300px] opacity-100 py-4 translate-y-0"
-                                : "max-h-0 opacity-0 py-0 translate-y-[-10px]"
-                        } sm:px-2 md:px-[8px] lg:px-[8px]`}
+                                ? "max-h-[300px] opacity-100 py-4"
+                                : "max-h-0 opacity-0 py-0"
+                        }`}
                     >
-                        <h1
-                            className={`text-[14px] font-[500] px-4 py-2 ${
-                                activeSubsection === "All pages"
-                                    ? "text-white border border-[#0A1330] bg-[#181A2A] border-l-[3px] border-l-[#0955AC]"
-                                    : "text-[#AEB9E1]"
-                            } cursor-pointer hover:bg-[#181A2A] sm:text-[12px] md:text-[14px] lg:text-[14px]`}
-                            onClick={() => handleSubsectionClick("All pages")}
-                        >
-                            All pages
-                        </h1>
-                        <h1
-                            className={`text-[14px] font-[500] px-4 py-2 ${
+                        <Link
+                            href="/SuperAdmin/Dashboard"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "Reports"
-                                    ? "text-white border border-[#0A1330] bg-[#181A2A] border-l-[3px] border-l-[#0955AC]"
-                                    : "text-[#AEB9E1]"
-                            } cursor-pointer hover:bg-[#181A2A] sm:text-[12px] md:text-[14px] lg:text-[14px]`}
-                            onClick={() => handleSubsectionClick("Reports")}
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "Reports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("Reports")}
+                            onMouseEnter={() => setHoveredSection("Reports")}
+                            onMouseLeave={() => setHoveredSection(null)}
                         >
                             Reports
                         </Link>
@@ -528,4 +542,4 @@ const SideMenu = () => {
     );
 };
 
-export default SideMenu;
+    export default SideMenu;

@@ -11,7 +11,7 @@ const RightSide = () => {
     const [activeSection, setActiveSection] = useState("personal"); // Default to personal
 
     return (
-        <div className="poppins flex flex-col gap-5">
+        <div className="poppins flex flex-col gap-5 ">
             <div className="poppins flex flex-row gap-5">
                 <div className="flex flex-col gap-5">
                     <div className="w-[1125px] h-[42px] flex flex-row justify-between items-center px-4 md:px-12 lg:px-47 my-6 md:my-10 lg:my-[25px]">
@@ -41,7 +41,7 @@ const RightSide = () => {
                 <div>
                     <div className="w-[1px] h-full bg-[#343B4F]"></div>
                 </div>
-                <div className="px-12">
+                <div className="px-12 ">
                     {activeSection === "personal" && (
                         <div className="flex flex-col gap-20">
                             <PersonalInformation />

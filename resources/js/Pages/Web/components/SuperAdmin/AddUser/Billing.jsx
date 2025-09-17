@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Phone from "../../../assets/superAdmin/Phone IconW.svg";
 import Bag from "../../../assets/superAdmin/Bag Simple IconW.svg";
 import Location from "../../../assets/superAdmin/Map Pin IconW.svg";
@@ -6,10 +6,33 @@ import Website from "../../../assets/superAdmin/Web IconW.svg";
 import Visa from "../../../assets/superAdmin/Visa.svg";
 import MasterCard from "../../../assets/superAdmin/Mastercard.svg";
 import AmericanExpress from "../../../assets/superAdmin/AmericanExpress.svg";
-import Close from "../../../assets//superAdmin/Close.svg";
+import Close from "../../../assets/superAdmin/Close.svg";
 import Addition from "../../../assets/superAdmin/Signups Icon.png";
 
-const BasicInformation = () => {
+const Billing = () => {
+    const [selectedMethod, setSelectedMethod] = useState("visa");
+
+    const paymentMethods = [
+        {
+            id: "visa",
+            img: Visa,
+            title: "VISA **** 8092",
+            subtitle: "Expires on 12/26",
+        },
+        {
+            id: "mastercard",
+            img: MasterCard,
+            title: "Mastercard **** 8092",
+            subtitle: "Expires on 12/26",
+        },
+        {
+            id: "amex",
+            img: AmericanExpress,
+            title: "American Express **** 8092",
+            subtitle: "Expires on 12/26",
+        },
+    ];
+
     return (
         <div className="poppins flex flex-col gap-6">
             <div className="flex flex-col">
@@ -49,10 +72,12 @@ const BasicInformation = () => {
                                             </h2>
                                         </div>
                                     </div>
-                                    <img
-                                        src={Close}
-                                        className="absolute top-[12.8px] left-[523.95px]"
-                                    />
+                                    <button>
+                                        <img
+                                            src={Close}
+                                            className="absolute top-[12.8px] left-[523.95px]"
+                                        />
+                                    </button>
                                 </div>
 
                                 {/* Mastercard */}
@@ -77,10 +102,12 @@ const BasicInformation = () => {
                                             </h2>
                                         </div>
                                     </div>
-                                    <img
-                                        src={Close}
-                                        className="absolute top-[12.8px] left-[523.95px]"
-                                    />
+                                    <button>
+                                        <img
+                                            src={Close}
+                                            className="absolute top-[12.8px] left-[523.95px]"
+                                        />
+                                    </button>
                                 </div>
 
                                 {/* American Express */}
@@ -105,15 +132,18 @@ const BasicInformation = () => {
                                             </h2>
                                         </div>
                                     </div>
-                                    <img
-                                        src={Close}
-                                        className="absolute top-[12.8px] left-[523.95px]"
-                                    />
+                                    <button>
+                                        <img
+                                            src={Close}
+                                            className="absolute top-[12.8px] left-[523.95px]"
+                                        />
+                                    </button>
                                 </div>
                                 <button className="flex flex-row gap-2 items-center">
                                     <img
                                         src={Addition}
                                         className="size-[12px]"
+                                        alt="add"
                                     />
                                     <h1 className="text-[#AEB9E1] text-[12px] font-500">
                                         Add a new payment method
@@ -122,6 +152,7 @@ const BasicInformation = () => {
                             </div>
                         </div>
 
+                        {/* Billing Address */}
                         <div className="flex flex-col">
                             <h1 className="text-white text-[16px] font-500">
                                 Billing address
@@ -137,11 +168,7 @@ const BasicInformation = () => {
                     <div className="flex flex-col gap-8">
                         <div className="flex flex-row justify-between items-center">
                             <div className="flex flex-row gap-1 items-center">
-                                <img
-                                    src={Phone}
-                                    className="size-[12px]"
-                                    alt=""
-                                />
+                                <img src={Phone} className="size-[12px]" alt="" />
                                 <h1 className="text-white text-[12px] font-500">
                                     Phone
                                 </h1>
@@ -175,11 +202,7 @@ const BasicInformation = () => {
                     <div className="flex flex-col gap-8">
                         <div className="flex flex-row justify-between items-center">
                             <div className="flex flex-row gap-1 items-center">
-                                <img
-                                    src={Location}
-                                    className="size-[12px]"
-                                    alt=""
-                                />
+                                <img src={Location} className="size-[12px]" alt="" />
                                 <h1 className="text-white text-[12px] font-500">
                                     Location
                                 </h1>
@@ -196,11 +219,7 @@ const BasicInformation = () => {
                     <div className="flex flex-col gap-8">
                         <div className="flex flex-row justify-between items-center">
                             <div className="flex flex-row gap-1 items-center">
-                                <img
-                                    src={Website}
-                                    className="size-[12px]"
-                                    alt=""
-                                />
+                                <img src={Website} className="size-[12px]" alt="" />
                                 <h1 className="text-white text-[12px] font-500">
                                     Website
                                 </h1>
@@ -217,4 +236,4 @@ const BasicInformation = () => {
     );
 };
 
-export default BasicInformation;
+export default Billing;
