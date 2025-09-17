@@ -151,6 +151,16 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/vehicles/{vehicle}/policy/preview', [ClientVehicleController::class, 'policyPreview'])->name('vehicles.policy.preview');
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Super Admin Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\SuperAdminDashboardController::class, 'index'])->name('dashboard');
+});
+
 // vendor routes
 Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
     Route::get('/mainDashboard', function () {
@@ -361,25 +371,25 @@ Route::get('/settingsPage', function () {
 
 //SuperAdmin
 
-Route::get('/SuperAdmin/Dashboard', function () {
-    return Inertia::render('Web/home/SuperAdmin/Dashboard');
-})->name('SuperAdmin.Dashboard');
+// Route::get('/SuperAdmin/Dashboard', function () {
+//     return Inertia::render('Web/home/SuperAdmin/Dashboard');
+// })->name('SuperAdmin.Dashboard');
 
-Route::get('/SuperAdmin/Analytics', function () {
-    return Inertia::render('Web/home/SuperAdmin/Analytics');
-})->name('SuperAdmin.Analytics');
+// Route::get('/SuperAdmin/Analytics', function () {
+//     return Inertia::render('Web/home/SuperAdmin/Analytics');
+// })->name('SuperAdmin.Analytics');
 
-Route::get('/SuperAdmin/Users', function () {
-    return Inertia::render('Web/home/SuperAdmin/Users');
-})->name('SuperAdmin.Users');
+// Route::get('/SuperAdmin/Users', function () {
+//     return Inertia::render('Web/home/SuperAdmin/Users');
+// })->name('SuperAdmin.Users');
 
-Route::get('/SuperAdmin/AddUser', function () {
-    return Inertia::render('Web/home/SuperAdmin/AddUser');
-})->name('SuperAdmin.AddUser');
+// Route::get('/SuperAdmin/AddUser', function () {
+//     return Inertia::render('Web/home/SuperAdmin/AddUser');
+// })->name('SuperAdmin.AddUser');
 
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
+// Route::get('/SuperAdmin/Vehicles', function () {
+//     return Inertia::render('Web/home/SuperAdmin/Vehicles');
+// })->name('SuperAdmin.Vehicles');
 
 // Route::get('/SuperAdmin/LandVehicleDetails', function () {
 //     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
