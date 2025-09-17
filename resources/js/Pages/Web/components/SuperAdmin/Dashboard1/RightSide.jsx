@@ -14,7 +14,7 @@ const RightSide = ({ userStats }) => {
     return (
         <div>
             {/* Header */}
-            <div className="w-[1125px] h-[42px] flex flex-row justify-between items-center px-4 md:px-12 lg:px-47 my-6 md:my-10 lg:my-[25px]">
+            <div className="xl:w-[1125px] xl:h-[42px] flex flex-row justify-between items-center px-4 md:px-12 lg:px-47 my-6 md:my-10 lg:my-[25px]">
                 <h1 className="text-white text-base md:text-lg lg:text-[24px] font-poppins">
                     Welcome back, Jhon
                 </h1>
@@ -35,7 +35,7 @@ const RightSide = ({ userStats }) => {
                 <Cards />
             </div>
 
-            <div className=" w-[1125px] h-[556.984375px] px-12 mt-[70px]">
+            <div className=" xl:w-[1125px] xl:h-[556.984375px] px-12 mt-[70px]">
                 <div className=" h-full bg-[#0B1739] flex flex-row justify-between">
                     <div className=" border-[#ffffff] border-r-[1px]">
                         <TotalRevenueChart />
@@ -50,8 +50,8 @@ const RightSide = ({ userStats }) => {
                 </div>
             </div>
 
-            <div className="w-[1125px] h-full flex flex-col gap-2 px-4 md:px-12 lg:px-47 mt-[50px]">
-                <h1 className="w-[1125px] h-[42px] text-white text-[24px] font-[600] ">
+            <div className="xl:w-[1125px] h-full flex flex-col gap-2 px-4 md:px-12 lg:px-47 mt-[50px]">
+                <h1 className="xl:w-[1125px] xl:h-[42px] text-white text-[24px] font-[600] ">
                     Reports overview
                 </h1>
                 <div className="flex flex-row justify-between items-center">
@@ -72,11 +72,11 @@ const RightSide = ({ userStats }) => {
                     </div>
                 </div>
             </div>
-            <div className="w-[1125px] h-[392.470703125px] px-12 my-[20px] flex flex-row gap-4 ">
+            <div className="xl:w-[1125px] xl:h-[392.470703125px] px-12 my-[20px] flex flex-row gap-4 ">
                 <UsersByDevices />
                 <RecentOrders />
             </div>
-            <div className="w-[1125px] h-[500px] px-4 md:px-12 lg:px-47 mt-[50px]">
+            <div className="xl:w-[1125px] xl:h-[500px] px-4 md:px-12 lg:px-47 mt-[50px]">
                 <div className="w-[1030px] h-[400px] bg-[#0B1739] px-5 py-10">
                     <Map />
                 </div>
