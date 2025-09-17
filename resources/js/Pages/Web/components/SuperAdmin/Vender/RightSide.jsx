@@ -26,7 +26,7 @@ class ErrorBoundary extends React.Component {
     }
 }
 
-const RightSide = ({ newVendors = [], verifiedVendors = [], blockedVendors = [], totalVendors = 0 }) => {
+const RightSide = () => {
     const [active, setActive] = useState("new"); // Default active tab
 
     const buttons = ["new", "verified", "blocked"];
@@ -37,34 +37,18 @@ const RightSide = ({ newVendors = [], verifiedVendors = [], blockedVendors = [],
         console.log("Active tab:", tab);
     };
 
-    // Get current data based on active tab
-    const getCurrentData = () => {
-        switch (active) {
-            case "new":
-                return newVendors;
-            case "verified":
-                return verifiedVendors;
-            case "blocked":
-                return blockedVendors;
-            default:
-                return [];
-        }
-    };
-
     // Function to render the correct component
     const renderComponent = () => {
         console.log("Rendering component for tab:", active);
-        const currentData = getCurrentData();
-
         switch (active) {
             case "new":
-                return <NewUser vendors={currentData} />;
+                return <NewUser />;
             case "verified":
-                return <VerifiedUser vendors={currentData} />;
+                return <VerifiedUser />;
             case "blocked":
-                return <BlockedUser vendors={currentData} />;
+                return <BlockedUser />; // Placeholder, replace with BlockedUser component when available
             default:
-                return <NewUser vendors={currentData} />;
+                return <NewUser />;
         }
     };
 
@@ -120,7 +104,7 @@ const RightSide = ({ newVendors = [], verifiedVendors = [], blockedVendors = [],
             <div>
                 <div className="flex flex-row justify-between items-center mt-5 mx-[48px] w-[1032px]">
                     <h1 className="text-white text-[12px] font-500">
-                        {getCurrentData().length > 0 ? `1 - ${getCurrentData().length}` : '0'} of {getCurrentData().length}
+                        1 - 10 of 460
                     </h1>
                     <h1 className="text-[#AEB9E1] text-[12px] font-500 flex flex-row justify-center items-center gap-6">
                         Rows per page:
