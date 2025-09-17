@@ -1,29 +1,167 @@
 import React, { useState } from "react";
 import { Link } from "@inertiajs/react";
 
+// Train stations data for Sri Lanka
+const trainStations = [
+    // Major railway stations in Sri Lanka
+    { code: "CMB", name: "Colombo Fort Railway Station", city: "Colombo", province: "Western Province" },
+    { code: "MDA", name: "Maradana Railway Station", city: "Colombo", province: "Western Province" },
+    { code: "KDT", name: "Kandy Railway Station", city: "Kandy", province: "Central Province" },
+    { code: "GAL", name: "Galle Railway Station", city: "Galle", province: "Southern Province" },
+    { code: "MTR", name: "Matara Railway Station", city: "Matara", province: "Southern Province" },
+    { code: "ANP", name: "Anuradhapura Railway Station", city: "Anuradhapura", province: "North Central Province" },
+    { code: "POL", name: "Polonnaruwa Railway Station", city: "Polonnaruwa", province: "North Central Province" },
+    { code: "BTL", name: "Batticaloa Railway Station", city: "Batticaloa", province: "Eastern Province" },
+    { code: "TNK", name: "Trincomalee Railway Station", city: "Trincomalee", province: "Eastern Province" },
+    { code: "KUR", name: "Kurunegala Railway Station", city: "Kurunegala", province: "North Western Province" },
+    { code: "PND", name: "Puttalam Railway Station", city: "Puttalam", province: "North Western Province" },
+    { code: "RTP", name: "Ratnapura Railway Station", city: "Ratnapura", province: "Sabaragamuwa Province" },
+    { code: "BDL", name: "Badulla Railway Station", city: "Badulla", province: "Uva Province" },
+    { code: "BAN", name: "Bandarawela Railway Station", city: "Bandarawela", province: "Uva Province" },
+    { code: "ELA", name: "Ella Railway Station", city: "Ella", province: "Uva Province" },
+    { code: "NWE", name: "Nanu Oya Railway Station", city: "Nuwara Eliya", province: "Central Province" },
+    { code: "HTN", name: "Hatton Railway Station", city: "Hatton", province: "Central Province" },
+    { code: "NRL", name: "Nawalapitiya Railway Station", city: "Nawalapitiya", province: "Central Province" },
+    { code: "PER", name: "Peradeniya Railway Station", city: "Peradeniya", province: "Central Province" },
+    { code: "GMP", name: "Gampaha Railway Station", city: "Gampaha", province: "Western Province" },
+    { code: "RGM", name: "Ragama Railway Station", city: "Ragama", province: "Western Province" },
+    { code: "VYA", name: "Veyangoda Railway Station", city: "Veyangoda", province: "Western Province" },
+    { code: "MHO", name: "Mirigama Railway Station", city: "Mirigama", province: "Western Province" },
+    { code: "PLM", name: "Pallewela Railway Station", city: "Pallewela", province: "Central Province" },
+    { code: "AMB", name: "Ambalangoda Railway Station", city: "Ambalangoda", province: "Southern Province" },
+    { code: "HIK", name: "Hikkaduwa Railway Station", city: "Hikkaduwa", province: "Southern Province" },
+    { code: "UNW", name: "Unawatuna Railway Station", city: "Unawatuna", province: "Southern Province" },
+    { code: "KLT", name: "Kalutara South Railway Station", city: "Kalutara", province: "Western Province" },
+    { code: "ALT", name: "Aluthgama Railway Station", city: "Aluthgama", province: "Western Province" },
+    { code: "BEN", name: "Bentota Railway Station", city: "Bentota", province: "Southern Province" },
+];
+
+// LocationDropdown component for train stations
+const StationDropdown = ({ label, id, value, onChange, placeholder }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState(value);
+    const [filteredStations, setFilteredStations] = useState([]);
+
+    const handleInputChange = (e) => {
+        const term = e.target.value;
+        setSearchTerm(term);
+        onChange(term);
+
+        if (term.length > 0) {
+            const filtered = trainStations.filter(station =>
+                station.name.toLowerCase().includes(term.toLowerCase()) ||
+                station.city.toLowerCase().includes(term.toLowerCase()) ||
+                station.code.toLowerCase().includes(term.toLowerCase()) ||
+                station.province.toLowerCase().includes(term.toLowerCase())
+            );
+            setFilteredStations(filtered);
+            setIsOpen(true);
+        } else {
+            setIsOpen(false);
+        }
+    };
+
+    const handleStationSelect = (station) => {
+        const selectedValue = `${station.name} (${station.code})`;
+        setSearchTerm(selectedValue);
+        onChange(selectedValue);
+        setIsOpen(false);
+    };
+
+    const handleInputFocus = () => {
+        if (searchTerm.length > 0) {
+            const filtered = trainStations.filter(station =>
+                station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                station.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                station.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                station.province.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            setFilteredStations(filtered);
+            setIsOpen(true);
+        }
+    };
+
+    const handleInputBlur = () => {
+        // Delay hiding dropdown to allow for click events
+        setTimeout(() => setIsOpen(false), 150);
+    };
+
+    return (
+        <div className="relative">
+            <label htmlFor={id} className="block mb-1 text-[#286BB6] text-[13px] font-[400]">
+                {label}
+            </label>
+            <input
+                type="text"
+                id={id}
+                value={searchTerm}
+                onChange={handleInputChange}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
+                placeholder={placeholder}
+                className="appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                autoComplete="off"
+            />
+
+            {/* Dropdown List */}
+            {isOpen && filteredStations.length > 0 && (
+                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-60 overflow-y-auto mt-1">
+                    {filteredStations.slice(0, 10).map((station, index) => (
+                        <div
+                            key={`${station.code}-${index}`}
+                            onClick={() => handleStationSelect(station)}
+                            className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="font-medium text-[#286BB6] text-sm">
+                                        {station.name}
+                                    </div>
+                                    <div className="text-gray-500 text-xs">
+                                        {station.city}, {station.province}
+                                    </div>
+                                </div>
+                                <div className="text-[#0955AC] font-bold text-xs bg-blue-100 px-2 py-1 rounded">
+                                    {station.code}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const TrainCard = () => {
     const [tripType, setTripType] = useState("oneway");
+    const [formData, setFormData] = useState({
+        fromStation: '',
+        toStation: '',
+        departureDate: '',
+        returnDate: ''
+    });
 
     const [adults, setAdults] = useState(1);
     const [children, setChildren] = useState(0);
     const [infants, setInfants] = useState(0);
 
-    const stationOptions = [
-        "Colombo Fort",
-        "Kandy",
-        "Galle",
-        "Matara",
-        "Anuradhapura",
-    ];
-
     const handleCount = (setter, delta) => {
         setter((prev) => Math.max(0, prev + delta));
+    };
+
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
     };
 
     const onSubmitTrain = (e) => {
         e.preventDefault();
         console.log("Train search", {
             tripType,
+            formData,
             adults,
             children,
             infants,
@@ -36,9 +174,9 @@ const TrainCard = () => {
                 Find Your Trains
             </div>
 
-            <form onSubmit={onSubmitTrain} className="p-10">
+            <form onSubmit={onSubmitTrain} className="figtree flex flex-col justify-center items-center bg-white p-10 w-full h-auto text-[#286BB6] text-[13px] font-[400] space-y-6">
                 {/* Trip Type buttons */}
-                <div className="grid grid-cols-2 rounded-[12px] overflow-hidden border border-[#0955AC]/20">
+                <div className="grid grid-cols-2 rounded-[12px] overflow-hidden border border-[#0955AC]/20 w-full">
                     {["One way", "Round Trip"].map(
                         (type, index) => {
                             const value = type.toLowerCase().replace(" ", "");
@@ -61,115 +199,141 @@ const TrainCard = () => {
                 </div>
 
                 {/* From & Date */}
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                    <select className="w-full border rounded-[10px] p-5">
-                        {stationOptions.map((s) => (
-                            <option key={s}>{s}</option>
-                        ))}
-                    </select>
-                    <input
-                        type="date"
-                        className="w-full border rounded-[10px] p-5"
+                <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
+                    <StationDropdown
+                        label="From Station"
+                        id="fromStation"
+                        value={formData.fromStation}
+                        onChange={(value) => handleInputChange('fromStation', value)}
+                        placeholder="Search departure station"
                     />
+                    <div>
+                        <label htmlFor="departureDate" className="block mb-1 text-[#286BB6] text-[13px] font-[400]">
+                            Departure Date
+                        </label>
+                        <input
+                            type="text"
+                            id="departureDate"
+                            value={formData.departureDate}
+                            onChange={(e) => handleInputChange('departureDate', e.target.value)}
+                            placeholder="DD/MM/YYYY"
+                            className="w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                            onFocus={(e) => (e.target.type = "date")}
+                            onBlur={(e) => (e.target.type = "text")}
+                        />
+                    </div>
                 </div>
 
                 {/* To (+ Return Date when Round Trip) */}
                 {tripType === "roundtrip" ? (
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                        <select className="w-full border rounded-[10px] p-5">
-                            {stationOptions.map((s) => (
-                                <option key={s}>{s}</option>
-                            ))}
-                        </select>
-                        <input
-                            type="date"
-                            className="w-full border rounded-[10px] p-5"
+                    <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
+                        <StationDropdown
+                            label="To Station"
+                            id="toStation"
+                            value={formData.toStation}
+                            onChange={(value) => handleInputChange('toStation', value)}
+                            placeholder="Search destination station"
                         />
+                        <div>
+                            <label htmlFor="returnDate" className="block mb-1 text-[#286BB6] text-[13px] font-[400]">
+                                Return Date
+                            </label>
+                            <input
+                                type="text"
+                                id="returnDate"
+                                value={formData.returnDate}
+                                onChange={(e) => handleInputChange('returnDate', e.target.value)}
+                                placeholder="DD/MM/YYYY"
+                                className="w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                                onFocus={(e) => (e.target.type = "date")}
+                                onBlur={(e) => (e.target.type = "text")}
+                            />
+                        </div>
                     </div>
                 ) : (
-                    <div className="mt-4">
-                        <select className="w-full border rounded-[10px] p-5">
-                            {stationOptions.map((s) => (
-                                <option key={s}>{s}</option>
-                            ))}
-                        </select>
+                    <div className="w-full">
+                        <StationDropdown
+                            label="To Station"
+                            id="toStation"
+                            value={formData.toStation}
+                            onChange={(value) => handleInputChange('toStation', value)}
+                            placeholder="Search destination station"
+                        />
                     </div>
                 )}
 
                 {/* Counters */}
-                <div className="grid grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-3 gap-4 w-full">
                     <div className="flex flex-col items-center">
-                        <div className="flex items-center border rounded-[10px]">
+                        <div className="flex items-center border-[1px] border-[#0000001A] rounded-[8px]">
                             <button
                                 type="button"
-                                className="px-3 py-1"
+                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-l-[8px]"
                                 onClick={() => handleCount(setAdults, -1)}
                             >
                                 -
                             </button>
-                            <span className="px-4">{adults}</span>
+                            <span className="px-4 py-2 text-[#286BB6] font-medium">{adults}</span>
                             <button
                                 type="button"
-                                className="px-3 py-1"
+                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-r-[8px]"
                                 onClick={() => handleCount(setAdults, 1)}
                             >
                                 +
                             </button>
                         </div>
-                        <p className="text-sm mt-1">Adults (≥10 years)</p>
+                        <p className="text-[11px] mt-1 text-[#286BB6]">Adults (≥10 years)</p>
                     </div>
 
                     <div className="flex flex-col items-center">
-                        <div className="flex items-center border rounded-[10px]">
+                        <div className="flex items-center border-[1px] border-[#0000001A] rounded-[8px]">
                             <button
                                 type="button"
-                                className="px-3 py-1"
+                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-l-[8px]"
                                 onClick={() => handleCount(setChildren, -1)}
                             >
                                 -
                             </button>
-                            <span className="px-4">{children}</span>
+                            <span className="px-4 py-2 text-[#286BB6] font-medium">{children}</span>
                             <button
                                 type="button"
-                                className="px-3 py-1"
+                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-r-[8px]"
                                 onClick={() => handleCount(setChildren, 1)}
                             >
                                 +
                             </button>
                         </div>
-                        <p className="text-sm mt-1">Children (6-10 years)</p>
+                        <p className="text-[11px] mt-1 text-[#286BB6]">Children (6-10 years)</p>
                     </div>
 
                     <div className="flex flex-col items-center">
-                        <div className="flex items-center border rounded-[10px]">
+                        <div className="flex items-center border-[1px] border-[#0000001A] rounded-[8px]">
                             <button
                                 type="button"
-                                className="px-3 py-1"
+                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-l-[8px]"
                                 onClick={() => handleCount(setInfants, -1)}
                             >
                                 -
                             </button>
-                            <span className="px-4">{infants}</span>
+                            <span className="px-4 py-2 text-[#286BB6] font-medium">{infants}</span>
                             <button
                                 type="button"
-                                className="px-3 py-1"
+                                className="px-3 py-2 text-[#286BB6] hover:bg-blue-50 rounded-r-[8px]"
                                 onClick={() => handleCount(setInfants, 1)}
                             >
                                 +
                             </button>
                         </div>
-                        <p className="text-sm mt-1">Infant (&lt;6 years)</p>
+                        <p className="text-[11px] mt-1 text-[#286BB6]">Infant (&lt;6 years)</p>
                     </div>
                 </div>
 
                 {/* Search Button */}
-                <Link href="/trainTicketBookingDetails">
-                    <button
-                        type="submit"
-                        className="w-full bg-[#0955AC] text-white font-semibold py-5 rounded-[10px] hover:bg-[#074489] mt-6"
-                    >
-                        Search
-                    </button>
+                <Link
+                    href={`/trainTicketBookingDetails?from=${encodeURIComponent(formData.fromStation)}&to=${encodeURIComponent(formData.toStation)}&departureDate=${formData.departureDate}&returnDate=${formData.returnDate}&tripType=${tripType}&adults=${adults}&children=${children}&infants=${infants}`}
+                    className="bg-[#0955AC] text-white font-bold h-[56px] w-full rounded-[10px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#07448a] transition-colors flex justify-center items-center"
+                >
+                    Search
                 </Link>
             </form>
         </div>
