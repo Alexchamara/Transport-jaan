@@ -87,7 +87,7 @@ const TotalRevenueChart = () => {
   };
 
   return (
-    <div className=" bg-[#0B1739] p-5 shadow-lg h-[557px] min-w-[675px] pb-[120px]">
+    <div className=" bg-[#0B1739] p-5 shadow-lg h-[557px] xl:min-w-[675px] pb-[120px]">
       {/* Header */}
       <div className="flex flex-row justify-center items-center w-full mb-7">
         <div className="flex flex-col w-full">
