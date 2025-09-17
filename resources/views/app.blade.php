@@ -3,7 +3,7 @@
   <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <meta name="csrf-token" content="{{ csrf_token() }}"> {{-- ✅ REQUIRED for POST via fetch --}}
+      <meta name="csrf-token" content="{{ csrf_token() }}"> {{-- REQUIRED for POST via fetch --}}
 
       <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
