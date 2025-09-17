@@ -53,10 +53,10 @@ const CenterModal = ({ open, title, message, onClose, onPrimary }) =>
     </div>
   );
 
-/* modal shell with blurred backdrop */
-const EditModalShell = ({ open, title, onClose, children }) =>
+/* modal shell with blurred backdrop — now accepts zIndexClass */
+const EditModalShell = ({ open, title, onClose, children, zIndexClass = "z-[10000]" }) =>
   !open ? null : (
-    <div className="fixed inset-0 z-[10000]">
+    <div className={`fixed inset-0 ${zIndexClass}`}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={onClose} />
       <div className="relative h-full w-full flex items-start justify-center p-4 sm:p-6">
         <div className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl border border-gray-200">
@@ -97,6 +97,19 @@ const vesselTypeOptions = ["boat","yacht","catamaran","ferry","other"];
 const hullMaterialOptions = ["Fiberglass","Aluminum","Steel","Wood","Composite","Other"];
 const engineTypeOptions = ["inboard","outboard","sail","hybrid","electric","other"];
 const seaFuelTypeOptions = ["diesel","petrol","electric","other"];
+
+/* — NEW: category-specific examples for Vehicle Type — */
+const VEHICLE_TYPE_EXAMPLES = {
+  Land: ["SUV", "Sedan", "Truck", "Van"],
+  Air: ["Helicopter", "Fixed-wing", "Glider"],
+  Sea: ["Yacht", "Boat", "Catamaran", "Ferry"],
+};
+const getVehicleTypePlaceholder = (cat) => {
+  const arr = VEHICLE_TYPE_EXAMPLES[cat];
+  if (!arr) return "e.g., SUV (select a category)";
+  return `e.g., ${arr.slice(0, 3).join(", ")}`;
+};
+
 const norm = (s) => String(s || "").replace(/[\s_\-]+/g, "").toLowerCase();
 const fromOptions = (val, opts) => { const v = norm(val); if (!v) return ""; const hit = opts.find((o) => norm(o) === v); return hit || ""; };
 const isGearsIrrelevant = (tt) => ["automatic","cvt"].includes(String(tt || "").toLowerCase());
@@ -172,7 +185,21 @@ const AddUnit = () => {
 
   useEffect(()=>{ setEditModalOpen(!!isEdit); },[isEdit]);
 
-  useEffect(()=>{ if(editModalOpen){ document.documentElement.classList.add("overflow-hidden"); document.body.classList.add("overflow-hidden"); } else { document.documentElement.classList.remove("overflow-hidden"); document.body.classList.remove("overflow-hidden"); } return()=>{ document.documentElement.classList.remove("overflow-hidden"); document.body.classList.remove("overflow-hidden"); }; },[editModalOpen]);
+  /* unified scroll lock: locks when either modal is open */
+  useEffect(() => {
+    const lock = editModalOpen || driverModalOpen;
+    if (lock) {
+      document.documentElement.classList.add("overflow-hidden");
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.documentElement.classList.remove("overflow-hidden");
+      document.body.classList.remove("overflow-hidden");
+    }
+    return () => {
+      document.documentElement.classList.remove("overflow-hidden");
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [editModalOpen, driverModalOpen]);
 
   useEffect(()=> {
     if(!isEdit||!vehicle) return;
@@ -394,6 +421,8 @@ const AddUnit = () => {
       open={driverModalOpen}
       title="Choose Driver"
       onClose={() => setDriverModalOpen(false)}
+      /* higher z-index so it sits ABOVE the edit modal */
+      zIndexClass="z-[11500]"
     >
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         {/* Search row */}
@@ -509,7 +538,14 @@ const AddUnit = () => {
               </div>
               <div className="space-y-2">
                 <label htmlFor="vehicleType" className="block text-[14px] font-medium text-gray-700">Vehicle Type</label>
-                <input id="vehicleType" name="vehicleType" placeholder="SUV, Helicopter, Yacht" className={inputClasses("vehicleType")} value={form.vehicleType} onChange={handleChange}/>
+                <input
+                  id="vehicleType"
+                  name="vehicleType"
+                  className={inputClasses("vehicleType")}
+                  value={form.vehicleType}
+                  onChange={handleChange}
+                  placeholder={getVehicleTypePlaceholder(form.category)}
+                />
                 {errors.vehicleType && <div className="text-red-500 text-xs mt-1">{errors.vehicleType}</div>}
               </div>
             </div>
@@ -1085,7 +1121,7 @@ const AddUnit = () => {
           </header>
         )}
 
-        {/* Driver picker modal (global to page) */}
+        {/* Driver picker modal (global to page, higher z-index) */}
         {DriverPickerModal}
 
         {!isEdit ? (
