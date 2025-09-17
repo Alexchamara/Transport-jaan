@@ -10,7 +10,6 @@ import RecentOrders from "./RecentOrders";
 import Map from "./Map";
 
 const RightSide = ({ userStats }) => {
-
     return (
         <div>
             {/* Header */}
