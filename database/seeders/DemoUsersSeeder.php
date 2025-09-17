@@ -11,6 +11,17 @@ class DemoUsersSeeder extends Seeder
 {
     public function run(): void
     {
+        // Super Admin User
+        User::firstOrCreate(
+            ['email' => 'superadmin@gmail.com'],
+            [
+                'name' => 'superadmin',
+                'email' => 'superadmin@gmail.com',
+                'password' => Hash::make('Super1122'),
+                'role' => 'SuperAdmin',
+            ]
+        );
+
         // Minimal demo accounts (adjust to your auth schema / roles as needed)
         User::firstOrCreate(
             ['email' => 'admin@demo.test'],
