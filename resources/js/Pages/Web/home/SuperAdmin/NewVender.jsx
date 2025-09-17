@@ -1,6 +1,6 @@
 import React from "react";
 import SideMenu from "../../components/SuperAdmin/Dashboard1/SideMenu";
-import RightSide from "../../components/SuperAdmin/AddUser/RightSide";
+import RightSide from "../../components/SuperAdmin/Vender/RightSide";
 
 const AddUser = () => {
     return (

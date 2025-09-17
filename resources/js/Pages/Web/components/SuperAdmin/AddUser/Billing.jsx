@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Phone from "../../../assets/superAdmin/Phone IconW.svg";
 import Bag from "../../../assets/superAdmin/Bag Simple IconW.svg";
 import Location from "../../../assets/superAdmin/Map Pin IconW.svg";
@@ -6,10 +6,33 @@ import Website from "../../../assets/superAdmin/Web IconW.svg";
 import Visa from "../../../assets/superAdmin/Visa.svg";
 import MasterCard from "../../../assets/superAdmin/Mastercard.svg";
 import AmericanExpress from "../../../assets/superAdmin/AmericanExpress.svg";
-import Close from "../../../assets//superAdmin/Close.svg";
+import Close from "../../../assets/superAdmin/Close.svg";
 import Addition from "../../../assets/superAdmin/Signups Icon.png";
 
-const BasicInformation = () => {
+const Billing = () => {
+    const [selectedMethod, setSelectedMethod] = useState("visa");
+
+    const paymentMethods = [
+        {
+            id: "visa",
+            img: Visa,
+            title: "VISA **** 8092",
+            subtitle: "Expires on 12/26",
+        },
+        {
+            id: "mastercard",
+            img: MasterCard,
+            title: "Mastercard **** 8092",
+            subtitle: "Expires on 12/26",
+        },
+        {
+            id: "amex",
+            img: AmericanExpress,
+            title: "American Express **** 8092",
+            subtitle: "Expires on 12/26",
+        },
+    ];
+
     return (
         <div className="poppins flex flex-col gap-6">
             <div className="flex flex-col">
@@ -27,99 +50,48 @@ const BasicInformation = () => {
                         <div className="flex flex-col gap-2">
                             {/* Payment methods */}
                             <div className="flex flex-col gap-2">
-                                {/* Visa */}
-                                <div className=" relative flex flex-row w-[547px] h-[64px] border border-[#575DFFCC] bg-[#575DFF33] rounded-[5px] justify-between items-center px-2">
-                                    <div className="flex flex-row gap-2 items-center">
-                                        <input
-                                            type="radio"
-                                            className="outline-none cursor-pointer focus:outline-none focus:ring-0 ring-0 appearance-none"
-                                            style={{
-                                                boxShadow: "none",
-                                                WebkitAppearance: "none",
-                                                MozAppearance: "none",
-                                            }}
-                                        />
-                                        <img src={Visa} />
-                                        <div className="flex flex-col">
-                                            <h1 className="text-white text-[10px] font-500">
-                                                VISA **** 8092
-                                            </h1>
-                                            <h2 className="text-[#AEB9E1] text-[10px] font-500">
-                                                Expires on 12/26
-                                            </h2>
+                                {paymentMethods.map((method) => (
+                                    <div
+                                        key={method.id}
+                                        onClick={() => setSelectedMethod(method.id)}
+                                        className={`relative flex flex-row w-[547px] h-[64px] border rounded-[5px] justify-between items-center px-2 cursor-pointer transition 
+                                        ${
+                                            selectedMethod === method.id
+                                                ? "border-[#575DFFCC] bg-[#575DFF33]"
+                                                : "border-[#343B4F] bg-[#0B1739]"
+                                        }`}
+                                    >
+                                        <div className="flex flex-row gap-2 items-center">
+                                            <input
+                                                type="radio"
+                                                checked={selectedMethod === method.id}
+                                                readOnly
+                                                className="cursor-pointer"
+                                            />
+                                            <img src={method.img} alt={method.id} />
+                                            <div className="flex flex-col">
+                                                <h1 className="text-white text-[10px] font-500">
+                                                    {method.title}
+                                                </h1>
+                                                <h2 className="text-[#AEB9E1] text-[10px] font-500">
+                                                    {method.subtitle}
+                                                </h2>
+                                            </div>
                                         </div>
+                                        <button>
+                                            <img
+                                                src={Close}
+                                                className="absolute top-[12.8px] right-[12px]"
+                                                alt="close"
+                                            />
+                                        </button>
                                     </div>
-                                    <button>
-                                        <img
-                                            src={Close}
-                                            className="absolute top-[12.8px] left-[523.95px]"
-                                        />
-                                    </button>
-                                </div>
-
-                                {/* Mastercard */}
-                                <div className=" relative flex flex-row w-[547px] h-[64px] border border-[#343B4F] bg-[#0B1739] rounded-[5px] justify-between items-center px-2">
-                                    <div className="flex flex-row gap-2 items-center">
-                                        <input
-                                            type="radio"
-                                            className="outline-none cursor-pointer focus:outline-none focus:ring-0 ring-0 appearance-none"
-                                            style={{
-                                                boxShadow: "none",
-                                                WebkitAppearance: "none",
-                                                MozAppearance: "none",
-                                            }}
-                                        />
-                                        <img src={MasterCard} />
-                                        <div className="flex flex-col">
-                                            <h1 className="text-white text-[10px] font-500">
-                                                Mastercard **** 8092
-                                            </h1>
-                                            <h2 className="text-[#AEB9E1] text-[10px] font-500">
-                                                Expires on 12/26
-                                            </h2>
-                                        </div>
-                                    </div>
-                                    <button>
-                                        <img
-                                            src={Close}
-                                            className="absolute top-[12.8px] left-[523.95px]"
-                                        />
-                                    </button>
-                                </div>
-
-                                {/* American Express */}
-                                <div className=" relative flex flex-row w-[547px] h-[64px] border border-[#343B4F] bg-[#0B1739] rounded-[5px] justify-between items-center px-2">
-                                    <div className="flex flex-row gap-2 items-center">
-                                        <input
-                                            type="radio"
-                                            className="outline-none cursor-pointer focus:outline-none focus:ring-0 ring-0 appearance-none"
-                                            style={{
-                                                boxShadow: "none",
-                                                WebkitAppearance: "none",
-                                                MozAppearance: "none",
-                                            }}
-                                        />
-                                        <img src={AmericanExpress} />
-                                        <div className="flex flex-col">
-                                            <h1 className="text-white text-[10px] font-500">
-                                                American Express **** 8092
-                                            </h1>
-                                            <h2 className="text-[#AEB9E1] text-[10px] font-500">
-                                                Expires on 12/26
-                                            </h2>
-                                        </div>
-                                    </div>
-                                    <button>
-                                        <img
-                                            src={Close}
-                                            className="absolute top-[12.8px] left-[523.95px]"
-                                        />
-                                    </button>
-                                </div>
+                                ))}
                                 <button className="flex flex-row gap-2 items-center">
                                     <img
                                         src={Addition}
                                         className="size-[12px]"
+                                        alt="add"
                                     />
                                     <h1 className="text-[#AEB9E1] text-[12px] font-500">
                                         Add a new payment method
@@ -128,6 +100,7 @@ const BasicInformation = () => {
                             </div>
                         </div>
 
+                        {/* Billing Address */}
                         <div className="flex flex-col">
                             <h1 className="text-white text-[16px] font-500">
                                 Billing address
@@ -143,11 +116,7 @@ const BasicInformation = () => {
                     <div className="flex flex-col gap-8">
                         <div className="flex flex-row justify-between items-center">
                             <div className="flex flex-row gap-1 items-center">
-                                <img
-                                    src={Phone}
-                                    className="size-[12px]"
-                                    alt=""
-                                />
+                                <img src={Phone} className="size-[12px]" alt="" />
                                 <h1 className="text-white text-[12px] font-500">
                                     Phone
                                 </h1>
@@ -181,11 +150,7 @@ const BasicInformation = () => {
                     <div className="flex flex-col gap-8">
                         <div className="flex flex-row justify-between items-center">
                             <div className="flex flex-row gap-1 items-center">
-                                <img
-                                    src={Location}
-                                    className="size-[12px]"
-                                    alt=""
-                                />
+                                <img src={Location} className="size-[12px]" alt="" />
                                 <h1 className="text-white text-[12px] font-500">
                                     Location
                                 </h1>
@@ -202,11 +167,7 @@ const BasicInformation = () => {
                     <div className="flex flex-col gap-8">
                         <div className="flex flex-row justify-between items-center">
                             <div className="flex flex-row gap-1 items-center">
-                                <img
-                                    src={Website}
-                                    className="size-[12px]"
-                                    alt=""
-                                />
+                                <img src={Website} className="size-[12px]" alt="" />
                                 <h1 className="text-white text-[12px] font-500">
                                     Website
                                 </h1>
@@ -223,4 +184,4 @@ const BasicInformation = () => {
     );
 };
 
-export default BasicInformation;
+export default Billing;

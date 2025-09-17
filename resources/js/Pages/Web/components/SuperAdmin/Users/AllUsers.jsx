@@ -153,6 +153,11 @@ const AllUsers = () => {
                         <input
                             type="checkbox"
                             className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
+                            style={{
+                                boxShadow: "none",
+                                WebkitAppearance: "none",
+                                MozAppearance: "none",
+                            }}
                         />
                         <div className="flex flex-row justify-center items-center gap-1">
                             <img src={User} className="size-[10px]" />
@@ -224,6 +229,11 @@ const AllUsers = () => {
                             <input
                                 type="checkbox"
                                 className="size-[12px] cursor-pointer focus:outline-none focus:ring-0 focus:ring-transparent"
+                                style={{
+                                    boxShadow: "none",
+                                    WebkitAppearance: "none",
+                                    MozAppearance: "none",
+                                }}
                             />
                             <div className="flex flex-row justify-start items-center gap-1">
                                 <img
