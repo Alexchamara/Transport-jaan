@@ -23,6 +23,7 @@ const LandingPage = () => {
 
                 {/* <Hero auth={auth} /> */}
                 {/*                 <Hero auth={auth} /> */}
+                <Hero auth={auth} />
             </div>
             <div id="about">
                 <About />
