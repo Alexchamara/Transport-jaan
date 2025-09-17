@@ -131,8 +131,6 @@ const LocationDropdown = ({ label, name, value, onChange, placeholder, errors })
         </div>
     );
 };
-import React, { useState } from "react";
-import { useForm } from "@inertiajs/react";
 
 const FlightForm = () => {
     const { data, setData, post, processing, errors, reset } = useForm({
