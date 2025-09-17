@@ -16,6 +16,7 @@ import person from "../../../assets/superAdmin/person.png";
 import LogoutB from '../../../assets/superAdmin/logoutB.png';
 import LogoutR from '../../../assets/superAdmin/logoutR.png';
 import arrow_r from "../../../assets/superAdmin/Arrow Right.png";
+import { Link } from "@inertiajs/react";
 
 import { Link, router } from "@inertiajs/react";
 

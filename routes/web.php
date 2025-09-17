@@ -500,6 +500,26 @@ Route::get('/settingsPage', function () {
 Route::get('/warehouse/bookings', function () {
     return Inertia::render('Web/home/vendors/warehouse/Booking');
 })->name('warehouse.bookings');
+Route::get('/SuperAdmin/Vehicles', function () {
+    return Inertia::render('Web/home/SuperAdmin/Vehicles');
+})->name('SuperAdmin.Vehicles');
+
+// Route::get('/SuperAdmin/LandVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
+// })->name('SuperAdmin.LandVehicleDetails');
+
+// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
+// })->name('SuperAdmin.SeaVehicleDetails');
+
+// Route::get('/SuperAdmin/AirVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
+// })->name('SuperAdmin.AirVehicleDetails');
+
+Route::get('/SuperAdmin/Vender', function () {
+    return Inertia::render('Web/home/SuperAdmin/NewVender');
+})->name('SuperAdmin.NewVender');
+
 
 Route::get('/warehouse/units', function () {
     return Inertia::render('Web/home/vendors/warehouse/Unit');
