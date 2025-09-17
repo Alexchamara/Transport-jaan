@@ -10,7 +10,7 @@ import UsersByDevices from "./UsersByDevices";
 import RecentOrders from "./RecentOrders";
 import Map from "./Map";
 
-const RightSide = () => {
+const RightSide = ({ userStats }) => {
     return (
         <div>
             {/* Header */}
@@ -36,7 +36,7 @@ const RightSide = () => {
             {/* Cards */}
 
             <div>
-                <Cards />
+                <Cards userStats={userStats} />
             </div>
 
             <div className=" xl:w-[1125px] xl:h-[556.984375px] px-12 mt-[70px]">
