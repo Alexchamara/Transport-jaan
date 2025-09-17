@@ -32,7 +32,7 @@ const RightSide = ({ userStats }) => {
             {/* Cards */}
 
             <div>
-                <Cards />
+                <Cards userStats={userStats} />
             </div>
 
             <div className=" xl:w-[1125px] xl:h-[556.984375px] px-12 mt-[70px]">

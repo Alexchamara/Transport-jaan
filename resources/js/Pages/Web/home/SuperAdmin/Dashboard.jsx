@@ -28,7 +28,7 @@ const Dashboard = ({ userStats }) => {
         <SideMenu />
       </div>
       <div className='sm:w-full md:w-auto lg:w-auto'>
-        <RightSide />
+        <RightSide userStats={userStats} />
       </div>
     </div>
   )
