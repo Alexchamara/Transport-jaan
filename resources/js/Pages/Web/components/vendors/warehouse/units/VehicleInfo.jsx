@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import star from "../../../assets/driverBooking/star.svg";
+import star from "../../../../assets/driverBooking/star.svg";
 
 import CarDetailsTab from "./CarDetailsTab";
 import PoliciesTab from "./PoliciesTab";

@@ -1,14 +1,14 @@
 import React from "react";
 
-import VehicleImages from "../../../components/vendors/units/VehicleImages";
-import VehicleInfo from "../../../components/vendors/units/VehicleInfo";
+import VehicleImages from "../../units/VehicleImages";
+import VehicleInfo from "../../units/VehicleInfo";
 
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
+import settings from "../../../../assets/vendors/dashboard/settings.svg";
+import bell from "../../../../assets/vendors/dashboard/bell.svg";
+import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 
-import backArrow from "../../../assets/vendors/units/backArrow.svg";
+import backArrow from "../../../../assets/vendors/units/backArrow.svg";
 
 const UnitDetailsContent = () => {
     return (

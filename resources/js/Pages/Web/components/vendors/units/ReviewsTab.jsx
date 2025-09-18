@@ -41,4 +41,4 @@ const ReviewsTab = () => (
     </div>
 );
 
-export default ReviewsTab; 
+export default ReviewsTab;

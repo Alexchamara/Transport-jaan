@@ -1,6 +1,6 @@
 import React from "react";
-import ReviewSection from "../../vehicleDetails/ReviewSection";
-import starSec from "../../../assets/landVehicleDetails/starsSec.svg";
+import ReviewSection from "../../../vehicleDetails/ReviewSection";
+import starSec from "../../../../assets/landVehicleDetails/starsSec.svg";
 
 const ReviewsTab = () => (
     <div className="poppins">

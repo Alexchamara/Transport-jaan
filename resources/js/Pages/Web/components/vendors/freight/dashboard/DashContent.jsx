@@ -25,7 +25,7 @@ import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.sv
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 
 import car1 from "../../../../assets/vendors/dashboard/icons/car1.svg";
-// import car2 from "../../../assets/vendors/dashboard/icons/car2.svg";
+// import car2 from "../../../../assets/vendors/dashboard/icons/car2.svg";
 import car3 from "../../../../assets/vendors/dashboard/icons/car3.svg";
 
 import cal from "../../../../assets/vendors/dashboard/icons/cal.svg";

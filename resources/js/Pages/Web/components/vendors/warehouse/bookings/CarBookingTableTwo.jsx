@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
-import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
+import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
+import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
 const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
   
