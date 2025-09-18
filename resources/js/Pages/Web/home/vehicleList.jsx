@@ -3,7 +3,7 @@ import { usePage } from "@inertiajs/react";
 import Header from "../layouts/Header";
 import FilterSidebar from "../components/vehicleList/FilterSidebar";
 import VehicleListContent from "../components/vehicleList/VehicleListContent";
-import SearchForm from "../components/vehicleList/searchForm";
+import SearchForm from "../components/vehicleList/SearchForm";
 import bg from "../assets/rentAVehicle/bg/bg.png";
 
 const VehicleList = () => {
@@ -40,8 +40,8 @@ const VehicleList = () => {
           <SearchForm formData={formData} onFormChange={handleFormChange} />
           <VehicleListContent
             vehicles={props.vehicles}
-            authUser={props.auth.user}                //pass the logged-in user 
-            likedVehicleIds={props.likedVehicleIds} //pass liked vehicles 
+            authUser={props.auth.user}                //pass the logged-in user
+            likedVehicleIds={props.likedVehicleIds} //pass liked vehicles
           />
         </div>
       </div>
