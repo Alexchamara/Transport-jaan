@@ -188,10 +188,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
     })->name('AirVehicleDetails');
 
-    Route::get('/Vender', function () {
-        return Inertia::render('Web/home/SuperAdmin/NewVender');
-    })->name('NewVender');
-    
+    Route::get('/Vender', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'index'])->name('NewVender');
+
     // Vendor User Management API Routes
     Route::prefix('vendors')->name('vendors.')->group(function () {
         Route::get('/', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'index'])->name('index');
