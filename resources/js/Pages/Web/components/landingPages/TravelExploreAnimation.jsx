@@ -136,44 +136,6 @@ const TravelExploreAnimation = ({ auth }) => {
         },
     };
 
-                <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[700]">
-                  {auth && auth.user ? (
-                    <>
-                      {auth.user.role === "vendor" && (
-                        <Link
-                          href="/vendors/mainDashboard"
-                          className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
-                        >
-                          Dashboard
-                        </Link>
-                      )}
-                      {auth.user.role === "client" && (
-                        <Link
-                          href="/client/dashboard"
-                          className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
-                        >
-                          Dashboard
-                        </Link>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div
-                        className="lg:w-[137px] h-[38px] bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer text-[#FFFFFF]"
-                        onClick={() => (window.location.href = "/signin")}
-                      >
-                        Login
-                      </div>
-                      <div
-                        className="lg:w-[137px] h-[38px] text-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer bg-transparent px-4 py-2"
-                        onClick={() => (window.location.href = "/signup")}
-                      >
-                        Register
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
     const floatCTA = {
         hidden: { opacity: 0, x: 20, y: 10, scale: 0.98 },
         show: {
