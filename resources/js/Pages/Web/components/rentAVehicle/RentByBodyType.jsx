@@ -37,12 +37,22 @@ const RentByBodyType = ({ selectedType = "other" }) => {
             { name: "Jet Ski", Icon: Waves, value: "jetski" },
             { name: "Speedboat", Icon: Waves, value: "speedboat" },
             { name: "Yacht", Icon: Waves, value: "yacht" },
+            { name: "Catamaran", Icon: Waves, value: "catamaran" },
+            { name: "Sailboat", Icon: Waves, value: "sailboat" },
+            { name: "Fishing Boat", Icon: Waves, value: "fishingboat" },
+            { name: "Cruise Ship", Icon: Waves, value: "cruiseship" },
+            { name: "Houseboat", Icon: Waves, value: "houseboat" },
         ],
         // Aircraft placeholders
         air: [
             { name: "Helicopter", Icon: Plane, value: "helicopter" },
             { name: "Private Jet", Icon: Plane, value: "jet" },
-            { name: "Propeller", Icon: Plane, value: "prop" },
+            { name: "Propeller Plane", Icon: Plane, value: "prop" },
+            { name: "Glider", Icon: Plane, value: "glider" },
+            { name: "Cargo Plane", Icon: Plane, value: "cargo" },
+            { name: "Commercial Airliner", Icon: Plane, value: "airliner" },
+            { name: "Seaplane", Icon: Plane, value: "seaplane" },
+            { name: "Hot Air Balloon", Icon: Plane, value: "balloon" },
         ],
     };
 

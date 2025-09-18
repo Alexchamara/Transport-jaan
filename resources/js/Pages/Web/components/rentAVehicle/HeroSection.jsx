@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import carImage from "../../assets/rentAVehicle/car.png";
-import flightImage from "../../assets/rentAVehicle/flight.svg";
+import carImage from "../../assets/rentAVehicle/car.jpg";
+import flightImage from "../../assets/rentAVehicle/flight.jpg";
+import shipsImage from "../../assets/rentAVehicle/ships.jpg";
+
 import { router } from "@inertiajs/react";
 import { route } from "ziggy-js";
 
@@ -20,7 +22,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
       label: "LAND VEHICLE",
     },
     water: {
-      src: carImage,
+      src: shipsImage,
       alt: "Water Vehicle",
       label: "WATER VEHICLE",
     },
