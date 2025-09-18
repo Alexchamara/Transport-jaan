@@ -1,11 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import carImage from "../../assets/rentAVehicle/car.png";
 import flightImage from "../../assets/rentAVehicle/flight.svg";
 import { router } from "@inertiajs/react";
 import { route } from "ziggy-js";
 
-const HeroSection = ({ formData, onFormChange }) => {
+const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
   const [imageOrder, setImageOrder] = useState(["other", "water", "air"]);
+
+  useEffect(() => {
+    if (onVehicleTypeChange) {
+      onVehicleTypeChange(imageOrder[0]);
+    }
+  }, []);
 
   const imageData = {
     other: {
@@ -29,6 +35,10 @@ const HeroSection = ({ formData, onFormChange }) => {
     setImageOrder((prevOrder) => {
       const newOrder = prevOrder.filter((type) => type !== imageType);
       newOrder.unshift(imageType);
+      // Notify parent about the newly selected primary type
+      if (onVehicleTypeChange) {
+        onVehicleTypeChange(imageType);
+      }
       return newOrder;
     });
   };

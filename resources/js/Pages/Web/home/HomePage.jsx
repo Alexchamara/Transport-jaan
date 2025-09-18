@@ -10,7 +10,7 @@ import HowItWorks from "../components/rentAVehicle/HowItWorks";
 import Footer from "../layouts/Footer";
 
 const HomePage = ({ auth }) => {
-    const { brands, bodyTypes } = usePage().props;
+    const { bodyTypes } = usePage().props;
 
     const [formData, setFormData] = useState({
         pickupLocation: "",
@@ -18,6 +18,8 @@ const HomePage = ({ auth }) => {
         dropoffLocation: "",
         dropoffDate: "",
     });
+
+    const [selectedVehicleType, setSelectedVehicleType] = useState("other");
 
     const handleFormChange = (newData) => setFormData(newData);
 
@@ -28,7 +30,10 @@ const HomePage = ({ auth }) => {
             window.location.href = "/register";
             return;
         }
-        router.visit("/couriers", { data: { searchParams: formData }, method: "get" });
+        router.visit("/couriers", {
+            data: { searchParams: formData },
+            method: "get",
+        });
     };
 
     return (
@@ -38,9 +43,10 @@ const HomePage = ({ auth }) => {
                 formData={formData}
                 onFormChange={handleFormChange}
                 onSubmit={handleFormSubmit}
+                onVehicleTypeChange={setSelectedVehicleType}
             />
-            <RentByBrands brands={brands} />
-            <RentByBodyType bodyTypes={bodyTypes} />
+            <RentByBrands selectedType={selectedVehicleType} />
+            <RentByBodyType selectedType={selectedVehicleType} />
             <VehicleCollection />
             <PopularRentals />
             <HowItWorks />
