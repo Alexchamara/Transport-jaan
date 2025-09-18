@@ -164,9 +164,17 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         return Inertia::render('Web/home/SuperAdmin/Analytics');
     })->name('Analytics');
 
-    Route::get('/Users', function () {
-        return Inertia::render('Web/home/SuperAdmin/Users');
-    })->name('Users');
+    Route::get('/Users', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('Users');
+
+    // User Management Routes
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('index');
+        Route::get('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'show'])->name('show');
+        Route::put('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'update'])->name('update');
+        Route::delete('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'destroy'])->name('destroy');
+        Route::post('/bulk-delete', [\App\Http\Controllers\SuperAdmin\UserController::class, 'bulkDelete'])->name('bulkDelete');
+        Route::post('/{user}/status', [\App\Http\Controllers\SuperAdmin\UserController::class, 'changeStatus'])->name('changeStatus');
+    });
 
     Route::get('/AddUser', function () {
         return Inertia::render('Web/home/SuperAdmin/AddUser');
