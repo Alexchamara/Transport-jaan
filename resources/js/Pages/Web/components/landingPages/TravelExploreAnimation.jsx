@@ -718,15 +718,15 @@ const TravelExploreAnimation = ({ auth }) => {
               alt={IMAGES[activeIndex].title}
               className="h-full w-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-black/40 pointer-events-none" />
           </motion.div>
         </AnimatePresence>
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/30 z-[11]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/30 z-[11] pointer-events-none" />
 
         {/* NAVBAR */}
-        <div className="absolute inset-x-0 top-0 z-30 pointer-events-none">
+        <div className="absolute inset-x-0 top-0 z-[60] pointer-events-none">
           <div className="pointer-events-auto">
             <div className="bg-gradient-to-b from-black/50 to-transparent">
               {/* Desktop */}
