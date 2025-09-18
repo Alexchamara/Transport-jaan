@@ -175,4 +175,4 @@ const CarDetailsTab = () => (
     </>
 );
 
-export default CarDetailsTab; 
+export default CarDetailsTab;
