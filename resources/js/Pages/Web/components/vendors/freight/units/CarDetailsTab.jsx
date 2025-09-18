@@ -1,16 +1,16 @@
 import React from "react";
-import miles from "../../../assets/landVehicleDetails/carSpec/miles.svg";
-import fuel from "../../../assets/landVehicleDetails/carSpec/fuel.svg";
-import gear from "../../../assets/landVehicleDetails/carSpec/gear.svg";
-import seats from "../../../assets/landVehicleDetails/carSpec/seats.svg";
-import model from "../../../assets/landVehicleDetails/carSpec/model.svg";
-import doors from "../../../assets/landVehicleDetails/carSpec/doors.svg";
-import airBag from "../../../assets/landVehicleDetails/carSpec/airBag.svg";
-import liters from "../../../assets/landVehicleDetails/carSpec/liters.svg";
-import car from "../../../assets/landVehicleDetails/car.svg";
-import proPic from "../../../assets/landVehicleDetails/proPic.svg";
-import tag from "../../../assets/landVehicleDetails/tag.svg";
-import star from "../../../assets/driverBooking/star.svg";
+import miles from "../../../../assets/landVehicleDetails/carSpec/miles.svg";
+import fuel from "../../../../assets/landVehicleDetails/carSpec/fuel.svg";
+import gear from "../../../../assets/landVehicleDetails/carSpec/gear.svg";
+import seats from "../../../../assets/landVehicleDetails/carSpec/seats.svg";
+import model from "../../../../assets/landVehicleDetails/carSpec/model.svg";
+import doors from "../../../../assets/landVehicleDetails/carSpec/doors.svg";
+import airBag from "../../../../assets/landVehicleDetails/carSpec/airBag.svg";
+import liters from "../../../../assets/landVehicleDetails/carSpec/liters.svg";
+import car from "../../../../assets/landVehicleDetails/car.svg";
+import proPic from "../../../../assets/landVehicleDetails/proPic.svg";
+import tag from "../../../../assets/landVehicleDetails/tag.svg";
+import star from "../../../../assets/driverBooking/star.svg";
 
 const CarDetailsTab = () => (
     <>
@@ -175,4 +175,4 @@ const CarDetailsTab = () => (
     </>
 );
 
-export default CarDetailsTab; 
+export default CarDetailsTab;
