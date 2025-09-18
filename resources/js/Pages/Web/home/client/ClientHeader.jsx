@@ -61,7 +61,7 @@ const ClientHeader = () => {
 
                 {/* Centered Company Name/Logo */}
                 <div
-                    onClick={() => router.visit("/clientDashboard")}
+                    onClick={() => router.visit("/")}
                     className="absolute left-1/2 transform -translate-x-1/2 text-[16px] sm:text-[20px] md:text-[25px] lg:text-[30px] font-[700] text-black text-center cursor-pointer hover:text-[#0955AC] transition-colors"
                     style={{ minWidth: "120px" }}
                 >

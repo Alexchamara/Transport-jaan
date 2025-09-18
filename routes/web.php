@@ -2,154 +2,352 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
+use App\Http\Controllers\FlightBookingController;
+use App\Http\Controllers\WarehouseControllers\Client\WarehouseBookingController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\WarehouseControllers\Vendor\WarehouseUnitController;
 
-// -------------------------------
-// 🌐 Public Routes
-// -------------------------------
+// Vendor controllers
+use App\Http\Controllers\Vendor\VehicleController;
+use App\Http\Controllers\Vendor\DashboardController;
+use App\Http\Controllers\Vendor\BookingController as VendorBookingController;
+use App\Http\Controllers\Vendor\VehicleMaintenanceController;
+use App\Http\Controllers\Vendor\DriverController;
 
-// Auth
+// PDFs
+use App\Http\Controllers\VehiclePolicyController;
+
+// Client-side browsing/controllers
+use App\Http\Controllers\VehicleControllers\Client\ClientVehicleController;
+use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
+use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
+use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
+
+/*
+|--------------------------------------------------------------------------
+| Small helper to render an Inertia view
+|--------------------------------------------------------------------------
+*/
+$render = function (string $view) {
+    return function () use ($view) {
+        return Inertia::render($view);
+    };
+};
+
+/*
+|--------------------------------------------------------------------------
+| Public Routes (marketing / landing)
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 
-// landing pages
 Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
 Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
-Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('blogExample.blog');
+Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blogExample');
 
-Route::get('/clientRent', [WebController::class, 'index'])->name('home');
-Route::get('/vehicleList', [WebController::class, 'vehicleList'])->name('vehicle.list');
-Route::get('/vehicleDetails', [WebController::class, 'vehicleDetails'])->name('vehicle.details');
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
 Route::get('/book-a-ticket', [WebController::class, 'bookATicket'])->name('book.a.ticket');
 Route::get('/booking-home', [WebController::class, 'bookingHome'])->name('booking.home');
 Route::get('/cargo-freight', [WebController::class, 'cargoFreight'])->name('cargo.freight');
+
+Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
+Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->name('freight-quotes.store');
+Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
+
 Route::get('/drivers-home', [WebController::class, 'driversHome'])->name('drivers.home');
 Route::get('/driver-search-results', [WebController::class, 'driverSearchResults'])->name('driver.search.results');
 Route::get('/driver-details', [WebController::class, 'driverDetails'])->name('driver.details');
+
 Route::get('/vehicle-checkout', [WebController::class, 'vehicleCheckout'])->name('vehicle.checkout');
 Route::get('/vehicle-payments', [WebController::class, 'vehiclePayments'])->name('vehicle.vehiclePayments');
 
 Route::get('/summary', [WebController::class, 'summary'])->name('summary');
-Route::get('/freight-home', [WebController::class, 'freightHomepage'])->name('freight.home');
-Route::post('/freight-quotes', [WebController::class, 'freightQuoteStore'])->name('freight-quotes.store');
 
-Route::get('/flight-booking', [WebController::class, 'freightTicketBooking'])->name('flight.ticket');
-
-// ticket booking
+// Ticket booking (public screens)
 Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
 Route::get('/trainTicketBookingDetails', [WebController::class, 'TrainTicketBookingDetails'])->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
 Route::get('/trainTicketBookingPreview', [WebController::class, 'trainTicketBookingPreview'])->name('trainTicketBookingPreview.trainTicketBookingPreview');
 Route::get('/busTicketBookingDetails', [WebController::class, 'busTicketBookingDetails'])->name('busTicketBookingDetails.busTicketBookingDetails');
 Route::get('/busTicketBookingPreview', [WebController::class, 'busTicketBookingPreview'])->name('busTicketBookingPreview.busTicketBookingPreview');
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
+Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store');
 
-
-
-
-// client routes
-Route::middleware(['auth', 'role:client'])->group(function () {});
-
-//warehouse
+// Warehouse (public landing)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
+Route::get('/warehouseList', [WebController::class, 'warehouseList'])->name('warehouse.list');
+Route::get('/warehouseDetails', [WebController::class, 'warehouseDetails'])->name('warehouse.details');
 
+// Warehouse booking flow
+Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function () {
+    // Public routes (category selection)
+    Route::get('/', [WarehouseBookingController::class, 'category'])->name('category');
 
-// vendor - vehicle rent
-// Route::get('/vendors/bookings', function () {
-//     return Inertia::render('Web/home/vendors/Booking');
-// })->name('vendors.bookings');
+    // Warehouse listing by type (public)
+    Route::get('/bookings/{type}', [WarehouseBookingController::class, 'index'])->name('index');
 
+    // Warehouse details and booking form (public, but form submission requires auth)
+    Route::get('/bookings/{type}/{id}', [WarehouseBookingController::class, 'details'])->name('details');
+
+    // Public checkout and payment pages
+    Route::get('/checkout', [WarehouseBookingController::class, 'checkout'])->name('checkout');
+    Route::get('/payments', [WarehouseBookingController::class, 'payments'])->name('payments');
+
+    // Booking endpoints used by frontend
+    Route::post('/book', [WarehouseBookingController::class, 'store'])->name('book');
+    Route::post('/store', [WarehouseBookingController::class, 'store'])->name('store');
+
+    // Protected routes (require authentication)
+    Route::middleware(['auth'])->group(function () {
+        // Booking summary/confirmation
+        Route::get('/summary/{bookingId?}', [WarehouseBookingController::class, 'summary'])->name('summary');
+
+        // User's booking management
+        Route::get('/my-bookings', [WarehouseBookingController::class, 'list'])->name('list');
+        Route::get('/booking/{id}', [WarehouseBookingController::class, 'show'])->name('show');
+        Route::patch('/booking/{id}/cancel', [WarehouseBookingController::class, 'cancel'])->name('cancel');
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Public Vehicle Browsing
+|--------------------------------------------------------------------------
+*/
+Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('client.home');
+Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
+Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
+// API Routes for frontend functionality
+Route::prefix('api')->name('api.')->group(function () {
+    // Warehouse API endpoints
+    Route::get('/warehouse-units/{id}', [WarehouseBookingController::class, 'getWarehouseUnit'])->name('warehouse-units.show');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Client booking flow (some public screens + protected actions)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('client')->as('client.')->group(function () {
+    Route::get('/bookings/quote', [ClientBookingController::class, 'quote'])->name('bookings.quote');
+    Route::get('/vehicles/{vehicle}/extras', [ClientBookingController::class, 'extras'])->name('vehicles.extras');
+    Route::patch('/bookings/{booking}/addons', [ClientBookingController::class, 'updateAddons'])->name('bookings.updateAddons');
+
+    Route::middleware(['auth', 'role:client'])->group(function () {
+        Route::get('/bookings/checkout', [ClientBookingController::class, 'showCheckout'])->name('bookings.checkout');
+        Route::post('/bookings', [ClientBookingController::class, 'store'])->name('bookings.store');
+        Route::get('/bookings/{booking}/payments', [ClientBookingController::class, 'payments'])->name('bookings.payments');
+        Route::post('/bookings/{booking}/confirm', [ClientBookingController::class, 'confirm'])->name('bookings.confirm');
+        Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])->name('bookings.summary');
+        Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])->name('bookings.cancel');
+
+        Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');
+        Route::get('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'index'])->name('vehicles.reviews.index');
+        Route::post('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'store'])->name('vehicles.reviews.store');
+
+        Route::get('/vehicles/{vehicle}/policy/preview', [ClientVehicleController::class, 'policyPreview'])->name('vehicles.policy.preview');
+    });
+});
 // vendor routes
-// Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
-//     Route::get('/bookings', function () {
-//         return Inertia::render('Web/home/vendors/Booking');
-//     })->name('bookings');
+Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
+    Route::get('/mainDashboard', function () {
+        return Inertia::render('Web/home/vendors/MainDashboard');
+    })->name('mainDashboard');
+});
 
-//     Route::get('/units', function () {
-//         return Inertia::render('Web/home/vendors/Unit');
-//     })->name('units');
+// Warehouse (vendor-only) under /vendors/warehouse/*
+Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
+    Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/warehouse/Dashboard'))->name('dashboard');
+    Route::get('/units', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('units');
+    Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/warehouse/AddUnit'))->name('addUnit');
+    Route::get('/editUnit/{id}', fn($id) => Inertia::render('Web/home/vendors/warehouse/EditUnit', ['unitId' => $id]))->name('editUnit');
+    Route::get('/unitDetails/{id}', fn($id) => Inertia::render('Web/home/vendors/warehouse/UnitDetails', ['unitId' => $id]))->name('unitDetails');
+    Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Booking'))->name('bookings');
+    Route::get('/clients', fn() => Inertia::render('Web/home/vendors/warehouse/Client'))->name('clients');
+    Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/warehouse/Expenses'))->name('expenses');
+    Route::get('/payment', fn() => Inertia::render('Web/home/vendors/warehouse/Payment'))->name('payment');
+    Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/warehouse/Tracking'))->name('tracking');
+    Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/warehouse/Calendar'))->name('calendar');
 
-//     Route::get('/dashboard', function () {
-//         return Inertia::render('Web/home/vendors/Dashboard');
-//     })->name('dashboard');
+    // API routes for warehouse units
+    Route::get('/api/units', [WarehouseUnitController::class, 'index'])->name('api.units.index');
+    Route::post('/api/units', [WarehouseUnitController::class, 'store'])->name('api.units.store');
+    Route::get('/api/units/{id}', [WarehouseUnitController::class, 'show'])->name('api.units.show');
+    Route::put('/api/units/{id}', [WarehouseUnitController::class, 'update'])->name('api.units.update');
+    Route::patch('/api/units/{id}', [WarehouseUnitController::class, 'update'])->name('api.units.patch');
+    Route::patch('/api/units/{id}/status', [WarehouseUnitController::class, 'updateStatus'])->name('api.units.updateStatus');
+    Route::delete('/api/units/{id}', [WarehouseUnitController::class, 'destroy'])->name('api.units.destroy');
 
-//     Route::get('/clients', function () {
-//         return Inertia::render('Web/home/vendors/Client');
-//     })->name('clients');
+    // API routes for warehouse bookings management
+    Route::get('/api/bookings', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'index'])->name('api.bookings.index');
+    Route::get('/api/bookings/stats', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getStats'])->name('api.bookings.stats');
+    Route::get('/api/bookings/{bookingId}', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'show'])->name('api.bookings.show');
+    Route::patch('/api/bookings/{bookingId}/approve', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'approve'])->name('api.bookings.approve');
+    Route::patch('/api/bookings/{bookingId}/reject', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'reject'])->name('api.bookings.reject');
+    Route::patch('/api/bookings/{bookingId}/complete', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'complete'])->name('api.bookings.complete');
+    Route::put('/api/bookings/{bookingId}', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'update'])->name('api.bookings.update');
+});
 
-//     Route::get('/expenses', function () {
-//         return Inertia::render('Web/home/vendors/Expenses');
-//     })->name('expenses');
+// Admin routes for warehouse approval (requires admin role)
+Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admin.warehouse.')->group(function () {
+    Route::patch('/api/units/{id}/approve', [WarehouseUnitController::class, 'approve'])->name('api.units.approve');
+    Route::patch('/api/units/{id}/reject', [WarehouseUnitController::class, 'reject'])->name('api.units.reject');
 
-//     Route::get('/payment', function () {
-//         return Inertia::render('Web/home/vendors/Payment');
-//     })->name('payment');
+    Route::get('/unitDetails', fn() => Inertia::render('Web/home/vendors/warehouse/UnitDetails'))->name('unitDetails');
+});
 
-//     Route::get('/tracking', function () {
-//         return Inertia::render('Web/home/vendors/Tracking');
-//     })->name('tracking');
+// Backward-compat: if any UI still links to /warehouse/*, redirect to /vendors/warehouse/* (protect with same middleware)
+Route::middleware(['auth', 'role:vendor'])->get('/warehouse/{path}', function (string $path) {
+    return redirect('/vendors/warehouse/' . ltrim($path, '/'));
+})->where('path', '.*');
 
-//     Route::get('/calendar', function () {
-//         return Inertia::render('Web/home/vendors/Calendar');
-//     })->name('calendar');
+// Bookings page with DB-fed props (table + chart)
+Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
 
-//     Route::get('/addUnit', function () {
-//         return Inertia::render('Web/home/vendors/AddUnit');
-//     })->name('addUnit');
+// Other pages (shells)
+Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
+Route::get('/clients', fn() => Inertia::render('Web/home/vendors/Client'))->name('clients');
+Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
+Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
+Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
+Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
 
-//     Route::get('/mainDashboard', function () {
-//         return Inertia::render('Web/home/vendors/MainDashboard');
-//     })->name('mainDashboard');
-// });
+// Units UI
+Route::get('/units', fn() => Inertia::render('Web/home/vendors/Unit'))->name('units');
+Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/AddUnit'))->name('addUnit');
+Route::get('/addUnit/{vehicle}', [VehicleController::class, 'edit'])->name('addUnit.edit');
+Route::get('/unitDetails', fn() => Inertia::render('Web/home/vendors/UnitDetails'))->name('unitDetails');
+Route::get('/unitDetails/{vehicle}', [VehicleController::class, 'detailsPage'])->name('unitDetails.show');
+
+// Warehouse UI
+Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
+Route::get('/warehouse/unit', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('warehouse.unit');
+
+// Drivers UI
+Route::get('/drivers', fn() => Inertia::render('Web/components/vendors/driver/Driver'))->name('drivers');
+
+/*
+|--------------------------------------------------------------------------
+| Vendor App (Inertia UI)  /vendors/...
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:vendor'])
+    ->prefix('vendors')
+    ->name('vendors.')
+    ->group(function () use ($render) {
+        // Dashboard with real props
+        Route::get('/dashbord', [DashboardController::class, 'index'])->name('dashboard'); // legacy spelling
+        Route::get('/dashboard', [DashboardController::class, 'index']); // alias
+
+        // Bookings page with DB-fed props (table + chart)
+        Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
+
+        // Other pages (shells)
+        Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
+        Route::get('/clients', fn() => Inertia::render('Web/home/vendors/Client'))->name('clients');
+        Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
+        Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
+        Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
+        Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
+
+        // Units UI
+        Route::get('/units',         $render('Web/home/vendors/Unit'))->name('units');
+        Route::get('/addUnit',       $render('Web/home/vendors/AddUnit'))->name('addUnit');
+        Route::get('/addUnit/{vehicle}', [VehicleController::class, 'edit'])->name('addUnit.edit');
+        Route::get('/unitDetails',   $render('Web/home/vendors/UnitDetails'))->name('unitDetails');
+        Route::get('/unitDetails/{vehicle}', [VehicleController::class, 'detailsPage'])->name('unitDetails.show');
+
+        // Warehouse UI
+        Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
+        Route::get('/warehouse/unit', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('warehouse.unit');
+
+        // Drivers UI
+        Route::get('/drivers', fn() => Inertia::render('Web/components/vendors/driver/Driver'))->name('drivers');
+    });
 
 
+/*
+|--------------------------------------------------------------------------
+| Vendor Backend (JSON / actions)  /vendor/...
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth']) // remove 'auth' here temporarily if testing unauthenticated
+    ->prefix('vendor')
+    ->name('vendor.')
+    ->group(function () {
+        // Vehicles CRUD
+        Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
+        Route::get('/vehicles/list', [VehicleController::class, 'list'])->name('vehicles.list');
+        Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store.compat'); // legacy compat
+        Route::post('/vehicles/store', [VehicleController::class, 'store'])->name('vehicles.store');
+        Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show'])->name('vehicles.show');
+        Route::put('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
+        Route::delete('/vehicles/{vehicle}', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
 
+        // Maintenance
+        Route::post('/vehicles/{vehicle}/maintenance', [VehicleMaintenanceController::class, 'store'])->name('vehicles.maintenance.store');
+        Route::get('/vehicles/{vehicle}/bookings/overlaps', [VehicleMaintenanceController::class, 'overlaps'])->name('vehicles.bookings.overlaps');
+        Route::post('/vehicles/maintenance/notify', [VehicleMaintenanceController::class, 'notify'])->name('vehicles.maintenance.notify');
 
+        // PDF policy
+        Route::post('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'store'])->name('vehicles.policy.store');
+        Route::delete('/vehicles/{vehicle}/policy', [VehiclePolicyController::class, 'destroy'])->name('vehicles.policy.destroy');
+        Route::get('/vehicles/{vehicle}/policy/view', [VehiclePolicyController::class, 'stream'])->name('vehicles.policy.stream');
 
-// for now ==================================================
+        // Drivers JSON CRUD
+        Route::get('/drivers', [DriverController::class, 'index'])->name('drivers.index');
+        Route::post('/drivers', [DriverController::class, 'store'])->name('drivers.store');
+        Route::get('/drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');
+        Route::match(['put', 'post'], '/drivers/{driver}', [DriverController::class, 'update'])->name('drivers.update');
+        Route::delete('/drivers/{driver}', [DriverController::class, 'destroy'])->name('drivers.destroy');
 
-// vendors dashboard - vehicle rental
-Route::get('/bookings', function () {
-    return Inertia::render('Web/home/vendors/Booking');
-})->name('bookings');
+        // Image preview + download (auth-aware)
+        Route::get('/drivers/{driver}/license/stream',   [DriverController::class, 'streamLicense'])->name('drivers.license.stream');
+        Route::get('/drivers/{driver}/license/download', [DriverController::class, 'downloadLicense'])->name('drivers.license.download');
+        Route::get('/drivers/{driver}/nic/stream',       [DriverController::class, 'streamNic'])->name('drivers.nic.stream');
+        Route::get('/drivers/{driver}/nic/download',     [DriverController::class, 'downloadNic'])->name('drivers.nic.download');
+    });
 
-Route::get('/units', function () {
-    return Inertia::render('Web/home/vendors/Unit');
-})->name('units');
+/*
+|--------------------------------------------------------------------------
+| Client dashboard (public shell)
+|--------------------------------------------------------------------------
+*/
+Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->name('ClientDashboard');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Web/home/vendors/Dashboard');
-})->name('dashboard');
+/*
+|--------------------------------------------------------------------------
+| Profile / App Shell
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
-Route::get('/clients', function () {
-    return Inertia::render('Web/home/vendors/Client');
-})->name('clients');
+/*
+|--------------------------------------------------------------------------
+| Legacy redirects (keep all)
+|--------------------------------------------------------------------------
+*/
+Route::redirect('/units', '/vendors/units')->name('units.legacy');
+Route::redirect('/bookings', '/vendors/bookings')->name('bookings.legacy');
+Route::redirect('/clients', '/vendors/clients')->name('clients.legacy');
+Route::redirect('/expenses', '/vendors/expenses')->name('expenses.legacy');
+Route::redirect('/payment', '/vendors/payment')->name('payment.legacy');
+Route::redirect('/tracking', '/vendors/tracking')->name('tracking.legacy');
+Route::redirect('/calendar', '/vendors/calendar')->name('calendar.legacy');
+Route::redirect('/addUnit', '/vendors/addUnit')->name('addUnit.legacy');
+Route::redirect('/unitDetails', '/vendors/unitDetails')->name('unitDetails.legacy');
+Route::redirect('/dashboard', '/vendors/dashbord')->name('dashboard.legacy');
 
-Route::get('/expenses', function () {
-    return Inertia::render('Web/home/vendors/Expenses');
-})->name('expenses');
-
-Route::get('/payment', function () {
-    return Inertia::render('Web/home/vendors/Payment');
-})->name('payment');
-
-Route::get('/tracking', function () {
-    return Inertia::render('Web/home/vendors/Tracking');
-})->name('tracking');
-
-Route::get('/calendar', function () {
-    return Inertia::render('Web/home/vendors/Calendar');
-})->name('calendar');
-
-Route::get('/addUnit', function () {
-    return Inertia::render('Web/home/vendors/AddUnit');
-})->name('addUnit');
-
-Route::get('/mainDashboard', function () {
-    return Inertia::render('Web/home/vendors/MainDashboard');
-})->name('mainDashboard');
+// Route::get('/mainDashboard', function () {
+//     return Inertia::render('Web/home/vendors/MainDashboard');
+// })->name('mainDashboard');
 
 Route::get('/unitDetails', function () {
     return Inertia::render('Web/home/vendors/UnitDetails');
@@ -161,7 +359,43 @@ Route::get('/settingsPage', function () {
 
 // end
 
+//SuperAdmin
 
+Route::get('/SuperAdmin/Dashboard', function () {
+    return Inertia::render('Web/home/SuperAdmin/Dashboard');
+})->name('SuperAdmin.Dashboard');
+
+Route::get('/SuperAdmin/Analytics', function () {
+    return Inertia::render('Web/home/SuperAdmin/Analytics');
+})->name('SuperAdmin.Analytics');
+
+Route::get('/SuperAdmin/Users', function () {
+    return Inertia::render('Web/home/SuperAdmin/Users');
+})->name('SuperAdmin.Users');
+
+Route::get('/SuperAdmin/AddUser', function () {
+    return Inertia::render('Web/home/SuperAdmin/AddUser');
+})->name('SuperAdmin.AddUser');
+
+Route::get('/SuperAdmin/Vehicles', function () {
+    return Inertia::render('Web/home/SuperAdmin/Vehicles');
+})->name('SuperAdmin.Vehicles');
+
+// Route::get('/SuperAdmin/LandVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
+// })->name('SuperAdmin.LandVehicleDetails');
+
+// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
+// })->name('SuperAdmin.SeaVehicleDetails');
+
+// Route::get('/SuperAdmin/AirVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
+// })->name('SuperAdmin.AirVehicleDetails');
+
+Route::get('/SuperAdmin/Vender', function () {
+    return Inertia::render('Web/home/SuperAdmin/NewVender');
+})->name('SuperAdmin.NewVender');
 
 // vendor dashboard - warehouse
 Route::get('/warehouse/bookings', function () {
@@ -208,6 +442,7 @@ Route::get('/warehouse/settingsPage', function () {
     return Inertia::render('Web/home/vendors/warehouse/SettingsPage');
 })->name('warehouse.settingsPage');
 
+// vendor dashboard - warehouse (all protected under auth + role:vendor in group above)
 
 
 // vendor dashboard - ticket booking

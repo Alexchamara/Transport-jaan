@@ -4,6 +4,13 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
+// Override PHP settings for file uploads
+ini_set('upload_max_filesize', '50M');
+ini_set('post_max_size', '100M');
+ini_set('max_file_uploads', '20');
+ini_set('max_execution_time', '300');
+ini_set('memory_limit', '512M');
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',

@@ -50,4 +50,15 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function vehicleLikes()
+    {
+        return $this->hasMany(VehicleLike::class);
+    }
+
+    public function vehicleReviews()
+{
+       return $this->hasMany(VehicleReview::class);
+}
+
 }

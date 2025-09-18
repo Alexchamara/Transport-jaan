@@ -10,6 +10,7 @@ use App\Models\FreightQuote;
 use App\Mail\FreightQuoteSubmitted;
 use Inertia\Inertia;
 use App\Models\Vehicle;
+use App\Models\Warehouse\WarehouseUnit;
 
 
 
@@ -25,13 +26,12 @@ class WebController extends Controller
         $query = \App\Models\Vehicle::with(['images', 'land', 'vendor'])
             ->where('category', 'land');
 
-        // Apply filters if they exist
         if ($request->has('brand')) {
-            $query->where('manufracture', 'like', '%' . $request->brand . '%');
+            $query->where('manufacturer', 'like', '%' . $request->brand . '%');
         }
 
         if ($request->has('bodyType')) {
-            $query->whereHas('land', function ($q) use ($request) {
+            $query->whereHas('landSpec', function ($q) use ($request) {
                 $q->where('body_type', $request->bodyType);
             });
         }
@@ -40,13 +40,13 @@ class WebController extends Controller
             return [
                 'id' => $vehicle->id,
                 'name' => $vehicle->model,
-                'brand' => $vehicle->manufracture,
-                'price' => 89, // You might want to add a price field to your vehicles table
+                'brand' => $vehicle->manufacturer,
+                'price' => 89,
                 'image' => $vehicle->images->first() ? asset('storage/' . $vehicle->images->first()->image_path) : null,
-                'bodyType' => $vehicle->land ? $vehicle->land->body_type : null,
-                'vendor' => $vehicle->vendor ? [
-                    'id' => $vehicle->vendor->id,
-                    'name' => $vehicle->vendor->business_name
+                'bodyType' => $vehicle->landSpec ? $vehicle->landSpec->body_type : null,
+                'vendor' => $vehicle->provider ? [
+                    'id' => $vehicle->provider->id,
+                    'name' => $vehicle->provider->business_name
                 ] : null
             ];
         });
@@ -266,5 +266,117 @@ class WebController extends Controller
     public function warehouse()
     {
         return Inertia::render('Web/home/warehouse/WarehouseHome');
+    }
+
+    public function warehouseList(Request $request)
+    {
+        // Get approved and active warehouses from database
+        $searchParams = $request->all();
+        
+        $query = WarehouseUnit::where('approval_status', 'approved')
+            ->where('is_active', true);
+
+        // Apply filters based on search parameters
+        
+        // Location filter (from both search form and filter sidebar)
+        if (isset($searchParams['location']) && !empty($searchParams['location'])) {
+            $query->where('address', 'LIKE', '%' . $searchParams['location'] . '%');
+        }
+        if (isset($searchParams['warehouseLocation']) && !empty($searchParams['warehouseLocation'])) {
+            $query->where('address', 'LIKE', '%' . $searchParams['warehouseLocation'] . '%');
+        }
+
+        // Warehouse type filter
+        if (isset($searchParams['warehouseType']) && !empty($searchParams['warehouseType'])) {
+            $query->where('type', $searchParams['warehouseType']);
+        }
+
+        // Required space filter (from search form)
+        if (isset($searchParams['requiredSpace']) && !empty($searchParams['requiredSpace'])) {
+            $query->where('total_area', '>=', $searchParams['requiredSpace']);
+        }
+
+        // Size filter (from filter sidebar)
+        if (isset($searchParams['size']) && !empty($searchParams['size'])) {
+            switch ($searchParams['size']) {
+                case 'small':
+                    $query->where('total_area', '<', 5000);
+                    break;
+                case 'medium':
+                    $query->whereBetween('total_area', [5000, 20000]);
+                    break;
+                case 'large':
+                    $query->whereBetween('total_area', [20000, 50000]);
+                    break;
+                case 'xlarge':
+                    $query->where('total_area', '>=', 50000);
+                    break;
+            }
+        }
+
+        // Price filter
+        if (isset($searchParams['price']) && !empty($searchParams['price'])) {
+            switch ($searchParams['price']) {
+                case '0-5000':
+                    $query->where('price', '<=', 5000);
+                    break;
+                case '5000-15000':
+                    $query->whereBetween('price', [5000, 15000]);
+                    break;
+                case '15000-30000':
+                    $query->whereBetween('price', [15000, 30000]);
+                    break;
+                case '30000plus':
+                    $query->where('price', '>=', 30000);
+                    break;
+            }
+        }
+
+        // Features filter (amenities in database)
+        if (isset($searchParams['features']) && !empty($searchParams['features'])) {
+            $features = is_array($searchParams['features']) ? $searchParams['features'] : [$searchParams['features']];
+            foreach ($features as $feature) {
+                $query->whereJsonContains('amenities', $feature);
+            }
+        }
+
+        // Move-in date filter (you can add date-based filtering if needed)
+        // if (isset($searchParams['moveinDate']) && !empty($searchParams['moveinDate'])) {
+        //     // Add date-based filtering logic if your model supports availability dates
+        // }
+
+        // Lease duration filter (you can add duration-based filtering if needed)
+        // if (isset($searchParams['leaseDuration']) && !empty($searchParams['leaseDuration'])) {
+        //     // Add lease duration filtering logic if your model supports it
+        // }
+
+        $warehouses = $query->orderBy('created_at', 'desc')->get();
+
+        return Inertia::render('Web/home/warehouse/WarehouseList', [
+            'warehouses' => $warehouses,
+            'searchParams' => $searchParams
+        ]);
+    }
+
+    public function warehouseDetails(Request $request)
+    {
+        $warehouseData = $request->get('warehouse');
+        
+        if (!$warehouseData) {
+            return redirect()->route('warehouse.list');
+        }
+
+        // Get related warehouses (same type, different warehouse)
+        $relatedWarehouses = WarehouseUnit::where('approval_status', 'approved')
+            ->where('is_active', true)
+            ->where('type', $warehouseData['type'] ?? '')
+            ->where('id', '!=', $warehouseData['id'])
+            ->limit(3)
+            ->get();
+
+        return Inertia::render('Web/home/warehouse/WarehouseDetails', [
+            'warehouse' => $warehouseData,
+            'relatedWarehouses' => $relatedWarehouses
+        ]);
     }
 }

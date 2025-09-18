@@ -226,7 +226,7 @@ export default function Register({ countries = [] }) {
                             <div className="pt-6 border-t border-gray-200">
                                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <Link
-                                        href={route('login')}
+                                        href={route('signin')}
                                         className="text-sm text-indigo-600 hover:text-indigo-500 font-medium transition-colors duration-200 flex items-center gap-1"
                                     >
                                         ← Already have an account? Sign in

@@ -1,66 +1,97 @@
 import React, { useState } from "react";
 
-import wishlist from "../../../assets/landVehicleDetails/whishlist.svg";
-import share from "../../../assets/landVehicleDetails/share.svg";
-import star from "../../../assets/driverBooking/star.svg";
+import star from "../../../../assets/driverBooking/star.svg";
 
 import CarDetailsTab from "./CarDetailsTab";
 import PoliciesTab from "./PoliciesTab";
 import ReviewsTab from "./ReviewsTab";
 import GalleryTab from "./GalleryTab";
 
-import heartB2 from "../../../assets/landVehicleDetails/heartB2.svg"
-
 const VehicleInfo = () => {
-    const [selectedTab, setSelectedTab] = useState("car-details");
+    const [selectedTab, setSelectedTab] = useState("warehouse-details");
+    
+    // Sample warehouse data based on Warehouse model
+    const warehouseData = {
+        name: "Central Cold Storage A",
+        type: "Cold Storage",
+        address: "123 Industrial Ave, Warehouse District",
+        total_area: 2500.00,
+        capacity: 5000.00,
+        pricing_model: "per_sqft_monthly",
+        price: 15.50,
+        amenities: ["Temperature Control", "Loading Dock", "Security", "CCTV"],
+        availability_status: "Available",
+        rating: 4.8,
+        reviews: 44
+    };
+
     return (
         <div className="poppins w-full h-auto">
             <h1 className="text-[12px] font-[600] text-[#00000080]">
-                Lamborghini
+                {warehouseData.type}
             </h1>
             <div className="flex flex-col md:flex-row justify-between">
                 <div className="flex flex-col md:flex-row gap-5">
                     <h1 className="bebas-neue text-[30px]">
-                        Lamborghini <span className="text-[#0955AC]">urus</span>{" "}
-                        (2020)
+                        {warehouseData.name}
                     </h1>
 
                     <div className="flex flex-row items-center gap-2">
-                        <div className="w-[10px] h-[10px] rounded-full bg-[#3C9A34]" />
-                        <h1 className="text-[#3C9A34] text-[10px]">
-                            Available
+                        <div className={`w-[10px] h-[10px] rounded-full ${
+                            warehouseData.availability_status === 'Available' ? 'bg-[#3C9A34]' : 'bg-[#D97706]'
+                        }`} />
+                        <h1 className={`text-[10px] ${
+                            warehouseData.availability_status === 'Available' ? 'text-[#3C9A34]' : 'text-[#D97706]'
+                        }`}>
+                            {warehouseData.availability_status}
                         </h1>
                     </div>
                 </div>
                 <div className="flex flex-col md:flex-row items-center gap-5">
-                    <div className=" w-[81px] h-[30px] rounded-[4px] border-[1px] border-[#00000030] bg-[#EAE9E8] flex flex-row justify-center items-center gap-3">
-                        <img src={share} />
-                        <h1>Share</h1>
-                    </div>
-                    <div className=" w-[81px] h-[30px] rounded-[4px] border-[1px] border-[#0955AC] bg-[#0955AC] text-[#FFFFFF] flex flex-row justify-center items-center gap-3">
-                        <img src={heartB2} />
-                        <h1>Wishlist</h1>
+                    <div className="figtree text-right">
+                        <div className="text-[20px] font-[700]">${warehouseData.price}</div>
+                        <div className="text-[12px] text-[#7B7B7A]">{warehouseData.pricing_model.replace(/_/g, ' ')}</div>
                     </div>
                 </div>
             </div>
 
             <div className="flex flex-row gap-5 text-[12px] font-[600]">
                 <img src={star} />
-                <h1>4.8</h1>
-                <h1 className="underline">44 Reviews</h1>
+                <h1>{warehouseData.rating}</h1>
+                <h1 className="underline">{warehouseData.reviews} Reviews</h1>
+            </div>
+
+            {/* Quick Info Section */}
+            <div className="py-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-[12px] poppins">
+                <div>
+                    <div className="text-[#7B7B7A]">Total Area</div>
+                    <div className="font-[600]">{warehouseData.total_area} sqft</div>
+                </div>
+                <div>
+                    <div className="text-[#7B7B7A]">Capacity</div>
+                    <div className="font-[600]">{warehouseData.capacity} units</div>
+                </div>
+                <div>
+                    <div className="text-[#7B7B7A]">Type</div>
+                    <div className="font-[600]">{warehouseData.type}</div>
+                </div>
+                <div>
+                    <div className="text-[#7B7B7A]">Key Amenities</div>
+                    <div className="font-[600]">{warehouseData.amenities.slice(0, 2).join(', ')}</div>
+                </div>
             </div>
 
             <div className="py-10">
                 <div className="flex flex-col md:flex-row md:gap-20 px-20 text-[12px] font-[600] text-[#00000080] border-b-[2px] border-[#0000001F]">
                     <h1
-                        className={`border-b-[2px] pb-5 w-[92px] flex justify-center items-center cursor-pointer ${
-                            selectedTab === "car-details"
+                        className={`border-b-[2px] pb-5 w-[120px] flex justify-center items-center cursor-pointer ${
+                            selectedTab === "warehouse-details"
                                 ? "border-[#0955AC] text-[#0955AC]"
                                 : ""
                         }`}
-                        onClick={() => setSelectedTab("car-details")}
+                        onClick={() => setSelectedTab("warehouse-details")}
                     >
-                        Car Details
+                        Warehouse Details
                     </h1>
                     <h1
                         className={`border-b-[2px] pb-5 w-[92px] flex justify-center items-center cursor-pointer ${
@@ -96,7 +127,7 @@ const VehicleInfo = () => {
             </div>
 
             {/* Tab Content */}
-            {selectedTab === "car-details" && <CarDetailsTab />}
+            {selectedTab === "warehouse-details" && <CarDetailsTab />}
             {selectedTab === "policies" && <PoliciesTab />}
             {selectedTab === "reviews" && <ReviewsTab />}
             {selectedTab === "gallery" && <GalleryTab />}

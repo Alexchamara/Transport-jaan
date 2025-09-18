@@ -18,7 +18,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Login', [
+        return Inertia::render('Auth/signin', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
         ]);
@@ -36,7 +36,7 @@ class AuthenticatedSessionController extends Controller
         $role = Auth::user()->role;
         
         $redirectTo = match($role) {
-            'client' => route('home'),
+            'client' => route('landingPage.home'),
             'vendor' => route('vendors.mainDashboard'),
             'admin' => route('landingPage.home'),
             default => route('landingPage.home'),

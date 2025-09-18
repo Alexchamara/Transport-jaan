@@ -2,219 +2,110 @@ import React from "react";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 
-const tableData = [
-    {
-        id: "C-JV1001",
-        date: "May 4, 2025",
-        customer: "Steve Gibson",
-        car: "Honda Civic",
-        plate: "CBK - 1475",
-        duration: "7 days",
-        startDate: "May 10, 2025",
-        endDate: "May 17, 2025",
-        price: "$450",
-        paymentStatus: "Paid",
-        paymentColor: "#3B8F314D",
-        paymentBg: "#ACE19957",
-        status: "Ongoing",
-        statusBg: "#FFCD29",
-        statusBorder: "#0000004D",
-        statusText: "#000000",
-    },
-    {
-        id: "C-JV1001",
-        date: "May 4, 2025",
-        customer: "Steve Gibson",
-        car: "Honda Civic",
-        plate: "CBK - 1475",
-        duration: "7 days",
-        startDate: "May 10, 2025",
-        endDate: "May 17, 2025",
-        price: "$50",
-        paymentStatus: "Pending",
-        paymentColor: "#FF6060",
-        paymentBg: "#FF60608C",
-        status: "Ongoing",
-        statusBg: "#FFCD29",
-        statusBorder: "#0000004D",
-        statusText: "#000000",
-    },
-    {
-        id: "C-JV1001",
-        date: "May 4, 2025",
-        customer: "Steve Gibson",
-        car: "Honda Civic",
-        plate: "CBK - 1475",
-        duration: "7 days",
-        startDate: "May 10, 2025",
-        endDate: "May 17, 2025",
-        price: "$450",
-        paymentStatus: "Paid",
-        paymentColor: "#3B8F314D",
-        paymentBg: "#ACE19957",
-        status: "Returned",
-        statusBg: "transparent",
-        statusBorder: "#FFCD29",
-        statusText: "#FFCD29",
-    },
-    {
-        id: "C-JV1001",
-        date: "May 4, 2025",
-        customer: "Steve Gibson",
-        car: "Honda Civic",
-        plate: "CBK - 1475",
-        duration: "7 days",
-        startDate: "May 10, 2025",
-        endDate: "May 17, 2025",
-        price: "$450",
-        paymentStatus: "Paid",
-        paymentColor: "#3B8F314D",
-        paymentBg: "#ACE19957",
-        status: "Ongoing",
-        statusBg: "#FFCD29",
-        statusBorder: "#0000004D",
-        statusText: "#000000",
-    },
-    {
-        id: "C-JV1001",
-        date: "May 4, 2025",
-        customer: "Steve Gibson",
-        car: "Honda Civic",
-        plate: "CBK - 1475",
-        duration: "7 days",
-        startDate: "May 10, 2025",
-        endDate: "May 17, 2025",
-        price: "$450",
-        paymentStatus: "Paid",
-        paymentColor: "#3B8F314D",
-        paymentBg: "#ACE19957",
-        status: "Ongoing",
-        statusBg: "#FFCD29",
-        statusBorder: "#0000004D",
-        statusText: "#000000",
-    },
-];
+const CarBookingTable = ({ rows = [] }) => {
+  // Guard against paginator/object shapes
+  const data = Array.isArray(rows) ? rows : (rows?.data || []);
+  const safe = Array.isArray(data) ? data : [];
 
-const CarBookingTable = () => {
-    return (
-        <div className="py-10">
-            {/* table headings */}
-            <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Book id</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Booking Date</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Client Name</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Car Model</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Plan</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Date</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center ml-10">
-                    <h1>Payment</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Status</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
+  return (
+    <div className="py-10">
+      {/* headers */}
+      <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] items-center rounded-[8px] text-[14px] font-[600] px-10">
+        {[
+          "Book id",
+          "Booking Date",
+          "Client Name",
+          "Car Model",
+          "Plan",
+          "Date",
+          "Payment",
+          "Status",
+        ].map((h) => (
+          <div key={h} className="flex flex-row gap-2 items-center">
+            <h1>{h}</h1>
+            <div className="flex flex-col items-center">
+              <img src={miniUp} className="w-[6px] h-[4px]" />
+              <img src={miniDown} className="w-[6px] h-[4px]" />
             </div>
+          </div>
+        ))}
+      </div>
 
+      {/* rows */}
+      <div>
+        {safe.map((row, index) => (
+          <div
+            key={index}
+            className="grid grid-cols-8 border-b-[1.5px] border-[#00000033] h-[100px] items-center text-[15px] font-[500] px-10"
+          >
+            <div>{row.id}</div>
+            <div>{row.date}</div>
+            <div>{row.customer}</div>
             <div>
-                {tableData.map((row, index) => (
-                    <div
-                        key={index}
-                        className={`grid grid-cols-8 border-b-[1.5px] border-[#00000033] h-[100px] justify-center items-center text-[15px] font-[500] px-10`}
-                    >
-                        <div>{row.id}</div>
-                        <div>{row.date}</div>
-                        <div>{row.customer}</div>
-                        <div>
-                            <h1>{row.car}</h1>
-                            <div className="w-[77px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
-                                {row.plate}
-                            </div>
-                        </div>
-                        <div>{row.duration}</div>
-                        <div className="text-[14px] font-[500] text-[#939392]">
-                            <div className="flex flex-row gap-2 justify-start items-center">
-                                <h1>Start</h1>
-                                <div className="w-[62px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                    {row.startDate}
-                                </div>
-                            </div>
-                            <div className="flex flex-row gap-4 justify-start items-center">
-                                <h1>End</h1>
-                                <div className="w-[62px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                    {row.endDate}
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex flex-col justify-center items-center">
-                            <h1>{row.price}</h1>
-                            <div
-                                className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
-                                style={{
-                                    border: `0.5px solid ${row.paymentColor}`,
-                                    backgroundColor: row.paymentBg,
-                                }}
-                            >
-                                {row.paymentStatus}
-                            </div>
-                        </div>
-                        <div
-                            className="w-[52px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
-                            style={{
-                                backgroundColor: row.statusBg,
-                                border: `1px solid ${row.statusBorder}`,
-                                color: row.statusText,
-                            }}
-                        >
-                            {row.status}
-                        </div>
-                    </div>
-                ))}
+              <h1>{row.car}</h1>
+              <div className="w-[77px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                {row.plate}
+              </div>
             </div>
-        </div>
-    );
+            <div>{row.duration}</div>
+            <div className="text-[14px] font-[500] text-[#939392]">
+              <div className="flex flex-row gap-2 items-center">
+                <h1>Start</h1>
+                <div className="w-[62px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                  {row.startDate}
+                </div>
+              </div>
+              <div className="flex flex-row gap-4 items-center">
+                <h1>End</h1>
+                <div className="w-[62px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                  {row.endDate}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center">
+              <h1>{row.price}</h1>
+              <div
+                className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                style={{
+                  border: `0.5px solid ${
+                    row.paymentStatus === "Paid"
+                      ? "#3B8F314D"
+                      : row.paymentStatus === "Pending"
+                      ? "#FF6060"
+                      : "#FFCD29"
+                  }`,
+                  backgroundColor:
+                    row.paymentStatus === "Paid"
+                      ? "#ACE19957"
+                      : row.paymentStatus === "Pending"
+                      ? "#FF60608C"
+                      : "#FFF7D1",
+                }}
+              >
+                {row.paymentStatus}
+              </div>
+            </div>
+            <div
+              className="w-[52px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+              style={{
+                backgroundColor:
+                  row.status === "Ongoing" ? "#FFCD29" : row.status === "Returned" ? "transparent" : "#D8E4F2",
+                border:
+                  row.status === "Returned" ? "1px solid #FFCD29" : "1px solid #0000004D",
+                color: row.status === "Returned" ? "#FFCD29" : "#000000",
+              }}
+            >
+              {row.status}
+            </div>
+          </div>
+        ))}
+
+        {safe.length === 0 && (
+          <div className="text-sm text-gray-500 px-10 py-6">No bookings yet.</div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default CarBookingTable;

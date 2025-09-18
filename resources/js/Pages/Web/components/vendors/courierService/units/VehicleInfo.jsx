@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 
-import wishlist from "../../../assets/landVehicleDetails/whishlist.svg";
-import share from "../../../assets/landVehicleDetails/share.svg";
-import star from "../../../assets/driverBooking/star.svg";
+import wishlist from "../../../../assets/landVehicleDetails/whishlist.svg";
+import share from "../../../../assets/landVehicleDetails/share.svg";
+import star from "../../../../assets/driverBooking/star.svg";
 
 import CarDetailsTab from "./CarDetailsTab";
 import PoliciesTab from "./PoliciesTab";
 import ReviewsTab from "./ReviewsTab";
 import GalleryTab from "./GalleryTab";
 
-import heartB2 from "../../../assets/landVehicleDetails/heartB2.svg"
+import heartB2 from "../../../../assets/landVehicleDetails/heartB2.svg"
 
 const VehicleInfo = () => {
     const [selectedTab, setSelectedTab] = useState("car-details");

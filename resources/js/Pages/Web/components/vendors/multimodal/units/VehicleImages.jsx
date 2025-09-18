@@ -1,9 +1,9 @@
 import React from "react";
-import imgOne from "../../../assets/landVehicleDetails/imgOne.png";
-import imgTwo from "../../../assets/landVehicleDetails/imgTwo.png";
-import imgThree from "../../../assets/landVehicleDetails/imgThree.png";
-import imgFour from "../../../assets/landVehicleDetails/imgFour.png";
-import imgFive from "../../../assets/landVehicleDetails/imgFive.png";
+import imgOne from "../../../../assets/landVehicleDetails/imgOne.png";
+import imgTwo from "../../../../assets/landVehicleDetails/imgTwo.png";
+import imgThree from "../../../../assets/landVehicleDetails/imgThree.png";
+import imgFour from "../../../../assets/landVehicleDetails/imgFour.png";
+import imgFive from "../../../../assets/landVehicleDetails/imgFive.png";
 
 const VehicleImages = () => {
     return (
