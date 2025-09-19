@@ -1,7 +1,7 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import externalR from "../../../assets/superAdmin/Arrow External Right.png";
-// import exportIcon from "../../../assets/superAdmin/Export-Icon.png";
+import exportIcon from "../../../assets/superAdmin/Export-icon.png";
 import Wmap from "../../../assets/superAdmin/Wmap.png";
 
 const Map = () => {
