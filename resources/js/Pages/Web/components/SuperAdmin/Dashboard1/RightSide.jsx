@@ -37,7 +37,7 @@ const RightSide = ({ userStats }) => {
                     <button className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0955AC] bg-[#0955AC] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm">
                         <h1>Create report</h1>
                     </button>
-                    <button 
+                    <button
                         onClick={handleLogout}
                         className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#DC2626] bg-[#DC2626] hover:bg-[#B91C1C] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm transition-colors duration-200"
                     >
