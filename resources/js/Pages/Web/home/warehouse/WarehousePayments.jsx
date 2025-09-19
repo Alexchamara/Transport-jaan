@@ -1,6 +1,6 @@
 import React from 'react'
 import Header from "../../layouts/Header"
-import Payments from '../../components/WarehouseDetails/Payments'
+import Payments from '../../components/LandVehicleDetails/Payments';
 
 const WarehousePayments = () => {
   return (

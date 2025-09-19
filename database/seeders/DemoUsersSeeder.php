@@ -19,6 +19,7 @@ class DemoUsersSeeder extends Seeder
                 'email' => 'superadmin@gmail.com',
                 'password' => Hash::make('Super1122'),
                 'role' => 'SuperAdmin',
+                'status' => 'verified',
             ]
         );
 
@@ -29,6 +30,7 @@ class DemoUsersSeeder extends Seeder
                 'name' => 'Admin User',
                 'email' => 'admin@demo.test',
                 'password' => Hash::make('password'),
+                'status' => 'verified',
             ]
         );
 
@@ -57,6 +59,7 @@ class DemoUsersSeeder extends Seeder
             'email' => 'vendor@example.com',
             'password' => Hash::make('12345678'),
             'role' => 'vendor',
+            'status' => 'verified',
             'phone' => '9876543210',
             'address' => 'Kandy, Sri Lanka',
             'country' => 'Sri Lanka',

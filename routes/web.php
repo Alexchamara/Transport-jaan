@@ -151,6 +151,63 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/vehicles/{vehicle}/policy/preview', [ClientVehicleController::class, 'policyPreview'])->name('vehicles.policy.preview');
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Super Admin Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\SuperAdminDashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/Analytics', function () {
+        return Inertia::render('Web/home/SuperAdmin/Analytics');
+    })->name('Analytics');
+
+    Route::get('/Users', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('Users');
+
+    // User Management Routes
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('index');
+        Route::get('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'show'])->name('show');
+        Route::put('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'update'])->name('update');
+        Route::delete('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'destroy'])->name('destroy');
+        Route::post('/bulk-delete', [\App\Http\Controllers\SuperAdmin\UserController::class, 'bulkDelete'])->name('bulkDelete');
+        Route::post('/{user}/status', [\App\Http\Controllers\SuperAdmin\UserController::class, 'changeStatus'])->name('changeStatus');
+    });
+
+    Route::get('/AddUser', function () {
+        return Inertia::render('Web/home/SuperAdmin/AddUser');
+    })->name('AddUser');
+
+    Route::get('/Vehicles', function () {
+        return Inertia::render('Web/home/SuperAdmin/Vehicles');
+    })->name('Vehicles');
+
+    Route::get('/LandVehicleDetails', function () {
+        return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
+    })->name('LandVehicleDetails');
+
+    Route::get('/SeaVehicleDetails', function () {
+        return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
+    })->name('SeaVehicleDetails');
+
+    Route::get('/AirVehicleDetails', function () {
+        return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
+    })->name('AirVehicleDetails');
+
+    Route::get('/Vender', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'index'])->name('NewVender');
+
+    // Vendor User Management API Routes
+    Route::prefix('vendors')->name('vendors.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'index'])->name('index');
+        Route::post('/{user}/verify', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'verify'])->name('verify');
+        Route::post('/{user}/block', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'block'])->name('block');
+        Route::post('/{user}/unblock', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'unblock'])->name('unblock');
+        Route::post('/{user}/reject', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'reject'])->name('reject');
+    });
+});
+
 // vendor routes
 Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
     Route::get('/mainDashboard', function () {
@@ -345,6 +402,17 @@ Route::redirect('/addUnit', '/vendors/addUnit')->name('addUnit.legacy');
 Route::redirect('/unitDetails', '/vendors/unitDetails')->name('unitDetails.legacy');
 Route::redirect('/dashboard', '/vendors/dashbord')->name('dashboard.legacy');
 
+// SuperAdmin legacy redirects
+Route::redirect('/SuperAdmin/Dashboard', '/superadmin/dashboard')->name('SuperAdmin.Dashboard.legacy');
+Route::redirect('/SuperAdmin/Analytics', '/superadmin/Analytics')->name('SuperAdmin.Analytics.legacy');
+Route::redirect('/SuperAdmin/Users', '/superadmin/Users')->name('SuperAdmin.Users.legacy');
+Route::redirect('/SuperAdmin/AddUser', '/superadmin/AddUser')->name('SuperAdmin.AddUser.legacy');
+Route::redirect('/SuperAdmin/Vehicles', '/superadmin/Vehicles')->name('SuperAdmin.Vehicles.legacy');
+Route::redirect('/SuperAdmin/LandVehicleDetails', '/superadmin/LandVehicleDetails')->name('SuperAdmin.LandVehicleDetails.legacy');
+Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/SeaVehicleDetails')->name('SuperAdmin.SeaVehicleDetails.legacy');
+Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/AirVehicleDetails')->name('SuperAdmin.AirVehicleDetails.legacy');
+Route::redirect('/SuperAdmin/Vender', '/superadmin/Vender')->name('SuperAdmin.NewVender.legacy');
+
 // Route::get('/mainDashboard', function () {
 //     return Inertia::render('Web/home/vendors/MainDashboard');
 // })->name('mainDashboard');
@@ -358,44 +426,6 @@ Route::get('/settingsPage', function () {
 })->name('settingsPage');
 
 // end
-
-//SuperAdmin
-
-Route::get('/SuperAdmin/Dashboard', function () {
-    return Inertia::render('Web/home/SuperAdmin/Dashboard');
-})->name('SuperAdmin.Dashboard');
-
-Route::get('/SuperAdmin/Analytics', function () {
-    return Inertia::render('Web/home/SuperAdmin/Analytics');
-})->name('SuperAdmin.Analytics');
-
-Route::get('/SuperAdmin/Users', function () {
-    return Inertia::render('Web/home/SuperAdmin/Users');
-})->name('SuperAdmin.Users');
-
-Route::get('/SuperAdmin/AddUser', function () {
-    return Inertia::render('Web/home/SuperAdmin/AddUser');
-})->name('SuperAdmin.AddUser');
-
-Route::get('/SuperAdmin/Vehicles', function () {
-    return Inertia::render('Web/home/SuperAdmin/Vehicles');
-})->name('SuperAdmin.Vehicles');
-
-// Route::get('/SuperAdmin/LandVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
-// })->name('SuperAdmin.LandVehicleDetails');
-
-// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
-// })->name('SuperAdmin.SeaVehicleDetails');
-
-// Route::get('/SuperAdmin/AirVehicleDetails', function () {
-//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
-// })->name('SuperAdmin.AirVehicleDetails');
-
-Route::get('/SuperAdmin/Vender', function () {
-    return Inertia::render('Web/home/SuperAdmin/NewVender');
-})->name('SuperAdmin.NewVender');
 
 // vendor dashboard - warehouse
 Route::get('/warehouse/bookings', function () {

@@ -1,9 +1,48 @@
 import React, { useState } from "react";
 import Eye from "../../../assets/superAdmin/eye.png";
 import { motion } from 'framer-motion';
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 
 const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleVerify = async () => {
+        setIsLoading(true);
+        try {
+            await router.post(`/superadmin/vendors/${user.id}/verify`, {}, {
+                onSuccess: () => {
+                    onClose();
+                    router.reload();
+                },
+                onError: (errors) => {
+                    console.error('Verification failed:', errors);
+                },
+                onFinish: () => setIsLoading(false)
+            });
+        } catch (error) {
+            console.error('Error verifying user:', error);
+            setIsLoading(false);
+        }
+    };
+
+    const handleReject = async () => {
+        setIsLoading(true);
+        try {
+            await router.post(`/superadmin/vendors/${user.id}/reject`, {}, {
+                onSuccess: () => {
+                    onClose();
+                    router.reload();
+                },
+                onError: (errors) => {
+                    console.error('Rejection failed:', errors);
+                },
+                onFinish: () => setIsLoading(false)
+            });
+        } catch (error) {
+            console.error('Error rejecting user:', error);
+            setIsLoading(false);
+        }
+    };
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -54,18 +93,20 @@ const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale:1 }}
-                        className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md"
-                        onClick={onVerify}
+                        className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md disabled:opacity-50"
+                        onClick={handleVerify}
+                        disabled={isLoading}
                     >
-                        Verify
+                        {isLoading ? 'Processing...' : 'Verify'}
                     </motion.button>
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md"
-                        onClick={onReject}
+                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
+                        onClick={handleReject}
+                        disabled={isLoading}
                     >
-                        Reject
+                        {isLoading ? 'Processing...' : 'Reject'}
                     </motion.button>
                     <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -81,92 +122,20 @@ const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
     );
 };
 
-const NewUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
+const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
-    const users = [
-        {
-            name: "John Doe",
-            email: "john.doe@example.com",
-            phone: "+1-555-123-4567",
-            regDate: "2025-09-01",
-            status: "Pending",
-            approval: "Pending",
-        },
-        {
-            name: "Jane Smith",
-            email: "jane.smith@example.com",
-            phone: "+1-555-234-5678",
-            regDate: "2025-09-02",
-            status: "Pending",
-            approval: "Pending",
-        },
-        {
-            name: "Alice Johnson",
-            email: "alice.j@example.com",
-            phone: "+1-555-345-6789",
-            regDate: "2025-09-03",
-            status: "Pending",
-            approval: "Pending",
-        },
-        {
-            name: "Bob Wilson",
-            email: "bob.wilson@example.com",
-            phone: "+1-555-456-7890",
-            regDate: "2025-09-04",
-            status: "Pending",
-            approval: "Pending",
-        },
-        {
-            name: "Emma Brown",
-            email: "emma.brown@example.com",
-            phone: "+1-555-567-8901",
-            regDate: "2025-09-05",
-            status: "Pending",
-            approval: "Pending",
-        },
-        {
-            name: "Michael Lee",
-            email: "michael.lee@example.com",
-            phone: "+1-555-678-9012",
-            regDate: "2025-09-06",
-            status: "Pending",
-            approval: "Pending",
-        },
-        {
-            name: "Sarah Davis",
-            email: "sarah.davis@example.com",
-            phone: "+1-555-789-0123",
-            regDate: "2025-09-07",
-            status: "Pending",
-            approval: "Pending",
-        },
-        {
-            name: "David Clark",
-            email: "david.clark@example.com",
-            phone: "+1-555-890-1234",
-            regDate: "2025-09-08",
-            status: "Pending",
-            approval: "Pending",
-        },
-        {
-            name: "Laura Martinez",
-            email: "laura.m@example.com",
-            phone: "+1-555-901-2345",
-            regDate: "2025-09-09",
-            status: "Pending",
-            approval: "Pending",
-        },
-        {
-            name: "James Taylor",
-            email: "james.taylor@example.com",
-            phone: "+1-555-012-3456",
-            regDate: "2025-09-10",
-            status: "Pending",
-            approval: "Pending",
-        },
-    ];
+    // Use the provided vendors data instead of hardcoded data
+    const users = vendors.map(vendor => ({
+        id: vendor.id,
+        name: vendor.name,
+        email: vendor.email,
+        phone: vendor.phone,
+        regDate: vendor.regDate,
+        status: vendor.status === 'unverified' ? 'Pending' : vendor.status,
+        approval: vendor.approval === 'unverified' ? 'Pending' : vendor.approval,
+    }));
 
     // Filter users based on status and approval
     const filteredUsers = users.filter((user) => {

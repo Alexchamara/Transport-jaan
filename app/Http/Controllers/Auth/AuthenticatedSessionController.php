@@ -34,8 +34,9 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $role = Auth::user()->role;
-        
+
         $redirectTo = match($role) {
+            'SuperAdmin' => route('superadmin.dashboard'),
             'client' => route('landingPage.home'),
             'vendor' => route('vendors.mainDashboard'),
             'admin' => route('landingPage.home'),
