@@ -293,7 +293,7 @@ const TravelExploreAnimation = ({ auth }) => {
                     <div className="pointer-events-none absolute inset-0 bg-black/40" />
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                     <div className="pointer-events-none absolute inset-0 flex items-end justify-center py-5">
-                      <div className="rounded-lg border-[1px] border-[#FF7003] px-3 py-2 text-white/90 font-[700] text-sm backdrop-blur-md bg-black/30 ring-1 ring-white/15 text-center">
+                      <div className="rounded-lg hidden lg:block border-[1px] border-[#FF7003] px-3 py-2 text-white/90 font-[700] text-sm backdrop-blur-md bg-black/30 ring-1 ring-white/15 text-center">
                         {IMAGES[idx].title}
                       </div>
                     </div>
