@@ -1,30 +1,60 @@
 import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import SideMenu from "../../components/SuperAdmin/Dashboard1/SideMenu";
+import Search from "../../assets/superAdmin/Search.png";
+import Car from "../../assets/superAdmin/Car.svg";
+import DotsThreeY from "../../assets/superAdmin/DotsThreeY.svg";
+import Heart from "../../assets/superAdmin/Heart Icon.svg";
+import Dots from "../../assets/superAdmin/Dots Icon.svg";
+import ArrowLeftB from "../../assets/superAdmin/Arrow LeftB.svg";
+import ArrowRight from "../../assets/superAdmin/Arrow Right.svg";
 
 const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
     const [selectedVehicles, setSelectedVehicles] = useState([]);
     const [showBulkActions, setShowBulkActions] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
-
-    // Handle filter changes
-    const handleFilterChange = (key, value) => {
-        const newFilters = { ...filters, [key]: value };
-        if (value === '' || value === 'all') {
-            delete newFilters[key];
-        }
-
-        router.get(route('superadmin.Vehicles'), newFilters, {
-            preserveState: true,
-            preserveScroll: true,
-        });
-    };
+    const [searchTerm, setSearchTerm] = useState(filters.search || '');
+    const [categoryFilter, setCategoryFilter] = useState(filters.category_type || 'all');
+    const [approvalStatusFilter, setApprovalStatusFilter] = useState(filters.approval_status || 'all');
+    const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
 
     // Handle search
     const handleSearch = (e) => {
         if (e.key === 'Enter') {
-            handleFilterChange('search', e.target.value);
+            performSearch();
         }
+    };
+
+    const performSearch = () => {
+        router.get(route('superadmin.Vehicles'), {
+            search: searchTerm,
+            category_type: categoryFilter,
+            approval_status: approvalStatusFilter,
+            status: statusFilter
+        }, {
+            preserveState: true,
+            replace: true
+        });
+    };
+
+    // Handle filter changes
+    const handleFilterChange = (filterType, value) => {
+        const newFilters = {
+            search: searchTerm,
+            category_type: categoryFilter,
+            approval_status: approvalStatusFilter,
+            status: statusFilter,
+            [filterType]: value
+        };
+
+        if (filterType === 'category_type') setCategoryFilter(value);
+        if (filterType === 'approval_status') setApprovalStatusFilter(value);
+        if (filterType === 'status') setStatusFilter(value);
+
+        router.get(route('superadmin.Vehicles'), newFilters, {
+            preserveState: true,
+            replace: true
+        });
     };
 
     // Handle vehicle selection
@@ -94,28 +124,28 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
         });
     };
 
-    // Status badge component
+    // Status badge component - matching Users styling
     const StatusBadge = ({ status, type = 'status' }) => {
         const getStatusClass = () => {
             if (type === 'approval') {
                 switch (status) {
-                    case 'approved': return 'bg-green-100 text-green-800';
-                    case 'pending': return 'bg-yellow-100 text-yellow-800';
-                    case 'rejected': return 'bg-red-100 text-red-800';
-                    default: return 'bg-gray-100 text-gray-800';
+                    case 'approved': return 'text-[10px] px-[8px] py-[2px] bg-[#05C168]/20 text-[#05C168] rounded-[4px]';
+                    case 'pending': return 'text-[10px] px-[8px] py-[2px] bg-[#FDB52A]/20 text-[#FDB52A] rounded-[4px]';
+                    case 'rejected': return 'text-[10px] px-[8px] py-[2px] bg-[#FF4757]/20 text-[#FF4757] rounded-[4px]';
+                    default: return 'text-[10px] px-[8px] py-[2px] bg-[#AEB9E1]/20 text-[#AEB9E1] rounded-[4px]';
                 }
             } else {
                 switch (status) {
-                    case 'active': return 'bg-green-100 text-green-800';
-                    case 'inactive': return 'bg-red-100 text-red-800';
-                    case 'draft': return 'bg-gray-100 text-gray-800';
-                    default: return 'bg-gray-100 text-gray-800';
+                    case 'active': return 'text-[10px] px-[8px] py-[2px] bg-[#05C168]/20 text-[#05C168] rounded-[4px]';
+                    case 'inactive': return 'text-[10px] px-[8px] py-[2px] bg-[#FF4757]/20 text-[#FF4757] rounded-[4px]';
+                    case 'draft': return 'text-[10px] px-[8px] py-[2px] bg-[#AEB9E1]/20 text-[#AEB9E1] rounded-[4px]';
+                    default: return 'text-[10px] px-[8px] py-[2px] bg-[#AEB9E1]/20 text-[#AEB9E1] rounded-[4px]';
                 }
             }
         };
 
         return (
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusClass()}`}>
+            <span className={getStatusClass()}>
                 {status?.charAt(0).toUpperCase() + status?.slice(1)}
             </span>
         );
@@ -124,153 +154,193 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
     return (
         <>
             <Head title="Vehicle Management" />
-            <div className="flex flex-row bg-[#081028] min-h-screen text-white">
-                <div className="w-auto">
+            <div className="flex flex-row bg-[#081028] min-h-screen poppins">
+                <div className="sm:w-full md:w-auto lg:w-auto">
                     <SideMenu />
                 </div>
-
-                <div className="flex-1 p-6">
+                
+                <div className="flex flex-col gap-5 poppins">
                     {/* Header */}
-                    <div className="mb-6">
-                        <h1 className="text-2xl font-bold mb-2">Vehicle Management</h1>
-                        <p className="text-gray-400">Manage and approve vehicles across all categories</p>
+                    <div className="w-[1125px] h-[42px] flex flex-row justify-between items-center px-4 md:px-12 lg:px-47 my-6 md:my-10 lg:my-[25px]">
+                        <div className="flex flex-row justify-center items-center gap-6">
+                            <h1 className="text-white text-base md:text-lg lg:text-[24px] font-poppins">
+                                Vehicles
+                            </h1>
+                            <div className="flex flex-row items-center border border-[#343B4F] bg-[#0B1739] rounded-[4px] overflow-hidden px-2">
+                                <img
+                                    src={Search}
+                                    alt="Search"
+                                    className="size-[12px]"
+                                />
+                                <input
+                                    placeholder="Search for vehicles..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onKeyPress={handleSearch}
+                                    className="bg-transparent text-[#ffffff] text-[12px] outline-none border-none focus:outline-none focus:ring-0 p-2 w-full"
+                                />
+                            </div>
+                        </div>
+
+                        <Link 
+                            className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm" 
+                            href="/superadmin/vehicles/export"
+                        >
+                            <h1>Export Data</h1>
+                        </Link>
+                    </div>
+
+                    {/* Filter buttons */}
+                    <div className="flex flex-row gap-4 mx-12">
+                        <select
+                            value={categoryFilter}
+                            onChange={(e) => handleFilterChange('category_type', e.target.value)}
+                            className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                        >
+                            <option value="all">All Categories</option>
+                            {categories.map((category) => (
+                                <option key={category.type} value={category.type}>
+                                    {category.type.charAt(0).toUpperCase() + category.type.slice(1)}
+                                </option>
+                            ))}
+                        </select>
+
+                        <select
+                            value={approvalStatusFilter}
+                            onChange={(e) => handleFilterChange('approval_status', e.target.value)}
+                            className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                        >
+                            <option value="all">All Approval Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => handleFilterChange('status', e.target.value)}
+                            className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="draft">Draft</option>
+                        </select>
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                        <div className="bg-gray-800 p-4 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-400">{stats.total}</div>
-                            <div className="text-sm text-gray-400">Total Vehicles</div>
-                        </div>
-                        <div className="bg-gray-800 p-4 rounded-lg">
-                            <div className="text-2xl font-bold text-yellow-400">{stats.pending_approval}</div>
-                            <div className="text-sm text-gray-400">Pending Approval</div>
-                        </div>
-                        <div className="bg-gray-800 p-4 rounded-lg">
-                            <div className="text-2xl font-bold text-green-400">{stats.approved}</div>
-                            <div className="text-sm text-gray-400">Approved</div>
-                        </div>
-                        <div className="bg-gray-800 p-4 rounded-lg">
-                            <div className="text-2xl font-bold text-red-400">{stats.rejected}</div>
-                            <div className="text-sm text-gray-400">Rejected</div>
-                        </div>
-                        <div className="bg-gray-800 p-4 rounded-lg">
-                            <div className="text-2xl font-bold text-purple-400">{stats.active}</div>
-                            <div className="text-sm text-gray-400">Active</div>
-                        </div>
-                    </div>
-
-                    {/* Filters */}
-                    <div className="bg-gray-800 p-4 rounded-lg mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                            {/* Search */}
-                            <div>
-                                <input
-                                    type="text"
-                                    placeholder="Search vehicles..."
-                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400"
-                                    defaultValue={filters.search || ''}
-                                    onKeyDown={handleSearch}
-                                />
+                    <div className="w-[1060px] flex flex-row justify-center items-center gap-[22px] mx-[35px]">
+                        {/* Card1 - Total Vehicles */}
+                        <div className="w-[243px] h-[80px] border border-[#343B4F] bg-[#0B1739] my-4 rounded-[10px]">
+                            <div className="w-[220px] flex flex-row justify-between items-center">
+                                <div className="px-2 py-4 flex flex-row items-center gap-2">
+                                    <div className="flex justify-center items-center w-8 h-8 bg-[#CB3CFF]/20 rounded-full">
+                                        <img src={Car} alt="Total Vehicles" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-white text-[16px] font-500">
+                                            Total Vehicles
+                                        </h1>
+                                        <h2 className="text-[#AEB9E1] text-[12px] font-400">
+                                            {stats.total || 0}
+                                        </h2>
+                                    </div>
+                                </div>
+                                <img src={DotsThreeY} alt="Menu" />
                             </div>
+                        </div>
 
-                            {/* Category Filter */}
-                            <div>
-                                <select
-                                    value={filters.category_type || ''}
-                                    onChange={(e) => handleFilterChange('category_type', e.target.value)}
-                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                >
-                                    <option value="">All Categories</option>
-                                    {categories.map((category) => (
-                                        <option key={category.type} value={category.type}>
-                                            {category.type.charAt(0).toUpperCase() + category.type.slice(1)}
-                                        </option>
-                                    ))}
-                                </select>
+                        {/* Card2 - Pending Approval */}
+                        <div className="w-[243px] h-[80px] border border-[#343B4F] bg-[#0B1739] my-4 rounded-[10px]">
+                            <div className="w-[220px] flex flex-row justify-between items-center">
+                                <div className="px-2 py-4 flex flex-row items-center gap-2">
+                                    <div className="flex justify-center items-center w-8 h-8 bg-[#FDB52A]/20 rounded-full">
+                                        <img src={Heart} alt="Pending" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-white text-[16px] font-500">
+                                            Pending
+                                        </h1>
+                                        <h2 className="text-[#AEB9E1] text-[12px] font-400">
+                                            {stats.pending_approval || 0}
+                                        </h2>
+                                    </div>
+                                </div>
+                                <img src={DotsThreeY} alt="Menu" />
                             </div>
+                        </div>
 
-                            {/* Approval Status Filter */}
-                            <div>
-                                <select
-                                    value={filters.approval_status || ''}
-                                    onChange={(e) => handleFilterChange('approval_status', e.target.value)}
-                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                >
-                                    <option value="">All Approval Status</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="approved">Approved</option>
-                                    <option value="rejected">Rejected</option>
-                                </select>
+                        {/* Card3 - Approved */}
+                        <div className="w-[243px] h-[80px] border border-[#343B4F] bg-[#0B1739] my-4 rounded-[10px]">
+                            <div className="w-[220px] flex flex-row justify-between items-center">
+                                <div className="px-2 py-4 flex flex-row items-center gap-2">
+                                    <div className="flex justify-center items-center w-8 h-8 bg-[#05C168]/20 rounded-full">
+                                        <img src={Dots} alt="Approved" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-white text-[16px] font-500">
+                                            Approved
+                                        </h1>
+                                        <h2 className="text-[#AEB9E1] text-[12px] font-400">
+                                            {stats.approved || 0}
+                                        </h2>
+                                    </div>
+                                </div>
+                                <img src={DotsThreeY} alt="Menu" />
                             </div>
+                        </div>
 
-                            {/* Status Filter */}
-                            <div>
-                                <select
-                                    value={filters.status || ''}
-                                    onChange={(e) => handleFilterChange('status', e.target.value)}
-                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                >
-                                    <option value="">All Status</option>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                    <option value="draft">Draft</option>
-                                </select>
-                            </div>
-
-                            {/* Sort */}
-                            <div>
-                                <select
-                                    value={`${filters.sort_by || 'created_at'}_${filters.sort_order || 'desc'}`}
-                                    onChange={(e) => {
-                                        const [sortBy, sortOrder] = e.target.value.split('_');
-                                        router.get(route('superadmin.Vehicles'), {
-                                            ...filters,
-                                            sort_by: sortBy,
-                                            sort_order: sortOrder
-                                        }, { preserveState: true, preserveScroll: true });
-                                    }}
-                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white"
-                                >
-                                    <option value="created_at_desc">Newest First</option>
-                                    <option value="created_at_asc">Oldest First</option>
-                                    <option value="model_asc">Model A-Z</option>
-                                    <option value="model_desc">Model Z-A</option>
-                                    <option value="rental_price_per_day_asc">Price Low-High</option>
-                                    <option value="rental_price_per_day_desc">Price High-Low</option>
-                                </select>
+                        {/* Card4 - Active */}
+                        <div className="w-[243px] h-[80px] border border-[#343B4F] bg-[#0B1739] my-4 rounded-[10px]">
+                            <div className="w-[220px] flex flex-row justify-between items-center">
+                                <div className="px-2 py-4 flex flex-row items-center gap-2">
+                                    <div className="flex justify-center items-center w-8 h-8 bg-[#086CD9]/20 rounded-full">
+                                        <img src={Car} alt="Active" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-white text-[16px] font-500">
+                                            Active
+                                        </h1>
+                                        <h2 className="text-[#AEB9E1] text-[12px] font-400">
+                                            {stats.active || 0}
+                                        </h2>
+                                    </div>
+                                </div>
+                                <img src={DotsThreeY} alt="Menu" />
                             </div>
                         </div>
                     </div>
 
                     {/* Bulk Actions */}
                     {showBulkActions && (
-                        <div className="bg-blue-800 p-4 rounded-lg mb-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <span className="text-sm">{selectedVehicles.length} vehicles selected</span>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleBulkApprove}
-                                        className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm"
-                                    >
-                                        Bulk Approve
-                                    </button>
+                        <div className="w-[1125px] mx-[48px] mb-4">
+                            <div className="border border-[#0E43FB] bg-[#0E43FB]/10 p-4 rounded-[10px]">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <span className="text-white text-sm">{selectedVehicles.length} vehicles selected</span>
+                                    </div>
                                     <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Rejection reason..."
-                                            value={rejectionReason}
-                                            onChange={(e) => setRejectionReason(e.target.value)}
-                                            className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                                        />
                                         <button
-                                            onClick={handleBulkReject}
-                                            className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-sm"
+                                            onClick={handleBulkApprove}
+                                            className="border border-[#05C168] bg-[#05C168] px-4 py-2 rounded-[5px] text-white text-sm hover:bg-[#05C168]/80"
                                         >
-                                            Bulk Reject
+                                            Bulk Approve
                                         </button>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Rejection reason..."
+                                                value={rejectionReason}
+                                                onChange={(e) => setRejectionReason(e.target.value)}
+                                                className="px-3 py-2 border border-[#343B4F] bg-[#0B1739] rounded-[5px] text-white text-sm"
+                                            />
+                                            <button
+                                                onClick={handleBulkReject}
+                                                className="border border-[#FF4757] bg-[#FF4757] px-4 py-2 rounded-[5px] text-white text-sm hover:bg-[#FF4757]/80"
+                                            >
+                                                Bulk Reject
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -278,144 +348,167 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                     )}
 
                     {/* Vehicles Table */}
-                    <div className="bg-gray-800 rounded-lg overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className="bg-gray-700">
-                                    <tr>
-                                        <th className="p-3 text-left">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedVehicles.length === vehicles.data.length && vehicles.data.length > 0}
-                                                onChange={handleSelectAll}
-                                                className="rounded"
-                                            />
-                                        </th>
-                                        <th className="p-3 text-left">Vehicle</th>
-                                        <th className="p-3 text-left">Category</th>
-                                        <th className="p-3 text-left">Owner</th>
-                                        <th className="p-3 text-left">Price/Day</th>
-                                        <th className="p-3 text-left">Status</th>
-                                        <th className="p-3 text-left">Approval</th>
-                                        <th className="p-3 text-left">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-700">
-                                    {vehicles.data.map((vehicle) => (
-                                        <tr key={vehicle.id} className="hover:bg-gray-750">
-                                            <td className="p-3">
+                    <div className="w-[1125px] h-auto mx-[48px]">
+                        <div className="w-[1035px] h-auto border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-[#343B4F]">
+                                            <th className="p-4 text-left">
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedVehicles.includes(vehicle.id)}
-                                                    onChange={() => handleVehicleSelect(vehicle.id)}
-                                                    className="rounded"
+                                                    checked={selectedVehicles.length === vehicles.data.length && vehicles.data.length > 0}
+                                                    onChange={handleSelectAll}
+                                                    className="rounded bg-[#0B1739] border-[#343B4F]"
                                                 />
-                                            </td>
-                                            <td className="p-3">
-                                                <div className="flex items-center gap-3">
-                                                    {vehicle.media && vehicle.media.length > 0 ? (
-                                                        <img
-                                                            src={vehicle.media[0].url}
-                                                            alt={vehicle.model}
-                                                            className="w-12 h-12 rounded object-cover"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-12 h-12 bg-gray-600 rounded flex items-center justify-center">
-                                                            <span className="text-xs text-gray-400">No Image</span>
-                                                        </div>
-                                                    )}
-                                                    <div>
-                                                        <div className="font-medium">{vehicle.manufacturer} {vehicle.model}</div>
-                                                        <div className="text-sm text-gray-400">{vehicle.registration_number}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-3">
-                                                <span className="capitalize">{vehicle.category?.type}</span>
-                                            </td>
-                                            <td className="p-3">
-                                                <div>
-                                                    <div className="font-medium">{vehicle.provider?.name}</div>
-                                                    <div className="text-sm text-gray-400">{vehicle.provider?.email}</div>
-                                                </div>
-                                            </td>
-                                            <td className="p-3">
-                                                <div className="font-medium">${vehicle.rental_price_per_day}</div>
-                                                <div className="text-sm text-gray-400">{vehicle.currency}</div>
-                                            </td>
-                                            <td className="p-3">
-                                                <StatusBadge status={vehicle.status} />
-                                            </td>
-                                            <td className="p-3">
-                                                <StatusBadge status={vehicle.approval_status} type="approval" />
-                                            </td>
-                                            <td className="p-3">
-                                                <div className="flex gap-2">
-                                                    <Link
-                                                        href={route('superadmin.vehicles.show', vehicle.id)}
-                                                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
-                                                    >
-                                                        View
-                                                    </Link>
-                                                    {vehicle.approval_status === 'pending' && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => handleApprovalChange(vehicle.id, 'approved')}
-                                                                className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm"
-                                                            >
-                                                                Approve
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    const reason = prompt('Rejection reason:');
-                                                                    if (reason) handleApprovalChange(vehicle.id, 'rejected', reason);
-                                                                }}
-                                                                className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
-                                                            >
-                                                                Reject
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </td>
+                                            </th>
+                                            <th className="p-4 text-left text-white text-[14px] font-500">Vehicle</th>
+                                            <th className="p-4 text-left text-white text-[14px] font-500">Category</th>
+                                            <th className="p-4 text-left text-white text-[14px] font-500">Owner</th>
+                                            <th className="p-4 text-left text-white text-[14px] font-500">Price/Day</th>
+                                            <th className="p-4 text-left text-white text-[14px] font-500">Status</th>
+                                            <th className="p-4 text-left text-white text-[14px] font-500">Approval</th>
+                                            <th className="p-4 text-left text-white text-[14px] font-500">Actions</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Pagination */}
-                        {vehicles.last_page > 1 && (
-                            <div className="p-4 border-t border-gray-700">
-                                <div className="flex justify-between items-center">
-                                    <div className="text-sm text-gray-400">
-                                        Showing {vehicles.from} to {vehicles.to} of {vehicles.total} results
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {vehicles.links.map((link, index) => (
-                                            <Link
-                                                key={index}
-                                                href={link.url || '#'}
-                                                className={`px-3 py-2 rounded text-sm ${
-                                                    link.active
-                                                        ? 'bg-blue-600 text-white'
-                                                        : link.url
-                                                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                                                            : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                                                }`}
-                                                dangerouslySetInnerHTML={{ __html: link.label }}
-                                            />
+                                    </thead>
+                                    <tbody>
+                                        {vehicles.data.map((vehicle) => (
+                                            <tr key={vehicle.id} className="border-b border-[#343B4F] hover:bg-[#343B4F]/20">
+                                                <td className="p-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedVehicles.includes(vehicle.id)}
+                                                        onChange={() => handleVehicleSelect(vehicle.id)}
+                                                        className="rounded bg-[#0B1739] border-[#343B4F]"
+                                                    />
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex items-center gap-3">
+                                                        {vehicle.media && vehicle.media.length > 0 ? (
+                                                            <img
+                                                                src={vehicle.media[0].url}
+                                                                alt={vehicle.model}
+                                                                className="w-12 h-12 rounded object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-12 h-12 bg-[#343B4F] rounded flex items-center justify-center">
+                                                                <img src={Car} alt="Vehicle" className="w-6 h-6" />
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <div className="text-white text-[14px] font-500">{vehicle.manufacturer} {vehicle.model}</div>
+                                                            <div className="text-[#AEB9E1] text-[12px]">{vehicle.registration_number}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className="text-white text-[14px] capitalize">{vehicle.category?.type}</span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div>
+                                                        <div className="text-white text-[14px] font-500">{vehicle.provider?.name}</div>
+                                                        <div className="text-[#AEB9E1] text-[12px]">{vehicle.provider?.email}</div>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="text-white text-[14px] font-500">${vehicle.rental_price_per_day}</div>
+                                                    <div className="text-[#AEB9E1] text-[12px]">{vehicle.currency}</div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <StatusBadge status={vehicle.status} />
+                                                </td>
+                                                <td className="p-4">
+                                                    <StatusBadge status={vehicle.approval_status} type="approval" />
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex gap-2">
+                                                        <Link
+                                                            href={route('superadmin.vehicles.show', vehicle.id)}
+                                                            className="border border-[#0E43FB] bg-[#0E43FB] px-3 py-1 rounded-[4px] text-white text-[12px] hover:bg-[#0E43FB]/80"
+                                                        >
+                                                            View
+                                                        </Link>
+                                                        {vehicle.approval_status === 'pending' && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleApprovalChange(vehicle.id, 'approved')}
+                                                                    className="border border-[#05C168] bg-[#05C168] px-3 py-1 rounded-[4px] text-white text-[12px] hover:bg-[#05C168]/80"
+                                                                >
+                                                                    Approve
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const reason = prompt('Rejection reason:');
+                                                                        if (reason) handleApprovalChange(vehicle.id, 'rejected', reason);
+                                                                    }}
+                                                                    className="border border-[#FF4757] bg-[#FF4757] px-3 py-1 rounded-[4px] text-white text-[12px] hover:bg-[#FF4757]/80"
+                                                                >
+                                                                    Reject
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
                                         ))}
-                                    </div>
-                                </div>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Pagination */}
+                    <div className="flex flex-row justify-between items-center mt-5 mx-[48px] w-[1032px]">
+                        <h1 className="text-white text-[12px] font-500">
+                            {vehicles.data.length > 0 ? `${vehicles.from} - ${vehicles.to}` : '0'} of {vehicles.total || 0}
+                        </h1>
+                        {vehicles.last_page > 1 && (
+                            <div className="flex flex-row justify-center items-center gap-2">
+                                {vehicles.prev_page_url && (
+                                    <Link 
+                                        href={vehicles.prev_page_url}
+                                        className="flex justify-center items-center w-8 h-8 border border-[#343B4F] bg-[#0B1739] rounded hover:bg-[#343B4F]/20"
+                                    >
+                                        <img src={ArrowLeftB} alt="Previous" />
+                                    </Link>
+                                )}
+                                
+                                {vehicles.links.map((link, index) => {
+                                    if (link.label.includes('Previous') || link.label.includes('Next')) return null;
+                                    return (
+                                        <Link
+                                            key={index}
+                                            href={link.url || '#'}
+                                            className={`flex justify-center items-center w-8 h-8 border rounded text-[12px] ${
+                                                link.active 
+                                                    ? 'border-[#0E43FB] bg-[#0E43FB] text-white' 
+                                                    : link.url 
+                                                        ? 'border-[#343B4F] bg-[#0B1739] text-white hover:bg-[#343B4F]/20' 
+                                                        : 'border-[#343B4F] bg-[#343B4F] text-[#AEB9E1] cursor-not-allowed'
+                                            }`}
+                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                        />
+                                    );
+                                })}
+
+                                {vehicles.next_page_url && (
+                                    <Link 
+                                        href={vehicles.next_page_url}
+                                        className="flex justify-center items-center w-8 h-8 border border-[#343B4F] bg-[#0B1739] rounded hover:bg-[#343B4F]/20"
+                                    >
+                                        <img src={ArrowRight} alt="Next" />
+                                    </Link>
+                                )}
                             </div>
                         )}
                     </div>
 
                     {vehicles.data.length === 0 && (
-                        <div className="bg-gray-800 p-8 rounded-lg text-center">
-                            <div className="text-gray-400 mb-4">No vehicles found</div>
-                            <p className="text-sm text-gray-500">Try adjusting your filters to see more results.</p>
+                        <div className="w-[1125px] mx-[48px]">
+                            <div className="border border-[#343B4F] bg-[#0B1739] p-8 rounded-[10px] text-center">
+                                <div className="text-[#AEB9E1] mb-4">No vehicles found</div>
+                                <p className="text-[12px] text-[#AEB9E1]">Try adjusting your filters to see more results.</p>
+                            </div>
                         </div>
                     )}
                 </div>
