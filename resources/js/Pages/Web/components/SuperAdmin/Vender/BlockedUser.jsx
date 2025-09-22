@@ -1,9 +1,49 @@
 import React, { useState } from "react";
-import Eye from "../../../assets/superAdmin/eye.png";
 import { motion } from "framer-motion";
-import { Link } from "@inertiajs/react";
+import Eye from "../../../assets/superAdmin/eye.png";
 
-const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
+const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyClicked, isPendingClicked }) => {
+    // Function to get button colors based on type
+    const getButtonColors = (type) => {
+        if (type === "verify") {
+            return { bg: "bg-[#05C16833]", hoverBg: "hover:bg-[#05C1684D]", text: "text-[#14CA74]" };
+        } else if (type === "pending") {
+            return { bg: "bg-[#FFB01633]", hoverBg: "hover:bg-[#FFB0164D]", text: "text-[#FDB52A]" };
+        } else if (type === "close") {
+            return { bg: "bg-[#0955AC]", hoverBg: "hover:bg-[#074a92]", text: "text-white" };
+        }
+    };
+
+    // Function to get styles for status
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case "Active":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Inactive":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Suspended":
+                return { border: "border-[#FF5A6533]", bg: "bg-[#FF5A6533]", dot: "bg-[#FF5A65]", text: "text-[#FF5A65]" };
+            case "Blocked":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+        }
+    };
+
+    // Function to get styles for approval
+    const getApprovalStyles = (approval) => {
+        switch (approval) {
+            case "Approved":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Pending":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Rejected":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -23,54 +63,30 @@ const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
                 </h2>
                 <div className="flex flex-col items-start gap-4 px-4">
                     <div className="flex items-center gap-2 w-full">
-                        <span className="font-medium text-gray-300 w-32">
-                            Name:
-                        </span>
+                        <span className="font-medium text-gray-300 w-32">Name:</span>
                         <span className="font-light">{user.name}</span>
                     </div>
                     <div className="flex items-center gap-2 w-full">
-                        <span className="font-medium text-gray-300 w-32">
-                            Email:
-                        </span>
+                        <span className="font-medium text-gray-300 w-32">Email:</span>
                         <span className="font-light">{user.email}</span>
                     </div>
                     <div className="flex items-center gap-2 w-full">
-                        <span className="font-medium text-gray-300 w-32">
-                            Phone:
-                        </span>
+                        <span className="font-medium text-gray-300 w-32">Phone:</span>
                         <span className="font-light">{user.phone}</span>
                     </div>
                     <div className="flex items-center gap-2 w-full">
-                        <span className="font-medium text-gray-300 w-32">
-                            Registered:
-                        </span>
+                        <span className="font-medium text-gray-300 w-32">Registered:</span>
                         <span className="font-light">{user.regDate}</span>
                     </div>
                     <div className="flex items-center gap-2 w-full">
-                        <span className="font-medium text-gray-300 w-32">
-                            Status:
-                        </span>
-                        <span
-                            className={`font-light ${
-                                user.status === "Active"
-                                    ? "text-green-400"
-                                    : "text-[#FF5A65]"
-                            }`}
-                        >
+                        <span className="font-medium text-gray-300 w-32">Status:</span>
+                        <span className={`font-light ${getStatusStyles(user.status).text}`}>
                             {user.status}
                         </span>
                     </div>
                     <div className="flex items-center gap-2 w-full">
-                        <span className="font-medium text-gray-300 w-32">
-                            Approval:
-                        </span>
-                        <span
-                            className={`font-light ${
-                                user.approval === "Approved"
-                                    ? "text-green-400"
-                                    : "text-[#FF5A65]"
-                            }`}
-                        >
+                        <span className="font-medium text-gray-300 w-32">Approval:</span>
+                        <span className={`font-light ${getApprovalStyles(user.approval).text}`}>
                             {user.approval}
                         </span>
                     </div>
@@ -99,15 +115,7 @@ const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md"
-                        onClick={onReject}
-                    >
-                        Unblock
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 1 }}
-                        className="bg-[#0955AC] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#074a92] transition-colors duration-50 shadow-md"
+                        className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("close").bg} ${getButtonColors("close").hoverBg} ${getButtonColors("close").text}`}
                         onClick={onClose}
                     >
                         Close
@@ -118,118 +126,63 @@ const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
     );
 };
 
-const NewUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
+const BlockUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
-
-    const users = [
-        {
-            name: "Amara Patel",
-            email: "amara.patel@example.com",
-            phone: "+1-612-987-6543",
-            regDate: "2025-08-15",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-        {
-            name: "Liam Nguyen",
-            email: "liam.nguyen@example.com",
-            phone: "+1-718-456-7890",
-            regDate: "2025-08-16",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-        {
-            name: "Sofia Alvarez",
-            email: "sofia.alvarez@example.com",
-            phone: "+1-503-234-5678",
-            regDate: "2025-08-17",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-        {
-            name: "Ethan Kim",
-            email: "ethan.kim@example.com",
-            phone: "+1-415-678-9012",
-            regDate: "2025-08-18",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-        {
-            name: "Isabella Rossi",
-            email: "isabella.rossi@example.com",
-            phone: "+1-206-789-0123",
-            regDate: "2025-08-19",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-        {
-            name: "Noah Khan",
-            email: "noah.khan@example.com",
-            phone: "+1-312-890-1234",
-            regDate: "2025-08-20",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-        {
-            name: "Ava Gupta",
-            email: "ava.gupta@example.com",
-            phone: "+1-510-901-2345",
-            regDate: "2025-08-21",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-        {
-            name: "Lucas Ferreira",
-            email: "lucas.ferreira@example.com",
-            phone: "+1-617-012-3456",
-            regDate: "2025-08-22",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-        {
-            name: "Mia Wong",
-            email: "mia.wong@example.com",
-            phone: "+1-720-123-4567",
-            regDate: "2025-08-23",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-        {
-            name: "Oliver Schmidt",
-            email: "oliver.schmidt@example.com",
-            phone: "+1-303-234-6789",
-            regDate: "2025-08-24",
-            status: "Blocked",
-            approval: "Blocked",
-        },
-    ];
+    const [users, setUsers] = useState([
+        { name: "Amara Patel", email: "amara.patel@example.com", phone: "+1-612-987-6543", regDate: "2025-08-15", status: "Blocked", approval: "Blocked" },
+        { name: "Liam Nguyen", email: "liam.nguyen@example.com", phone: "+1-718-456-7890", regDate: "2025-08-16", status: "Blocked", approval: "Blocked" },
+        { name: "Sofia Alvarez", email: "sofia.alvarez@example.com", phone: "+1-503-234-5678", regDate: "2025-08-17", status: "Blocked", approval: "Blocked" },
+        { name: "Ethan Kim", email: "ethan.kim@example.com", phone: "+1-415-678-9012", regDate: "2025-08-18", status: "Blocked", approval: "Blocked" },
+        { name: "Isabella Rossi", email: "isabella.rossi@example.com", phone: "+1-206-789-0123", regDate: "2025-08-19", status: "Blocked", approval: "Blocked" },
+        { name: "Noah Khan", email: "noah.khan@example.com", phone: "+1-312-890-1234", regDate: "2025-08-20", status: "Blocked", approval: "Blocked" },
+        { name: "Ava Gupta", email: "ava.gupta@example.com", phone: "+1-510-901-2345", regDate: "2025-08-21", status: "Blocked", approval: "Blocked" },
+        { name: "Lucas Ferreira", email: "lucas.ferreira@example.com", phone: "+1-617-012-3456", regDate: "2025-08-22", status: "Blocked", approval: "Blocked" },
+        { name: "Mia Wong", email: "mia.wong@example.com", phone: "+1-720-123-4567", regDate: "2025-08-23", status: "Blocked", approval: "Blocked" },
+        { name: "Oliver Schmidt", email: "oliver.schmidt@example.com", phone: "+1-303-234-6789", regDate: "2025-08-24", status: "Blocked", approval: "Blocked" },
+    ]);
+    // State to track button clicks for each user
+    const [buttonClicks, setButtonClicks] = useState({});
 
     // Filter users based on status and approval
     const filteredUsers = users.filter((user) => {
-        const matchesStatus =
-            statusFilter === "all" || user.status === statusFilter;
-        const matchesApproval =
-            approvalFilter === "all" || user.approval === approvalFilter;
+        const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+        const matchesApproval = approvalFilter === "all" || user.approval === approvalFilter;
         return matchesStatus && matchesApproval;
     });
 
     // Log filtered users for debugging
     console.log("Filtered Users:", filteredUsers);
 
-    const getStatusStyles = () => ({
-        border: "border-[#FF5A6533]",
-        bg: "bg-[#FF5A6533]",
-        dot: "bg-[#FF5A65]",
-        text: "text-[#FF5A65]",
-    });
+    // Function to get styles for status
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case "Active":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Inactive":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Suspended":
+                return { border: "border-[#FF5A6533]", bg: "bg-[#FF5A6533]", dot: "bg-[#FF5A65]", text: "text-[#FF5A65]" };
+            case "Blocked":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+        }
+    };
 
-    const getApprovalStyles = () => ({
-        border: "border-[#FF5A6533]",
-        bg: "bg-[#FF5A6533]",
-        dot: "bg-[#FF5A65]",
-        text: "text-[#FF5A65]",
-    });
+    // Function to get styles for approval
+    const getApprovalStyles = (approval) => {
+        switch (approval) {
+            case "Approved":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Pending":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Rejected":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+        }
+    };
 
     const handleViewDetails = (user) => {
         setSelectedUser(user);
@@ -239,6 +192,24 @@ const NewUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedUser(null);
+    };
+
+    const handleStatusAndApprovalChange = (newStatus, newApproval) => {
+        setUsers((prevUsers) =>
+            prevUsers.map((u) =>
+                u.email === selectedUser.email ? { ...u, status: newStatus, approval: newApproval } : u
+            )
+        );
+        setSelectedUser((prev) => (prev ? { ...prev, status: newStatus, approval: newApproval } : prev));
+        // Mark both buttons as clicked for this user
+        setButtonClicks((prev) => ({
+            ...prev,
+            [selectedUser.email]: {
+                ...prev[selectedUser.email],
+                verify: newStatus === "Active" && newApproval === "Approved",
+                pending: newStatus === "Pending" && newApproval === "Pending"
+            },
+        }));
     };
 
     return (
@@ -257,35 +228,23 @@ const NewUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
             {/* Header */}
             <div className="flex flex-row justify-center items-center w-full h-[61px]">
                 <div className="flex flex-row justify-start items-start w-full px-[35px]">
-                    <div className="flex flex-row justify-start items-center gap-4 w-[180px]">
-                        <h1 className="text-white text-[10px] font-400">
-                            User Name
-                        </h1>
+                    <div className="flex flex Abilities row justify-start items-center gap-4 w-[180px]">
+                        <h1 className="text-white text-[10px] font-400">User Name</h1>
                     </div>
                     <div>
-                        <h1 className="text-white text-[10px] font-400 w-[170px]">
-                            Email
-                        </h1>
+                        <h1 className="text-white text-[10px] font-400 w-[170px]">Email</h1>
                     </div>
                     <div>
-                        <h1 className="text-white text-[10px] font-400 w-[150px]">
-                            Phone
-                        </h1>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Phone</h1>
                     </div>
                     <div>
-                        <h1 className="text-white text-[10px] font-400 w-[150px]">
-                            Registration Date
-                        </h1>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Registration Date</h1>
                     </div>
                     <div>
-                        <h1 className="text-white text-[10px] font-400 w-[150px]">
-                            Status
-                        </h1>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Status</h1>
                     </div>
                     <div>
-                        <h1 className="text-white text-[10px] font-400 w-[150px]">
-                            Approval Status
-                        </h1>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Approval Status</h1>
                     </div>
                     <div>
                         <h1 className="text-white text-[10px] font-400"></h1>
@@ -327,21 +286,13 @@ const NewUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
                             </div>
                             <div className="w-[150px]">
                                 <div
-                                    className={`flex flex-row justify-center items-center gap-1 border ${
-                                        getStatusStyles().border
-                                    } ${
-                                        getStatusStyles().bg
-                                    } px-[6px] py-[2px] rounded-[5px] w-[70px]`}
+                                    className={`flex flex-row justify-center items-center gap-1 border ${getStatusStyles(user.status).border} ${getStatusStyles(user.status).bg} px-[6px] py-[2px] rounded-[5px] w-[70px]`}
                                 >
                                     <div
-                                        className={`w-1 h-1 rounded-full ${
-                                            getStatusStyles().dot
-                                        }`}
+                                        className={`w-1 h-1 rounded-full ${getStatusStyles(user.status).dot}`}
                                     />
                                     <h1
-                                        className={`${
-                                            getStatusStyles().text
-                                        } text-[10px] font-500 flex flex-row justify-center items-center`}
+                                        className={`${getStatusStyles(user.status).text} text-[10px] font-500 flex flex-row justify-center items-center`}
                                     >
                                         {user.status}
                                     </h1>
@@ -349,21 +300,13 @@ const NewUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
                             </div>
                             <div className="w-[150px]">
                                 <div
-                                    className={`flex flex-row justify-center items-center gap-1 border ${
-                                        getApprovalStyles().border
-                                    } ${
-                                        getApprovalStyles().bg
-                                    } px-[6px] py-[2px] rounded-[5px] w-[70px]`}
+                                    className={`flex flex-row justify-center items-center gap-1 border ${getApprovalStyles(user.approval).border} ${getApprovalStyles(user.approval).bg} px-[6px] py-[2px] rounded-[5px] w-[70px]`}
                                 >
                                     <div
-                                        className={`w-1 h-1 rounded-full ${
-                                            getApprovalStyles().dot
-                                        }`}
+                                        className={`w-1 h-1 rounded-full ${getApprovalStyles(user.approval).dot}`}
                                     />
                                     <h1
-                                        className={`${
-                                            getApprovalStyles().text
-                                        } text-[10px] font-500 flex flex-row justify-center items-center`}
+                                        className={`${getApprovalStyles(user.approval).text} text-[10px] font-500 flex flex-row justify-center items-center`}
                                     >
                                         {user.approval}
                                     </h1>
@@ -381,10 +324,16 @@ const NewUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
 
             {/* User Details Modal */}
             {isModalOpen && selectedUser && (
-                <UserDetailsModal user={selectedUser} onClose={closeModal} />
+                <UserDetailsModal
+                    user={selectedUser}
+                    onClose={closeModal}
+                    onStatusAndApprovalChange={handleStatusAndApprovalChange}
+                    isVerifyClicked={buttonClicks[selectedUser.email]?.verify || false}
+                    isPendingClicked={buttonClicks[selectedUser.email]?.pending || false}
+                />
             )}
         </div>
     );
 };
 
-export default NewUsers;
+export default BlockUsers;

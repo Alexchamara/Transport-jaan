@@ -302,8 +302,8 @@ const AllUsers = () => {
 
                         {/* 6th Col */}
                         <div className="flex flex-row gap-2 w-[60px]">
-                            <img src={Edit} className="size-[12px]" />
-                            <img src={Bin} className="size-[12px]" />
+                            <img src={Edit} className="size-[12px] cursor-pointer" />
+                            <img src={Bin} className="size-[12px] cursor-pointer" />
                         </div>
                     </div>
                 </div>

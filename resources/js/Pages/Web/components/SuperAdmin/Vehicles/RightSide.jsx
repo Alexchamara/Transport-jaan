@@ -152,7 +152,7 @@ const RightSide = () => {
                     <select
                         value={selectedStatus}
                         onChange={handleStatusFilterChange}
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-[#ffffff] text-[12px] rounded-[4px] p-2 focus:outline-none focus:ring-0"
+                        className="w-full bg-[#0B1739] border border-[#343B4F] text-[#ffffff] text-[12px] rounded-[4px] p-2 focus:outline-none focus:ring-0 focus:border-[#343B4F]"
                     >
                         {statusFilterOptions.map((option, index) => (
                             <option key={index} value={option.value}>
@@ -165,7 +165,7 @@ const RightSide = () => {
                     <select
                         value={selectedApproval}
                         onChange={handleApprovalFilterChange}
-                        className="w-full bg-[#0B1739] border border-[#343B4F] text-[#ffffff] text-[12px] rounded-[4px] p-2 focus:outline-none focus:ring-0"
+                        className="w-full bg-[#0B1739] border border-[#343B4F] text-[#ffffff] text-[12px] rounded-[4px] p-2 focus:outline-none focus:ring-0 focus:border-[#343B4F]"
                     >
                         {approvalFilterOptions.map((option, index) => (
                             <option key={index} value={option.value}>
