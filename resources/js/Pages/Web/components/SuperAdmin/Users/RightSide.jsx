@@ -74,7 +74,10 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         </div>
                     </div>
 
-                    <Link className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm" href="/SuperAdmin/AddUser">
+                    <Link
+                        className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm"
+                        href={route('superadmin.users.create')}
+                    >
                         <h1>Add user</h1>
                     </Link>
                 </div>
@@ -89,6 +92,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         <option value="all">All Roles</option>
                         <option value="client">Clients</option>
                         <option value="vendor">Vendors</option>
+                        <option value="freight">Freight Users</option>
                     </select>
 
                     <select

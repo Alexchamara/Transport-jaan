@@ -169,7 +169,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     // User Management Routes
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\SuperAdmin\UserController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'store'])->name('store');
         Route::get('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'show'])->name('show');
+        Route::get('/{user}/edit', [\App\Http\Controllers\SuperAdmin\UserController::class, 'edit'])->name('edit');
         Route::put('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'update'])->name('update');
         Route::delete('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'destroy'])->name('destroy');
         Route::post('/bulk-delete', [\App\Http\Controllers\SuperAdmin\UserController::class, 'bulkDelete'])->name('bulkDelete');

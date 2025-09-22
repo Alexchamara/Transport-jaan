@@ -133,6 +133,70 @@ class UserController extends Controller
     }
 
     /**
+     * Show the form for creating a new user
+     */
+    public function create()
+    {
+        return Inertia::render('Web/home/SuperAdmin/CreateUser');
+    }
+
+    /**
+     * Store a newly created user
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => ['required', Rule::in(['client', 'vendor', 'freight'])],
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'country' => 'nullable|string|max:100',
+            'date_of_birth' => 'nullable|date',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $request->role,
+            'status' => $request->role === 'vendor' ? 'unverified' : 'verified',
+            'phone' => $request->phone,
+            'address' => $request->address,
+            'country' => $request->country,
+            'date_of_birth' => $request->date_of_birth,
+        ]);
+
+        return redirect()->route('superadmin.Users')->with('success', 'User created successfully!');
+    }
+
+    /**
+     * Show the form for editing a user
+     */
+    public function edit(User $user)
+    {
+        // Prevent editing admin and superadmin users
+        if (in_array($user->role, ['admin', 'SuperAdmin'])) {
+            return redirect()->back()->with('error', 'Access denied');
+        }
+
+        return Inertia::render('Web/home/SuperAdmin/EditUser', [
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'address' => $user->address,
+                'country' => $user->country,
+                'date_of_birth' => $user->date_of_birth,
+                'role' => $user->role,
+                'status' => $user->status,
+            ]
+        ]);
+    }
+
+    /**
      * Update user information
      */
     public function update(Request $request, User $user)
@@ -152,7 +216,7 @@ class UserController extends Controller
             'address' => 'nullable|string|max:500',
             'country' => 'nullable|string|max:100',
             'date_of_birth' => 'nullable|date',
-            'role' => ['required', Rule::in(['client', 'vendor'])],
+            'role' => ['required', Rule::in(['client', 'vendor', 'freight'])],
             'status' => ['required', Rule::in(['verified', 'unverified', 'blocked', 'rejected'])],
             'password' => 'nullable|string|min:8|confirmed',
         ]);
@@ -166,7 +230,8 @@ class UserController extends Controller
 
         $user->update($validated);
 
-        if ($request->wantsJson()) {
+        // For AJAX requests (like from modal), return JSON response
+        if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => 'User updated successfully',
@@ -174,7 +239,7 @@ class UserController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'User updated successfully');
+        return redirect()->route('superadmin.Users')->with('success', 'User updated successfully');
     }
 
     /**

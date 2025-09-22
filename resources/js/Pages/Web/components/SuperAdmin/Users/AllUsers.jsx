@@ -1,263 +1,113 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { router } from "@inertiajs/react";
-import Edit from "../../../assets/superAdmin/Pencil Icon.svg";
-import Bin from "../../../assets/superAdmin/Bin Icon.svg";
 import Eye from "../../../assets/superAdmin/eye.png";
 
-// Edit User Modal Component
-const EditUserModal = ({ user, onClose }) => {
-    const [formData, setFormData] = useState({
-        name: user.name,
-        email: user.email,
-        phone: user.phone || '',
-        address: user.address || '',
-        country: user.country || '',
-        date_of_birth: user.date_of_birth || '',
-        role: user.role,
-        status: user.status,
-        password: '',
-        password_confirmation: ''
-    });
-    const [isLoading, setIsLoading] = useState(false);
-    const [errors, setErrors] = useState({});
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setErrors({});
-
-        // Remove empty password fields
-        const submitData = { ...formData };
-        if (!submitData.password) {
-            delete submitData.password;
-            delete submitData.password_confirmation;
-        }
-
-        router.put(`/superadmin/users/${user.id}`, submitData, {
-            onSuccess: (page) => {
-                onClose();
-                // Force page refresh to get updated data
-                router.reload();
-            },
-            onError: (errors) => {
-                setErrors(errors);
-                setIsLoading(false);
-            },
-            onFinish: () => setIsLoading(false)
-        });
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-lg flex justify-center items-center z-50"
-        >
-            <motion.div
-                initial={{ scale: 0.8, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-8 rounded-2xl text-white w-[600px] max-w-[90vw] max-h-[80vh] overflow-y-auto shadow-2xl"
-            >
-                <h2 className="text-2xl font-semibold mb-6 text-center">Edit User</h2>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Name</label>
-                        <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({...formData, name: e.target.value})}
-                            className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                            required
-                        />
-                        {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Email</label>
-                        <input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({...formData, email: e.target.value})}
-                            className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                            required
-                        />
-                        {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Phone</label>
-                            <input
-                                type="text"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                                className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Country</label>
-                            <input
-                                type="text"
-                                value={formData.country}
-                                onChange={(e) => setFormData({...formData, country: e.target.value})}
-                                className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Address</label>
-                        <input
-                            type="text"
-                            value={formData.address}
-                            onChange={(e) => setFormData({...formData, address: e.target.value})}
-                            className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Role</label>
-                            <select
-                                value={formData.role}
-                                onChange={(e) => setFormData({...formData, role: e.target.value})}
-                                className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                            >
-                                <option value="client">Client</option>
-                                <option value="vendor">Vendor</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Status</label>
-                            <select
-                                value={formData.status}
-                                onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                            >
-                                <option value="verified">Verified</option>
-                                <option value="unverified">Unverified</option>
-                                <option value="blocked">Blocked</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Date of Birth</label>
-                        <input
-                            type="date"
-                            value={formData.date_of_birth}
-                            onChange={(e) => setFormData({...formData, date_of_birth: e.target.value})}
-                            className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">New Password (optional)</label>
-                            <input
-                                type="password"
-                                value={formData.password}
-                                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                                className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Confirm Password</label>
-                            <input
-                                type="password"
-                                value={formData.password_confirmation}
-                                onChange={(e) => setFormData({...formData, password_confirmation: e.target.value})}
-                                className="w-full px-3 py-2 bg-[#0B1739] border border-[#343B4F] rounded text-white"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex gap-4 justify-center mt-6">
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded text-white disabled:opacity-50"
-                        >
-                            {isLoading ? 'Updating...' : 'Update User'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded text-white"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </form>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-// Delete Confirmation Modal
-const DeleteConfirmModal = ({ user, onClose, onConfirm }) => {
-    const [isLoading, setIsLoading] = useState(false);
-
-    const handleDelete = async () => {
-        setIsLoading(true);
-        router.delete(`/superadmin/users/${user.id}`, {
-            onSuccess: () => {
-                onClose();
-            },
-            onError: () => {
-                setIsLoading(false);
-            },
-            onFinish: () => setIsLoading(false)
-        });
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-lg flex justify-center items-center z-50"
-        >
-            <motion.div
-                initial={{ scale: 0.8, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-8 rounded-2xl text-white w-[400px] max-w-[90vw] shadow-2xl"
-            >
-                <h2 className="text-xl font-semibold mb-4 text-center">Delete User</h2>
-                <p className="text-center mb-6">
-                    Are you sure you want to delete <strong>{user.name}</strong>?
-                    This action cannot be undone.
-                </p>
-
-                <div className="flex gap-4 justify-center">
-                    <button
-                        onClick={handleDelete}
-                        disabled={isLoading}
-                        className="bg-red-600 hover:bg-red-700 px-6 py-2 rounded text-white disabled:opacity-50"
-                    >
-                        {isLoading ? 'Deleting...' : 'Delete'}
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded text-white"
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-};
+// User Details Modal with Status Management
 
 // User Details Modal
 const UserDetailsModal = ({ user, onClose }) => {
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const handleStatusChange = async (newStatus) => {
+        setIsUpdating(true);
+
+        router.post(`/superadmin/users/${user.id}/status`,
+            { status: newStatus },
+            {
+                onSuccess: () => {
+                    router.reload();
+                    onClose();
+                },
+                onError: (errors) => {
+                    console.error('Status update failed:', errors);
+                },
+                onFinish: () => setIsUpdating(false)
+            }
+        );
+    };
+
+    const getStatusActionButtons = () => {
+        const buttons = [];
+
+        switch (user.status) {
+            case 'verified':
+                buttons.push(
+                    <motion.button
+                        key="block"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 1 }}
+                        onClick={() => handleStatusChange('blocked')}
+                        disabled={isUpdating}
+                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
+                    >
+                        {isUpdating ? 'Updating...' : 'Block User'}
+                    </motion.button>
+                );
+                break;
+
+            case 'blocked':
+                buttons.push(
+                    <motion.button
+                        key="unblock"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 1 }}
+                        onClick={() => handleStatusChange('verified')}
+                        disabled={isUpdating}
+                        className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md disabled:opacity-50"
+                    >
+                        {isUpdating ? 'Updating...' : 'Unblock User'}
+                    </motion.button>
+                );
+                break;
+
+            case 'unverified':
+                buttons.push(
+                    <motion.button
+                        key="verify"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 1 }}
+                        onClick={() => handleStatusChange('verified')}
+                        disabled={isUpdating}
+                        className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md disabled:opacity-50"
+                    >
+                        {isUpdating ? 'Updating...' : 'Verify User'}
+                    </motion.button>,
+                    <motion.button
+                        key="reject"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 1 }}
+                        onClick={() => handleStatusChange('rejected')}
+                        disabled={isUpdating}
+                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
+                    >
+                        {isUpdating ? 'Updating...' : 'Reject User'}
+                    </motion.button>
+                );
+                break;
+
+            case 'rejected':
+                buttons.push(
+                    <motion.button
+                        key="verify"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 1 }}
+                        onClick={() => handleStatusChange('verified')}
+                        disabled={isUpdating}
+                        className="bg-[#FDB52A] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#E0A01F] transition-colors duration-50 shadow-md disabled:opacity-50"
+                    >
+                        {isUpdating ? 'Updating...' : 'Reinstate User'}
+                    </motion.button>
+                );
+                break;
+
+            default:
+                break;
+        }
+
+        return buttons;
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -268,7 +118,7 @@ const UserDetailsModal = ({ user, onClose }) => {
             <motion.div
                 initial={{ scale: 0.8, y: 50 }}
                 animate={{ scale: 1, y: 0 }}
-                className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-8 rounded-2xl text-white w-[500px] max-w-[90vw] shadow-2xl"
+                className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-8 rounded-2xl text-white w-[650px] max-w-[90vw] shadow-2xl"
             >
                 <h2 className="text-2xl font-semibold mb-6 text-center">User Details</h2>
 
@@ -317,13 +167,22 @@ const UserDetailsModal = ({ user, onClose }) => {
                     </div>
                 </div>
 
-                <div className="flex justify-center mt-6">
-                    <button
-                        onClick={onClose}
-                        className="bg-[#0955AC] hover:bg-[#074a92] px-6 py-2 rounded text-white"
-                    >
-                        Close
-                    </button>
+                {/* Status Action Buttons */}
+
+                {/* Status Action Buttons */}
+                <div className="mt-6 border-t border-gray-600 pt-4 w-full">
+                    <h3 className="text-lg font-medium mb-3 text-center">Status Management</h3>
+                    <div className="mt-8 flex gap-4 justify-center">
+                        {getStatusActionButtons()}
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 1 }}
+                            className="bg-[#0955AC] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#074a92] transition-colors duration-50 shadow-md"
+                            onClick={onClose}
+                        >
+                            Close
+                        </motion.button>
+                    </div>
                 </div>
             </motion.div>
         </motion.div>
@@ -332,8 +191,6 @@ const UserDetailsModal = ({ user, onClose }) => {
 
 const AllUsers = ({ users = [] }) => {
     const [selectedUser, setSelectedUser] = useState(null);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     const getStatusStyles = (status) => {
@@ -370,16 +227,6 @@ const AllUsers = ({ users = [] }) => {
         }
     };
 
-    const handleEdit = (user) => {
-        setSelectedUser(user);
-        setShowEditModal(true);
-    };
-
-    const handleDelete = (user) => {
-        setSelectedUser(user);
-        setShowDeleteModal(true);
-    };
-
     const handleViewDetails = (user) => {
         setSelectedUser(user);
         setShowDetailsModal(true);
@@ -387,8 +234,6 @@ const AllUsers = ({ users = [] }) => {
 
     const closeModals = () => {
         setSelectedUser(null);
-        setShowEditModal(false);
-        setShowDeleteModal(false);
         setShowDetailsModal(false);
     };
 
@@ -408,26 +253,26 @@ const AllUsers = ({ users = [] }) => {
             {/* Header */}
             <div className="flex flex-row justify-center items-center w-full h-[61px]">
                 <div className="flex flex-row justify-start items-start w-full px-[35px]">
-                    <div className="flex flex-row justify-start items-center gap-4 w-[150px]">
-                        <h1 className="text-white text-[10px] font-400">Name</h1>
+                    <div className="flex flex-row justify-start items-center gap-4 w-[180px]">
+                        <h1 className="text-white text-[10px] font-400">User Name</h1>
                     </div>
                     <div>
-                        <h1 className="text-white text-[10px] font-400 w-[180px]">Email</h1>
+                        <h1 className="text-white text-[10px] font-400 w-[230px]">Email</h1>
                     </div>
                     <div>
-                        <h1 className="text-white text-[10px] font-400 w-[120px]">Phone</h1>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Phone</h1>
                     </div>
                     <div>
                         <h1 className="text-white text-[10px] font-400 w-[100px]">Role</h1>
                     </div>
                     <div>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Registration Date</h1>
+                    </div>
+                    <div>
                         <h1 className="text-white text-[10px] font-400 w-[100px]">Status</h1>
                     </div>
                     <div>
-                        <h1 className="text-white text-[10px] font-400 w-[120px]">Registered</h1>
-                    </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[100px]">Actions</h1>
+                        <h1 className="text-white text-[10px] font-400"></h1>
                     </div>
                 </div>
             </div>
@@ -443,32 +288,37 @@ const AllUsers = ({ users = [] }) => {
                     return (
                         <div
                             key={index}
-                            className="flex flex-row justify-center items-center w-full h-[61px] hover:bg-[#1A2233]/30"
+                            className="flex flex-row justify-center items-center w-full h-[61px]"
                         >
-                            <div className="flex flex-row justify-start items-center w-full px-[35px]">
-                                <div className="w-[150px]">
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 truncate">
+                            <div className="flex flex-row justify-start items-start w-full px-[35px]">
+                                <div>
+                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[180px]">
                                         {user.name}
                                     </h1>
                                 </div>
-                                <div className="w-[180px]">
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 truncate">
+                                <div>
+                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[230px]">
                                         {user.email}
                                     </h1>
                                 </div>
-                                <div className="w-[120px]">
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400">
+                                <div>
+                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[150px]">
                                         {user.phone}
                                     </h1>
                                 </div>
-                                <div className="w-[100px]">
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 capitalize">
+                                <div>
+                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[100px] capitalize">
                                         {user.role}
+                                    </h1>
+                                </div>
+                                <div>
+                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[150px]">
+                                        {user.regDate}
                                     </h1>
                                 </div>
                                 <div className="w-[100px]">
                                     <div
-                                        className={`flex flex-row justify-center items-center gap-1 border ${statusStyles.border} ${statusStyles.bg} px-[6px] py-[2px] rounded-[5px] w-[80px]`}
+                                        className={`flex flex-row justify-center items-center gap-1 border ${statusStyles.border} ${statusStyles.bg} px-[6px] py-[2px] rounded-[5px] w-[70px]`}
                                     >
                                         <div className={`w-1 h-1 rounded-full ${statusStyles.dot}`} />
                                         <h1 className={`${statusStyles.text} text-[10px] font-500 capitalize`}>
@@ -476,32 +326,13 @@ const AllUsers = ({ users = [] }) => {
                                         </h1>
                                     </div>
                                 </div>
-                                <div className="w-[120px]">
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400">
-                                        {user.regDate}
-                                    </h1>
-                                </div>
-                                <div className="w-[100px] flex flex-row gap-2">
+                                <div className="w-[20px]">
                                     <button
                                         onClick={() => handleViewDetails(user)}
                                         className="hover:scale-110 transition-transform"
                                         title="View Details"
                                     >
                                         <img src={Eye} alt="View" className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleEdit(user)}
-                                        className="hover:scale-110 transition-transform"
-                                        title="Edit User"
-                                    >
-                                        <img src={Edit} alt="Edit" className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(user)}
-                                        className="hover:scale-110 transition-transform"
-                                        title="Delete User"
-                                    >
-                                        <img src={Bin} alt="Delete" className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
@@ -510,15 +341,7 @@ const AllUsers = ({ users = [] }) => {
                 })
             )}
 
-            {/* Modals */}
-            {showEditModal && selectedUser && (
-                <EditUserModal user={selectedUser} onClose={closeModals} />
-            )}
-
-            {showDeleteModal && selectedUser && (
-                <DeleteConfirmModal user={selectedUser} onClose={closeModals} />
-            )}
-
+            {/* User Details Modal */}
             {showDetailsModal && selectedUser && (
                 <UserDetailsModal user={selectedUser} onClose={closeModals} />
             )}
