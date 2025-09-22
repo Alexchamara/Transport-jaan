@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Eye from "../../../assets/superAdmin/eye.png";
-import { motion } from 'framer-motion';
 import { Link, router } from "@inertiajs/react";
 
 const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {

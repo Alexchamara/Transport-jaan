@@ -56,7 +56,7 @@ const SideMenu = () => {
         } else if (window.location.pathname === "/SuperAdmin/Models/Multimodel") {
             setActiveSubsection("Multimodel");
             setIsModelsOpen(true);
-        } else if (window.location.pathname === "/SuperAdmin/Vender") {
+        } else if (window.location.pathname === "/superadmin/Vender") {
             setActiveSubsection("Vender");
         } else if (window.location.pathname === "/SuperAdmin/AccountSettings") {
             setActiveSubsection("AccountSettings");
@@ -361,7 +361,7 @@ const SideMenu = () => {
 
                     {/* Vender */}
                     <Link
-                        href="/SuperAdmin/Vender"
+                        href="/superadmin/Vender"
                         className={`w-[244px] h-[42px] flex flex-row justify-between items-center cursor-pointer px-4 ${
                             activeSubsection === "Vender"
                                 ? "bg-[#181A2A] rounded-[10px]"
