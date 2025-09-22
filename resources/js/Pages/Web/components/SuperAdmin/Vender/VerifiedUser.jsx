@@ -212,8 +212,8 @@ const VerifiedUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
         // Mark the clicked button as clicked for this user
         setButtonClicks((prev) => ({
             ...prev,
-            [selectedUser.email]: { 
-                ...prev[selectedUser.email], 
+            [selectedUser.email]: {
+                ...prev[selectedUser.email],
                 block: newValue === "Blocked" ? true : prev[selectedUser.email]?.block || false,
                 pending: newValue === "Blocked" ? true : newValue === "Pending" ? true : prev[selectedUser.email]?.pending || false
             },
