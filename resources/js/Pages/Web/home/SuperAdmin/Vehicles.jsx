@@ -190,44 +190,6 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                         </Link>
                     </div>
 
-                    {/* Filter buttons */}
-                    <div className="flex flex-row gap-4 mx-12">
-                        <select
-                            value={categoryFilter}
-                            onChange={(e) => handleFilterChange('category_type', e.target.value)}
-                            className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
-                        >
-                            <option value="all">All Categories</option>
-                            {categories.map((category) => (
-                                <option key={category.type} value={category.type}>
-                                    {category.type.charAt(0).toUpperCase() + category.type.slice(1)}
-                                </option>
-                            ))}
-                        </select>
-
-                        <select
-                            value={approvalStatusFilter}
-                            onChange={(e) => handleFilterChange('approval_status', e.target.value)}
-                            className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
-                        >
-                            <option value="all">All Approval Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => handleFilterChange('status', e.target.value)}
-                            className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="draft">Draft</option>
-                        </select>
-                    </div>
-
                     {/* Stats Cards */}
                     <div className="w-[1060px] flex flex-row justify-center items-center gap-[22px] mx-[35px]">
                         {/* Card1 - Total Vehicles */}
@@ -309,6 +271,65 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                 <img src={DotsThreeY} alt="Menu" />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Filter buttons */}
+                    <div className="flex flex-row gap-4 mx-12">
+                        {/* Category Filter Buttons */}
+                        <div className="flex flex-row gap-2">
+                            <button
+                                onClick={() => handleFilterChange('category_type', 'land')}
+                                className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
+                                    categoryFilter === 'land'
+                                        ? 'border-[#0E43FB] bg-[#0E43FB] text-white'
+                                        : 'border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]'
+                                }`}
+                            >
+                                Land
+                            </button>
+                            <button
+                                onClick={() => handleFilterChange('category_type', 'sea')}
+                                className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
+                                    categoryFilter === 'sea'
+                                        ? 'border-[#0E43FB] bg-[#0E43FB] text-white'
+                                        : 'border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]'
+                                }`}
+                            >
+                                Sea
+                            </button>
+                            <button
+                                onClick={() => handleFilterChange('category_type', 'air')}
+                                className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
+                                    categoryFilter === 'air'
+                                        ? 'border-[#0E43FB] bg-[#0E43FB] text-white'
+                                        : 'border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]'
+                                }`}
+                            >
+                                Air
+                            </button>
+                        </div>
+
+                        <select
+                            value={approvalStatusFilter}
+                            onChange={(e) => handleFilterChange('approval_status', e.target.value)}
+                            className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                        >
+                            <option value="all">All Approval Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => handleFilterChange('status', e.target.value)}
+                            className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="draft">Draft</option>
+                        </select>
                     </div>
 
                     {/* Bulk Actions */}
