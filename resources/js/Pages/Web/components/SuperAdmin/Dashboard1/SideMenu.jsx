@@ -13,13 +13,17 @@ import integrations from "../../../assets/superAdmin/Integrations Icon.png";
 import settings from "../../../assets/superAdmin/Settings Icon.png";
 import webi from "../../../assets/superAdmin/Webflow Icon.png";
 import person from "../../../assets/superAdmin/person.png";
+import LogoutB from '../../../assets/superAdmin/logoutB.png';
+import LogoutR from '../../../assets/superAdmin/logoutR.png';
 import arrow_r from "../../../assets/superAdmin/Arrow Right.png";
-import { Link } from "@inertiajs/react";
+
+import { Link, router } from "@inertiajs/react";
 
 const SideMenu = () => {
     const [activeSubsection, setActiveSubsection] = useState("Reports"); // Default active
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [isModelsOpen, setIsModelsOpen] = useState(false);
+    const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [hoveredSection, setHoveredSection] = useState(null); // Track hovered section
 
     useEffect(() => {
@@ -37,8 +41,26 @@ const SideMenu = () => {
         } else if (window.location.pathname === "/SuperAdmin/Vehicles") {
             setActiveSubsection("Vehicles");
             setIsModelsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/Warehouse") {
+            setActiveSubsection("Warehouse");
+            setIsModelsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/Models/Courier") {
+            setActiveSubsection("Courier");
+            setIsModelsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/Models/Freight") {
+            setActiveSubsection("Freight");
+            setIsModelsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/Models/TicketBooking") {
+            setActiveSubsection("TicketBooking");
+            setIsModelsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/Models/Multimodel") {
+            setActiveSubsection("Multimodel");
+            setIsModelsOpen(true);
         } else if (window.location.pathname === "/SuperAdmin/Vender") {
             setActiveSubsection("Vender");
+        } else if (window.location.pathname === "/SuperAdmin/AccountSettings") {
+            setActiveSubsection("AccountSettings");
+            setIsAccountOpen(true);
         }
     }, [window.location.pathname]);
 
@@ -48,12 +70,25 @@ const SideMenu = () => {
         if (menu === "Dashboard") {
             setIsDashboardOpen((prev) => !prev); // toggle open/close
             setIsModelsOpen(false);
+            setIsAccountOpen(false);
         } else if (menu === "Models") {
             setIsModelsOpen((prev) => !prev); // toggle open/close
             setIsDashboardOpen(false);
+            setIsAccountOpen(false);
+        } else if (menu === "AccountSettings") {
+            setIsAccountOpen((prev) => !prev); // toggle open/close
+            setIsDashboardOpen(false);
+            setIsModelsOpen(false);
         } else {
             setIsDashboardOpen(false);
             setIsModelsOpen(false);
+            setIsAccountOpen(false);
+        }
+    };
+
+    const handleLogout = () => {
+        if (confirm("Are you sure you want to logout?")) {
+            router.post('/logout');
         }
     };
 
@@ -212,7 +247,7 @@ const SideMenu = () => {
                             Vehicles
                         </Link>
                         <Link
-                            href="/SuperAdmin/Models/Warehouse"
+                            href="/SuperAdmin/Warehouse"
                             className={`text-[14px] font-[500] px-4 py-2 ${
                                 activeSubsection === "Warehouse"
                                     ? "text-white bg-[#181A2A]"
@@ -321,12 +356,12 @@ const SideMenu = () => {
                                 Users
                             </h1>
                         </div>
-                        <img src={dropl} className="size-[12px]" />
+                        {/* <img src={dropl} className="size-[12px]" /> */}
                     </Link>
 
                     {/* Vender */}
                     <Link
-                        href="/SuperAdmin/Vender" // Directs to Vender.jsx
+                        href="/SuperAdmin/Vender"
                         className={`w-[244px] h-[42px] flex flex-row justify-between items-center cursor-pointer px-4 ${
                             activeSubsection === "Vender"
                                 ? "bg-[#181A2A] rounded-[10px]"
@@ -357,16 +392,20 @@ const SideMenu = () => {
                                 Vender
                             </h1>
                         </div>
-                        <img src={dropl} className="size-[12px]" />
+                        {/* <img src={dropl} className="size-[12px]" /> */}
                     </Link>
                 </div>
             </div>
 
             {/* Bottom Section */}
             <div className="h-[1px] w-full bg-white/20"></div>
-            <div>
+            <div className="px-[28px] sm:px-4 md:px-[28px] lg:px-[28px]">
+                {/* Settings */}
                 <div
-                    className={`w-full h-[42px] flex flex-row justify-between items-center px-[47px] my-[15px] cursor-pointer hover:bg-[#181A2A] hover:rounded-[10px]`}
+                    className={`w-full h-[42px] flex flex-row justify-between items-center px-4 my-[15px] cursor-pointer rounded-md ${
+                        hoveredSection === "Settings" ? "bg-[#181A2A]" : "hover:bg-[#181A2A]"
+                    }`}
+                    onClick={() => handleMenuClick("Settings")}
                     onMouseEnter={() => setHoveredSection("Settings")}
                     onMouseLeave={() => setHoveredSection(null)}
                 >
@@ -374,59 +413,88 @@ const SideMenu = () => {
                         <img
                             src={settings}
                             className={`size-[14px] ${
-                                hoveredSection === "Settings" ||
-                                activeSubsection === "Settings"
+                                hoveredSection === "Settings" || activeSubsection === "Settings"
                                     ? "filter brightness-0 invert"
                                     : ""
                             }`}
                         />
                         <h1
                             className={`font-[500] text-[18px] ${
-                                activeSubsection === "Settings" ||
-                                hoveredSection === "Settings"
+                                activeSubsection === "Settings" || hoveredSection === "Settings"
                                     ? "text-white"
                                     : "text-[#AEB9E1]"
-                                }`}
-                            >
-                                Settings
-                            </h1>
-                        </div>
-                        <img src={dropl} className="size-[12px]" />
+                            }`}
+                        >
+                            Settings
+                        </h1>
                     </div>
+                    <img src={dropl} className="size-[12px]" alt="Expand" />
+                </div>
 
-                    <div
-                        className={`w-full h-[42px] flex flex-row justify-between items-center px-[47px] my-[25px] cursor-pointer hover:bg-[#181A2A] hover:rounded-[10px]`}
-                        onMouseEnter={() => setHoveredSection("Account Settings")}
-                        onMouseLeave={() => setHoveredSection(null)}
-                    >
-                        <div className="flex flex-row items-center gap-2">
-                            <img src={person} className={"size-[40px]"} />
-                            <h1
-                                className={`flex flex-col text-[18px] font-[500] ${
-                                    activeSubsection === "Account Settings" ||
-                                    hoveredSection === "Account Settings"
+                {/* Account Settings */}
+                <div
+                    className={`w-full h-[42px] flex flex-row justify-between items-center px-4 my-[15px] cursor-pointer rounded-md ${
+                        activeSubsection === "AccountSettings" ? "bg-[#181A2A]" : "hover:bg-[#181A2A]"
+                    }`}
+                    onClick={() => handleMenuClick("AccountSettings")}
+                    onMouseEnter={() => setHoveredSection("AccountSettings")}
+                    onMouseLeave={() => setHoveredSection(null)}
+                >
+                    <div className="flex flex-row items-center gap-2">
+                        <img src={person} className="size-[30px]" alt="User Avatar" />
+                        <h1
+                            className={`flex flex-col text-[18px] font-[500] ${
+                                activeSubsection === "AccountSettings" || hoveredSection === "AccountSettings"
+                                    ? "text-white"
+                                    : "text-[#AEB9E1]"
+                            }`}
+                        >
+                            Jhone Carter
+                            {/* <span
+                                className={`text-[10px] ${
+                                    activeSubsection === "AccountSettings" || hoveredSection === "AccountSettings"
                                         ? "text-white"
                                         : "text-[#AEB9E1]"
                                 }`}
                             >
-                                Jhone Carter
-                                <span
-                                    className={`text-[12px] ${
-                                        activeSubsection === "Account Settings" ||
-                                        hoveredSection === "Account Settings"
-                                            ? "text-white"
-                                            : "text-[#AEB9E1]"
-                                    }`}
-                                >
-                                    Account Settings
-                                </span>
-                            </h1>
-                        </div>
-                        <img src={dropl} className="size-[12px]" />
+                                Account Settings
+                            </span> */}
+                        </h1>
+                    </div>
+                    <img
+                        src={isAccountOpen ? drop : dropl}
+                        className="size-[12px] transition-transform duration-300"
+                        alt={isAccountOpen ? "Collapse" : "Expand"}
+                    />
+                </div>
+
+                {/* Account Settings Dropdown */}
+                <div
+                    className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
+                        isAccountOpen ? "max-h-[100px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
+                    }`}
+                >
+                    <div
+                        className={`text-[14px] font-[500] px-4 py-2 rounded-md cursor-pointer flex items-center gap-2 ${
+                            hoveredSection === "Logout"
+                                ? "text-red-600 bg-[#181A2A]"
+                                : "text-[#AEB9E1]"
+                        }`}
+                        onClick={handleLogout}
+                        onMouseEnter={() => setHoveredSection("Logout")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                    >
+                        <img
+                            src={hoveredSection === "Logout" ? LogoutR : LogoutB}
+                            className="size-[12px]"
+                            alt="Logout Icon"
+                        />
+                        <span>Logout</span>
                     </div>
                 </div>
             </div>
-        );
-    };
+        </div>
+    );
+};
 
-    export default SideMenu;
+export default SideMenu;
