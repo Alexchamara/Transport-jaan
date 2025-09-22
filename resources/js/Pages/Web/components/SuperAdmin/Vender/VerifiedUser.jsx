@@ -106,8 +106,27 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isBlockCli
                         </span>
                     </div>
                 </div>
-
-                <div className="mt-8 flex gap-4 justify-center">
+                <div className="mt-8 flex gap-4 justify-center flex-wrap">
+                    {!isBlockClicked && (
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 1 }}
+                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("block").bg} ${getButtonColors("block").hoverBg} ${getButtonColors("block").text}`}
+                            onClick={() => onStatusAndApprovalChange("Blocked")}
+                        >
+                            Block
+                        </motion.button>
+                    )}
+                    {!isBlockClicked && !isPendingClicked && (
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 1 }}
+                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("pending").bg} ${getButtonColors("pending").hoverBg} ${getButtonColors("pending").text}`}
+                            onClick={() => onStatusAndApprovalChange("Pending")}
+                        >
+                            Pending
+                        </motion.button>
+                    )}
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
