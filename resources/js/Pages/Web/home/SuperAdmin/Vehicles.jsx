@@ -158,7 +158,7 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                 <div className="sm:w-full md:w-auto lg:w-auto">
                     <SideMenu />
                 </div>
-                
+
                 <div className="flex flex-col gap-5 poppins">
                     {/* Header */}
                     <div className="w-[1125px] h-[42px] flex flex-row justify-between items-center px-4 md:px-12 lg:px-47 my-6 md:my-10 lg:my-[25px]">
@@ -182,8 +182,8 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                             </div>
                         </div>
 
-                        <Link 
-                            className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm" 
+                        <Link
+                            className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm"
                             href="/superadmin/vehicles/export"
                         >
                             <h1>Export Data</h1>
@@ -465,14 +465,14 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                         {vehicles.last_page > 1 && (
                             <div className="flex flex-row justify-center items-center gap-2">
                                 {vehicles.prev_page_url && (
-                                    <Link 
+                                    <Link
                                         href={vehicles.prev_page_url}
                                         className="flex justify-center items-center w-8 h-8 border border-[#343B4F] bg-[#0B1739] rounded hover:bg-[#343B4F]/20"
                                     >
                                         <img src={ArrowLeftB} alt="Previous" />
                                     </Link>
                                 )}
-                                
+
                                 {vehicles.links.map((link, index) => {
                                     if (link.label.includes('Previous') || link.label.includes('Next')) return null;
                                     return (
@@ -480,10 +480,10 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                             key={index}
                                             href={link.url || '#'}
                                             className={`flex justify-center items-center w-8 h-8 border rounded text-[12px] ${
-                                                link.active 
-                                                    ? 'border-[#0E43FB] bg-[#0E43FB] text-white' 
-                                                    : link.url 
-                                                        ? 'border-[#343B4F] bg-[#0B1739] text-white hover:bg-[#343B4F]/20' 
+                                                link.active
+                                                    ? 'border-[#0E43FB] bg-[#0E43FB] text-white'
+                                                    : link.url
+                                                        ? 'border-[#343B4F] bg-[#0B1739] text-white hover:bg-[#343B4F]/20'
                                                         : 'border-[#343B4F] bg-[#343B4F] text-[#AEB9E1] cursor-not-allowed'
                                             }`}
                                             dangerouslySetInnerHTML={{ __html: link.label }}
@@ -492,7 +492,7 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                 })}
 
                                 {vehicles.next_page_url && (
-                                    <Link 
+                                    <Link
                                         href={vehicles.next_page_url}
                                         className="flex justify-center items-center w-8 h-8 border border-[#343B4F] bg-[#0B1739] rounded hover:bg-[#343B4F]/20"
                                     >

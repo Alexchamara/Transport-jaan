@@ -243,7 +243,7 @@ const VehicleDetails = ({ vehicle, auth }) => {
                             {/* Approval Actions */}
                             <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-6">
                                 <h3 className="text-white text-[18px] font-500 mb-4">Approval Status</h3>
-                                
+
                                 <div className="mb-4">
                                     <StatusBadge status={vehicle.approval_status} type="approval" />
                                 </div>
