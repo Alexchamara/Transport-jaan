@@ -39,6 +39,7 @@ class Vehicle extends Model
         'extra',
         'status',
         'approval_status',
+        'rejection_reason',
         'description',
         'images_json',
         'insurance_docs_json',

@@ -180,10 +180,17 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         return Inertia::render('Web/home/SuperAdmin/AddUser');
     })->name('AddUser');
 
-    Route::get('/Vehicles', function () {
-        return Inertia::render('Web/home/SuperAdmin/Vehicles');
-    })->name('Vehicles');
+    // Vehicle Management Routes
+    Route::get('/Vehicles', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'index'])->name('Vehicles');
+    Route::get('/vehicles/{vehicle}', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'show'])->name('vehicles.show');
+    Route::put('/vehicles/{vehicle}/approval', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'updateApprovalStatus'])->name('vehicles.approval');
+    Route::put('/vehicles/{vehicle}/status', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'updateStatus'])->name('vehicles.status');
+    Route::delete('/vehicles/{vehicle}', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'destroy'])->name('vehicles.destroy');
+    Route::post('/vehicles/bulk-approve', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'bulkApprove'])->name('vehicles.bulkApprove');
+    Route::post('/vehicles/bulk-reject', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'bulkReject'])->name('vehicles.bulkReject');
+    Route::get('/vehicles/export', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'export'])->name('vehicles.export');
 
+    // Legacy vehicle detail routes (can be updated later to use the main vehicle show route)
     Route::get('/LandVehicleDetails', function () {
         return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
     })->name('LandVehicleDetails');
