@@ -53,7 +53,7 @@ class VehicleController extends Controller
         // Sort options
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
-        
+
         $validSortFields = ['created_at', 'model', 'manufacturer', 'approval_status', 'status', 'rental_price_per_day'];
         if (in_array($sortBy, $validSortFields)) {
             $query->orderBy($sortBy, $sortOrder);
@@ -85,7 +85,7 @@ class VehicleController extends Controller
             'provider',
             'media',
             'airSpec',
-            'seaSpec', 
+            'seaSpec',
             'landSpec',
             'policies',
             'reviews.user'

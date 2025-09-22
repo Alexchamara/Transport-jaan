@@ -13,7 +13,7 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
         if (value === '' || value === 'all') {
             delete newFilters[key];
         }
-        
+
         router.get(route('superadmin.Vehicles'), newFilters, {
             preserveState: true,
             preserveScroll: true,
@@ -30,7 +30,7 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
     // Handle vehicle selection
     const handleVehicleSelect = (vehicleId) => {
         setSelectedVehicles(prev => {
-            const newSelected = prev.includes(vehicleId) 
+            const newSelected = prev.includes(vehicleId)
                 ? prev.filter(id => id !== vehicleId)
                 : [...prev, vehicleId];
             setShowBulkActions(newSelected.length > 0);
@@ -81,7 +81,7 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
             alert('Please provide a rejection reason');
             return;
         }
-        
+
         router.post(route('superadmin.vehicles.bulkReject'), {
             vehicle_ids: selectedVehicles,
             rejection_reason: rejectionReason
@@ -128,7 +128,7 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                 <div className="w-auto">
                     <SideMenu />
                 </div>
-                
+
                 <div className="flex-1 p-6">
                     {/* Header */}
                     <div className="mb-6">
@@ -397,10 +397,10 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                                 key={index}
                                                 href={link.url || '#'}
                                                 className={`px-3 py-2 rounded text-sm ${
-                                                    link.active 
-                                                        ? 'bg-blue-600 text-white' 
-                                                        : link.url 
-                                                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' 
+                                                    link.active
+                                                        ? 'bg-blue-600 text-white'
+                                                        : link.url
+                                                            ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                                                             : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                                                 }`}
                                                 dangerouslySetInnerHTML={{ __html: link.label }}

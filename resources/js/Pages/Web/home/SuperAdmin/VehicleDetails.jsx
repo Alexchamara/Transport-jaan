@@ -54,13 +54,13 @@ const VehicleDetails = ({ vehicle, auth }) => {
                 <div className="w-auto">
                     <SideMenu />
                 </div>
-                
+
                 <div className="flex-1 p-6">
                     {/* Header */}
                     <div className="mb-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <Link 
+                                <Link
                                     href={route('superadmin.Vehicles')}
                                     className="text-blue-400 hover:text-blue-300 mb-2 inline-block"
                                 >
@@ -313,7 +313,7 @@ const VehicleDetails = ({ vehicle, auth }) => {
                             {/* Approval Actions */}
                             <div className="bg-gray-800 rounded-lg p-6">
                                 <h3 className="text-lg font-semibold mb-4">Approval Status</h3>
-                                
+
                                 <div className="mb-4">
                                     <StatusBadge status={vehicle.approval_status} type="approval" />
                                 </div>
