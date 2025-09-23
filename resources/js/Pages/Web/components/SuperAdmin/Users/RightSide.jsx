@@ -82,31 +82,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                     </Link>
                 </div>
 
-                {/* Filter buttons */}
-                <div className="flex flex-row gap-4 mx-12">
-                    <select
-                        value={roleFilter}
-                        onChange={(e) => handleFilterChange('role', e.target.value)}
-                        className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
-                    >
-                        <option value="all">All Roles</option>
-                        <option value="client">Clients</option>
-                        <option value="vendor">Vendors</option>
-                        <option value="freight">Freight Users</option>
-                    </select>
-
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => handleFilterChange('status', e.target.value)}
-                        className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="verified">Verified</option>
-                        <option value="unverified">Unverified</option>
-                        <option value="blocked">Blocked</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                </div>
+               
             </div>
 
             {/* Cards */}
@@ -191,6 +167,32 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                     </div>
                 </div>
             </div>
+
+             {/* Filter buttons */}
+                <div className="flex flex-row gap-4 mx-12">
+                    <select
+                        value={roleFilter}
+                        onChange={(e) => handleFilterChange('role', e.target.value)}
+                        className="w-[110px] text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                    >
+                        <option value="all">All Roles</option>
+                        <option value="client">Clients</option>
+                        <option value="vendor">Vendors</option>
+                        <option value="freight">Freight Users</option>
+                    </select>
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                        className="w-[110px] text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="verified">Verified</option>
+                        <option value="unverified">Unverified</option>
+                        <option value="blocked">Blocked</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
 
             <div className="w-[1125px] h-auto mx-[48px] ">
                 <div className="w-[1035px] h-auto border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
