@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { router } from "@inertiajs/react";
 import {
     LayoutDashboard,
     Building2,
@@ -178,15 +177,7 @@ const SideMenu = () => {
                     <Settings className="w-[25px] h-[25px]" />
                     <h1>Settings</h1>
                 </div>
-                <div
-                    className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer"
-                    role="button"
-                    tabIndex={0}
-                    onClick={handleLogout}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") handleLogout();
-                    }}
-                >
+                <div className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer">
                     <LogOut className="w-[25px] h-[25px]" />
                     <h1>Logout</h1>
                 </Link>
