@@ -15,6 +15,10 @@ export default function Login({ status, canResetPassword }) {
 
     const submit = (e) => {
         e.preventDefault();
+        
+        // Reset the dashboard loaded flag before login
+        localStorage.removeItem('adminDashboardLoaded');
+        
         post(route('login'), {
             onFinish: () => reset('password'),
         });

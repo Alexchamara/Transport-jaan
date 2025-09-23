@@ -25,7 +25,7 @@ const ClientHeader = () => {
 
     const handleLogout = (e) => {
         e.preventDefault();
-        router.post("/logout");
+        router.post(route('logout'));
     };
 
     const toggleMenu = () => {

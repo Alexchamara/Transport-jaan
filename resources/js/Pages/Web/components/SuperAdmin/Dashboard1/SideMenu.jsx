@@ -92,7 +92,9 @@ const SideMenu = () => {
     };
 
     const confirmLogout = () => {
-        router.post('/logout');
+        // Clear the dashboard loaded flag before logging out
+        localStorage.removeItem('adminDashboardLoaded');
+        router.post(route('logout'));
     };
 
     const cancelLogout = () => {

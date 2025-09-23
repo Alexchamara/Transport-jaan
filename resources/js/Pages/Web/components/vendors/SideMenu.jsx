@@ -160,7 +160,7 @@ const SideMenu = () => {
         </div>
 
         <Link
-          href="/logout"
+          href={route('logout')}
           method="post"
           as="button"
           className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer"
