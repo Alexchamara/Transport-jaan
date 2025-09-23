@@ -3,14 +3,45 @@ import { motion } from "framer-motion";
 import Eye from "../../../assets/superAdmin/eye.png";
 import { Link, router } from "@inertiajs/react";
 
-const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
+const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyClicked, isRejectClicked }) => {
     const [isLoading, setIsLoading] = useState(false);
+
+    // Function to get styles for status
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case "Active":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Inactive":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Suspended":
+                return { border: "border-[#FF5A6533]", bg: "bg-[#FF5A6533]", dot: "bg-[#FF5A65]", text: "text-[#FF5A65]" };
+            case "Blocked":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+        }
+    };
+
+    // Function to get styles for approval
+    const getApprovalStyles = (approval) => {
+        switch (approval) {
+            case "Approved":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Pending":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Rejected":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+        }
+    };
 
     const handleVerify = async () => {
         setIsLoading(true);
         try {
             await router.post(`/superadmin/vendors/${user.id}/verify`, {}, {
                 onSuccess: () => {
+                    onStatusAndApprovalChange();
                     onClose();
                     router.reload();
                 },
@@ -127,6 +158,7 @@ const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
 const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [buttonClicks, setButtonClicks] = useState({});
 
     // Use the provided vendors data instead of hardcoded data
     const users = vendors.map(vendor => ({
@@ -186,11 +218,6 @@ const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }
     };
 
     const handleStatusAndApprovalChange = () => {
-        setUsers((prevUsers) =>
-            prevUsers.map((u) =>
-                u.email === selectedUser.email ? { ...u, status: "Active", approval: "Approved" } : u
-            )
-        );
         setSelectedUser((prev) => (prev ? { ...prev, status: "Active", approval: "Approved" } : prev));
         // Mark Verify button as clicked for this user
         setButtonClicks((prev) => ({
@@ -316,6 +343,7 @@ const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }
                     onClose={closeModal}
                     onStatusAndApprovalChange={handleStatusAndApprovalChange}
                     isVerifyClicked={buttonClicks[selectedUser.email]?.verify || false}
+                    isRejectClicked={buttonClicks[selectedUser.email]?.reject || false}
                 />
             )}
         </div>

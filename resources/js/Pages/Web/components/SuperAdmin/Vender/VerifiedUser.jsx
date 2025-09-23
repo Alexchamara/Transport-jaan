@@ -3,14 +3,49 @@ import { motion } from "framer-motion";
 import Eye from "../../../assets/superAdmin/eye.png";
 import { Link, router } from "@inertiajs/react";
 
-const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
+const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isBlockClicked, isPendingClicked }) => {
     const [isLoading, setIsLoading] = useState(false);
+
+    // Function to get styles for status
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case "Active":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Inactive":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Suspended":
+                return { border: "border-[#FF5A6533]", bg: "bg-[#FF5A6533]", dot: "bg-[#FF5A65]", text: "text-[#FF5A65]" };
+            case "Blocked":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            case "Pending":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            default:
+                return { border: "border-[#343B4F]", bg: "bg-[#0B1739]", dot: "bg-[#AEB9E1]", text: "text-[#AEB9E1]" };
+        }
+    };
+
+    // Function to get styles for approval
+    const getApprovalStyles = (approval) => {
+        switch (approval) {
+            case "Approved":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Pending":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Rejected":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            case "Blocked":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#343B4F]", bg: "bg-[#0B1739]", dot: "bg-[#AEB9E1]", text: "text-[#AEB9E1]" };
+        }
+    };
 
     const handleBlock = async () => {
         setIsLoading(true);
         try {
             await router.post(`/superadmin/vendors/${user.id}/block`, {}, {
                 onSuccess: () => {
+                    onStatusAndApprovalChange("Blocked");
                     onClose();
                     router.reload();
                 },
@@ -85,7 +120,7 @@ const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("close").bg} ${getButtonColors("close").hoverBg} ${getButtonColors("close").text}`}
+                        className="bg-[#0955AC] text-white text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#074a92] transition-colors duration-50 shadow-md"
                         onClick={onClose}
                     >
                         Close
@@ -99,6 +134,7 @@ const UserDetailsModal = ({ user, onClose, onVerify, onReject }) => {
 const VerifiedUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [buttonClicks, setButtonClicks] = useState({});
 
     // Use the provided vendors data instead of hardcoded data
     const users = vendors.map(vendor => ({
@@ -165,11 +201,6 @@ const VerifiedUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "a
     };
 
     const handleStatusAndApprovalChange = (newValue) => {
-        setUsers((prevUsers) =>
-            prevUsers.map((u) =>
-                u.email === selectedUser.email ? { ...u, status: newValue, approval: newValue } : u
-            )
-        );
         setSelectedUser((prev) => (prev ? { ...prev, status: newValue, approval: newValue } : prev));
         // Mark the clicked button as clicked for this user
         setButtonClicks((prev) => ({
