@@ -179,11 +179,6 @@ const NewUsers = () => {
     };
 
     const handleStatusAndApprovalChange = () => {
-        setUsers((prevUsers) =>
-            prevUsers.map((u) =>
-                u.email === selectedUser.email ? { ...u, status: "Active", approval: "Approved" } : u
-            )
-        );
         setSelectedUser((prev) => (prev ? { ...prev, status: "Active", approval: "Approved" } : prev));
         // Mark Verify button as clicked for this user
         setButtonClicks((prev) => ({
@@ -309,6 +304,7 @@ const NewUsers = () => {
                     onClose={closeModal}
                     onStatusAndApprovalChange={handleStatusAndApprovalChange}
                     isVerifyClicked={buttonClicks[selectedUser.email]?.verify || false}
+                    isRejectClicked={buttonClicks[selectedUser.email]?.reject || false}
                 />
             )}
         </div>

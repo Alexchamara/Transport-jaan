@@ -115,7 +115,7 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("close").bg} ${getButtonColors("close").hoverBg} ${getButtonColors("close").text}`}
+                        className="bg-[#0955AC] text-white text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#074a92] transition-colors duration-50 shadow-md"
                         onClick={onClose}
                     >
                         Close
@@ -195,11 +195,6 @@ const BlockUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
     };
 
     const handleStatusAndApprovalChange = (newStatus, newApproval) => {
-        setUsers((prevUsers) =>
-            prevUsers.map((u) =>
-                u.email === selectedUser.email ? { ...u, status: newStatus, approval: newApproval } : u
-            )
-        );
         setSelectedUser((prev) => (prev ? { ...prev, status: newStatus, approval: newApproval } : prev));
         // Mark both buttons as clicked for this user
         setButtonClicks((prev) => ({
