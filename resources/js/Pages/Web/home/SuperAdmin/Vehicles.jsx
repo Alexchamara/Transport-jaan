@@ -447,8 +447,8 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
 
                     {/* Bulk Actions */}
                     {showBulkActions && (
-                        <div className="w-[1040px] mx-[48px] mb-4">
-                            <div className="border border-[#0E43FB] bg-[#0E43FB]/10 p-4 rounded-[10px]">
+                        <div className="w-[1040px] mx-[48px] mb-4 ">
+                            <div className="border border-[#343B4F] bg-[#0E43FB]/10 p-4 rounded-[10px]">
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <span className="text-white text-sm">
@@ -473,7 +473,7 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                                         e.target.value
                                                     )
                                                 }
-                                                className="px-3 py-2 border border-[#343B4F] bg-[#0B1739] rounded-[5px] text-white text-sm"
+                                                className="px-3 py-2 border border-[#343B4F] bg-[#0B1739] rounded-[5px] text-white text-sm outline-none bg-transparent focus:outline-none focus:ring-0 focus:border-[#343B4F] focus:shadow-none"
                                             />
                                             <button
                                                 onClick={handleBulkReject}
@@ -499,14 +499,23 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                                 <th className="p-4 text-left">
                                                     <input
                                                         type="checkbox"
+                                                        style={{
+                                                            boxShadow: "none",
+                                                            WebkitAppearance:
+                                                                "none",
+                                                            MozAppearance:
+                                                                "none",
+                                                        }}
                                                         checked={
                                                             selectedVehicles.length ===
                                                                 vehicles.data
                                                                     .length &&
-                                                            vehicles.data.length >
-                                                                0
+                                                            vehicles.data
+                                                                .length > 0
                                                         }
-                                                        onChange={handleSelectAll}
+                                                        onChange={
+                                                            handleSelectAll
+                                                        }
                                                         className="rounded bg-[#0B1739] border-[#343B4F]"
                                                     />
                                                 </th>
@@ -542,6 +551,14 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                                     <td className="p-4">
                                                         <input
                                                             type="checkbox"
+                                                            style={{
+                                                                boxShadow:
+                                                                    "none",
+                                                                WebkitAppearance:
+                                                                    "none",
+                                                                MozAppearance:
+                                                                    "none",
+                                                            }}
                                                             checked={selectedVehicles.includes(
                                                                 vehicle.id
                                                             )}
@@ -556,14 +573,13 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                                     <td className="p-4">
                                                         <div className="flex items-center gap-3">
                                                             {vehicle.media &&
-                                                            vehicle.media.length >
-                                                                0 ? (
+                                                            vehicle.media
+                                                                .length > 0 ? (
                                                                 <img
                                                                     src={
                                                                         vehicle
-                                                                            .media[
-                                                                            0
-                                                                        ].url
+                                                                            .media[0]
+                                                                            .url
                                                                     }
                                                                     alt={
                                                                         vehicle.model
@@ -600,20 +616,25 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                                     </td>
                                                     <td className="p-4">
                                                         <span className="text-white text-[14px] capitalize">
-                                                            {vehicle.category?.type}
+                                                            {
+                                                                vehicle.category
+                                                                    ?.type
+                                                            }
                                                         </span>
                                                     </td>
                                                     <td className="p-4">
                                                         <div>
                                                             <div className="text-white text-[14px] font-500">
                                                                 {
-                                                                    vehicle.provider
+                                                                    vehicle
+                                                                        .provider
                                                                         ?.name
                                                                 }
                                                             </div>
                                                             <div className="text-[#AEB9E1] text-[12px]">
                                                                 {
-                                                                    vehicle.provider
+                                                                    vehicle
+                                                                        .provider
                                                                         ?.email
                                                                 }
                                                             </div>
@@ -730,7 +751,10 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                                             href={vehicles.prev_page_url}
                                             className="flex justify-center items-center w-8 h-8 border border-[#343B4F] bg-[#0B1739] rounded hover:bg-[#343B4F]/20"
                                         >
-                                            <img src={ArrowLeftB} alt="Previous" />
+                                            <img
+                                                src={ArrowLeftB}
+                                                alt="Previous"
+                                            />
                                         </Link>
                                     )}
 
