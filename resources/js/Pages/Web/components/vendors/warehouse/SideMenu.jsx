@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "@inertiajs/react";
 import {
     LayoutDashboard,
     Building2,
@@ -180,7 +181,7 @@ const SideMenu = () => {
                 <div className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer" onClick={handleLogout}>
                     <LogOut className="w-[25px] h-[25px]" />
                     <h1>Logout</h1>
-                </div>
+                </Link>
             </div>
         </div>
     );
