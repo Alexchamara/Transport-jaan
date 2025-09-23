@@ -193,7 +193,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         <option value="rejected">Rejected</option>
                     </select>
                 </div>
-
+  
             <div className="w-[1125px] h-auto mx-[48px] ">
                 <div className="w-[1035px] h-auto border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
                     <AllUsers users={users} />
