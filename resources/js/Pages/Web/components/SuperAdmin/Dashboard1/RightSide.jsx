@@ -1,8 +1,6 @@
 import React from "react";
-import { router } from "@inertiajs/react";
 import calender from "../../../assets/superAdmin/Calendar Icon.png";
 import dropD from "../../../assets/superAdmin/Chevron Down.png";
-import logoutIcon from "../../../assets/vendors/dashboard/logOutLogo.svg";
 import Cards from "../Cards";
 import TotalRevenueChart from "./TotalRevenueChart";
 import ProfitChart from "./ProfitChart";
@@ -12,10 +10,6 @@ import RecentOrders from "./RecentOrders";
 import Map from "./Map";
 
 const RightSide = ({ userStats }) => {
-    const handleLogout = (e) => {
-        e.preventDefault();
-        router.post("/logout");
-    };
 
     return (
         <div>
@@ -32,17 +26,6 @@ const RightSide = ({ userStats }) => {
                     </button>
                     <button className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0955AC] bg-[#0955AC] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm">
                         <h1>Create report</h1>
-                    </button>
-                    <button
-                        onClick={handleLogout}
-                        className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#DC2626] bg-[#DC2626] hover:bg-[#B91C1C] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm transition-colors duration-200"
-                    >
-                        <h1>Logout</h1>
-                        <img
-                            src={logoutIcon}
-                            className="size-[12px] md:w-[10px] md:h-[10px]"
-                            alt="logout"
-                        />
                     </button>
                 </div>
             </div>
