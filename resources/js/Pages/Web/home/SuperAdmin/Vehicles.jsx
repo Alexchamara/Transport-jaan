@@ -26,12 +26,21 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
     };
 
     const performSearch = () => {
-        router.get(route('superadmin.Vehicles'), {
+        const newFilters = {
             search: searchTerm,
-            category_type: categoryFilter,
-            approval_status: approvalStatusFilter,
-            status: statusFilter
-        }, {
+            category_type: categoryFilter === 'all' ? '' : categoryFilter,
+            approval_status: approvalStatusFilter === 'all' ? '' : approvalStatusFilter,
+            status: statusFilter === 'all' ? '' : statusFilter
+        };
+
+        // Remove empty filters from the request
+        Object.keys(newFilters).forEach(key => {
+            if (newFilters[key] === '' || newFilters[key] === 'all') {
+                delete newFilters[key];
+            }
+        });
+
+        router.get(route('superadmin.Vehicles'), newFilters, {
             preserveState: true,
             replace: true
         });
@@ -39,13 +48,26 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
 
     // Handle filter changes
     const handleFilterChange = (filterType, value) => {
+        console.log('Filter change:', filterType, value);
+
+        // Convert "all" to empty string for the API call
+        const filterValue = value === 'all' ? '' : value;
+
         const newFilters = {
             search: searchTerm,
-            category_type: categoryFilter,
-            approval_status: approvalStatusFilter,
-            status: statusFilter,
-            [filterType]: value
+            category_type: filterType === 'category_type' ? filterValue : (categoryFilter === 'all' ? '' : categoryFilter),
+            approval_status: filterType === 'approval_status' ? filterValue : (approvalStatusFilter === 'all' ? '' : approvalStatusFilter),
+            status: filterType === 'status' ? filterValue : (statusFilter === 'all' ? '' : statusFilter)
         };
+
+        // Remove empty filters from the request
+        Object.keys(newFilters).forEach(key => {
+            if (newFilters[key] === '' || newFilters[key] === 'all') {
+                delete newFilters[key];
+            }
+        });
+
+        console.log('Sending filters:', newFilters);
 
         if (filterType === 'category_type') setCategoryFilter(value);
         if (filterType === 'approval_status') setApprovalStatusFilter(value);
@@ -278,6 +300,16 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                         {/* Category Filter Buttons */}
                         <div className="flex flex-row gap-2">
                             <button
+                                onClick={() => handleFilterChange('category_type', 'all')}
+                                className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
+                                    categoryFilter === 'all' || categoryFilter === ''
+                                        ? 'border-[#0E43FB] bg-[#0E43FB] text-white'
+                                        : 'border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]'
+                                }`}
+                            >
+                                All
+                            </button>
+                            <button
                                 onClick={() => handleFilterChange('category_type', 'land')}
                                 className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
                                     categoryFilter === 'land'
@@ -330,6 +362,23 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                             <option value="inactive">Inactive</option>
                             <option value="draft">Draft</option>
                         </select>
+
+                        {/* Clear Filters Button */}
+                        <button
+                            onClick={() => {
+                                setSearchTerm('');
+                                setCategoryFilter('all');
+                                setApprovalStatusFilter('all');
+                                setStatusFilter('all');
+                                router.get(route('superadmin.Vehicles'), {}, {
+                                    preserveState: true,
+                                    replace: true
+                                });
+                            }}
+                            className="text-[15px] px-[16px] py-[6px] rounded-[5px] border border-[#FF4757] bg-[#FF4757] text-white hover:bg-[#FF4757]/80"
+                        >
+                            Clear Filters
+                        </button>
                     </div>
 
                     {/* Bulk Actions */}

@@ -16,24 +16,27 @@ class VehicleController extends Controller
      */
     public function index(Request $request)
     {
+        // Debug: Log the received filters
+        \Log::info('Vehicle filters received:', $request->all());
+
         $query = Vehicle::with(['category', 'provider', 'media' => function($query) {
             $query->where('media_type', 'image')->where('is_primary', true);
         }]);
 
         // Filter by category type (land, sea, air)
-        if ($request->filled('category_type')) {
+        if ($request->filled('category_type') && $request->category_type !== 'all') {
             $query->whereHas('category', function($q) use ($request) {
                 $q->where('type', $request->category_type);
             });
         }
 
         // Filter by approval status
-        if ($request->filled('approval_status')) {
+        if ($request->filled('approval_status') && $request->approval_status !== 'all') {
             $query->where('approval_status', $request->approval_status);
         }
 
         // Filter by status
-        if ($request->filled('status')) {
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
