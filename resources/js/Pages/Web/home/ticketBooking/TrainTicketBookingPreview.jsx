@@ -1,8 +1,31 @@
-import React from "react";
-import { Link } from "@inertiajs/react";
+import React, { useState } from "react";
+import { Link, usePage, useForm } from "@inertiajs/react";
 import Header from "../../layouts/Header";
 
 const TrainTicketBookingPreview = () => {
+    const { props } = usePage();
+    const { 
+        outboundSchedule, 
+        returnSchedule, 
+        passengers = {}, 
+        totalPrice = 0 
+    } = props;
+
+    const { data, setData, post, processing, errors } = useForm({
+        train_schedule_id: outboundSchedule?.id || '',
+        passenger_name: '',
+        passenger_email: '',
+        passenger_phone: '',
+        adults: passengers.adults || 1,
+        children: passengers.children || 0,
+        infants: passengers.infants || 0,
+    });
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        post('/train-bookings');
+    };
+
     return (
         <div>
             <Header />
@@ -29,194 +52,225 @@ const TrainTicketBookingPreview = () => {
                 <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Left: Itineraries */}
                     <div className="space-y-4">
-                        {/* Segment 1 */}
+                        {/* Outbound Journey */}
+                        {outboundSchedule && (
+                            <div className="rounded-[10px] border border-gray-200 overflow-hidden">
+                                <div className="bg-[#0955AC] px-4 py-3 flex items-center gap-2 font-semibold text-[#FFFFFF]">
+                                    <span className="text-xl">🚂</span>
+                                    {outboundSchedule.departure_station} to {outboundSchedule.arrival_station} - {outboundSchedule.date}
+                                </div>
+                                <div className="px-4 py-3 text-base leading-6 text-gray-800">
+                                    <div>
+                                        Depart:{" "}
+                                        <span className="font-semibold">{outboundSchedule.departure_time}</span>{" "}
+                                        <span className="mx-1">➜</span> Arrival:{" "}
+                                        <span className="font-semibold">{outboundSchedule.arrival_time}</span>
+                                    </div>
+                                    <div>
+                                        Class:{" "}
+                                        <span className="font-semibold">
+                                            {outboundSchedule.class}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        Train Number:{" "}
+                                        <span className="font-semibold">
+                                            {outboundSchedule.train_number}
+                                        </span>
+                                        , {outboundSchedule.train_name}
+                                    </div>
+                                    <div>
+                                        Total Duration:{" "}
+                                        <span className="font-semibold">{outboundSchedule.duration}</span>
+                                        , Non-stop
+                                    </div>
+                                    <div className="italic text-gray-600">
+                                        Hand baggage: 20kg/passenger
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Return Journey (if exists) */}
+                        {returnSchedule && (
+                            <div className="rounded-[10px] border border-gray-200 overflow-hidden">
+                                <div className="bg-[#0955AC] px-4 py-3 flex items-center gap-2 font-semibold text-[#FFFFFF]">
+                                    <span className="text-xl">🚂</span>
+                                    {returnSchedule.departure_station} to {returnSchedule.arrival_station} - {returnSchedule.date}
+                                </div>
+                                <div className="px-4 py-3 text-base leading-6 text-gray-800">
+                                    <div>
+                                        Depart:{" "}
+                                        <span className="font-semibold">{returnSchedule.departure_time}</span>{" "}
+                                        <span className="mx-1">➜</span> Arrival:{" "}
+                                        <span className="font-semibold">{returnSchedule.arrival_time}</span>
+                                    </div>
+                                    <div>
+                                        Class:{" "}
+                                        <span className="font-semibold">
+                                            {returnSchedule.class}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        Train Number:{" "}
+                                        <span className="font-semibold">
+                                            {returnSchedule.train_number}
+                                        </span>
+                                        , {returnSchedule.train_name}
+                                    </div>
+                                    <div>
+                                        Total Duration:{" "}
+                                        <span className="font-semibold">{returnSchedule.duration}</span>
+                                        , Non-stop
+                                    </div>
+                                    <div className="italic text-gray-600">
+                                        Hand baggage: 20kg/passenger
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right: Fare breakdown */}
+                    <div className="space-y-6">
+                        {/* Fare Summary */}
+                        <div className="rounded-[10px] border border-gray-200 overflow-hidden bg-gray-50/50">
+                            <div className="bg-gray-800 text-white px-4 py-3 font-semibold">
+                                Fare Summary
+                            </div>
+                            <div className="px-4 py-3 space-y-3">
+                                <div className="flex justify-between">
+                                    <span>Adults ({passengers.adults})</span>
+                                    <span>LKR {(outboundSchedule?.price * passengers.adults).toLocaleString()}</span>
+                                </div>
+                                {passengers.children > 0 && (
+                                    <div className="flex justify-between">
+                                        <span>Children ({passengers.children})</span>
+                                        <span>LKR {(outboundSchedule?.price * 0.5 * passengers.children).toLocaleString()}</span>
+                                    </div>
+                                )}
+                                {passengers.infants > 0 && (
+                                    <div className="flex justify-between">
+                                        <span>Infants ({passengers.infants})</span>
+                                        <span>Free</span>
+                                    </div>
+                                )}
+                                {returnSchedule && (
+                                    <>
+                                        <hr className="border-gray-300" />
+                                        <div className="text-sm font-medium text-gray-700 mb-2">Return Journey:</div>
+                                        <div className="flex justify-between">
+                                            <span>Adults ({passengers.adults})</span>
+                                            <span>LKR {(returnSchedule.price * passengers.adults).toLocaleString()}</span>
+                                        </div>
+                                        {passengers.children > 0 && (
+                                            <div className="flex justify-between">
+                                                <span>Children ({passengers.children})</span>
+                                                <span>LKR {(returnSchedule.price * 0.5 * passengers.children).toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                                <hr className="border-gray-300" />
+                                <div className="flex justify-between text-xl font-bold text-[#0955AC]">
+                                    <span>Total</span>
+                                    <span>LKR {totalPrice.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Passenger Details Form */}
                         <div className="rounded-[10px] border border-gray-200 overflow-hidden">
-                            <div className="bg-[#0955AC] px-4 py-3 flex items-center gap-2 font-semibold text-[#FFFFFF]">
-                                <span className="text-xl">🚌</span>
-                                Colombo Fort to Kandy - Sep 3, 2025
+                            <div className="bg-[#0955AC] text-white px-4 py-3 font-semibold">
+                                Passenger Details
                             </div>
-                            <div className="px-4 py-3 text-base leading-6 text-gray-800">
+                            <form onSubmit={handleSubmit} className="px-4 py-6 space-y-4">
                                 <div>
-                                    Depart:{" "}
-                                    <span className="font-semibold">15:35</span>{" "}
-                                    <span className="mx-1">➜</span> Arrival:{" "}
-                                    <span className="font-semibold">18:08</span>
-                                </div>
-                                <div>
-                                    Class:{" "}
-                                    <span className="font-semibold">
-                                        2nd Class - Reserved Seats
-                                    </span>
-                                </div>
-                                <div>
-                                    Train Number:{" "}
-                                    <span className="font-semibold">
-                                        No.1029
-                                    </span>
-                                    , Intercity Express
-                                </div>
-                                <div>
-                                    Total Duration:{" "}
-                                    <span className="font-semibold">2h33m</span>
-                                    , Non-stop
-                                </div>
-                                <div className="italic text-gray-600">
-                                    Hand baggage: 20kg/passenger
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Segment 2 */}
-                        <div className="rounded-[10px] border border-gray-200 overflow-hidden">
-                            <div className="bg-[#0955AC] px-4 py-3 flex items-center gap-2 font-semibold text-[#FFFFFF]">
-                                <span className="text-xl">🚌</span>
-                                Kandy to Colombo Fort - Sep 3, 2025
-                            </div>
-                            <div className="px-4 py-3 text-base leading-6 text-gray-800">
-                                <div>
-                                    Depart:{" "}
-                                    <span className="font-semibold">15:00</span>{" "}
-                                    <span className="mx-1">➜</span> Arrival:{" "}
-                                    <span className="font-semibold">17:36</span>
-                                </div>
-                                <div>
-                                    Class:{" "}
-                                    <span className="font-semibold">
-                                        2nd Class - Reserved Seats
-                                    </span>
-                                </div>
-                                <div>
-                                    Train Number:{" "}
-                                    <span className="font-semibold">
-                                        No.1010
-                                    </span>
-                                    , Intercity Express
-                                </div>
-                                <div>
-                                    Total Duration:{" "}
-                                    <span className="font-semibold">2h36m</span>
-                                    , Non-stop
-                                </div>
-                                <div className="italic text-gray-600">
-                                    Hand baggage: 20kg/passenger
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right: Fare summary */}
-                    <aside className="rounded-[10px] border border-gray-200 overflow-hidden">
-                        <div className="bg-[#0955AC] px-4 py-3 font-semibold text-[#FFFFFF] text-xl">
-                            Total Fare
-                        </div>
-                        <div className="px-4 py-4 text-base leading-6 text-gray-800">
-                            <div>Base Fare: (24 + 24) * 1 Adult = USD 48</div>
-                            <div>Taxes and Station fees / 1pax: USD 12</div>
-                            <div>Passenger Service fee / 1pax: USD 4</div>
-                            <div>Baggage fee: USD 0</div>
-                            <hr className="my-3 border-gray-200" />
-                            <div className="text-lg font-bold">
-                                Total:{" "}
-                                <span className="text-gray-900">USD 64</span>
-                            </div>
-                        </div>
-                    </aside>
-                </div>
-
-                {/* Notice banner */}
-                <div className="mt-6 rounded-[10px] border border-[#0955AC] bg-[#0955AC]/5 px-4 py-3 text-center text-[#0955AC] font-semibold text-lg">
-                    Your chosen train is waiting! Enter your details to proceed.
-                </div>
-
-                {/* Passenger card */}
-                <div className="mt-6 rounded-[10px] border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="px-4 py-3 bg-[#0955AC] border-b border-gray-200">
-                        <h2 className="text-xl font-bold text-[#FFFFFF]">
-                            Passenger 1 - Adult
-                        </h2>
-                    </div>
-
-                    <div className="p-4 md:p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Full name */}
-                            <div>
-                                <label className="block text-base font-medium text-gray-700 mb-1">
-                                    Full name{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Full name"
-                                    className="w-full rounded-md border border-[#0955AC]/40 focus:border-[#0955AC] focus:ring-[#0955AC] px-4 py-3"
-                                />
-                            </div>
-
-                            {/* Passport number */}
-                            <div>
-                                <label className="block text-base font-medium text-gray-700 mb-1">
-                                    Passport number{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Passport number"
-                                    className="w-full rounded-md border border-[#0955AC]/40 focus:border-[#0955AC] focus:ring-[#0955AC] px-4 py-3"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Gender */}
-                            <div>
-                                <label className="block text-base font-medium text-gray-700 mb-2">
-                                    Gender
-                                </label>
-                                <div className="flex items-center gap-6">
-                                    <label className="inline-flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="gender"
-                                            className="h-4 w-4 text-[#0955AC] focus:ring-[#0955AC]"
-                                            defaultChecked
-                                        />
-                                        <span>Male</span>
+                                    <label htmlFor="passenger_name" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Full Name *
                                     </label>
-                                    <label className="inline-flex items-center gap-2">
-                                        <input
-                                            type="radio"
-                                            name="gender"
-                                            className="h-4 w-4 text-[#0955AC] focus:ring-[#0955AC]"
-                                        />
-                                        <span>Female</span>
-                                    </label>
+                                    <input
+                                        type="text"
+                                        id="passenger_name"
+                                        value={data.passenger_name}
+                                        onChange={(e) => setData('passenger_name', e.target.value)}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        required
+                                    />
+                                    {errors.passenger_name && <div className="text-red-500 text-sm mt-1">{errors.passenger_name}</div>}
                                 </div>
-                            </div>
 
-                            {/* Nationality */}
-                            <div>
-                                <label className="block text-base font-medium text-gray-700 mb-1">
-                                    Nationality{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <select className="w-full rounded-md border border-[#0955AC]/40 focus:border-[#0955AC] focus:ring-[#0955AC] px-4 py-3">
-                                    <option>Afghanistan</option>
-                                    <option>Sri Lanka</option>
-                                    <option>India</option>
-                                    <option>United States</option>
-                                </select>
-                            </div>
+                                <div>
+                                    <label htmlFor="passenger_email" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Email Address *
+                                    </label>
+                                    <input
+                                        type="email"
+                                        id="passenger_email"
+                                        value={data.passenger_email}
+                                        onChange={(e) => setData('passenger_email', e.target.value)}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        required
+                                    />
+                                    {errors.passenger_email && <div className="text-red-500 text-sm mt-1">{errors.passenger_email}</div>}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="passenger_phone" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Phone Number *
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        id="passenger_phone"
+                                        value={data.passenger_phone}
+                                        onChange={(e) => setData('passenger_phone', e.target.value)}
+                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        required
+                                    />
+                                    {errors.passenger_phone && <div className="text-red-500 text-sm mt-1">{errors.passenger_phone}</div>}
+                                </div>
+
+                                <div className="pt-4">
+                                    <button
+                                        type="submit"
+                                        disabled={processing}
+                                        className={`w-full py-3 px-4 rounded-md font-semibold text-white transition-colors ${
+                                            processing 
+                                                ? 'bg-gray-400 cursor-not-allowed' 
+                                                : 'bg-[#0955AC] hover:bg-[#074489] focus:outline-none focus:ring-2 focus:ring-[#0955AC]'
+                                        }`}
+                                    >
+                                        {processing ? 'Processing...' : 'Confirm Booking'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
 
-                {/* Footer actions */}
-                <div className="mt-6 flex justify-end gap-3">
-                    <button className="rounded-md border border-gray-300 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-gray-50">
-                        Cancel
-                    </button>
-                    <button className="rounded-md bg-[#0955AC] hover:bg-[#074489] px-5 py-3 text-base font-bold text-white">
-                        Continue
-                    </button>
+                {/* Terms and Conditions */}
+                <div className="mt-12 p-6 bg-gray-50 rounded-[10px]">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Important Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-gray-600">
+                        <div>
+                            <h4 className="font-medium text-gray-800 mb-2">Booking Policy</h4>
+                            <ul className="space-y-1">
+                                <li>• Tickets are non-refundable after booking confirmation</li>
+                                <li>• Please arrive at the station 30 minutes before departure</li>
+                                <li>• Valid ID is required for travel</li>
+                                <li>• Children below 6 years travel free (without seat)</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-medium text-gray-800 mb-2">Cancellation Policy</h4>
+                            <ul className="space-y-1">
+                                <li>• 24+ hours before departure: 90% refund</li>
+                                <li>• 12-24 hours before departure: 50% refund</li>
+                                <li>• 6-12 hours before departure: 25% refund</li>
+                                <li>• Less than 6 hours: No refund</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
