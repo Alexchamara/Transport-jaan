@@ -222,7 +222,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                         <div className="absolute inset-0 bg-[#00000066]"></div>
                         <div className="absolute inset-0 flex items-center justify-center">
                             <span
-                                className={`text-white text-[24px] lg:text-[32px] font-[400] rotate-[270deg] ${
+                                className={`text-white text-[18px] lg:text-[32px] font-[400] rotate-[270deg] ${
                                     idx === 0 ? "hidden" : ""
                                 }`}
                             >
