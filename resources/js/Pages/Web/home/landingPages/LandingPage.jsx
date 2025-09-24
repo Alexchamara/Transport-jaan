@@ -1,5 +1,4 @@
-
- import React from "react";
+import React from "react";
 import Hero from "../../components/landingPages/Hero";
 import About from "../../components/landingPages/About";
 import Service from "../../components/landingPages/Service";
