@@ -49,6 +49,7 @@ Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 
 Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
+Route::get('/dashboard-redirect', [WebController::class, 'redirectToDashboard'])->name('dashboard.redirect');
 Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
 Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blogExample');
 

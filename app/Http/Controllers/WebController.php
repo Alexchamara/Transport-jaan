@@ -206,19 +206,19 @@ class WebController extends Controller
     {
         // Get stations for dropdown
         $stations = \App\Models\BusStation::where('status', 'active')->get();
-        
+
         $schedules = collect();
         $searchParams = [
             'from' => $request->input('from'),
             'to' => $request->input('to'),
             'date' => $request->input('date')
         ];
-        
+
         if ($searchParams['from'] && $searchParams['to'] && $searchParams['date']) {
             // Find departure and arrival stations
             $departureStation = \App\Models\BusStation::where('name', $searchParams['from'])->first();
             $arrivalStation = \App\Models\BusStation::where('name', $searchParams['to'])->first();
-            
+
             if ($departureStation && $arrivalStation) {
                 $schedules = \App\Models\BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
                     ->where('departure_station_id', $departureStation->id)
@@ -277,14 +277,14 @@ class WebController extends Controller
             'date' => $request->get('date'),
             'passengers' => $request->get('passengers', 1)
         ];
-        
+
         $schedule = null;
         $tripData = null;
-        
+
         if ($scheduleId) {
             $schedule = \App\Models\BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
                 ->find($scheduleId);
-            
+
             if ($schedule) {
                 $tripData = [
                     'id' => $schedule->id,
@@ -307,7 +307,7 @@ class WebController extends Controller
                 ];
             }
         }
-        
+
         return Inertia::render('Web/home/ticketBooking/BusTicketBookingPreview', [
             'trip' => $tripData,
             'searchParams' => $searchParams
@@ -364,12 +364,12 @@ class WebController extends Controller
     {
         // Get approved and active warehouses from database
         $searchParams = $request->all();
-        
+
         $query = WarehouseUnit::where('approval_status', 'approved')
             ->where('is_active', true);
 
         // Apply filters based on search parameters
-        
+
         // Location filter (from both search form and filter sidebar)
         if (isset($searchParams['location']) && !empty($searchParams['location'])) {
             $query->where('address', 'LIKE', '%' . $searchParams['location'] . '%');
@@ -453,7 +453,7 @@ class WebController extends Controller
     public function warehouseDetails(Request $request)
     {
         $warehouseData = $request->get('warehouse');
-        
+
         if (!$warehouseData) {
             return redirect()->route('warehouse.list');
         }
@@ -470,5 +470,28 @@ class WebController extends Controller
             'warehouse' => $warehouseData,
             'relatedWarehouses' => $relatedWarehouses
         ]);
+    }
+
+    /**
+     * Redirect to appropriate dashboard based on user role
+     */
+    public function redirectToDashboard()
+    {
+        if (!Auth::check()) {
+            return redirect()->route('signin.signin');
+        }
+
+        $user = Auth::user();
+
+        switch ($user->role) {
+            case 'client':
+                return redirect()->route('client.mainDashboard');
+            case 'vendor':
+                return redirect()->route('vendor.dashboard');
+            case 'SuperAdmin':
+                return redirect()->route('superadmin.dashboard');
+            default:
+                return redirect()->route('user.dashboard');
+        }
     }
 }
