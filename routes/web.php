@@ -436,7 +436,7 @@ Route::middleware(['auth']) // remove 'auth' here temporarily if testing unauthe
 
 /*
 |--------------------------------------------------------------------------
-| Client dashboard (public shell)
+| Client dashboard
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:client'])
