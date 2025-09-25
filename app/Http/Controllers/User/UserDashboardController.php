@@ -19,7 +19,7 @@ class UserDashboardController extends Controller
     public function flightView()
     {
         $flights = FlightBooking::where('user_id', auth()->id())->get();
-        
+
         return Inertia::render('Web/dashboard/FlightView', [
             'flights' => $flights
         ]);
@@ -28,7 +28,7 @@ class UserDashboardController extends Controller
     public function bookingView()
     {
         $bookings = FlightBooking::where('user_id', auth()->id())->get();
-        
+
         return Inertia::render('Web/dashboard/BookingView', [
             'bookings' => $bookings,
             'flights' => []
@@ -38,7 +38,7 @@ class UserDashboardController extends Controller
     public function freightBookings()
     {
         $freightBookings = FreightQuote::where('user_id', auth()->id())->get();
-        
+
         return Inertia::render('Web/dashboard/FreightBookings', [
             'bookings' => $freightBookings
         ]);

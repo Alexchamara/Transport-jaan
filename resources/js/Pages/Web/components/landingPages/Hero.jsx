@@ -8,7 +8,7 @@ import burgerIcon from "../../assets/landingPages/burgerIcon.svg";
 import { Link } from '@inertiajs/react';
 
 const Hero = ({ auth }) => {
-    // console.log(auth); 
+    // console.log(auth);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Scroll to section by id

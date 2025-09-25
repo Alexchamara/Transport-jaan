@@ -13,7 +13,7 @@ export default function Dashboard({ user }) {
                 'SuperAdmin': '/superadmin/dashboard',
                 'admin': '/'
             }[user.role] || '/';
-            
+
             router.visit(redirectPath);
         }
     }, [user]);

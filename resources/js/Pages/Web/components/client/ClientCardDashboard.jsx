@@ -4,10 +4,10 @@ import { usePage } from '@inertiajs/react';
 
 const ClientCardDashboard = () => {
   const { auth } = usePage().props;
-  
+
   const services = [
-    { 
-      title: 'Vehicle Rental', 
+    {
+      title: 'Vehicle Rental',
       description: 'Find and rent vehicles for your transportation needs.',
       icon: '🚗',
       route: '/clientRent',
@@ -17,8 +17,8 @@ const ClientCardDashboard = () => {
         { name: 'Boats & Ships', route: '/clientRent?type=sea' }
       ]
     },
-    { 
-      title: 'Ticket Booking', 
+    {
+      title: 'Ticket Booking',
       description: 'Book tickets for flights, trains, and buses.',
       icon: '🎫',
       route: '/ticketBooking',
@@ -28,14 +28,14 @@ const ClientCardDashboard = () => {
         { name: 'Bus Tickets', route: '/busTicketBookingDetails' }
       ]
     },
-    { 
-      title: 'Courier Service', 
+    {
+      title: 'Courier Service',
       description: 'Send packages and track shipments.',
       icon: '📦',
       route: '/courier-service'
     },
-    { 
-      title: 'Warehouse Services', 
+    {
+      title: 'Warehouse Services',
       description: 'Find warehouse space and storage solutions.',
       icon: '🏢',
       route: '/warehouse',
@@ -45,8 +45,8 @@ const ClientCardDashboard = () => {
         { name: 'My Warehouse Bookings', route: '/warehouseBookingDashboard' }
       ]
     },
-    { 
-      title: 'Freight Services', 
+    {
+      title: 'Freight Services',
       description: 'Shipping and freight management services.',
       icon: '🚛',
       route: '/cargo-freight',
@@ -56,8 +56,8 @@ const ClientCardDashboard = () => {
         { name: 'My Freight Bookings', route: '/freightBookingDashboard' }
       ]
     },
-    { 
-      title: 'My Bookings', 
+    {
+      title: 'My Bookings',
       description: 'View and manage all your bookings.',
       icon: '📋',
       route: '/dashboard/view',
@@ -72,7 +72,7 @@ const ClientCardDashboard = () => {
   return (
     <div className='flex flex-col justify-start items-center px-10 py-20 relative h-full'>
       <h1 className="text-[40px] font-[700] text-[#0955AC] absolute top-0 left-20 poppins">Client Dashboard</h1>
-      <div className='w-full rounded-[10px] mb-20 text-[44px] font-[700] pl-10 poppins'> 
+      <div className='w-full rounded-[10px] mb-20 text-[44px] font-[700] pl-10 poppins'>
         Hello, {auth?.user?.name || 'Guest'} 👋
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
