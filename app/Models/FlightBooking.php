@@ -10,6 +10,7 @@ class FlightBooking extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'name',
         'email',
         'phone',
@@ -31,4 +32,9 @@ class FlightBooking extends Model
     protected $attributes = [
         'status' => 'pending',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

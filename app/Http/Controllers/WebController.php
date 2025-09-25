@@ -202,9 +202,60 @@ class WebController extends Controller
         return Inertia::render('Web/home/ticketBooking/TrainTicketBookingDetails');
     }
 
-    public function busTicketBookingDetails()
+    public function busTicketBookingDetails(Request $request)
     {
-        return Inertia::render('Web/home/ticketBooking/BusTicketBookingDetails');
+        // Get stations for dropdown
+        $stations = \App\Models\BusStation::where('status', 'active')->get();
+        
+        $schedules = collect();
+        $searchParams = [
+            'from' => $request->input('from'),
+            'to' => $request->input('to'),
+            'date' => $request->input('date')
+        ];
+        
+        if ($searchParams['from'] && $searchParams['to'] && $searchParams['date']) {
+            // Find departure and arrival stations
+            $departureStation = \App\Models\BusStation::where('name', $searchParams['from'])->first();
+            $arrivalStation = \App\Models\BusStation::where('name', $searchParams['to'])->first();
+            
+            if ($departureStation && $arrivalStation) {
+                $schedules = \App\Models\BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
+                    ->where('departure_station_id', $departureStation->id)
+                    ->where('arrival_station_id', $arrivalStation->id)
+                    ->where('date', $searchParams['date'])
+                    ->where('status', 'active')
+                    ->orderBy('departure_time')
+                    ->get()
+                    ->map(function ($schedule) {
+                        return [
+                            'id' => $schedule->id,
+                            'operator' => $schedule->bus->operator,
+                            'busType' => $schedule->bus->bus_type,
+                            'routeNo' => $schedule->bus->route_number,
+                            'busNo' => $schedule->bus->bus_number,
+                            'depart' => date('g:i A', strtotime($schedule->departure_time)),
+                            'arrive' => date('g:i A', strtotime($schedule->arrival_time)),
+                            'day' => date('j M', strtotime($schedule->date)),
+                            'duration' => $schedule->getFormattedDurationAttribute(),
+                            'price' => $schedule->price,
+                            'seatsAvailable' => $schedule->available_seats,
+                            'totalSeats' => $schedule->bus->capacity,
+                            'expressway' => $schedule->is_expressway,
+                            'soldOut' => $schedule->available_seats <= 0,
+                            'facilities' => $schedule->bus->facilities ?? [],
+                            'departureStation' => $schedule->departureStation->name,
+                            'arrivalStation' => $schedule->arrivalStation->name,
+                        ];
+                    });
+            }
+        }
+
+        return Inertia::render('Web/home/ticketBooking/BusTicketBookingDetails', [
+            'stations' => $stations,
+            'schedules' => $schedules,
+            'searchParams' => $searchParams
+        ]);
     }
 
     public function flightBooking()
@@ -217,9 +268,50 @@ class WebController extends Controller
         return Inertia::render('Web/home/ticketBooking/TrainTicketBookingPreview');
     }
 
-    public function busTicketBookingPreview()
+    public function busTicketBookingPreview(Request $request)
     {
-        return Inertia::render('Web/home/ticketBooking/BusTicketBookingPreview');
+        $scheduleId = $request->get('id');
+        $searchParams = [
+            'from' => $request->get('from'),
+            'to' => $request->get('to'),
+            'date' => $request->get('date'),
+            'passengers' => $request->get('passengers', 1)
+        ];
+        
+        $schedule = null;
+        $tripData = null;
+        
+        if ($scheduleId) {
+            $schedule = \App\Models\BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
+                ->find($scheduleId);
+            
+            if ($schedule) {
+                $tripData = [
+                    'id' => $schedule->id,
+                    'operator' => $schedule->bus->operator,
+                    'busType' => $schedule->bus->bus_type,
+                    'routeNo' => $schedule->bus->route_number,
+                    'busNo' => $schedule->bus->bus_number,
+                    'depart' => date('g:i A', strtotime($schedule->departure_time)),
+                    'arrive' => date('g:i A', strtotime($schedule->arrival_time)),
+                    'day' => date('j M', strtotime($schedule->date)),
+                    'duration' => $schedule->getFormattedDurationAttribute(),
+                    'price' => $schedule->price,
+                    'seatsAvailable' => $schedule->available_seats,
+                    'totalSeats' => $schedule->bus->capacity,
+                    'expressway' => $schedule->is_expressway,
+                    'soldOut' => $schedule->available_seats <= 0,
+                    'facilities' => $schedule->bus->facilities ?? [],
+                    'departureStation' => $schedule->departureStation->name,
+                    'arrivalStation' => $schedule->arrivalStation->name,
+                ];
+            }
+        }
+        
+        return Inertia::render('Web/home/ticketBooking/BusTicketBookingPreview', [
+            'trip' => $tripData,
+            'searchParams' => $searchParams
+        ]);
     }
 
 

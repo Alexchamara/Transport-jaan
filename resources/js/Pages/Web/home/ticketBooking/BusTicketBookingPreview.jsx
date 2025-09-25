@@ -76,7 +76,7 @@ const legend = [
     { label: "Already Booked", color: "bg-[#C7C7C7]" },
 ];
 
-const BusTicketBookingPreview = () => {
+const BusTicketBookingPreview = ({ trip, searchParams }) => {
     const seatMap = useMemo(buildSeatMap, []);
     const [selected, setSelected] = useState([]);
     const [passengerName, setPassengerName] = useState("");
@@ -100,7 +100,8 @@ const BusTicketBookingPreview = () => {
         );
     };
 
-    const total = selected.length * PRICE_PER_SEAT_LKR;
+    const pricePerSeat = trip?.price || PRICE_PER_SEAT_LKR;
+    const total = selected.length * pricePerSeat;
 
     const canContinue =
         selected.length > 0 &&
@@ -112,17 +113,23 @@ const BusTicketBookingPreview = () => {
     const onSubmit = (e) => {
         e.preventDefault();
         const payload = {
+            tripId: trip?.id,
             seats: selected,
             total,
+            pricePerSeat,
             passengerName,
             mobile,
             email,
             boarding,
             destination,
             reuseCredits,
+            searchParams,
         };
         console.log("Submit booking payload:", payload);
-        // Wire this to your route/action when ready.
+        
+        // For now, redirect to the existing payment page
+        // In a full implementation, you'd store the booking data and redirect with proper parameters
+        window.location.href = `/vendors/payment`;
     };
 
     return (
@@ -132,7 +139,7 @@ const BusTicketBookingPreview = () => {
                 {/* Back */}
                 <div className="mb-4">
                     <Link
-                        href="/busTicketBookingDetails"
+                        href={searchParams ? `/busTicketBookingDetails?from=${searchParams.from}&to=${searchParams.to}&date=${searchParams.date}&passengers=${searchParams.passengers}` : "/busTicketBookingDetails"}
                         className="inline-flex items-center gap-2 text-[#0955AC] text-base font-semibold"
                     >
                         <span className="inline-block rounded-full border border-[#0955AC]/20 p-1 leading-none">
@@ -145,6 +152,46 @@ const BusTicketBookingPreview = () => {
                 <h1 className="text-3xl md:text-4xl font-extrabold text-[#0955AC]">
                     Select seats &amp; fill form
                 </h1>
+
+                {/* Trip Information */}
+                {trip && (
+                    <div className="mt-6 bg-white p-4 border rounded-lg shadow-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span className="text-gray-500">From:</span>
+                                <p className="font-medium">{trip.departureStation}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">To:</span>
+                                <p className="font-medium">{trip.arrivalStation}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Date:</span>
+                                <p className="font-medium">{trip.day}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Time:</span>
+                                <p className="font-medium">{trip.depart} - {trip.arrive}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Operator:</span>
+                                <p className="font-medium">{trip.operator}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Bus Type:</span>
+                                <p className="font-medium">{trip.busType}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Duration:</span>
+                                <p className="font-medium">{trip.duration}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Price per seat:</span>
+                                <p className="font-medium text-[#0955AC]">LKR {trip.price}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="mt-20 grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Seat layout */}

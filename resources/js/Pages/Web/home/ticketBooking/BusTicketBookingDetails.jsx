@@ -3,11 +3,15 @@ import Header from '../../layouts/Header';
 import HeroDetailsTwo from '../../components/ticketBooking/HeroDetailsTwo';
 import Footer from '../../layouts/Footer';
 
-const BusTicketBookingDetails = () => {
+const BusTicketBookingDetails = ({ stations, schedules, searchParams }) => {
   return (
     <div>
      <Header />
-     <HeroDetailsTwo />
+     <HeroDetailsTwo 
+       stations={stations} 
+       schedules={schedules} 
+       searchParams={searchParams} 
+     />
      <Footer />
     </div>
   )

@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "@inertiajs/react";
 import BusCard from "./BusCard";
 
-const HeroDetailsTwo = () => {
-    const trips = [
+const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) => {
+    const [sortBy, setSortBy] = useState('');
+    
+    // Use dynamic data if available, otherwise fall back to static data
+    let trips = schedules && schedules.length > 0 ? schedules : [
         {
             id: 1,
             operator: "Baby Shan Travels",
@@ -88,12 +91,31 @@ const HeroDetailsTwo = () => {
 
     const amenities = ["A/C", "WiFi", "USB", "TV", "Recline", "Toilet"];
 
+    // Apply sorting if selected
+    if (sortBy === 'Fare') {
+        trips = [...trips].sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'Departure') {
+        trips = [...trips].sort((a, b) => {
+            const timeA = new Date('1970/01/01 ' + a.depart).getTime();
+            const timeB = new Date('1970/01/01 ' + b.depart).getTime();
+            return timeA - timeB;
+        });
+    } else if (sortBy === 'Seats') {
+        trips = [...trips].sort((a, b) => b.seatsAvailable - a.seatsAvailable);
+    } else if (sortBy === 'Operator') {
+        trips = [...trips].sort((a, b) => a.operator.localeCompare(b.operator));
+    }
+
+    const handleSort = (sortType) => {
+        setSortBy(sortBy === sortType ? '' : sortType);
+    };
+
     return (
         <section className="mx-auto w-full max-w-6xl px-6 py-8">
             {/* Back */}
             <div className="mb-4">
                 <Link
-                    href="/ticketBooking"
+                    href="/flight-booking"
                     className="inline-flex items-center gap-2 text-[#0955AC] text-base font-semibold"
                 >
                     <span className="inline-block rounded-full border border-[#0955AC]/20 p-1 leading-none">
@@ -122,23 +144,36 @@ const HeroDetailsTwo = () => {
                         ].map((f) => (
                             <button
                                 key={f}
-                                className="rounded border border-gray-300 px-5 py-2 text-lg font-semibold text-gray-800 hover:bg-gray-50"
+                                onClick={() => handleSort(f)}
+                                className={`rounded border px-5 py-2 text-lg font-semibold transition hover:bg-gray-50 ${
+                                    sortBy === f 
+                                        ? 'border-[#0955AC] text-[#0955AC] bg-[#0955AC]/10' 
+                                        : 'border-gray-300 text-gray-800'
+                                }`}
                             >
                                 {f}
                             </button>
                         ))}
                     </div>
                     <div className="ml-auto flex items-center gap-4 text-lg text-gray-600">
-                        <span>Colombo → Negombo</span>
+                        <span>
+                            {searchParams.from && searchParams.to 
+                                ? `${searchParams.from} → ${searchParams.to}` 
+                                : "Colombo → Negombo"}
+                        </span>
                         <span>•</span>
-                        <span>03/09/2025</span>
+                        <span>
+                            {searchParams.date 
+                                ? new Date(searchParams.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                : "03/09/2025"}
+                        </span>
                     </div>
                 </div>
             </div>
 
             {/* Results list */}
             <div className="space-y-6">
-                {trips.map((trip) => (
+                {trips && trips.length > 0 ? trips.map((trip) => (
                     <Link
                         href="/busTicketBookingPreview"
                         key={trip.id}
@@ -259,18 +294,19 @@ const HeroDetailsTwo = () => {
                                         </div>
                                     </div>
 
-                                    <button
-                                        disabled={trip.soldOut}
-                                        className={`w-full rounded-lg px-6 py-4 text-lg font-bold text-white sm:w-auto ${
+                                    <Link
+                                        href={trip.soldOut ? "#" : `/busTicketBookingPreview?id=${trip.id}&from=${searchParams.from || 'Colombo'}&to=${searchParams.to || 'Negombo'}&date=${searchParams.date || '2025-09-24'}`}
+                                        className={`block w-full text-center rounded-lg px-6 py-4 text-lg font-bold text-white sm:w-auto ${
                                             trip.soldOut
-                                                ? "bg-red-500/70 cursor-not-allowed"
+                                                ? "bg-red-500/70 cursor-not-allowed pointer-events-none"
                                                 : "bg-[#0955AC] hover:bg-[#074489]"
                                         }`}
+                                        disabled={trip.soldOut}
                                     >
                                         {trip.soldOut
                                             ? "Sold Out"
                                             : "View Seats"}
-                                    </button>
+                                    </Link>
 
                                     {/* Secondary actions */}
                                     {!trip.soldOut && (
@@ -311,7 +347,16 @@ const HeroDetailsTwo = () => {
                             </div>
                         </div>
                     </Link>
-                ))}
+                )) : (
+                    <div className="text-center py-12">
+                        <div className="text-gray-500 text-lg">
+                            No bus schedules found for the selected route and date.
+                        </div>
+                        <p className="text-gray-400 mt-2">
+                            Please try different stations or dates.
+                        </p>
+                    </div>
+                )}
             </div>
         </section>
     );

@@ -4,7 +4,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\FlightBookingController;
 use App\Http\Controllers\TrainController;
+use App\Http\Controllers\BusController;
 use App\Http\Controllers\WarehouseControllers\Client\WarehouseBookingController;
+use App\Http\Controllers\User\UserDashboardController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -75,14 +77,18 @@ Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->n
 Route::post('/train-bookings', [TrainController::class, 'store'])->name('train-bookings.store');
 Route::get('/train-booking-success/{reference}', [TrainController::class, 'bookingSuccess'])->name('train.booking.success');
 Route::get('/busTicketBookingDetails', [WebController::class, 'busTicketBookingDetails'])->name('busTicketBookingDetails.busTicketBookingDetails');
+Route::post('/bus-bookings', [BusController::class, 'store'])->name('bus-bookings.store');
+Route::get('/bus-booking-success/{reference}', [BusController::class, 'bookingSuccess'])->name('bus.booking.success');
 Route::get('/busTicketBookingPreview', [WebController::class, 'busTicketBookingPreview'])->name('busTicketBookingPreview.busTicketBookingPreview');
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
 Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store');
 
 // Warehouse (public landing)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
+Route::get('/warehouses/search', [WebController::class, 'warehouseList'])->name('warehouses.search');
 Route::get('/warehouseList', [WebController::class, 'warehouseList'])->name('warehouse.list');
 Route::get('/warehouseDetails', [WebController::class, 'warehouseDetails'])->name('warehouse.details');
+Route::get('/freight-booking/create', [WebController::class, 'freightHomepage'])->name('freight.booking.create');
 
 // Warehouse booking flow
 Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function () {
@@ -383,10 +389,53 @@ Route::middleware(['auth']) // remove 'auth' here temporarily if testing unauthe
 
 /*
 |--------------------------------------------------------------------------
-| Client dashboard (public shell)
+| Client dashboard
 |--------------------------------------------------------------------------
 */
+Route::middleware(['auth', 'role:client'])
+    ->prefix('client')
+    ->name('client.')
+    ->group(function () {
+        Route::get('/dashboard', function () {
+            return Inertia::render('Web/home/client/ClientMainDashboard');
+        })->name('mainDashboard');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| User Dashboard Routes (Client Services)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])
+    ->prefix('user')
+    ->name('user.')
+    ->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\User\UserDashboardController::class, 'view'])->name('dashboard');
+        Route::get('/flight-view', [\App\Http\Controllers\User\UserDashboardController::class, 'flightView'])->name('fight_view');
+        Route::get('/booking-view', [\App\Http\Controllers\User\UserDashboardController::class, 'bookingView'])->name('booking_view');
+        Route::get('/freight-bookings', [\App\Http\Controllers\User\UserDashboardController::class, 'freightBookings'])->name('freight_bookings');
+        Route::get('/airticket-book', [\App\Http\Controllers\User\UserDashboardController::class, 'airticketBook'])->name('airticket_book');
+        Route::get('/airticket-view', [\App\Http\Controllers\User\UserDashboardController::class, 'airticketBookView'])->name('airticket_view');
+        Route::delete('/booking/{id}', [\App\Http\Controllers\User\UserDashboardController::class, 'destroy'])->name('booking_view.destroy');
+    });
+
+/*
+|--------------------------------------------------------------------------
+| General Dashboard Route (redirects based on role)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard/view', [\App\Http\Controllers\User\UserDashboardController::class, 'view'])->name('dashboard.view');
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard', [
+            'user' => auth()->user()
+        ]);
+    })->name('dashboard');
+});
+
+// Legacy client dashboard routes (public shell) - keep for backward compatibility
 Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->name('ClientDashboard');
+Route::get('/clientDashboard', fn() => Inertia::render('Web/home/client/ClientMainDashboard'))->name('clientDashboard');
 
 /*
 |--------------------------------------------------------------------------
