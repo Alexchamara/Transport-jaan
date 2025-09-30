@@ -177,10 +177,10 @@ const SideMenu = () => {
                     <Settings className="w-[25px] h-[25px]" />
                     <h1>Settings</h1>
                 </div>
-                <div className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer">
+                <div className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer" onClick={handleLogout}>
                     <LogOut className="w-[25px] h-[25px]" />
                     <h1>Logout</h1>
-                </Link>
+                </div>
             </div>
         </div>
     );

@@ -27,14 +27,26 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
 
   // helper: best image URL
   const getImg = (w) => {
+    // First priority: main/primary image
+    if (w?.main_image?.url) return w.main_image.url;
+    if (w?.main_image?.file_path) return `/storage/${w.main_image.file_path}`;
     if (w?.primary_image_url) return w.primary_image_url;
+    
+    // Second priority: first image from images array
     if (Array.isArray(w?.images) && w.images.length) {
-      if (w.images[0].url) return w.images[0].url;
-      if (w.images[0].image_path) return `/storage/${w.images[0].image_path}`;
-      if (w.images[0].path) return `/storage/${w.images[0].path}`;
-      if (typeof w.images[0] === 'string') return `/storage/${w.images[0]}`;
+      const firstImage = w.images[0];
+      if (firstImage?.url) return firstImage.url;
+      if (firstImage?.file_path) return `/storage/${firstImage.file_path}`;
+      if (firstImage?.image_path) return `/storage/${firstImage.image_path}`;
+      if (firstImage?.path) return `/storage/${firstImage.path}`;
+      if (typeof firstImage === 'string') return `/storage/${firstImage}`;
     }
+    
+    // Third priority: primaryImage relationship
+    if (w?.primaryImage?.url) return w.primaryImage.url;
+    if (w?.primaryImage?.file_path) return `/storage/${w.primaryImage.file_path}`;
     if (w?.primaryImage?.path) return `/storage/${w.primaryImage.path}`;
+    
     return "/placeholder.png";
   };
 
@@ -82,6 +94,7 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
               className="bg-[#EAEAE9] shadow-md overflow-hidden h-auto w-full max-w-[286px] py-5"
             >
               {/* --- top spec row --- */}
+              {/*
               <div className="pb-4">
                 <div className="grid grid-cols-4 gap-4 text-[#8B8B8B]">
                   {[
@@ -97,6 +110,7 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
                   ))}
                 </div>
               </div>
+              */}
 
               {/* --- warehouse image --- */}
               <div className="mx-auto w-[90%] mb-4">

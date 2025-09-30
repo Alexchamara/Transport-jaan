@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 use App\Http\Controllers\ProfileController;
@@ -268,6 +269,34 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('v
     Route::patch('/api/units/{id}', [WarehouseUnitController::class, 'update'])->name('api.units.patch');
     Route::patch('/api/units/{id}/status', [WarehouseUnitController::class, 'updateStatus'])->name('api.units.updateStatus');
     Route::delete('/api/units/{id}', [WarehouseUnitController::class, 'destroy'])->name('api.units.destroy');
+    
+    // Debug route
+    Route::get('/api/debug/{id}', function($id) {
+        return response()->json([
+            'user_authenticated' => Auth::check(),
+            'user_id' => Auth::id(),
+            'user_role' => Auth::user()?->role,
+            'requested_id' => $id,
+            'warehouse_exists' => \App\Models\Warehouse\WarehouseUnit::where('id', $id)->exists(),
+            'user_warehouse_exists' => \App\Models\Warehouse\WarehouseUnit::where('id', $id)->where('user_id', Auth::id())->exists(),
+            'timestamp' => now(),
+        ]);
+    })->name('api.debug');
+    
+    // Test login endpoint for debugging
+    Route::get('/api/test-login', function() {
+        $user = \App\Models\User::find(1);
+        if ($user) {
+            Auth::login($user);
+            return response()->json([
+                'success' => true,
+                'user_id' => Auth::id(),
+                'user_role' => Auth::user()->role,
+                'message' => 'User logged in successfully'
+            ]);
+        }
+        return response()->json(['error' => 'User not found'], 404);
+    })->name('api.test-login');
 
     // API routes for warehouse bookings management
     Route::get('/api/bookings', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'index'])->name('api.bookings.index');

@@ -413,38 +413,72 @@ class WarehouseUnitController extends Controller
     public function show($id)
     {
         try {
+            Log::info('Fetching warehouse unit', ['id' => $id, 'user_id' => Auth::id()]);
+            
             $unit = WarehouseUnit::where('id', $id)
                 ->where('user_id', Auth::id())
                 ->with(['amenities', 'images', 'documents', 'currentApproval'])
                 ->first();
 
             if (!$unit) {
+                Log::warning('Warehouse unit not found', ['id' => $id, 'user_id' => Auth::id()]);
                 return response()->json(['error' => 'Warehouse unit not found'], 404);
             }
+            
+            Log::info('Warehouse unit found', [
+                'unit_id' => $unit->id,
+                'amenities_count' => $unit->amenities->count(),
+                'images_count' => $unit->images->count(),
+                'documents_count' => $unit->documents->count(),
+            ]);
 
             // Get amenities as array of names for frontend compatibility
-            $amenitiesArray = $unit->amenities->pluck('name')->toArray();
+            $amenitiesArray = [];
+            if ($unit->amenities && $unit->amenities->count() > 0) {
+                $amenitiesArray = $unit->amenities->pluck('name')->toArray();
+            }
 
             // Get images as URLs for frontend compatibility
-            $imagesArray = $unit->images->map(function($image) {
-                return $image->url;
-            })->filter()->values()->toArray(); // Filter out null URLs and re-index
+            $imagesArray = [];
+            if ($unit->images && $unit->images->count() > 0) {
+                $imagesArray = $unit->images->map(function($image) {
+                    try {
+                        return $image->url;
+                    } catch (\Exception $e) {
+                        Log::warning('Error getting image URL', ['image_id' => $image->id, 'error' => $e->getMessage()]);
+                        return null;
+                    }
+                })->filter()->values()->toArray(); // Filter out null URLs and re-index
+            }
 
             // Get documents as URLs for frontend compatibility  
-            $documentsArray = $unit->documents->map(function($document) {
-                return $document->url;
-            })->filter()->values()->toArray(); // Filter out null URLs and re-index
+            $documentsArray = [];
+            if ($unit->documents && $unit->documents->count() > 0) {
+                $documentsArray = $unit->documents->map(function($document) {
+                    try {
+                        return $document->url;
+                    } catch (\Exception $e) {
+                        Log::warning('Error getting document URL', ['document_id' => $document->id, 'error' => $e->getMessage()]);
+                        return null;
+                    }
+                })->filter()->values()->toArray(); // Filter out null URLs and re-index
+            }
 
             // Handle terms PDF path - ensure it's accessible
             $termsPdfPath = null;
             if ($unit->terms_pdf_path) {
-                $termsPdfPath = Storage::url($unit->terms_pdf_path);
+                try {
+                    $termsPdfPath = Storage::url($unit->terms_pdf_path);
+                } catch (\Exception $e) {
+                    Log::warning('Error getting terms PDF URL', ['path' => $unit->terms_pdf_path, 'error' => $e->getMessage()]);
+                    $termsPdfPath = null;
+                }
             }
 
             // Handle legacy price field compatibility
             $price = $unit->base_price ?? $unit->monthly_rate ?? '';
 
-            return response()->json([
+            $responseData = [
                 'id' => $unit->id,
                 'name' => $unit->name ?? '',
                 'description' => $unit->description ?? '',
@@ -489,7 +523,17 @@ class WarehouseUnitController extends Controller
                 'availability_status' => $this->getAvailabilityStatus($unit),
                 'created_at' => $unit->created_at,
                 'updated_at' => $unit->updated_at,
+            ];
+            
+            Log::info('Returning warehouse unit data', [
+                'unit_id' => $unit->id,
+                'response_keys' => array_keys($responseData),
+                'amenities_count' => count($amenitiesArray),
+                'images_count' => count($imagesArray),
+                'documents_count' => count($documentsArray),
             ]);
+
+            return response()->json($responseData);
             
         } catch (\Exception $e) {
             Log::error('Error fetching warehouse unit: ' . $e->getMessage(), [

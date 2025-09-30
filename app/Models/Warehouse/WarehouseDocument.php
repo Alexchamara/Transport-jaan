@@ -56,13 +56,18 @@ class WarehouseDocument extends Model
             return null;
         }
         
-        // For public disk, generate URL directly
-        if ($this->disk === 'public') {
-            return Storage::url($this->file_path);
+        try {
+            // For public disk, generate URL directly
+            if ($this->disk === 'public' || empty($this->disk)) {
+                return Storage::url($this->file_path);
+            }
+            
+            // Fallback to asset path
+            return asset('storage/' . $this->file_path);
+        } catch (\Exception $e) {
+            // If URL generation fails, try asset path as fallback
+            return asset('storage/' . $this->file_path);
         }
-        
-        // Fallback to asset path
-        return asset('storage/' . $this->file_path);
     }
 
     public function getFormattedSizeAttribute()

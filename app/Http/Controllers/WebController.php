@@ -442,7 +442,9 @@ class WebController extends Controller
         //     // Add lease duration filtering logic if your model supports it
         // }
 
-        $warehouses = $query->orderBy('created_at', 'desc')->get();
+        $warehouses = $query->with(['images' => function($q) {
+            $q->active()->ordered();
+        }, 'mainImage'])->orderBy('created_at', 'desc')->get();
 
         return Inertia::render('Web/home/warehouse/WarehouseList', [
             'warehouses' => $warehouses,

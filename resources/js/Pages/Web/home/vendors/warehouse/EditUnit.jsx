@@ -56,6 +56,7 @@ const EditUnit = () => {
 
   const [originalData, setOriginalData] = useState(null);
   const [errors, setErrors] = useState({});
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -99,6 +100,29 @@ const EditUnit = () => {
       try {
         setLoading(true);
         setError(null);
+        setErrorItems([]);
+        
+        console.log('Fetching warehouse data for unit ID:', unitId);
+        
+        // Debug request first
+        try {
+          const debugResponse = await fetch(`/vendors/warehouse/api/debug/${unitId}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+          });
+          
+          if (debugResponse.ok) {
+            const debugData = await debugResponse.json();
+            console.log('Debug info:', debugData);
+          }
+        } catch (debugError) {
+          console.warn('Debug request failed:', debugError);
+        }
         
         const response = await fetch(`/vendors/warehouse/api/units/${unitId}`, {
           method: 'GET',
@@ -110,52 +134,70 @@ const EditUnit = () => {
           credentials: 'same-origin',
         });
         
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers));
+        
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error response body:', errorText);
+          
           if (response.status === 404) {
             throw new Error('Warehouse unit not found');
           } else if (response.status === 403) {
             throw new Error('You do not have permission to edit this warehouse unit');
+          } else if (response.status === 500) {
+            throw new Error('Server error occurred while fetching warehouse data');
           } else {
-            throw new Error(`Failed to fetch warehouse data (Status: ${response.status})`);
+            throw new Error(`Failed to fetch warehouse data (Status: ${response.status}): ${errorText}`);
           }
         }
         
         const data = await response.json();
+        console.log('Received warehouse data:', data);
         
         if (!data || typeof data !== 'object') {
           throw new Error('Invalid response format received from server');
         }
         
         setOriginalData(data);
+        
+        // Safely extract values with proper fallbacks
+        const safeNumber = (val) => val !== null && val !== undefined && val !== '' ? String(val) : '';
+        const safeString = (val) => val !== null && val !== undefined ? String(val) : '';
+        
         setForm({
-          name: data.name || '',
-          description: data.description || '',
-          address: data.address || '',
-          latitude: data.latitude || '',
-          longitude: data.longitude || '',
-          total_area: data.total_area || '',
-          capacity: data.capacity || '',
-          type: data.type || '',
-          pricing_model: data.pricing_model || '',
-          price: data.price || '',
+          name: safeString(data.name),
+          description: safeString(data.description),
+          address: safeString(data.address),
+          latitude: safeNumber(data.latitude),
+          longitude: safeNumber(data.longitude),
+          total_area: safeNumber(data.total_area),
+          capacity: safeNumber(data.capacity),
+          type: safeString(data.type),
+          pricing_model: safeString(data.pricing_model),
+          price: safeNumber(data.price || data.base_price),
           
           // Detailed Pricing
-          monthly_rate: data.monthly_rate || '',
-          security_deposit: data.security_deposit || '',
-          setup_fee: data.setup_fee || '',
-          tax_rate: data.tax_rate || '',
-          total_amount: data.total_amount || '',
-          tax_amount: data.tax_amount || '',
-          final_amount: data.final_amount || '',
+          monthly_rate: safeNumber(data.monthly_rate),
+          security_deposit: safeNumber(data.security_deposit),
+          setup_fee: safeNumber(data.setup_fee),
+          tax_rate: safeNumber(data.tax_rate),
+          total_amount: safeNumber(data.total_amount),
+          tax_amount: safeNumber(data.tax_amount),
+          final_amount: safeNumber(data.final_amount),
           
           amenities: Array.isArray(data.amenities) ? data.amenities : [],
-          terms_conditions: data.terms_conditions || '',
-          is_active: data.is_active !== undefined ? data.is_active : true,
+          terms_conditions: safeString(data.terms_conditions),
+          is_active: data.is_active !== undefined ? Boolean(data.is_active) : true,
         });
 
         // Set existing files - images and documents come as URLs
-        const imagesArray = Array.isArray(data.images) ? data.images : [];
-        const documentsArray = Array.isArray(data.documents) ? data.documents : [];
+        const imagesArray = Array.isArray(data.images) ? data.images.filter(Boolean) : [];
+        const documentsArray = Array.isArray(data.documents) ? data.documents.filter(Boolean) : [];
+        
+        console.log('Setting existing images:', imagesArray);
+        console.log('Setting existing documents:', documentsArray);
+        console.log('Setting existing terms PDF:', data.terms_pdf_path);
         
         setExistingImages(imagesArray);
         setExistingDocuments(documentsArray);
@@ -163,21 +205,44 @@ const EditUnit = () => {
         
         // Store original file paths for removal (extract from URLs)
         const imagePaths = imagesArray.map(url => {
-          // Extract path from URL like /storage/warehouse/images/filename.jpg
           if (typeof url === 'string') {
-            return url.startsWith('/storage/') ? url.replace('/storage/', '') : url;
+            // Extract path from URL like /storage/warehouse/images/filename.jpg
+            if (url.startsWith('/storage/')) {
+              return url.replace('/storage/', '');
+            } else if (url.includes('/storage/')) {
+              // Handle full URLs like http://domain.com/storage/path
+              const parts = url.split('/storage/');
+              return parts.length > 1 ? parts[1] : url;
+            }
+            return url;
           }
           return url;
         });
+        
         const documentPaths = documentsArray.map(url => {
           if (typeof url === 'string') {
-            return url.startsWith('/storage/') ? url.replace('/storage/', '') : url;
+            if (url.startsWith('/storage/')) {
+              return url.replace('/storage/', '');
+            } else if (url.includes('/storage/')) {
+              const parts = url.split('/storage/');
+              return parts.length > 1 ? parts[1] : url;
+            }
+            return url;
           }
           return url;
         });
-        const termsPdfPath = data.terms_pdf_path && data.terms_pdf_path.startsWith('/storage/') 
-          ? data.terms_pdf_path.replace('/storage/', '') 
+        
+        const termsPdfPath = data.terms_pdf_path && typeof data.terms_pdf_path === 'string' 
+          ? (data.terms_pdf_path.startsWith('/storage/') 
+             ? data.terms_pdf_path.replace('/storage/', '') 
+             : (data.terms_pdf_path.includes('/storage/') 
+                ? data.terms_pdf_path.split('/storage/')[1] 
+                : data.terms_pdf_path))
           : data.terms_pdf_path;
+          
+        console.log('Setting original image paths:', imagePaths);
+        console.log('Setting original document paths:', documentPaths);
+        console.log('Setting original terms PDF path:', termsPdfPath);
           
         setOriginalImagePaths(imagePaths);
         setOriginalDocumentPaths(documentPaths);
@@ -194,6 +259,7 @@ const EditUnit = () => {
         setLoading(false);
       } catch (error) {
         console.error('Error fetching warehouse data:', error);
+        setError(error);
         setErrorItems([error.message || 'Failed to load warehouse data. Please try again.']);
         setShowErrorModal(true);
         setLoading(false);
