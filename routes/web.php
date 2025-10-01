@@ -203,6 +203,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/vehicles/bulk-reject', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'bulkReject'])->name('vehicles.bulkReject');
     Route::get('/vehicles/export', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'export'])->name('vehicles.export');
 
+    // Warehouse Management Route
+    Route::get('/Warehouse', function () {
+        return Inertia::render('Web/home/SuperAdmin/Warehouse');
+    })->name('Warehouse');
+
     // Legacy vehicle detail routes (can be updated later to use the main vehicle show route)
     Route::get('/LandVehicleDetails', function () {
         return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
@@ -471,6 +476,7 @@ Route::redirect('/SuperAdmin/Analytics', '/superadmin/Analytics')->name('SuperAd
 Route::redirect('/SuperAdmin/Users', '/superadmin/Users')->name('SuperAdmin.Users.legacy');
 Route::redirect('/SuperAdmin/AddUser', '/superadmin/AddUser')->name('SuperAdmin.AddUser.legacy');
 Route::redirect('/SuperAdmin/Vehicles', '/superadmin/Vehicles')->name('SuperAdmin.Vehicles.legacy');
+Route::redirect('/SuperAdmin/Warehouse', '/superadmin/Warehouse')->name('SuperAdmin.Warehouse.legacy');
 Route::redirect('/SuperAdmin/LandVehicleDetails', '/superadmin/LandVehicleDetails')->name('SuperAdmin.LandVehicleDetails.legacy');
 Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/SeaVehicleDetails')->name('SuperAdmin.SeaVehicleDetails.legacy');
 Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/AirVehicleDetails')->name('SuperAdmin.AirVehicleDetails.legacy');
