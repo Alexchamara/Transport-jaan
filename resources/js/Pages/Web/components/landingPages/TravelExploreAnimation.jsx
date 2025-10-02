@@ -19,7 +19,7 @@ const IMAGES = [
         subtitle: "On-Demand Rentals & Logistics",
         description: "Book or rent land vehicles including cars, vans, buses, and trucks for personal or business needs. Flexible durations and real-time availability.",
         ctaLabel: "Book Land Vehicle",
-        href: "/land-vehicles",
+        href: "./clientRent",
         url: img1,
     },
     {
@@ -176,7 +176,7 @@ const TravelExploreAnimation = ({ auth }) => {
 
     return (
         <div>
-            <div className="relative h-screen w-full flex flex-col justify-center items-center md:items-end overflow-hidden">
+            <div className="relative 2xl:h-screen h-auto w-full flex flex-col justify-center items-center md:items-end overflow-hidden">
                 {/* Background (shared layout) */}
                 <AnimatePresence initial={false} mode="popLayout">
                     <motion.div
@@ -413,13 +413,81 @@ const TravelExploreAnimation = ({ auth }) => {
                 {/* Caption */}
                 <motion.div
                     key={`cap-${activeIndex}`}
-                    className="md:absolute md:inset-0 z-40 flex w-full max-w-[300px] lg:max-w-[500px] xl:max-w-[600px] items-start md:items-center justify-start px-5 pt-10 md:pt-0"
+                    className="md:absolute md:inset-0 z-[55] flex w-full max-w-[300px] lg:max-w-[500px] xl:max-w-[600px] items-start md:items-center justify-start px-5 pt-20 md:pt-0"
                     variants={captionContainer}
                     initial="hidden"
                     animate="show"
                     layout
                 >
                     <div className="relative w-full h-full md:h-auto">
+                        {/* Mobile (stacked) caption: visible < md, hidden on md+ */}
+                        <motion.div
+                            className="md:hidden w-full bg-black/35 backdrop-blur-md rounded-2xl px-4 py-5 ring-1 ring-white/10 shadow-lg space-y-3"
+                            variants={captionContainer}
+                            initial="hidden"
+                            animate="show"
+                            layout
+                        >
+                            <motion.h2 variants={floatLeft} className="text-[26px]/[28px] font-[800] text-white uppercase">
+                                {IMAGES[activeIndex].title}
+                            </motion.h2>
+
+                            {IMAGES[activeIndex].subtitle && (
+                                <motion.div variants={floatMid} className="text-[14px] font-semibold text-orange-300/95">
+                                    {IMAGES[activeIndex].subtitle}
+                                </motion.div>
+                            )}
+
+                            {IMAGES[activeIndex].description && (
+                                <motion.p variants={floatMid} className="text-[13px] text-white/90 font-[500]">
+                                    {IMAGES[activeIndex].description}
+                                </motion.p>
+                            )}
+
+                            {tagList.length > 0 && (
+                                <motion.div variants={floatBottom} className="flex flex-wrap gap-2">
+                                    {tagList.map((tag, i) => (
+                                        <span
+                                            key={`mtag-${i}`}
+                                            className="px-3 py-1 rounded-full text-[11px] font-[800] text-white/90 border border-white/25 bg-white/10"
+                                        >
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </motion.div>
+                            )}
+
+                            <motion.div variants={floatBottom} className="grid grid-cols-2 gap-3">
+                                <div className="rounded-xl p-3 border border-white/15 bg-black/25 backdrop-blur">
+                                    <div className="text-[10px] text-white/70 font-[800] uppercase tracking-wide">Availability</div>
+                                    <div className="text-white text-[12px] font-[700]">Instant & Scheduled</div>
+                                </div>
+                                <div className="rounded-xl p-3 border border-white/15 bg-black/25 backdrop-blur">
+                                    <div className="text-[10px] text-white/70 font-[800] uppercase tracking-wide">Safety</div>
+                                    <div className="text-white text-[12px] font-[700]">Verified Operators</div>
+                                </div>
+                                <div className="rounded-xl p-3 border border-white/15 bg-black/25 backdrop-blur">
+                                    <div className="text-[10px] text-white/70 font-[800] uppercase tracking-wide">Flexibility</div>
+                                    <div className="text-white text-[12px] font-[700]">Hourly to Long‑term</div>
+                                </div>
+                                <div className="rounded-xl p-3 border border-white/15 bg-black/25 backdrop-blur">
+                                    <div className="text-[10px] text-white/70 font-[800] uppercase tracking-wide">Support</div>
+                                    <div className="text-white text-[12px] font-[700]">24/7 Assistance</div>
+                                </div>
+                            </motion.div>
+
+                            {IMAGES[activeIndex].ctaLabel && IMAGES[activeIndex].href && (
+                                <motion.div variants={floatCTA}>
+                                    <Link
+                                        href={IMAGES[activeIndex].href}
+                                        className="relative z-[60] pointer-events-auto inline-block bg-[#FF7003] hover:bg-white hover:text-[#FF7003] border border-[#FF7003] text-white font-bold rounded-full px-5 py-2 text-sm transition-all shadow-lg"
+                                    >
+                                        {IMAGES[activeIndex].ctaLabel}
+                                    </Link>
+                                </motion.div>
+                            )}
+                        </motion.div>
+                        <div className="hidden md:block relative z-[55]">
                         {/* Box A: Title (top-left) */}
                         <motion.div
                             variants={floatLeft}
@@ -451,7 +519,7 @@ const TravelExploreAnimation = ({ auth }) => {
                         {tagList.length > 0 && (
                             <motion.div
                                 variants={floatBottom}
-                                className="absolute left-4 bottom-[140px] md:left-12 md:bottom-[180px] bg-black/25 backdrop-blur-md rounded-2xl px-3 py-3 ring-1 ring-white/10 shadow-lg max-w-[92vw] md:max-w-[520px]"
+                                className="absolute left-4 bottom-[140px] md:left-10 md:bottom-[170px] py-3 max-w-[92vw] md:max-w-[520px]"
                             >
                                 <div className="flex flex-wrap gap-2">
                                     {tagList.map((tag, i) => (
@@ -494,19 +562,20 @@ const TravelExploreAnimation = ({ auth }) => {
                             <motion.div variants={floatCTA}>
                                 <Link
                                     href={IMAGES[activeIndex].href}
-                                    className="absolute right-6 bottom-6 md:right-auto md:left-10 md:-bottom-10 bg-[#FF7003] hover:bg-white hover:text-[#FF7003] border border-[#FF7003] text-white font-bold rounded-full px-5 py-2 text-sm md:text-base transition-all shadow-lg"
+                                    className="absolute right-6 bottom-6 md:right-auto md:left-10 md:-bottom-12 z-[60] pointer-events-auto bg-[#FF7003] hover:bg-white hover:text-[#FF7003] border border-[#FF7003] text-white font-bold rounded-full px-5 py-2 text-sm md:text-base transition-all shadow-lg"
                                 >
                                     {IMAGES[activeIndex].ctaLabel}
                                 </Link>
                             </motion.div>
                         )}
+                        </div>
                     </div>
                 </motion.div>
 
                 {/* Carousel (shared layout, framer-motion) */}
                 <div className="relative z-50 flex justify-center md:justify-end items-start md:items-center w-full h-auto md:h-screen pointer-events-auto pt-4 md:pt-0 pb-6 md:pb-0">
                     {/* Right-anchored rail showing exactly two cards */}
-                    <div className="w-full md:w-[400px] lg:w-[550px] xl:w-[650px]">
+                    <div className="w-full md:w-[300px] lg:w-[450px] xl:w-[650px]">
                         <div
                             ref={scrollRef}
                             className="overflow-hidden px-10 py-10 select-none"
@@ -547,11 +616,28 @@ const TravelExploreAnimation = ({ auth }) => {
                                             className="h-full w-full object-cover"
                                             draggable={false}
                                         />
-                                        <div className="pointer-events-none absolute inset-0 bg-black/40" />
-                                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                                        <div className="pointer-events-none absolute inset-0 flex items-end justify-center py-5">
-                                            <div className="rounded-lg hidden lg:block border-[1px] border-[#FF7003] px-3 py-2 text-white/90 font-[700] text-sm backdrop-blur-md bg-black/30 ring-1 ring-white/15 text-center">
-                                                {IMAGES[idx].title}
+                                        {/* subtle dim + gradient for readability */}
+                                        <div className="pointer-events-none absolute inset-0 bg-black/35" />
+                                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                                        {/* top-right badge */}
+                                        <div className="pointer-events-none absolute top-2 right-2 rounded-full px-2.5 py-1 text-[10px] font-[800] text-white/90 bg-white/10 border border-white/20 backdrop-blur">
+                                            #{idx + 1}
+                                        </div>
+
+                                        {/* bottom content */}
+                                        <div className="absolute inset-x-0 bottom-0 p-3 md:p-4">
+                                            <div className="flex items-end justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className="text-white font-[800] text-sm md:text-base leading-tight truncate">
+                                                        {IMAGES[idx].title}
+                                                    </div>
+                                                    {IMAGES[idx].subtitle && (
+                                                        <div className="hidden md:block text-white/80 text-[11px] md:text-xs leading-snug line-clamp-2">
+                                                            {IMAGES[idx].subtitle}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </motion.div>
