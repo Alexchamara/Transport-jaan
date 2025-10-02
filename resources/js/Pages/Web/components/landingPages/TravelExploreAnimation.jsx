@@ -19,7 +19,7 @@ const IMAGES = [
         subtitle: "On-Demand Rentals & Logistics",
         description: "Book or rent land vehicles including cars, vans, buses, and trucks for personal or business needs. Flexible durations and real-time availability.",
         ctaLabel: "Book Land Vehicle",
-        href: "/land-vehicles",
+        href: "./clientRent",
         url: img1,
     },
     {
