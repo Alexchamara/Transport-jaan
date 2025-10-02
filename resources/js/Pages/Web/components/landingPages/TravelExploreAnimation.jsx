@@ -14,13 +14,62 @@ import burgerIcon from "../../assets/landingPages/burgerIcon.svg";
 import { Link } from "@inertiajs/react";
 
 const IMAGES = [
-    { title: "Land Vehicles", url: img1 },
-    { title: "Sea Vehicles", url: img2 },
-    { title: "Air Vehicles", url: img3 },
-    { title: "Warehouse", url: img4 },
-    { title: "Freight", url: img5 },
-    { title: "Multi-model", url: img6 },
-    { title: "Ticket Booking", url: img7 },
+    {
+        title: "Land Vehicles",
+        subtitle: "On-Demand Rentals & Logistics",
+        description: "Book or rent land vehicles including cars, vans, buses, and trucks for personal or business needs. Flexible durations and real-time availability.",
+        ctaLabel: "Book Land Vehicle",
+        href: "/land-vehicles",
+        url: img1,
+    },
+    {
+        title: "Sea Vehicles",
+        subtitle: "Maritime Transport Solutions",
+        description: "Charter ferries, boats, and cargo ships for passenger or freight movement across sea routes. Secure and efficient maritime logistics.",
+        ctaLabel: "Explore Sea Options",
+        href: "/sea-vehicles",
+        url: img2,
+    },
+    {
+        title: "Air Vehicles",
+        subtitle: "Fastest Air Logistics",
+        description: "Access private jets, helicopters, and cargo planes for fast, reliable air transport. Ideal for urgent shipments and executive travel.",
+        ctaLabel: "Book Air Transport",
+        href: "/air-vehicles",
+        url: img3,
+    },
+    {
+        title: "Warehouse",
+        subtitle: "Storage & Fulfillment",
+        description: "Find warehousing solutions for goods storage, inventory management, and distribution. Flexible space and integrated logistics support.",
+        ctaLabel: "Find Warehouses",
+        href: "/warehouses",
+        url: img4,
+    },
+    {
+        title: "Freight",
+        subtitle: "Bulk Cargo Movement",
+        description: "Arrange freight shipping for large or bulk goods via road, sea, or air. Track shipments and optimize your supply chain.",
+        ctaLabel: "Ship Freight",
+        href: "/freight",
+        url: img5,
+    },
+    {
+        title: "Multi-model",
+        subtitle: "Integrated Transport",
+        description: "Seamlessly combine land, sea, and air transport for complex logistics needs. End-to-end visibility and coordination.",
+        ctaLabel: "Plan Multi-model",
+        href: "/multi-model",
+        url: img6,
+    },
+    {
+        title: "Ticket Booking",
+        subtitle: "Travel Reservations",
+        description: "Book tickets for buses, trains, ferries, and flights. Compare prices and schedules for convenient travel planning.",
+        ctaLabel: "Book Tickets",
+        href: "/tickets",
+        url: img7,
+    },
 ];
 
 const TravelExploreAnimation = ({ auth }) => {
@@ -33,6 +82,70 @@ const TravelExploreAnimation = ({ auth }) => {
     const STEP = CARD_WIDTH + GAP;
 
     const activeIndex = order[0]; // background is always the first item in the queue
+
+    const tagList = useMemo(() => {
+        const s = IMAGES[activeIndex]?.subtitle || "";
+        // split by common separators like ·, |, •, comma
+        return s
+            .split(/[·|•,]/g)
+            .map((t) => t.trim())
+            .filter(Boolean);
+    }, [activeIndex]);
+
+    // Framer Motion variants for caption boxes
+    const captionContainer = {
+        hidden: {},
+        show: {
+            transition: {
+                staggerChildren: 0.08,
+                delayChildren: 0.12,
+            },
+        },
+    };
+
+    const floatLeft = {
+        hidden: { opacity: 0, x: -20, y: 20, scale: 0.98 },
+        show: {
+            opacity: 1,
+            x: 0,
+            y: 0,
+            scale: 1,
+            transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+        },
+    };
+
+    const floatMid = {
+        hidden: { opacity: 0, x: -16, y: 10, scale: 0.985 },
+        show: {
+            opacity: 1,
+            x: 0,
+            y: 0,
+            scale: 1,
+            transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+        },
+    };
+
+    const floatBottom = {
+        hidden: { opacity: 0, x: -12, y: 24, scale: 0.985 },
+        show: {
+            opacity: 1,
+            x: 0,
+            y: 0,
+            scale: 1,
+            transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+        },
+    };
+
+    const floatCTA = {
+        hidden: { opacity: 0, x: 20, y: 10, scale: 0.98 },
+        show: {
+            opacity: 1,
+            x: 0,
+            y: 0,
+            scale: 1,
+            transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+        },
+    };
 
     const rotateNext = () => {
         setOrder((o) => [...o.slice(1), o[0]]);
@@ -299,19 +412,94 @@ const TravelExploreAnimation = ({ auth }) => {
 
                 {/* Caption */}
                 <motion.div
+                    key={`cap-${activeIndex}`}
                     className="md:absolute md:inset-0 z-40 flex w-full max-w-[300px] lg:max-w-[500px] xl:max-w-[600px] items-start md:items-center justify-start px-5 pt-10 md:pt-0"
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    variants={captionContainer}
+                    initial="hidden"
+                    animate="show"
+                    layout
                 >
-                    <div className="relative inline-flex justify-center items-center md:items-start max-w-[90vw] flex-col gap-1 rounded-2xl px-4 py-10 uppercase">
-                        <h2 className="text-[40px]/[35px] xl:text-[54px] font-[700] text-center text-white drop-shadow-lg">
-                            {IMAGES[activeIndex].title}
-                        </h2>
-                        <p className="text-base md:text-[12px] text-white/90 font-[500] drop-shadow-lg text-center md:text-start max-w-2xl mx-auto">
-                            Discover more about {IMAGES[activeIndex].title} and
-                            explore endless possibilities.
-                        </p>
+                    <div className="relative w-full h-full md:h-auto">
+                        {/* Box A: Title (top-left) */}
+                        <motion.div
+                            variants={floatLeft}
+                            className="absolute left-4 top-6 md:left-8 md:top-16 bg-black/35 backdrop-blur-md rounded-2xl px-4 py-3 ring-1 ring-white/15 shadow-lg max-w-[90vw] md:max-w-[420px]"
+                        >
+                            <h2 className="text-[34px]/[32px] md:text-[46px]/[44px] xl:text-[54px]/[52px] font-[800] text-white drop-shadow uppercase">
+                                {IMAGES[activeIndex].title}
+                            </h2>
+                        </motion.div>
+
+                        {/* Box B: Subtitle + description (mid-left) */}
+                        <motion.div
+                            variants={floatMid}
+                            className="absolute left-4 top-[110px] md:left-10 md:top-[200px] bg-black/30 backdrop-blur-md rounded-2xl px-4 py-4 ring-1 ring-white/15 shadow-lg max-w-[92vw] md:max-w-[520px]"
+                        >
+                            {IMAGES[activeIndex].subtitle && (
+                                <div className="text-base md:text-xl font-semibold text-orange-300/95 drop-shadow mb-1">
+                                    {IMAGES[activeIndex].subtitle}
+                                </div>
+                            )}
+                            {IMAGES[activeIndex].description && (
+                                <p className="text-[13px] md:text-[14px] text-white/90 font-[500] max-w-prose">
+                                    {IMAGES[activeIndex].description}
+                                </p>
+                            )}
+                        </motion.div>
+
+                        {/* Box C: Tag pills (lower-left) */}
+                        {tagList.length > 0 && (
+                            <motion.div
+                                variants={floatBottom}
+                                className="absolute left-4 bottom-[140px] md:left-12 md:bottom-[180px] bg-black/25 backdrop-blur-md rounded-2xl px-3 py-3 ring-1 ring-white/10 shadow-lg max-w-[92vw] md:max-w-[520px]"
+                            >
+                                <div className="flex flex-wrap gap-2">
+                                    {tagList.map((tag, i) => (
+                                        <span
+                                            key={`tag-${i}`}
+                                            className="px-3 py-1 rounded-full text-[11px] md:text-[12px] font-[800] text-white/90 border border-white/25 bg-white/10"
+                                        >
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* Box D: 2x2 mini info grid (bottom-left corner) */}
+                        <motion.div
+                            variants={floatBottom}
+                            className="absolute left-4 bottom-6 md:left-10 md:bottom-10 grid grid-cols-2 gap-3 w-[min(92vw,520px)]"
+                        >
+                            <div className="rounded-xl p-3 border border-white/15 bg-black/25 backdrop-blur ring-1 ring-white/10">
+                                <div className="text-[10px] md:text-[11px] text-white/70 font-[800] uppercase tracking-wide">Availability</div>
+                                <div className="text-white text-[12px] md:text-[13px] font-[700]">Instant & Scheduled</div>
+                            </div>
+                            <div className="rounded-xl p-3 border border-white/15 bg-black/25 backdrop-blur ring-1 ring-white/10">
+                                <div className="text-[10px] md:text-[11px] text-white/70 font-[800] uppercase tracking-wide">Safety</div>
+                                <div className="text-white text-[12px] md:text-[13px] font-[700]">Verified Operators</div>
+                            </div>
+                            <div className="rounded-xl p-3 border border-white/15 bg-black/25 backdrop-blur ring-1 ring-white/10">
+                                <div className="text-[10px] md:text-[11px] text-white/70 font-[800] uppercase tracking-wide">Flexibility</div>
+                                <div className="text-white text-[12px] md:text-[13px] font-[700]">Hourly to Long‑term</div>
+                            </div>
+                            <div className="rounded-xl p-3 border border-white/15 bg-black/25 backdrop-blur ring-1 ring-white/10">
+                                <div className="text-[10px] md:text-[11px] text-white/70 font-[800] uppercase tracking-wide">Support</div>
+                                <div className="text-white text-[12px] md:text-[13px] font-[700]">24/7 Assistance</div>
+                            </div>
+                        </motion.div>
+
+                        {/* Box E: CTA (floating) */}
+                        {IMAGES[activeIndex].ctaLabel && IMAGES[activeIndex].href && (
+                            <motion.div variants={floatCTA}>
+                                <Link
+                                    href={IMAGES[activeIndex].href}
+                                    className="absolute right-6 bottom-6 md:right-auto md:left-10 md:-bottom-10 bg-[#FF7003] hover:bg-white hover:text-[#FF7003] border border-[#FF7003] text-white font-bold rounded-full px-5 py-2 text-sm md:text-base transition-all shadow-lg"
+                                >
+                                    {IMAGES[activeIndex].ctaLabel}
+                                </Link>
+                            </motion.div>
+                        )}
                     </div>
                 </motion.div>
 
