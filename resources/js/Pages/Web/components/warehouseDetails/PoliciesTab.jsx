@@ -40,8 +40,16 @@ const PoliciesTab = ({ warehouse }) => {
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
           <h4 className="font-semibold text-gray-700 mb-3">Access Policy</h4>
           <div className="text-sm text-gray-600 space-y-2">
-            <p><strong>Operating Hours:</strong> {warehouse?.operating_hours || "24/7 Access Available"}</p>
-            <p><strong>Security:</strong> {warehouse?.security_level || "Standard security protocols apply"}</p>
+            <p><strong>Operating Hours:</strong> {
+              Array.isArray(warehouse?.operating_hours) 
+                ? warehouse.operating_hours.join(", ") 
+                : warehouse?.operating_hours || "24/7 Access Available"
+            }</p>
+            <p><strong>Security:</strong> {
+              warehouse?.security_level 
+                ? warehouse.security_level.charAt(0).toUpperCase() + warehouse.security_level.slice(1)
+                : "Standard security protocols apply"
+            }</p>
             <p><strong>Access Method:</strong> Key card / Digital access provided upon booking confirmation</p>
           </div>
         </div>
@@ -50,9 +58,10 @@ const PoliciesTab = ({ warehouse }) => {
         <div className="bg-green-50 p-4 rounded-lg border border-green-200">
           <h4 className="font-semibold text-gray-700 mb-3">Payment Policy</h4>
           <div className="text-sm text-gray-600 space-y-2">
-            <p><strong>Payment Terms:</strong> {warehouse?.payment_terms || "Monthly payment in advance"}</p>
-            <p><strong>Late Fee:</strong> 5% of monthly rate for payments over 7 days late</p>
-            <p><strong>Security Deposit:</strong> Equivalent to one month's rent (refundable)</p>
+            <p><strong>Payment Terms:</strong> {warehouse?.pricing_model === 'monthly' ? "Monthly payment in advance" : warehouse?.payment_terms || "Payment in advance"}</p>
+            <p><strong>Monthly Rate:</strong> ${warehouse?.monthly_rate || warehouse?.base_price || "Contact for pricing"}</p>
+            <p><strong>Security Deposit:</strong> ${warehouse?.security_deposit || "Contact for details"}</p>
+            <p><strong>Setup Fee:</strong> ${warehouse?.setup_fee || "None"}</p>
             <p><strong>Accepted Methods:</strong> Bank transfer, Credit card, Online payment</p>
           </div>
         </div>

@@ -141,6 +141,16 @@ Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicl
 Route::prefix('api')->name('api.')->group(function () {
     // Warehouse API endpoints
     Route::get('/warehouse-units/{id}', [WarehouseBookingController::class, 'getWarehouseUnit'])->name('warehouse-units.show');
+    
+    // Warehouse like toggle (requires auth)
+    Route::middleware(['auth'])->group(function () {
+        Route::post('/warehouse/like-toggle', [WarehouseBookingController::class, 'toggleLike'])->name('client.warehouse.like.toggle');
+    });
+});
+
+// Warehouse Reviews (requires auth)
+Route::middleware(['auth'])->group(function () {
+    Route::post('/warehouse-reviews', [WarehouseBookingController::class, 'storeReview'])->name('warehouse.reviews.store');
 });
 
 /*

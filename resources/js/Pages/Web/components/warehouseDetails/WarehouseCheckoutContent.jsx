@@ -722,7 +722,7 @@ const WarehouseCheckoutContent = () => {
                             </div>
                             <div className="flex flex-col gap-3">
                                 <h1 className="figtree text-[20px] font-[700] ">
-                                    {warehouseInfo?.name || 'Central Storage Facility - Bay A'}
+                                    {warehouseInfo?.name}
                                 </h1>
                                 <div className="poppins flex flex-row gap-5 text-[9px] text-[#000000B2] font-[500]">
                                     <div className="flex flex-col gap-2 justify-center items-center">

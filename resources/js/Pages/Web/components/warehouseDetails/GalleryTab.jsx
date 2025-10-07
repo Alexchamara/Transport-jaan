@@ -7,53 +7,132 @@ const GalleryTab = ({ warehouse }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Build comprehensive image list
+  // Build comprehensive image list from database relationships
   const getAllImages = () => {
     const images = [];
     
-    // Add primary image if exists
-    if (warehouseData?.primary_image_url) {
+    // Add main image from relationship if exists
+    if (warehouseData?.main_image) {
+      const mainImg = warehouseData.main_image;
       images.push({
-        url: warehouseData.primary_image_url,
-        caption: `${warehouseData.name} - Main View`,
-        type: 'primary'
+        id: mainImg.id,
+        url: mainImg.url || `/storage/${mainImg.file_path}`,
+        caption: mainImg.caption || mainImg.alt_text || `${warehouseData.name} - Main View`,
+        type: 'main',
+        alt_text: mainImg.alt_text,
+        sort_order: 0
       });
     }
 
-    // Add additional images
-    const additionalImages = warehouseData?.images || [];
-    additionalImages.forEach((img, index) => {
-      let imageUrl;
-      let caption = `${warehouseData?.name || 'Warehouse'} - View ${index + 1}`;
+    // Add gallery images from relationship
+    const galleryImages = warehouseData?.gallery_images || warehouseData?.images || [];
+    galleryImages.forEach((img, index) => {
+      if (!img.id) return; // Skip if not a proper image object
       
-      if (typeof img === 'string') {
-        imageUrl = img.startsWith('/storage/') ? img : `/storage/${img}`;
-      } else if (img?.url) {
-        imageUrl = img.url;
-        caption = img.caption || caption;
-      } else if (img?.image_path) {
-        imageUrl = `/storage/${img.image_path}`;
-        caption = img.caption || caption;
-      } else if (img?.path) {
-        imageUrl = `/storage/${img.path}`;
-        caption = img.caption || caption;
-      }
+      const imageUrl = img.url || (img.file_path ? `/storage/${img.file_path}` : null);
+      if (!imageUrl) return;
 
-      if (imageUrl && !images.some(existing => existing.url === imageUrl)) {
-        images.push({
-          url: imageUrl,
-          caption,
-          type: 'gallery'
-        });
-      }
+      // Don't duplicate main image
+      const isDuplicate = images.some(existing => existing.id === img.id);
+      if (isDuplicate) return;
+
+      images.push({
+        id: img.id,
+        url: imageUrl,
+        caption: img.caption || img.alt_text || `${warehouseData?.name || 'Warehouse'} - View ${index + 1}`,
+        type: img.type || 'gallery',
+        alt_text: img.alt_text || '',
+        sort_order: img.sort_order || index + 1,
+        file_size: img.file_size,
+        dimensions: img.dimensions
+      });
     });
 
-    // Add placeholder if no images
+    // Add active images from general images relationship
+    const activeImages = warehouseData?.active_images || [];
+    activeImages.forEach((img, index) => {
+      if (!img.id) return;
+      
+      const imageUrl = img.url || (img.file_path ? `/storage/${img.file_path}` : null);
+      if (!imageUrl) return;
+
+      // Don't duplicate existing images
+      const isDuplicate = images.some(existing => existing.id === img.id);
+      if (isDuplicate) return;
+
+      images.push({
+        id: img.id,
+        url: imageUrl,
+        caption: img.caption || img.alt_text || `${warehouseData?.name || 'Warehouse'} - Image ${images.length + 1}`,
+        type: img.type || 'gallery',
+        alt_text: img.alt_text || '',
+        sort_order: img.sort_order || images.length + 1,
+        file_size: img.file_size,
+        dimensions: img.dimensions
+      });
+    });
+
+    // Fallback: Handle legacy image data structures
+    if (images.length === 0) {
+      // Check for primary_image_url (legacy)
+      if (warehouseData?.primary_image_url) {
+        images.push({
+          id: 'legacy-main',
+          url: warehouseData.primary_image_url,
+          caption: `${warehouseData.name} - Main View`,
+          type: 'main',
+          sort_order: 0
+        });
+      }
+
+      // Check for legacy images array
+      const legacyImages = warehouseData?.images || [];
+      if (Array.isArray(legacyImages)) {
+        legacyImages.forEach((img, index) => {
+          let imageUrl;
+          let caption = `${warehouseData?.name || 'Warehouse'} - View ${index + 1}`;
+          
+          if (typeof img === 'string') {
+            imageUrl = img.startsWith('/storage/') ? img : `/storage/${img}`;
+          } else if (img?.url) {
+            imageUrl = img.url;
+            caption = img.caption || caption;
+          } else if (img?.image_path) {
+            imageUrl = `/storage/${img.image_path}`;
+            caption = img.caption || caption;
+          } else if (img?.file_path) {
+            imageUrl = `/storage/${img.file_path}`;
+            caption = img.caption || img.alt_text || caption;
+          }
+
+          if (imageUrl && !images.some(existing => existing.url === imageUrl)) {
+            images.push({
+              id: `legacy-${index}`,
+              url: imageUrl,
+              caption,
+              type: 'gallery',
+              sort_order: index + 1
+            });
+          }
+        });
+      }
+    }
+
+    // Sort images by sort_order, then by type (main first)
+    images.sort((a, b) => {
+      if (a.type === 'main' && b.type !== 'main') return -1;
+      if (b.type === 'main' && a.type !== 'main') return 1;
+      return (a.sort_order || 0) - (b.sort_order || 0);
+    });
+
+    // Add placeholder if no images found
     if (images.length === 0) {
       images.push({
+        id: 'placeholder',
         url: 'https://via.placeholder.com/600x400?text=No+Images+Available',
-        caption: 'No images available',
-        type: 'placeholder'
+        caption: 'No images available for this warehouse',
+        type: 'placeholder',
+        sort_order: 0
       });
     }
 
@@ -88,6 +167,29 @@ const GalleryTab = ({ warehouse }) => {
     if (e.key === 'ArrowRight') nextImage();
     if (e.key === 'ArrowLeft') prevImage();
     if (e.key === 'Escape') closeLightbox();
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+    
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+  };
+
+  // Helper function to get image dimensions text
+  const getImageDimensions = (image) => {
+    if (image.dimensions && Array.isArray(image.dimensions) && image.dimensions.length >= 2) {
+      return `${image.dimensions[0]} × ${image.dimensions[1]}`;
+    }
+    return null;
   };
 
   return (
@@ -130,9 +232,16 @@ const GalleryTab = ({ warehouse }) => {
             </div>
 
             {/* Image type badge */}
-            {image.type === 'primary' && (
+            {(image.type === 'primary' || image.type === 'main') && (
               <div className="absolute top-2 left-2 bg-[#0955AC] text-white text-xs px-2 py-1 rounded">
                 Main Photo
+              </div>
+            )}
+
+            {/* File size badge for non-placeholder images */}
+            {image.file_size && image.type !== 'placeholder' && (
+              <div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                {formatFileSize(image.file_size)}
               </div>
             )}
 
@@ -210,9 +319,17 @@ const GalleryTab = ({ warehouse }) => {
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4 rounded-b-lg">
                 <div className="text-white">
                   <p className="font-medium">{selectedImage.caption}</p>
-                  <p className="text-sm opacity-75">
-                    {currentIndex + 1} of {images.length}
-                  </p>
+                  <div className="flex items-center justify-between text-sm opacity-75 mt-1">
+                    <span>{currentIndex + 1} of {images.length}</span>
+                    <div className="flex items-center gap-3">
+                      {selectedImage.file_size && (
+                        <span>{formatFileSize(selectedImage.file_size)}</span>
+                      )}
+                      {getImageDimensions(selectedImage) && (
+                        <span>{getImageDimensions(selectedImage)} px</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -222,14 +339,14 @@ const GalleryTab = ({ warehouse }) => {
 
       {/* Gallery Stats */}
       <div className="bg-gray-50 p-4 rounded-lg">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center">
           <div>
             <div className="text-2xl font-bold text-[#0955AC]">{images.length}</div>
             <div className="text-sm text-gray-600">Total Photos</div>
           </div>
           <div>
             <div className="text-2xl font-bold text-[#0955AC]">
-              {images.filter(img => img.type === 'primary').length}
+              {images.filter(img => img.type === 'main' || img.type === 'primary').length}
             </div>
             <div className="text-sm text-gray-600">Main Photos</div>
           </div>
@@ -239,8 +356,36 @@ const GalleryTab = ({ warehouse }) => {
             </div>
             <div className="text-sm text-gray-600">Gallery Photos</div>
           </div>
+          <div>
+            <div className="text-2xl font-bold text-[#0955AC]">
+              {images.filter(img => img.type !== 'placeholder').length}
+            </div>
+            <div className="text-sm text-gray-600">Available Images</div>
+          </div>
         </div>
       </div>
+
+      {/* Image Details for Development/Debug */}
+      {process.env.NODE_ENV === 'development' && (
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+            Debug: Image Data Structure
+          </summary>
+          <div className="mt-2 p-4 bg-gray-100 rounded text-xs">
+            <pre className="whitespace-pre-wrap overflow-x-auto">
+              {JSON.stringify({ 
+                warehouseImages: {
+                  main_image: warehouseData?.main_image ? 'exists' : 'missing',
+                  gallery_images: warehouseData?.gallery_images?.length || 0,
+                  active_images: warehouseData?.active_images?.length || 0,
+                  images: warehouseData?.images?.length || 0,
+                  processed_images: images.length
+                }
+              }, null, 2)}
+            </pre>
+          </div>
+        </details>
+      )}
     </div>
   );
 };

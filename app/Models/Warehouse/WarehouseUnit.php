@@ -5,6 +5,8 @@ namespace App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use App\Models\Warehouse\WarehouseReview;
+use App\Models\Warehouse\WarehouseLike;
 
 class WarehouseUnit extends Model
 {
@@ -261,5 +263,43 @@ class WarehouseUnit extends Model
                      ->orWhere('available_until', '>=', $endDate);
             });
         });
+    }
+
+    // Reviews relationship (using existing VehicleReview as template)
+    public function reviews()
+    {
+        return $this->hasMany(WarehouseReview::class);
+    }
+
+    public function likes()
+    {
+        return $this->hasMany(WarehouseLike::class);
+    }
+
+    public function averageRating()
+    {
+        return $this->reviews()->avg('rating') ?: 0;
+    }
+
+    public function reviewsCount()
+    {
+        return $this->reviews()->count();
+    }
+
+    public function isLikedBy($userId)
+    {
+        if (!$userId) return false;
+        return $this->likes()->where('user_id', $userId)->exists();
+    }
+
+    // Add getRatingAvgAttribute accessor
+    public function getRatingAvgAttribute()
+    {
+        return $this->averageRating();
+    }
+
+    public function getReviewsCountAttribute()
+    {
+        return $this->reviewsCount();
     }
 }

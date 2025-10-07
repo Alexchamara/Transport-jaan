@@ -21,24 +21,43 @@ const SpecCard = ({ icon, label }) => (
 
 const WarehouseDetailsTab = ({ warehouse }) => {
   const specs = useMemo(() => {
+    if (!warehouse) return {};
+    
     return {
       totalArea: warehouse?.total_area ? `${fmtInt(warehouse.total_area)} sq ft` : "—",
       warehouseType: ucfirst(warehouse?.type || warehouse?.warehouse_type),
-      location: warehouse?.city || warehouse?.location || warehouse?.address || "—",
-      amenities: warehouse?.amenities?.length ? `${warehouse.amenities.length} amenities` : "—",
-      capacity: warehouse?.capacity ? `${fmtInt(warehouse.capacity)} units` : "—",
+      location: warehouse?.address || warehouse?.city || warehouse?.location || "—",
+      amenities: warehouse?.amenities?.length ? `${warehouse.amenities.length} amenities` : "No amenities",
+      capacity: warehouse?.capacity ? `${fmtInt(warehouse.capacity)} ${warehouse?.capacity_unit || 'units'}` : "—",
       pricing: warehouse?.pricing_model ? ucfirst(warehouse.pricing_model) : "Monthly",
       description:
         warehouse?.description ||
         "No description provided for this warehouse facility.",
       owner: {
-        name: warehouse?.provider?.name || warehouse?.owner?.name || "—",
+        name: warehouse?.owner?.name || warehouse?.provider?.name || warehouse?.contact_person || "—",
+        phone: warehouse?.owner?.phone || warehouse?.contact_phone || "—",
+        email: warehouse?.owner?.email || warehouse?.contact_email || "—",
         rating: warehouse?.rating_avg ? fmtFloat(warehouse.rating_avg, 1) : null,
-        reviews: warehouse?.reviews_count ?? null,
+        reviews: warehouse?.reviews_count ?? 0,
       },
-      features: warehouse?.amenities || [],
+      features: Array.isArray(warehouse?.amenities) ? warehouse.amenities : [],
+      operatingHours: warehouse?.operating_hours || "24/7 Access",
+      securityLevel: warehouse?.security_level || "Standard",
+      contactInfo: {
+        phone: warehouse?.contact_phone || "—",
+        email: warehouse?.contact_email || "—",
+        person: warehouse?.contact_person || "—"
+      }
     };
   }, [warehouse]);
+
+  if (!warehouse) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p className="text-gray-500">No warehouse data available</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -84,9 +103,9 @@ const WarehouseDetailsTab = ({ warehouse }) => {
       </div>
 
       {/* Features & Amenities */}
-      {specs.features.length > 0 && (
+      {specs.features && specs.features.length > 0 && (
         <div className="poppins py-5">
-          <h1 className="text-[20px] font-[600] mb-5">Available Features</h1>
+          <h1 className="text-[20px] font-[600] mb-5">Available Amenities</h1>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {specs.features.map((feature, index) => (
               <div key={index} className="flex items-center p-3 bg-blue-50 rounded-lg">
@@ -101,6 +120,42 @@ const WarehouseDetailsTab = ({ warehouse }) => {
           </div>
         </div>
       )}
+
+      {/* Operating Information */}
+      <div className="poppins py-5">
+        <h1 className="text-[20px] font-[600] mb-5">Operating Information</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-700 mb-2">Operating Hours</h4>
+            <p className="text-gray-600">{specs.operatingHours}</p>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-700 mb-2">Security Level</h4>
+            <p className="text-gray-600">{ucfirst(specs.securityLevel)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact Information */}
+      <div className="poppins py-5">
+        <h1 className="text-[20px] font-[600] mb-5">Contact Information</h1>
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Contact Person</h4>
+              <p className="text-gray-600">{specs.contactInfo.person}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-2">Phone</h4>
+              <p className="text-gray-600">{specs.contactInfo.phone}</p>
+            </div>
+            <div className="md:col-span-2">
+              <h4 className="font-semibold text-gray-700 mb-2">Email</h4>
+              <p className="text-gray-600">{specs.contactInfo.email}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Location Details */}
       <div className="poppins py-5">
@@ -145,12 +200,22 @@ const WarehouseDetailsTab = ({ warehouse }) => {
             </div>
           </div>
           <div className="text-[9px] flex flex-col md:flex-row gap-4">
-            <div className="w-[123px] h-[29px] bg-[#0955AC] text-[#FFFFFF] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
-              CONTACT NUMBER
-            </div>
-            <div className="w-[123px] h-[29px] border-[1.5px] border-[#0955AC] bg-[#E8EBEF] text-[#0955AC] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer">
-              VIEW PROFILE
-            </div>
+            {specs.owner.phone !== "—" && (
+              <a 
+                href={`tel:${specs.owner.phone}`}
+                className="w-[123px] h-[29px] bg-[#0955AC] text-[#FFFFFF] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#0744A0] transition-colors"
+              >
+                CONTACT NUMBER
+              </a>
+            )}
+            {specs.owner.email !== "—" && (
+              <a 
+                href={`mailto:${specs.owner.email}`}
+                className="w-[123px] h-[29px] border-[1.5px] border-[#0955AC] bg-[#E8EBEF] text-[#0955AC] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#0955AC] hover:text-white transition-colors"
+              >
+                SEND EMAIL
+              </a>
+            )}
           </div>
         </div>
       </div>

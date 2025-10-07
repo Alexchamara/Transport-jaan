@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Warehouse\WarehouseUnit;
 use App\Models\Warehouse\WarehouseBooking;
+use App\Models\Warehouse\WarehouseReview;
+use App\Models\Warehouse\WarehouseLike;
 
 class WarehouseBookingController extends Controller
 {
@@ -580,6 +582,135 @@ class WarehouseBookingController extends Controller
                 'success' => false,
                 'message' => 'Failed to fetch warehouse details.',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle warehouse like/unlike
+     */
+    public function toggleLike(Request $request)
+    {
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please login to add to wishlist'
+            ], 401);
+        }
+
+        $request->validate([
+            'warehouse_id' => 'required|exists:warehouse_units,id'
+        ]);
+
+        $userId = Auth::id();
+        $warehouseId = $request->warehouse_id;
+
+        try {
+            $existingLike = WarehouseLike::where('user_id', $userId)
+                ->where('warehouse_unit_id', $warehouseId)
+                ->first();
+
+            if ($existingLike) {
+                // Unlike
+                $existingLike->delete();
+                $isLiked = false;
+                $message = 'Removed from wishlist';
+            } else {
+                // Like
+                WarehouseLike::create([
+                    'user_id' => $userId,
+                    'warehouse_unit_id' => $warehouseId
+                ]);
+                $isLiked = true;
+                $message = 'Added to wishlist';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'is_liked' => $isLiked
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error toggling warehouse like: ' . $e->getMessage(), [
+                'user_id' => $userId,
+                'warehouse_id' => $warehouseId,
+                'error' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update wishlist'
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a warehouse review
+     */
+    public function storeReview(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'warehouse_unit_id' => 'required|exists:warehouse_units,id',
+                'rating' => 'required|integer|min:1|max:5',
+                'comment' => 'required|string|max:1000',
+                'pros' => 'nullable|string|max:500',
+                'cons' => 'nullable|string|max:500',
+                'stay_duration' => 'nullable|string|max:100',
+            ]);
+
+            // Check if user has already reviewed this warehouse
+            $existingReview = WarehouseReview::where('warehouse_unit_id', $validated['warehouse_unit_id'])
+                ->where('user_id', Auth::id())
+                ->first();
+
+            if ($existingReview) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have already reviewed this warehouse.'
+                ], 422);
+            }
+
+            // Create the review
+            WarehouseReview::create([
+                'warehouse_unit_id' => $validated['warehouse_unit_id'],
+                'user_id' => Auth::id(),
+                'rating' => $validated['rating'],
+                'comment' => $validated['comment'],
+                'pros' => $validated['pros'],
+                'cons' => $validated['cons'],
+                'stay_duration' => $validated['stay_duration'],
+            ]);
+
+            Log::info('Warehouse review created successfully', [
+                'warehouse_unit_id' => $validated['warehouse_unit_id'],
+                'user_id' => Auth::id(),
+                'rating' => $validated['rating']
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Review submitted successfully!'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please check the form for errors.',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Warehouse review creation failed: ' . $e->getMessage(), [
+                'warehouse_unit_id' => $request->input('warehouse_unit_id'),
+                'user_id' => Auth::id(),
+                'error' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to submit review. Please try again.'
             ], 500);
         }
     }
