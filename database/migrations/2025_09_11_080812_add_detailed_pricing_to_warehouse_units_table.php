@@ -11,15 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('warehouse_units', function (Blueprint $table) {
-            $table->decimal('monthly_rate', 10, 2)->nullable()->after('price');
-            $table->decimal('security_deposit', 10, 2)->nullable()->after('monthly_rate');
-            $table->decimal('setup_fee', 10, 2)->nullable()->after('security_deposit');
-            $table->decimal('tax_rate', 5, 4)->nullable()->after('setup_fee');
-            $table->decimal('total_amount', 10, 2)->nullable()->after('tax_rate');
-            $table->decimal('tax_amount', 10, 2)->nullable()->after('total_amount');
-            $table->decimal('final_amount', 10, 2)->nullable()->after('tax_amount');
-        });
+        // The warehouse_units table already has all these pricing columns.
+        // This migration is not needed as the columns were created in the initial table migration.
+        // Commenting out to avoid conflicts.
+        
+        // Schema::table('warehouse_units', function (Blueprint $table) {
+        //     $table->decimal('monthly_rate', 10, 2)->nullable()->after('base_price');
+        //     $table->decimal('security_deposit', 10, 2)->nullable()->after('monthly_rate');
+        //     $table->decimal('setup_fee', 10, 2)->nullable()->after('security_deposit');
+        //     $table->decimal('tax_rate', 5, 4)->nullable()->after('setup_fee');
+        //     $table->decimal('total_amount', 10, 2)->nullable()->after('tax_rate');
+        //     $table->decimal('tax_amount', 10, 2)->nullable()->after('total_amount');
+        //     $table->decimal('final_amount', 10, 2)->nullable()->after('tax_amount');
+        // });
     }
 
     /**
@@ -27,16 +31,18 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('warehouse_units', function (Blueprint $table) {
-            $table->dropColumn([
-                'monthly_rate', 
-                'security_deposit', 
-                'setup_fee', 
-                'tax_rate', 
-                'total_amount', 
-                'tax_amount', 
-                'final_amount'
-            ]);
-        });
+        // No columns to drop since none were added in the up() method
+        
+        // Schema::table('warehouse_units', function (Blueprint $table) {
+        //     $table->dropColumn([
+        //         'monthly_rate', 
+        //         'security_deposit', 
+        //         'setup_fee', 
+        //         'tax_rate', 
+        //         'total_amount', 
+        //         'tax_amount', 
+        //         'final_amount'
+        //     ]);
+        // });
     }
 };

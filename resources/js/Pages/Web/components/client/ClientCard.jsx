@@ -3,7 +3,6 @@ import { router } from "@inertiajs/react";
 const ClientCard = ({ title, description, icon, route, subOptions }) => {
     const handleNavigate = (targetRoute = null) => {
         const navigateToRoute = targetRoute || route;
-
         if (navigateToRoute) {
             router.visit(navigateToRoute);
         } else {

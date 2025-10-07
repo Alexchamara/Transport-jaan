@@ -1,5 +1,10 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\FlightBookingController;
@@ -8,8 +13,6 @@ use App\Http\Controllers\BusController;
 use App\Http\Controllers\WarehouseControllers\Client\WarehouseBookingController;
 use App\Http\Controllers\User\UserDashboardController;
 use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 use App\Http\Controllers\WarehouseControllers\Vendor\WarehouseUnitController;
 
 // Vendor controllers
@@ -49,7 +52,7 @@ Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 
 Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
-Route::get('/dashboard-redirect', [WebController::class, 'redirectToDashboard'])->name('dashboard.redirect');
+Route::get('/dashboard-redirect', [WebController::class, 'signin.signin'])->name('dashboard.redirect');
 Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
 Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blogExample');
 
@@ -134,6 +137,16 @@ Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicl
 Route::prefix('api')->name('api.')->group(function () {
     // Warehouse API endpoints
     Route::get('/warehouse-units/{id}', [WarehouseBookingController::class, 'getWarehouseUnit'])->name('warehouse-units.show');
+    
+    // Warehouse like toggle (requires auth)
+    Route::middleware(['auth'])->group(function () {
+        Route::post('/warehouse/like-toggle', [WarehouseBookingController::class, 'toggleLike'])->name('client.warehouse.like.toggle');
+    });
+});
+
+// Warehouse Reviews (requires auth)
+Route::middleware(['auth'])->group(function () {
+    Route::post('/warehouse-reviews', [WarehouseBookingController::class, 'storeReview'])->name('warehouse.reviews.store');
 });
 
 /*
@@ -233,6 +246,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     });
 });
 
+
 // vendor routes
 Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
     Route::get('/mainDashboard', function () {
@@ -262,6 +276,34 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('v
     Route::patch('/api/units/{id}', [WarehouseUnitController::class, 'update'])->name('api.units.patch');
     Route::patch('/api/units/{id}/status', [WarehouseUnitController::class, 'updateStatus'])->name('api.units.updateStatus');
     Route::delete('/api/units/{id}', [WarehouseUnitController::class, 'destroy'])->name('api.units.destroy');
+    
+    // Debug route
+    Route::get('/api/debug/{id}', function($id) {
+        return response()->json([
+            'user_authenticated' => Auth::check(),
+            'user_id' => Auth::id(),
+            'user_role' => Auth::user()?->role,
+            'requested_id' => $id,
+            'warehouse_exists' => \App\Models\Warehouse\WarehouseUnit::where('id', $id)->exists(),
+            'user_warehouse_exists' => \App\Models\Warehouse\WarehouseUnit::where('id', $id)->where('user_id', Auth::id())->exists(),
+            'timestamp' => now(),
+        ]);
+    })->name('api.debug');
+    
+    // Test login endpoint for debugging
+    Route::get('/api/test-login', function() {
+        $user = \App\Models\User::find(1);
+        if ($user) {
+            Auth::login($user);
+            return response()->json([
+                'success' => true,
+                'user_id' => Auth::id(),
+                'user_role' => Auth::user()->role,
+                'message' => 'User logged in successfully'
+            ]);
+        }
+        return response()->json(['error' => 'User not found'], 404);
+    })->name('api.test-login');
 
     // API routes for warehouse bookings management
     Route::get('/api/bookings', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'index'])->name('api.bookings.index');
@@ -481,7 +523,6 @@ Route::redirect('/SuperAdmin/LandVehicleDetails', '/superadmin/LandVehicleDetail
 Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/SeaVehicleDetails')->name('SuperAdmin.SeaVehicleDetails.legacy');
 Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/AirVehicleDetails')->name('SuperAdmin.AirVehicleDetails.legacy');
 Route::redirect('/SuperAdmin/Vender', '/superadmin/Vender')->name('SuperAdmin.NewVender.legacy');
-
 // Route::get('/mainDashboard', function () {
 //     return Inertia::render('Web/home/vendors/MainDashboard');
 // })->name('mainDashboard');
@@ -496,10 +537,100 @@ Route::get('/settingsPage', function () {
 
 // end
 
+//SuperAdmin
+
+Route::get('/SuperAdmin/Dashboard', function () {
+    return Inertia::render('Web/home/SuperAdmin/Dashboard');
+})->name('SuperAdmin.Dashboard');
+
+Route::get('/SuperAdmin/Analytics', function () {
+    return Inertia::render('Web/home/SuperAdmin/Analytics');
+})->name('SuperAdmin.Analytics');
+
+Route::get('/SuperAdmin/Users', function () {
+    return Inertia::render('Web/home/SuperAdmin/Users');
+})->name('SuperAdmin.Users');
+
+Route::get('/SuperAdmin/AddUser', function () {
+    return Inertia::render('Web/home/SuperAdmin/AddUser');
+})->name('SuperAdmin.AddUser');
+
 // vendor dashboard - warehouse
 Route::get('/warehouse/bookings', function () {
     return Inertia::render('Web/home/vendors/warehouse/Booking');
 })->name('warehouse.bookings');
+Route::get('/SuperAdmin/Vehicles', function () {
+    return Inertia::render('Web/home/SuperAdmin/Vehicles');
+})->name('SuperAdmin.Vehicles');
+Route::get('/SuperAdmin/Vehicles', function () {
+    return Inertia::render('Web/home/SuperAdmin/Vehicles');
+})->name('SuperAdmin.Vehicles');
+
+// Route::get('/SuperAdmin/LandVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
+// })->name('SuperAdmin.LandVehicleDetails');
+
+// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
+// })->name('SuperAdmin.SeaVehicleDetails');
+
+// Route::get('/SuperAdmin/AirVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
+// })->name('SuperAdmin.AirVehicleDetails');
+
+Route::get('/SuperAdmin/Vender', function () {
+    return Inertia::render('Web/home/SuperAdmin/NewVender');
+})->name('SuperAdmin.NewVender');
+
+
+Route::get('/SuperAdmin/Vehicles', function () {
+    return Inertia::render('Web/home/SuperAdmin/Vehicles');
+})->name('SuperAdmin.Vehicles');
+
+// Route::get('/SuperAdmin/LandVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
+// })->name('SuperAdmin.LandVehicleDetails');
+
+// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
+// })->name('SuperAdmin.SeaVehicleDetails');
+
+// Route::get('/SuperAdmin/AirVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
+// })->name('SuperAdmin.AirVehicleDetails');
+
+Route::get('/SuperAdmin/Vender', function () {
+    return Inertia::render('Web/home/SuperAdmin/NewVender');
+})->name('SuperAdmin.NewVender');
+
+
+// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
+// })->name('SuperAdmin.SeaVehicleDetails');
+
+// Route::get('/SuperAdmin/AirVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
+// })->name('SuperAdmin.AirVehicleDetails');
+
+Route::get('/SuperAdmin/Vender', function () {
+    return Inertia::render('Web/home/SuperAdmin/NewVender');
+})->name('SuperAdmin.NewVender');
+
+Route::get('/SuperAdmin/Dashboard', function () {
+    return Inertia::render('Web/home/SuperAdmin/Dashboard');
+})->name('SuperAdmin.Dashboard');
+
+Route::get('/SuperAdmin/Analytics', function () {
+    return Inertia::render('Web/home/SuperAdmin/Analytics');
+})->name('SuperAdmin.Analytics');
+
+Route::get('/SuperAdmin/Users', function () {
+    return Inertia::render('Web/home/SuperAdmin/Users');
+})->name('SuperAdmin.Users');
+
+Route::get('/SuperAdmin/AddUser', function () {
+    return Inertia::render('Web/home/SuperAdmin/AddUser');
+})->name('SuperAdmin.AddUser');
 
 Route::get('/warehouse/units', function () {
     return Inertia::render('Web/home/vendors/warehouse/Unit');
@@ -598,7 +729,7 @@ Route::get('/courierService/bookings', function () {
 
 Route::get('/courierService/units', function () {
     return Inertia::render('Web/home/vendors/courierService/Unit');
-})->name('ticketBooking.units');
+})->name('courierService.units');
 
 Route::get('/courierService/dashboard', function () {
     return Inertia::render('Web/home/vendors/courierService/Dashboard');
@@ -653,7 +784,7 @@ Route::get('/freight/dashboard', function () {
 
 Route::get('/freight/clients', function () {
     return Inertia::render('Web/home/vendors/freight/Client');
-})->name('courierService.clients');
+})->name('freight.clients');
 
 Route::get('/freight/expenses', function () {
     return Inertia::render('Web/home/vendors/freight/Expenses');
@@ -691,8 +822,8 @@ Route::get('/multimodal/bookings', function () {
 })->name('multimodal.bookings');
 
 Route::get('/multimodal/units', function () {
-    return Inertia::render('Web/home/vendors/multimodal/Unit');
-})->name('freight.units');
+    return Inertia::render('Web/home/multimodal/MultimodalUnits');
+})->name('multimodal.units');
 
 Route::get('/multimodal/dashboard', function () {
     return Inertia::render('Web/home/vendors/multimodal/Dashboard');
@@ -799,4 +930,86 @@ Route::get('/freightBookingDashboard', function () {
 //     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 // });
 
+/*
+|--------------------------------------------------------------------------
+| Extra vendor dashboards (warehouse / ticket / courier / freight / multimodal)
+|  — generated compactly (no routes removed)
+|--------------------------------------------------------------------------
+*/
+$sections = [
+    'warehouse'     => 'Web/home/vendors/warehouse',
+    'ticketBooking' => 'Web/home/vendors/ticketBooking',
+    'courierService'=> 'Web/home/vendors/courierService',
+    'freight'       => 'Web/home/vendors/freight',
+    'multimodal'    => 'Web/home/vendors/multimodal',
+];
+
+$pages = [
+    // view folder => route path/name
+    'Booking'      => 'bookings',
+    'Unit'         => 'units',
+    'Dashboard'    => 'dashboard',
+    'Client'       => 'clients',
+    'Expenses'     => 'expenses',
+    'Payment'      => 'payment',
+    'Tracking'     => 'tracking',
+    'Calendar'     => 'calendar',
+    'AddUnit'      => 'addUnit',
+    'UnitDetails'  => 'unitDetails',
+    'SettingsPage' => 'settingsPage',
+];
+
+foreach ($sections as $slug => $baseView) {
+    Route::prefix($slug)->group(function () use ($slug, $baseView, $pages, $render) {
+        foreach ($pages as $view => $route) {
+            Route::get("/{$route}", $render("{$baseView}/{$view}"))->name("{$slug}.{$route}");
+        }
+    });
+}
+
+/*
+|--------------------------------------------------------------------------
+| Client dashboards (public shells)
+|--------------------------------------------------------------------------
+*/
+Route::get('/clientDashboard',           $render('Web/home/client/ClientDashboard'))->name('clientDashboard');
+Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->name('clientDashboardSettings');
+Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->name('clientTicketBookingDashboard');
+Route::get('/courierBookingDashboard',   $render('Web/home/client/CourierBookingDashboard'))->name('courierBookingDashboard');
+Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
+Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');
+
+/*
+|--------------------------------------------------------------------------
+| Keep your global compat route (not removed)
+|--------------------------------------------------------------------------
+*/
+Route::post('/drivers/{driver}', [DriverController::class, 'update'])->name('drivers.update.compat');
+
+/*
+|--------------------------------------------------------------------------
+| Storage streaming/downloading helpers
+| (lets /storage/... work even without the public/storage symlink)
+|--------------------------------------------------------------------------
+*/
+Route::get('/storage/{path}', function ($path) {
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    return Storage::disk('public')->response($path);
+})->where('path', '.*');
+
+Route::get('/storage/download/{path}', function ($path) {
+    if (!Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+    $name = request()->query('name');
+    return Storage::disk('public')->download($path, $name ?: basename($path));
+})->where('path', '.*');
+
+/*
+|--------------------------------------------------------------------------
+| Auth scaffolding
+|--------------------------------------------------------------------------
+*/
 require __DIR__ . '/auth.php';

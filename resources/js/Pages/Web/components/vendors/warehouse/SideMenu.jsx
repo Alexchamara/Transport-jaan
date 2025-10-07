@@ -16,6 +16,11 @@ const SideMenu = () => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
     const currentPath = window.location.pathname;
 
+    const handleLogout = () => {
+        // Use Inertia to POST to Laravel's logout route
+        router.post("/logout");
+    };
+
     return (
         <div className="poppins min-w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-10 px-10 rounded-tr-[10px] rounded-br-[10px]">
             <h1
@@ -173,16 +178,12 @@ const SideMenu = () => {
                     <Settings className="w-[25px] h-[25px]" />
                     <h1>Settings</h1>
                 </div>
-                <Link
-                    href={route('logout')}
-                    method="post"
-                    as="button"
-                    className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer"
-                >
+                <div className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer" onClick={handleLogout}>
                     <LogOut className="w-[25px] h-[25px]" />
                     <h1>Logout</h1>
-                </Link>
+                {/* </Link> */}
             </div>
+        </div>
         </div>
     );
 };

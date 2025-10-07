@@ -11,6 +11,8 @@ use App\Mail\FreightQuoteSubmitted;
 use Inertia\Inertia;
 use App\Models\Vehicle;
 use App\Models\Warehouse\WarehouseUnit;
+use App\Models\Warehouse\WarehouseLike;
+use App\Models\Warehouse\WarehouseReview;
 
 
 
@@ -364,9 +366,9 @@ class WebController extends Controller
     {
         // Get approved and active warehouses from database
         $searchParams = $request->all();
-
-        $query = WarehouseUnit::where('approval_status', 'approved')
-            ->where('is_active', true);
+        
+        $query = WarehouseUnit::approved()
+            ->active();
 
         // Apply filters based on search parameters
 
@@ -442,7 +444,9 @@ class WebController extends Controller
         //     // Add lease duration filtering logic if your model supports it
         // }
 
-        $warehouses = $query->orderBy('created_at', 'desc')->get();
+        $warehouses = $query->with(['images' => function($q) {
+            $q->active()->ordered();
+        }, 'mainImage'])->orderBy('created_at', 'desc')->get();
 
         return Inertia::render('Web/home/warehouse/WarehouseList', [
             'warehouses' => $warehouses,
@@ -458,17 +462,98 @@ class WebController extends Controller
             return redirect()->route('warehouse.list');
         }
 
+        // If warehouse data contains an ID, fetch full data with relationships
+        if (isset($warehouseData['id'])) {
+            $warehouse = WarehouseUnit::with([
+                'owner',
+                'amenities' => function($query) {
+                    $query->available();
+                },
+                'images' => function($query) {
+                    $query->active()->ordered();
+                },
+                'activeImages' => function($query) {
+                    $query->active()->ordered();
+                },
+                'mainImage' => function($query) {
+                    $query->active();
+                },
+                'galleryImages' => function($query) {
+                    $query->active()->ordered();
+                },
+                'documents' => function($query) {
+                    $query->public()->active();
+                },
+                'currentApproval',
+                'reviews' => function($query) {
+                    $query->with('user')->latest();
+                }
+            ])->approved()->active()->find($warehouseData['id']);
+            
+            if ($warehouse) {
+                // Prepare warehouse data with all relationships
+                $warehouseData = array_merge($warehouseData, [
+                    'owner' => $warehouse->owner,
+                    'amenities' => $warehouse->amenities->map(function($amenity) {
+                        return $amenity->name;
+                    })->toArray(),
+                    'images' => $warehouse->images,
+                    'active_images' => $warehouse->activeImages,
+                    'main_image' => $warehouse->mainImage,
+                    'gallery_images' => $warehouse->galleryImages,
+                    'primary_image_url' => $warehouse->mainImage ? $warehouse->mainImage->url : null,
+                    'documents' => $warehouse->documents,
+                    'rating_avg' => $warehouse->averageRating(),
+                    'reviews_count' => $warehouse->reviewsCount(),
+                    'reviews' => $warehouse->reviews->map(function($review) {
+                        return [
+                            'id' => $review->id,
+                            'rating' => $review->rating,
+                            'comment' => $review->comment,
+                            'pros' => $review->pros,
+                            'cons' => $review->cons,
+                            'stay_duration' => $review->stay_duration,
+                            'verified' => $review->verified,
+                            'helpful_votes' => $review->helpful_votes,
+                            'created_at' => $review->created_at,
+                            'user' => $review->user ? [
+                                'id' => $review->user->id,
+                                'name' => $review->user->name,
+                            ] : null,
+                            'customer_name' => $review->customer_name ?: $review->user?->name
+                        ];
+                    }),
+                    'is_liked' => $warehouse->isLikedBy(Auth::id()),
+                    'status' => $warehouse->is_available ? 'available' : 'unavailable',
+                    'terms_conditions' => $warehouse->terms_conditions,
+                    'terms_pdf_path' => $warehouse->terms_pdf_path,
+                    'operating_hours' => $warehouse->operating_hours,
+                    'security_level' => $warehouse->security_level ?? 'standard',
+                ]);
+            }
+        }
+
         // Get related warehouses (same type, different warehouse)
-        $relatedWarehouses = WarehouseUnit::where('approval_status', 'approved')
-            ->where('is_active', true)
+        $relatedWarehouses = WarehouseUnit::approved()
+            ->active()
+            ->with(['mainImage', 'amenities'])
             ->where('type', $warehouseData['type'] ?? '')
             ->where('id', '!=', $warehouseData['id'])
             ->limit(3)
             ->get();
 
+        // Get liked warehouse IDs for the current user
+        $likedWarehouseIds = [];
+        if (Auth::check()) {
+            $likedWarehouseIds = WarehouseLike::where('user_id', Auth::id())
+                ->pluck('warehouse_unit_id')
+                ->toArray();
+        }
+
         return Inertia::render('Web/home/warehouse/WarehouseDetails', [
             'warehouse' => $warehouseData,
-            'relatedWarehouses' => $relatedWarehouses
+            'relatedWarehouses' => $relatedWarehouses,
+            'likedWarehouseIds' => $likedWarehouseIds
         ]);
     }
 

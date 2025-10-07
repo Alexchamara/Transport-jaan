@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { router } from "@inertiajs/react";
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -32,6 +33,11 @@ const UnitContent = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [unitToToggle, setUnitToToggle] = useState(null);
   const [isToggling, setIsToggling] = useState(false);
+  
+  // Delete confirmation states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [unitToDelete, setUnitToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const perPageOptions = [5, 10, 20, 50];
 
@@ -184,6 +190,75 @@ const UnitContent = () => {
   const cancelToggle = () => {
     setShowConfirmModal(false);
     setUnitToToggle(null);
+  };
+
+  // Handle view warehouse
+  const handleViewWarehouse = (unit) => {
+    router.visit(`/vendors/warehouse/unitDetails/${unit.id}`);
+  };
+
+  // Handle edit warehouse
+  const handleEditWarehouse = (unit) => {
+    router.visit(`/vendors/warehouse/editUnit/${unit.id}`);
+  };
+
+  // Handle delete warehouse
+  const handleDeleteWarehouse = (unit) => {
+    setUnitToDelete(unit);
+    setShowDeleteModal(true);
+  };
+
+  // Confirm and execute delete
+  const confirmDeleteWarehouse = async () => {
+    if (!unitToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/vendors/warehouse/api/units/${unitToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        },
+        credentials: 'same-origin',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Remove the deleted unit from the list
+      setUnits(prevUnits => prevUnits.filter(unit => unit.id !== unitToDelete.id));
+      setTotalUnits(prev => prev - 1);
+      
+      // Show success message
+      alert(result.message || 'Warehouse unit deleted successfully');
+      
+      // Refresh the list if current page is empty
+      if (units.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      } else {
+        fetchUnits(currentPage, itemsPerPage, searchTerm, typeFilter, statusFilter);
+      }
+      
+    } catch (error) {
+      console.error('Error deleting warehouse unit:', error);
+      alert('Failed to delete warehouse unit. Please try again.');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setUnitToDelete(null);
+    }
+  };
+
+  // Cancel delete
+  const cancelDeleteWarehouse = () => {
+    setShowDeleteModal(false);
+    setUnitToDelete(null);
   };
 
   const statusColor = (status) => {
@@ -433,7 +508,7 @@ const UnitContent = () => {
                     <div className="flex flex-col items-center gap-2 pl-[40px]">
                       <button
                         className="figtree min-w-[100px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#074A94] transition-colors"
-                        onClick={() => (window.location.href = `/vendors/warehouse/unitDetails/${unit.id}`)}
+                        onClick={() => handleViewWarehouse(unit)}
                         title="View"
                       >
                         <span className="inline-flex items-center gap-2">
@@ -456,9 +531,16 @@ const UnitContent = () => {
                       </button>
                       <button
                         className="figtree min-w-[100px] h-[44px] bg-[#F59E0B] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#D97706] transition-colors"
-                        onClick={() => (window.location.href = `/vendors/warehouse/editUnit/${unit.id}`)}
+                        onClick={() => handleEditWarehouse(unit)}
                       >
                         Edit
+                      </button>
+                      <button
+                        className="figtree min-w-[100px] h-[44px] bg-[#DC2626] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#B91C1C] transition-colors"
+                        onClick={() => handleDeleteWarehouse(unit)}
+                        title="Delete warehouse unit"
+                      >
+                        Delete
                       </button>
                       <button
                         className={`figtree min-w-[100px] h-[44px] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] transition-colors ${
@@ -477,22 +559,22 @@ const UnitContent = () => {
                   {/* Right side action bar (icons textual to avoid extra imports) */}
                   <div className="absolute right-0 w-auto min-w-[143px] h-full bg-[#D8E4F2] flex flex-col justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px] px-3">
                     <button
-                      className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
-                      onClick={() => (window.location.href = `/vendors/warehouse/unitDetails/${unit.id}`)}
+                      className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#C5D4E8]"
+                      onClick={() => handleViewWarehouse(unit)}
                       title="View Details"
                     >
                       👁
                     </button>
                     <button
-                      className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
-                      onClick={() => (window.location.href = `/vendors/warehouse/editUnit/${unit.id}`)}
+                      className="size-[36px] border-[1.5px] border-[#F59E0B] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#C5D4E8]"
+                      onClick={() => handleEditWarehouse(unit)}
                       title="Edit"
                     >
                       ✎
                     </button>
                     <button
-                      className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
-                      onClick={() => alert('Delete action not implemented')}
+                      className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#C5D4E8]"
+                      onClick={() => handleDeleteWarehouse(unit)}
                       title="Delete"
                     >
                       🗑
@@ -606,6 +688,47 @@ const UnitContent = () => {
                     ? 'Deactivate' 
                     : 'Activate'
                 }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && unitToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-[450px] max-w-[90%] shadow-xl">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Delete Warehouse Unit
+              </h3>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Are you sure you want to permanently delete the warehouse unit 
+              <span className="font-semibold"> "{unitToDelete.name}"</span>?
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              ⚠️ This action cannot be undone. All associated data including images, documents, and booking history will be permanently removed.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelDeleteWarehouse}
+                disabled={isDeleting}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteWarehouse}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Permanently'}
               </button>
             </div>
           </div>
