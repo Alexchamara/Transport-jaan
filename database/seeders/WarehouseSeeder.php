@@ -164,11 +164,11 @@ class WarehouseSeeder extends Seeder
 
         foreach ($warehouses as $warehouseData) {
             $warehouse = WarehouseUnit::create($warehouseData);
-            
+
             // Create approval records with different statuses
             $statuses = ['pending', 'approved', 'rejected', 'suspended'];
             $status = $statuses[array_rand($statuses)];
-            
+
             WarehouseApproval::create([
                 'warehouse_unit_id' => $warehouse->id,
                 'status' => $status,

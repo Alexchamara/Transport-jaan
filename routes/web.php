@@ -137,7 +137,7 @@ Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicl
 Route::prefix('api')->name('api.')->group(function () {
     // Warehouse API endpoints
     Route::get('/warehouse-units/{id}', [WarehouseBookingController::class, 'getWarehouseUnit'])->name('warehouse-units.show');
-    
+
     // Warehouse like toggle (requires auth)
     Route::middleware(['auth'])->group(function () {
         Route::post('/warehouse/like-toggle', [WarehouseBookingController::class, 'toggleLike'])->name('client.warehouse.like.toggle');
@@ -276,7 +276,7 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('v
     Route::patch('/api/units/{id}', [WarehouseUnitController::class, 'update'])->name('api.units.patch');
     Route::patch('/api/units/{id}/status', [WarehouseUnitController::class, 'updateStatus'])->name('api.units.updateStatus');
     Route::delete('/api/units/{id}', [WarehouseUnitController::class, 'destroy'])->name('api.units.destroy');
-    
+
     // Debug route
     Route::get('/api/debug/{id}', function($id) {
         return response()->json([
@@ -289,7 +289,7 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('v
             'timestamp' => now(),
         ]);
     })->name('api.debug');
-    
+
     // Test login endpoint for debugging
     Route::get('/api/test-login', function() {
         $user = \App\Models\User::find(1);

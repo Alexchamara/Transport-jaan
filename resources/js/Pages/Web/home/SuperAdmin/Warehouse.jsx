@@ -9,9 +9,9 @@ const Warehouse = ({ warehouses, filters, error }) => {
                 <SideMenu />
             </div>
             <div className="sm:w-full md:w-auto lg:w-auto">
-                <RightSide 
-                    warehouses={warehouses} 
-                    filters={filters} 
+                <RightSide
+                    warehouses={warehouses}
+                    filters={filters}
                     error={error}
                 />
             </div>

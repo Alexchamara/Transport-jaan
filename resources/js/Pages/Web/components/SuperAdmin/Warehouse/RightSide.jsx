@@ -63,8 +63,8 @@ const RightSide = ({ warehouses = {}, filters = {}, error }) => {
                             <p>{error}</p>
                         </div>
                     ) : (
-                        <Warehouse 
-                            typeFilter={selectedType} 
+                        <Warehouse
+                            typeFilter={selectedType}
                             warehouses={warehouses.data || []}
                         />
                     )}

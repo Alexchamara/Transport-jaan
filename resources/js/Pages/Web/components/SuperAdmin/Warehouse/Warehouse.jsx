@@ -55,7 +55,7 @@ const Warehouse = ({ typeFilter, warehouses: initialWarehouses = [] }) => {
                                 : warehouse
                         )
                     );
-                    
+
                     // Update selectedWarehouse to reflect the new status in the modal
                     setSelectedWarehouse((prev) =>
                         prev && prev.id === warehouseId
@@ -139,7 +139,7 @@ const Warehouse = ({ typeFilter, warehouses: initialWarehouses = [] }) => {
     // Styling for category column
     const getCategoryStyles = (category) => {
         const normalizedCategory = category?.toLowerCase()?.replace(/[_\s]/g, '');
-        
+
         switch (normalizedCategory) {
             case "coldstorage":
                 return {

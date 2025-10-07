@@ -22,7 +22,7 @@ class WarehouseController extends Controller
             $search = $request->get('search');
             $typeFilter = $request->get('type_filter');
             $statusFilter = $request->get('status_filter');
-            
+
             // Build query for warehouse units with their approvals and owner info
             $query = WarehouseUnit::with([
                 'owner:id,name,email',
@@ -31,7 +31,7 @@ class WarehouseController extends Controller
                     $q->take(1); // Get only first image for listing
                 }
             ]);
-            
+
             // Apply search filter
             if ($search) {
                 $query->where(function ($q) use ($search) {
@@ -43,24 +43,24 @@ class WarehouseController extends Controller
                       });
                 });
             }
-            
+
             // Apply type filter
             if ($typeFilter && $typeFilter !== 'all') {
                 $query->where('type', $typeFilter);
             }
-            
+
             // Apply status filter based on approval status
             if ($statusFilter && $statusFilter !== 'all') {
                 $query->whereHas('currentApproval', function ($q) use ($statusFilter) {
                     $q->where('status', $statusFilter);
                 });
             }
-            
+
             // Get paginated results
             $warehouses = $query->latest()
                 ->paginate(10)
                 ->withQueryString();
-            
+
             // Transform data for frontend
             $warehouses->getCollection()->transform(function ($warehouse) {
                 return [
@@ -89,7 +89,7 @@ class WarehouseController extends Controller
                     ]
                 ];
             });
-            
+
             return Inertia::render('Web/home/SuperAdmin/Warehouse', [
                 'warehouses' => $warehouses,
                 'filters' => [
@@ -98,10 +98,10 @@ class WarehouseController extends Controller
                     'status_filter' => $statusFilter
                 ]
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Error fetching warehouses: ' . $e->getMessage());
-            
+
             return Inertia::render('Web/home/SuperAdmin/Warehouse', [
                 'warehouses' => [],
                 'filters' => [],
@@ -109,7 +109,7 @@ class WarehouseController extends Controller
             ]);
         }
     }
-    
+
     /**
      * Update warehouse status
      */
@@ -119,10 +119,10 @@ class WarehouseController extends Controller
             $request->validate([
                 'status' => 'required|in:pending,approved,rejected,suspended'
             ]);
-            
+
             $warehouse = WarehouseUnit::findOrFail($id);
             $newStatus = $request->status;
-            
+
             // Create or update approval record
             $approval = WarehouseApproval::updateOrCreate(
                 ['warehouse_unit_id' => $warehouse->id],
@@ -133,16 +133,16 @@ class WarehouseController extends Controller
                     'notes' => $request->notes ?? "Status updated to {$newStatus} by admin",
                 ]
             );
-            
+
             // Update warehouse active status based on approval
             $warehouse->update([
                 'is_active' => in_array($newStatus, ['approved']),
                 'is_available' => in_array($newStatus, ['approved'])
             ]);
-            
+
             // Log the action
             Log::info("Warehouse {$warehouse->id} status changed to {$newStatus} by user " . Auth::id());
-            
+
             return response()->json([
                 'success' => true,
                 'message' => "Warehouse status updated to {$newStatus} successfully",
@@ -152,17 +152,17 @@ class WarehouseController extends Controller
                     'is_active' => $warehouse->is_active
                 ]
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Error updating warehouse status: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update warehouse status'
             ], 500);
         }
     }
-    
+
     /**
      * Get warehouse details
      */
@@ -176,7 +176,7 @@ class WarehouseController extends Controller
                 'images',
                 'documents'
             ])->findOrFail($id);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -215,7 +215,7 @@ class WarehouseController extends Controller
                     'updated_at' => $warehouse->updated_at->format('Y-m-d H:i:s')
                 ]
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
