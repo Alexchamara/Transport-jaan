@@ -9,7 +9,7 @@ import Dots from "../../assets/superAdmin/Dots Icon.svg";
 import ArrowLeftB from "../../assets/superAdmin/Arrow LeftB.svg";
 import ArrowRight from "../../assets/superAdmin/Arrow Right.svg";
 
-const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
+const Vehicles = ({ vehicles = { data: [] }, categories = [], filters = {}, stats = {}, auth }) => {
     const [selectedVehicles, setSelectedVehicles] = useState([]);
     const [showBulkActions, setShowBulkActions] = useState(false);
     const [rejectionReason, setRejectionReason] = useState("");

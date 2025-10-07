@@ -19,6 +19,9 @@ class VehicleController extends Controller
         // Debug: Log the received filters
         \Log::info('Vehicle filters received:', $request->all());
 
+        // Ensure filters are always available (fixes the undefined filters issue)
+        $filters = $request->only(['category_type', 'approval_status', 'status', 'search', 'sort_by', 'sort_order']);
+
         $query = Vehicle::with(['category', 'provider', 'media' => function($query) {
             $query->where('media_type', 'image')->where('is_primary', true);
         }]);
@@ -73,7 +76,7 @@ class VehicleController extends Controller
         return Inertia::render('Web/home/SuperAdmin/Vehicles', [
             'vehicles' => $vehicles,
             'categories' => $categories,
-            'filters' => $request->only(['category_type', 'approval_status', 'status', 'search', 'sort_by', 'sort_order']),
+            'filters' => $filters, // Use the explicitly defined filters array
             'stats' => $stats
         ]);
     }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Search from "../../../assets/superAdmin/Search.png";
 import UserGroup from "../../../assets/superAdmin/User group Icon.svg";
 import DotsThreeY from "../../../assets/superAdmin/DotsThreeY.svg";
@@ -16,6 +16,28 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
     const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
 
+    // Sync local state with props when they change
+    useEffect(() => {
+        setSearchTerm(filters.search || '');
+        setRoleFilter(filters.role || 'all');
+        setStatusFilter(filters.status || 'all');
+    }, [filters]);
+
+    // Check if users data is empty and force refresh if needed (only once per component mount)
+    useEffect(() => {
+        const shouldHaveUsers = roleFilter === 'all' && statusFilter === 'all' && !searchTerm;
+        const hasCounts = counts && counts.total > 0;
+
+        if ((!users || users.length === 0) && shouldHaveUsers && hasCounts) {
+            console.log('Data mismatch detected - have counts but no users, forcing refresh...');
+            router.get('/superadmin/Users', {}, {
+                preserveState: false,
+                replace: true,
+                only: ['users', 'counts']
+            });
+        }
+    }, []); // Only run once on mount
+
     const handleSearch = (e) => {
         if (e.key === 'Enter') {
             performSearch();
@@ -28,7 +50,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
             role: roleFilter,
             status: statusFilter
         }, {
-            preserveState: true,
+            preserveState: false,
             replace: true
         });
     };
@@ -45,7 +67,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
         if (filterType === 'status') setStatusFilter(value);
 
         router.get('/superadmin/Users', newFilters, {
-            preserveState: true,
+            preserveState: false,
             replace: true
         });
     };
@@ -74,15 +96,23 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         </div>
                     </div>
 
-                    <Link
-                        className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm"
-                        href={route('superadmin.users.create')}
-                    >
-                        <h1>Add user</h1>
-                    </Link>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => router.get('/superadmin/Users', {}, { preserveState: false, replace: true })}
+                            className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#28a745] bg-[#28a745] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm hover:bg-[#218838]"
+                        >
+                            <h1>Refresh</h1>
+                        </button>
+                        <Link
+                            className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm"
+                            href={route('superadmin.users.create')}
+                        >
+                            <h1>Add user</h1>
+                        </Link>
+                    </div>
                 </div>
 
-               
+
             </div>
 
             {/* Cards */}
@@ -193,7 +223,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         <option value="rejected">Rejected</option>
                     </select>
                 </div>
-  
+
             <div className="w-[1125px] h-auto mx-[48px] ">
                 <div className="w-[1035px] h-auto border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
                     <AllUsers users={users} />

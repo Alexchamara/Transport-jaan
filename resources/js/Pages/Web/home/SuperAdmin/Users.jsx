@@ -15,6 +15,16 @@ const Users = ({ users, counts, filters }) => {
         }
     }, [flash]);
 
+    // Debug logging to track data loading
+    useEffect(() => {
+        console.log('Users component mounted/updated:', {
+            usersCount: users?.length || 0,
+            users: users,
+            counts: counts,
+            filters: filters
+        });
+    }, [users, counts, filters]);
+
     return (
         <div className="flex flex-row bg-[#081028] min-h-screen sm:flex-col md:flex-row lg:flex-row poppins">
             {flash?.success && (
