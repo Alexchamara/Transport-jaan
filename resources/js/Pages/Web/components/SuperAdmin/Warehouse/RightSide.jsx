@@ -7,9 +7,12 @@ import ArrowRight from "../../../assets/superAdmin/Arrow Right.svg";
 
 const warehouseTypeFilterOptions = [
     { value: "all", label: "All Types" },
-    { value: "Cold Storage", label: "Cold Storage" },
-    { value: "Dry Storage", label: "Dry Storage" },
-    { value: "Bonded Warehouse", label: "Bonded Warehouse" },
+    { value: "cold_storage", label: "Cold Storage" },
+    { value: "dry", label: "Dry Storage" },
+    { value: "bonded", label: "Bonded Warehouse" },
+    { value: "open_yard", label: "Open Yard" },
+    { value: "climate_controlled", label: "Climate Controlled" },
+    { value: "hazmat", label: "Hazmat Storage" },
 ];
 
 const RightSide = ({ warehouses = {}, filters = {}, error }) => {

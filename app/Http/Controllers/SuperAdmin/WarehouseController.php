@@ -143,27 +143,14 @@ class WarehouseController extends Controller
             // Log the action
             Log::info("Warehouse {$warehouse->id} status changed to {$newStatus} by user " . Auth::id());
 
-            return response()->json([
-                'success' => true,
-                'message' => "Warehouse status updated to {$newStatus} successfully",
-                'data' => [
-                    'id' => $warehouse->id,
-                    'status' => $newStatus,
-                    'is_active' => $warehouse->is_active
-                ]
-            ]);
+            return redirect()->route('superadmin.Warehouse')->with('success', "Warehouse status updated to {$newStatus} successfully");
 
         } catch (\Exception $e) {
             Log::error('Error updating warehouse status: ' . $e->getMessage());
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update warehouse status'
-            ], 500);
+            return redirect()->route('superadmin.Warehouse')->with('error', 'Failed to update warehouse status');
         }
-    }
-
-    /**
+    }    /**
      * Get warehouse details
      */
     public function show($id)

@@ -41,43 +41,22 @@ const Warehouse = ({ typeFilter, warehouses: initialWarehouses = [] }) => {
     // Function to handle status change
     const handleStatusChange = async (warehouseId, newStatus) => {
         setLoading(true);
-        try {
-            router.put(`/superadmin/warehouses/${warehouseId}/status`, {
-                status: newStatus
-            }, {
-                preserveScroll: true,
-                onSuccess: (page) => {
-                    // Update local state
-                    setWarehouses((prevWarehouses) =>
-                        prevWarehouses.map((warehouse) =>
-                            warehouse.id === warehouseId
-                                ? { ...warehouse, status: newStatus }
-                                : warehouse
-                        )
-                    );
 
-                    // Update selectedWarehouse to reflect the new status in the modal
-                    setSelectedWarehouse((prev) =>
-                        prev && prev.id === warehouseId
-                            ? { ...prev, status: newStatus }
-                            : prev
-                    );
-
-                    // Show success message
-                    alert(`Warehouse status updated to ${newStatus} successfully!`);
-                    setLoading(false);
-                },
-                onError: (errors) => {
-                    console.error('Error updating status:', errors);
-                    alert('Failed to update warehouse status. Please try again.');
-                    setLoading(false);
-                }
-            });
-        } catch (error) {
-            console.error('Error updating status:', error);
-            alert('Failed to update warehouse status. Please try again.');
-            setLoading(false);
-        }
+        router.put(`/superadmin/warehouses/${warehouseId}/status`, {
+            status: newStatus
+        }, {
+            onSuccess: () => {
+                // Close modal on success since page will refresh
+                closeModal();
+            },
+            onError: (errors) => {
+                console.error('Error updating status:', errors);
+                setLoading(false);
+            },
+            onFinish: () => {
+                setLoading(false);
+            }
+        });
     };    // Function to get button text based on target status
     const getButtonText = (targetStatus) => {
         switch (targetStatus) {
@@ -138,37 +117,48 @@ const Warehouse = ({ typeFilter, warehouses: initialWarehouses = [] }) => {
 
     // Styling for category column
     const getCategoryStyles = (category) => {
-        const normalizedCategory = category?.toLowerCase()?.replace(/[_\s]/g, '');
-
-        switch (normalizedCategory) {
-            case "coldstorage":
+        switch (category) {
+            case "cold_storage":
                 return {
                     border: "border-[#26A69A80]",
                     bg: "bg-[#26A69A33]",
                     dot: "bg-[#26A69A]",
                     text: "text-[#26A69A]",
                 };
-            case "drystorage":
+            case "dry":
                 return {
                     border: "border-[#8D6E6380]",
                     bg: "bg-[#8D6E6333]",
                     dot: "bg-[#8D6E63]",
                     text: "text-[#8D6E63]",
                 };
-            case "bondedwarehouse":
+            case "bonded":
                 return {
                     border: "border-[#AB47BC80]",
                     bg: "bg-[#AB47BC33]",
                     dot: "bg-[#AB47BC]",
                     text: "text-[#AB47BC]",
                 };
-            case "general":
-            case "standard":
+            case "open_yard":
                 return {
                     border: "border-[#2196F380]",
                     bg: "bg-[#2196F333]",
                     dot: "bg-[#2196F3]",
                     text: "text-[#2196F3]",
+                };
+            case "climate_controlled":
+                return {
+                    border: "border-[#4CAF5080]",
+                    bg: "bg-[#4CAF5033]",
+                    dot: "bg-[#4CAF50]",
+                    text: "text-[#4CAF50]",
+                };
+            case "hazmat":
+                return {
+                    border: "border-[#FF980080]",
+                    bg: "bg-[#FF980033]",
+                    dot: "bg-[#FF9800]",
+                    text: "text-[#FF9800]",
                 };
             default:
                 return {
@@ -178,9 +168,7 @@ const Warehouse = ({ typeFilter, warehouses: initialWarehouses = [] }) => {
                     text: "text-[#AEB9E1]",
                 };
         }
-    };
-
-    // Styling for status column
+    };    // Styling for status column
     const getStatusStyles = (status) => {
         switch (status) {
             case "approved":
