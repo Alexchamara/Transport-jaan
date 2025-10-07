@@ -20,6 +20,15 @@ class UserController extends Controller
         $roleFilter = $request->get('role', 'all');
         $statusFilter = $request->get('status', 'all');
 
+        \Log::info('SuperAdmin UserController index called', [
+            'search' => $search,
+            'roleFilter' => $roleFilter,
+            'statusFilter' => $statusFilter,
+            'request_method' => $request->method(),
+            'is_ajax' => $request->ajax(),
+            'wants_json' => $request->wantsJson()
+        ]);
+
         // Get all users except admin and superadmin
         $query = User::whereNotIn('role', ['admin', 'SuperAdmin']);
 
@@ -65,6 +74,14 @@ class UserController extends Controller
         $verifiedCount = $users->where('status', 'verified')->count();
         $unverifiedCount = $users->where('status', 'unverified')->count();
         $blockedCount = $users->whereIn('status', ['blocked', 'rejected'])->count();
+
+        \Log::info('SuperAdmin UserController data prepared', [
+            'total_users' => $totalUsers,
+            'client_count' => $clientCount,
+            'vendor_count' => $vendorCount,
+            'verified_count' => $verifiedCount,
+            'users_sample' => $users->take(3)->pluck('name', 'email')->toArray()
+        ]);
 
         // Check if this is an API request
         if ($request->wantsJson() || $request->is('api/*')) {

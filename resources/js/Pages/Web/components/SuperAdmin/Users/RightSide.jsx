@@ -23,20 +23,77 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
         setStatusFilter(filters.status || 'all');
     }, [filters]);
 
-    // Check if users data is empty and force refresh if needed (only once per component mount)
+    // Auto-refresh mechanism for handling back navigation and stale data
     useEffect(() => {
+        // Check if we have inconsistent data state
         const shouldHaveUsers = roleFilter === 'all' && statusFilter === 'all' && !searchTerm;
         const hasCounts = counts && counts.total > 0;
+        const hasNoUsers = !users || users.length === 0;
 
-        if ((!users || users.length === 0) && shouldHaveUsers && hasCounts) {
-            console.log('Data mismatch detected - have counts but no users, forcing refresh...');
+        // If we should have users based on counts but don't, refresh the data
+        if (hasNoUsers && shouldHaveUsers && hasCounts) {
+            console.log('Auto-refreshing: Data inconsistency detected');
             router.get('/superadmin/Users', {}, {
                 preserveState: false,
-                replace: true,
-                only: ['users', 'counts']
+                replace: true
             });
+            return;
         }
-    }, []); // Only run once on mount
+
+        // Also check when filters indicate we should have data but don't
+        if (hasNoUsers && counts && Object.keys(counts).length > 0) {
+            const totalExpected = counts.total || 0;
+            if (totalExpected > 0) {
+                console.log('Auto-refreshing: Expected users but none found');
+                router.get('/superadmin/Users', {
+                    search: searchTerm,
+                    role: roleFilter,
+                    status: statusFilter
+                }, {
+                    preserveState: false,
+                    replace: true
+                });
+            }
+        }
+    }, [users, counts, roleFilter, statusFilter, searchTerm]);
+
+    // Handle page visibility change to refresh stale data
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden && (!users || users.length === 0) && counts && counts.total > 0) {
+                console.log('Auto-refreshing: Page became visible with stale data');
+                router.get('/superadmin/Users', {
+                    search: searchTerm,
+                    role: roleFilter,
+                    status: statusFilter
+                }, {
+                    preserveState: false,
+                    replace: true
+                });
+            }
+        };
+
+        // Handle browser back/forward navigation
+        const handlePopState = () => {
+            console.log('Auto-refreshing: Browser navigation detected');
+            router.get('/superadmin/Users', {
+                search: searchTerm,
+                role: roleFilter,
+                status: statusFilter
+            }, {
+                preserveState: false,
+                replace: true
+            });
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('popstate', handlePopState);
+        
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, [users, counts, searchTerm, roleFilter, statusFilter]);
 
     const handleSearch = (e) => {
         if (e.key === 'Enter') {
@@ -96,20 +153,12 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => router.get('/superadmin/Users', {}, { preserveState: false, replace: true })}
-                            className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#28a745] bg-[#28a745] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm hover:bg-[#218838]"
-                        >
-                            <h1>Refresh</h1>
-                        </button>
-                        <Link
-                            className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm"
-                            href={route('superadmin.users.create')}
-                        >
-                            <h1>Add user</h1>
-                        </Link>
-                    </div>
+                    <Link
+                        className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm"
+                        href={route('superadmin.users.create')}
+                    >
+                        <h1>Add user</h1>
+                    </Link>
                 </div>
 
 
