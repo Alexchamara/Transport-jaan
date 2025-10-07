@@ -12,8 +12,8 @@ const warehouseTypeFilterOptions = [
     { value: "Bonded Warehouse", label: "Bonded Warehouse" },
 ];
 
-const RightSide = () => {
-    const [selectedType, setSelectedType] = useState(""); // State for warehouse type filter
+const RightSide = ({ warehouses = {}, filters = {}, error }) => {
+    const [selectedType, setSelectedType] = useState(filters.type_filter || ""); // State for warehouse type filter
 
     // Handle filter selection
     const handleTypeFilterChange = (e) => {
@@ -58,7 +58,16 @@ const RightSide = () => {
             {/* Render Warehouse Component */}
             <div className="w-[1125px] h-[800px] mx-[48px] mt-6">
                 <div className="w-[1035px] h-[800px] border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
-                    <Warehouse typeFilter={selectedType} />
+                    {error ? (
+                        <div className="flex items-center justify-center h-full text-red-500">
+                            <p>{error}</p>
+                        </div>
+                    ) : (
+                        <Warehouse 
+                            typeFilter={selectedType} 
+                            warehouses={warehouses.data || []}
+                        />
+                    )}
                 </div>
             </div>
 
@@ -66,7 +75,7 @@ const RightSide = () => {
             <div>
                 <div className="flex flex-row justify-between items-center mt-5 mx-[48px] w-[1032px]">
                     <h1 className="text-white text-[12px] font-500">
-                        1 - 10 of 10
+                        {warehouses.from || 1} - {warehouses.to || 0} of {warehouses.total || 0}
                     </h1>
                     <h1 className="text-[#AEB9E1] text-[12px] font-500 flex flex-row justify-center items-center gap-6">
                         Rows per page:

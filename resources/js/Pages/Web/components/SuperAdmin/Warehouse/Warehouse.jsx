@@ -1,120 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { router } from "@inertiajs/react";
+import axios from "axios";
 import Eye from "../../../assets/superAdmin/eye.png";
 
-const Warehouse = ({ typeFilter }) => {
-    const [warehouses, setWarehouses] = useState([
-        {
-            id: 1,
-            name: "North Warehouse",
-            location: "New York",
-            capacity: 10000,
-            inventoryLevel: 75,
-            status: "Active",
-            category: "Cold Storage",
-        },
-        {
-            id: 2,
-            name: "South Warehouse",
-            location: "Texas",
-            capacity: 15000,
-            inventoryLevel: 60,
-            status: "Deactive",
-            category: "Dry Storage",
-        },
-        {
-            id: 3,
-            name: "East Warehouse",
-            location: "Florida",
-            capacity: 8000,
-            inventoryLevel: 85,
-            status: "Suspend",
-            category: "Bonded Warehouse",
-        },
-        {
-            id: 4,
-            name: "West Warehouse",
-            location: "California",
-            capacity: 12000,
-            inventoryLevel: 50,
-            status: "Active",
-            category: "Cold Storage",
-        },
-        {
-            id: 5,
-            name: "Central Warehouse",
-            location: "Illinois",
-            capacity: 20000,
-            inventoryLevel: 90,
-            status: "Reject",
-            category: "Dry Storage",
-        },
-        {
-            id: 6,
-            name: "Port Warehouse",
-            location: "Washington",
-            capacity: 9000,
-            inventoryLevel: 65,
-            status: "Active",
-            category: "Bonded Warehouse",
-        },
-        {
-            id: 7,
-            name: "Metro Warehouse",
-            location: "Georgia",
-            capacity: 11000,
-            inventoryLevel: 70,
-            status: "Deactive",
-            category: "Cold Storage",
-        },
-        {
-            id: 8,
-            name: "Coastal Warehouse",
-            location: "Oregon",
-            capacity: 13000,
-            inventoryLevel: 55,
-            status: "Suspend",
-            category: "Dry Storage",
-        },
-        {
-            id: 9,
-            name: "City Warehouse",
-            location: "Nevada",
-            capacity: 9500,
-            inventoryLevel: 80,
-            status: "Reject",
-            category: "Bonded Warehouse",
-        },
-        {
-            id: 10,
-            name: "Industrial Warehouse",
-            location: "Ohio",
-            capacity: 14000,
-            inventoryLevel: 45,
-            status: "Active",
-            category: "Cold Storage",
-        },
-    ]);
+const Warehouse = ({ typeFilter, warehouses: initialWarehouses = [] }) => {
+    const [warehouses, setWarehouses] = useState(initialWarehouses);
+    const [loading, setLoading] = useState(false);
 
     // State for modal visibility and selected warehouse
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedWarehouse, setSelectedWarehouse] = useState(null);
 
-    // Filter warehouses based on category
+    // Update warehouses when initialWarehouses prop changes
+    useEffect(() => {
+        setWarehouses(initialWarehouses);
+    }, [initialWarehouses]);
+
+    // Filter warehouses based on type
     const filteredWarehouses = warehouses.filter((warehouse) => {
         return (
             typeFilter === "" ||
             typeFilter === "all" ||
-            warehouse.category === typeFilter
+            warehouse.type === typeFilter
         );
     });
-
-    // Debug logs
-    useEffect(() => {
-        console.log("Type Filter:", typeFilter);
-        console.log("Filtered Warehouses:", filteredWarehouses);
-        console.log("All Warehouses:", warehouses);
-    }, [typeFilter, filteredWarehouses]);
 
     // Function to open modal and set selected warehouse
     const openModal = (warehouse) => {
@@ -129,33 +39,56 @@ const Warehouse = ({ typeFilter }) => {
     };
 
     // Function to handle status change
-    const handleStatusChange = (warehouseId, newStatus) => {
-        setWarehouses((prevWarehouses) =>
-            prevWarehouses.map((warehouse) =>
-                warehouse.id === warehouseId
-                    ? { ...warehouse, status: newStatus }
-                    : warehouse
-            )
-        );
-        // Update selectedWarehouse to reflect the new status in the modal
-        setSelectedWarehouse((prev) =>
-            prev && prev.id === warehouseId
-                ? { ...prev, status: newStatus }
-                : prev
-        );
-    };
+    const handleStatusChange = async (warehouseId, newStatus) => {
+        setLoading(true);
+        try {
+            router.put(`/superadmin/warehouses/${warehouseId}/status`, {
+                status: newStatus
+            }, {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    // Update local state
+                    setWarehouses((prevWarehouses) =>
+                        prevWarehouses.map((warehouse) =>
+                            warehouse.id === warehouseId
+                                ? { ...warehouse, status: newStatus }
+                                : warehouse
+                        )
+                    );
+                    
+                    // Update selectedWarehouse to reflect the new status in the modal
+                    setSelectedWarehouse((prev) =>
+                        prev && prev.id === warehouseId
+                            ? { ...prev, status: newStatus }
+                            : prev
+                    );
 
-    // Function to get button text based on target status
+                    // Show success message
+                    alert(`Warehouse status updated to ${newStatus} successfully!`);
+                    setLoading(false);
+                },
+                onError: (errors) => {
+                    console.error('Error updating status:', errors);
+                    alert('Failed to update warehouse status. Please try again.');
+                    setLoading(false);
+                }
+            });
+        } catch (error) {
+            console.error('Error updating status:', error);
+            alert('Failed to update warehouse status. Please try again.');
+            setLoading(false);
+        }
+    };    // Function to get button text based on target status
     const getButtonText = (targetStatus) => {
         switch (targetStatus) {
-            case "Active":
-                return "Activate";
-            case "Deactive":
-                return "Deactivate";
-            case "Suspend":
-                return "Suspend";
-            case "Reject":
+            case "approved":
+                return "Approve";
+            case "rejected":
                 return "Reject";
+            case "suspended":
+                return "Suspend";
+            case "pending":
+                return "Set Pending";
             default:
                 return "Update Status";
         }
@@ -164,25 +97,25 @@ const Warehouse = ({ typeFilter }) => {
     // Function to get button colors based on target status
     const getButtonColors = (status) => {
         switch (status) {
-            case "Active":
+            case "approved":
                 return {
                     bg: "bg-[#05C16833]",
                     hoverBg: "hover:bg-[#05C1684D]",
                     text: "text-[#14CA74]",
                 };
-            case "Deactive":
+            case "pending":
                 return {
                     bg: "bg-[#FFB01633]",
                     hoverBg: "hover:bg-[#FFB0164D]",
                     text: "text-[#FDB52A]",
                 };
-            case "Suspend":
+            case "suspended":
                 return {
                     bg: "bg-[#FF5A6533]",
                     hoverBg: "hover:bg-[#FF5A654D]",
                     text: "text-[#FF5A65]",
                 };
-            case "Reject":
+            case "rejected":
                 return {
                     bg: "bg-[#FF572233]",
                     hoverBg: "hover:bg-[#FF57224D]",
@@ -199,33 +132,43 @@ const Warehouse = ({ typeFilter }) => {
 
     // Function to get available status options (excluding current status)
     const getAvailableStatuses = (currentStatus) => {
-        const allStatuses = ["Active", "Deactive", "Suspend", "Reject"];
+        const allStatuses = ["approved", "rejected", "suspended", "pending"];
         return allStatuses.filter((status) => status !== currentStatus);
     };
 
     // Styling for category column
     const getCategoryStyles = (category) => {
-        switch (category) {
-            case "Cold Storage":
+        const normalizedCategory = category?.toLowerCase()?.replace(/[_\s]/g, '');
+        
+        switch (normalizedCategory) {
+            case "coldstorage":
                 return {
                     border: "border-[#26A69A80]",
                     bg: "bg-[#26A69A33]",
                     dot: "bg-[#26A69A]",
                     text: "text-[#26A69A]",
                 };
-            case "Dry Storage":
+            case "drystorage":
                 return {
                     border: "border-[#8D6E6380]",
                     bg: "bg-[#8D6E6333]",
                     dot: "bg-[#8D6E63]",
                     text: "text-[#8D6E63]",
                 };
-            case "Bonded Warehouse":
+            case "bondedwarehouse":
                 return {
                     border: "border-[#AB47BC80]",
                     bg: "bg-[#AB47BC33]",
                     dot: "bg-[#AB47BC]",
                     text: "text-[#AB47BC]",
+                };
+            case "general":
+            case "standard":
+                return {
+                    border: "border-[#2196F380]",
+                    bg: "bg-[#2196F333]",
+                    dot: "bg-[#2196F3]",
+                    text: "text-[#2196F3]",
                 };
             default:
                 return {
@@ -240,28 +183,28 @@ const Warehouse = ({ typeFilter }) => {
     // Styling for status column
     const getStatusStyles = (status) => {
         switch (status) {
-            case "Active":
+            case "approved":
                 return {
                     border: "border-[#05C16880]",
                     bg: "bg-[#05C16833]",
                     dot: "bg-[#14CA74]",
                     text: "text-[#14CA74]",
                 };
-            case "Deactive":
+            case "pending":
                 return {
                     border: "border-[#FFB01633]",
                     bg: "bg-[#FFB01633]",
                     dot: "bg-[#FDB52A]",
                     text: "text-[#FDB52A]",
                 };
-            case "Suspend":
+            case "suspended":
                 return {
                     border: "border-[#FF5A6533]",
                     bg: "bg-[#FF5A6533]",
                     dot: "bg-[#FF5A65]",
                     text: "text-[#FF5A65]",
                 };
-            case "Reject":
+            case "rejected":
                 return {
                     border: "border-[#FF572280]",
                     bg: "bg-[#FF572233]",
@@ -283,7 +226,7 @@ const Warehouse = ({ typeFilter }) => {
             <div className="w-[962px] flex flex-row justify-between items-center text-white text-[16px] font-500 pt-6">
                 <h1>Warehouses</h1>
                 <h1 className="text-[#0955AC] text-[14px] font-400">
-                    1 - {filteredWarehouses.length}{" "}
+                    {filteredWarehouses.length > 0 ? `1 - ${filteredWarehouses.length}` : '0'}{" "}
                     <span className="text-[#AEB9E1]">
                         of {warehouses.length}
                     </span>
@@ -313,7 +256,7 @@ const Warehouse = ({ typeFilter }) => {
                     </div>
                     <div>
                         <h1 className="text-white text-[10px] font-400 w-[130px]">
-                            Inventory Level (%)
+                            Total Area (sq ft)
                         </h1>
                     </div>
                     <div>
@@ -323,7 +266,7 @@ const Warehouse = ({ typeFilter }) => {
                     </div>
                     <div>
                         <h1 className="text-white text-[10px] font-400 w-[180px]">
-                            Category
+                            Type
                         </h1>
                     </div>
                     <div>
@@ -352,12 +295,12 @@ const Warehouse = ({ typeFilter }) => {
                             </div>
                             <div>
                                 <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[130px]">
-                                    {warehouse.capacity}
+                                    {warehouse.capacity} sq ft
                                 </h1>
                             </div>
                             <div>
                                 <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[130px]">
-                                    {warehouse.inventoryLevel}
+                                    {warehouse.total_area} sq ft
                                 </h1>
                             </div>
                             <div className="w-[150px]">
@@ -379,16 +322,16 @@ const Warehouse = ({ typeFilter }) => {
                             <div className="w-[180px]">
                                 <div
                                     className={`flex flex-row justify-center items-center gap-1 border ${
-                                        getCategoryStyles(warehouse.category).border
-                                    } ${getCategoryStyles(warehouse.category).bg} px-[6px] py-[2px] rounded-[5px] w-[130px]`}
+                                        getCategoryStyles(warehouse.type).border
+                                    } ${getCategoryStyles(warehouse.type).bg} px-[6px] py-[2px] rounded-[5px] w-[130px]`}
                                 >
                                     <div
-                                        className={`w-1 h-1 rounded-full ${getCategoryStyles(warehouse.category).dot}`}
+                                        className={`w-1 h-1 rounded-full ${getCategoryStyles(warehouse.type).dot}`}
                                     />
                                     <h1
-                                        className={`${getCategoryStyles(warehouse.category).text} text-[10px] font-500 flex flex-row justify-center items-center`}
+                                        className={`${getCategoryStyles(warehouse.type).text} text-[10px] font-500 flex flex-row justify-center items-center`}
                                     >
-                                        {warehouse.category}
+                                        {warehouse.type}
                                     </h1>
                                 </div>
                             </div>
@@ -438,35 +381,45 @@ const Warehouse = ({ typeFilter }) => {
                                 <span className="font-light">{selectedWarehouse.location}</span>
                             </div>
                             <div className="flex items-center gap-2 w-full">
-                                <span className="font-medium text-gray-300 w-32">Capacity (sq ft):</span>
-                                <span className="font-light">{selectedWarehouse.capacity}</span>
+                                <span className="font-medium text-gray-300 w-32">Capacity:</span>
+                                <span className="font-light">{selectedWarehouse.capacity} sq ft</span>
                             </div>
                             <div className="flex items-center gap-2 w-full">
-                                <span className="font-medium text-gray-300 w-32">Inventory Level (%):</span>
-                                <span className="font-light">{selectedWarehouse.inventoryLevel}</span>
+                                <span className="font-medium text-gray-300 w-32">Total Area:</span>
+                                <span className="font-light">{selectedWarehouse.total_area} sq ft</span>
+                            </div>
+                            <div className="flex items-center gap-2 w-full">
+                                <span className="font-medium text-gray-300 w-32">Owner:</span>
+                                <span className="font-light">{selectedWarehouse.owner_name}</span>
                             </div>
                             <div className="flex items-center gap-2 w-full">
                                 <span className="font-medium text-gray-300 w-32">Status:</span>
-                                <span className={`font-light ${getStatusStyles(selectedWarehouse.status).text}`}>
+                                <span className={`font-light ${getStatusStyles(selectedWarehouse.status).text} capitalize`}>
                                     {selectedWarehouse.status}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 w-full">
-                                <span className="font-medium text-gray-300 w-32">Category:</span>
-                                <span className={`font-light ${getCategoryStyles(selectedWarehouse.category).text}`}>
-                                    {selectedWarehouse.category}
+                                <span className="font-medium text-gray-300 w-32">Type:</span>
+                                <span className={`font-light ${getCategoryStyles(selectedWarehouse.type).text} capitalize`}>
+                                    {selectedWarehouse.type}
                                 </span>
                             </div>
                         </div>
                         <div className="mt-8 flex gap-4 justify-center flex-wrap">
+                            {loading && (
+                                <div className="text-white text-sm mb-2">
+                                    Updating status...
+                                </div>
+                            )}
                             {getAvailableStatuses(selectedWarehouse.status).map((targetStatus) => (
                                 <motion.button
                                     key={targetStatus}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 1 }}
+                                    whileHover={{ scale: loading ? 1 : 1.05 }}
+                                    whileTap={{ scale: loading ? 1 : 1 }}
+                                    disabled={loading}
                                     className={`text-[15px] w-[100px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${
                                         getButtonColors(targetStatus).bg
-                                    } ${getButtonColors(targetStatus).hoverBg} ${getButtonColors(targetStatus).text}`}
+                                    } ${loading ? 'opacity-50 cursor-not-allowed' : getButtonColors(targetStatus).hoverBg} ${getButtonColors(targetStatus).text}`}
                                     onClick={() => handleStatusChange(selectedWarehouse.id, targetStatus)}
                                 >
                                     {getButtonText(targetStatus)}

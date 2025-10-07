@@ -216,10 +216,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/vehicles/bulk-reject', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'bulkReject'])->name('vehicles.bulkReject');
     Route::get('/vehicles/export', [\App\Http\Controllers\SuperAdmin\VehicleController::class, 'export'])->name('vehicles.export');
 
-    // Warehouse Management Route
-    Route::get('/Warehouse', function () {
-        return Inertia::render('Web/home/SuperAdmin/Warehouse');
-    })->name('Warehouse');
+    // Warehouse Management Routes
+    Route::get('/Warehouse', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'index'])->name('Warehouse');
+    Route::get('/warehouses/{warehouse}', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'show'])->name('warehouses.show');
+    Route::put('/warehouses/{warehouse}/status', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'updateStatus'])->name('warehouses.updateStatus');
 
     // Legacy vehicle detail routes (can be updated later to use the main vehicle show route)
     Route::get('/LandVehicleDetails', function () {
