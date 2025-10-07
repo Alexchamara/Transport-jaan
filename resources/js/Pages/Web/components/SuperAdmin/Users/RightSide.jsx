@@ -88,7 +88,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('popstate', handlePopState);
-        
+
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('popstate', handlePopState);
