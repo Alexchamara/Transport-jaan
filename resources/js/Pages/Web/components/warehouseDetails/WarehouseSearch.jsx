@@ -404,7 +404,7 @@ const WarehouseSearch = () => {
               <div>
                 <label htmlFor="moveinDate" className="block mb-3">Move-in Date</label>
                 <input
-                  type="text"
+                  type="date"
                   id="moveinDate"
                   name="moveinDate"
                   value={formData.moveinDate}
@@ -417,14 +417,13 @@ const WarehouseSearch = () => {
               <div className="relative">
                 <label htmlFor="moveinTime" className="block mb-3">Move-in Time</label>
                 <input
-                  type="text"
+                  type="time"
                   id="moveinTime"
                   name="moveinTime"
                   value={formData.moveinTime}
                   onChange={handleInputChange}
                   className="w-full relative border-[1px] border-[#00000042] bg-transparent rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
                 />
-                <img src={clock} className="hidden sm:block absolute top-11 left-40 z-10" />
               </div>
             </div>
           </div>
