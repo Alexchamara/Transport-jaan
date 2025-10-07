@@ -17,11 +17,13 @@ const Dashboard = ({ userStats }) => {
         window.location.reload();
       }, 500); // Small delay to ensure the page is fully rendered first
     }
+
     // Clear the flag when the component is unmounted (user navigates away)
     return () => {
       // Don't clear the flag here so it persists during the refresh
     };
   }, []);
+
   return (
     <div className='flex flex-row bg-[#081028] min-h-screen sm:flex-col md:flex-row lg:flex-row poppins'>
       <div className='sm:w-full md:w-auto lg:w-auto'>
@@ -34,4 +36,5 @@ const Dashboard = ({ userStats }) => {
   )
 }
 
-export default Dashboard
+export default Dashboard;
+

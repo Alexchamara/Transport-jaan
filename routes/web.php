@@ -52,7 +52,7 @@ Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 
 Route::get('/', [WebController::class, 'landingPage'])->name('landingPage.home');
-Route::get('/dashboard-redirect', [WebController::class, 'redirectToDashboard'])->name('dashboard.redirect');
+Route::get('/dashboard-redirect', [WebController::class, 'signin.signin'])->name('dashboard.redirect');
 Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
 Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blogExample');
 
@@ -245,6 +245,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::post('/{user}/reject', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'reject'])->name('reject');
     });
 });
+
 
 // vendor routes
 Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
@@ -522,7 +523,6 @@ Route::redirect('/SuperAdmin/LandVehicleDetails', '/superadmin/LandVehicleDetail
 Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/SeaVehicleDetails')->name('SuperAdmin.SeaVehicleDetails.legacy');
 Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/AirVehicleDetails')->name('SuperAdmin.AirVehicleDetails.legacy');
 Route::redirect('/SuperAdmin/Vender', '/superadmin/Vender')->name('SuperAdmin.NewVender.legacy');
-
 // Route::get('/mainDashboard', function () {
 //     return Inertia::render('Web/home/vendors/MainDashboard');
 // })->name('mainDashboard');

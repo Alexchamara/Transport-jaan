@@ -1,18 +1,10 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Eye from "../../../assets/superAdmin/eye.png";
+import { Link, router } from "@inertiajs/react";
 
 const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyClicked, isPendingClicked }) => {
-    // Function to get button colors based on type
-    const getButtonColors = (type) => {
-        if (type === "verify") {
-            return { bg: "bg-[#05C16833]", hoverBg: "hover:bg-[#05C1684D]", text: "text-[#14CA74]" };
-        } else if (type === "pending") {
-            return { bg: "bg-[#FFB01633]", hoverBg: "hover:bg-[#FFB0164D]", text: "text-[#FDB52A]" };
-        } else if (type === "close") {
-            return { bg: "bg-[#0955AC]", hoverBg: "hover:bg-[#074a92]", text: "text-white" };
-        }
-    };
+    const [isLoading, setIsLoading] = useState(false);
 
     // Function to get styles for status
     const getStatusStyles = (status) => {
@@ -44,6 +36,25 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
         }
     };
 
+    const handleUnblock = async () => {
+        setIsLoading(true);
+        try {
+            await router.post(`/superadmin/vendors/${user.id}/unblock`, {}, {
+                onSuccess: () => {
+                    onStatusAndApprovalChange("Active", "Approved");
+                    onClose();
+                    router.reload();
+                },
+                onError: (errors) => {
+                    console.error('Unblock failed:', errors);
+                },
+                onFinish: () => setIsLoading(false)
+            });
+        } catch (error) {
+            console.error('Error unblocking user:', error);
+            setIsLoading(false);
+        }
+    };
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -91,27 +102,17 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         </span>
                     </div>
                 </div>
-                <div className="mt-8 flex gap-4 justify-center flex-wrap">
-                    {!isVerifyClicked && (
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 1 }}
-                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("verify").bg} ${getButtonColors("verify").hoverBg} ${getButtonColors("verify").text}`}
-                            onClick={() => onStatusAndApprovalChange("Active", "Approved")}
-                        >
-                            Verify
-                        </motion.button>
-                    )}
-                    {!isVerifyClicked && !isPendingClicked && (
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 1 }}
-                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("pending").bg} ${getButtonColors("pending").hoverBg} ${getButtonColors("pending").text}`}
-                            onClick={() => onStatusAndApprovalChange("Pending", "Pending")}
-                        >
-                            Pending
-                        </motion.button>
-                    )}
+
+                <div className="mt-8 flex gap-4 justify-center">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 1 }}
+                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
+                        onClick={handleUnblock}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Processing...' : 'Unblock'}
+                    </motion.button>
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
@@ -126,23 +127,21 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
     );
 };
 
-const BlockUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
+const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
-    const [users, setUsers] = useState([
-        { name: "Amara Patel", email: "amara.patel@example.com", phone: "+1-612-987-6543", regDate: "2025-08-15", status: "Blocked", approval: "Blocked" },
-        { name: "Liam Nguyen", email: "liam.nguyen@example.com", phone: "+1-718-456-7890", regDate: "2025-08-16", status: "Blocked", approval: "Blocked" },
-        { name: "Sofia Alvarez", email: "sofia.alvarez@example.com", phone: "+1-503-234-5678", regDate: "2025-08-17", status: "Blocked", approval: "Blocked" },
-        { name: "Ethan Kim", email: "ethan.kim@example.com", phone: "+1-415-678-9012", regDate: "2025-08-18", status: "Blocked", approval: "Blocked" },
-        { name: "Isabella Rossi", email: "isabella.rossi@example.com", phone: "+1-206-789-0123", regDate: "2025-08-19", status: "Blocked", approval: "Blocked" },
-        { name: "Noah Khan", email: "noah.khan@example.com", phone: "+1-312-890-1234", regDate: "2025-08-20", status: "Blocked", approval: "Blocked" },
-        { name: "Ava Gupta", email: "ava.gupta@example.com", phone: "+1-510-901-2345", regDate: "2025-08-21", status: "Blocked", approval: "Blocked" },
-        { name: "Lucas Ferreira", email: "lucas.ferreira@example.com", phone: "+1-617-012-3456", regDate: "2025-08-22", status: "Blocked", approval: "Blocked" },
-        { name: "Mia Wong", email: "mia.wong@example.com", phone: "+1-720-123-4567", regDate: "2025-08-23", status: "Blocked", approval: "Blocked" },
-        { name: "Oliver Schmidt", email: "oliver.schmidt@example.com", phone: "+1-303-234-6789", regDate: "2025-08-24", status: "Blocked", approval: "Blocked" },
-    ]);
-    // State to track button clicks for each user
     const [buttonClicks, setButtonClicks] = useState({});
+
+    // Use the provided vendors data instead of hardcoded data
+    const users = vendors.map(vendor => ({
+        id: vendor.id,
+        name: vendor.name,
+        email: vendor.email,
+        phone: vendor.phone,
+        regDate: vendor.regDate,
+        status: vendor.status === 'blocked' || vendor.status === 'rejected' ? 'Blocked' : vendor.status,
+        approval: vendor.approval === 'blocked' || vendor.approval === 'rejected' ? 'Blocked' : vendor.approval,
+    }));
 
     // Filter users based on status and approval
     const filteredUsers = users.filter((user) => {
@@ -331,4 +330,4 @@ const BlockUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
     );
 };
 
-export default BlockUsers;
+export default NewUsers;

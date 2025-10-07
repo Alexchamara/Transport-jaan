@@ -258,7 +258,15 @@ const TravelExploreAnimation = ({ auth }) => {
                                             )}
                                             {auth.user.role === "client" && (
                                                 <Link
-                                                    href="/"
+                                                    href="/client/dashboard"
+                                                    className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                >
+                                                    Dashboard
+                                                </Link>
+                                            )}
+                                            {auth.user.role === "SuperAdmin" && (
+                                                <Link
+                                                    href="/superadmin/dashboard"
                                                     className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
                                                 >
                                                     Dashboard

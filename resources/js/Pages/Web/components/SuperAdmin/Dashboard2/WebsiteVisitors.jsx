@@ -1,6 +1,7 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import exportIcon from "../../../assets/superAdmin/Export icon.png";
+
+// remove the export icon
 
 const WebsiteVisitors = () => {
     const data = [
@@ -20,6 +21,7 @@ const WebsiteVisitors = () => {
                 <div className="flex flex-row gap-2 md:gap-4">
                     <button className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0A1330] bg-[#0A1330] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm">
                         <h1>Export data</h1>
+
                     </button>
                 </div>
             </div>
