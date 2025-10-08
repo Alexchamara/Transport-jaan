@@ -10,7 +10,9 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\WebController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::middleware('guest')->group(function () {
     Route::get('/registerNew', [RegisterController::class, 'create'])->name('register.show');
@@ -34,11 +36,24 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
+Route::get('approval-pending', function() {
+    // Check if user is authenticated but unverified
+    if (Auth::check() && Auth::user()->status === 'unverified') {
+        return Inertia::render('Auth/ApprovalPending');
+    }
+    
+    // Redirect authenticated users who are verified
+    if (Auth::check()) {
+        return redirect('/');
+    }
+    
+    // Redirect guests to login
+    return redirect()->route('login');
+})->name('approval.pending');
+
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
-        ->name('verification.notice');
-
-    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
+                ->name('verification.notice');    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
         ->middleware(['signed', 'throttle:6,1'])
         ->name('verification.verify');
 

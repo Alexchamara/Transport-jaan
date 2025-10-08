@@ -33,7 +33,15 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $role = Auth::user()->role;
+        $user = Auth::user();
+        
+        // Check if user is unverified
+        if ($user->status === 'unverified') {
+            return redirect()->route('approval.pending');
+        }
+        
+        // Proceed with role-based redirection for verified users
+        $role = $user->role;
 
         $redirectTo = match($role) {
             'SuperAdmin' => route('superadmin.dashboard'),
