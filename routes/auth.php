@@ -41,12 +41,12 @@ Route::get('approval-pending', function() {
     if (Auth::check() && Auth::user()->status === 'unverified') {
         return Inertia::render('Auth/ApprovalPending');
     }
-    
+
     // Redirect authenticated users who are verified
     if (Auth::check()) {
         return redirect('/');
     }
-    
+
     // Redirect guests to login
     return redirect()->route('login');
 })->name('approval.pending');

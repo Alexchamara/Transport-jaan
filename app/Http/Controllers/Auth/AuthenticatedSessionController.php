@@ -34,12 +34,12 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = Auth::user();
-        
+
         // Check if user is unverified
         if ($user->status === 'unverified') {
             return redirect()->route('approval.pending');
         }
-        
+
         // Proceed with role-based redirection for verified users
         $role = $user->role;
 

@@ -26,18 +26,18 @@ class CheckUserStatus
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Your account is pending approval.'], 403);
             }
-            
+
             return redirect()->route('approval.pending');
         }
 
         // Check if user is blocked or rejected
         if (Auth::user()->status === 'blocked' || Auth::user()->status === 'rejected') {
             Auth::logout();
-            
+
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Your account has been deactivated.'], 403);
             }
-            
+
             return redirect()->route('login')
                 ->with('status', 'Your account has been deactivated. Please contact admin for assistance.');
         }

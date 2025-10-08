@@ -15,7 +15,7 @@ export default function ApprovalPending() {
                         </div>
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">Account Approval Pending</h2>
                         <p className="text-gray-600 mb-6">
-                            Your account is currently pending approval from our administrators. 
+                            Your account is currently pending approval from our administrators.
                             Once your account is approved, you will be able to access all features.
                         </p>
                         <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
