@@ -51,8 +51,16 @@ class WarehouseController extends Controller
 
             // Apply status filter based on approval status
             if ($statusFilter && $statusFilter !== 'all') {
-                $query->whereHas('currentApproval', function ($q) use ($statusFilter) {
-                    $q->where('status', $statusFilter);
+                $query->where(function ($q) use ($statusFilter) {
+                    // Check warehouses with approval records
+                    $q->whereHas('currentApproval', function ($subQ) use ($statusFilter) {
+                        $subQ->where('status', $statusFilter);
+                    });
+
+                    // If filtering for pending, also include warehouses without approval records
+                    if ($statusFilter === 'pending') {
+                        $q->orWhereDoesntHave('approvals');
+                    }
                 });
             }
 
