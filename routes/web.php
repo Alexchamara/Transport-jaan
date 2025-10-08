@@ -10,6 +10,7 @@ use App\Http\Controllers\WebController;
 use App\Http\Controllers\FlightBookingController;
 use App\Http\Controllers\TrainController;
 use App\Http\Controllers\BusController;
+use App\Http\Controllers\BusBookingController;
 use App\Http\Controllers\WarehouseControllers\Client\WarehouseBookingController;
 use App\Http\Controllers\User\UserDashboardController;
 use Illuminate\Foundation\Application;
@@ -80,10 +81,11 @@ Route::get('/trainTicketBookingDetails', [TrainController::class, 'search'])->na
 Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->name('trainTicketBookingPreview.trainTicketBookingPreview');
 Route::post('/train-bookings', [TrainController::class, 'store'])->name('train-bookings.store');
 Route::get('/train-booking-success/{reference}', [TrainController::class, 'bookingSuccess'])->name('train.booking.success');
-Route::get('/busTicketBookingDetails', [WebController::class, 'busTicketBookingDetails'])->name('busTicketBookingDetails.busTicketBookingDetails');
-Route::post('/bus-bookings', [BusController::class, 'store'])->name('bus-bookings.store');
-Route::get('/bus-booking-success/{reference}', [BusController::class, 'bookingSuccess'])->name('bus.booking.success');
-Route::get('/busTicketBookingPreview', [WebController::class, 'busTicketBookingPreview'])->name('busTicketBookingPreview.busTicketBookingPreview');
+// Bus booking routes (all routes are public - no auth required)
+Route::get('/busTicketBookingDetails', [BusBookingController::class, 'search'])->name('busTicketBookingDetails.busTicketBookingDetails');
+Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store');
+Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success');
+Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview');
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
 Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store');
 
