@@ -47,25 +47,33 @@ const BookingContent = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [bookingsResponse, statsResponse] = await Promise.all([
-                    WarehouseBookingService.getBookings(),
-                    WarehouseBookingService.getBookingStats()
-                ]);
                 
-                if (bookingsResponse.success) {
-                    const formattedBookings = bookingsResponse.data.map(booking => 
-                        WarehouseBookingService.formatBookingForDisplay(booking)
-                    );
-                    setBookings(formattedBookings);
-                }
+                // For now, load dummy data directly (comment out API calls)
+                // const [bookingsResponse, statsResponse] = await Promise.all([
+                //     WarehouseBookingService.getBookings(),
+                //     WarehouseBookingService.getBookingStats()
+                // ]);
                 
-                if (statsResponse.success) {
-                    setStats(statsResponse.data);
-                }
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                setError('Failed to load booking data');
-                // Fallback to sample data if API fails
+                // if (bookingsResponse.success) {
+                //     const formattedBookings = bookingsResponse.data.map(booking => 
+                //         WarehouseBookingService.formatBookingForDisplay(booking)
+                //     );
+                //     setBookings(formattedBookings);
+                // }
+                
+                // if (statsResponse.success) {
+                //     setStats(statsResponse.data);
+                // }
+                
+                // Load dummy data for demonstration
+                setStats({
+                    upcoming_bookings: 5,
+                    pending_bookings: 2,
+                    cancelled_bookings: 0,
+                    completed_bookings: 1
+                });
+                
+                // Load sample data directly
                 setBookings([
                     {
                         id: "WB-001",
@@ -88,8 +96,99 @@ const BookingContent = () => {
                         statusBg: "#FFA500",
                         statusText: "#FFFFFF",
                         notes: "New client booking requiring approval for frozen goods storage",
+                    },
+                    {
+                        id: "WB-002",
+                        bookingDate: "October 1, 2025",
+                        clientName: "TechCorp Industries",
+                        warehouseName: "Downtown Electronics Hub",
+                        warehouseUnit: "WH-B05",
+                        purpose: "Electronics Storage",
+                        specialRequirements: "Climate controlled, anti-static flooring",
+                        durationUnit: "months",
+                        durationValue: 12,
+                        quantity: 150,
+                        startDate: "October 8, 2025",
+                        endDate: "October 8, 2026",
+                        totalPrice: "$3,600",
+                        paymentStatus: "Paid",
+                        paymentStatusColor: paymentStatusColors.Paid.color,
+                        paymentStatusBg: paymentStatusColors.Paid.bg,
+                        status: "confirmed",
+                        statusBg: "#3B8F31",
+                        statusText: "#FFFFFF",
+                        notes: "Long-term contract for seasonal electronics inventory",
+                    },
+                    {
+                        id: "WB-003",
+                        bookingDate: "September 25, 2025",
+                        clientName: "Fashion Forward LLC",
+                        warehouseName: "Metro Textile Storage",
+                        warehouseUnit: "WH-C08",
+                        purpose: "Textile Storage",
+                        specialRequirements: "Humidity control 45-55%, pest control",
+                        durationUnit: "weeks",
+                        durationValue: 8,
+                        quantity: 75,
+                        startDate: "October 1, 2025",
+                        endDate: "November 26, 2025",
+                        totalPrice: "$1,800",
+                        paymentStatus: "Paid",
+                        paymentStatusColor: paymentStatusColors.Paid.color,
+                        paymentStatusBg: paymentStatusColors.Paid.bg,
+                        status: "active",
+                        statusBg: "#FFCD29",
+                        statusText: "#000000",
+                        notes: "Storing winter collection before holiday season",
+                    },
+                    {
+                        id: "WB-004",
+                        bookingDate: "August 15, 2025",
+                        clientName: "Green Energy Solutions",
+                        warehouseName: "Industrial Storage Complex",
+                        warehouseUnit: "WH-D15",
+                        purpose: "Equipment Storage",
+                        specialRequirements: "Heavy-duty flooring, loading dock access",
+                        durationUnit: "months",
+                        durationValue: 3,
+                        quantity: 25,
+                        startDate: "August 20, 2025",
+                        endDate: "November 20, 2025",
+                        totalPrice: "$4,500",
+                        paymentStatus: "Paid",
+                        paymentStatusColor: paymentStatusColors.Paid.color,
+                        paymentStatusBg: paymentStatusColors.Paid.bg,
+                        status: "completed",
+                        statusBg: "#28A745",
+                        statusText: "#FFFFFF",
+                        notes: "Solar panel storage project completed successfully",
+                    },
+                    {
+                        id: "WB-005",
+                        bookingDate: "October 5, 2025",
+                        clientName: "Pacific Pharma Inc",
+                        warehouseName: "Medical Grade Facility",
+                        warehouseUnit: "WH-M03",
+                        purpose: "Pharmaceutical Storage",
+                        specialRequirements: "Temperature 2-8°C, FDA validated, 24/7 monitoring",
+                        durationUnit: "years",
+                        durationValue: 2,
+                        quantity: 300,
+                        startDate: "October 15, 2025",
+                        endDate: "October 15, 2027",
+                        totalPrice: "$15,600",
+                        paymentStatus: "Pending",
+                        paymentStatusColor: paymentStatusColors.Pending.color,
+                        paymentStatusBg: paymentStatusColors.Pending.bg,
+                        status: "pending",
+                        statusBg: "#FFA500",
+                        statusText: "#FFFFFF",
+                        notes: "Large pharmaceutical contract requiring special compliance approvals",
                     }
                 ]);
+            } catch (error) {
+                console.error('Error loading data:', error);
+                setError('Failed to load booking data');
             } finally {
                 setLoading(false);
             }
