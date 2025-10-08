@@ -388,7 +388,7 @@ const TravelExploreAnimation = ({ auth }) => {
                 </div>
 
                 {/* Carousel (shared layout, framer-motion) */}
-                <div className="relative z-50 flex justify-center md:justify-end items-start md:items-center w-full h-auto md:h-screen pointer-events-auto mt-20 md:mt-[50px] 2xl:mt-[180px] pb-6 md:pb-0">
+                <div className="relative z-50 flex justify-center md:justify-end items-start md:items-center w-full h-auto md:h-screen pointer-events-auto mt-20 md:mt-[50px] 2xl:mt-[180px] pb-10">
                     {/* Right-anchored rail showing exactly three cards */}
                     <div className="w-full md:w-[700px] lg:w-[1000px] xl:w-[1370px]">
                         <div
@@ -418,8 +418,8 @@ const TravelExploreAnimation = ({ auth }) => {
                                         }}
                                         className={`group relative shrink-0 rounded-[20px] overflow-hidden shadow-2xl snap-start cursor-pointer transition-all duration-300 ${
                                             idx === activeIndex
-                                                ? "w-[120px] h-[240px] md:w-[414px] md:h-[538px] z-50"
-                                                : "w-[100px] h-[200px] md:w-[313px] md:h-[409px] ring-2 ring-white/10"
+                                                ? "w-[150px] h-[240px] md:w-[414px] md:h-[538px] z-50"
+                                                : "w-[120px] h-[200px] md:w-[313px] md:h-[409px] ring-2 ring-white/10"
                                         }`}
                                         style={{ borderRadius: 20 }}
                                     >
@@ -482,7 +482,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                 ))}
                             </motion.div>
                         </div>
-                        <div className="absolute md:bottom-20 bottom-0 right-10 z-[80] flex items-center justify-end gap-3 pointer-events-auto">
+                        <div className="absolute md:bottom-20 bottom-5 right-10 z-[80] flex items-center justify-end gap-3 pointer-events-auto">
                             <button
                                 onClick={rotatePrev}
                                 className="md:w-12 md:h-12 w-8 h-8 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/60 border border-white/30 text-white text-xl font-bold backdrop-blur-md transition-all shadow-lg"
