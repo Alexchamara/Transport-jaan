@@ -12,6 +12,9 @@ const WarehouseCheckoutContent = () => {
     const [warehouseInfo, setWarehouseInfo] = useState(null);
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Debug flag - set to true when debugging pricing calculations
+    const DEBUG_PRICING = true;
     const [pricingDetails, setPricingDetails] = useState({
         monthly_rate: 0,
         security_deposit: 0,
@@ -25,8 +28,7 @@ const WarehouseCheckoutContent = () => {
         company_name: '',
         contact_person: '',
         email: '',
-        phone: '',
-        agree_terms: false
+        phone: ''
     });
 
     // Load saved booking data from session storage when component mounts
@@ -43,8 +45,7 @@ const WarehouseCheckoutContent = () => {
                     company_name: parsedData.company_name || '',
                     contact_person: parsedData.contact_person || '',
                     email: parsedData.email || '',
-                    phone: parsedData.phone || '',
-                    agree_terms: false
+                    phone: parsedData.phone || ''
                 });
                 
                 // If warehouse_id is available, fetch warehouse details
@@ -84,19 +85,19 @@ const WarehouseCheckoutContent = () => {
      * @param {number|string} warehouseId - The ID of the warehouse to fetch
      */
     const fetchWarehouseDetails = async (warehouseId) => {
+        setIsSubmitting(true);
         try {
-            // Set loading state if needed
-            setIsSubmitting(true);
-            
             // Try to fetch warehouse details
             const response = await axios.get(`/api/warehouse-units/${warehouseId}`, {
                 timeout: 10000 // 10 second timeout
             });
-            
-            if (response.data) {
-                setWarehouseInfo(response.data);
+
+            const payload = response.data?.data ?? response.data ?? null;
+
+            if (payload) {
+                setWarehouseInfo(payload);
                 // Calculate pricing based on warehouse data and booking duration
-                calculatePricing(response.data);
+                calculatePricing(payload);
             }
         } catch (error) {
             console.error('Error fetching warehouse details:', error);
@@ -121,44 +122,117 @@ const WarehouseCheckoutContent = () => {
      * Calculates pricing details based on warehouse unit pricing and booking duration
      * 
      * @param {object} warehouse - The warehouse unit data
+     * @param {object} currentBookingData - Optional booking data for real-time calculations
      */
-    const calculatePricing = (warehouse) => {
-        if (!warehouse || !bookingData) return;
+    const calculatePricing = (warehouse, currentBookingData = null) => {
+        const bookingDataToUse = currentBookingData || bookingData;
         
-        // Extract duration months from booking data (default to 1)
-        const duration = parseDuration(bookingData.storage_duration) || 1;
+        if (DEBUG_PRICING) console.log('calculatePricing called with:', { 
+            warehouse: !!warehouse, 
+            bookingData: bookingDataToUse,
+            required_space: bookingDataToUse?.required_space,
+            storage_duration: bookingDataToUse?.storage_duration
+        });
         
-        // Get pricing from warehouse unit
-        const monthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || 0);
-        const securityDeposit = parseFloat(warehouse.security_deposit || 0);
-        const setupFee = parseFloat(warehouse.setup_fee || 0);
-        const taxRate = parseFloat(warehouse.tax_rate || 0.10); // Default 10%
-        
-        // Calculate additional services cost
-        let addOnsCost = 0;
-        if (bookingData.climate_controlled) {
-            addOnsCost += 50; // Climate control add-on per month
+        if (!warehouse || !bookingDataToUse) {
+            if (DEBUG_PRICING) console.log('Clearing pricing details - missing warehouse or booking data');
+            setPricingDetails({
+                monthly_rate: 0,
+                security_deposit: 0,
+                setup_fee: 0,
+                tax_rate: 0,
+                subtotal: 0,
+                tax_amount: 0,
+                total_amount: 0,
+                final_amount: 0,
+                add_ons_cost: 0,
+                monthly_total: 0,
+                duration: 1
+            });
+            return;
         }
         
-        // Calculate totals
-        const monthlyTotal = monthlyRate + addOnsCost;
-        const subtotal = (monthlyTotal * duration) + setupFee + securityDeposit;
-        const taxAmount = subtotal * taxRate;
-        const finalAmount = subtotal + taxAmount;
-        
-        setPricingDetails({
-            monthly_rate: monthlyRate,
-            security_deposit: securityDeposit,
-            setup_fee: setupFee,
-            tax_rate: taxRate,
-            add_ons_cost: addOnsCost,
-            monthly_total: monthlyTotal,
-            duration: duration,
-            subtotal: subtotal,
-            total_amount: subtotal,
-            tax_amount: taxAmount,
-            final_amount: finalAmount
-        });
+        try {
+            // Extract duration months from booking data (default to 1)
+            const duration = parseDuration(bookingDataToUse.storage_duration) || 1;
+            
+            // Get pricing from warehouse unit
+            const baseMonthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || warehouse.base_price || 0);
+            const securityDeposit = parseFloat(warehouse.security_deposit || baseMonthlyRate * 0.5 || 0);
+            const setupFee = parseFloat(warehouse.setup_fee || baseMonthlyRate * 0.2 || 0);
+            const taxRate = parseFloat(warehouse.tax_rate || 0.08); // 8% default tax
+            
+            if (DEBUG_PRICING) console.log('Warehouse pricing data:', {
+                baseMonthlyRate,
+                securityDeposit,
+                setupFee,
+                taxRate,
+                total_area: warehouse.total_area
+            });
+            
+            // Calculate space utilization factor (if requiring partial space)
+            const requiredSpace = parseFloat(bookingDataToUse.required_space || 0);
+            const totalArea = parseFloat(warehouse.total_area || 1);
+            const spaceUtilization = Math.min(requiredSpace / totalArea, 1);
+            
+            // Adjust monthly rate based on space utilization
+            const adjustedMonthlyRate = baseMonthlyRate * spaceUtilization;
+            
+            if (DEBUG_PRICING) console.log('Space calculation:', {
+                requiredSpace,
+                totalArea,
+                spaceUtilization,
+                adjustedMonthlyRate
+            });
+            
+            // Calculate additional services cost
+            let addOnsCost = 0;
+            if (bookingDataToUse.climate_controlled || bookingDataToUse.storage_type?.toLowerCase().includes('climate')) {
+                addOnsCost = 50; // Climate control add-on per month
+            }
+            
+            // Calculate pricing breakdown
+            const monthlyRate = adjustedMonthlyRate;
+            const monthlyTotal = monthlyRate + addOnsCost;
+            const subtotal = monthlyTotal * duration; // Only monthly charges for subtotal
+            const taxAmount = subtotal * taxRate; // Tax only on monthly charges
+            const totalBeforeFees = subtotal + taxAmount;
+            const finalAmount = totalBeforeFees + securityDeposit + setupFee;
+            
+            const calculatedPricing = {
+                monthly_rate: monthlyRate,
+                security_deposit: securityDeposit,
+                setup_fee: setupFee,
+                tax_rate: taxRate,
+                add_ons_cost: addOnsCost,
+                monthly_total: monthlyTotal,
+                duration: duration,
+                subtotal: subtotal,
+                total_amount: totalBeforeFees,
+                tax_amount: taxAmount,
+                final_amount: finalAmount,
+                space_utilization: spaceUtilization
+            };
+            
+            if (DEBUG_PRICING) console.log('Calculated pricing:', calculatedPricing);
+            
+            setPricingDetails(calculatedPricing);
+        } catch (error) {
+            console.error('Error calculating pricing:', error);
+            setPricingDetails({
+                monthly_rate: 0,
+                security_deposit: 0,
+                setup_fee: 0,
+                tax_rate: 0,
+                subtotal: 0,
+                tax_amount: 0,
+                total_amount: 0,
+                final_amount: 0,
+                add_ons_cost: 0,
+                monthly_total: 0,
+                duration: 1
+            });
+        }
     };
     
     /**
@@ -191,12 +265,8 @@ const WarehouseCheckoutContent = () => {
      * @returns {string} Formatted currency string
      */
     const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(amount || 0);
+        if (typeof amount !== 'number') return 'LKR 0.00';
+        return `LKR ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
     
     /**
@@ -231,22 +301,75 @@ const WarehouseCheckoutContent = () => {
      * Validates the checkout form
      * 
      * Currently validates:
-     * - Terms and conditions acceptance
+     * - Contact person (required)
+     * - Email (required and valid format)
+     * - Phone (required)
+     * - Required space (required)
+     * - Storage duration (required)
+     * - Move-in date (required and not in the past)
+     * - Move-in time (required and not in the past for current date)
      * 
      * @returns {boolean} True if form is valid, false otherwise
      */
     const validateCheckoutForm = () => {
         const newErrors = {};
-        let isValid = true;
+        const today = new Date();
+        const currentDate = today.toISOString().split('T')[0];
+        const currentTime = today.toTimeString().slice(0, 5);
         
-        // Validate terms acceptance
-        if (!formData.agree_terms) {
-            newErrors.agree_terms = 'You must accept the terms and conditions';
-            isValid = false;
+        // Validate contact person
+        if (!formData.contact_person?.trim()) {
+            newErrors.contact_person = 'Required';
+        }
+        
+        // Validate email
+        if (!formData.email?.trim()) {
+            newErrors.email = 'Required';
+        } else {
+            // Basic email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(formData.email.trim())) {
+                newErrors.email = 'Invalid email';
+            }
+        }
+        
+        // Validate phone
+        if (!formData.phone?.trim()) {
+            newErrors.phone = 'Required';
+        }
+        
+        // Validate required space
+        if (!bookingData?.required_space || bookingData.required_space <= 0) {
+            newErrors.required_space = 'Required';
+        }
+        
+        // Validate storage duration
+        if (!bookingData?.storage_duration) {
+            newErrors.storage_duration = 'Required';
+        }
+        
+        // Validate move-in date
+        if (!bookingData?.move_in_date) {
+            newErrors.move_in_date = 'Required';
+        } else {
+            // Check if move-in date is in the past
+            if (bookingData.move_in_date < currentDate) {
+                newErrors.move_in_date = 'Cannot select past date';
+            }
+        }
+        
+        // Validate move-in time
+        if (!bookingData?.move_in_time) {
+            newErrors.move_in_time = 'Required';
+        } else {
+            // Check if move-in time is in the past (only for current date)
+            if (bookingData.move_in_date === currentDate && bookingData.move_in_time < currentTime) {
+                newErrors.move_in_time = 'Cannot select past time';
+            }
         }
         
         setErrors(newErrors);
-        return isValid;
+        return Object.keys(newErrors).length === 0;
     };
     
     /**
@@ -272,16 +395,12 @@ const WarehouseCheckoutContent = () => {
                 method: "get",
                 preserveScroll: true,
             });
-        } else {
-            toast.error('Please fix the errors before proceeding');
         }
+        // Errors will be displayed under each field, no need for toast message
     };
 
     const handleConfirmBooking = () => {
-        router.visit("/warehouse-bookings/summary", {
-            method: "get",
-            preserveScroll: true,
-        });
+        toast.info('Complete the payment step to confirm your booking.');
     };
 
     const handleWarehouseList = () => {
@@ -362,7 +481,7 @@ const WarehouseCheckoutContent = () => {
                         <div className="grid lg:grid-cols-2 gap-5 py-5 poppins">
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Company Name :
+                                    Company Name (Optional) :
                                 </label>
                                 <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.company_name ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <input
@@ -380,7 +499,7 @@ const WarehouseCheckoutContent = () => {
 
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Contact Person :
+                                    Contact Person <span className="text-red-500">*</span> :
                                 </label>
                                 <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.contact_person ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <input
@@ -398,7 +517,7 @@ const WarehouseCheckoutContent = () => {
 
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Email :
+                                    Email <span className="text-red-500">*</span> :
                                 </label>
                                 <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.email ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <input
@@ -416,7 +535,7 @@ const WarehouseCheckoutContent = () => {
 
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Phone Number :
+                                    Phone Number <span className="text-red-500">*</span> :
                                 </label>
                                 <div className="md:w-[374px] w-auto h-[49px]">
                                     <PhoneInput
@@ -472,64 +591,86 @@ const WarehouseCheckoutContent = () => {
                                 <label className="text-[10px]/[24px] font-[600]">
                                     Storage Type :
                                 </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <select
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
-                                        value={bookingData?.storage_type ?? 'General Storage'}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            setBookingData((prev) => ({
-                                                ...(prev || {}),
-                                                storage_type: value,
-                                                // If selecting Climate Controlled, align the climate_controlled flag
-                                                climate_controlled: value.toLowerCase().includes('climate')
-                                            }));
-                                        }}
-                                    >
-                                        <option value="General Storage">General Storage</option>
-                                        <option value="Climate Controlled">Climate Controlled</option>
-                                        <option value="Cold Storage">Cold Storage</option>
-                                        <option value="Hazardous Materials">Hazardous Materials</option>
-                                        <option value="Document Storage">Document Storage</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-[10px]/[24px] font-[600]">
-                                    Required Space (sq ft) :
-                                </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] bg-[#f8f9fa]">
                                     <input
-                                        type="number"
-                                        min={0}
-                                        value={bookingData?.required_space ?? ''}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            setBookingData((prev) => ({
-                                                ...(prev || {}),
-                                                required_space: value === '' ? '' : Number(value)
-                                            }));
-                                        }}
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                        type="text"
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC] bg-transparent cursor-not-allowed"
+                                        value={bookingData?.storage_type ?? 'General Storage'}
+                                        readOnly
                                     />
                                 </div>
                             </div>
 
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Storage Duration :
+                                    Required Space (sq ft) <span className="text-red-500">*</span> :
                                 </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.required_space ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        value={bookingData?.required_space ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            const updatedBookingData = {
+                                                ...(bookingData || {}),
+                                                required_space: value === '' ? '' : Number(value)
+                                            };
+                                            setBookingData(updatedBookingData);
+                                            
+                                            // Trigger real-time calculation (always trigger, even for 0 or empty to clear calculations)
+                                            if (warehouseInfo) {
+                                                if (DEBUG_PRICING) console.log('Triggering calculation for required_space:', updatedBookingData.required_space);
+                                                calculatePricing(warehouseInfo, updatedBookingData);
+                                            }
+                                            
+                                            // Clear error when user starts typing
+                                            if (errors.required_space) {
+                                                setErrors(prev => {
+                                                    const newErrors = {...prev};
+                                                    delete newErrors.required_space;
+                                                    return newErrors;
+                                                });
+                                            }
+                                        }}
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                    />
+                                </div>
+                                {errors.required_space && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.required_space}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Storage Duration <span className="text-red-500">*</span> :
+                                </label>
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.storage_duration ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <select
                                         className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
                                         value={bookingData?.storage_duration ?? '1 Month'}
                                         onChange={(e) => {
                                             const value = e.target.value;
-                                            setBookingData((prev) => ({
-                                                ...(prev || {}),
+                                            const updatedBookingData = {
+                                                ...(bookingData || {}),
                                                 storage_duration: value
-                                            }));
+                                            };
+                                            setBookingData(updatedBookingData);
+                                            
+                                            // Trigger real-time calculation (always trigger if warehouseInfo exists)
+                                            if (warehouseInfo) {
+                                                if (DEBUG_PRICING) console.log('Triggering calculation for storage_duration:', value);
+                                                calculatePricing(warehouseInfo, updatedBookingData);
+                                            }
+                                            
+                                            // Clear error when user selects
+                                            if (errors.storage_duration) {
+                                                setErrors(prev => {
+                                                    const newErrors = {...prev};
+                                                    delete newErrors.storage_duration;
+                                                    return newErrors;
+                                                });
+                                            }
                                         }}
                                     >
                                         <option value="1 Month">1 Month</option>
@@ -538,6 +679,9 @@ const WarehouseCheckoutContent = () => {
                                         <option value="12 Months">12 Months</option>
                                     </select>
                                 </div>
+                                {errors.storage_duration && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.storage_duration}</p>
+                                )}
                             </div>
 
                             <div>
@@ -550,10 +694,17 @@ const WarehouseCheckoutContent = () => {
                                         value={bookingData?.access_frequency ?? 'weekly'}
                                         onChange={(e) => {
                                             const value = e.target.value;
-                                            setBookingData((prev) => ({
-                                                ...(prev || {}),
+                                            const updatedData = {
+                                                ...(bookingData || {}),
                                                 access_frequency: value
-                                            }));
+                                            };
+                                            setBookingData(updatedData);
+                                            
+                                            // Trigger real-time calculation
+                                            if (warehouseInfo) {
+                                                if (DEBUG_PRICING) console.log('Triggering calculation for access_frequency:', value);
+                                                calculatePricing(warehouseInfo, updatedData);
+                                            }
                                         }}
                                     >
                                         <option value="daily">Daily</option>
@@ -601,26 +752,75 @@ const WarehouseCheckoutContent = () => {
                         <div className="grid lg:grid-cols-2 gap-5 poppins">
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Move-in Date :
+                                    Move-in Date <span className="text-red-500">*</span> :
                                 </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.move_in_date ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <input
                                         type="date"
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080]"
+                                        min={new Date().toISOString().split('T')[0]}
+                                        value={bookingData?.move_in_date ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({
+                                                ...(prev || {}),
+                                                move_in_date: value
+                                            }));
+                                            // Clear error when user selects
+                                            if (errors.move_in_date) {
+                                                setErrors(prev => {
+                                                    const newErrors = {...prev};
+                                                    delete newErrors.move_in_date;
+                                                    return newErrors;
+                                                });
+                                            }
+                                        }}
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] "
                                     />
                                 </div>
+                                {errors.move_in_date && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.move_in_date}</p>
+                                )}
                             </div>
 
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Move-in Time :
+                                    Move-in Time <span className="text-red-500">*</span> :
                                 </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.move_in_time ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <input
                                         type="time"
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080]"
+                                        min={bookingData?.move_in_date === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
+                                        value={bookingData?.move_in_time ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            const selectedDate = bookingData?.move_in_date;
+                                            const today = new Date().toISOString().split('T')[0];
+                                            const currentTime = new Date().toTimeString().slice(0, 5);
+                                            
+                                            // Prevent selecting past time on current date
+                                            if (selectedDate === today && value < currentTime) {
+                                                return; // Don't update if trying to select past time on current date
+                                            }
+                                            
+                                            setBookingData((prev) => ({
+                                                ...(prev || {}),
+                                                move_in_time: value
+                                            }));
+                                            // Clear error when user selects
+                                            if (errors.move_in_time) {
+                                                setErrors(prev => {
+                                                    const newErrors = {...prev};
+                                                    delete newErrors.move_in_time;
+                                                    return newErrors;
+                                                });
+                                            }
+                                        }}
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500]"
                                     />
                                 </div>
+                                {errors.move_in_time && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.move_in_time}</p>
+                                )}
                             </div>
 
                             <div>
@@ -630,7 +830,8 @@ const WarehouseCheckoutContent = () => {
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                                     <input
                                         type="date"
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080]"
+                                        min={bookingData?.move_in_date || new Date().toISOString().split('T')[0]}
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500]"
                                     />
                                 </div>
                             </div>
@@ -642,46 +843,9 @@ const WarehouseCheckoutContent = () => {
                                 <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                                     <input
                                         type="time"
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#808080]"
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500]"
                                     />
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-[72px] bg-[#D8E4F2] px-5 py-5"
-                        style={{
-                            borderLeftWidth: "0.2px",
-                            borderTopWidth: "0.2px",
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
-                    >
-                        <div className="flex flex-row gap-5 text-[10px] font-[400]">
-                            <input
-                                name="agree_terms"
-                                checked={formData.agree_terms}
-                                onChange={handleInputChange}
-                                className={`size-[20px] border-[0.5px] ${errors.agree_terms ? 'border-red-500 ring-1 ring-red-500' : 'border-[#0955AC]'} bg-[#FFFFFF] rounded-[4px] cursor-pointer focus:ring-transparent`}
-                                type="checkbox"
-                            />
-                            <div>
-                                <h1 className="">
-                                    I agree to the{" "}
-                                    <span className="text-[#0955AC]">
-                                        Terms and Conditions
-                                    </span>{" "}
-                                    and{" "}
-                                    <span className="text-[#0955AC]">
-                                        Privacy Policy.
-                                    </span>
-                                </h1>
-                                <h1>
-                                    I confirm that the information provided is accurate and I am authorized to make this booking.
-                                </h1>
-                                {errors.agree_terms && (
-                                    <p className="text-red-500 text-[10px] mt-1">{errors.agree_terms}</p>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -791,139 +955,231 @@ const WarehouseCheckoutContent = () => {
                     </div>
                     {/* right side mini card 2 */}
                     <div
-                        className="poppins md:w-[459px] h-auto bg-[#F4F3F3] rounded-[10px] px-10 py-10"
+                        className="poppins md:w-[459px] h-auto bg-[#F4F3F3] rounded-[10px]"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <h1 className="font-[600] text-[20px]">
+                        <h1 className="font-[600] text-[20px] pb-5">
                             Storage Summary
                         </h1>
 
-                        <div className="md:px-10 py-5">
                             <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-10">
-                                <h1 className="font-[600] mb-5 text-[#000000D9]">
-                                    Storage Details
-                                </h1>
-                                <div className="w-full h-[1px] bg-[#CDD0D4]" />
-                                <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-                                    <div>
-                                        <h1 className="text-[#000000CC]">
-                                            Storage Space
-                                        </h1>
-                                        <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                            <h1>{bookingData?.required_space || warehouseInfo?.total_area || '1,000'} sq ft</h1>
-                                            <h1 className="text-[#0955AC]">
-                                                ({bookingData?.storage_type || 'General Storage'})
-                                            </h1>
+                                {/* Storage Details Header */}
+                                <h1 className="font-[600] mb-3 text-[#000000D9]">Storage Details</h1>
+                                <div className="bg-blue-50 p-3 rounded mb-5">
+                                    <div className="grid grid-cols-2 gap-4 text-[10px]">
+                                        <div>
+                                            <p className="font-[600] text-blue-800">Required Space</p>
+                                            <p className="text-blue-600">{bookingData?.required_space?.toLocaleString() || '1,000'} sq ft</p>
                                         </div>
-                                    </div>
-                                    <div className="text-[#000000CC]">
-                                        {formatCurrency(pricingDetails.monthly_rate)}/month
+                                        <div>
+                                            <p className="font-[600] text-blue-800">Storage Type</p>
+                                            <p className="text-blue-600">{bookingData?.storage_type || 'General Storage'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-[600] text-blue-800">Duration</p>
+                                            <p className="text-blue-600">{bookingData?.storage_duration || '1 Month'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-[600] text-blue-800">Access Frequency</p>
+                                            <p className="text-blue-600">{bookingData?.access_frequency === 'daily' ? '24/7 Access' : (bookingData?.access_frequency || 'Weekly')}</p>
+                                        </div>
                                     </div>
                                 </div>
+
+                                <div className="flex justify-between items-center mb-5">
+                                    <h1 className="font-[600] text-[#000000D9]">Pricing Breakdown</h1>
+                                </div>
+                                <div className="w-full h-[1px] bg-[#CDD0D4]" />
                                 
+                                {/* Monthly Rate */}
+                                <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
+                                    <div>
+                                        <h1 className="text-[#000000CC]">Monthly Rate</h1>
+                                        <div className="flex flex-row gap-3 text-[#00000061]">
+                                            <h1>{formatCurrency(pricingDetails.monthly_rate)}/month</h1>
+                                            <h1 className="text-[#0955AC]">
+                                                ({pricingDetails.duration || 1} month{(pricingDetails.duration || 1) > 1 ? 's' : ''})
+                                            </h1>
+                                        </div>
+                                    </div>
+                                    <div className="text-[#000000CC]">{formatCurrency(pricingDetails.subtotal)}</div>
+                                </div>
+
+                                {/* Security Deposit */}
                                 {pricingDetails.security_deposit > 0 && (
-                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 py-2 font-[500]">
+                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
                                         <div>
-                                            <h1 className="text-[#000000CC]">
-                                                Security Deposit
-                                            </h1>
-                                            <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                                <h1>One-time payment</h1>
+                                            <h1 className="text-[#000000CC]">Security Deposit</h1>
+                                            <div className="flex flex-row gap-3 text-[#00000061]">
+                                                <h1>Refundable deposit</h1>
+                                                <h1 className="text-[#0955AC]">(One-time)</h1>
                                             </div>
                                         </div>
-                                        <div className="text-[#000000CC]">
-                                            {formatCurrency(pricingDetails.security_deposit)}
-                                        </div>
+                                        <div className="text-[#000000CC]">{formatCurrency(pricingDetails.security_deposit)}</div>
                                     </div>
                                 )}
-                                
+
+                                {/* Setup Fee */}
                                 {pricingDetails.setup_fee > 0 && (
-                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 py-2 font-[500]">
+                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
                                         <div>
-                                            <h1 className="text-[#000000CC]">
-                                                Setup Fee
-                                            </h1>
-                                            <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                                <h1>One-time charge</h1>
+                                            <h1 className="text-[#000000CC]">Setup Fee</h1>
+                                            <div className="flex flex-row gap-3 text-[#00000061]">
+                                                <h1>Initial setup and processing</h1>
+                                                <h1 className="text-[#0955AC]">(One-time)</h1>
                                             </div>
                                         </div>
-                                        <div className="text-[#000000CC]">
-                                            {formatCurrency(pricingDetails.setup_fee)}
-                                        </div>
+                                        <div className="text-[#000000CC]">{formatCurrency(pricingDetails.setup_fee)}</div>
                                     </div>
                                 )}
-                                
+
+                                {/* Add-ons */}
+                                {pricingDetails.add_ons_cost > 0 && (
+                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
+                                        <div>
+                                            <h1 className="text-[#000000CC]">Climate Control</h1>
+                                            <div className="flex flex-row gap-3 text-[#00000061]">
+                                                <h1>Additional service</h1>
+                                                <h1 className="text-[#0955AC]">(Monthly)</h1>
+                                            </div>
+                                        </div>
+                                        <div className="text-[#000000CC]">+{formatCurrency(pricingDetails.add_ons_cost * pricingDetails.duration)}</div>
+                                    </div>
+                                )}
+
+                                {/* Tax */}
+                                {pricingDetails.tax_amount > 0 && (
+                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
+                                        <div>
+                                            <h1 className="text-[#000000CC]">Tax</h1>
+                                            <div className="flex flex-row gap-3 text-[#00000061]">
+                                                <h1>VAT and other taxes</h1>
+                                                <h1 className="text-[#0955AC]">({((pricingDetails.tax_rate || 0) * 100).toFixed(1)}%)</h1>
+                                            </div>
+                                        </div>
+                                        <div className="text-[#000000CC]">{formatCurrency(pricingDetails.tax_amount)}</div>
+                                    </div>
+                                )}
+
+                                <div className="w-full h-[1px] bg-[#CDD0D4] my-5" />
+
+                                {/* Space Utilization Info */}
+                                {bookingData?.required_space && warehouseInfo?.total_area && 
+                                 bookingData.required_space < warehouseInfo.total_area && (
+                                    <div className="bg-blue-50 p-3 rounded mb-5">
+                                        <h2 className="text-[11px] font-[600] text-blue-800 mb-1">Space Utilization</h2>
+                                        <p className="text-[10px] text-blue-600">
+                                            You're using {((bookingData.required_space / warehouseInfo.total_area) * 100).toFixed(1)}% of the total warehouse space 
+                                            ({bookingData.required_space.toLocaleString()} / {warehouseInfo.total_area.toLocaleString()} sq ft)
+                                        </p>
+                                    </div>
+                                )}
+
                                 <div className="w-full h-[1px] bg-[#CDD0D4]" />
 
-                                {pricingDetails.add_ons_cost > 0 && (
-                                    <>
-                                        <h1 className="font-[600] mt-5 text-[#000000D9]">
-                                            Add-ons
-                                        </h1>
+                                <h1 className="font-[600] mt-5 text-[#000000D9]">Payment Summary</h1>
 
-                                        {bookingData?.climate_controlled && (
-                                            <div className="flex flex-col justify-center text-[12px] font-[500] mt-5">
-                                                <div className="flex flex-col md:flex-row justify-between w-full px-5">
-                                                    <div className="flex flex-row md:justify-center items-center gap-4">
-                                                        <h1>Climate Control</h1>
-                                                    </div>
-                                                    <h1>+{formatCurrency(50)}/month</h1>
-                                                </div>
+                                {/* Monthly Breakdown */}
+                                <div className="bg-gray-50 p-4 rounded mb-4">
+                                    <h2 className="text-[11px] font-[600] text-gray-800 mb-3">Monthly Charges</h2>
+                                    <div className="space-y-2 text-[10px]">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Base Monthly Rate ({bookingData?.required_space?.toLocaleString() || '1,000'} sq ft)</span>
+                                            <span className="font-[500]">{formatCurrency(pricingDetails.monthly_rate)}</span>
+                                        </div>
+                                        {pricingDetails.add_ons_cost > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Climate Control Add-on</span>
+                                                <span className="font-[500]">+{formatCurrency(pricingDetails.add_ons_cost)}</span>
                                             </div>
                                         )}
-
-                                        <div className="w-full h-[1px] bg-[#CDD0D4] mt-5" />
-                                    </>
-                                )}
-
-                                <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
-                                    <div>
-                                        <h1 className="text-[#000000CC]">
-                                            Monthly Total
-                                        </h1>
-                                        <div className="flex flex-col md:flex-row gap-3 text-[#00000061] mt-3">
-                                            <h1>Storage {pricingDetails.add_ons_cost > 0 ? '+ Add-ons' : ''}</h1>
+                                        <div className="border-t pt-2 flex justify-between font-[600]">
+                                            <span>Monthly Subtotal</span>
+                                            <span>{formatCurrency(pricingDetails.monthly_total || (pricingDetails.monthly_rate + (pricingDetails.add_ons_cost || 0)))}</span>
                                         </div>
-                                    </div>
-                                    <div className="text-[#000000CC] text-[12px] font-[500]">
-                                        {formatCurrency(pricingDetails.monthly_total)}
                                     </div>
                                 </div>
 
-                                {pricingDetails.tax_amount > 0 && (
-                                    <div className="flex flex-col md:flex-row justify-between w-full px-5 pb-2 font-[500]">
-                                        <div>
-                                            <h1 className="text-[#000000CC]">
-                                                Tax ({(pricingDetails.tax_rate * 100).toFixed(1)}%)
-                                            </h1>
+                                {/* One-time Fees */}
+                                <div className="bg-yellow-50 p-4 rounded mb-4">
+                                    <h2 className="text-[11px] font-[600] text-yellow-800 mb-3">One-time Charges</h2>
+                                    <div className="space-y-2 text-[10px]">
+                                        {pricingDetails.security_deposit > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-yellow-700">Security Deposit (Refundable)</span>
+                                                <span className="font-[500]">{formatCurrency(pricingDetails.security_deposit)}</span>
+                                            </div>
+                                        )}
+                                        {pricingDetails.setup_fee > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-yellow-700">Setup & Processing Fee</span>
+                                                <span className="font-[500]">{formatCurrency(pricingDetails.setup_fee)}</span>
+                                            </div>
+                                        )}
+                                        <div className="border-t pt-2 flex justify-between font-[600]">
+                                            <span>One-time Total</span>
+                                            <span>{formatCurrency((pricingDetails.security_deposit || 0) + (pricingDetails.setup_fee || 0))}</span>
                                         </div>
-                                        <div className="text-[#000000CC] text-[12px] font-[500]">
-                                            {formatCurrency(pricingDetails.tax_amount)}
+                                    </div>
+                                </div>
+
+                                {/* Contract Summary */}
+                                <div className="bg-green-50 p-4 rounded mb-4">
+                                    <h2 className="text-[11px] font-[600] text-green-800 mb-3">Contract Summary ({pricingDetails.duration || 1} Month{(pricingDetails.duration || 1) > 1 ? 's' : ''})</h2>
+                                    <div className="space-y-2 text-[10px]">
+                                        <div className="flex justify-between">
+                                            <span className="text-green-700">Total Monthly Charges</span>
+                                            <span className="font-[500]">{formatCurrency(pricingDetails.subtotal)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-green-700">Tax ({((pricingDetails.tax_rate || 0) * 100).toFixed(1)}%)</span>
+                                            <span className="font-[500]">{formatCurrency(pricingDetails.tax_amount)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-green-700">One-time Fees</span>
+                                            <span className="font-[500]">{formatCurrency((pricingDetails.security_deposit || 0) + (pricingDetails.setup_fee || 0))}</span>
+                                        </div>
+                                        <div className="border-t-2 border-green-300 pt-2 flex justify-between font-[700] text-[12px]">
+                                            <span>Total Contract Value</span>
+                                            <span className="text-green-800">{formatCurrency(pricingDetails.final_amount)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Quote Validity */}
+                                {pricingDetails.final_amount > 0 && (
+                                    <div className="bg-green-50 p-3 rounded mb-3">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <h2 className="text-[11px] font-[600] text-green-800">Quote Valid Until</h2>
+                                                <p className="text-[10px] text-green-600">
+                                                    {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+                                                        year: 'numeric',
+                                                        month: 'long', 
+                                                        day: 'numeric'
+                                                    })}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <h2 className="text-[11px] font-[600] text-green-800">Space Available</h2>
+                                                <p className="text-[10px] text-green-600">
+                                                    {warehouseInfo?.is_available ? 'Yes' : 'Limited'}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="flex flex-col md:flex-row justify-between w-full px-5 pb-5 font-[500]">
-                                    <div>
-                                        <h1 className="text-[#000000CC]">
-                                            {pricingDetails.duration > 1 ? `${pricingDetails.duration} Month Total` : 'Total Amount'}
-                                        </h1>
-                                        <div className="flex flex-col md:flex-row gap-3 text-[#00000061] mt-3">
-                                            <h1>
-                                                {pricingDetails.setup_fee > 0 || pricingDetails.security_deposit > 0 
-                                                    ? 'Including fees & deposit' 
-                                                    : 'Final amount'}
-                                            </h1>
-                                        </div>
-                                    </div>
-                                    <div className="text-[#000000CC] text-[16px] font-[700]">
-                                        {formatCurrency(pricingDetails.final_amount)}
-                                    </div>
+                                <div className="relative flex flex-col md:flex-row items-start justify-start px-5">
+                                    <span className="absolute top-[5px] left-[20px] w-[2px] h-[2px] bg-[#0955AC] rounded-full" />
+                                    <p className="text-[8.5px] text-[#00000061] ml-4">
+                                        Prices shown are estimates based on your requirements. Final pricing will be confirmed during checkout process.
+                                    </p>
                                 </div>
                             </div>
-                        </div>
+
                     </div>
                 </div>
             </div>

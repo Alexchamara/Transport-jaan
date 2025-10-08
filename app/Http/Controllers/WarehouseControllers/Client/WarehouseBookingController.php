@@ -30,9 +30,11 @@ class WarehouseBookingController extends Controller
     public function index($type)
     {
         // Get warehouses by type
-        $warehouses = WarehouseUnit::where('type', $type)
-            ->where('approval_status', 'approved')
-            ->where('is_active', true)
+        $warehouses = WarehouseUnit::query()
+            ->where('type', $type)
+            ->active()
+            ->approved()
+            ->with(['amenities', 'images'])
             ->get();
 
         $warehouseDetails = $warehouses->map(function ($warehouse) {
@@ -69,10 +71,12 @@ class WarehouseBookingController extends Controller
      */
     public function details($type, $id)
     {
-        $warehouse = WarehouseUnit::where('id', $id)
+        $warehouse = WarehouseUnit::query()
+            ->where('id', $id)
             ->where('type', $type)
-            ->where('approval_status', 'approved')
-            ->where('is_active', true)
+            ->active()
+            ->approved()
+            ->with(['amenities', 'images'])
             ->firstOrFail();
 
         $warehouseDetails = [
@@ -285,7 +289,7 @@ class WarehouseBookingController extends Controller
             
             // Enhanced validation with better error messages
             $validated = Validator::make($requestData, [
-                'warehouse_id' => 'required|integer|exists:warehouse_units,id',
+                'warehouse_id' => 'required|exists:warehouse_units,id',
                 'company_name' => 'nullable|string|max:255',
                 'contact_person' => 'required|string|max:255',
                 'email' => 'required|email|max:255',
@@ -335,9 +339,11 @@ class WarehouseBookingController extends Controller
             DB::beginTransaction();
 
             // Verify warehouse is still available
-            $warehouse = WarehouseUnit::where('id', $validated['warehouse_id'])
-                ->where('approval_status', 'approved')
-                ->where('is_active', true)
+            $warehouse = WarehouseUnit::query()
+                ->where('id', $validated['warehouse_id'])
+                ->active()
+                ->approved()
+                ->available()
                 ->lockForUpdate()
                 ->first();
 
@@ -367,11 +373,11 @@ class WarehouseBookingController extends Controller
                 'status' => 'pending',
                 
                 // Company Information
-                'company_name' => $validated['company_name'] ?? 'N/A',
+                'company_name' => $validated['company_name'] ?? null,
                 'contact_person' => $validated['contact_person'],
                 'phone' => $validated['phone'],
                 'email' => $validated['email'],
-                'company_address' => $validated['company_address'] ?? 'N/A',
+                'company_address' => $validated['company_address'] ?? null,
                 
                 // Storage Requirements
                 'storage_type' => $validated['storage_type'],
@@ -536,9 +542,11 @@ class WarehouseBookingController extends Controller
     public function getWarehouseUnit($id)
     {
         try {
-            $warehouse = WarehouseUnit::where('id', $id)
-                ->where('approval_status', 'approved')
-                ->where('is_active', true)
+            $warehouse = WarehouseUnit::query()
+                ->where('id', $id)
+                ->active()
+                ->approved()
+                ->with(['amenities', 'images', 'currentApproval'])
                 ->first();
 
             if (!$warehouse) {
@@ -556,15 +564,26 @@ class WarehouseBookingController extends Controller
                 'type' => $warehouse->type,
                 'total_area' => $warehouse->total_area,
                 'capacity' => $warehouse->capacity,
-                'price' => $warehouse->price,
-                'amenities' => $warehouse->amenities ?? [],
-                'images' => $warehouse->images ?? [],
-                'features' => $warehouse->features ?? [],
-                'security_features' => $warehouse->security_features ?? [],
-                'access_hours' => $warehouse->access_hours ?? '24/7',
-                'contact_info' => $warehouse->contact_info ?? [],
-                'approval_status' => $warehouse->approval_status,
+                'base_price' => $warehouse->base_price,
+                'monthly_rate' => $warehouse->monthly_rate,
+                'amenities' => $warehouse->amenities?->map(function ($amenity) {
+                    return [
+                        'name' => $amenity->name,
+                        'description' => $amenity->description,
+                        'is_available' => (bool) ($amenity->is_available ?? true),
+                    ];
+                })->values()->all() ?? [],
+                'images' => $warehouse->images?->map(function ($image) {
+                    return $image->only(['id', 'path', 'type', 'is_active']);
+                })->values()->all() ?? [],
+                'access_hours' => $warehouse->operating_hours ?? $warehouse->access_hours ?? '24/7',
+                'contact_info' => [
+                    'person' => $warehouse->contact_person,
+                    'phone' => $warehouse->contact_phone,
+                    'email' => $warehouse->contact_email,
+                ],
                 'is_active' => $warehouse->is_active,
+                'current_status' => $warehouse->currentApproval?->status ?? 'pending',
             ];
 
             return response()->json([
