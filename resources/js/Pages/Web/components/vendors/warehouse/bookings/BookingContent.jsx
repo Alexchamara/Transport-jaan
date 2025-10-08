@@ -44,157 +44,73 @@ const BookingContent = () => {
 
     // Fetch bookings and stats from API
     useEffect(() => {
+        let isMounted = true;
+
         const fetchData = async () => {
             try {
                 setLoading(true);
-                
-                // For now, load dummy data directly (comment out API calls)
-                // const [bookingsResponse, statsResponse] = await Promise.all([
-                //     WarehouseBookingService.getBookings(),
-                //     WarehouseBookingService.getBookingStats()
-                // ]);
-                
-                // if (bookingsResponse.success) {
-                //     const formattedBookings = bookingsResponse.data.map(booking => 
-                //         WarehouseBookingService.formatBookingForDisplay(booking)
-                //     );
-                //     setBookings(formattedBookings);
-                // }
-                
-                // if (statsResponse.success) {
-                //     setStats(statsResponse.data);
-                // }
-                
-                // Load dummy data for demonstration
-                setStats({
-                    upcoming_bookings: 5,
-                    pending_bookings: 2,
-                    cancelled_bookings: 0,
-                    completed_bookings: 1
-                });
-                
-                // Load sample data directly
-                setBookings([
-                    {
-                        id: "WB-001",
-                        bookingDate: "September 8, 2025",
-                        clientName: "Fresh Foods Ltd",
-                        warehouseName: "Central Cold Storage A",
-                        warehouseUnit: "WH-A12",
-                        purpose: "Food Storage",
-                        specialRequirements: "Temperature -18°C, FDA compliant",
-                        durationUnit: "months",
-                        durationValue: 6,
-                        quantity: 200,
-                        startDate: "September 15, 2025",
-                        endDate: "March 15, 2026",
-                        totalPrice: "$2,400",
-                        paymentStatus: "Pending",
-                        paymentStatusColor: paymentStatusColors.Pending.color,
-                        paymentStatusBg: paymentStatusColors.Pending.bg,
-                        status: "pending",
-                        statusBg: "#FFA500",
-                        statusText: "#FFFFFF",
-                        notes: "New client booking requiring approval for frozen goods storage",
-                    },
-                    {
-                        id: "WB-002",
-                        bookingDate: "October 1, 2025",
-                        clientName: "TechCorp Industries",
-                        warehouseName: "Downtown Electronics Hub",
-                        warehouseUnit: "WH-B05",
-                        purpose: "Electronics Storage",
-                        specialRequirements: "Climate controlled, anti-static flooring",
-                        durationUnit: "months",
-                        durationValue: 12,
-                        quantity: 150,
-                        startDate: "October 8, 2025",
-                        endDate: "October 8, 2026",
-                        totalPrice: "$3,600",
-                        paymentStatus: "Paid",
-                        paymentStatusColor: paymentStatusColors.Paid.color,
-                        paymentStatusBg: paymentStatusColors.Paid.bg,
-                        status: "confirmed",
-                        statusBg: "#3B8F31",
-                        statusText: "#FFFFFF",
-                        notes: "Long-term contract for seasonal electronics inventory",
-                    },
-                    {
-                        id: "WB-003",
-                        bookingDate: "September 25, 2025",
-                        clientName: "Fashion Forward LLC",
-                        warehouseName: "Metro Textile Storage",
-                        warehouseUnit: "WH-C08",
-                        purpose: "Textile Storage",
-                        specialRequirements: "Humidity control 45-55%, pest control",
-                        durationUnit: "weeks",
-                        durationValue: 8,
-                        quantity: 75,
-                        startDate: "October 1, 2025",
-                        endDate: "November 26, 2025",
-                        totalPrice: "$1,800",
-                        paymentStatus: "Paid",
-                        paymentStatusColor: paymentStatusColors.Paid.color,
-                        paymentStatusBg: paymentStatusColors.Paid.bg,
-                        status: "active",
-                        statusBg: "#FFCD29",
-                        statusText: "#000000",
-                        notes: "Storing winter collection before holiday season",
-                    },
-                    {
-                        id: "WB-004",
-                        bookingDate: "August 15, 2025",
-                        clientName: "Green Energy Solutions",
-                        warehouseName: "Industrial Storage Complex",
-                        warehouseUnit: "WH-D15",
-                        purpose: "Equipment Storage",
-                        specialRequirements: "Heavy-duty flooring, loading dock access",
-                        durationUnit: "months",
-                        durationValue: 3,
-                        quantity: 25,
-                        startDate: "August 20, 2025",
-                        endDate: "November 20, 2025",
-                        totalPrice: "$4,500",
-                        paymentStatus: "Paid",
-                        paymentStatusColor: paymentStatusColors.Paid.color,
-                        paymentStatusBg: paymentStatusColors.Paid.bg,
-                        status: "completed",
-                        statusBg: "#28A745",
-                        statusText: "#FFFFFF",
-                        notes: "Solar panel storage project completed successfully",
-                    },
-                    {
-                        id: "WB-005",
-                        bookingDate: "October 5, 2025",
-                        clientName: "Pacific Pharma Inc",
-                        warehouseName: "Medical Grade Facility",
-                        warehouseUnit: "WH-M03",
-                        purpose: "Pharmaceutical Storage",
-                        specialRequirements: "Temperature 2-8°C, FDA validated, 24/7 monitoring",
-                        durationUnit: "years",
-                        durationValue: 2,
-                        quantity: 300,
-                        startDate: "October 15, 2025",
-                        endDate: "October 15, 2027",
-                        totalPrice: "$15,600",
-                        paymentStatus: "Pending",
-                        paymentStatusColor: paymentStatusColors.Pending.color,
-                        paymentStatusBg: paymentStatusColors.Pending.bg,
-                        status: "pending",
-                        statusBg: "#FFA500",
-                        statusText: "#FFFFFF",
-                        notes: "Large pharmaceutical contract requiring special compliance approvals",
-                    }
+                setError(null);
+
+                const [bookingsResponse, statsResponse] = await Promise.all([
+                    WarehouseBookingService.getBookings({ page: 1, per_page: 10 }),
+                    WarehouseBookingService.getBookingStats(),
                 ]);
+
+                if (!isMounted) {
+                    return;
+                }
+
+                if (bookingsResponse?.success) {
+                    const formattedBookings = (bookingsResponse.data || []).map((booking) =>
+                        WarehouseBookingService.formatBookingForDisplay(booking)
+                    );
+                    setBookings(formattedBookings);
+                } else {
+                    setBookings([]);
+                    setError((prev) => prev ?? bookingsResponse?.message ?? "Failed to load bookings");
+                }
+
+                if (statsResponse?.success) {
+                    setStats({
+                        upcoming_bookings: statsResponse.data?.upcoming_bookings ?? 0,
+                        pending_bookings: statsResponse.data?.pending_bookings ?? 0,
+                        cancelled_bookings: statsResponse.data?.cancelled_bookings ?? 0,
+                        completed_bookings: statsResponse.data?.completed_bookings ?? 0,
+                    });
+                } else {
+                    setStats({
+                        upcoming_bookings: 0,
+                        pending_bookings: 0,
+                        cancelled_bookings: 0,
+                        completed_bookings: 0,
+                    });
+                    setError((prev) => prev ?? statsResponse?.message ?? "Failed to load booking statistics");
+                }
             } catch (error) {
+                if (!isMounted) {
+                    return;
+                }
                 console.error('Error loading data:', error);
                 setError('Failed to load booking data');
+                setBookings([]);
+                setStats({
+                    upcoming_bookings: 0,
+                    pending_bookings: 0,
+                    cancelled_bookings: 0,
+                    completed_bookings: 0,
+                });
             } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchData();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
@@ -717,16 +633,17 @@ const BookingContent = () => {
                     <div className="flex justify-center items-center py-20">
                         <div className="text-[18px] text-gray-600">Loading bookings...</div>
                     </div>
-                ) : error ? (
-                    <div className="flex justify-center items-center py-20">
-                        <div className="text-[18px] text-red-600">{error}</div>
-                    </div>
                 ) : (
-                    <WarehouseBookingTable
-                        bookings={bookings}
-                        setBookings={setBookings}
-                        statusColors={statusColors} // Pass statusColors as a prop
-                    />
+                    <>
+                        {error && (
+                            <div className="mb-6 text-center text-[16px] text-red-600">{error}</div>
+                        )}
+                        <WarehouseBookingTable
+                            bookings={bookings}
+                            setBookings={setBookings}
+                            statusColors={statusColors} // Pass statusColors as a prop
+                        />
+                    </>
                 )}
             </div>
             {/* end */}
