@@ -22,9 +22,7 @@ const WarehouseSearch = () => {
     company_name: '',
     contact_person: '',
     email: '',
-    phone: '',
-    goods_description: '',
-    estimated_weight: ''
+    phone: ''
   });
 
   const [pricingCalculation, setPricingCalculation] = useState({
@@ -39,6 +37,7 @@ const WarehouseSearch = () => {
   });
 
   const [isCalculating, setIsCalculating] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -46,6 +45,14 @@ const WarehouseSearch = () => {
       ...prev,
       [name]: value
     }));
+    
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
     
     // Trigger calculation when key fields change
     if (['requiredSpace', 'leaseDuration'].includes(name)) {
@@ -183,23 +190,38 @@ const WarehouseSearch = () => {
 
   // Validate form before proceeding to checkout
   const validateForm = () => {
-    const errors = [];
+    const errors = {};
     
     if (!formData.requiredSpace || parseFloat(formData.requiredSpace) <= 0) {
-      errors.push('Please enter a valid required space');
+      errors.requiredSpace = 'Please enter required space';
     }
     
     if (!formData.moveinDate) {
-      errors.push('Please select a move-in date');
+      errors.moveinDate = 'Please select move-in date';
+    }
+    
+    if (!formData.moveinTime) {
+      errors.moveinTime = 'Please select move-in time';
     }
     
     if (!formData.leaseDuration) {
-      errors.push('Please select a lease duration');
+      errors.leaseDuration = 'Please select lease duration';
     }
 
     if (formData.requiredSpace && warehouse?.total_area && 
         parseFloat(formData.requiredSpace) > parseFloat(warehouse.total_area)) {
-      errors.push(`Required space cannot exceed warehouse capacity of ${warehouse.total_area} sq ft`);
+      errors.requiredSpace = `Cannot exceed ${warehouse.total_area} sq ft`;
+    }
+
+    // Validate move-in date is not in the past
+    if (formData.moveinDate) {
+      const selectedDate = new Date(formData.moveinDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (selectedDate < today) {
+        errors.moveinDate = 'Cannot select past date';
+      }
     }
     
     return errors;
@@ -208,10 +230,26 @@ const WarehouseSearch = () => {
   const handleContinueToCheckout = () => {
     const validationErrors = validateForm();
     
-    if (validationErrors.length > 0) {
-      alert('Please fix the following errors:\n' + validationErrors.join('\n'));
+    if (Object.keys(validationErrors).length > 0) {
+      // Set field errors to display under each field
+      setFieldErrors(validationErrors);
+      
+      // Focus on the first missing field
+      if (validationErrors.requiredSpace) {
+        document.getElementById('requiredSpace')?.focus();
+      } else if (validationErrors.moveinDate) {
+        document.getElementById('moveinDate')?.focus();
+      } else if (validationErrors.moveinTime) {
+        document.getElementById('moveinTime')?.focus();
+      } else if (validationErrors.leaseDuration) {
+        document.getElementById('leaseDuration')?.focus();
+      }
+      
       return;
     }
+    
+    // Clear any existing errors
+    setFieldErrors({});
 
     try {
       const durationString = mapLeaseToDurationString(formData.leaseDuration);
@@ -231,6 +269,8 @@ const WarehouseSearch = () => {
         space_utilization: pricingCalculation.space_utilization,
         move_in_date: formData.moveinDate,
         move_in_time: formData.moveinTime,
+        move_in_datetime: formData.moveinDate && formData.moveinTime ? 
+          `${formData.moveinDate} ${formData.moveinTime}` : null,
         storage_duration: durationString,
         duration_months: durationMonths,
         
@@ -238,8 +278,6 @@ const WarehouseSearch = () => {
         storage_type: formData.storageType || warehouse?.type,
         access_hours: formData.accessHours,
         special_requirements: formData.specialRequirements,
-        goods_description: formData.goods_description,
-        estimated_weight: formData.estimated_weight ? parseFloat(formData.estimated_weight) : null,
         
         // Contact Information (if provided)
         company_name: formData.company_name,
@@ -402,28 +440,43 @@ const WarehouseSearch = () => {
             {/* Move-in Date/Time */}
             <div className="flex flex-row gap-5">
               <div>
-                <label htmlFor="moveinDate" className="block mb-3">Move-in Date</label>
+                <label htmlFor="moveinDate" className="block mb-3">
+                  Move-in Date <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="date"
                   id="moveinDate"
                   name="moveinDate"
                   value={formData.moveinDate}
                   onChange={handleInputChange}
+                  min={new Date().toISOString().split('T')[0]}
                   className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
                   onFocus={(e) => (e.target.type = "date")}
                   onBlur={(e) => (e.target.type = "text")}
                 />
+                {fieldErrors.moveinDate && (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    {fieldErrors.moveinDate}
+                  </p>
+                )}
               </div>
               <div className="relative">
-                <label htmlFor="moveinTime" className="block mb-3">Move-in Time</label>
+                <label htmlFor="moveinTime" className="block mb-3">
+                  Move-in Time <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="time"
                   id="moveinTime"
                   name="moveinTime"
                   value={formData.moveinTime}
                   onChange={handleInputChange}
-                  className="w-full relative border-[1px] border-[#00000042] bg-transparent rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
+                  className="w-full relative border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
                 />
+                {fieldErrors.moveinTime && (
+                  <p className="text-[10px] text-red-500 mt-1">
+                    {fieldErrors.moveinTime}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -431,7 +484,14 @@ const WarehouseSearch = () => {
           <div>
             {/* Required Space */}
             <div>
-              <label htmlFor="requiredSpace" className="block mb-3">Required Space (sq ft)</label>
+              <label htmlFor="requiredSpace" className="block mb-3">
+                Required Space (sq ft) <span className="text-red-500">*</span>
+                {warehouse?.total_area && (
+                  <span className="text-[#0955AC] ml-2">
+                    - Available: {warehouse.total_area.toLocaleString()} sq ft
+                  </span>
+                )}
+              </label>
               <input
                 type="number"
                 id="requiredSpace"
@@ -440,6 +500,7 @@ const WarehouseSearch = () => {
                 onChange={handleInputChange}
                 min="1"
                 max={warehouse?.total_area || 999999}
+                placeholder={warehouse?.total_area ? `Enter up to ${warehouse.total_area.toLocaleString()} sq ft` : "Enter required space"}
                 className="w-full px-4 py-3 border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 leading-tight focus:outline-none placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
               />
               {warehouse?.total_area && (
@@ -447,11 +508,18 @@ const WarehouseSearch = () => {
                   Maximum available: {warehouse.total_area.toLocaleString()} sq ft
                 </p>
               )}
+              {fieldErrors.requiredSpace && (
+                <p className="text-[10px] text-red-500 mt-1">
+                  {fieldErrors.requiredSpace}
+                </p>
+              )}
             </div>
 
             {/* Lease Duration */}
             <div>
-              <label htmlFor="leaseDuration" className="block mb-3">Lease Duration</label>
+              <label htmlFor="leaseDuration" className="block mb-3">
+                Lease Duration <span className="text-red-500">*</span>
+              </label>
               <select
                 id="leaseDuration"
                 name="leaseDuration"
@@ -467,53 +535,22 @@ const WarehouseSearch = () => {
                 <option value="24">24 months</option>
                 <option value="36">36 months</option>
               </select>
+              {fieldErrors.leaseDuration && (
+                <p className="text-[10px] text-red-500 mt-1">
+                  {fieldErrors.leaseDuration}
+                </p>
+              )}
             </div>
 
             {/* Storage Type */}
             <div>
-              <label htmlFor="storageType" className="block mb-3">Storage Type</label>
-              <select
-                id="storageType"
-                name="storageType"
-                value={formData.storageType}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 leading-tight focus:outline-none text-[#000000D9]"
-              >
-                <option value="">Select storage type</option>
-                <option value="cold_storage">Cold Storage</option>
-                <option value="dry">Dry Storage</option>
-                <option value="bonded">Bonded Warehouse</option>
-                <option value="open_yard">Open Yard</option>
-                <option value="climate_controlled">Climate Controlled</option>
-                <option value="hazmat">Hazmat Storage</option>
-              </select>
+              <label className="block mb-3">Storage Type</label>
+              <div className="w-full px-4 py-3 border-[1px] border-[#00000042] bg-[#E5E5E5] rounded-[5px] mb-3 text-[#000000D9] text-[12px] font-[600]">
+                {warehouse?.type || 'Not specified'}
+              </div>
             </div>
 
-            {/* Goods Description */}
-            <div>
-              <label htmlFor="goods_description" className="block mb-3">Goods Description</label>
-              <textarea
-                id="goods_description"
-                name="goods_description"
-                value={formData.goods_description}
-                onChange={handleInputChange}
-                rows="3"
-                className="w-full px-4 py-3 border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 leading-tight focus:outline-none placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
-              />
-            </div>
 
-            {/* Estimated Weight */}
-            <div>
-              <label htmlFor="estimated_weight" className="block mb-3">Estimated Weight (kg)</label>
-              <input
-                type="number"
-                id="estimated_weight"
-                name="estimated_weight"
-                value={formData.estimated_weight}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 leading-tight focus:outline-none placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
-              />
-            </div>
           </div>
         </form>
 

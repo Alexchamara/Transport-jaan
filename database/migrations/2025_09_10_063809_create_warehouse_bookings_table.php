@@ -19,11 +19,11 @@ return new class extends Migration
             $table->string('status')->default('pending'); // pending, confirmed, cancelled, completed
             
             // Company Information
-            $table->string('company_name');
+            $table->string('company_name')->nullable();
             $table->string('contact_person');
             $table->string('phone');
             $table->string('email');
-            $table->text('company_address');
+            $table->text('company_address')->nullable();
             
             // Storage Requirements
             $table->string('storage_type'); // Cold Storage, Dry Storage, Bonded Warehouse

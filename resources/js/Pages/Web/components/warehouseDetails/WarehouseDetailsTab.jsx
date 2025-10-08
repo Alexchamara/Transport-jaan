@@ -44,9 +44,11 @@ const WarehouseDetailsTab = ({ warehouse }) => {
       operatingHours: warehouse?.operating_hours || "24/7 Access",
       securityLevel: warehouse?.security_level || "Standard",
       contactInfo: {
-        phone: warehouse?.contact_phone || "—",
-        email: warehouse?.contact_email || "—",
-        person: warehouse?.contact_person || "—"
+        phone: warehouse?.contact_phone || warehouse?.vendor?.phone || warehouse?.owner?.phone || warehouse?.provider?.phone || "—",
+        email: warehouse?.contact_email || warehouse?.vendor?.email || warehouse?.owner?.email || warehouse?.provider?.email || "—",
+        person: warehouse?.contact_person || warehouse?.vendor?.name || warehouse?.owner?.name || warehouse?.provider?.name || "—",
+        company: warehouse?.vendor?.company_name || warehouse?.provider?.company_name || warehouse?.company_name || "—",
+        address: warehouse?.vendor?.address || warehouse?.provider?.address || warehouse?.address || "—"
       }
     };
   }, [warehouse]);
@@ -138,21 +140,55 @@ const WarehouseDetailsTab = ({ warehouse }) => {
 
       {/* Contact Information */}
       <div className="poppins py-5">
-        <h1 className="text-[20px] font-[600] mb-5">Contact Information</h1>
+        <h1 className="text-[20px] font-[600] mb-5">Vendor Contact Information</h1>
         <div className="bg-gray-50 p-4 rounded-lg">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {specs.contactInfo.company !== "—" && (
+              <div className="md:col-span-2">
+                <h4 className="font-semibold text-gray-700 mb-2">Company Name</h4>
+                <p className="text-gray-600">{specs.contactInfo.company}</p>
+              </div>
+            )}
             <div>
               <h4 className="font-semibold text-gray-700 mb-2">Contact Person</h4>
               <p className="text-gray-600">{specs.contactInfo.person}</p>
             </div>
             <div>
               <h4 className="font-semibold text-gray-700 mb-2">Phone</h4>
-              <p className="text-gray-600">{specs.contactInfo.phone}</p>
+              <p className="text-gray-600">
+                {specs.contactInfo.phone !== "—" ? (
+                  <a 
+                    href={`tel:${specs.contactInfo.phone}`}
+                    className="text-[#0955AC] hover:underline cursor-pointer"
+                  >
+                    {specs.contactInfo.phone}
+                  </a>
+                ) : (
+                  specs.contactInfo.phone
+                )}
+              </p>
             </div>
             <div className="md:col-span-2">
               <h4 className="font-semibold text-gray-700 mb-2">Email</h4>
-              <p className="text-gray-600">{specs.contactInfo.email}</p>
+              <p className="text-gray-600">
+                {specs.contactInfo.email !== "—" ? (
+                  <a 
+                    href={`mailto:${specs.contactInfo.email}`}
+                    className="text-[#0955AC] hover:underline cursor-pointer"
+                  >
+                    {specs.contactInfo.email}
+                  </a>
+                ) : (
+                  specs.contactInfo.email
+                )}
+              </p>
             </div>
+            {specs.contactInfo.address !== "—" && specs.contactInfo.address !== warehouse?.address && (
+              <div className="md:col-span-2">
+                <h4 className="font-semibold text-gray-700 mb-2">Vendor Address</h4>
+                <p className="text-gray-600">{specs.contactInfo.address}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

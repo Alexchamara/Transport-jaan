@@ -63,7 +63,7 @@ const AboutUs = () => {
                         </div>
                     </div>
                     <div className="flex flex-row items-start justify-center gap-3 px-10">
-                        <img src={logo2} lassName="w-[25px] h-[33px]" />
+                        <img src={logo2} className="w-[25px] h-[33px]" />
                         <div>
                             <h1 className="text-[22px]">1000+</h1>
                             <p className="text-[16px]">
