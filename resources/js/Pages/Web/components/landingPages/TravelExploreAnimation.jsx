@@ -434,7 +434,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                         {idx === activeIndex ? (
                                             <div className="absolute inset-x-6 bottom-10">
                                                 <div className="rounded-[25px] bg-white/15 backdrop-blur-lg ring-1 ring-white/20 shadow-xl p-4 md:p-6">
-                                                    <div className="text-white font-[900] uppercase tracking-wide text-md md:text-[25px] text-center">
+                                                    <div className="text-white font-[900] uppercase tracking-wide text-sm md:text-[25px] text-center">
                                                         {IMAGES[idx].title}
                                                     </div>
                                                     {Array.isArray(
@@ -466,7 +466,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                             </div>
                                         ) : (
                                             <div className="absolute inset-x-0 bottom-10 text-center">
-                                                <div className="text-white font-[900] uppercase tracking-wide text-md md:text-[25px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+                                                <div className="text-white font-[900] uppercase tracking-wide text-sm md:text-[25px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
                                                     {IMAGES[idx].title}
                                                 </div>
                                             </div>
@@ -482,17 +482,17 @@ const TravelExploreAnimation = ({ auth }) => {
                                 ))}
                             </motion.div>
                         </div>
-                        <div className="absolute bottom-20 right-10 z-[80] flex items-center justify-end gap-3 pointer-events-auto">
+                        <div className="absolute md:bottom-20 bottom-0 right-10 z-[80] flex items-center justify-end gap-3 pointer-events-auto">
                             <button
                                 onClick={rotatePrev}
-                                className="w-12 h-12 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/60 border border-white/30 text-white text-xl font-bold backdrop-blur-md transition-all shadow-lg"
+                                className="md:w-12 md:h-12 w-8 h-8 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/60 border border-white/30 text-white text-xl font-bold backdrop-blur-md transition-all shadow-lg"
                                 aria-label="Previous"
                             >
                                 ←
                             </button>
                             <button
                                 onClick={rotateNext}
-                                className="w-12 h-12 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/60 border border-white/30 text-white text-xl font-bold backdrop-blur-md transition-all shadow-lg"
+                                className="md:w-12 md:h-12 w-8 h-8 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/60 border border-white/30 text-white text-xl font-bold backdrop-blur-md transition-all shadow-lg"
                                 aria-label="Next"
                             >
                                 →
