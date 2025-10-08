@@ -380,7 +380,7 @@ const TravelExploreAnimation = ({ auth }) => {
                 </div>
 
                 {/* Carousel (shared layout, framer-motion) */}
-                <div className="relative z-50 flex justify-center md:justify-end items-start md:items-center w-full h-auto md:h-screen pointer-events-auto mt-20 md:mt-[50px] pb-6 md:pb-0">
+                <div className="relative z-50 flex justify-center md:justify-end items-start md:items-center w-full h-auto md:h-screen pointer-events-auto mt-20 md:mt-[50px] 2xl:mt-[150px] pb-6 md:pb-0">
                     {/* Right-anchored rail showing exactly three cards */}
                     <div className="w-full md:w-[700px] lg:w-[1000px] xl:w-[1370px]">
                         <div
