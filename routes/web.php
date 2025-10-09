@@ -488,6 +488,9 @@ Route::middleware(['auth'])->group(function () {
 // Client Dashboard Route with proper verification
 Route::get('/client/dashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('client.dashboard');
 
+// Main client dashboard route (referenced by auth controllers)
+Route::get('/client/main-dashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('client.mainDashboard');
+
 // Legacy client dashboard routes (public shell) - keep for backward compatibility
 Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('ClientDashboard');
 Route::get('/clientDashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('clientDashboard');
