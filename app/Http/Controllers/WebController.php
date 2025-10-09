@@ -191,11 +191,21 @@ class WebController extends Controller
 
     public function freightTicketBooking()
     {
-        return Inertia::render('Web/home/ticketBooking/TicketBooking');
-    }
+        // Check if the user is logged in
+        if (!Auth::check()) {
+            // If not logged in, redirect to signin with a message
+            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
+        }
 
-    public function ticketBooking()
+        return Inertia::render('Web/home/ticketBooking/TicketBooking');
+    }    public function ticketBooking()
     {
+        // Check if the user is logged in
+        if (!Auth::check()) {
+            // If not logged in, redirect to login with a message
+            return redirect()->route('signin')->with('message', 'Please log in to make a booking.');
+        }
+
         return Inertia::render('Web/home/ticketBooking/TicketBooking');
     }
 
@@ -366,7 +376,7 @@ class WebController extends Controller
     {
         // Get approved and active warehouses from database
         $searchParams = $request->all();
-        
+
         $query = WarehouseUnit::approved()
             ->active();
 
@@ -489,7 +499,7 @@ class WebController extends Controller
                     $query->with('user')->latest();
                 }
             ])->approved()->active()->find($warehouseData['id']);
-            
+
             if ($warehouse) {
                 // Prepare warehouse data with all relationships
                 $warehouseData = array_merge($warehouseData, [

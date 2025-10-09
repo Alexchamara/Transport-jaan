@@ -31,6 +31,7 @@ use App\Http\Controllers\VehicleControllers\Client\ClientVehicleController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
+use App\Http\Controllers\Client\ClientDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -78,16 +79,16 @@ Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 // Ticket booking (public screens)
 Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
 Route::get('/trainTicketBookingDetails', [TrainController::class, 'search'])->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
-Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->name('trainTicketBookingPreview.trainTicketBookingPreview');
-Route::post('/train-bookings', [TrainController::class, 'store'])->name('train-bookings.store');
-Route::get('/train-booking-success/{reference}', [TrainController::class, 'bookingSuccess'])->name('train.booking.success');
+Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->name('trainTicketBookingPreview.trainTicketBookingPreview')->middleware('auth');
+Route::post('/train-bookings', [TrainController::class, 'store'])->name('train-bookings.store')->middleware('auth');
+Route::get('/train-booking-success/{reference}', [TrainController::class, 'bookingSuccess'])->name('train.booking.success')->middleware('auth');
 // Bus booking routes (all routes are public - no auth required)
 Route::get('/busTicketBookingDetails', [BusBookingController::class, 'search'])->name('busTicketBookingDetails.busTicketBookingDetails');
-Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store');
-Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success');
-Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview');
+Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store')->middleware('auth');
+Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success')->middleware('auth');
+Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview')->middleware('auth');
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
-Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store');
+Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store')->middleware('auth');
 
 // Warehouse (public landing)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
@@ -456,7 +457,7 @@ Route::middleware(['auth', 'role:client'])
 | User Dashboard Routes (Client Services)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth'])
+Route::middleware(['auth', \App\Http\Middleware\ClientVerificationCheck::class])
     ->prefix('user')
     ->name('user.')
     ->group(function () {
@@ -483,9 +484,12 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 });
 
+// Client Dashboard Route with proper verification
+Route::get('/client/dashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('client.dashboard');
+
 // Legacy client dashboard routes (public shell) - keep for backward compatibility
-Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->name('ClientDashboard');
-Route::get('/clientDashboard', fn() => Inertia::render('Web/home/client/ClientMainDashboard'))->name('clientDashboard');
+Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('ClientDashboard');
+Route::get('/clientDashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('clientDashboard');
 
 /*
 |--------------------------------------------------------------------------
@@ -879,14 +883,14 @@ Route::get('/multimodal/settingsPage', function () {
 
 
 
-// Client dashboard
+// Client dashboard - redirect to proper route
 Route::get('/clientDashboard', function () {
-    return Inertia::render('Web/home/client/ClientDashboard');
-})->name('clientDashboard');
+    return redirect()->route('client.dashboard');
+});
 
 Route::get('/clientDashboardSettings', function () {
     return Inertia::render('Web/home/client/ClientDashboardSettings');
-})->name('clientDashboardSettings');
+})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
 
 Route::get('/clientTicketBookingDashboard', function () {
     return Inertia::render('Web/home/client/ClientTicketBookingDashboard');
@@ -974,10 +978,10 @@ foreach ($sections as $slug => $baseView) {
 | Client dashboards (public shells)
 |--------------------------------------------------------------------------
 */
-Route::get('/clientDashboard',           $render('Web/home/client/ClientDashboard'))->name('clientDashboard');
-Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->name('clientDashboardSettings');
-Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->name('clientTicketBookingDashboard');
-Route::get('/courierBookingDashboard',   $render('Web/home/client/CourierBookingDashboard'))->name('courierBookingDashboard');
+Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
+Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
+Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
+Route::get('/courierBookingDashboard',   $render('Web/home/client/CourierBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('courierBookingDashboard');
 Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
 Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');
 

@@ -14,9 +14,7 @@ class UserDashboardController extends Controller
     public function view()
     {
         return Inertia::render('Web/dashboard/View');
-    }
-
-    public function flightView()
+    }    public function flightView()
     {
         $flights = FlightBooking::where('user_id', auth()->id())->get();
         return Inertia::render('Web/dashboard/FlightView', [

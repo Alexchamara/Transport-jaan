@@ -79,6 +79,11 @@ class BusBookingController extends Controller
      */
     public function preview(Request $request)
     {
+        // Check if the user is logged in
+        if (!auth()->check()) {
+            return redirect()->route('signin')->with('message', 'Please log in to make a booking.');
+        }
+
         $scheduleId = $request->get('id');
         $searchParams = [
             'from' => $request->get('from'),
@@ -128,6 +133,11 @@ class BusBookingController extends Controller
      */
     public function store(Request $request)
     {
+        // Check if the user is logged in
+        if (!auth()->check()) {
+            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
+        }
+
         // Handle JSON requests
         if ($request->isJson()) {
             $data = $request->json()->all();

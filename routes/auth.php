@@ -38,17 +38,17 @@ Route::middleware('guest')->group(function () {
 
 Route::get('approval-pending', function() {
     // Check if user is authenticated but unverified
-    if (Auth::check() && Auth::user()->status === 'unverified') {
+    if (Auth::check() && Auth::user()->status !== 'verified') {
         return Inertia::render('Auth/ApprovalPending');
     }
 
-    // Redirect authenticated users who are verified
-    if (Auth::check()) {
-        return redirect('/');
+    // Redirect authenticated users who are verified to client dashboard
+    if (Auth::check() && Auth::user()->status === 'verified') {
+        return redirect()->route('client.dashboard');
     }
 
-    // Redirect guests to login
-    return redirect()->route('login');
+    // Redirect guests to signin
+    return redirect()->route('signin.signin');
 })->name('approval.pending');
 
 Route::middleware('auth')->group(function () {

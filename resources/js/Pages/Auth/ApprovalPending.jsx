@@ -1,7 +1,11 @@
 import React from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 
 export default function ApprovalPending() {
+    const handleLogout = (e) => {
+        e.preventDefault();
+        router.post(route('logout'));
+    };
     return (
         <>
             <Head title="Approval Pending" />
@@ -30,15 +34,12 @@ export default function ApprovalPending() {
                             >
                                 Return to Home
                             </a>
-                            <form method="POST" action="/logout">
-                                <input type="hidden" name="_token" value={document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')} />
-                                <button
-                                    type="submit"
-                                    className="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700"
-                                >
-                                    Log Out
-                                </button>
-                            </form>
+                            <button
+                                onClick={handleLogout}
+                                className="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700"
+                            >
+                                Log Out
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -113,6 +113,11 @@ class TrainController extends Controller
 
     public function preview(Request $request)
     {
+        // Check if the user is logged in
+        if (!auth()->check()) {
+            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
+        }
+
         $scheduleId = $request->input('schedule_id');
         $returnScheduleId = $request->input('return_schedule_id');
         $adults = $request->input('adults', 1);
@@ -181,6 +186,11 @@ class TrainController extends Controller
 
     public function store(Request $request)
     {
+        // Check if the user is logged in
+        if (!auth()->check()) {
+            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
+        }
+
         $request->validate([
             'train_schedule_id' => 'required|exists:train_schedules,id',
             'passenger_name' => 'required|string|max:255',
