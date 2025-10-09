@@ -341,12 +341,22 @@ const VehicleCheckoutContent = () => {
                 <div>
                   <label className="text-[10px]/[24px] font-[600]">Age :</label>
                   <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                    <input
-                      value={age}
-                      onChange={(e) => setAge(e.target.value)}
-                      className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                      placeholder="18 - 25"
-                    />
+                  <input
+                        value={age}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setAge(value);
+
+                          // validation
+                          if (parseInt(value) < 21) {
+                            setErrors((prev) => ({ ...prev, age: "Age must be greater than 21" }));
+                          } else {
+                            setErrors((prev) => ({ ...prev, age: null }));
+                          }
+                        }}
+                        className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                        placeholder="18 - 25"
+                      />
                   </div>
                   {errors.age && <p className="text-[10px] text-red-600 mt-1">{errors.age}</p>}
                 </div>
