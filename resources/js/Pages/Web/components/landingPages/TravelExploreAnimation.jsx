@@ -135,7 +135,7 @@ const TravelExploreAnimation = ({ auth }) => {
             if (scrollRef.current) {
                 scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
             }
-        }, 3000);
+        }, 5000);
         return () => clearInterval(id);
     }, []);
 
