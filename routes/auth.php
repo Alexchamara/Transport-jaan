@@ -70,4 +70,13 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    // Alternative logout route in case CSRF fails
+    Route::get('logout-alt', [AuthenticatedSessionController::class, 'destroy'])
+        ->name('logout.alt');
 });
+
+// CSRF token refresh route (without CSRF protection)
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+})->name('csrf.refresh');

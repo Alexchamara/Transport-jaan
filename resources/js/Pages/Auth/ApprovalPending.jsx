@@ -2,9 +2,63 @@ import React from 'react';
 import { Head, router } from '@inertiajs/react';
 
 export default function ApprovalPending() {
-    const handleLogout = (e) => {
+    // Function to refresh CSRF token
+    const refreshCSRFToken = async () => {
+        try {
+            const response = await fetch('/csrf-token');
+            const data = await response.json();
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) {
+                metaTag.setAttribute('content', data.token);
+            }
+            return data.token;
+        } catch (error) {
+            console.error('Failed to refresh CSRF token:', error);
+            return null;
+        }
+    };
+
+    const handleLogout = async (e) => {
         e.preventDefault();
-        router.post(route('logout'));
+
+        // First attempt: regular POST logout
+        const attemptLogout = () => {
+            router.post(route('logout'), {}, {
+                onError: async (errors) => {
+                    console.warn('POST logout failed, trying to refresh CSRF token...', errors);
+
+                    // Check if it's a CSRF error
+                    if (errors && (errors.message?.includes('CSRF') || errors.message?.includes('expired'))) {
+                        // Try to refresh CSRF token and retry once
+                        const newToken = await refreshCSRFToken();
+                        if (newToken) {
+                            // Retry with fresh token
+                            router.post(route('logout'), {}, {
+                                onError: () => {
+                                    // If still fails, use alternative method
+                                    console.warn('Retried logout failed, using alternative method...');
+                                    window.location.href = route('logout.alt');
+                                },
+                                onSuccess: () => {
+                                    window.location.href = '/';
+                                }
+                            });
+                        } else {
+                            // Fallback to GET logout
+                            window.location.href = route('logout.alt');
+                        }
+                    } else {
+                        // Other errors, try alternative method
+                        window.location.href = route('logout.alt');
+                    }
+                },
+                onSuccess: () => {
+                    window.location.href = '/';
+                }
+            });
+        };
+
+        attemptLogout();
     };
     return (
         <>

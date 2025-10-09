@@ -9,19 +9,27 @@ use Inertia\Inertia;
 
 class ClientDashboardController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         // Ensure user is authenticated
         if (!Auth::check()) {
             return redirect()->route('signin.signin')->with('message', 'Please log in to access the dashboard.');
         }
 
+        // Refresh session to prevent expiration during use
+        $request->session()->regenerate(false);
+
+        $user = Auth::user();
+
         // Check if user is verified by admin
-        if (Auth::user()->status !== 'verified') {
+        if ($user->status !== 'verified') {
             return redirect()->route('approval.pending');
         }
 
-        // User is verified, show the dashboard
-        return Inertia::render('Web/home/client/ClientMainDashboard');
+        // User is verified, show the dashboard with fresh CSRF token
+        return Inertia::render('Web/home/client/ClientMainDashboard', [
+            'user' => $user,
+            'csrf_token' => csrf_token(),
+        ]);
     }
 }
