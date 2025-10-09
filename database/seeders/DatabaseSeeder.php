@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             TrainStationSeeder::class,
             TrainSeeder::class,
             TrainScheduleSeeder::class,
+            WarehouseUnitSeeder::class,
 
         ]);
     }

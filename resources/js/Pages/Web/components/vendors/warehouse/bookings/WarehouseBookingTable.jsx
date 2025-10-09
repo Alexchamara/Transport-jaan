@@ -3,15 +3,30 @@ import WarehouseBookingService from "../../../../../../services/WarehouseBooking
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
-const WarehouseBookingTable = ({ bookings, setBookings, statusColors }) => {
-    // State for pagination
+const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBookingsProp, filters = {} }) => {
+    const isControlled = typeof setBookingsProp === "function";
+    const [internalBookings, setInternalBookings] = useState(bookingsProp);
+    const bookings = isControlled ? bookingsProp : internalBookings;
+    const updateBookings = isControlled ? setBookingsProp : setInternalBookings;
+
+    // State for pagination and remote data
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const perPageOptions = [5, 10, 20, 50];
-    const totalPages = Math.ceil(bookings.length / itemsPerPage);
-    const startIdx = (currentPage - 1) * itemsPerPage;
-    const endIdx = startIdx + itemsPerPage;
-    const currentBookings = bookings.slice(startIdx, endIdx);
+    const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
+    const [isLoading, setIsLoading] = useState(false);
+    const [fetchError, setFetchError] = useState(null);
+    const filtersRef = React.useRef({
+        search: filters?.search ?? '',
+        warehouseType: filters?.warehouseType ?? '',
+        status: filters?.status ?? '',
+    });
+
+    React.useEffect(() => {
+        if (!isControlled) {
+            setInternalBookings(bookingsProp);
+        }
+    }, [bookingsProp, isControlled]);
 
     // State for detailed view popup
     const [isDetailPopupOpen, setIsDetailPopupOpen] = useState(false);
@@ -29,33 +44,108 @@ const WarehouseBookingTable = ({ bookings, setBookings, statusColors }) => {
         payment_status: ''
     });
 
+    const fetchBookings = React.useCallback(async (page = 1, perPage = itemsPerPage) => {
+        setIsLoading(true);
+        setFetchError(null);
+        try {
+            const params = {
+                page,
+                per_page: perPage,
+            };
+
+            if (filters.search) {
+                params.search = filters.search;
+            }
+            if (filters.warehouseType) {
+                params.warehouse_type = filters.warehouseType;
+            }
+            if (filters.status) {
+                params.status = filters.status;
+            }
+
+            const response = await WarehouseBookingService.getBookings(params);
+            if (response.success) {
+                const formattedBookings = (response.data || []).map((booking) =>
+                    WarehouseBookingService.formatBookingForDisplay(booking)
+                );
+                updateBookings(formattedBookings);
+                setPagination(response.pagination || { current_page: page, last_page: 1, total: formattedBookings.length });
+                const resolvedPage = response.pagination?.current_page ?? page;
+                setCurrentPage((prev) => (prev === resolvedPage ? prev : resolvedPage));
+            } else {
+                updateBookings([]);
+                setPagination({ current_page: 1, last_page: 1, total: 0 });
+                setFetchError(response.message || 'Failed to load bookings.');
+                if (page !== 1) {
+                    setCurrentPage(1);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching bookings:', error);
+            updateBookings([]);
+            setPagination({ current_page: 1, last_page: 1, total: 0 });
+            setFetchError('Failed to load bookings. Please try again.');
+            if (page !== 1) {
+                setCurrentPage(1);
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    }, [updateBookings, itemsPerPage, filters]);
+
+    React.useEffect(() => {
+        const normalizedFilters = {
+            search: filters?.search ?? '',
+            warehouseType: filters?.warehouseType ?? '',
+            status: filters?.status ?? '',
+        };
+
+        const filtersChanged =
+            filtersRef.current.search !== normalizedFilters.search ||
+            filtersRef.current.warehouseType !== normalizedFilters.warehouseType ||
+            filtersRef.current.status !== normalizedFilters.status;
+
+        if (filtersChanged) {
+            filtersRef.current = normalizedFilters;
+            if (currentPage !== 1) {
+                setCurrentPage(1);
+                return;
+            }
+        }
+
+        fetchBookings(currentPage, itemsPerPage);
+    }, [currentPage, itemsPerPage, fetchBookings, filters]);
+
+    const totalPages = Math.max(
+        1,
+        pagination?.total
+            ? Math.ceil(pagination.total / itemsPerPage)
+            : (pagination?.last_page ?? 1)
+    );
+
     const handleModifySubmit = async () => {
         try {
+            if (!actionBooking) {
+                return;
+            }
+
             const updates = {};
-            
-            // Only include fields that have values
-            Object.keys(modifyData).forEach(key => {
+
+            Object.keys(modifyData).forEach((key) => {
                 if (modifyData[key] && modifyData[key].toString().trim() !== '') {
                     updates[key] = modifyData[key];
                 }
             });
-            
+
             if (Object.keys(updates).length === 0) {
                 alert('Please provide at least one field to update.');
                 return;
             }
-            
+
             const response = await WarehouseBookingService.updateBooking(actionBooking.id, updates);
-            
+
             if (response.success) {
-                // Refresh the booking data or update locally
-                const updatedBookings = [...bookings];
-                updatedBookings[actionBooking.index] = {
-                    ...actionBooking,
-                    ...updates,
-                    totalPrice: response.booking.final_amount ? `$${response.booking.final_amount}` : actionBooking.totalPrice
-                };
-                setBookings(updatedBookings);
+                await fetchBookings(currentPage, itemsPerPage);
                 setIsActionPopupOpen(false);
                 setModifyData({
                     monthly_rate: '',
@@ -73,8 +163,13 @@ const WarehouseBookingTable = ({ bookings, setBookings, statusColors }) => {
         }
     };
 
+    const handleResultsPerPageChange = (value) => {
+        setItemsPerPage(value);
+        setCurrentPage(1);
+    };
+
     const goToPage = (page) => {
-        if (page < 1 || page > totalPages) return;
+        if (page < 1 || page > totalPages || isLoading) return;
         setCurrentPage(page);
     };
 
@@ -82,82 +177,55 @@ const WarehouseBookingTable = ({ bookings, setBookings, statusColors }) => {
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 3) {
+            pages.push(1, 2, 3, '...', totalPages);
+        } else if (currentPage >= totalPages - 2) {
+            pages.push(1, '...', totalPages - 2, totalPages - 1, totalPages);
         } else {
-            if (currentPage <= 3) {
-                pages.push(1, 2, 3, '...', totalPages);
-            } else if (currentPage >= totalPages - 2) {
-                pages.push(1, '...', totalPages - 2, totalPages - 1, totalPages);
-            } else {
-                pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
-            }
+            pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
         }
         return pages;
     };
 
     const handleRowClick = (booking, index) => {
-        setSelectedBooking({ ...booking, index: startIdx + index });
+        setSelectedBooking({ ...booking, index });
         setIsDetailPopupOpen(true);
     };
 
     const handleVendorAction = async (action, booking, index) => {
         try {
-            const bookingIndex = startIdx + index;
             let response;
-            
+
             switch (action) {
                 case 'approve':
                     response = await WarehouseBookingService.approveBooking(booking.id);
                     if (response.success) {
-                        const updatedBookings = [...bookings];
-                        updatedBookings[bookingIndex] = {
-                            ...booking,
-                            status: 'confirmed',
-                            statusBg: getStatusColor('confirmed').bg,
-                            statusText: getStatusColor('confirmed').text,
-                        };
-                        setBookings(updatedBookings);
+                        await fetchBookings(currentPage, itemsPerPage);
                         alert('Booking approved successfully!');
                     }
                     break;
-                    
+
                 case 'reject':
                     const reason = prompt('Please provide a reason for rejection:');
                     if (reason && reason.trim()) {
                         response = await WarehouseBookingService.rejectBooking(booking.id, reason.trim());
                         if (response.success) {
-                            const updatedBookings = [...bookings];
-                            updatedBookings[bookingIndex] = {
-                                ...booking,
-                                status: 'cancelled',
-                                statusBg: getStatusColor('cancelled').bg,
-                                statusText: getStatusColor('cancelled').text,
-                            };
-                            setBookings(updatedBookings);
+                            await fetchBookings(currentPage, itemsPerPage);
                             alert('Booking rejected successfully!');
                         }
                     }
                     break;
-                    
+
                 case 'complete':
                     response = await WarehouseBookingService.completeBooking(booking.id);
                     if (response.success) {
-                        const updatedBookings = [...bookings];
-                        updatedBookings[bookingIndex] = {
-                            ...booking,
-                            status: 'completed',
-                            paymentStatus: 'Paid',
-                            statusBg: getStatusColor('completed').bg,
-                            statusText: getStatusColor('completed').text,
-                            paymentStatusColor: '#3B8F31',
-                            paymentStatusBg: '#ACE199',
-                        };
-                        setBookings(updatedBookings);
+                        await fetchBookings(currentPage, itemsPerPage);
                         alert('Booking marked as completed successfully!');
                     }
                     break;
-                    
+
                 case 'modify':
-                    setActionBooking({ ...booking, index: bookingIndex });
+                    setActionBooking({ ...booking, index });
                     setIsActionPopupOpen(true);
                     return;
             }
@@ -189,187 +257,200 @@ const WarehouseBookingTable = ({ bookings, setBookings, statusColors }) => {
         return statusMap[status] || status;
     };
 
-    React.useEffect(() => {
-        setCurrentPage(1);
-    }, [itemsPerPage]);
-
     return (
         <div className="py-10">
-            {/* table headings */}
-            <div className="grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Booking ID</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+            {fetchError && (
+                <div className="mb-4 text-sm text-red-600">{fetchError}</div>
+            )}
+            <div className="overflow-x-auto w-full">
+                {isLoading ? (
+                    <div className="py-12 flex justify-center">
+                        <span className="text-sm text-gray-600">Loading bookings...</span>
                     </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Client</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                ) : bookings.length === 0 ? (
+                    <div className="py-12 flex justify-center">
+                        <span className="text-sm text-gray-600">{fetchError ? 'Unable to load bookings.' : 'No bookings found.'}</span>
                     </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Warehouse</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Storage Type</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Duration</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Amount</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Payment</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Status</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Actions</h1>
-                </div>
-            </div>
+                ) : (
+                    <div className="inline-block min-w-[1100px] align-middle">
+                        {/* table headings */}
+                        <div className="grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Booking ID</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Client</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Warehouse</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Storage Type</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Duration</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Amount</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Payment</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Status</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Actions</h1>
+                            </div>
+                        </div>
 
-            {/* table rows */}
-            {currentBookings.map((booking, idx) => (
-                <div
-                    key={startIdx + idx}
-                    className={`grid grid-cols-9 ${(startIdx + idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} min-h-[100px] justify-center items-center text-[15px] font-[500] px-10`}
-                >
-                    <div className="cursor-pointer hover:text-blue-600" onClick={() => handleRowClick(booking, idx)}>
-                        {booking.id}
-                    </div>
-                    <div>
-                        <h1 className="font-[600]">{booking.clientName}</h1>
-                        <div className="text-[12px] text-gray-600">{booking.bookingDate}</div>
-                    </div>
-                    <div>
-                        <h1 className="font-[600]">{booking.warehouseName}</h1>
-                        <div className="w-fit px-2 py-1 rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] text-[12px] text-[#00000099]">
-                            {booking.warehouseUnit}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="font-[600]">{booking.purpose}</div>
-                        <div className="text-[12px] text-gray-600">{booking.specialRequirements}</div>
-                    </div>
-                    <div className="text-[14px] font-[500] text-[#939392]">
-                        <div className="flex flex-row gap-2 justify-start items-center mb-1">
-                            <h1>Start:</h1>
-                            <div className="px-2 py-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] rounded-[4px]">
-                                {booking.startDate}
+                        {/* table rows */}
+                        {bookings.map((booking, idx) => (
+                            <div
+                                key={booking.id ?? idx}
+                                className={`grid grid-cols-9 ${(idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} min-h-[100px] justify-center items-center text-[15px] font-[500] px-10`}
+                            >
+                                <div className="cursor-pointer hover:text-blue-600" onClick={() => handleRowClick(booking, idx)}>
+                                    {booking.id}
+                                </div>
+                                <div>
+                                    <h1 className="font-[600]">{booking.clientName}</h1>
+                                    <div className="text-[12px] text-gray-600">{booking.bookingDate}</div>
+                                </div>
+                                <div>
+                                    <h1 className="font-[600]">{booking.warehouseName}</h1>
+                                    <div className="w-fit px-2 py-1 rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] text-[12px] text-[#00000099]">
+                                        {booking.warehouseUnit}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="font-[600]">{booking.purpose}</div>
+                                    <div className="text-[12px] text-gray-600">{booking.specialRequirements}</div>
+                                </div>
+                                <div className="text-[14px] font-[500] text-[#939392]">
+                                    <div className="flex flex-row gap-2 justify-start items-center mb-1">
+                                        <h1>Start:</h1>
+                                        <div className="px-2 py-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] rounded-[4px]">
+                                            {booking.startDate}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-row gap-2 justify-start items-center">
+                                        <h1>End:</h1>
+                                        <div className="px-2 py-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] rounded-[4px]">
+                                            {booking.endDate}
+                                        </div>
+                                    </div>
+                                    <div className="text-[12px] mt-1 font-[600] text-black">
+                                        {booking.durationValue} {booking.durationUnit}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col justify-center items-start">
+                                    <h1 className="font-[700] text-[16px]">{booking.totalPrice}</h1>
+                                    <div className="text-[12px] text-gray-600">
+                                        Qty: {booking.quantity}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col justify-center items-center">
+                                    <div
+                                        className="px-3 py-1 border-[0.5px] rounded-[4px] text-[10px] font-[500] flex justify-center items-center"
+                                        style={{
+                                            borderColor: booking.paymentStatusColor,
+                                            background: booking.paymentStatusBg,
+                                            color: booking.paymentStatusColor
+                                        }}
+                                    >
+                                        {booking.paymentStatus}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col justify-center items-center">
+                                    <div
+                                        className="px-3 py-1 border-[1px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                                        style={{
+                                            background: getStatusColor(booking.status).bg,
+                                            borderColor: '#0000004D',
+                                            color: getStatusColor(booking.status).text
+                                        }}
+                                    >
+                                        {getStatusDisplayText(booking.status)}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    {booking.status === 'pending' && (
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={() => handleVendorAction('approve', booking, idx)}
+                                                className="px-2 py-1 bg-green-500 text-white text-[10px] rounded hover:bg-green-600"
+                                            >
+                                                Approve
+                                            </button>
+                                            <button
+                                                onClick={() => handleVendorAction('reject', booking, idx)}
+                                                className="px-2 py-1 bg-red-500 text-white text-[10px] rounded hover:bg-red-600"
+                                            >
+                                                Reject
+                                            </button>
+                                        </div>
+                                    )}
+                                    {(booking.status === 'confirmed' || booking.status === 'active') && (
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={() => handleVendorAction('complete', booking, idx)}
+                                                className="px-2 py-1 bg-blue-500 text-white text-[10px] rounded hover:bg-blue-600"
+                                            >
+                                                Complete
+                                            </button>
+                                            <button
+                                                onClick={() => handleVendorAction('modify', booking, idx)}
+                                                className="px-2 py-1 bg-orange-500 text-white text-[10px] rounded hover:bg-orange-600"
+                                            >
+                                                Modify
+                                            </button>
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={() => handleRowClick(booking, idx)}
+                                        className="px-2 py-1 bg-gray-500 text-white text-[10px] rounded hover:bg-gray-600"
+                                    >
+                                        View Details
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex flex-row gap-2 justify-start items-center">
-                            <h1>End:</h1>
-                            <div className="px-2 py-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] rounded-[4px]">
-                                {booking.endDate}
-                            </div>
-                        </div>
-                        <div className="text-[12px] mt-1 font-[600] text-black">
-                            {booking.durationValue} {booking.durationUnit}
-                        </div>
+                        ))}
                     </div>
-                    <div className="flex flex-col justify-center items-start">
-                        <h1 className="font-[700] text-[16px]">{booking.totalPrice}</h1>
-                        <div className="text-[12px] text-gray-600">
-                            Qty: {booking.quantity}
-                        </div>
-                    </div>
-                    <div className="flex flex-col justify-center items-center">
-                        <div
-                            className="px-3 py-1 border-[0.5px] rounded-[4px] text-[10px] font-[500] flex justify-center items-center"
-                            style={{ 
-                                borderColor: booking.paymentStatusColor, 
-                                background: booking.paymentStatusBg,
-                                color: booking.paymentStatusColor
-                            }}
-                        >
-                            {booking.paymentStatus}
-                        </div>
-                    </div>
-                    <div className="flex flex-col justify-center items-center">
-                        <div
-                            className="px-3 py-1 border-[1px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
-                            style={{ 
-                                background: getStatusColor(booking.status).bg, 
-                                borderColor: '#0000004D', 
-                                color: getStatusColor(booking.status).text 
-                            }}
-                        >
-                            {getStatusDisplayText(booking.status)}
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        {booking.status === 'pending' && (
-                            <div className="flex gap-1">
-                                <button
-                                    onClick={() => handleVendorAction('approve', booking, idx)}
-                                    className="px-2 py-1 bg-green-500 text-white text-[10px] rounded hover:bg-green-600"
-                                >
-                                    Approve
-                                </button>
-                                <button
-                                    onClick={() => handleVendorAction('reject', booking, idx)}
-                                    className="px-2 py-1 bg-red-500 text-white text-[10px] rounded hover:bg-red-600"
-                                >
-                                    Reject
-                                </button>
-                            </div>
-                        )}
-                        {(booking.status === 'confirmed' || booking.status === 'active') && (
-                            <div className="flex gap-1">
-                                <button
-                                    onClick={() => handleVendorAction('complete', booking, idx)}
-                                    className="px-2 py-1 bg-blue-500 text-white text-[10px] rounded hover:bg-blue-600"
-                                >
-                                    Complete
-                                </button>
-                                <button
-                                    onClick={() => handleVendorAction('modify', booking, idx)}
-                                    className="px-2 py-1 bg-orange-500 text-white text-[10px] rounded hover:bg-orange-600"
-                                >
-                                    Modify
-                                </button>
-                            </div>
-                        )}
-                        <button
-                            onClick={() => handleRowClick(booking, idx)}
-                            className="px-2 py-1 bg-gray-500 text-white text-[10px] rounded hover:bg-gray-600"
-                        >
-                            View Details
-                        </button>
-                    </div>
-                </div>
-            ))}
+                )}
+            </div>
 
             {/* Detailed View Popup */}
             {isDetailPopupOpen && selectedBooking && (
@@ -581,7 +662,7 @@ const WarehouseBookingTable = ({ bookings, setBookings, statusColors }) => {
                     <select
                         className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                         value={itemsPerPage}
-                        onChange={e => setItemsPerPage(Number(e.target.value))}
+                        onChange={e => handleResultsPerPageChange(Number(e.target.value))}
                     >
                         {perPageOptions.map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
@@ -592,7 +673,7 @@ const WarehouseBookingTable = ({ bookings, setBookings, statusColors }) => {
                     <button
                         className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
                         onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
+                        disabled={currentPage === 1 || isLoading || pagination.total === 0}
                     >
                         <span className="text-lg">&#60;</span>
                     </button>
@@ -603,6 +684,7 @@ const WarehouseBookingTable = ({ bookings, setBookings, statusColors }) => {
                                 key={num}
                                 className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num ? ' text-[#0955AC] font-[600] border-[2px] border-[#0955AC]' : 'bg-[#F4F3F3]'}`}
                                 onClick={() => goToPage(num)}
+                                disabled={isLoading || pagination.total === 0}
                             >
                                 {num}
                             </button>
@@ -610,7 +692,7 @@ const WarehouseBookingTable = ({ bookings, setBookings, statusColors }) => {
                     <button
                         className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
                         onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
+                        disabled={currentPage === totalPages || isLoading || pagination.total === 0}
                     >
                         <span className="text-lg">&#62;</span>
                     </button>

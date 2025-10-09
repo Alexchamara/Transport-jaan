@@ -286,7 +286,7 @@ class WarehouseUnitController extends Controller
             'total_amount' => $nullIfEmpty($validated['total_amount'] ?? null),
             'tax_amount' => $nullIfEmpty($validated['tax_amount'] ?? null),
             'final_amount' => $nullIfEmpty($validated['final_amount'] ?? null),
-            'currency' => $validated['currency'] ?? 'USD',
+            'currency' => $validated['currency'] ?? 'LKR',
             'contact_person' => $validated['contact_person'] ?? null,
             'contact_phone' => $validated['contact_phone'] ?? null,
             'contact_email' => $validated['contact_email'] ?? null,
@@ -500,7 +500,7 @@ class WarehouseUnitController extends Controller
                 'total_amount' => $unit->total_amount ?? '',
                 'tax_amount' => $unit->tax_amount ?? '',
                 'final_amount' => $unit->final_amount ?? '',
-                'currency' => $unit->currency ?? 'USD',
+                'currency' => $unit->currency ?? 'LKR',
                 'contact_person' => $unit->contact_person ?? '',
                 'contact_phone' => $unit->contact_phone ?? '',
                 'contact_email' => $unit->contact_email ?? '',
@@ -576,7 +576,8 @@ class WarehouseUnitController extends Controller
                 'type' => ['required', 'string', 'max:255'],
                 'pricing_model' => ['required', 'string', Rule::in([
                     'per_sqft_monthly', 'per_sqft_daily', 'per_pallet_monthly',
-                    'per_pallet_daily', 'flat_rate_monthly', 'flat_rate_daily'
+                    'per_pallet_daily', 'flat_rate_monthly', 'flat_rate_daily',
+                    'monthly', 'daily', 'hourly' // Legacy values for backwards compatibility
                 ])],
                 'price' => ['nullable', 'numeric', 'min:0'], // Legacy price field
                 'base_price' => ['nullable', 'numeric', 'min:0'],

@@ -8,6 +8,7 @@ use App\Models\Warehouse\WarehouseUnit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class VendorWarehouseBookingController extends Controller
 {
@@ -545,5 +546,94 @@ class VendorWarehouseBookingController extends Controller
         }
         
         return implode(', ', $requirements) ?: 'Standard requirements';
+    }
+
+    /**
+     * Get booking chart data for the authenticated vendor
+     */
+    public function getChartData(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $period = $request->get('period', 'Last 8 months');
+            
+            // Get warehouse units owned by the vendor
+            $warehouseUnitIds = WarehouseUnit::where('user_id', $user->id)->pluck('id');
+            
+            // Determine the date range based on the period
+            $startDate = $this->getStartDateForPeriod($period);
+            $endDate = Carbon::now();
+            
+            // Get booking data grouped by month
+            $bookings = WarehouseBooking::selectRaw('
+                YEAR(created_at) as year,
+                MONTH(created_at) as month,
+                COUNT(CASE WHEN status IN ("confirmed", "completed") THEN 1 END) as done,
+                COUNT(CASE WHEN status = "cancelled" THEN 1 END) as cancelled
+            ')
+            ->whereIn('warehouse_unit_id', $warehouseUnitIds)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy('year', 'month')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
+            ->get();
+            
+            // Format the data for the chart
+            $chartData = [];
+            $current = $startDate->copy();
+            
+            while ($current <= $endDate) {
+                $year = $current->year;
+                $month = $current->month;
+                
+                // Find booking data for this month
+                $monthData = $bookings->first(function ($booking) use ($year, $month) {
+                    return $booking->year == $year && $booking->month == $month;
+                });
+                
+                $chartData[] = [
+                    'name' => $current->format('M'),
+                    'done' => $monthData ? (int)$monthData->done : 0,
+                    'cancelled' => $monthData ? (int)$monthData->cancelled : 0,
+                ];
+                
+                $current->addMonth();
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $chartData
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error fetching booking chart data: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching booking chart data'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Get start date based on the selected period
+     */
+    private function getStartDateForPeriod($period)
+    {
+        switch ($period) {
+            case 'Last 3 months':
+                return Carbon::now()->subMonths(3)->startOfMonth();
+            case 'Last 6 months':
+                return Carbon::now()->subMonths(6)->startOfMonth();
+            case 'Last 8 months':
+                return Carbon::now()->subMonths(8)->startOfMonth();
+            case 'Last 12 months':
+                return Carbon::now()->subMonths(12)->startOfMonth();
+            case 'This year':
+                return Carbon::now()->startOfYear();
+            case 'Last year':
+                return Carbon::now()->subYear()->startOfYear();
+            default:
+                return Carbon::now()->subMonths(8)->startOfMonth();
+        }
     }
 }

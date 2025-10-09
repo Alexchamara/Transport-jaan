@@ -9,54 +9,10 @@ import {
   Legend,
   Title,
 } from "chart.js";
+import axios from "axios";
 import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend, Title);
-
-const bookingData = [
-  { name: "Jan", done: 320, cancelled: 220 },
-  { name: "Feb", done: 380, cancelled: 270 },
-  { name: "Mar", done: 250, cancelled: 150 },
-  { name: "Apr", done: 500, cancelled: 230 },
-  { name: "May", done: 310, cancelled: 410 },
-  { name: "Jun", done: 370, cancelled: 180 },
-  { name: "Jul", done: 420, cancelled: 210 },
-  { name: "Aug", done: 480, cancelled: 380 },
-  { name: "Sep", done: 270, cancelled: 320 },
-  { name: "Oct", done: 390, cancelled: 210 },
-  { name: "Nov", done: 320, cancelled: 170 },
-  { name: "Dec", done: 500, cancelled: 250 },
-];
-
-const labels = bookingData.map((d) => d.name);
-const doneData = bookingData.map((d) => d.done);
-const cancelledData = bookingData.map((d) => -d.cancelled); // negative for downward bars
-
-const data = {
-  labels,
-  datasets: [
-    {
-      label: "Done",
-      data: doneData,
-      backgroundColor: labels.map((_, i) => (i === 7 ? "#39CEF3" : "#0955AC")),
-      borderRadius: { topLeft: 8, topRight: 8 },
-      borderSkipped: false,
-      barPercentage: 0.6,
-      categoryPercentage: 0.8,
-      stack: 'booking',
-    },
-    {
-      label: "Cancelled",
-      data: cancelledData,
-      backgroundColor: "#000000",
-      borderRadius: { bottomLeft: 8, bottomRight: 8 },
-      borderSkipped: false,
-      barPercentage: 0.6,
-      categoryPercentage: 0.8,
-      stack: 'booking',
-    },
-  ],
-};
 
 const options = {
   responsive: true,
@@ -143,7 +99,7 @@ const options = {
 };
 
 // Custom Tooltip
-function CustomTooltip({ chart, tooltip }) {
+function CustomTooltip({ chart, tooltip, labels, doneData, cancelledData }) {
   if (!tooltip || !tooltip.opacity || !chart) return null;
   const { dataPoints } = tooltip;
   if (!dataPoints || dataPoints.length === 0) return null;
@@ -182,12 +138,97 @@ function CustomTooltip({ chart, tooltip }) {
 function BookingBarChart() {
   const chartRef = React.useRef();
   const [tooltipModel, setTooltipModel] = React.useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [selectedPeriod, setSelectedPeriod] = React.useState('Last 8 months');
+  const [bookingData, setBookingData] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+
+  const periodOptions = [
+    'Last 3 months',
+    'Last 6 months', 
+    'Last 8 months',
+    'Last 12 months',
+    'This year',
+    'Last year'
+  ];
+
+  // Fetch booking data from API
+  React.useEffect(() => {
+    const fetchBookingData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await axios.get('/vendors/warehouse/api/bookings/chart-data', {
+          params: { period: selectedPeriod }
+        });
+        
+        if (response.data.success) {
+          setBookingData(response.data.data || []);
+        } else {
+          setError('Failed to fetch booking data');
+        }
+      } catch (err) {
+        console.error('Error fetching booking data:', err);
+        setError('Error loading booking data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookingData();
+  }, [selectedPeriod]);
+
+  // Process fetched data
+  const labels = React.useMemo(() => bookingData.map((d) => d.name), [bookingData]);
+  const doneData = React.useMemo(() => bookingData.map((d) => d.done), [bookingData]);
+  const cancelledData = React.useMemo(() => bookingData.map((d) => -d.cancelled), [bookingData]);
 
   // Find the highest 'Done' value and its index
-  const maxDone = Math.max(...doneData);
-  const maxDoneIndex = doneData.indexOf(maxDone);
+  const maxDone = React.useMemo(() => Math.max(...doneData), [doneData]);
+  const maxDoneIndex = React.useMemo(() => doneData.indexOf(maxDone), [doneData, maxDone]);
 
-  // Custom tooltip handler
+  // Create chart data based on filtered data
+  const data = React.useMemo(() => ({
+    labels,
+    datasets: [
+      {
+        label: "Done",
+        data: doneData,
+        backgroundColor: labels.map((_, i) => (i === Math.floor(labels.length * 0.6) ? "#39CEF3" : "#0955AC")),
+        borderRadius: { topLeft: 8, topRight: 8 },
+        borderSkipped: false,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8,
+        stack: 'booking',
+      },
+      {
+        label: "Cancelled",
+        data: cancelledData,
+        backgroundColor: "#000000",
+        borderRadius: { bottomLeft: 8, bottomRight: 8 },
+        borderSkipped: false,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8,
+        stack: 'booking',
+      },
+    ],
+  }), [labels, doneData, cancelledData]);
+
+  // Handle clicks outside dropdown to close it
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isDropdownOpen && !event.target.closest('.relative')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [isDropdownOpen]);
+
+  // Custom tooltip handler - update when data changes
   React.useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
@@ -199,9 +240,9 @@ function BookingBarChart() {
     };
     chart.update();
 
-    // Show tooltip for the highest 'Done' bar on mount
+    // Show tooltip for the highest 'Done' bar when data changes
     setTimeout(() => {
-      if (!chart) return;
+      if (!chart || doneData.length === 0) return;
       const meta = chart.getDatasetMeta(0); // 0 for 'Done' dataset
       if (!meta || !meta.data || !meta.data[maxDoneIndex]) return;
       const bar = meta.data[maxDoneIndex];
@@ -217,7 +258,39 @@ function BookingBarChart() {
         chart,
       });
     }, 500); // Delay to ensure chart is rendered
-  }, []);
+  }, [selectedPeriod, maxDoneIndex, doneData.length]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-full flex flex-col items-stretch relative px-8 pt-8 pb-4">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC] mx-auto mb-4"></div>
+            <p className="text-[#7B7B7A] text-[16px]">Loading booking data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex flex-col items-stretch relative px-8 pt-8 pb-4">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 text-[18px] font-[600] mb-2">Error</div>
+            <p className="text-[#7B7B7A] text-[16px]">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 bg-[#0955AC] text-white px-4 py-2 rounded-lg hover:bg-[#0845A0] transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full flex flex-col items-stretch relative px-8 pt-8 pb-4">
@@ -236,25 +309,59 @@ function BookingBarChart() {
             </div>
           </div>
         </div>
-        <div className="ml-8">
-          <button className="bg-[#F3F3F3] rounded-lg px-4 py-2 flex flex-row items-center gap-2 text-[16px] font-[500] text-[#7B7B7A] shadow-none border-none outline-none">
-            Last 8 months
-            <img src={miniDownArrow} alt="dropdown" />
+        <div className="ml-8 relative">
+          <button 
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="bg-[#F3F3F3] rounded-lg px-4 py-2 flex flex-row items-center gap-2 text-[16px] font-[500] text-[#7B7B7A] shadow-none border-none outline-none hover:bg-[#E8E8E8] transition-colors"
+          >
+            {selectedPeriod}
+            <img 
+              src={miniDownArrow} 
+              alt="dropdown" 
+              className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+            />
           </button>
+          
+          {isDropdownOpen && (
+            <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[160px]">
+              {periodOptions.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => {
+                    setSelectedPeriod(option);
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-[14px] font-[500] hover:bg-gray-50 transition-colors ${
+                    selectedPeriod === option ? 'text-[#0955AC] bg-blue-50' : 'text-[#7B7B7A]'
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       {/* Chart */}
       <div className="relative w-full" style={{ height: `300px` }}>
-        <Bar
-          ref={chartRef}
-          data={data}
-          options={options}
-        />
-        {/* Custom Tooltip Render */}
-        {tooltipModel && <CustomTooltip chart={tooltipModel.chart} tooltip={tooltipModel} />}
+        {bookingData.length > 0 ? (
+          <>
+            <Bar
+              ref={chartRef}
+              data={data}
+              options={options}
+            />
+            {/* Custom Tooltip Render */}
+            {tooltipModel && <CustomTooltip chart={tooltipModel.chart} tooltip={tooltipModel} labels={labels} doneData={doneData} cancelledData={cancelledData} />}
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-[#7B7B7A] text-[16px]">No booking data available for the selected period</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default BookingBarChart; 
+export default BookingBarChart;

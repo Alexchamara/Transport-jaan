@@ -58,13 +58,20 @@ const WarehousePayments = () => {
         }
     }, []);
     
+    // Recalculate pricing when warehouse info or booking data changes
+    useEffect(() => {
+        if (warehouseInfo && bookingData) {
+            calculatePricing(warehouseInfo, bookingData);
+        }
+    }, [warehouseInfo, bookingData]);
+    
     /**
      * Fetches warehouse details from the server based on warehouse ID
      */
     const fetchWarehouseDetails = async (warehouseId) => {
         setIsSubmitting(true);
         try {
-            const response = await axios.get(`/api/warehouse-units/${warehouseId}`, {
+            const response = await axios.get(`/warehouse-units/${warehouseId}`, {
                 timeout: 10000 // 10 second timeout
             });
 
@@ -126,9 +133,18 @@ const WarehousePayments = () => {
             const duration = parseDuration(bookingDataToUse.storage_duration) || 1;
             
             const baseMonthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || warehouse.base_price || 0);
-            const securityDeposit = parseFloat(warehouse.security_deposit || baseMonthlyRate * 0.5 || 0);
-            const setupFee = parseFloat(warehouse.setup_fee || baseMonthlyRate * 0.2 || 0);
-            const taxRate = parseFloat(warehouse.tax_rate || 0.08);
+            const securityDeposit = parseFloat(warehouse.security_deposit || 0);
+            const setupFee = parseFloat(warehouse.setup_fee || 0);
+            const taxRate = parseFloat(warehouse.tax_rate || 0) / 100; // Convert percentage to decimal
+            
+            if (DEBUG_PRICING) console.log('Pricing inputs:', {
+                baseMonthlyRate,
+                securityDeposit,
+                setupFee,
+                taxRate,
+                duration,
+                warehouse: warehouse
+            });
             
             const requiredSpace = parseFloat(bookingDataToUse.required_space || 0);
             const totalArea = parseFloat(warehouse.total_area || 1);

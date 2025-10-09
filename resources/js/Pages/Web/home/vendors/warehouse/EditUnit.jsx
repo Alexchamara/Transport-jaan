@@ -17,7 +17,8 @@ const warehouseTypes = [
 
 const pricingModels = [
   'per_sqft_monthly', 'per_sqft_daily', 'per_pallet_monthly', 
-  'per_pallet_daily', 'flat_rate_monthly', 'flat_rate_daily'
+  'per_pallet_daily', 'flat_rate_monthly', 'flat_rate_daily',
+  'monthly', 'daily', 'hourly' // Legacy values for backwards compatibility
 ];
 
 const defaultAmenities = [
