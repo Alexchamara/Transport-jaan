@@ -22,9 +22,9 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const [pickupLocation, setPickupLocation] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState("");
   const [pickupDate, setPickupDate] = useState("");
-  const [pickupTime, setPickupTime] = useState("10:00");
+  const [pickupTime, setPickupTime] = useState("0:00");
   const [dropoffDate, setDropoffDate] = useState("");
-  const [dropoffTime, setDropoffTime] = useState("10:00");
+  const [dropoffTime, setDropoffTime] = useState("0:00");
 
   const [serverExtras, setServerExtras] = useState(
     Array.isArray(props?.extras) ? props.extras : []
@@ -353,10 +353,10 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
           <div className=" w-auto md:w-[346px] h-[1px] bg-[#0000001F]" />
         </div>
 
-        <form className="text-[10px] text-[#00000080] font-[600]" onSubmit={(e) => e.preventDefault()}>
+        <form className="text-[10px] text-[black] font-[800]" onSubmit={(e) => e.preventDefault()}>
           <div>
             <div>
-              <label htmlFor="pickupLocation" className="block mb-3">
+              <label htmlFor="pickupLocation" className="block mb-3 text-black-600 font-semibold text-sm  ">
                 Pick-up Location
               </label>
               <input
@@ -365,77 +365,75 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
                 value={pickupLocation}
                 onChange={(e) => setPickupLocation(e.target.value)}
                 placeholder="Hudson Rd, Colombo 03"
-                className="appearance-none w-full h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
+                className="appearance-none w-[333px] h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
               />
             </div>
 
             <div className="flex flex-row gap-5">
               <div>
-                <label htmlFor="pickupDate" className="block mb-3">Pick-up Date</label>
+                <label htmlFor="pickupDate" className="block mb-3 text-black text-sm font-semibold">Pick-up Date</label>
                 <input
-                  type="text"
+                  type="date"
                   id="pickupDate"
                   value={pickupDate}
                   onChange={(e) => setPickupDate(e.target.value)}
                   placeholder="2025-07-23"
-                  className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
+                  className="w-full border-[1px] h-[35px]  border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
                   onFocus={(e) => (e.target.type = "date")}
                   onBlur={(e) => (e.target.type = "text")}
                 />
               </div>
               <div className="relative">
-                <label htmlFor="pickupTime" className="block mb-3">Pick-up Time</label>
+                <label htmlFor="pickupTime" className="block mb-3 text-black text-sm font-semibold">Pick-up Time</label>
                 <input
-                  type="text"
+                  type="time"
                   id="pickupTime"
                   value={pickupTime}
                   onChange={(e) => setPickupTime(e.target.value)}
-                  placeholder="10:00"
-                  className="w-full relative border-[1px] border-[#00000042] bg-transparent rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
+                  placeholder="00:00"
+                  className="w-[135px] h-[35px] relative border-[1px] border-[#00000042] bg-transparent rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
                 />
-                <img src={clock} className="hidden sm:block absolute top-11 left-40 z-10" />
               </div>
             </div>
           </div>
 
           <div>
             <div>
-              <label htmlFor="dropoffLocation" className="block mb-3">Drop-off Location</label>
+              <label htmlFor="dropoffLocation" className="block mb-3 text-black text-sm font-semibold">Drop-off Location</label>
               <input
                 type="text"
                 id="dropoffLocation"
                 value={dropoffLocation}
                 onChange={(e) => setDropoffLocation(e.target.value)}
                 placeholder="Hudson Rd, Colombo 03"
-                className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
+                className="w-[333px] h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
               />
             </div>
 
             <div className="flex flex-row gap-5">
               <div>
-                <label htmlFor="dropoffDate" className="block mb-3">Drop-off Date</label>
+                <label htmlFor="dropoffDate" className="block mb-3 text-black text-sm font-semibold">Drop-off Date</label>
                 <input
-                  type="text"
+                  type="date"
                   id="dropoffDate"
                   value={dropoffDate}
                   onChange={(e) => setDropoffDate(e.target.value)}
                   placeholder="2025-07-30"
-                  className="border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3  w-full leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
+                  className="border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3  w-full leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
                   onFocus={(e) => (e.target.type = "date")}
                   onBlur={(e) => (e.target.type = "text")}
                 />
               </div>
               <div className="relative">
-                <label htmlFor="dropoffTime" className="block mb-3">Drop-off Time</label>
+                <label htmlFor="dropoffTime" className="block mb-3 text-black text-sm font-semibold">Drop-off Time</label>
                 <input
-                  type="text"
+                  type="time"
                   id="dropoffTime"
                   value={dropoffTime}
                   onChange={(e) => setDropoffTime(e.target.value)}
-                  placeholder="10:00"
-                  className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
+                  placeholder="00:00"
+                  className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
                 />
-                <img src={clock} className="hidden sm:block absolute top-11 left-40 z-10" />
               </div>
             </div>
           </div>
