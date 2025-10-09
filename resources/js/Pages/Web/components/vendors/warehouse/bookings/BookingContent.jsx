@@ -41,6 +41,12 @@ const BookingContent = () => {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [filters, setFilters] = useState({
+        search: "",
+        warehouseType: "",
+        status: "",
+    });
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Fetch bookings and stats from API
     useEffect(() => {
@@ -172,6 +178,45 @@ const BookingContent = () => {
             status: "active",
             notes: "",
         });
+    };
+
+    const warehouseTypeOptions = [
+        { value: "", label: "All warehouse types" },
+        { value: "cold_storage", label: "Cold Storage" },
+        { value: "dry_storage", label: "Dry Storage" },
+        { value: "hazardous_material", label: "Hazardous Material" },
+        { value: "bonded", label: "Bonded" },
+    ];
+
+    const statusOptions = [
+        { value: "", label: "All statuses" },
+        { value: "pending", label: "Pending" },
+        { value: "confirmed", label: "Confirmed" },
+        { value: "active", label: "Active" },
+        { value: "completed", label: "Completed" },
+        { value: "cancelled", label: "Cancelled" },
+    ];
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setFilters((prev) =>
+                prev.search === searchTerm ? prev : { ...prev, search: searchTerm }
+            );
+        }, 300);
+
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
+
+    const handleWarehouseTypeChange = (event) => {
+        const { value } = event.target;
+        setFilters((prev) => (
+            prev.warehouseType === value ? prev : { ...prev, warehouseType: value }
+        ));
+    };
+
+    const handleStatusChange = (event) => {
+        const { value } = event.target;
+        setFilters((prev) => (prev.status === value ? prev : { ...prev, status: value }));
     };
 
     return (
@@ -355,36 +400,62 @@ const BookingContent = () => {
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
                                 placeholder="Search client, warehouse, purpose..."
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
                             />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="relative w-[139px] h-[35px]">
+                            <select
+                                className="w-full h-full bg-[#F3F3F3] rounded-[6px] py-2 pl-9 pr-8 text-[14px] font-[500] text-[#7B7B7ACC] appearance-none focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                value={filters.warehouseType}
+                                onChange={handleWarehouseTypeChange}
+                            >
+                                {warehouseTypeOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                             <img
                                 src={filterIcon}
-                                className="size-[12px]"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 size-[12px]"
                                 alt="Filter"
                             />
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Warehouse type
-                            </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
+                            {/* <img
+                                src={miniDownArrow}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                                alt="Dropdown"
+                            /> */}
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="relative w-[125px] h-[35px]">
+                            <select
+                                className="w-full h-full bg-[#F3F3F3] rounded-[6px] py-2 pl-9 pr-8 text-[14px] font-[500] text-[#7B7B7ACC] appearance-none focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                value={filters.status}
+                                onChange={handleStatusChange}
+                            >
+                                {statusOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                             <img
                                 src={filterIcon}
-                                className="size-[12px]"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 size-[12px]"
                                 alt="Filter"
                             />
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Status
-                            </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
+                            {/* <img
+                                src={miniDownArrow}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                                alt="Dropdown"
+                            /> */}
                         </div>
-                        <button
+                        {/* <button
                             className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
                             onClick={() => setIsAddPopupOpen(true)}
                         >
                             Add Booking
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 
@@ -642,6 +713,7 @@ const BookingContent = () => {
                             bookings={bookings}
                             setBookings={setBookings}
                             statusColors={statusColors} // Pass statusColors as a prop
+                            filters={filters}
                         />
                     </>
                 )}

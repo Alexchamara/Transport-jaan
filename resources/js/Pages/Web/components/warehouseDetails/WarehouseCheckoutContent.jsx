@@ -88,7 +88,7 @@ const WarehouseCheckoutContent = () => {
         setIsSubmitting(true);
         try {
             // Try to fetch warehouse details
-            const response = await axios.get(`/api/warehouse-units/${warehouseId}`, {
+            const response = await axios.get(`/warehouse-units/${warehouseId}`, {
                 timeout: 10000 // 10 second timeout
             });
 

@@ -3,7 +3,7 @@ import WarehouseBookingService from "../../../../../../services/WarehouseBooking
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
-const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBookingsProp }) => {
+const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBookingsProp, filters = {} }) => {
     const isControlled = typeof setBookingsProp === "function";
     const [internalBookings, setInternalBookings] = useState(bookingsProp);
     const bookings = isControlled ? bookingsProp : internalBookings;
@@ -16,6 +16,11 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
     const [isLoading, setIsLoading] = useState(false);
     const [fetchError, setFetchError] = useState(null);
+    const filtersRef = React.useRef({
+        search: filters?.search ?? '',
+        warehouseType: filters?.warehouseType ?? '',
+        status: filters?.status ?? '',
+    });
 
     React.useEffect(() => {
         if (!isControlled) {
@@ -43,7 +48,22 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
         setIsLoading(true);
         setFetchError(null);
         try {
-            const response = await WarehouseBookingService.getBookings({ page, per_page: perPage });
+            const params = {
+                page,
+                per_page: perPage,
+            };
+
+            if (filters.search) {
+                params.search = filters.search;
+            }
+            if (filters.warehouseType) {
+                params.warehouse_type = filters.warehouseType;
+            }
+            if (filters.status) {
+                params.status = filters.status;
+            }
+
+            const response = await WarehouseBookingService.getBookings(params);
             if (response.success) {
                 const formattedBookings = (response.data || []).map((booking) =>
                     WarehouseBookingService.formatBookingForDisplay(booking)
@@ -71,11 +91,30 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
         } finally {
             setIsLoading(false);
         }
-    }, [updateBookings, itemsPerPage]);
+    }, [updateBookings, itemsPerPage, filters]);
 
     React.useEffect(() => {
+        const normalizedFilters = {
+            search: filters?.search ?? '',
+            warehouseType: filters?.warehouseType ?? '',
+            status: filters?.status ?? '',
+        };
+
+        const filtersChanged =
+            filtersRef.current.search !== normalizedFilters.search ||
+            filtersRef.current.warehouseType !== normalizedFilters.warehouseType ||
+            filtersRef.current.status !== normalizedFilters.status;
+
+        if (filtersChanged) {
+            filtersRef.current = normalizedFilters;
+            if (currentPage !== 1) {
+                setCurrentPage(1);
+                return;
+            }
+        }
+
         fetchBookings(currentPage, itemsPerPage);
-    }, [currentPage, itemsPerPage, fetchBookings]);
+    }, [currentPage, itemsPerPage, fetchBookings, filters]);
 
     const totalPages = Math.max(
         1,

@@ -566,6 +566,11 @@ class WarehouseBookingController extends Controller
                 'capacity' => $warehouse->capacity,
                 'base_price' => $warehouse->base_price,
                 'monthly_rate' => $warehouse->monthly_rate,
+                'security_deposit' => $warehouse->security_deposit,
+                'setup_fee' => $warehouse->setup_fee,
+                'tax_rate' => $warehouse->tax_rate,
+                'pricing_model' => $warehouse->pricing_model,
+                'currency' => $warehouse->currency,
                 'amenities' => $warehouse->amenities?->map(function ($amenity) {
                     return [
                         'name' => $amenity->name,
