@@ -310,6 +310,7 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('v
     // API routes for warehouse bookings management
     Route::get('/api/bookings', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'index'])->name('api.bookings.index');
     Route::get('/api/bookings/stats', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getStats'])->name('api.bookings.stats');
+    Route::get('/api/bookings/chart-data', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getChartData'])->name('api.bookings.chart-data');
     Route::get('/api/bookings/{bookingId}', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'show'])->name('api.bookings.show');
     Route::patch('/api/bookings/{bookingId}/approve', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'approve'])->name('api.bookings.approve');
     Route::patch('/api/bookings/{bookingId}/reject', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'reject'])->name('api.bookings.reject');
