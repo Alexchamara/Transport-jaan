@@ -48,40 +48,38 @@ const VehicleInfo = () => {
     } catch(_) {}
   };
 
-  const onToggleWishlist = () => {
-    if (!vehicle?.id) return;
+const onToggleWishlist = async () => {
+  if (!vehicle?.id) return;
 
-    // 🔐 Auth guard
-    if (!props?.auth?.user) {
-      router.get(route?.("login") ?? "/login", { return_to: window.location.pathname });
-      return;
-    }
+  if (!props?.auth?.user) {
+    router.visit(route?.("login") ?? "/login");
+    return;
+  }
 
-    // ⭐ Optimistic UI
-    const next = !isLiked;
-    setIsLiked(next);
-    setBusy(true);
+  const next = !isLiked;
+  setIsLiked(next);
+  setBusy(true);
 
-    router.post(
-      route?.("vehicles.like.toggle") ?? "/vehicles/like-toggle",
+  try {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    await axios.post(
+      route("client.vehicle.like.toggle"),
       { vehicle_id: vehicle.id },
-      {
-        preserveScroll: true,
-        onError: () => {
-          // revert if failed
-          setIsLiked(!next);
-        },
-        onFinish: () => {
-          setBusy(false);
-          // 🔄 refresh ONLY likedVehicleIds so any component on this page reflects DB truth
-          router.reload({ only: ["likedVehicleIds"] });
-
-          // (Optional) If just added to wishlist, jump to wishlist page:
-          // if (next) router.visit(route?.("wishlist.index") ?? "/wishlist");
-        },
-      }
+      { headers: { "X-CSRF-TOKEN": token } }
     );
-  };
+
+    // No need for setLikedMap
+  } catch (err) {
+    setIsLiked(!next); // revert if error
+    console.error(err);
+    alert("Something went wrong");
+  } finally {
+    setBusy(false);
+  }
+};
+
+
 
   if (!vehicle) {
     return (
