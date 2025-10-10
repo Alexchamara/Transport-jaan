@@ -32,10 +32,14 @@ export default function Driver() {
   const [query] = useState(""); // kept empty (no free-text search)
   const [sort, setSort] = useState({ key: "created_at", dir: "desc" });
   const [errors, setErrors] = useState({});
+  const [warnings, setWarnings] = useState({}); // For duplicate warnings
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedRows, setExpandedRows] = useState(() => new Set()); // details toggle
   const [imageRefreshKey, setImageRefreshKey] = useState(Date.now()); // For cache busting
-  const gotCsrf = useRef(false);  const formRef = useRef(null);
+  const gotCsrf = useRef(false);
+  const checkTimeouts = useRef({}); // For debouncing duplicate checks
+
+  const formRef = useRef(null);
 
   // ---------- helpers ----------
   const toAbsoluteUrl = (u) => {
@@ -300,6 +304,32 @@ export default function Driver() {
     <label className="block text-[14px] font-medium text-gray-700">{children}</label>
   );
 
+  // Debounced duplicate check function
+  const checkDuplicate = async (field, value) => {
+    if (!value || value.trim().length < 3) {
+      setWarnings(prev => ({ ...prev, [field]: '' }));
+      return;
+    }
+
+    try {
+      const exists = rows.some(driver => {
+        if (editing && driver.id === editing) return false; // Exclude current driver when editing
+        return driver[field]?.toLowerCase() === value.toLowerCase();
+      });
+
+      if (exists) {
+        setWarnings(prev => ({
+          ...prev,
+          [field]: `This ${field.replace('_', ' ')} is already registered with another driver.`
+        }));
+      } else {
+        setWarnings(prev => ({ ...prev, [field]: '' }));
+      }
+    } catch (error) {
+      console.error('Duplicate check failed:', error);
+    }
+  };
+
   // Helper function to handle phone input
   const handlePhoneChange = (value) => {
     // Allow only numbers, +, spaces, hyphens, and parentheses
@@ -310,6 +340,10 @@ export default function Driver() {
     if (errors.phone) {
       setErrors({ ...errors, phone: '' });
     }
+
+    // Debounced duplicate check
+    if (checkTimeouts.current.phone) clearTimeout(checkTimeouts.current.phone);
+    checkTimeouts.current.phone = setTimeout(() => checkDuplicate('phone', sanitized), 800);
   };
 
   // Helper function to handle license number input
@@ -322,6 +356,10 @@ export default function Driver() {
     if (errors.license_no) {
       setErrors({ ...errors, license_no: '' });
     }
+
+    // Debounced duplicate check
+    if (checkTimeouts.current.license_no) clearTimeout(checkTimeouts.current.license_no);
+    checkTimeouts.current.license_no = setTimeout(() => checkDuplicate('license_no', sanitized), 800);
   };
 
   // Helper function to handle vehicle number input
@@ -334,6 +372,24 @@ export default function Driver() {
     if (errors.vehicle_no) {
       setErrors({ ...errors, vehicle_no: '' });
     }
+
+    // Debounced duplicate check
+    if (checkTimeouts.current.vehicle_no) clearTimeout(checkTimeouts.current.vehicle_no);
+    checkTimeouts.current.vehicle_no = setTimeout(() => checkDuplicate('vehicle_no', sanitized), 800);
+  };
+
+  // Helper function to handle email input with duplicate checking
+  const handleEmailChange = (value) => {
+    setForm({ ...form, email: value });
+
+    // Clear error and warning if user starts typing
+    if (errors.email) {
+      setErrors({ ...errors, email: '' });
+    }
+
+    // Debounced duplicate check
+    if (checkTimeouts.current.email) clearTimeout(checkTimeouts.current.email);
+    checkTimeouts.current.email = setTimeout(() => checkDuplicate('email', value), 800);
   };
 
   const ImageInput = ({ label, field, urlField, requiredText, kind }) => {
@@ -478,7 +534,8 @@ export default function Driver() {
                   maxLength="20"
                 />
                 {errors.phone && <span className="text-red-500 text-xs">{errors.phone}</span>}
-                {!errors.phone && form.phone && (
+                {!errors.phone && warnings.phone && <span className="text-yellow-600 text-xs">⚠ {warnings.phone}</span>}
+                {!errors.phone && !warnings.phone && form.phone && (
                   <span className="text-gray-500 text-xs">Format: +94 77 123 4567 or 0771234567</span>
                 )}
               </div>
@@ -489,10 +546,11 @@ export default function Driver() {
                   type="email"
                   className={inputClasses(!!errors.email)}
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) => handleEmailChange(e.target.value)}
                   placeholder="john@example.com"
                 />
                 {errors.email && <span className="text-red-500 text-xs">{errors.email}</span>}
+                {!errors.email && warnings.email && <span className="text-yellow-600 text-xs">⚠ {warnings.email}</span>}
               </div>
 
               <div className="space-y-1">
@@ -506,7 +564,8 @@ export default function Driver() {
                   maxLength="20"
                 />
                 {errors.license_no && <span className="text-red-500 text-xs">{errors.license_no}</span>}
-                {!errors.license_no && form.license_no && (
+                {!errors.license_no && warnings.license_no && <span className="text-yellow-600 text-xs">⚠ {warnings.license_no}</span>}
+                {!errors.license_no && !warnings.license_no && form.license_no && (
                   <span className="text-gray-500 text-xs">5-20 characters: letters, numbers, -, /, spaces</span>
                 )}
               </div>
@@ -543,7 +602,8 @@ export default function Driver() {
                   maxLength="20"
                 />
                 {errors.vehicle_no && <span className="text-red-500 text-xs">{errors.vehicle_no}</span>}
-                {!errors.vehicle_no && form.vehicle_no && (
+                {!errors.vehicle_no && warnings.vehicle_no && <span className="text-yellow-600 text-xs">⚠ {warnings.vehicle_no}</span>}
+                {!errors.vehicle_no && !warnings.vehicle_no && form.vehicle_no && (
                   <span className="text-gray-500 text-xs">Format: Province Code + Letters/Numbers (e.g., WP ABC-1234)</span>
                 )}
               </div>
