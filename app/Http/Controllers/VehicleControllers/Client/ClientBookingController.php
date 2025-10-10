@@ -416,7 +416,7 @@ class ClientBookingController extends Controller
     public function summary(Booking $booking)
     {
         $this->authorizeBooking($booking);
-        $booking->load('vehicle', 'schedule', 'addons', 'payments', 'customer');
+        $booking->load('vehicle', 'vehicle.provider', 'schedule', 'addons', 'payments', 'customer');
 
         return Inertia::render('Web/home/land/Summary', [
             'booking' => $booking,
