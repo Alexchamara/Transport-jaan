@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -89,14 +89,14 @@ const IMAGES = [
 const TravelExploreAnimation = ({ auth }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [order, setOrder] = useState(() => IMAGES.map((_, i) => i)); // queue of indices
+    const [isPrev, setIsPrev] = useState(false);
 
-    const scrollRef = useRef(null);
     const CARD_WIDTH = 260; // px (matches w-[260px])
     const GAP = 40; // px (matches gap-10)
     const STEP = CARD_WIDTH + GAP;
     const pauseUntilRef = useRef(0); // used to pause auto-rotate after manual navigation
 
-    const activeIndex = order[0]; // background is always the first item in the queue
+    const activeIndex = order[2] ?? order[0]; // make the third card the active one
 
     const getTags = (i) => {
         const s = IMAGES[i]?.subtitle || "";
@@ -107,35 +107,31 @@ const TravelExploreAnimation = ({ auth }) => {
     };
 
     const rotateNext = () => {
+        setIsPrev(false);
         setOrder((o) => [...o.slice(1), o[0]]);
-        if (scrollRef.current)
-            scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
-        pauseUntilRef.current = Date.now() + 6000; // pause ~6s after manual nav
+        pauseUntilRef.current = Date.now() + 5000; // pause ~5s after manual nav
     };
 
     const rotatePrev = () => {
+        setIsPrev(true);
         setOrder((o) => {
             const copy = [...o];
             const last = copy.pop();
             copy.unshift(last);
             return copy;
         });
-        if (scrollRef.current)
-            scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
-        pauseUntilRef.current = Date.now() + 6000; // pause ~6s after manual nav
+        pauseUntilRef.current = Date.now() + 5000; // pause ~5s after manual nav
     };
 
     useEffect(() => {
         const id = setInterval(() => {
             if (Date.now() < pauseUntilRef.current) return; // skip auto-advance during pause window
+            setIsPrev(false);
             setOrder((o) => {
                 const next = [...o.slice(1), o[0]];
                 return next;
             });
-            if (scrollRef.current) {
-                scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
-            }
-        }, 1500);
+        }, 3000);
         return () => clearInterval(id);
     }, []);
 
@@ -162,6 +158,10 @@ const TravelExploreAnimation = ({ auth }) => {
                         initial={{ opacity: 0.9, borderRadius: 20 }}
                         animate={{ opacity: 1, borderRadius: 0 }}
                         exit={{ opacity: 0.9, borderRadius: 20 }}
+                        transition={{
+                            opacity: { duration: 0.6 },
+                            borderRadius: { type: "spring", stiffness: 200, damping: 26 }
+                        }}
                     >
                         <img
                             src={IMAGES[activeIndex].url}
@@ -390,40 +390,23 @@ const TravelExploreAnimation = ({ auth }) => {
                 {/* Carousel (shared layout, framer-motion) */}
                 <div className="relative z-50 flex justify-center md:justify-end items-start md:items-center w-full h-auto md:h-screen pointer-events-auto mt-20 md:mt-[50px] 2xl:mt-[180px] pb-10">
                     {/* Right-anchored rail showing exactly three cards */}
-                    <div className="w-full md:w-[700px] lg:w-[1000px] xl:w-[1370px]">
-                        <div
-                            ref={scrollRef}
-                            className="overflow-hidden px-10 py-5 select-none"
-                            style={{ scrollbarWidth: "none" }}
-                        >
-                            <motion.div
-                                layout
-                                className="flex gap-10 items-center"
-                            >
+                    <div className="w-[700px] md:w-[1000px] xl:w-[1370px] 2xl:w-[1400px]">
+                        <div className="overflow-hidden px-10 py-5 select-none">
+                            <div className="flex gap-10 items-center">
                                 {order.map((idx) => (
                                     <motion.div
                                         key={`card-${idx}`}
-                                        layoutId={`card-${idx}`}
                                         layout
-                                        initial={false}
-                                        animate={{ borderRadius: 20 }}
-                                        whileHover={{ scale: 1.04 }}
-                                        transition={{
-                                            layout: {
-                                                duration: 0.5,
-                                                ease: [0.22, 1, 0.36, 1],
-                                            },
-                                            duration: 0.25,
-                                            ease: [0.22, 1, 0.36, 1],
-                                        }}
-                                        className={`group relative shrink-0 rounded-[20px] overflow-hidden shadow-2xl snap-start cursor-pointer transition-all duration-300 ${
+                                        transition={{ duration: idx === activeIndex ? 0.3 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+                                        className={`group relative shrink-0 rounded-[20px] overflow-hidden shadow-2xl snap-start cursor-pointer transition-all ${
                                             idx === activeIndex
-                                                ? "w-[150px] h-[240px] md:w-[414px] md:h-[538px] z-50"
-                                                : "w-[120px] h-[200px] md:w-[313px] md:h-[409px] ring-2 ring-white/10"
+                                                ? "duration-300 w-[150px] h-[240px] md:w-[324px] md:h-[448px] z-50"
+                                                : "duration-700 w-[120px] h-[200px] md:w-[223px] md:h-[319px] ring-2 ring-white/10 backdrop-blur-[1px]"
                                         }`}
-                                        style={{ borderRadius: 20 }}
+                                        style={{ borderRadius: 20, willChange: "transform, width, height, opacity" }}
                                     >
                                         <img
+                                            key={`img-${idx}`}
                                             src={IMAGES[idx].url}
                                             alt={IMAGES[idx].title}
                                             className="h-full w-full object-cover"
@@ -434,7 +417,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                         {idx === activeIndex ? (
                                             <div className="absolute inset-x-6 bottom-10">
                                                 <div className="rounded-[25px] bg-white/15 backdrop-blur-lg ring-1 ring-white/20 shadow-xl p-4 md:p-6">
-                                                    <div className="text-white font-[900] uppercase tracking-wide text-sm md:text-[25px] text-center">
+                                                    <div className="text-white font-[900] uppercase tracking-wide text-sm md:text-[20px] text-center">
                                                         {IMAGES[idx].title}
                                                     </div>
                                                     {Array.isArray(
@@ -466,7 +449,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                             </div>
                                         ) : (
                                             <div className="absolute inset-x-0 bottom-10 text-center">
-                                                <div className="text-white font-[900] uppercase tracking-wide text-sm md:text-[25px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
+                                                <div className="text-white font-[900] uppercase tracking-wide text-sm md:text-[20px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
                                                     {IMAGES[idx].title}
                                                 </div>
                                             </div>
@@ -480,7 +463,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                         )}
                                     </motion.div>
                                 ))}
-                            </motion.div>
+                            </div>
                         </div>
                         <div className="absolute md:bottom-20 bottom-5 right-10 z-[80] flex items-center justify-end gap-3 pointer-events-auto">
                             <button
