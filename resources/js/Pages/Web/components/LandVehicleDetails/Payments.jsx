@@ -58,6 +58,8 @@ const Payments = () => {
   const [slipNumber, setSlipNumber] = useState("");
   const [slipPdf, setSlipPdf] = useState(null);
   const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState({ slipNumber: "" });
+  const slipNumberRegex = /^(\d+|[a-zA-Z]+\d+|[a-zA-Z]+-\d+)$/;
 
   // NEW: in-window popup instead of alert for T&C message
   const [showTermsPopup, setShowTermsPopup] = useState(false);
@@ -225,17 +227,37 @@ const Payments = () => {
 
             {selectedPayment === "Bank Transfer" && (
               <div className="mt-4 grid lg:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px]/[24px] font-[600]">Slip Number :</label>
-                  <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                    <input
-                      value={slipNumber}
-                      onChange={(e) => setSlipNumber(e.target.value)}
-                      className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                      placeholder="Enter slip number"
-                    />
-                  </div>
-                </div>
+               <div>
+                    <label className="text-[10px]/[24px] font-[600]">Slip Number :</label>
+                    <div
+                      className={`md:w-[374px] w-auto h-[49px] border-[1px] rounded-[5px] ${
+                        error.slipNumber ? "border-red-500" : "border-[#0000004D]"
+                      }`}
+                    >
+                      <input
+                        value={slipNumber}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSlipNumber(value);
+
+                          // Real-time validation
+                          if (!slipNumberRegex.test(value)) {
+                            setError((prev) => ({
+                              ...prev,
+                              slipNumber: "Invalid slip number format",
+                            }));
+                          } else {
+                            setError((prev) => ({ ...prev, slipNumber: "" }));
+                          }
+                        }}
+                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                        placeholder="Enter slip number"
+                      />
+                    </div>
+        {error.slipNumber && (
+          <p className="text-red-500 text-[10px]">{error.slipNumber}</p>
+        )}
+      </div>
 
                 <div>
                   <label className="text-[10px]/[24px] font-[600]">Upload Bank Slip (PDF) :</label>
