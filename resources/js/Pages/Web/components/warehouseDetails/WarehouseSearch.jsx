@@ -14,7 +14,6 @@ const WarehouseSearch = () => {
     warehouseLocation: warehouse?.address || '',
     requiredSpace: '',
     moveinDate: '',
-    moveinTime: '',
     leaseDuration: '',
     storageType: warehouse?.type || '',
     accessHours: '24/7',
@@ -174,7 +173,6 @@ const WarehouseSearch = () => {
       warehouseLocation: formData.warehouseLocation,
       requiredSpace: formData.requiredSpace,
       moveinDate: formData.moveinDate,
-      moveinTime: formData.moveinTime,
       leaseDuration: formData.leaseDuration
     };
 
@@ -244,10 +242,6 @@ const WarehouseSearch = () => {
       errors.moveinDate = 'Please select move-in date';
     }
     
-    if (!formData.moveinTime) {
-      errors.moveinTime = 'Please select move-in time';
-    }
-    
     if (!formData.leaseDuration) {
       errors.leaseDuration = 'Please select lease duration';
     }
@@ -291,8 +285,6 @@ const WarehouseSearch = () => {
         document.getElementById('requiredSpace')?.focus();
       } else if (validationErrors.moveinDate) {
         document.getElementById('moveinDate')?.focus();
-      } else if (validationErrors.moveinTime) {
-        document.getElementById('moveinTime')?.focus();
       } else if (validationErrors.leaseDuration) {
         document.getElementById('leaseDuration')?.focus();
       }
@@ -323,9 +315,6 @@ const WarehouseSearch = () => {
         availability_timeframe: availabilityInfo.timeframe,
         space_utilization: pricingCalculation.space_utilization,
         move_in_date: formData.moveinDate,
-        move_in_time: formData.moveinTime,
-        move_in_datetime: formData.moveinDate && formData.moveinTime ? 
-          `${formData.moveinDate} ${formData.moveinTime}` : null,
         storage_duration: durationString,
         duration_months: durationMonths,
         
@@ -652,47 +641,27 @@ const WarehouseSearch = () => {
               />
             </div>
 
-            {/* Move-in Date/Time */}
-            <div className="flex flex-row gap-5">
-              <div>
-                <label htmlFor="moveinDate" className="block mb-3">
-                  Move-in Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="moveinDate"
-                  name="moveinDate"
-                  value={formData.moveinDate}
-                  onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
-                  onFocus={(e) => (e.target.type = "date")}
-                  onBlur={(e) => (e.target.type = "text")}
-                />
-                {fieldErrors.moveinDate && (
-                  <p className="text-[10px] text-red-500 mt-1">
-                    {fieldErrors.moveinDate}
-                  </p>
-                )}
-              </div>
-              <div className="relative">
-                <label htmlFor="moveinTime" className="block mb-3">
-                  Move-in Time <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="time"
-                  id="moveinTime"
-                  name="moveinTime"
-                  value={formData.moveinTime}
-                  onChange={handleInputChange}
-                  className="w-full relative border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
-                />
-                {fieldErrors.moveinTime && (
-                  <p className="text-[10px] text-red-500 mt-1">
-                    {fieldErrors.moveinTime}
-                  </p>
-                )}
-              </div>
+            {/* Move-in Date */}
+            <div>
+              <label htmlFor="moveinDate" className="block mb-3">
+                Move-in Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                id="moveinDate"
+                name="moveinDate"
+                value={formData.moveinDate}
+                onChange={handleInputChange}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
+                onFocus={(e) => (e.target.type = "date")}
+                onBlur={(e) => (e.target.type = "text")}
+              />
+              {fieldErrors.moveinDate && (
+                <p className="text-[10px] text-red-500 mt-1">
+                  {fieldErrors.moveinDate}
+                </p>
+              )}
             </div>
           </div>
 
