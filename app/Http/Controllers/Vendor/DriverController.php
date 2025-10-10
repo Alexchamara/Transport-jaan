@@ -50,7 +50,7 @@ class DriverController extends Controller
             'full_name'      => 'required|string|max:255',
             'phone'          => ['required', 'string', 'max:10', 'regex:/^\+?[0-9\s\-\(\)]{10,20}$/'],
             'email'          => 'nullable|email|max:255',
-            'license_no'     => 'required|string|max:100',
+            'license_no'     => ['required', 'string', 'max:100', 'regex:/^[A-Z0-9\-\/\s]{5,20}$/i'],
             'license_expiry' => 'nullable|date',
             'vehicle_type'   => 'required|string|max:100',
             'vehicle_no'     => 'required|string|max:100',
@@ -61,6 +61,7 @@ class DriverController extends Controller
             'nic_photo'      => 'required|image|max:4096',
         ], [
             'phone.regex' => 'Phone number format is invalid. Use format: +94 77 123 4567 or 0771234567',
+            'license_no.regex' => 'License number format is invalid. Use letters, numbers, hyphens, or slashes (e.g., B1234567 or DL/2023/12345)',
         ]);
 
         if ($request->hasFile('license_photo')) {
@@ -85,7 +86,7 @@ class DriverController extends Controller
             'full_name'      => 'sometimes|required|string|max:255',
             'phone'          => ['sometimes', 'required', 'string', 'max:50', 'regex:/^\+?[0-9\s\-\(\)]{10,20}$/'],
             'email'          => 'nullable|email|max:255',
-            'license_no'     => 'sometimes|required|string|max:100',
+            'license_no'     => ['sometimes', 'required', 'string', 'max:100', 'regex:/^[A-Z0-9\-\/\s]{5,20}$/i'],
             'license_expiry' => 'nullable|date',
             'vehicle_type'   => 'sometimes|required|string|max:100',
             'vehicle_no'     => 'sometimes|required|string|max:100',
@@ -94,6 +95,8 @@ class DriverController extends Controller
             'notes'          => 'nullable|string',
             'license_photo'  => 'nullable|image|max:4096',
             'nic_photo'      => 'nullable|image|max:4096',
+        ], [
+            'license_no.regex' => 'License number format is invalid. Use letters, numbers, hyphens, or slashes (e.g., B1234567 or DL/2023/12345)',
         ]);
 
         if ($request->hasFile('license_photo')) {

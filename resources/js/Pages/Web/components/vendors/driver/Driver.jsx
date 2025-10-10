@@ -192,7 +192,16 @@ export default function Driver() {
       }
     }
 
-    if (!form.license_no.trim()) e.license_no = "License no. is required";
+    // License number validation
+    if (!form.license_no.trim()) {
+      e.license_no = "License no. is required";
+    } else {
+      // Allow letters, numbers, hyphens, slashes, and spaces
+      if (!/^[A-Z0-9\-\/\s]{5,20}$/i.test(form.license_no)) {
+        e.license_no = "License number must be 5-20 characters (letters, numbers, -, /, spaces only)";
+      }
+    }
+
     if (!form.vehicle_type.trim()) e.vehicle_type = "Vehicle type is required";
     if (!form.vehicle_no.trim()) e.vehicle_no = "Vehicle no. is required";
     if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) e.email = "Invalid email";
@@ -292,7 +301,17 @@ export default function Driver() {
     }
   };
 
-  const ImageInput = ({ label, field, urlField, requiredText, kind }) => {
+  // Helper function to handle license number input
+  const handleLicenseChange = (value) => {
+    // Allow only letters, numbers, hyphens, slashes, and spaces
+    const sanitized = value.replace(/[^A-Za-z0-9\-\/\s]/g, '').toUpperCase();
+    setForm({ ...form, license_no: sanitized });
+
+    // Clear error if user starts typing
+    if (errors.license_no) {
+      setErrors({ ...errors, license_no: '' });
+    }
+  };  const ImageInput = ({ label, field, urlField, requiredText, kind }) => {
     const file = form[field];
     const hasExisting = !!form[urlField] || !!editing;
     const previewSrc = file
@@ -454,12 +473,17 @@ export default function Driver() {
               <div className="space-y-1">
                 <Label>License No. <Req /></Label>
                 <input
+                  type="text"
                   className={inputClasses(!!errors.license_no)}
                   value={form.license_no}
-                  onChange={(e) => setForm({ ...form, license_no: e.target.value })}
-                  placeholder="B1234567"
+                  onChange={(e) => handleLicenseChange(e.target.value)}
+                  placeholder="B1234567 or DL/2023/12345"
+                  maxLength="20"
                 />
                 {errors.license_no && <span className="text-red-500 text-xs">{errors.license_no}</span>}
+                {!errors.license_no && form.license_no && (
+                  <span className="text-gray-500 text-xs">5-20 characters: letters, numbers, -, /, spaces</span>
+                )}
               </div>
 
               <div className="space-y-1">
