@@ -22,7 +22,7 @@ class ClientBookingController extends Controller
     /** QUOTE: GET /bookings/quote (JSON) */
     public function quote(Request $request)
     {
-        [$vehicle, $pickupUtc, $dropoffUtc, $addonsReq] = $this->validateInputsForQuote($request);
+        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForQuote($request);
 
         // NEW: allow the caller to exclude a booking (e.g., the one they just created)
         $excludeId = $request->integer('exclude_booking_id');
@@ -39,9 +39,9 @@ class ClientBookingController extends Controller
                        ->orWhere('status', 'confirmed'); // still block confirmed (even if mine)
                 });
             })
-            ->whereHas('schedule', function ($q) use ($pickupUtc, $dropoffUtc) {
-                $q->where('pickup_at', '<', $dropoffUtc)
-                  ->where('dropoff_at', '>', $pickupUtc);
+            ->whereHas('schedule', function ($q) use ($pickup , $dropoff) {
+                $q->where('pickup_at', '<', $dropoff)
+                  ->where('dropoff_at', '>', $pickup );
             })
             ->exists();
 
@@ -51,7 +51,7 @@ class ClientBookingController extends Controller
             ], 422);
         }
 
-        $calc = $this->calculateTotals($vehicle, $pickupUtc, $dropoffUtc, $addonsReq);
+        $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
         return response()->json($calc);
     }
 
@@ -187,7 +187,7 @@ class ClientBookingController extends Controller
         $userId = Auth::id();
         abort_unless($userId, 403, 'Please login to continue.');
 
-        [$vehicle, $pickupUtc, $dropoffUtc, $addonsReq] = $this->validateInputsForStoreDraft($request);
+        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForStoreDraft($request);
 
         $request->session()->put('booking_trip', array_merge(
             $request->only([
@@ -214,7 +214,7 @@ class ClientBookingController extends Controller
             'address'
         ]));
 
-        $booking = DB::transaction(function () use ($vehicle, $pickupUtc, $dropoffUtc, $addonsReq, $userId, $request) {
+        $booking = DB::transaction(function () use ($vehicle, $pickup , $dropoff, $addonsReq, $userId, $request) {
             $existing = Booking::where('client_id', $userId)
                 ->where('vehicle_id', $vehicle->id)
                 ->where('status', 'pending')
@@ -225,9 +225,9 @@ class ClientBookingController extends Controller
             $overlap = Booking::where('vehicle_id', $vehicle->id)
                 ->whereIn('status', ['pending', 'confirmed'])
                 ->when($existing, fn($q) => $q->where('id', '!=', $existing->id))
-                ->whereHas('schedule', function ($q) use ($pickupUtc, $dropoffUtc) {
-                    $q->where('pickup_at', '<', $dropoffUtc)
-                      ->where('dropoff_at', '>', $pickupUtc);
+                ->whereHas('schedule', function ($q) use ($pickup , $dropoff) {
+                    $q->where('pickup_at', '<', $dropoff)
+                      ->where('dropoff_at', '>', $pickup );
                 })
                 ->lockForUpdate()
                 ->exists();
@@ -236,7 +236,7 @@ class ClientBookingController extends Controller
                 abort(422, 'Vehicle is not available for the selected dates.');
             }
 
-            $calc = $this->calculateTotals($vehicle, $pickupUtc, $dropoffUtc, $addonsReq);
+            $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
 
             if ($existing) {
                 $existing->update([
@@ -255,17 +255,17 @@ class ClientBookingController extends Controller
 
                 if ($existing->schedule) {
                     $existing->schedule->update([
-                        'pickup_at'        => $pickupUtc,
+                        'pickup_at'        => $pickup ,
                         'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
-                        'dropoff_at'       => $dropoffUtc,
+                        'dropoff_at'       => $dropoff,
                         'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
                     ]);
                 } else {
                     BookingSchedule::create([
                         'booking_id'       => $existing->id,
-                        'pickup_at'        => $pickupUtc,
+                        'pickup_at'        => $pickup ,
                         'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
-                        'dropoff_at'       => $dropoffUtc,
+                        'dropoff_at'       => $dropoff,
                         'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
                     ]);
                 }
@@ -303,9 +303,9 @@ class ClientBookingController extends Controller
 
             BookingSchedule::create([
                 'booking_id'       => $booking->id,
-                'pickup_at'        => $pickupUtc,
+                'pickup_at'        => $pickup ,
                 'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
-                'dropoff_at'       => $dropoffUtc,
+                'dropoff_at'       => $dropoff,
                 'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
             ]);
 
@@ -459,14 +459,14 @@ class ClientBookingController extends Controller
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
 
         $tz        = 'Asia/Colombo';
-        $pickupUtc = Carbon::parse(($data['pickup_date'] . ' ' . $data['pickup_time']), $tz)->utc();
-        $dropoffUtc= Carbon::parse(($data['dropoff_date'] . ' ' . $data['dropoff_time']), $tz)->utc();
+        $pickup  = Carbon::parse(($data['pickup_date'] . ' ' . $data['pickup_time']), $tz)->utc();
+        $dropoff= Carbon::parse(($data['dropoff_date'] . ' ' . $data['dropoff_time']), $tz)->utc();
 
-        if ($pickupUtc->gte($dropoffUtc))
+        if ($pickup ->gte($dropoff))
             abort(422, 'Drop-off must be after pick-up.');
 
         $addonsReq = $request->input('addons', []);
-        return [$vehicle, $pickupUtc, $dropoffUtc, $addonsReq];
+        return [$vehicle, $pickup , $dropoff, $addonsReq];
     }
 
     private function validateInputsForStoreDraft(Request $request): array
@@ -487,20 +487,20 @@ class ClientBookingController extends Controller
         $vehicle = Vehicle::findOrFail($data['vehicle_id']);
 
         $tz        = 'Asia/Colombo';
-        $pickupUtc = Carbon::parse(($data['pickup_date'] . ' ' . $data['pickup_time']), $tz)->utc();
-        $dropoffUtc= Carbon::parse(($data['dropoff_date'] . ' ' . $data['dropoff_time']), $tz)->utc();
+        $pickup  = Carbon::parse(($data['pickup_date'] . ' ' . $data['pickup_time']), $tz)->utc();
+        $dropoff= Carbon::parse(($data['dropoff_date'] . ' ' . $data['dropoff_time']), $tz)->utc();
 
-        if ($pickupUtc->gte($dropoffUtc))
+        if ($pickup ->gte($dropoff))
             abort(422, 'Drop-off must be after pick-up.');
 
         $addonsReq = $request->input('addons', []);
-        return [$vehicle, $pickupUtc, $dropoffUtc, $addonsReq];
+        return [$vehicle, $pickup , $dropoff, $addonsReq];
     }
 
-    private function calculateTotals(Vehicle $vehicle, Carbon $pickupUtc, Carbon $dropoffUtc, array $addonsReq): array
+    private function calculateTotals(Vehicle $vehicle, Carbon $pickup , Carbon $dropoff, array $addonsReq): array
     {
-        $seconds     = max(0, $dropoffUtc->diffInSeconds($pickupUtc));
-        $days        = max(1, (int) ceil($seconds / 86400));
+            // $seconds     = max(0, $dropoff->diffInSeconds($pickup ));
+        $days = max(1, $pickup->diffInDays($dropoff));
         $pricePerDay = (float) ($vehicle->rental_price_per_day ?? 0);
 
         $addonsLines = [];
