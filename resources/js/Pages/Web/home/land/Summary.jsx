@@ -19,7 +19,6 @@ const Summary = () => {
   const vehicle = booking?.vehicle;
   const provider = vehicle?.provider;
   const client = booking?.customer;
-  console.log("provider data:", provider);
 
   // ---- helpers ----
   const C = booking?.currency || "USD";
@@ -86,7 +85,7 @@ const Summary = () => {
     }));
   }, [booking?.addons]);
 
-  const downloadSummaryPDF = async () => {
+  const downloadSummaryPDF = async () => {  
     if (!quoteRef.current) return;
 
     const canvas = await html2canvas(quoteRef.current, {
@@ -385,7 +384,7 @@ const Summary = () => {
           </div>
 
           <div className="figtree flex flex-row justify-end text-[35px] font-[700] text-[#0955AC]">
-            <h1>Quotation</h1>
+            <h1>Summary</h1>
           </div>
 
           {/* BILL TO + META */}
