@@ -38,6 +38,24 @@ const WarehouseSearch = () => {
 
   const [isCalculating, setIsCalculating] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [availabilityInfo, setAvailabilityInfo] = useState({
+    totalSpace: Number(warehouse?.total_area ?? 0),
+    availableSpace: Number(warehouse?.total_area ?? 0),
+    bookedSpace: 0,
+    timeframe: null
+  });
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState(null);
+
+  // Determine the current cap based on selected dates and cached availability
+  const getMaxAvailableSpace = () => {
+    const hasSelection = Boolean(formData.moveinDate && formData.leaseDuration);
+    const baseSpace = hasSelection ? availabilityInfo.availableSpace : availabilityInfo.totalSpace;
+    if (!Number.isFinite(baseSpace)) {
+      return 0;
+    }
+    return Math.max(baseSpace, 0);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -48,10 +66,28 @@ const WarehouseSearch = () => {
     
     // Clear field error when user starts typing
     if (fieldErrors[name]) {
-      setFieldErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }));
+      setFieldErrors(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+    
+    if (name === 'requiredSpace') {
+      setFieldErrors(prev => {
+        const next = { ...prev };
+        const numericValue = parseFloat(value);
+        const maxSpace = getMaxAvailableSpace();
+        const selectionReady = Boolean(formData.moveinDate && formData.leaseDuration);
+        if (Number.isFinite(numericValue) && selectionReady && maxSpace === 0 && numericValue > 0) {
+          next.requiredSpace = 'No space available for the selected dates';
+        } else if (Number.isFinite(numericValue) && maxSpace > 0 && numericValue > maxSpace) {
+          next.requiredSpace = `Cannot exceed ${maxSpace.toLocaleString()} sq ft for selected dates`;
+        } else {
+          delete next.requiredSpace;
+        }
+        return next;
+      });
     }
     
     // Trigger calculation when key fields change
@@ -182,6 +218,14 @@ const WarehouseSearch = () => {
     return match ? parseInt(match[1]) : 1;
   };
 
+  const formatSqFt = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return '0';
+    }
+    return numeric.toLocaleString();
+  };
+
   // Format currency for display
   const formatCurrency = (amount) => {
     if (typeof amount !== 'number') return 'LKR 0.00';
@@ -208,9 +252,17 @@ const WarehouseSearch = () => {
       errors.leaseDuration = 'Please select lease duration';
     }
 
-    if (formData.requiredSpace && warehouse?.total_area && 
-        parseFloat(formData.requiredSpace) > parseFloat(warehouse.total_area)) {
-      errors.requiredSpace = `Cannot exceed ${warehouse.total_area} sq ft`;
+    if (formData.requiredSpace) {
+      const numericRequired = parseFloat(formData.requiredSpace);
+      if (hasAvailabilitySelection && currentMaxAvailableSpace === 0) {
+        errors.requiredSpace = 'No space available for the selected dates';
+      } else if (
+        Number.isFinite(numericRequired) &&
+        currentMaxAvailableSpace > 0 &&
+        numericRequired > currentMaxAvailableSpace
+      ) {
+        errors.requiredSpace = `Cannot exceed ${formatSqFt(currentMaxAvailableSpace)} sq ft for selected dates`;
+      }
     }
 
     // Validate move-in date is not in the past
@@ -266,6 +318,9 @@ const WarehouseSearch = () => {
         // Space and Duration Requirements
         required_space: parseFloat(formData.requiredSpace),
         total_area: warehouse?.total_area,
+        available_space: hasAvailabilitySelection ? availabilityInfo.availableSpace : availabilityInfo.totalSpace,
+        booked_space_for_selection: availabilityInfo.bookedSpace,
+        availability_timeframe: availabilityInfo.timeframe,
         space_utilization: pricingCalculation.space_utilization,
         move_in_date: formData.moveinDate,
         move_in_time: formData.moveinTime,
@@ -317,12 +372,172 @@ const WarehouseSearch = () => {
     router.visit('/warehouse-bookings/checkout');
   };
 
+  // Fetch dynamic warehouse availability whenever date/duration changes
+  React.useEffect(() => {
+    let isActive = true;
+
+    const fetchAvailability = async () => {
+      if (!warehouse?.id || !formData.moveinDate || !formData.leaseDuration) {
+        if (!isActive) return;
+        setAvailabilityInfo({
+          totalSpace: Number(warehouse?.total_area ?? 0),
+          availableSpace: Number(warehouse?.total_area ?? 0),
+          bookedSpace: 0,
+          timeframe: null
+        });
+        setAvailabilityError(null);
+        setAvailabilityLoading(false);
+        return;
+      }
+
+      setAvailabilityLoading(true);
+      setAvailabilityError(null);
+
+      try {
+        const durationMonths = parseDurationToMonths(formData.leaseDuration);
+        const params = new URLSearchParams({
+          start_date: formData.moveinDate,
+          duration_months: String(durationMonths || 1)
+        });
+        const response = await fetch(`/api/warehouse-units/${warehouse.id}/availability?${params.toString()}`, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            Accept: 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Availability lookup failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!isActive) return;
+
+        const totalSpace = Number(data.total_space ?? warehouse.total_area ?? 0);
+        const availableSpace = Number(data.available_space ?? totalSpace);
+        const bookedSpace = Number(data.booked_space ?? 0);
+
+        setAvailabilityInfo({
+          totalSpace,
+          availableSpace,
+          bookedSpace,
+          timeframe: data.timeframe ?? null
+        });
+      } catch (error) {
+        if (!isActive) return;
+        console.error('Failed to fetch warehouse availability', error);
+        setAvailabilityError('Unable to load availability right now.');
+        setAvailabilityInfo({
+          totalSpace: Number(warehouse?.total_area ?? 0),
+          availableSpace: Number(warehouse?.total_area ?? 0),
+          bookedSpace: 0,
+          timeframe: null
+        });
+      } finally {
+        if (isActive) {
+          setAvailabilityLoading(false);
+        }
+      }
+    };
+
+    fetchAvailability();
+
+    return () => {
+      isActive = false;
+    };
+  }, [warehouse?.id, warehouse?.total_area, formData.moveinDate, formData.leaseDuration]);
+
   // Initialize pricing calculation on component mount and when dependencies change
   React.useEffect(() => {
     if (warehouse && formData.requiredSpace && formData.leaseDuration) {
       calculatePricing();
     }
   }, [warehouse, formData.requiredSpace, formData.leaseDuration]);
+
+  const hasAvailabilitySelection = Boolean(formData.moveinDate && formData.leaseDuration);
+  const currentMaxAvailableSpace = getMaxAvailableSpace();
+
+  React.useEffect(() => {
+    if (!hasAvailabilitySelection) {
+      return;
+    }
+
+    const maxSpace = Number.isFinite(availabilityInfo.availableSpace)
+      ? Math.max(availabilityInfo.availableSpace, 0)
+      : 0;
+
+    setFormData(prev => {
+      const currentValue = prev.requiredSpace;
+      const numericCurrent = parseFloat(currentValue);
+
+      if (!currentValue) {
+        return maxSpace > 0
+          ? { ...prev, requiredSpace: String(maxSpace) }
+          : prev;
+      }
+
+      if (!Number.isFinite(numericCurrent)) {
+        return maxSpace > 0
+          ? { ...prev, requiredSpace: String(maxSpace) }
+          : prev;
+      }
+
+      if (maxSpace <= 0 && currentValue !== '') {
+        return { ...prev, requiredSpace: '' };
+      }
+
+      if (maxSpace > 0 && numericCurrent > maxSpace) {
+        return { ...prev, requiredSpace: String(maxSpace) };
+      }
+
+      return prev;
+    });
+  }, [hasAvailabilitySelection, availabilityInfo.availableSpace]);
+
+  React.useEffect(() => {
+    if (!hasAvailabilitySelection) {
+      if (fieldErrors.requiredSpace) {
+        setFieldErrors(prev => {
+          if (!prev.requiredSpace) {
+            return prev;
+          }
+          const next = { ...prev };
+          delete next.requiredSpace;
+          return next;
+        });
+      }
+      return;
+    }
+
+    const maxSpace = getMaxAvailableSpace();
+    const numericRequired = parseFloat(formData.requiredSpace);
+
+    let message = null;
+    if (maxSpace === 0) {
+      message = 'No space available for the selected dates';
+    } else if (
+      formData.requiredSpace &&
+      Number.isFinite(numericRequired) &&
+      numericRequired > maxSpace
+    ) {
+      message = `Cannot exceed ${formatSqFt(maxSpace)} sq ft for selected dates`;
+    }
+
+    setFieldErrors(prev => {
+      const current = prev.requiredSpace ?? null;
+      if (current === message) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      if (message) {
+        next.requiredSpace = message;
+      } else {
+        delete next.requiredSpace;
+      }
+      return next;
+    });
+  }, [hasAvailabilitySelection, formData.requiredSpace, availabilityInfo.availableSpace, fieldErrors.requiredSpace]);
 
   return (
     <div className="px-5 xl:px-0">
@@ -486,10 +701,23 @@ const WarehouseSearch = () => {
             <div>
               <label htmlFor="requiredSpace" className="block mb-3">
                 Required Space (sq ft) <span className="text-red-500">*</span>
-                {warehouse?.total_area && (
-                  <span className="text-[#0955AC] ml-2">
-                    - Available: {warehouse.total_area.toLocaleString()} sq ft
-                  </span>
+                {hasAvailabilitySelection ? (
+                  availabilityLoading ? (
+                    <span className="text-[#0955AC] ml-2">Checking availability...</span>
+                  ) : availabilityError ? (
+                    <span className="text-red-500 ml-2">Availability unavailable</span>
+                  ) : (
+                    <span className="text-[#0955AC] ml-2">
+                      - Available: {formatSqFt(availabilityInfo.availableSpace)} sq ft
+                      {availabilityInfo.bookedSpace > 0 ? ` (booked ${formatSqFt(availabilityInfo.bookedSpace)} sq ft)` : ''}
+                    </span>
+                  )
+                ) : (
+                  warehouse?.total_area && (
+                    <span className="text-[#0955AC] ml-2">
+                      - Total: {formatSqFt(warehouse.total_area)} sq ft
+                    </span>
+                  )
                 )}
               </label>
               <input
@@ -499,14 +727,28 @@ const WarehouseSearch = () => {
                 value={formData.requiredSpace}
                 onChange={handleInputChange}
                 min="1"
-                max={warehouse?.total_area || 999999}
-                placeholder={warehouse?.total_area ? `Enter up to ${warehouse.total_area.toLocaleString()} sq ft` : "Enter required space"}
+                max={currentMaxAvailableSpace > 0 ? currentMaxAvailableSpace : undefined}
+                placeholder={hasAvailabilitySelection
+                  ? currentMaxAvailableSpace > 0
+                    ? `Enter up to ${formatSqFt(currentMaxAvailableSpace)} sq ft`
+                    : 'No space available for selected dates'
+                  : warehouse?.total_area
+                    ? `Enter up to ${formatSqFt(warehouse.total_area)} sq ft`
+                    : 'Enter required space'}
                 className="w-full px-4 py-3 border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 leading-tight focus:outline-none placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
               />
-              {warehouse?.total_area && (
+              {hasAvailabilitySelection && !availabilityLoading && !availabilityError && (
                 <p className="text-[10px] text-gray-500 mt-1">
-                  Maximum available: {warehouse.total_area.toLocaleString()} sq ft
+                  Available for selected dates: {formatSqFt(availabilityInfo.availableSpace)} sq ft
                 </p>
+              )}
+              {!hasAvailabilitySelection && warehouse?.total_area && (
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Total warehouse space: {formatSqFt(warehouse.total_area)} sq ft
+                </p>
+              )}
+              {availabilityError && (
+                <p className="text-[10px] text-red-500 mt-1">{availabilityError}</p>
               )}
               {fieldErrors.requiredSpace && (
                 <p className="text-[10px] text-red-500 mt-1">
@@ -621,7 +863,7 @@ const WarehouseSearch = () => {
               <h2 className="text-[11px] font-[600] text-blue-800 mb-1">Space Utilization</h2>
               <p className="text-[10px] text-blue-600">
                 You're using {(pricingCalculation.space_utilization * 100).toFixed(1)}% of the total warehouse space 
-                ({formatCurrency(formData.requiredSpace)} / {warehouse?.total_area} sq ft)
+                ({formatSqFt(formData.requiredSpace)} / {formatSqFt(warehouse?.total_area)} sq ft)
               </p>
             </div>
           )}

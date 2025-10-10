@@ -908,6 +908,96 @@ class WarehouseBookingController extends Controller
     }
 
     /**
+     * Calculate available warehouse space for given timeframe
+     */
+    public function getWarehouseAvailability(Request $request, int $id)
+    {
+        try {
+            $warehouse = WarehouseUnit::query()
+                ->where('id', $id)
+                ->active()
+                ->approved()
+                ->first();
+
+            if (!$warehouse) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Warehouse not found or not available.'
+                ], 404);
+            }
+
+            $validated = Validator::make($request->all(), [
+                'start_date' => 'required|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'duration_months' => 'nullable|integer|min:1|max:120',
+            ])->validate();
+
+            $startDate = Carbon::parse($validated['start_date']);
+
+            if (!empty($validated['end_date'])) {
+                $endDate = Carbon::parse($validated['end_date']);
+                $durationMonths = (int) ($validated['duration_months'] ?? max(1, $startDate->diffInMonths($endDate) ?: 1));
+            } else {
+                $durationMonths = (int) ($validated['duration_months'] ?? 1);
+                $endDate = (clone $startDate)->addMonths($durationMonths);
+            }
+
+            $overlapQuery = WarehouseBooking::query()
+                ->where('warehouse_unit_id', $warehouse->id)
+                ->whereIn('status', ['pending', 'confirmed', 'active'])
+                ->where(function ($query) use ($startDate, $endDate) {
+                    $query->where(function ($openEnded) use ($startDate, $endDate) {
+                        $openEnded->whereNull('end_date')
+                            ->where('start_date', '<=', $endDate);
+                    })->orWhere(function ($bounded) use ($startDate, $endDate) {
+                        $bounded->whereNotNull('end_date')
+                            ->where('start_date', '<=', $endDate)
+                            ->where('end_date', '>=', $startDate);
+                    });
+                });
+
+            $bookedSpace = (float) (clone $overlapQuery)->sum('required_space');
+            $activeBookings = (int) (clone $overlapQuery)->count();
+
+            $totalSpace = (float) ($warehouse->total_area ?? 0);
+            $availableSpace = max($totalSpace - $bookedSpace, 0);
+
+            return response()->json([
+                'success' => true,
+                'warehouse_id' => $warehouse->id,
+                'total_space' => round($totalSpace, 2),
+                'booked_space' => round($bookedSpace, 2),
+                'available_space' => round($availableSpace, 2),
+                'active_bookings_count' => $activeBookings,
+                'timeframe' => [
+                    'start_date' => $startDate->toDateString(),
+                    'end_date' => $endDate->toDateString(),
+                    'duration_months' => $durationMonths,
+                ],
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid availability request.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to calculate warehouse availability', [
+                'warehouse_id' => $id,
+                'request' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to determine availability. Please try again later.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
      * Toggle warehouse like/unlike
      */
     public function toggleLike(Request $request)

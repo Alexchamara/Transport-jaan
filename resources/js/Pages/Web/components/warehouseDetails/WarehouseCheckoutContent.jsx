@@ -24,6 +24,16 @@ const WarehouseCheckoutContent = () => {
         tax_amount: 0,
         final_amount: 0
     });
+    
+    // Availability tracking state
+    const [availabilityInfo, setAvailabilityInfo] = useState({
+        totalSpace: 0,
+        availableSpace: 0,
+        bookedSpace: 0,
+        timeframe: null
+    });
+    const [availabilityLoading, setAvailabilityLoading] = useState(false);
+    const [availabilityError, setAvailabilityError] = useState(null);
     const [formData, setFormData] = useState({
         company_name: '',
         contact_person: '',
@@ -73,6 +83,52 @@ const WarehouseCheckoutContent = () => {
             calculatePricing(warehouseInfo);
         }
     }, [warehouseInfo, bookingData]);
+    
+    // Fetch availability when move-in date or storage duration changes
+    useEffect(() => {
+        if (bookingData?.warehouse_id && bookingData?.move_in_date && bookingData?.storage_duration) {
+            fetchAvailability(bookingData.warehouse_id, bookingData.move_in_date, bookingData.storage_duration);
+        } else {
+            // Reset to total space when no date selection
+            setAvailabilityInfo({
+                totalSpace: warehouseInfo?.total_area || 0,
+                availableSpace: warehouseInfo?.total_area || 0,
+                bookedSpace: 0,
+                timeframe: null
+            });
+        }
+    }, [bookingData?.warehouse_id, bookingData?.move_in_date, bookingData?.storage_duration, warehouseInfo?.total_area]);
+    
+    // Auto-adjust required space when availability changes
+    useEffect(() => {
+        const hasDateSelection = Boolean(bookingData?.move_in_date && bookingData?.storage_duration);
+        if (!hasDateSelection) return;
+
+        const maxSpace = Math.max(availabilityInfo.availableSpace || 0, 0);
+        const currentSpace = Number(bookingData?.required_space || 0);
+
+        // Auto-fill if no space specified
+        if (!bookingData?.required_space && maxSpace > 0) {
+            setBookingData(prev => ({
+                ...(prev || {}),
+                required_space: maxSpace
+            }));
+        }
+        // Auto-adjust if exceeds available space
+        else if (currentSpace > maxSpace && maxSpace > 0) {
+            setBookingData(prev => ({
+                ...(prev || {}),
+                required_space: maxSpace
+            }));
+        }
+        // Clear if no space available
+        else if (maxSpace === 0 && currentSpace > 0) {
+            setBookingData(prev => ({
+                ...(prev || {}),
+                required_space: ''
+            }));
+        }
+    }, [bookingData?.move_in_date, bookingData?.storage_duration, availabilityInfo.availableSpace]);
     
     /**
      * Fetches warehouse details from the server based on warehouse ID
@@ -259,6 +315,85 @@ const WarehouseCheckoutContent = () => {
     };
     
     /**
+     * Fetches warehouse availability for selected dates
+     */
+    const fetchAvailability = async (warehouseId, moveInDate, storageDuration) => {
+        if (!warehouseId || !moveInDate || !storageDuration) {
+            setAvailabilityInfo({
+                totalSpace: warehouseInfo?.total_area || 0,
+                availableSpace: warehouseInfo?.total_area || 0,
+                bookedSpace: 0,
+                timeframe: null
+            });
+            setAvailabilityError(null);
+            setAvailabilityLoading(false);
+            return;
+        }
+
+        setAvailabilityLoading(true);
+        setAvailabilityError(null);
+
+        try {
+            const durationMonths = parseDuration(storageDuration);
+            const params = new URLSearchParams({
+                start_date: moveInDate,
+                duration_months: String(durationMonths || 1)
+            });
+            
+            const response = await axios.get(`/api/warehouse-units/${warehouseId}/availability?${params.toString()}`, {
+                timeout: 10000
+            });
+
+            if (response.data && response.data.success) {
+                const data = response.data;
+                const totalSpace = Number(data.total_space ?? warehouseInfo?.total_area ?? 0);
+                const availableSpace = Number(data.available_space ?? totalSpace);
+                const bookedSpace = Number(data.booked_space ?? 0);
+
+                setAvailabilityInfo({
+                    totalSpace,
+                    availableSpace,
+                    bookedSpace,
+                    timeframe: data.timeframe ?? null
+                });
+            } else {
+                throw new Error('Invalid response format');
+            }
+        } catch (error) {
+            console.error('Failed to fetch warehouse availability', error);
+            setAvailabilityError('Unable to load availability right now.');
+            setAvailabilityInfo({
+                totalSpace: warehouseInfo?.total_area || 0,
+                availableSpace: warehouseInfo?.total_area || 0,
+                bookedSpace: 0,
+                timeframe: null
+            });
+        } finally {
+            setAvailabilityLoading(false);
+        }
+    };
+    
+    /**
+     * Get maximum available space based on current selection
+     */
+    const getMaxAvailableSpace = () => {
+        const hasDateSelection = Boolean(bookingData?.move_in_date && bookingData?.storage_duration);
+        const baseSpace = hasDateSelection ? availabilityInfo.availableSpace : availabilityInfo.totalSpace;
+        return Math.max(Number(baseSpace) || 0, 0);
+    };
+    
+    /**
+     * Format square footage for display
+     */
+    const formatSqFt = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric) || numeric <= 0) {
+            return '0';
+        }
+        return numeric.toLocaleString();
+    };
+    
+    /**
      * Formats currency for display
      * 
      * @param {number} amount - Amount to format
@@ -341,6 +476,16 @@ const WarehouseCheckoutContent = () => {
         // Validate required space
         if (!bookingData?.required_space || bookingData.required_space <= 0) {
             newErrors.required_space = 'Required';
+        } else {
+            const numericRequired = Number(bookingData.required_space);
+            const maxSpace = getMaxAvailableSpace();
+            const hasDateSelection = Boolean(bookingData?.move_in_date && bookingData?.storage_duration);
+            
+            if (hasDateSelection && maxSpace === 0) {
+                newErrors.required_space = 'No space available for selected dates';
+            } else if (hasDateSelection && maxSpace > 0 && numericRequired > maxSpace) {
+                newErrors.required_space = `Cannot exceed ${formatSqFt(maxSpace)} sq ft for selected dates`;
+            }
         }
         
         // Validate storage duration
@@ -583,169 +728,6 @@ const WarehouseCheckoutContent = () => {
                         }}
                     >
                         <h1 className="text-[20px] font-[700] mb-5">
-                            Storage Requirements
-                        </h1>
-
-                        <div className="grid lg:grid-cols-2 gap-5 poppins">
-                            <div>
-                                <label className="text-[10px]/[24px] font-[600]">
-                                    Storage Type :
-                                </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] bg-[#f8f9fa]">
-                                    <input
-                                        type="text"
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC] bg-transparent cursor-not-allowed"
-                                        value={bookingData?.storage_type ?? 'General Storage'}
-                                        readOnly
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-[10px]/[24px] font-[600]">
-                                    Required Space (sq ft) <span className="text-red-500">*</span> :
-                                </label>
-                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.required_space ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
-                                    <input
-                                        type="number"
-                                        min={0}
-                                        value={bookingData?.required_space ?? ''}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            const updatedBookingData = {
-                                                ...(bookingData || {}),
-                                                required_space: value === '' ? '' : Number(value)
-                                            };
-                                            setBookingData(updatedBookingData);
-                                            
-                                            // Trigger real-time calculation (always trigger, even for 0 or empty to clear calculations)
-                                            if (warehouseInfo) {
-                                                if (DEBUG_PRICING) console.log('Triggering calculation for required_space:', updatedBookingData.required_space);
-                                                calculatePricing(warehouseInfo, updatedBookingData);
-                                            }
-                                            
-                                            // Clear error when user starts typing
-                                            if (errors.required_space) {
-                                                setErrors(prev => {
-                                                    const newErrors = {...prev};
-                                                    delete newErrors.required_space;
-                                                    return newErrors;
-                                                });
-                                            }
-                                        }}
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                                    />
-                                </div>
-                                {errors.required_space && (
-                                    <p className="text-red-500 text-[10px] mt-1">{errors.required_space}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="text-[10px]/[24px] font-[600]">
-                                    Storage Duration <span className="text-red-500">*</span> :
-                                </label>
-                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.storage_duration ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
-                                    <select
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
-                                        value={bookingData?.storage_duration ?? '1 Month'}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            const updatedBookingData = {
-                                                ...(bookingData || {}),
-                                                storage_duration: value
-                                            };
-                                            setBookingData(updatedBookingData);
-                                            
-                                            // Trigger real-time calculation (always trigger if warehouseInfo exists)
-                                            if (warehouseInfo) {
-                                                if (DEBUG_PRICING) console.log('Triggering calculation for storage_duration:', value);
-                                                calculatePricing(warehouseInfo, updatedBookingData);
-                                            }
-                                            
-                                            // Clear error when user selects
-                                            if (errors.storage_duration) {
-                                                setErrors(prev => {
-                                                    const newErrors = {...prev};
-                                                    delete newErrors.storage_duration;
-                                                    return newErrors;
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        <option value="1 Month">1 Month</option>
-                                        <option value="3 Months">3 Months</option>
-                                        <option value="6 Months">6 Months</option>
-                                        <option value="12 Months">12 Months</option>
-                                    </select>
-                                </div>
-                                {errors.storage_duration && (
-                                    <p className="text-red-500 text-[10px] mt-1">{errors.storage_duration}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="text-[10px]/[24px] font-[600]">
-                                    Access Frequency :
-                                </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <select
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
-                                        value={bookingData?.access_frequency ?? 'weekly'}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            const updatedData = {
-                                                ...(bookingData || {}),
-                                                access_frequency: value
-                                            };
-                                            setBookingData(updatedData);
-                                            
-                                            // Trigger real-time calculation
-                                            if (warehouseInfo) {
-                                                if (DEBUG_PRICING) console.log('Triggering calculation for access_frequency:', value);
-                                                calculatePricing(warehouseInfo, updatedData);
-                                            }
-                                        }}
-                                    >
-                                        <option value="daily">Daily</option>
-                                        <option value="weekly">Weekly</option>
-                                        <option value="monthly">Monthly</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-2">
-                                <label className="text-[10px]/[24px] font-[600]">
-                                    Goods Description :
-                                </label>
-                                <div className="w-full min-h-[98px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <textarea
-                                        className="w-full h-full px-3 py-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] resize-none"
-                                        placeholder="Describe the items you plan to store..."
-                                        rows="4"
-                                        value={bookingData?.goods_description ?? ''}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            setBookingData((prev) => ({
-                                                ...(prev || {}),
-                                                goods_description: value
-                                            }));
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-auto bg-[#FFFFFF] px-10 py-10"
-                        style={{
-                            borderLeftWidth: "0.2px",
-                            borderTopWidth: "0.2px",
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
-                    >
-                        <h1 className="text-[20px] font-[700] mb-5">
                             Schedule Information
                         </h1>
 
@@ -761,10 +743,17 @@ const WarehouseCheckoutContent = () => {
                                         value={bookingData?.move_in_date ?? ''}
                                         onChange={(e) => {
                                             const value = e.target.value;
-                                            setBookingData((prev) => ({
-                                                ...(prev || {}),
+                                            const updatedBookingData = {
+                                                ...(bookingData || {}),
                                                 move_in_date: value
-                                            }));
+                                            };
+                                            setBookingData(updatedBookingData);
+                                            
+                                            // Trigger availability check if both date and duration are set
+                                            if (value && updatedBookingData.storage_duration && updatedBookingData.warehouse_id) {
+                                                fetchAvailability(updatedBookingData.warehouse_id, value, updatedBookingData.storage_duration);
+                                            }
+                                            
                                             // Clear error when user selects
                                             if (errors.move_in_date) {
                                                 setErrors(prev => {
@@ -844,6 +833,229 @@ const WarehouseCheckoutContent = () => {
                                     <input
                                         type="time"
                                         className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        className="border-l-[0.2px] rounded-[10px] lg:w-[874px] lg:h-auto bg-[#FFFFFF] px-10 py-10"
+                        style={{
+                            borderLeftWidth: "0.2px",
+                            borderTopWidth: "0.2px",
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
+                    >
+                        <h1 className="text-[20px] font-[700] mb-5">
+                            Storage Requirements
+                        </h1>
+
+                        <div className="grid lg:grid-cols-2 gap-5 poppins">
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Storage Type :
+                                </label>
+                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] bg-[#f8f9fa]">
+                                    <input
+                                        type="text"
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC] bg-transparent cursor-not-allowed"
+                                        value={bookingData?.storage_type ?? 'General Storage'}
+                                        readOnly
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Required Space (sq ft) <span className="text-red-500">*</span> :
+                                    {bookingData?.move_in_date && bookingData?.storage_duration ? (
+                                        availabilityLoading ? (
+                                            <span className="text-[#0955AC] ml-2 text-[9px]">Checking availability...</span>
+                                        ) : availabilityError ? (
+                                            <span className="text-red-500 ml-2 text-[9px]">Availability unavailable</span>
+                                        ) : (
+                                            <span className="text-[#0955AC] ml-2 text-[9px]">
+                                                Available: {formatSqFt(availabilityInfo.availableSpace)} sq ft
+                                                {availabilityInfo.bookedSpace > 0 ? ` (${formatSqFt(availabilityInfo.bookedSpace)} booked)` : ''}
+                                            </span>
+                                        )
+                                    ) : (
+                                        warehouseInfo?.total_area && (
+                                            <span className="text-[#0955AC] ml-2 text-[9px]">
+                                                Total: {formatSqFt(warehouseInfo.total_area)} sq ft
+                                            </span>
+                                        )
+                                    )}
+                                </label>
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.required_space ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={getMaxAvailableSpace() || undefined}
+                                        value={bookingData?.required_space ?? ''}
+                                        placeholder={(() => {
+                                            const hasDateSelection = Boolean(bookingData?.move_in_date && bookingData?.storage_duration);
+                                            const maxSpace = getMaxAvailableSpace();
+                                            
+                                            if (hasDateSelection) {
+                                                return maxSpace > 0 
+                                                    ? `Enter up to ${formatSqFt(maxSpace)} sq ft`
+                                                    : 'No space available for selected dates';
+                                            }
+                                            
+                                            return warehouseInfo?.total_area 
+                                                ? `Enter up to ${formatSqFt(warehouseInfo.total_area)} sq ft`
+                                                : 'Enter required space';
+                                        })()} 
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            const numericValue = value === '' ? '' : Number(value);
+                                            const maxSpace = getMaxAvailableSpace();
+                                            
+                                            // Validate against availability limits
+                                            if (numericValue && maxSpace > 0 && numericValue > maxSpace) {
+                                                return; // Don't allow exceeding available space
+                                            }
+                                            
+                                            const updatedBookingData = {
+                                                ...(bookingData || {}),
+                                                required_space: numericValue
+                                            };
+                                            setBookingData(updatedBookingData);
+                                            
+                                            // Trigger real-time calculation
+                                            if (warehouseInfo) {
+                                                if (DEBUG_PRICING) console.log('Triggering calculation for required_space:', updatedBookingData.required_space);
+                                                calculatePricing(warehouseInfo, updatedBookingData);
+                                            }
+                                            
+                                            // Clear error when user starts typing
+                                            if (errors.required_space) {
+                                                setErrors(prev => {
+                                                    const newErrors = {...prev};
+                                                    delete newErrors.required_space;
+                                                    return newErrors;
+                                                });
+                                            }
+                                        }}
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
+                                    />
+                                </div>
+                                {/* Availability info */}
+                                {bookingData?.move_in_date && bookingData?.storage_duration && !availabilityLoading && !availabilityError && (
+                                    <p className="text-[10px] text-gray-500 mt-1">
+                                        Available for selected dates: {formatSqFt(availabilityInfo.availableSpace)} sq ft
+                                    </p>
+                                )}
+                                {!bookingData?.move_in_date && warehouseInfo?.total_area && (
+                                    <p className="text-[10px] text-gray-500 mt-1">
+                                        Total warehouse space: {formatSqFt(warehouseInfo.total_area)} sq ft
+                                    </p>
+                                )}
+                                {availabilityError && (
+                                    <p className="text-[10px] text-red-500 mt-1">{availabilityError}</p>
+                                )}
+                                {errors.required_space && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.required_space}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Storage Duration <span className="text-red-500">*</span> :
+                                </label>
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.storage_duration ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
+                                    <select
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
+                                        value={bookingData?.storage_duration ?? '1 Month'}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            const updatedBookingData = {
+                                                ...(bookingData || {}),
+                                                storage_duration: value
+                                            };
+                                            setBookingData(updatedBookingData);
+                                            
+                                            // Trigger availability check if both date and duration are set
+                                            if (value && updatedBookingData.move_in_date && updatedBookingData.warehouse_id) {
+                                                fetchAvailability(updatedBookingData.warehouse_id, updatedBookingData.move_in_date, value);
+                                            }
+                                            
+                                            // Trigger real-time calculation (always trigger if warehouseInfo exists)
+                                            if (warehouseInfo) {
+                                                if (DEBUG_PRICING) console.log('Triggering calculation for storage_duration:', value);
+                                                calculatePricing(warehouseInfo, updatedBookingData);
+                                            }
+                                            
+                                            // Clear error when user selects
+                                            if (errors.storage_duration) {
+                                                setErrors(prev => {
+                                                    const newErrors = {...prev};
+                                                    delete newErrors.storage_duration;
+                                                    return newErrors;
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        <option value="1 Month">1 Month</option>
+                                        <option value="3 Months">3 Months</option>
+                                        <option value="6 Months">6 Months</option>
+                                        <option value="12 Months">12 Months</option>
+                                    </select>
+                                </div>
+                                {errors.storage_duration && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.storage_duration}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Access Frequency :
+                                </label>
+                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                    <select
+                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500] text-[#000000CC]"
+                                        value={bookingData?.access_frequency ?? 'weekly'}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            const updatedData = {
+                                                ...(bookingData || {}),
+                                                access_frequency: value
+                                            };
+                                            setBookingData(updatedData);
+                                            
+                                            // Trigger real-time calculation
+                                            if (warehouseInfo) {
+                                                if (DEBUG_PRICING) console.log('Triggering calculation for access_frequency:', value);
+                                                calculatePricing(warehouseInfo, updatedData);
+                                            }
+                                        }}
+                                    >
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="lg:col-span-2">
+                                <label className="text-[10px]/[24px] font-[600]">
+                                    Goods Description :
+                                </label>
+                                <div className="w-full min-h-[98px] border-[1px] border-[#0000004D] rounded-[5px]">
+                                    <textarea
+                                        className="w-full h-full px-3 py-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080] resize-none"
+                                        placeholder="Describe the items you plan to store..."
+                                        rows="4"
+                                        value={bookingData?.goods_description ?? ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setBookingData((prev) => ({
+                                                ...(prev || {}),
+                                                goods_description: value
+                                            }));
+                                        }}
                                     />
                                 </div>
                             </div>

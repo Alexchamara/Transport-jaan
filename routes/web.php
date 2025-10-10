@@ -143,6 +143,7 @@ Route::prefix('api')->name('api.')->group(function () {
     
     // Warehouse API endpoints
     Route::get('/warehouse-units/{id}', [WarehouseBookingController::class, 'getWarehouseUnit'])->name('warehouse-units.show');
+    Route::get('/warehouse-units/{id}/availability', [WarehouseBookingController::class, 'getWarehouseAvailability'])->name('warehouse-units.availability');
 
     // Warehouse like toggle (requires auth)
     Route::middleware(['auth'])->group(function () {
