@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { usePage, router } from "@inertiajs/react";
 import axios from "axios";
 import { Heart } from "lucide-react";
@@ -26,6 +26,11 @@ const WarehouseInfo = () => {
   const [selectedTab, setSelectedTab] = useState("warehouse-details");
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [busy, setBusy] = useState(false);
+
+  // Keep local isLiked in sync if server-side props change (e.g., after partial reloads)
+  useEffect(() => {
+    setIsLiked(initialIsLiked);
+  }, [initialIsLiked]);
 
   const titleName = warehouse?.name || "—";
   const titleType = warehouse?.type || warehouse?.warehouse_type || "";
@@ -83,6 +88,10 @@ const WarehouseInfo = () => {
       } else if (typeof data.is_liked === "boolean") {
         setIsLiked(data.is_liked);
       }
+
+      if (typeof router?.reload === "function") {
+        router.reload({ only: ["likedWarehouseIds", "warehouse"] });
+      }
     } catch (error) {
       setIsLiked(!next);
 
@@ -139,7 +148,7 @@ const WarehouseInfo = () => {
             type="button"
             onClick={onToggleWishlist}
             disabled={busy}
-            className={`w-[110px] h-[30px] rounded-[4px] border-[1px] flex flex-row justify-center items-center gap-3 ${
+            className={`w-[120px] h-[30px] rounded-[4px] border-[1px] flex flex-row justify-center items-center gap-3 ${
               isLiked ? "border-[#0955AC] bg-white text-[#0955AC]" : "border-[#00000030] bg-white text-[#0955AC]"
             } ${busy ? "opacity-60 cursor-not-allowed" : ""}`}
           >
