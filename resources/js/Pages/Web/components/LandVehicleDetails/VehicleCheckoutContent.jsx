@@ -227,6 +227,7 @@ const VehicleCheckoutContent = () => {
   const deposit = quote?.deposit_amount || 0;
   const advance = quote?.advance_amount || 0;
   const grandTotal = quote?.total || 0;
+  console.log("rental days", rentalDays);
 
   return (
     <div>
