@@ -7,45 +7,73 @@ import Footer from "../../layouts/Footer";
 
 const BookingSummary = ({ booking }) => {
     const [bookingData, setBookingData] = useState(null);
+    const [warehouseData, setWarehouseData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     
     useEffect(() => {
-        // If we have booking data from props (from backend), use that
-        if (booking) {
-            setBookingData(booking);
-            // Clear sessionStorage after getting data from backend
-            sessionStorage.removeItem('warehouseBookingData');
-            return;
-        }
-        
-        // Otherwise try to get it from sessionStorage
-        const savedData = sessionStorage.getItem('warehouseBookingData');
-        if (savedData) {
+        const fetchBookingDetails = async () => {
             try {
-                const parsedData = JSON.parse(savedData);
-                setBookingData(parsedData);
+                setLoading(true);
                 
-                // Clear sessionStorage after successful booking
-                // This ensures if user refreshes the page, they'll be redirected
-                // unless we have booking data from the backend
-                sessionStorage.removeItem('warehouseBookingData');
+                // If we have booking data from props (from backend), use that
+                if (booking) {
+                    setBookingData(booking);
+                    
+                    // Fetch warehouse details if warehouse_unit_id is available
+                    if (booking.warehouse_unit_id) {
+                        try {
+                            const warehouseResponse = await fetch(`/api/warehouse-units/${booking.warehouse_unit_id}`);
+                            if (warehouseResponse.ok) {
+                                const warehouseResult = await warehouseResponse.json();
+                                setWarehouseData(warehouseResult.data || warehouseResult);
+                            }
+                        } catch (warehouseError) {
+                            console.error('Error fetching warehouse details:', warehouseError);
+                        }
+                    }
+                    
+                    // Clear sessionStorage after getting data from backend
+                    sessionStorage.removeItem('warehouseBookingData');
+                    setLoading(false);
+                    return;
+                }
+                
+                // Otherwise try to get it from sessionStorage
+                const savedData = sessionStorage.getItem('warehouseBookingData');
+                if (savedData) {
+                    try {
+                        const parsedData = JSON.parse(savedData);
+                        setBookingData(parsedData);
+                        
+                        // Clear sessionStorage after successful booking
+                        sessionStorage.removeItem('warehouseBookingData');
+                        setLoading(false);
+                    } catch (error) {
+                        console.error('Error parsing saved booking data:', error);
+                        setError('Error loading booking information');
+                        toast.error('Error loading booking information');
+                        setLoading(false);
+                    }
+                } else {
+                    // No saved data, redirect back to booking page
+                    setError('No booking information found');
+                    toast.error('No booking information found. Please start the booking process again.');
+                    setTimeout(() => {
+                        router.visit('/warehouse-bookings/', {
+                            method: 'get'
+                        });
+                    }, 2000);
+                    setLoading(false);
+                }
             } catch (error) {
-                console.error('Error parsing saved booking data:', error);
-                toast.error('Error loading booking information');
-                setTimeout(() => {
-                    router.visit('/warehouse-bookings/', {
-                        method: 'get'
-                    });
-                }, 2000);
+                console.error('Error in fetchBookingDetails:', error);
+                setError('Failed to load booking details');
+                setLoading(false);
             }
-        } else {
-            // No saved data, redirect back to booking page
-            toast.error('No booking information found. Please start the booking process again.');
-            setTimeout(() => {
-                router.visit('/warehouse-bookings/', {
-                    method: 'get'
-                });
-            }, 2000);
-        }
+        };
+        
+        fetchBookingDetails();
     }, [booking]);
 
     const handleBackToHome = () => {
@@ -64,13 +92,7 @@ const BookingSummary = ({ booking }) => {
         });
     };
 
-    const formatTime = (timeString) => {
-        const time = new Date(`2000-01-01T${timeString}`);
-        return time.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
+
 
     const getPaymentMethodLabel = (method) => {
         switch (method) {
@@ -84,11 +106,46 @@ const BookingSummary = ({ booking }) => {
     const getPaymentOptionLabel = (option) => {
         return option === 'full' ? 'Full Payment' : 'Deposit + Monthly Payments';
     };
+    
+    const formatCurrency = (amount) => {
+        if (typeof amount !== 'number') return 'LKR 0.00';
+        return `LKR ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+    
+    const formatSqFt = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric) || numeric <= 0) {
+            return '0';
+        }
+        return numeric.toLocaleString();
+    };
+    
+    const getBookingReference = () => {
+        return bookingData?.booking_reference || 
+               (booking?.id ? `WH-${String(booking.id).padStart(6, '0')}` : 
+               `WH-${Math.floor(100000 + Math.random() * 900000)}`);
+    };
+    
+    const getMoveInDate = () => {
+        return bookingData?.start_date || bookingData?.move_in_date || null;
+    };
+    
+    const getMoveOutDate = () => {
+        return bookingData?.end_date || bookingData?.move_out_date || null;
+    };
 
-    if (!bookingData) {
+    if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center">
                 <div className="animate-pulse text-xl text-gray-500">Loading booking information...</div>
+            </div>
+        );
+    }
+    
+    if (error || !bookingData) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center">
+                <div className="text-xl text-red-500">{error || 'No booking information available'}</div>
             </div>
         );
     }
@@ -180,8 +237,13 @@ const BookingSummary = ({ booking }) => {
                                         We've sent a confirmation email to your registered email address.
                                     </h1>
                                     <h1 className="text-[14px]/[24px] font-[500] text-[#000000B2]">
-                                        Booking ID: {booking?.id || 'WH-' + Math.floor(100000 + Math.random() * 900000)}
+                                        Booking Reference: {getBookingReference()}
                                     </h1>
+                                    {bookingData?.status && (
+                                        <h1 className="text-[14px]/[24px] font-[500] text-[#000000B2]">
+                                            Status: <span className="capitalize">{bookingData.status}</span>
+                                        </h1>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -213,10 +275,10 @@ const BookingSummary = ({ booking }) => {
                                         <div className="space-y-4 flex-1">
                                             <div>
                                                 <h2 className="text-[20px] font-[700]">
-                                                    {bookingData.warehouse?.name || "Central Storage Facility - Bay A"}
+                                                    {warehouseData?.name || bookingData.warehouse_name || "Central Storage Facility - Bay A"}
                                                 </h2>
                                                 <p className="text-[14px] text-gray-600">
-                                                    {bookingData.warehouse?.address || "123 Warehouse Road, Industrial Zone, Colombo"}
+                                                    {warehouseData?.address || bookingData.location || "123 Warehouse Road, Industrial Zone, Colombo"}
                                                 </p>
                                             </div>
 
@@ -225,7 +287,7 @@ const BookingSummary = ({ booking }) => {
                                                     <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                                     </svg>
-                                                    <span>{bookingData.storage_details?.space_required || "5,000"} sq ft</span>
+                                                    <span>{formatSqFt(bookingData.required_space || 5000)} sq ft</span>
                                                 </div>
                                                 <div className="flex flex-col items-center gap-1">
                                                     <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,17 +321,21 @@ const BookingSummary = ({ booking }) => {
                                             <div className="flex flex-col gap-8 text-[14px]">
                                                 <div>
                                                     <h3 className="text-[16px] font-[700] text-[#000000]">
-                                                        Move-in: {bookingData.warehouse?.name || "Central Storage Facility"}
+                                                        Move-in: {warehouseData?.name || bookingData.warehouse_name || "Central Storage Facility"}
                                                     </h3>
-                                                    <p className="text-gray-600">Move-in Date: {formatDate(bookingData.storage_details?.start_date || "2025-06-23")}</p>
-                                                    <p className="text-gray-600">Move-in Time: {bookingData.storage_details?.start_time || "10:00 AM"}</p>
+                                                    <p className="text-gray-600">
+                                                        Move-in Date: {getMoveInDate() ? formatDate(getMoveInDate()) : "Not specified"}
+                                                    </p>
                                                 </div>
                                                 <div>
                                                     <h3 className="text-[16px] font-[700] text-[#000000]">
-                                                        Storage Duration: {bookingData.storage_details?.duration || "6"} {bookingData.storage_details?.duration_unit || "Months"}
+                                                        Storage Details
                                                     </h3>
-                                                    <p className="text-gray-600">Storage Type: {bookingData.storage_details?.storage_type || "General Storage"}</p>
-                                                    <p className="text-gray-600">Required Space: {bookingData.storage_details?.space_required || "1,000"} sq ft</p>
+                                                    <p className="text-gray-600">
+                                                        Duration: {bookingData.duration_months ? `${bookingData.duration_months} month${bookingData.duration_months > 1 ? 's' : ''}` : (bookingData.storage_duration || "Not specified")}
+                                                    </p>
+                                                    <p className="text-gray-600">Storage Type: {bookingData.storage_type || "General Storage"}</p>
+                                                    <p className="text-gray-600">Required Space: {formatSqFt(bookingData.required_space || 1000)} sq ft</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -291,34 +357,65 @@ const BookingSummary = ({ booking }) => {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
-                                            <h3 className="text-[14px] font-semibold text-gray-700">Full Name</h3>
-                                            <p className="text-[16px]">{bookingData.personal_info?.first_name || ""} {bookingData.personal_info?.last_name || ""}</p>
+                                            <h3 className="text-[14px] font-semibold text-gray-700">Contact Person</h3>
+                                            <p className="text-[16px]">{bookingData.contact_person || "N/A"}</p>
                                         </div>
                                         <div>
                                             <h3 className="text-[14px] font-semibold text-gray-700">Email Address</h3>
-                                            <p className="text-[16px]">{bookingData.personal_info?.email || ""}</p>
+                                            <p className="text-[16px]">{bookingData.email || "N/A"}</p>
                                         </div>
                                         <div>
                                             <h3 className="text-[14px] font-semibold text-gray-700">Phone Number</h3>
-                                            <p className="text-[16px]">{bookingData.personal_info?.phone || ""}</p>
+                                            <p className="text-[16px]">{bookingData.phone || "N/A"}</p>
                                         </div>
                                         <div>
-                                            <h3 className="text-[14px] font-semibold text-gray-700">Address</h3>
-                                            <p className="text-[16px]">{bookingData.personal_info?.address || ""}</p>
+                                            <h3 className="text-[14px] font-semibold text-gray-700">Company Address</h3>
+                                            <p className="text-[16px]">{bookingData.company_address || "N/A"}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Schedule Information */}
+                                    <div className="mt-6 border-t border-gray-200 pt-6">
+                                        <h2 className="text-[18px] font-[600] mb-4">Schedule Information</h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <h3 className="text-[14px] font-semibold text-gray-700">Move-in Date</h3>
+                                                <p className="text-[16px]">
+                                                    {getMoveInDate() ? formatDate(getMoveInDate()) : "Not specified"}
+                                                </p>
+                                            </div>
+                                            {getMoveOutDate() && (
+                                                <div>
+                                                    <h3 className="text-[14px] font-semibold text-gray-700">Move-out Date</h3>
+                                                    <p className="text-[16px]">
+                                                        {formatDate(getMoveOutDate())}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <h3 className="text-[14px] font-semibold text-gray-700">Access Hours</h3>
+                                                <p className="text-[16px]">{bookingData.access_hours || "24/7"}</p>
+                                            </div>
+                                            {bookingData.special_instructions && (
+                                                <div>
+                                                    <h3 className="text-[14px] font-semibold text-gray-700">Special Instructions</h3>
+                                                    <p className="text-[16px]">{bookingData.special_instructions}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
-                                    {bookingData.company_info && (
+                                    {bookingData.company_name && (
                                         <div className="mt-6 border-t border-gray-200 pt-6">
                                             <h2 className="text-[18px] font-[600] mb-4">Company Information</h2>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div>
                                                     <h3 className="text-[14px] font-semibold text-gray-700">Company Name</h3>
-                                                    <p className="text-[16px]">{bookingData.company_info?.company_name || ""}</p>
+                                                    <p className="text-[16px]">{bookingData.company_name}</p>
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-[14px] font-semibold text-gray-700">Position</h3>
-                                                    <p className="text-[16px]">{bookingData.company_info?.position || ""}</p>
+                                                    <h3 className="text-[14px] font-semibold text-gray-700">Goods Description</h3>
+                                                    <p className="text-[16px]">{bookingData.goods_description || "General storage items"}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -341,24 +438,21 @@ const BookingSummary = ({ booking }) => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <h3 className="text-[14px] font-semibold text-gray-700">Payment Method</h3>
-                                            <p className="text-[16px]">{getPaymentMethodLabel(bookingData.payment?.payment_method || "Credit Card")}</p>
+                                            <p className="text-[16px]">{getPaymentMethodLabel(bookingData.payment_method || "Credit Card")}</p>
                                         </div>
                                         <div>
-                                            <h3 className="text-[14px] font-semibold text-gray-700">Payment Option</h3>
-                                            <p className="text-[16px]">{getPaymentOptionLabel(bookingData.payment?.payment_option || "full")}</p>
+                                            <h3 className="text-[14px] font-semibold text-gray-700">Payment Status</h3>
+                                            <p className="text-[16px] capitalize">{bookingData.payment_status || "Pending"}</p>
                                         </div>
-                                        
-                                        {bookingData.payment?.payment_method === "Bank Transfer" && (
-                                            <>
-                                                <div>
-                                                    <h3 className="text-[14px] font-semibold text-gray-700">Reference Number</h3>
-                                                    <p className="text-[16px]">{bookingData.payment?.reference_number || ""}</p>
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-[14px] font-semibold text-gray-700">Payment Receipt</h3>
-                                                    <p className="text-[16px]">{bookingData.payment?.payment_receipt ? "Uploaded" : "Not provided"}</p>
-                                                </div>
-                                            </>
+                                        <div>
+                                            <h3 className="text-[14px] font-semibold text-gray-700">Total Amount</h3>
+                                            <p className="text-[16px] font-semibold">{formatCurrency(bookingData.final_amount || bookingData.total_amount || 0)}</p>
+                                        </div>
+                                        {bookingData.transaction_reference && (
+                                            <div>
+                                                <h3 className="text-[14px] font-semibold text-gray-700">Transaction Reference</h3>
+                                                <p className="text-[16px]">{bookingData.transaction_reference}</p>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -384,17 +478,17 @@ const BookingSummary = ({ booking }) => {
                                         <div className="flex flex-col md:flex-row justify-between w-full px-4 py-4 font-[500]">
                                             <div>
                                                 <h1 className="text-[#000000CC]">
-                                                    Storage Space Rate
+                                                    Monthly Storage Rate
                                                 </h1>
                                                 <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                                    <h1>$850/month</h1>
+                                                    <h1>{formatCurrency(bookingData.monthly_rate || 0)}/month</h1>
                                                     <h1 className="text-[#0955AC]">
-                                                        (x{bookingData.storage_details?.duration || "6"} {bookingData.storage_details?.duration_unit === "Months" ? "months" : "months"})
+                                                        (x{bookingData.duration_months || 1} month{(bookingData.duration_months || 1) > 1 ? 's' : ''})
                                                     </h1>
                                                 </div>
                                             </div>
                                             <div className="text-[#000000CC]">
-                                                $5100
+                                                {formatCurrency((bookingData.monthly_rate || 0) * (bookingData.duration_months || 1))}
                                             </div>
                                         </div>
                                         <div className="flex flex-col md:flex-row justify-between w-full px-4 font-[500]">
@@ -413,22 +507,24 @@ const BookingSummary = ({ booking }) => {
                                                 -$255
                                             </div>
                                         </div>
-                                        <div className="flex flex-col md:flex-row justify-between w-full px-4 py-4 font-[500]">
-                                            <div>
-                                                <h1 className="text-[#000000CC]">
-                                                    Security Deposit
-                                                </h1>
-                                                <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                                    <h1>Refunded upon</h1>
-                                                    <h1 className="text-[#0955AC]">
-                                                        move-out
+                                        {(bookingData.security_deposit && bookingData.security_deposit > 0) && (
+                                            <div className="flex flex-col md:flex-row justify-between w-full px-4 py-4 font-[500]">
+                                                <div>
+                                                    <h1 className="text-[#000000CC]">
+                                                        Security Deposit
                                                     </h1>
+                                                    <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
+                                                        <h1>Refundable deposit</h1>
+                                                        <h1 className="text-[#0955AC]">
+                                                            (One-time)
+                                                        </h1>
+                                                    </div>
+                                                </div>
+                                                <div className="text-[#000000CC]">
+                                                    {formatCurrency(bookingData.security_deposit)}
                                                 </div>
                                             </div>
-                                            <div className="text-[#000000CC]">
-                                                $850
-                                            </div>
-                                        </div>
+                                        )}
                                         <div className="w-full h-[1px] bg-[#CDD0D4]" />
 
                                         <h1 className="font-[600] mt-4 text-[#000000D9]">
@@ -470,14 +566,15 @@ const BookingSummary = ({ booking }) => {
                                         <div className="flex flex-col md:flex-row justify-between w-full px-4 pb-4 font-[500]">
                                             <div>
                                                 <h1 className="text-[#000000CC]">
-                                                    Total {bookingData.storage_details?.duration || "6"}-Month Cost
+                                                    Total Contract Value
                                                 </h1>
                                                 <div className="flex flex-col md:flex-row gap-3 text-[#00000061] mt-3">
-                                                    <h1>Including all fees</h1>
+                                                    <h1>Including all fees and taxes</h1>
+                                                    <h1 className="text-[#0955AC]">({bookingData.duration_months || 1} month{(bookingData.duration_months || 1) > 1 ? 's' : ''})</h1>
                                                 </div>
                                             </div>
                                             <div className="text-[#000000CC] text-[16px] font-[700]">
-                                                $6,045
+                                                {formatCurrency(bookingData.final_amount || bookingData.total_amount || 0)}
                                             </div>
                                         </div>
                                     </div>
