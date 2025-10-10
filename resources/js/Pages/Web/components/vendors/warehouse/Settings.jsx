@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import { usePage } from "@inertiajs/react";
 import { useForm } from "@inertiajs/react";
 
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
@@ -63,6 +64,9 @@ const MAX_AVATAR_MB = 3; // sensible default
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const Settings = ({ user = {} }) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const fileInputRef = useRef(null);
     const [photoPreview, setPhotoPreview] = useState(user?.avatar_url || null);
     const [clientErrors, setClientErrors] = useState({});
@@ -114,6 +118,9 @@ const Settings = ({ user = {} }) => {
 
     // Resolve update URL safely (avoid Ziggy exceptions if route missing)
     const resolveUpdateUrl = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         try {
             if (typeof route === "function") {
                 // Ziggy may throw if name missing; check existence when possible
@@ -137,6 +144,9 @@ const Settings = ({ user = {} }) => {
     transform((formData) => ({ ...formData }));
 
     const validatePasswords = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const e = {};
         if (
             data.new_password ||
@@ -155,6 +165,9 @@ const Settings = ({ user = {} }) => {
     };
 
     const validateAvatar = (file) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const e = {};
         if (!file) return e;
         if (!ACCEPTED_IMAGE_TYPES.includes(file.type))
@@ -168,6 +181,9 @@ const Settings = ({ user = {} }) => {
     };
 
     const handleImageChange = (e) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const file = e.target.files?.[0];
         const eAvatar = validateAvatar(file);
         setClientErrors((prev) => ({ ...prev, ...eAvatar }));
@@ -185,6 +201,9 @@ const Settings = ({ user = {} }) => {
     };
 
     const submitAll = (e) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         e.preventDefault();
         const ePwd = validatePasswords();
         setClientErrors((prev) => ({ ...prev, ...ePwd }));
@@ -197,6 +216,9 @@ const Settings = ({ user = {} }) => {
     };
 
     const removePhoto = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         setData("avatar", null);
         setPhotoPreview(null);
         setClientErrors((prev) => ({ ...prev, avatar: undefined }));

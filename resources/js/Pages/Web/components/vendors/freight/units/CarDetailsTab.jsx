@@ -1,4 +1,5 @@
 import React from "react";
+import { usePage } from "@inertiajs/react";
 import miles from "../../../../assets/landVehicleDetails/carSpec/miles.svg";
 import fuel from "../../../../assets/landVehicleDetails/carSpec/fuel.svg";
 import gear from "../../../../assets/landVehicleDetails/carSpec/gear.svg";
@@ -148,7 +149,7 @@ const CarDetailsTab = () => (
                     <div className="flex flex-col items-start justify-center">
                         <div className="flex flex-row gap-2 justify-center items-center">
                             {" "}
-                            <h1 className="text-[15px] font-[700]">Steve Gibson</h1>
+                            <h1 className="text-[15px] font-[700]">{user?.name || 'Vendor'}</h1>
                             <img src={tag} />
                         </div>
                         <div>

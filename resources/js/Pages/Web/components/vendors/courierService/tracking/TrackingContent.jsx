@@ -1,4 +1,5 @@
 import React from "react";
+import { usePage } from "@inertiajs/react";
 import map from "../../../../assets/vendors/tracking/map.svg";
 import {
   Search,
@@ -16,6 +17,9 @@ import {
 } from "lucide-react";
 
 const TrackingContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
@@ -35,7 +39,7 @@ const TrackingContent = () => {
                         <UserCircle2 size={28} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

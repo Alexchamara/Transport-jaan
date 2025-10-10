@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
@@ -20,6 +21,9 @@ import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
 
 const ExpensesContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const expensesData = [
         {
             name: "Oil Change",
@@ -202,6 +206,9 @@ const ExpensesContent = () => {
     const [selectedRows, setSelectedRows] = useState(new Set());
 
     const handleRowSelection = (rowIdxOnPage) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         setSelectedRows((prev) => {
             const next = new Set(prev);
             const absoluteIdx = startIdx + rowIdxOnPage;
@@ -212,6 +219,9 @@ const ExpensesContent = () => {
     };
 
     const handleSelectAll = (e) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const checked = e.target.checked;
         if (checked) {
             const allOnPage = new Set(
@@ -232,12 +242,18 @@ const ExpensesContent = () => {
     };
 
     const goToPage = (page) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -269,6 +285,9 @@ const ExpensesContent = () => {
 
     // Function to download table as PDF
     const downloadTableAsPDF = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const doc = new jsPDF();
         doc.setFontSize(18);
         doc.text("Recent Transactions", 14, 20);
@@ -345,7 +364,7 @@ const ExpensesContent = () => {
                         <UserCircle2 size={28} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

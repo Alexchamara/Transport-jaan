@@ -1,4 +1,5 @@
 import React from "react";
+import { usePage } from "@inertiajs/react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
 const tableData = [
@@ -95,6 +96,9 @@ const tableData = [
 ];
 
 const CarBookingTable = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     return (
         <div className="py-10">
             {/* table headings */}

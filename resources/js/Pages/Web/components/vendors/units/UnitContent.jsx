@@ -1,6 +1,6 @@
 // resources/js/Pages/Web/components/vendors/units/UnitContent.jsx
 import React, { useEffect, useState, useMemo } from "react";
-import { router } from "@inertiajs/react";
+import { router, usePage } from "@inertiajs/react";
 
 // top bar icons
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
@@ -366,6 +366,9 @@ const MaintenanceActionModal = ({
 /* ------------------------------ Main ------------------------------ */
 
 const UnitContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
   const [showAddUnit, setShowAddUnit] = useState(false);
 
   // filters
@@ -527,7 +530,7 @@ const UnitContent = () => {
             </div>
           ))}
           <div className="figtree flex flex-col justify-center items-start">
-            <h1 className="text-[18px] font-[700]">Steve Gibson</h1>
+            <h1 className="text-[18px] font-[700]">{user?.name || 'Vendor'}</h1>
             <h1 className="text-[14px] font-[600] text-[#7B7B7A]">Vendor</h1>
           </div>
         </div>

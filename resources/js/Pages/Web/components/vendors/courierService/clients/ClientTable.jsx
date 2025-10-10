@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePage } from "@inertiajs/react";
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
@@ -6,6 +7,9 @@ import file from "../../../../assets/vendors/clients/file.svg";
 import proPic from "../../../../assets/vendors/clients/proPic.svg";
 
 const ClientTable = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const [clients, setClients] = useState([
         {
             id: 1,
@@ -117,12 +121,18 @@ const ClientTable = () => {
     const currentClients = clients.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -154,12 +164,18 @@ const ClientTable = () => {
 
     // Handle form input changes
     const handleInputChange = (e) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const { name, value } = e.target;
         setNewClient({ ...newClient, [name]: value });
     };
 
     // Handle file input
     const handleFileChange = (e) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const file = e.target.files[0];
         if (file) {
             setSelectedFile(file);
@@ -168,6 +184,9 @@ const ClientTable = () => {
 
     // Add file to documents
     const addFileToDocuments = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         if (selectedFile) {
             setNewClient({
                 ...newClient,
@@ -182,6 +201,9 @@ const ClientTable = () => {
 
     // Handle form submission
     const handleSubmit = (e) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         e.preventDefault();
         if (isEditing) {
             setClients(
@@ -210,6 +232,9 @@ const ClientTable = () => {
 
     // Handle edit button click
     const handleEdit = (client) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         setNewClient({ ...client });
         setCurrentClientId(client.id);
         setIsEditing(true);
@@ -218,6 +243,9 @@ const ClientTable = () => {
 
     // Handle delete button click
     const handleDelete = (id) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         setClients(clients.filter((client) => client.id !== id));
     };
 

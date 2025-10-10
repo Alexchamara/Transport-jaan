@@ -1,6 +1,7 @@
 // resources/js/Pages/Web/components/vendors/driver/Driver.jsx
 import React, { useEffect, useRef, useState } from "react";
 import SideMenu from "../SideMenu.jsx";
+import { usePage } from "@inertiajs/react";
 
 import search from "../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../assets/vendors/dashboard/settings.svg";
@@ -21,6 +22,9 @@ const selectClasses = inputClasses;
 /* ---------------------------------------- */
 
 export default function Driver() {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [loading, setLoading] = useState(false);
@@ -357,7 +361,7 @@ export default function Driver() {
               <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={bell} /></div>
               <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={proPic} /></div>
               <div className="figtree hidden sm:flex flex-col justify-center items-start">
-                <div className="text-[16px] font-[700]">Steve Gibson</div>
+                <div className="text-[16px] font-[700]">{user?.name || 'Vendor'}</div>
                 <div className="text-[13px] font-[600] text-[#7B7B7A]">Vendor</div>
               </div>
             </div>

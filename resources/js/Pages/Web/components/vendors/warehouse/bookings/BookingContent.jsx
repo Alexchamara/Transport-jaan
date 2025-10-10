@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 import WarehouseBookingService from "../../../../../../services/WarehouseBookingService";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
@@ -22,6 +23,9 @@ import BookingBarChart from "./BookingBarChart";
 
 
 const BookingContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const paymentStatusColors = {
         Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
         Pending: { color: "#FF60608C", bg: "#FF60608C" }, // Solid colors for Pending
@@ -141,12 +145,18 @@ const BookingContent = () => {
 
     // Handle input changes for the form
     const handleInputChange = (e) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const { name, value } = e.target;
         setNewBooking((prev) => ({ ...prev, [name]: value }));
     };
 
     // Handle form submission to add new booking
     const handleAddBooking = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const newBookingEntry = {
             ...newBooking,
             paymentStatusColor:
@@ -208,6 +218,9 @@ const BookingContent = () => {
     }, [searchTerm]);
 
     const handleWarehouseTypeChange = (event) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const { value } = event.target;
         setFilters((prev) => (
             prev.warehouseType === value ? prev : { ...prev, warehouseType: value }
@@ -215,6 +228,9 @@ const BookingContent = () => {
     };
 
     const handleStatusChange = (event) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const { value } = event.target;
         setFilters((prev) => (prev.status === value ? prev : { ...prev, status: value }));
     };
@@ -239,7 +255,7 @@ const BookingContent = () => {
                     </div>
 
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>
