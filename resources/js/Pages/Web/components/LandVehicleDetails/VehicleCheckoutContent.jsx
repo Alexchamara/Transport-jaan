@@ -138,6 +138,8 @@ const VehicleCheckoutContent = () => {
     const ageNum =  Number(age);
     const zipOk = /^\d{5}$/.test(zip);
     const cityOk = /^[A-Za-z\s]+$/.test(city.trim());
+    const addressTrimmed = address.trim();
+    const addressOk = /^[A-Za-z0-9\s,.\-#/]+$/.test(addressTrimmed) && /[A-Za-z]/.test(addressTrimmed);
 
     if (!firstName.trim()) e.firstName = "First name is required.";
     if (!lastName.trim()) e.lastName = "Last name is required.";
@@ -148,6 +150,13 @@ const VehicleCheckoutContent = () => {
     if (city.trim() && !cityOk) e.city = "City can only contain letters and spaces.";
    if (!age.trim()) {e.age = "Age is required.";} else if (Number.isNaN(ageNum) || ageNum < 21 || !Number.isInteger(ageNum)) {
     e.age = "Age must be a whole number ≥ 21.";
+  }
+   if (!addressTrimmed) {
+    e.address = "Address is required.";
+  } else if (!addressOk) {
+    e.address = "Address must include letters and can contain numbers or , . - # / symbols.";
+  } else if (addressTrimmed.length > 70) {
+    e.address = "Address exceeds the maximum allowed length of 70 characters.";
   }
     setErrors(e);
     return { ok: Object.keys(e).length === 0, cleanedPhone };
