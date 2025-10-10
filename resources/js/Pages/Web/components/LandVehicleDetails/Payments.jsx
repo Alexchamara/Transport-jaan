@@ -69,6 +69,29 @@ const Payments = () => {
       alert("Missing booking. Please go back.");
       return;
     }
+
+    if(!slipNumber || !slipNumberRegex.test(slipNumber)) {
+      setError((prev) => ({
+        ...prev,
+        slipNumber: "Please enter a valid slip number",
+      }));
+      return;
+    }
+    else{
+      setError((prev) => ({ ...prev, slipNumber: "" }));
+    }
+
+    if(!slipPdf ) {
+      setError((prev) => ({
+        ...prev,
+        slipPdf: "Please upload the bank slip PDF",
+      }));
+      return;
+    }
+    else{
+      setError((prev) => ({ ...prev, slipPdf: "" }));
+    }
+
     if (!agreed) {
       // ⬇ show custom modal, no browser alert
       setShowTermsPopup(true);
@@ -269,6 +292,8 @@ const Payments = () => {
                       className="w-full text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
                     />
                   </div>
+                  {error.slipPdf && (<p className="text-red-500 text-[10px]">{error.slipPdf}</p>)}
+
                   <p className="text-[10px] text-[#00000080] mt-1">Only PDF files are allowed.</p>
                 </div>
               </div>
