@@ -170,7 +170,7 @@ const WarehouseCheckoutContent = () => {
         if (warehouseInfo && bookingData) {
             calculatePricing(warehouseInfo);
         }
-    }, [warehouseInfo, bookingData]);
+    }, [warehouseInfo, bookingData, availabilityInfo.availableSpace, availabilityInfo.totalSpace]);
     
     // Fetch availability when move-in date, move-out date, or storage duration changes
     useEffect(() => {
@@ -237,7 +237,7 @@ const WarehouseCheckoutContent = () => {
         setIsSubmitting(true);
         try {
             // Try to fetch warehouse details
-            const response = await axios.get(`/warehouse-units/${warehouseId}`, {
+            const response = await axios.get(`/api/warehouse-units/${warehouseId}`, {
                 timeout: 10000 // 10 second timeout
             });
 
@@ -275,14 +275,15 @@ const WarehouseCheckoutContent = () => {
      */
     const calculatePricing = (warehouse, currentBookingData = null) => {
         const bookingDataToUse = currentBookingData || bookingData;
-        
-        if (DEBUG_PRICING) console.log('calculatePricing called with:', { 
-            warehouse: !!warehouse, 
-            bookingData: bookingDataToUse,
-            required_space: bookingDataToUse?.required_space,
-            storage_duration: bookingDataToUse?.storage_duration
-        });
-        
+
+        if (DEBUG_PRICING) {
+            console.log('calculatePricing called with:', {
+                warehouseLoaded: Boolean(warehouse),
+                bookingData: bookingDataToUse,
+                availabilityInfo,
+            });
+        }
+
         if (!warehouse || !bookingDataToUse) {
             if (DEBUG_PRICING) console.log('Clearing pricing details - missing warehouse or booking data');
             setPricingDetails({
@@ -290,64 +291,49 @@ const WarehouseCheckoutContent = () => {
                 security_deposit: 0,
                 setup_fee: 0,
                 tax_rate: 0,
+                add_ons_cost: 0,
+                monthly_total: 0,
                 subtotal: 0,
                 tax_amount: 0,
                 total_amount: 0,
                 final_amount: 0,
-                add_ons_cost: 0,
-                monthly_total: 0,
-                duration: 1
+                duration: 1,
+                duration_months: 1,
+                space_utilization: 0,
+                required_space: 0
             });
             return;
         }
-        
+
         try {
-            // Extract duration months from booking data (default to 1)
-            const duration = parseDuration(bookingDataToUse.storage_duration) || 1;
-            
-            // Get pricing from warehouse unit
-            const baseMonthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || warehouse.base_price || 0);
-            const securityDeposit = parseFloat(warehouse.security_deposit || baseMonthlyRate * 0.5 || 0);
-            const setupFee = parseFloat(warehouse.setup_fee || baseMonthlyRate * 0.2 || 0);
-            const taxRate = parseFloat(warehouse.tax_rate || 0.08); // 8% default tax
-            
-            if (DEBUG_PRICING) console.log('Warehouse pricing data:', {
-                baseMonthlyRate,
-                securityDeposit,
-                setupFee,
-                taxRate,
-                total_area: warehouse.total_area
-            });
-            
-            // Calculate space utilization factor (if requiring partial space)
-            const requiredSpace = parseFloat(bookingDataToUse.required_space || 0);
-            const totalArea = parseFloat(warehouse.total_area || 1);
+            const durationMonths = parseDuration(bookingDataToUse.storage_duration);
+
+            const rawRequiredSpace = Number(bookingDataToUse.required_space);
+            const fallbackSpace = Number(
+                availabilityInfo?.availableSpace ??
+                availabilityInfo?.totalSpace ??
+                warehouse.total_area ??
+                0
+            );
+            const requiredSpace = Number.isFinite(rawRequiredSpace) && rawRequiredSpace > 0
+                ? rawRequiredSpace
+                : Math.max(fallbackSpace, 0);
+
+            const baseMonthlyRate = parseFloat(warehouse.monthly_rate || warehouse.price || warehouse.base_price || 0) || 0;
+            const securityDeposit = parseFloat(warehouse.security_deposit || baseMonthlyRate * 0.5 || 0) || 0;
+            const setupFee = parseFloat(warehouse.setup_fee || baseMonthlyRate * 0.2 || 0) || 0;
+            const taxRate = parseFloat(warehouse.tax_rate || 0.08) || 0;
+            const totalArea = parseFloat(warehouse.total_area || 1) || 1;
+
             const spaceUtilization = Math.min(requiredSpace / totalArea, 1);
-            
-            // Adjust monthly rate based on space utilization
-            const adjustedMonthlyRate = baseMonthlyRate * spaceUtilization;
-            
-            if (DEBUG_PRICING) console.log('Space calculation:', {
-                requiredSpace,
-                totalArea,
-                spaceUtilization,
-                adjustedMonthlyRate
-            });
-            
-            // Calculate additional services cost
-            let addOnsCost = 0;
-            if (bookingDataToUse.climate_controlled || bookingDataToUse.storage_type?.toLowerCase().includes('climate')) {
-                addOnsCost = 50; // Climate control add-on per month
-            }
-            
-            // Calculate pricing breakdown
-            const monthlyRate = adjustedMonthlyRate;
+            const monthlyRate = baseMonthlyRate * spaceUtilization;
+            const addOnsCost = 0;
             const monthlyTotal = monthlyRate + addOnsCost;
-            const subtotal = monthlyTotal * duration; // Only monthly charges for subtotal
-            const taxAmount = subtotal * taxRate; // Tax only on monthly charges
+            const subtotal = monthlyTotal * durationMonths;
+            const taxAmount = subtotal * taxRate;
             const totalBeforeFees = subtotal + taxAmount;
             const finalAmount = totalBeforeFees + securityDeposit + setupFee;
-            
+
             const calculatedPricing = {
                 monthly_rate: monthlyRate,
                 security_deposit: securityDeposit,
@@ -355,16 +341,18 @@ const WarehouseCheckoutContent = () => {
                 tax_rate: taxRate,
                 add_ons_cost: addOnsCost,
                 monthly_total: monthlyTotal,
-                duration: duration,
-                subtotal: subtotal,
-                total_amount: totalBeforeFees,
+                subtotal,
                 tax_amount: taxAmount,
+                total_amount: totalBeforeFees,
                 final_amount: finalAmount,
-                space_utilization: spaceUtilization
+                duration: durationMonths,
+                duration_months: durationMonths,
+                space_utilization: spaceUtilization,
+                required_space: requiredSpace
             };
-            
+
             if (DEBUG_PRICING) console.log('Calculated pricing:', calculatedPricing);
-            
+
             setPricingDetails(calculatedPricing);
         } catch (error) {
             console.error('Error calculating pricing:', error);
@@ -373,13 +361,16 @@ const WarehouseCheckoutContent = () => {
                 security_deposit: 0,
                 setup_fee: 0,
                 tax_rate: 0,
+                add_ons_cost: 0,
+                monthly_total: 0,
                 subtotal: 0,
                 tax_amount: 0,
                 total_amount: 0,
                 final_amount: 0,
-                add_ons_cost: 0,
-                monthly_total: 0,
-                duration: 1
+                duration: 1,
+                duration_months: 1,
+                space_utilization: 0,
+                required_space: 0
             });
         }
     };
@@ -390,21 +381,24 @@ const WarehouseCheckoutContent = () => {
      * @param {string} durationStr - Duration string like "1 Month", "6 Months"
      * @returns {number} Number of months
      */
-    const parseDuration = (durationStr) => {
-        if (!durationStr) return 1;
-        
-        const match = durationStr.match(/(\d+)\s*(month|months)/i);
-        if (match) {
-            return parseInt(match[1]);
+    const parseDuration = (duration) => {
+        if (duration === null || duration === undefined || duration === '') {
+            return 1;
         }
-        
-        // Handle other duration formats
-        if (durationStr.toLowerCase().includes('week')) {
-            const weekMatch = durationStr.match(/(\d+)\s*week/i);
-            return weekMatch ? Math.ceil(parseInt(weekMatch[1]) / 4) : 1;
+
+        if (typeof duration === 'number' && Number.isFinite(duration)) {
+            return Math.max(1, Math.floor(duration));
         }
-        
-        return 1; // Default to 1 month
+
+        const value = String(duration).trim();
+        if (!value) return 1;
+
+        if (!Number.isNaN(Number(value))) {
+            return Math.max(1, parseInt(value, 10));
+        }
+
+        const match = value.match(/(\d+)/);
+        return match ? Math.max(1, parseInt(match[1], 10)) : 1;
     };
     
     /**

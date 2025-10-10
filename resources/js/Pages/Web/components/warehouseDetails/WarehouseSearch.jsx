@@ -640,7 +640,7 @@ const WarehouseSearch = () => {
                 className="appearance-none w-full h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
               />
             </div>
-
+ 
             {/* Move-in Date */}
             <div>
               <label htmlFor="moveinDate" className="block mb-3">

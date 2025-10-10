@@ -5,11 +5,29 @@ import 'react-toastify/dist/ReactToastify.css';
 import Header from "../../layouts/Header";
 import Footer from "../../layouts/Footer";
 
+const INITIAL_PRICING_STATE = {
+    monthly_rate: 0,
+    security_deposit: 0,
+    setup_fee: 0,
+    tax_rate: 0,
+    add_ons_cost: 0,
+    monthly_total: 0,
+    subtotal: 0,
+    tax_amount: 0,
+    total_amount: 0,
+    final_amount: 0,
+    duration: 1,
+    duration_months: 1,
+    space_utilization: 0,
+    required_space: 0
+};
+
 const BookingSummary = ({ booking }) => {
     const [bookingData, setBookingData] = useState(null);
     const [warehouseData, setWarehouseData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [pricingDetails, setPricingDetails] = useState(INITIAL_PRICING_STATE);
     
     useEffect(() => {
         const fetchBookingDetails = async () => {
@@ -75,6 +93,143 @@ const BookingSummary = ({ booking }) => {
         
         fetchBookingDetails();
     }, [booking]);
+
+    const parseDuration = (duration) => {
+        if (duration === null || duration === undefined || duration === '') {
+            return 1;
+        }
+
+        if (typeof duration === 'number' && Number.isFinite(duration)) {
+            return Math.max(1, Math.floor(duration));
+        }
+
+        const value = String(duration).trim();
+        if (!value) return 1;
+
+        if (!Number.isNaN(Number(value))) {
+            return Math.max(1, parseInt(value, 10));
+        }
+
+        const match = value.match(/(\d+)/);
+        return match ? Math.max(1, parseInt(match[1], 10)) : 1;
+    };
+
+    const calculatePricing = (warehouse = null, bookingContext = null) => {
+        const currentBooking = bookingContext || bookingData;
+        const currentWarehouse = warehouse || warehouseData;
+
+        if (!currentBooking && !currentWarehouse) {
+            setPricingDetails(INITIAL_PRICING_STATE);
+            return;
+        }
+
+        try {
+            const durationMonths = parseDuration(
+                currentBooking?.storage_duration ??
+                currentBooking?.duration_months ??
+                currentWarehouse?.default_duration ??
+                1
+            );
+
+            const rawRequiredSpace = Number(currentBooking?.required_space);
+            const fallbackSpace = Number(
+                currentBooking?.available_space ??
+                currentWarehouse?.available_space ??
+                currentWarehouse?.total_area ??
+                0
+            );
+            const requiredSpace = Number.isFinite(rawRequiredSpace) && rawRequiredSpace > 0
+                ? rawRequiredSpace
+                : Math.max(fallbackSpace, 0);
+
+            const baseMonthlyRate = parseFloat(
+                currentBooking?.monthly_rate ??
+                currentWarehouse?.monthly_rate ??
+                currentWarehouse?.price ??
+                currentWarehouse?.base_price ??
+                0
+            ) || 0;
+
+            const securityDeposit = parseFloat(
+                currentBooking?.security_deposit ??
+                currentWarehouse?.security_deposit ??
+                (baseMonthlyRate * 0.5) ??
+                0
+            ) || 0;
+
+            const setupFee = parseFloat(
+                currentBooking?.setup_fee ??
+                currentWarehouse?.setup_fee ??
+                (baseMonthlyRate * 0.2) ??
+                0
+            ) || 0;
+
+            const resolveTaxRate = (rate) => {
+                if (rate === null || rate === undefined) {
+                    return 0.08;
+                }
+                const normalized = typeof rate === 'string' ? rate.replace(/[^0-9.]/g, '') : rate;
+                const numeric = Number(normalized);
+                if (!Number.isFinite(numeric)) {
+                    return 0;
+                }
+                return numeric > 1 ? numeric / 100 : numeric;
+            };
+
+            const taxRate = resolveTaxRate(
+                currentBooking?.tax_rate ??
+                currentWarehouse?.tax_rate
+            );
+
+            const totalArea = parseFloat(
+                currentWarehouse?.total_area ??
+                currentBooking?.total_area ??
+                (requiredSpace || 1)
+            ) || 1;
+
+            const addOnsCost = Number(currentBooking?.add_ons_cost) || 0;
+
+            const spaceUtilization = Math.min(requiredSpace / totalArea, 1);
+            const monthlyRate = baseMonthlyRate * spaceUtilization;
+            const monthlyTotal = monthlyRate + addOnsCost;
+            const subtotal = monthlyTotal * durationMonths;
+            const taxAmount = subtotal * taxRate;
+            const totalBeforeFees = subtotal + taxAmount;
+            const finalAmount = totalBeforeFees + securityDeposit + setupFee;
+
+            setPricingDetails({
+                monthly_rate: monthlyRate,
+                security_deposit: securityDeposit,
+                setup_fee: setupFee,
+                tax_rate: taxRate,
+                add_ons_cost: addOnsCost,
+                monthly_total: monthlyTotal,
+                subtotal,
+                tax_amount: taxAmount,
+                total_amount: totalBeforeFees,
+                final_amount: finalAmount,
+                duration: durationMonths,
+                duration_months: durationMonths,
+                space_utilization: spaceUtilization,
+                required_space: requiredSpace
+            });
+        } catch (pricingError) {
+            console.error('Error calculating pricing summary:', pricingError);
+            setPricingDetails(INITIAL_PRICING_STATE);
+        }
+    };
+
+    useEffect(() => {
+        if (!bookingData && !warehouseData) {
+            setPricingDetails(INITIAL_PRICING_STATE);
+            return;
+        }
+
+        calculatePricing(warehouseData, bookingData);
+    }, [bookingData, warehouseData]);
+
+    const monthlyDue = pricingDetails.monthly_total || (pricingDetails.monthly_rate + pricingDetails.add_ons_cost);
+    const initialPaymentDue = (monthlyDue || 0) + (pricingDetails.security_deposit || 0) + (pricingDetails.setup_fee || 0);
 
     const handleBackToHome = () => {
         router.visit("/warehouseList", {
@@ -446,7 +601,7 @@ const BookingSummary = ({ booking }) => {
                                         </div>
                                         <div>
                                             <h3 className="text-[14px] font-semibold text-gray-700">Total Amount</h3>
-                                            <p className="text-[16px] font-semibold">{formatCurrency(bookingData.final_amount || bookingData.total_amount || 0)}</p>
+                                            <p className="text-[16px] font-semibold">{formatCurrency(pricingDetails.final_amount || bookingData?.final_amount || bookingData?.total_amount || 0)}</p>
                                         </div>
                                         {bookingData.transaction_reference && (
                                             <div>
@@ -471,111 +626,168 @@ const BookingSummary = ({ booking }) => {
                                     </h1>
 
                                     <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-6 px-6">
-                                        <h1 className="font-[600] mb-4 text-[#000000D9]">
-                                            Pricing Breakdown
-                                        </h1>
+                                        <h1 className="font-[600] mb-4 text-[#000000D9]">Pricing Breakdown</h1>
                                         <div className="w-full h-[1px] bg-[#CDD0D4]" />
+
                                         <div className="flex flex-col md:flex-row justify-between w-full px-4 py-4 font-[500]">
                                             <div>
-                                                <h1 className="text-[#000000CC]">
-                                                    Monthly Storage Rate
-                                                </h1>
+                                                <h1 className="text-[#000000CC]">Monthly Storage Rate</h1>
                                                 <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                                    <h1>{formatCurrency(bookingData.monthly_rate || 0)}/month</h1>
+                                                    <h1>{formatCurrency(pricingDetails.monthly_rate)}/month</h1>
                                                     <h1 className="text-[#0955AC]">
-                                                        (x{bookingData.duration_months || 1} month{(bookingData.duration_months || 1) > 1 ? 's' : ''})
+                                                        ({pricingDetails.duration || 1} month{(pricingDetails.duration || 1) > 1 ? 's' : ''})
                                                     </h1>
                                                 </div>
                                             </div>
-                                            <div className="text-[#000000CC]">
-                                                {formatCurrency((bookingData.monthly_rate || 0) * (bookingData.duration_months || 1))}
-                                            </div>
+                                            <div className="text-[#000000CC]">{formatCurrency(pricingDetails.subtotal)}</div>
                                         </div>
-                                        <div className="flex flex-col md:flex-row justify-between w-full px-4 font-[500]">
-                                            <div>
-                                                <h1 className="text-[#000000CC]">
-                                                    Long-term discount
-                                                </h1>
-                                                <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
-                                                    <h1>6+ month discount</h1>
-                                                    <h1 className="text-[#0955AC]">
-                                                        (5%)
-                                                    </h1>
-                                                </div>
-                                            </div>
-                                            <div className="text-[#000000CC]">
-                                                -$255
-                                            </div>
-                                        </div>
-                                        {(bookingData.security_deposit && bookingData.security_deposit > 0) && (
-                                            <div className="flex flex-col md:flex-row justify-between w-full px-4 py-4 font-[500]">
+
+                                        {pricingDetails.security_deposit > 0 && (
+                                            <div className="flex flex-col md:flex-row justify-between w-full px-4 font-[500]">
                                                 <div>
-                                                    <h1 className="text-[#000000CC]">
-                                                        Security Deposit
-                                                    </h1>
+                                                    <h1 className="text-[#000000CC]">Security Deposit</h1>
                                                     <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
                                                         <h1>Refundable deposit</h1>
-                                                        <h1 className="text-[#0955AC]">
-                                                            (One-time)
-                                                        </h1>
+                                                        <h1 className="text-[#0955AC]">(One-time)</h1>
                                                     </div>
                                                 </div>
-                                                <div className="text-[#000000CC]">
-                                                    {formatCurrency(bookingData.security_deposit)}
-                                                </div>
+                                                <div className="text-[#000000CC]">{formatCurrency(pricingDetails.security_deposit)}</div>
                                             </div>
                                         )}
-                                        <div className="w-full h-[1px] bg-[#CDD0D4]" />
 
-                                        <h1 className="font-[600] mt-4 text-[#000000D9]">
-                                            Add Extras
-                                        </h1>
-
-                                        {/* checkbox section */}
-                                        <div className="flex flex-col justify-center text-[12px] font-[500] mt-4">
-                                            <div className="flex flex-col md:flex-row justify-between w-full px-4">
-                                                <div className="flex flex-row md:justify-center items-center gap-4">
-                                                    <h1>Climate Control</h1>
+                                        {pricingDetails.setup_fee > 0 && (
+                                            <div className="flex flex-col md:flex-row justify-between w-full px-4 py-4 font-[500]">
+                                                <div>
+                                                    <h1 className="text-[#000000CC]">Setup Fee</h1>
+                                                    <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
+                                                        <h1>Initial setup and processing</h1>
+                                                        <h1 className="text-[#0955AC]">(One-time)</h1>
+                                                    </div>
                                                 </div>
-                                                <h1>$300 (6 months)</h1>
+                                                <div className="text-[#000000CC]">{formatCurrency(pricingDetails.setup_fee)}</div>
                                             </div>
-                                            <div className="flex flex-col md:flex-row justify-between w-full px-4 mt-2">
-                                                <div className="flex flex-row md:justify-center items-center gap-4">
-                                                    <h1>Insurance Coverage</h1>
+                                        )}
+
+                                        {pricingDetails.add_ons_cost > 0 && (
+                                            <div className="flex flex-col md:flex-row justify-between w-full px-4 py-4 font-[500]">
+                                                <div>
+                                                    <h1 className="text-[#000000CC]">Add-ons</h1>
+                                                    <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
+                                                        <h1>Additional services</h1>
+                                                        <h1 className="text-[#0955AC]">(Monthly)</h1>
+                                                    </div>
                                                 </div>
-                                                <h1>Included</h1>
+                                                <div className="text-[#000000CC]">+{formatCurrency(pricingDetails.add_ons_cost * pricingDetails.duration)}</div>
+                                            </div>
+                                        )}
+
+                                        {pricingDetails.tax_amount > 0 && (
+                                            <div className="flex flex-col md:flex-row justify-between w-full px-4 py-4 font-[500]">
+                                                <div>
+                                                    <h1 className="text-[#000000CC]">Tax</h1>
+                                                    <div className="flex flex-col md:flex-row gap-3 text-[#00000061]">
+                                                        <h1>VAT and other taxes</h1>
+                                                        <h1 className="text-[#0955AC]">({((pricingDetails.tax_rate || 0) * 100).toFixed(1)}%)</h1>
+                                                    </div>
+                                                </div>
+                                                <div className="text-[#000000CC]">{formatCurrency(pricingDetails.tax_amount)}</div>
+                                            </div>
+                                        )}
+
+                                        <div className="w-full h-[1px] bg-[#CDD0D4] my-4" />
+
+                                        {pricingDetails.required_space > 0 && warehouseData?.total_area && (
+                                            <div className="bg-blue-50 p-3 rounded mb-4">
+                                                <h2 className="text-[11px] font-[600] text-blue-800 mb-1">Space Utilization</h2>
+                                                <p className="text-[10px] text-blue-600">
+                                                    {`Using ${(pricingDetails.space_utilization * 100).toFixed(1)}% of total capacity (${formatSqFt(pricingDetails.required_space)} / ${formatSqFt(warehouseData.total_area)} sq ft)`}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        <h1 className="font-[600] text-[#000000D9]">Payment Summary</h1>
+
+                                        <div className="bg-gray-50 p-4 rounded my-4">
+                                            <h2 className="text-[11px] font-[600] text-gray-800 mb-3">Monthly Charges</h2>
+                                            <div className="space-y-2 text-[10px]">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600">Base Monthly Rate</span>
+                                                    <span className="font-[500]">{formatCurrency(pricingDetails.monthly_rate)}</span>
+                                                </div>
+                                                {pricingDetails.add_ons_cost > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">Add-ons</span>
+                                                        <span className="font-[500]">+{formatCurrency(pricingDetails.add_ons_cost)}</span>
+                                                    </div>
+                                                )}
+                                                <div className="border-t pt-2 flex justify-between font-[600]">
+                                                    <span>Monthly Subtotal</span>
+                                                    <span>{formatCurrency(monthlyDue || 0)}</span>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="w-full h-[1px] bg-[#CDD0D4] mt-4" />
-
-                                        <div className="flex flex-col md:flex-row justify-between w-full px-4 py-4 font-[500]">
-                                            <div>
-                                                <h1 className="text-[#000000CC]">
-                                                    Initial Payment
-                                                </h1>
-                                                <div className="flex flex-col md:flex-row gap-3 text-[#00000061] mt-3">
-                                                    <h1>Setup + First Month</h1>
+                                        <div className="bg-yellow-50 p-4 rounded mb-4">
+                                            <h2 className="text-[11px] font-[600] text-yellow-800 mb-3">One-time Charges</h2>
+                                            <div className="space-y-2 text-[10px]">
+                                                {pricingDetails.security_deposit > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-yellow-700">Security Deposit (Refundable)</span>
+                                                        <span className="font-[500]">{formatCurrency(pricingDetails.security_deposit)}</span>
+                                                    </div>
+                                                )}
+                                                {pricingDetails.setup_fee > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-yellow-700">Setup & Processing Fee</span>
+                                                        <span className="font-[500]">{formatCurrency(pricingDetails.setup_fee)}</span>
+                                                    </div>
+                                                )}
+                                                <div className="border-t pt-2 flex justify-between font-[600]">
+                                                    <span>One-time Total</span>
+                                                    <span>{formatCurrency((pricingDetails.security_deposit || 0) + (pricingDetails.setup_fee || 0))}</span>
                                                 </div>
-                                            </div>
-                                            <div className="text-[#000000CC] text-[12px] font-[500]">
-                                                $1050
                                             </div>
                                         </div>
 
                                         <div className="flex flex-col md:flex-row justify-between w-full px-4 pb-4 font-[500]">
                                             <div>
-                                                <h1 className="text-[#000000CC]">
-                                                    Total Contract Value
-                                                </h1>
+                                                <h1 className="text-[#000000CC]">Initial Payment Due</h1>
                                                 <div className="flex flex-col md:flex-row gap-3 text-[#00000061] mt-3">
-                                                    <h1>Including all fees and taxes</h1>
-                                                    <h1 className="text-[#0955AC]">({bookingData.duration_months || 1} month{(bookingData.duration_months || 1) > 1 ? 's' : ''})</h1>
+                                                    <h1>First month + one-time fees</h1>
                                                 </div>
                                             </div>
-                                            <div className="text-[#000000CC] text-[16px] font-[700]">
-                                                {formatCurrency(bookingData.final_amount || bookingData.total_amount || 0)}
+                                            <div className="text-[#000000CC] text-[12px] font-[600]">
+                                                {formatCurrency(initialPaymentDue)}
                                             </div>
+                                        </div>
+
+                                        <div className="bg-green-50 p-4 rounded mb-4">
+                                            <h2 className="text-[11px] font-[600] text-green-800 mb-3">Contract Summary ({pricingDetails.duration || 1} Month{(pricingDetails.duration || 1) > 1 ? 's' : ''})</h2>
+                                            <div className="space-y-2 text-[10px]">
+                                                <div className="flex justify-between">
+                                                    <span className="text-green-700">Total Monthly Charges</span>
+                                                    <span className="font-[500]">{formatCurrency(pricingDetails.subtotal)}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-green-700">Tax ({((pricingDetails.tax_rate || 0) * 100).toFixed(1)}%)</span>
+                                                    <span className="font-[500]">{formatCurrency(pricingDetails.tax_amount)}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-green-700">One-time Fees</span>
+                                                    <span className="font-[500]">{formatCurrency((pricingDetails.security_deposit || 0) + (pricingDetails.setup_fee || 0))}</span>
+                                                </div>
+                                                <div className="border-t-2 border-green-300 pt-2 flex justify-between font-[700] text-[12px]">
+                                                    <span>Total Contract Value</span>
+                                                    <span className="text-green-800">{formatCurrency(pricingDetails.final_amount)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="relative flex flex-col md:flex-row items-start justify-start px-4">
+                                            <span className="absolute top-[5px] left-[20px] w-[2px] h-[2px] bg-[#0955AC] rounded-full" />
+                                            <p className="text-[8.5px] text-[#00000061] ml-4">
+                                                Pricing reflects your booking selections. Final charges may adjust if booking details change.
+                                            </p>
                                         </div>
                                     </div>
 
