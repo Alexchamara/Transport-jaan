@@ -38,7 +38,7 @@ const normalizeStatus = (status) =>
     (status || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const fallbackImage =
-    "https://via.placeholder.com/640x400?text=Warehouse+Preview";
+    "https://placehold.co/640x400?text=Warehouse%20Preview";
 
 const iconForType = (type) => {
     const value = (type || "").toLowerCase();
@@ -133,6 +133,7 @@ const Hero = () => {
     const recentActivity = dashboard?.recentActivity ?? [];
     const recommended = dashboard?.recommended ?? [];
     const wishlist = dashboard?.wishlist ?? [];
+    const upcoming = dashboard?.upcoming ?? [];
     const billing = dashboard?.billing ?? {};
     const documents = dashboard?.documents ?? [];
     const filtersData = dashboard?.filters ?? {
@@ -153,7 +154,7 @@ const Hero = () => {
             }
         }
 
-    return "/api/warehouse/like-toggle";
+        return "/api/warehouse/like-toggle";
     };
 
     const filteredWarehouses = useMemo(() => {
@@ -432,13 +433,13 @@ const Hero = () => {
                             >
                                 View details
                             </button>
-                            <button
+                            {/* <button
                                 onClick={() => router.visit(route("warehouse-bookings.checkout"))}
                                 className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#0955AC] text-sm font-semibold text-white transition hover:bg-[#084a97]"
                             >
                                 Start booking
                                 <ChevronRight className="ml-2 h-4 w-4" />
-                            </button>
+                            </button> */}
                         </div>
                     </div>
                 </div>
@@ -702,7 +703,7 @@ const Hero = () => {
                                 </div>
                                 <button
                                     onClick={() => router.visit(route("warehouse-bookings.list"))}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                                    className="inline-flex itemsCenter gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
                                 >
                                     Manage all
                                     <ChevronRight className="h-3 w-3" />
