@@ -137,6 +137,7 @@ const VehicleCheckoutContent = () => {
     const phoneOk = /^\+?\d{7,15}$/.test(cleanedPhone);
     const ageNum = age === "" ? "" : Number(age);
     const zipOk = /^\d{5}$/.test(zip);
+    const cityOk = /^[A-Za-z\s]+$/.test(city.trim());
 
     if (!firstName.trim()) e.firstName = "First name is required.";
     if (!lastName.trim()) e.lastName = "Last name is required.";
@@ -145,6 +146,7 @@ const VehicleCheckoutContent = () => {
     if (!address.trim()) e.address = "Address is required.";
     if (age !== "" && (Number.isNaN(ageNum) || ageNum < 20 || ageNum > 120)) e.age = "Age must be 21-120.";
      if (!zip.trim() || !zipOk) e.zip = "Zip code must be exactly 5 digits.";
+    if (city.trim() && !cityOk) e.city = "City can only contain letters and spaces.";
     setErrors(e);
     return { ok: Object.keys(e).length === 0, cleanedPhone };
   };
@@ -372,6 +374,7 @@ const VehicleCheckoutContent = () => {
                       placeholder="Colombo 03"
                     />
                   </div>
+                  {errors.city && <p className="text-[10px] text-red-600 mt-1">{errors.city}</p>}
                 </div>
                <div>
                   <label className="text-[10px]/[24px] font-[600]">Zip Code :</label>
