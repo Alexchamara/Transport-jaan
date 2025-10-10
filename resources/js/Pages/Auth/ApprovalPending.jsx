@@ -1,65 +1,55 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
 
 export default function ApprovalPending() {
-    // Function to refresh CSRF token
-    const refreshCSRFToken = async () => {
-        try {
-            const response = await fetch('/csrf-token');
-            const data = await response.json();
-            const metaTag = document.querySelector('meta[name="csrf-token"]');
-            if (metaTag) {
-                metaTag.setAttribute('content', data.token);
-            }
-            return data.token;
-        } catch (error) {
-            console.error('Failed to refresh CSRF token:', error);
-            return null;
-        }
-    };
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const handleLogout = async (e) => {
+    // Auto-refresh the page EVERY time it's visited to prevent stale CSRF token
+    useEffect(() => {
+        // Use a URL parameter to track if we just refreshed
+        const urlParams = new URLSearchParams(window.location.search);
+        const justRefreshed = urlParams.get('refreshed');
+
+        if (!justRefreshed) {
+            // Show loader and refresh with parameter
+            setIsRefreshing(true);
+            setTimeout(() => {
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('refreshed', '1');
+                window.location.href = currentUrl.toString();
+            }, 500);
+        }
+    }, []);
+
+    const handleLogout = (e) => {
         e.preventDefault();
 
-        // First attempt: regular POST logout
-        const attemptLogout = () => {
-            router.post(route('logout'), {}, {
-                onError: async (errors) => {
-                    console.warn('POST logout failed, trying to refresh CSRF token...', errors);
-
-                    // Check if it's a CSRF error
-                    if (errors && (errors.message?.includes('CSRF') || errors.message?.includes('expired'))) {
-                        // Try to refresh CSRF token and retry once
-                        const newToken = await refreshCSRFToken();
-                        if (newToken) {
-                            // Retry with fresh token
-                            router.post(route('logout'), {}, {
-                                onError: () => {
-                                    // If still fails, use alternative method
-                                    console.warn('Retried logout failed, using alternative method...');
-                                    window.location.href = route('logout.alt');
-                                },
-                                onSuccess: () => {
-                                    window.location.href = '/';
-                                }
-                            });
-                        } else {
-                            // Fallback to GET logout
-                            window.location.href = route('logout.alt');
-                        }
-                    } else {
-                        // Other errors, try alternative method
-                        window.location.href = route('logout.alt');
-                    }
-                },
-                onSuccess: () => {
-                    window.location.href = '/';
-                }
-            });
-        };
-
-        attemptLogout();
+        // Use router.post with preserveScroll to handle logout
+        router.post(route('logout'), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                window.location.href = '/';
+            },
+            onError: (errors) => {
+                console.error('Logout error:', errors);
+                // Force reload and try again if there's an error
+                window.location.href = route('logout');
+            }
+        });
     };
+
+    // Simple loader overlay
+    if (isRefreshing) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+                <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                    <p className="mt-4 text-gray-600 text-sm">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <>
             <Head title="Approval Pending" />
