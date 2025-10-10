@@ -135,7 +135,7 @@ const VehicleCheckoutContent = () => {
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
     const cleanedPhone = String(phone).replace(/[^\d+]/g, "");
     const phoneOk = /^\+?\d{7,15}$/.test(cleanedPhone);
-    const ageNum = age === "" ? "" : Number(age);
+    const ageNum =  Number(age);
     const zipOk = /^\d{5}$/.test(zip);
     const cityOk = /^[A-Za-z\s]+$/.test(city.trim());
 
@@ -144,9 +144,11 @@ const VehicleCheckoutContent = () => {
     if (!email.trim() || !emailOk) e.email = "Enter a valid email.";
     if (!phoneOk) e.phone = "Enter a valid phone number (7–15 digits, optional +).";
     if (!address.trim()) e.address = "Address is required.";
-    if (age !== "" && (Number.isNaN(ageNum) || ageNum < 20 || ageNum > 120)) e.age = "Age must be 21-120.";
      if (!zip.trim() || !zipOk) e.zip = "Zip code must be exactly 5 digits.";
     if (city.trim() && !cityOk) e.city = "City can only contain letters and spaces.";
+   if (!age.trim()) {e.age = "Age is required.";} else if (Number.isNaN(ageNum) || ageNum < 21 || !Number.isInteger(ageNum)) {
+    e.age = "Age must be a whole number ≥ 21.";
+  }
     setErrors(e);
     return { ok: Object.keys(e).length === 0, cleanedPhone };
   };
@@ -343,27 +345,26 @@ const VehicleCheckoutContent = () => {
 
               <div className="flex flex-col lg:flex-row justify-between">
                 <div>
-                  <label className="text-[10px]/[24px] font-[600]">Age :</label>
-                  <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                  <input
+                    <label className="text-[10px]/[24px] font-[600]">Age :</label>
+                    <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                      <input
+                        type="number"
                         value={age}
                         onChange={(e) => {
-                          const value = e.target.value;
-                          setAge(value);
-
-                          // validation
-                          if (parseInt(value) < 21) {
-                            setErrors((prev) => ({ ...prev, age: "Age must be greater than 21" }));
-                          } else {
-                            setErrors((prev) => ({ ...prev, age: null }));
-                          }
+                          const val = e.target.value;
+                          // remove decimals if entered
+                          const whole = val.includes('.') ? val.split('.')[0] : val;
+                          setAge(whole);
                         }}
+                        min={21}
+                        step={1} // allows only whole numbers
                         className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                        placeholder="18 - 25"
+                        placeholder="21"
                       />
-                  </div>
-                  {errors.age && <p className="text-[10px] text-red-600 mt-1">{errors.age}</p>}
+                    </div>
+                    {errors.age && <p className="text-[10px] text-red-600 mt-1">{errors.age}</p>}
                 </div>
+
                 <div>
                   <label className="text-[10px]/[24px] font-[600]">City :</label>
                   <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
