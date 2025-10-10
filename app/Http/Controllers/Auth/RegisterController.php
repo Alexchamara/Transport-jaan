@@ -57,6 +57,7 @@ class RegisterController extends Controller
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
                 'role' => $validated['role_type'],
+                'status' => $validated['role_type'] === 'client' ? 'verified' : 'unverified',
                 'phone' => $validated['phone'],
                 'address' => $validated['address'] ?? null,
                 'country' => $validated['country'] ?? null,

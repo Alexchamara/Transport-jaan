@@ -45,6 +45,7 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role_type,
+            'status' => $request->role_type === 'client' ? 'verified' : 'unverified',
             'phone' => $request->phone,
             'address' => $request->address,
             'country' => $request->country,
