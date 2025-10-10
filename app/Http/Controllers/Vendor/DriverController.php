@@ -53,7 +53,7 @@ class DriverController extends Controller
             'license_no'     => ['required', 'string', 'max:100', 'regex:/^[A-Z0-9\-\/\s]{5,20}$/i'],
             'license_expiry' => 'nullable|date',
             'vehicle_type'   => 'required|string|max:100',
-            'vehicle_no'     => 'required|string|max:100',
+            'vehicle_no'     => ['required', 'string', 'max:100', 'regex:/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i'],
             'status'         => ['nullable', Rule::in(['Active','Inactive'])],
             'address'        => 'nullable|string',
             'notes'          => 'nullable|string',
@@ -62,6 +62,7 @@ class DriverController extends Controller
         ], [
             'phone.regex' => 'Phone number format is invalid. Use format: +94 77 123 4567 or 0771234567',
             'license_no.regex' => 'License number format is invalid. Use letters, numbers, hyphens, or slashes (e.g., B1234567 or DL/2023/12345)',
+            'vehicle_no.regex' => 'Vehicle number format is invalid. Use format: WP ABC-1234 or CAA-1234',
         ]);
 
         if ($request->hasFile('license_photo')) {
@@ -89,7 +90,7 @@ class DriverController extends Controller
             'license_no'     => ['sometimes', 'required', 'string', 'max:100', 'regex:/^[A-Z0-9\-\/\s]{5,20}$/i'],
             'license_expiry' => 'nullable|date',
             'vehicle_type'   => 'sometimes|required|string|max:100',
-            'vehicle_no'     => 'sometimes|required|string|max:100',
+            'vehicle_no'     => ['sometimes', 'required', 'string', 'max:100', 'regex:/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i'],
             'status'         => ['nullable', Rule::in(['Active','Inactive'])],
             'address'        => 'nullable|string',
             'notes'          => 'nullable|string',
@@ -97,6 +98,7 @@ class DriverController extends Controller
             'nic_photo'      => 'nullable|image|max:4096',
         ], [
             'license_no.regex' => 'License number format is invalid. Use letters, numbers, hyphens, or slashes (e.g., B1234567 or DL/2023/12345)',
+            'vehicle_no.regex' => 'Vehicle number format is invalid. Use format: WP ABC-1234 or CAA-1234',
         ]);
 
         if ($request->hasFile('license_photo')) {

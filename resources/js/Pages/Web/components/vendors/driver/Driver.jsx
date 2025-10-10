@@ -203,7 +203,18 @@ export default function Driver() {
     }
 
     if (!form.vehicle_type.trim()) e.vehicle_type = "Vehicle type is required";
-    if (!form.vehicle_no.trim()) e.vehicle_no = "Vehicle no. is required";
+
+    // Vehicle number validation
+    if (!form.vehicle_no.trim()) {
+      e.vehicle_no = "Vehicle no. is required";
+    } else {
+      // Format: 1-3 letters, optional space/hyphen, 1-4 letters/numbers, optional space/hyphen, 1-4 numbers
+      // Examples: WP ABC-1234, CAA-1234, KA 01 AB 1234
+      if (!/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i.test(form.vehicle_no)) {
+        e.vehicle_no = "Invalid vehicle number format. Use: WP ABC-1234 or CAA-1234";
+      }
+    }
+
     if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) e.email = "Invalid email";
 
     const needsLicense = !editing || (editing && form.license_photo instanceof File);
@@ -311,7 +322,21 @@ export default function Driver() {
     if (errors.license_no) {
       setErrors({ ...errors, license_no: '' });
     }
-  };  const ImageInput = ({ label, field, urlField, requiredText, kind }) => {
+  };
+
+  // Helper function to handle vehicle number input
+  const handleVehicleNoChange = (value) => {
+    // Allow only letters, numbers, hyphens, and spaces
+    const sanitized = value.replace(/[^A-Za-z0-9\-\s]/g, '').toUpperCase();
+    setForm({ ...form, vehicle_no: sanitized });
+
+    // Clear error if user starts typing
+    if (errors.vehicle_no) {
+      setErrors({ ...errors, vehicle_no: '' });
+    }
+  };
+
+  const ImageInput = ({ label, field, urlField, requiredText, kind }) => {
     const file = form[field];
     const hasExisting = !!form[urlField] || !!editing;
     const previewSrc = file
@@ -510,12 +535,17 @@ export default function Driver() {
               <div className="space-y-1">
                 <Label>Vehicle No. <Req /></Label>
                 <input
+                  type="text"
                   className={inputClasses(!!errors.vehicle_no)}
                   value={form.vehicle_no}
-                  onChange={(e) => setForm({ ...form, vehicle_no: e.target.value })}
-                  placeholder="WP ABC-1234"
+                  onChange={(e) => handleVehicleNoChange(e.target.value)}
+                  placeholder="WP ABC-1234 or CAA-1234"
+                  maxLength="20"
                 />
                 {errors.vehicle_no && <span className="text-red-500 text-xs">{errors.vehicle_no}</span>}
+                {!errors.vehicle_no && form.vehicle_no && (
+                  <span className="text-gray-500 text-xs">Format: Province Code + Letters/Numbers (e.g., WP ABC-1234)</span>
+                )}
               </div>
 
               <div className="space-y-1">
