@@ -457,7 +457,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                 ))}
                             </div>
                         </div>
-                        <div className="absolute md:bottom-20 bottom-5 right-10 z-[80] flex items-center justify-end gap-3 pointer-events-auto">
+                        <div className="absolute 2xl:bottom-2 md:bottom-20 bottom-5 right-10 z-[80] flex items-center justify-end gap-3 pointer-events-auto">
                             <button
                                 onClick={rotatePrev}
                                 className="md:w-12 md:h-12 w-8 h-8 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/60 border border-white/30 text-white text-xl font-bold backdrop-blur-md transition-all shadow-lg"
