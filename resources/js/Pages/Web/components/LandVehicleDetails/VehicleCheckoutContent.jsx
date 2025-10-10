@@ -140,9 +140,20 @@ const VehicleCheckoutContent = () => {
     const cityOk = /^[A-Za-z\s]+$/.test(city.trim());
     const addressTrimmed = address.trim();
     const addressOk = /^[A-Za-z0-9\s,.\-#/]+$/.test(addressTrimmed) && /[A-Za-z]/.test(addressTrimmed);
+    const nameRegex = /^[A-Za-z\s]+$/;
 
-    if (!firstName.trim()) e.firstName = "First name is required.";
-    if (!lastName.trim()) e.lastName = "Last name is required.";
+    if (!firstName.trim()) {
+      e.firstName = "First name is required.";
+    } else if (!nameRegex.test(firstName.trim())) {
+      e.firstName = "First name can only contain letters and spaces.";
+    }
+
+    if (!lastName.trim()) {
+      e.lastName = "Last name is required.";
+    } else if (!nameRegex.test(lastName.trim())) {
+      e.lastName = "Last name can only contain letters and spaces.";
+    }
+    
     if (!email.trim() || !emailOk) e.email = "Enter a valid email.";
     if (!phoneOk) e.phone = "Enter a valid phone number (7–15 digits, optional +).";
     if (!address.trim()) e.address = "Address is required.";
