@@ -14,6 +14,14 @@ class DriverController extends Controller
     {
         $query = Driver::query();
 
+        // Dedicated status filter
+        if ($status = $request->query('status')) {
+            if (in_array($status, ['Active', 'Inactive'], true)) {
+                $query->where('status', $status);
+            }
+        }
+
+        // General search across other fields (excluding status from general search)
         if ($search = $request->query('q')) {
             $query->where(function ($q) use ($search) {
                 $q->where('full_name', 'like', "%{$search}%")
@@ -21,8 +29,7 @@ class DriverController extends Controller
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('license_no', 'like', "%{$search}%")
                   ->orWhere('vehicle_no', 'like', "%{$search}%")
-                  ->orWhere('vehicle_type', 'like', "%{$search}%")
-                  ->orWhere('status', 'like', "%{$search}%");
+                  ->orWhere('vehicle_type', 'like', "%{$search}%");
             });
         }
 

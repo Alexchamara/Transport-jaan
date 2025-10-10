@@ -124,8 +124,8 @@ export default function Driver() {
   }
 
   const api = {
-    list: (q, sort, dir, page, per_page) =>
-      http("GET", "/drivers", null, { q, sort, dir, page, per_page }),
+    list: (q, status, sort, dir, page, per_page) =>
+      http("GET", "/drivers", null, { q, status, sort, dir, page, per_page }),
     create: (payload) => http("POST", "/drivers", toFormData(payload)),
     update: (id, payload) => {
       const fd = toFormData(payload);
@@ -153,8 +153,8 @@ export default function Driver() {
   const fetchData = async (page = 1) => {
     setLoading(true);
     try {
-      const searchText = statusFilter === "All" ? "" : `${statusFilter}`;
-      const data = await api.list(searchText, sort.key, sort.dir, page, PAGE_SIZE);
+      const statusParam = statusFilter === "All" ? "" : statusFilter;
+      const data = await api.list(query, statusParam, sort.key, sort.dir, page, PAGE_SIZE);
       setRows(data.data);
       setMeta({ current_page: data.current_page, last_page: data.last_page, total: data.total });
     } finally {

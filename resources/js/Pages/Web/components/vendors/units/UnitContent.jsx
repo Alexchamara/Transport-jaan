@@ -584,12 +584,14 @@ const UnitContent = () => {
             </div>
           </div>
 
-          <button
-            className="w-[120px] h-[34px] bg-[#0955AC] text-[13px] rounded-[6px] text-white font-[700]"
-            onClick={handleAddUnitClick}
-          >
-            Add Unit
-          </button>
+          {!showAddUnit && (
+            <button
+              className="w-[120px] h-[34px] bg-[#0955AC] text-[13px] rounded-[6px] text-white font-[700]"
+              onClick={handleAddUnitClick}
+            >
+              Add Unit
+            </button>
+          )}
         </div>
       </div>
 
