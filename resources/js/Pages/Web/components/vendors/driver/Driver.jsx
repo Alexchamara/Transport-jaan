@@ -174,7 +174,24 @@ export default function Driver() {
   const validate = () => {
     const e = {};
     if (!form.full_name.trim()) e.full_name = "Name is required";
-    if (!form.phone.trim()) e.phone = "Phone is required";
+
+    // Phone validation
+    if (!form.phone.trim()) {
+      e.phone = "Phone is required";
+    } else {
+      // Remove spaces and special characters for validation
+      const cleanPhone = form.phone.replace(/[\s\-\(\)]/g, '');
+
+      // Check if it contains only digits and optional + at the start
+      if (!/^\+?\d+$/.test(cleanPhone)) {
+        e.phone = "Phone must contain only numbers (+ allowed at start)";
+      } else if (cleanPhone.length < 10) {
+        e.phone = "Phone number must be at least 10 digits";
+      } else if (cleanPhone.length > 15) {
+        e.phone = "Phone number must not exceed 15 digits";
+      }
+    }
+
     if (!form.license_no.trim()) e.license_no = "License no. is required";
     if (!form.vehicle_type.trim()) e.vehicle_type = "Vehicle type is required";
     if (!form.vehicle_no.trim()) e.vehicle_no = "Vehicle no. is required";
@@ -262,6 +279,18 @@ export default function Driver() {
   const Label = ({ children }) => (
     <label className="block text-[14px] font-medium text-gray-700">{children}</label>
   );
+
+  // Helper function to handle phone input
+  const handlePhoneChange = (value) => {
+    // Allow only numbers, +, spaces, hyphens, and parentheses
+    const sanitized = value.replace(/[^0-9+\s\-\(\)]/g, '');
+    setForm({ ...form, phone: sanitized });
+
+    // Clear error if user starts typing
+    if (errors.phone) {
+      setErrors({ ...errors, phone: '' });
+    }
+  };
 
   const ImageInput = ({ label, field, urlField, requiredText, kind }) => {
     const file = form[field];
@@ -397,12 +426,17 @@ export default function Driver() {
               <div className="space-y-1">
                 <Label>Phone <Req /></Label>
                 <input
+                  type="tel"
                   className={inputClasses(!!errors.phone)}
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
                   placeholder="+94 77 123 4567"
+                  maxLength="20"
                 />
                 {errors.phone && <span className="text-red-500 text-xs">{errors.phone}</span>}
+                {!errors.phone && form.phone && (
+                  <span className="text-gray-500 text-xs">Format: +94 77 123 4567 or 0771234567</span>
+                )}
               </div>
 
               <div className="space-y-1">

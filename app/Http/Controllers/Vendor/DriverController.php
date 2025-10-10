@@ -48,7 +48,7 @@ class DriverController extends Controller
     {
         $data = $request->validate([
             'full_name'      => 'required|string|max:255',
-            'phone'          => 'required|string|max:50',
+            'phone'          => ['required', 'string', 'max:10', 'regex:/^\+?[0-9\s\-\(\)]{10,20}$/'],
             'email'          => 'nullable|email|max:255',
             'license_no'     => 'required|string|max:100',
             'license_expiry' => 'nullable|date',
@@ -59,6 +59,8 @@ class DriverController extends Controller
             'notes'          => 'nullable|string',
             'license_photo'  => 'required|image|max:4096',
             'nic_photo'      => 'required|image|max:4096',
+        ], [
+            'phone.regex' => 'Phone number format is invalid. Use format: +94 77 123 4567 or 0771234567',
         ]);
 
         if ($request->hasFile('license_photo')) {
@@ -81,7 +83,7 @@ class DriverController extends Controller
     {
         $data = $request->validate([
             'full_name'      => 'sometimes|required|string|max:255',
-            'phone'          => 'sometimes|required|string|max:50',
+            'phone'          => ['sometimes', 'required', 'string', 'max:50', 'regex:/^\+?[0-9\s\-\(\)]{10,20}$/'],
             'email'          => 'nullable|email|max:255',
             'license_no'     => 'sometimes|required|string|max:100',
             'license_expiry' => 'nullable|date',
