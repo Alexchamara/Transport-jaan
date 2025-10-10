@@ -138,6 +138,9 @@ Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->nam
 Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
 // API Routes for frontend functionality
 Route::prefix('api')->name('api.')->group(function () {
+    // Public warehouse units list
+    Route::get('/warehouse-units', [WarehouseBookingController::class, 'getWarehouseUnits'])->name('warehouse-units.index');
+    
     // Warehouse API endpoints
     Route::get('/warehouse-units/{id}', [WarehouseBookingController::class, 'getWarehouseUnit'])->name('warehouse-units.show');
 

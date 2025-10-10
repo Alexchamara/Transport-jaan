@@ -119,7 +119,9 @@ class WarehouseBookingController extends Controller
             })
             ->values();
 
-        $likedIds = WarehouseLike::where('user_id', $user->id)->pluck('warehouse_unit_id');
+    $wishlistPayload = $this->buildWishlistPayload($user->id);
+    $likedIds = $wishlistPayload['likedIds'];
+    $wishlist = $wishlistPayload['wishlist'];
 
         $preferredTypes = (clone $baseQuery)
             ->with('warehouseUnit:id,type,address')
@@ -180,29 +182,9 @@ class WarehouseBookingController extends Controller
         $recommended = $recommendedQuery
             ->get()
             ->map(function (WarehouseUnit $unit) use ($likedIds) {
-                $city = trim(Str::afterLast($unit->address, ','));
-                return [
-                    'id' => $unit->id,
-                    'name' => $unit->name,
-                    'type' => $unit->type,
-                    'address' => $unit->address,
-                    'city' => $city ?: $unit->address,
-                    'total_area' => $unit->total_area,
-                    'capacity' => $unit->capacity,
-                    'capacity_unit' => $unit->capacity_unit,
-                    'base_price' => $unit->base_price,
-                    'monthly_rate' => $unit->monthly_rate,
-                    'security_deposit' => $unit->security_deposit,
-                    'currency' => $unit->currency ?? 'LKR',
-                    'available_from' => optional($unit->available_from)?->toDateString(),
-                    'available_until' => optional($unit->available_until)?->toDateString(),
-                    'avg_rating' => round((float) ($unit->reviews_avg_rating ?? 0), 2),
-                    'reviews_count' => (int) ($unit->reviews_count ?? 0),
-                    'likes_count' => (int) ($unit->likes_count ?? 0),
-                    'amenities' => $unit->amenities->pluck('name')->unique()->values()->all(),
-                    'main_image' => optional($unit->mainImage)->url,
+                return $this->formatWarehouseUnitSummary($unit, [
                     'is_liked' => $likedIds->contains($unit->id),
-                ];
+                ]);
             })
             ->values();
 
@@ -274,7 +256,8 @@ class WarehouseBookingController extends Controller
             'upcoming' => $upcoming,
             'recentActivity' => $recentActivity,
             'recommended' => $recommended,
-            'likedWarehouseIds' => $likedIds->values(),
+            'likedWarehouseIds' => $likedIds->values()->all(),
+            'wishlist' => $wishlist,
             'filters' => $filters,
             'billing' => $billing,
             'documents' => $documents,
@@ -791,6 +774,63 @@ class WarehouseBookingController extends Controller
     }
 
     /**
+     * Get all warehouse units for public API
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getWarehouseUnits()
+    {
+        try {
+            $warehouses = WarehouseUnit::query()
+                ->approved()
+                ->active()
+                ->with([
+                    'mainImage',
+                    'amenities' => function ($q) {
+                        $q->available();
+                    },
+                ])
+                ->orderBy('created_at', 'desc')
+                ->limit(50)
+                ->get()
+                ->map(function (WarehouseUnit $unit) {
+                    return [
+                        'id' => $unit->id,
+                        'name' => $unit->name,
+                        'address' => $unit->address,
+                        'total_area' => $unit->total_area,
+                        'capacity' => $unit->capacity,
+                        'capacity_unit' => $unit->capacity_unit,
+                        'type' => $unit->type,
+                        'monthly_rate' => $unit->monthly_rate,
+                        'base_price' => $unit->base_price,
+                        'currency' => $unit->currency ?? 'LKR',
+                        'is_available' => $unit->is_available,
+                        'is_active' => $unit->is_active,
+                        'main_image' => optional($unit->mainImage)->url,
+                        'primary_image_url' => optional($unit->mainImage)->url,
+                        'amenities' => $unit->amenities->pluck('name')->values()->all(),
+                        'available_from' => optional($unit->available_from)?->toDateString(),
+                        'available_until' => optional($unit->available_until)?->toDateString(),
+                    ];
+                });
+
+            return response()->json($warehouses);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching warehouse units: ' . $e->getMessage(), [
+                'error' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch warehouse units.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
      * Get warehouse unit details for API endpoint
      * 
      * @param int $id Warehouse unit ID
@@ -906,13 +946,15 @@ class WarehouseBookingController extends Controller
                 $message = 'Added to wishlist';
             }
 
-            $likedWarehouseIds = WarehouseLike::where('user_id', $userId)->pluck('warehouse_unit_id');
+            $wishlistPayload = $this->buildWishlistPayload($userId);
 
             return response()->json([
                 'success' => true,
                 'message' => $message,
                 'is_liked' => $isLiked,
-                'likedWarehouseIds' => $likedWarehouseIds,
+                'likedWarehouseIds' => $wishlistPayload['likedIds']->values()->all(),
+                'wishlist' => $wishlistPayload['wishlist'],
+                'likedCount' => $wishlistPayload['likedIds']->count(),
             ]);
 
         } catch (\Exception $e) {
@@ -927,6 +969,71 @@ class WarehouseBookingController extends Controller
                 'message' => 'Failed to update wishlist'
             ], 500);
         }
+    }
+
+    protected function buildWishlistPayload(int $userId): array
+    {
+        $likes = WarehouseLike::where('user_id', $userId)
+            ->latest()
+            ->with(['warehouseUnit' => function ($query) {
+                $query
+                    ->approved()
+                    ->active()
+                    ->with(['mainImage', 'amenities' => function ($amenityQuery) {
+                        $amenityQuery->available();
+                    }])
+                    ->withAvg('reviews', 'rating')
+                    ->withCount(['reviews', 'likes']);
+            }])
+            ->get();
+
+        $likedIds = $likes->pluck('warehouse_unit_id')->map(function ($id) {
+            return (int) $id;
+        });
+
+        $wishlist = $likes
+            ->filter(function (WarehouseLike $like) {
+                return $like->warehouseUnit !== null;
+            })
+            ->map(function (WarehouseLike $like) {
+                return $this->formatWarehouseUnitSummary($like->warehouseUnit, [
+                    'is_liked' => true,
+                    'liked_at' => optional($like->created_at)?->toDateTimeString(),
+                ]);
+            })
+            ->values();
+
+        return [
+            'likedIds' => $likedIds,
+            'wishlist' => $wishlist->toArray(),
+        ];
+    }
+
+    protected function formatWarehouseUnitSummary(WarehouseUnit $unit, array $overrides = []): array
+    {
+        $city = trim(Str::afterLast($unit->address, ','));
+
+        return array_merge([
+            'id' => $unit->id,
+            'name' => $unit->name,
+            'type' => $unit->type,
+            'address' => $unit->address,
+            'city' => $city ?: $unit->address,
+            'total_area' => $unit->total_area,
+            'capacity' => $unit->capacity,
+            'capacity_unit' => $unit->capacity_unit,
+            'base_price' => $unit->base_price,
+            'monthly_rate' => $unit->monthly_rate,
+            'security_deposit' => $unit->security_deposit,
+            'currency' => $unit->currency ?? 'LKR',
+            'available_from' => optional($unit->available_from)?->toDateString(),
+            'available_until' => optional($unit->available_until)?->toDateString(),
+            'avg_rating' => round((float) ($unit->reviews_avg_rating ?? 0), 2),
+            'reviews_count' => (int) ($unit->reviews_count ?? 0),
+            'likes_count' => (int) ($unit->likes_count ?? 0),
+            'amenities' => $unit->amenities->pluck('name')->unique()->values()->all(),
+            'main_image' => optional($unit->mainImage)->url,
+        ], $overrides);
     }
 
     /**

@@ -458,6 +458,14 @@ class WebController extends Controller
             $q->active()->ordered();
         }, 'mainImage'])->orderBy('created_at', 'desc')->get();
 
+        // Check if JSON format is requested
+        if ($request->get('format') === 'json' || $request->expectsJson()) {
+            return response()->json([
+                'warehouses' => $warehouses,
+                'searchParams' => $searchParams
+            ]);
+        }
+
         return Inertia::render('Web/home/warehouse/WarehouseList', [
             'warehouses' => $warehouses,
             'searchParams' => $searchParams

@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { usePage, router } from "@inertiajs/react";
+import axios from "axios";
+import { Heart } from "lucide-react";
 
 import shareIcon from "../../assets/landVehicleDetails/share.svg";
 import starIcon from "../../assets/driverBooking/star.svg";
-import heartWhite from "../../assets/landVehicleDetails/heartB2.svg";
 
 import WarehouseDetailsTab from "./WarehouseDetailsTab";
 import PoliciesTab from "./PoliciesTab";
@@ -33,6 +34,18 @@ const WarehouseInfo = () => {
   const rating = warehouse?.rating_avg ? Number(warehouse.rating_avg).toFixed(1) : null;
   const reviewsCount = warehouse?.reviews_count ?? (Array.isArray(warehouse?.reviews) ? warehouse.reviews.length : 0);
 
+  const resolveWishlistUrl = () => {
+    if (typeof route === "function") {
+      try {
+        return route("client.warehouse.like.toggle");
+      } catch (error) {
+        console.warn("Falling back to hardcoded wishlist URL", error);
+      }
+    }
+
+  return "/api/warehouse/like-toggle";
+  };
+
   const onShare = async () => {
     try {
       if (navigator.share) {
@@ -48,7 +61,7 @@ const WarehouseInfo = () => {
     } catch(_) {}
   };
 
-  const onToggleWishlist = () => {
+  const onToggleWishlist = async () => {
     if (!warehouse?.id) return;
 
     // 🔐 Auth guard
@@ -62,22 +75,26 @@ const WarehouseInfo = () => {
     setIsLiked(next);
     setBusy(true);
 
-    router.post(
-      route?.("client.warehouse.like.toggle") ?? "/warehouse/like-toggle",
-      { warehouse_id: warehouse.id },
-      {
-        preserveScroll: true,
-        onError: () => {
-          // revert if failed
-          setIsLiked(!next);
-        },
-        onFinish: () => {
-          setBusy(false);
-          // 🔄 refresh ONLY likedWarehouseIds so any component on this page reflects DB truth
-          router.reload({ only: ["likedWarehouseIds"] });
-        },
+    try {
+      const { data } = await axios.post(resolveWishlistUrl(), { warehouse_id: warehouse.id });
+
+      if (Array.isArray(data.likedWarehouseIds)) {
+        setIsLiked(data.likedWarehouseIds.includes(warehouse.id));
+      } else if (typeof data.is_liked === "boolean") {
+        setIsLiked(data.is_liked);
       }
-    );
+    } catch (error) {
+      setIsLiked(!next);
+
+      if (error.response?.status === 401) {
+        router.get(route?.("login") ?? "/login", { return_to: window.location.pathname });
+        return;
+      }
+
+      console.error("Failed to update wishlist", error);
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!warehouse) {
@@ -123,10 +140,14 @@ const WarehouseInfo = () => {
             onClick={onToggleWishlist}
             disabled={busy}
             className={`w-[110px] h-[30px] rounded-[4px] border-[1px] flex flex-row justify-center items-center gap-3 ${
-              isLiked ? "border-[#0955AC] bg-[#0955AC] text-white" : "border-[#00000030] bg-white text-[#0955AC]"
+              isLiked ? "border-[#0955AC] bg-white text-[#0955AC]" : "border-[#00000030] bg-white text-[#0955AC]"
             } ${busy ? "opacity-60 cursor-not-allowed" : ""}`}
           >
-            <img src={heartWhite} alt="wishlist" />
+            <Heart
+              className="h-4 w-4 transition"
+              stroke={"#0955AC"}
+              fill={isLiked ? "#0955AC" : "none"}
+            />
             <span>{isLiked ? "Wishlisted" : "Wishlist"}</span>
           </button>
         </div>
