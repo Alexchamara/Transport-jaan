@@ -34,9 +34,8 @@ export default function Driver() {
   const [errors, setErrors] = useState({});
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedRows, setExpandedRows] = useState(() => new Set()); // details toggle
-  const gotCsrf = useRef(false);
-
-  const formRef = useRef(null);
+  const [imageRefreshKey, setImageRefreshKey] = useState(Date.now()); // For cache busting
+  const gotCsrf = useRef(false);  const formRef = useRef(null);
 
   // ---------- helpers ----------
   const toAbsoluteUrl = (u) => {
@@ -47,8 +46,8 @@ export default function Driver() {
     return new URL(withSlash, window.location.origin).toString();
   };
 
-  // stream/download controller endpoints
-  const driverStream = (id, kind) => `/vendor/drivers/${id}/${kind}/stream`;     // kind: 'license' | 'nic'
+  // stream/download controller endpoints with cache-busting
+  const driverStream = (id, kind) => `/vendor/drivers/${id}/${kind}/stream?t=${Date.now()}`;     // kind: 'license' | 'nic'
   const driverDownload = (id, kind) => `/vendor/drivers/${id}/${kind}/download`; // direct download
   // --------------------------------
 
@@ -210,7 +209,11 @@ export default function Driver() {
     e.preventDefault();
     if (!validate()) return;
     try {
-      if (editing) await api.update(editing, form);
+      if (editing) {
+        await api.update(editing, form);
+        // Refresh image cache key to force reload of images
+        setImageRefreshKey(Date.now());
+      }
       else await api.create(form);
       resetForm();
       await fetchData(meta.current_page);
@@ -266,7 +269,7 @@ export default function Driver() {
     const previewSrc = file
       ? URL.createObjectURL(file)
       : editing
-      ? driverStream(editing, kind)
+      ? `${driverStream(editing, kind)}&refresh=${imageRefreshKey}`
       : (form[urlField] ? toAbsoluteUrl(form[urlField]) : "");
 
     return (
@@ -298,6 +301,7 @@ export default function Driver() {
         </div>
         {previewSrc ? (
           <img
+            key={`preview-${field}-${imageRefreshKey}`}
             src={previewSrc}
             alt={`${typeof label === "string" ? label : "Image"} preview`}
             className="mt-2 h-16 w-16 object-cover rounded-md border border-gray-200"
@@ -312,11 +316,12 @@ export default function Driver() {
 
   const ThumbCell = ({ id, url, kind }) => {
     if (!url) return <span className="text-[#00000066]">-</span>;
-    const imgSrc = driverStream(id, kind);
+    const imgSrc = `${driverStream(id, kind)}&refresh=${imageRefreshKey}`;
     const dlHref = driverDownload(id, kind);
     return (
       <div className="flex items-center gap-2">
         <img
+          key={`${id}-${kind}-${imageRefreshKey}`}
           src={imgSrc}
           alt={`${kind} preview`}
           className="h-10 w-10 object-cover rounded border"
@@ -668,7 +673,8 @@ export default function Driver() {
                                     {r.license_photo_url ? (
                                       <div className="flex items-center gap-3">
                                         <img
-                                          src={driverStream(r.id, "license")}
+                                          key={`license-large-${r.id}-${imageRefreshKey}`}
+                                          src={`${driverStream(r.id, "license")}&refresh=${imageRefreshKey}`}
                                           alt="License"
                                           className="h-28 w-28 object-cover rounded-md border border-gray-200"
                                         />
@@ -688,7 +694,8 @@ export default function Driver() {
                                     {r.nic_photo_url ? (
                                       <div className="flex items-center gap-3">
                                         <img
-                                          src={driverStream(r.id, "nic")}
+                                          key={`nic-large-${r.id}-${imageRefreshKey}`}
+                                          src={`${driverStream(r.id, "nic")}&refresh=${imageRefreshKey}`}
                                           alt="NIC"
                                           className="h-28 w-28 object-cover rounded-md border border-gray-200"
                                         />
