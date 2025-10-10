@@ -701,13 +701,13 @@ const Hero = () => {
                                         Confirm move-ins, extensions and handovers
                                     </p>
                                 </div>
-                                <button
+                                {/* <button
                                     onClick={() => router.visit(route("warehouse-bookings.list"))}
                                     className="inline-flex itemsCenter gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
                                 >
                                     Manage all
                                     <ChevronRight className="h-3 w-3" />
-                                </button>
+                                </button> */}
                             </div>
                             <div className="space-y-4">
                                 {upcoming.length === 0 ? (

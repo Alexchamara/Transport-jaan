@@ -64,45 +64,48 @@ const MAX_AVATAR_MB = 3; // sensible default
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const Settings = ({ user = {} }) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const page = usePage();
+    const authUser = page?.props?.auth?.user;
+    const resolvedUser = authUser || user;
 
     const fileInputRef = useRef(null);
-    const [photoPreview, setPhotoPreview] = useState(user?.avatar_url || null);
+    const [photoPreview, setPhotoPreview] = useState(
+        resolvedUser?.avatar_url || null
+    );
     const [clientErrors, setClientErrors] = useState({});
 
     const initial = useMemo(
         () => ({
             // profile
-            first_name: user.first_name || "",
-            last_name: user.last_name || "",
-            email: user.email || "",
-            phone: user.phone || "",
+            first_name: resolvedUser?.first_name || "",
+            last_name: resolvedUser?.last_name || "",
+            email: resolvedUser?.email || "",
+            phone: resolvedUser?.phone || "",
             // address
-            address_line1: user.address_line1 || "",
-            address_line2: user.address_line2 || "",
-            city: user.city || "",
-            state: user.state || "",
-            postal_code: user.postal_code || "",
-            country: user.country || "",
+            address_line1: resolvedUser?.address_line1 || "",
+            address_line2: resolvedUser?.address_line2 || "",
+            city: resolvedUser?.city || "",
+            state: resolvedUser?.state || "",
+            postal_code: resolvedUser?.postal_code || "",
+            country: resolvedUser?.country || "",
             // security
             current_password: "",
             new_password: "",
             confirm_password: "",
             // payment (tokenized – last4/brand shown for UX)
-            cardholder_name: user.cardholder_name || "",
-            card_last4: user.card_last4 || "",
-            card_brand: user.card_brand || "",
-            expiry_month: user.expiry_month || "",
-            expiry_year: user.expiry_year || "",
+            cardholder_name: resolvedUser?.cardholder_name || "",
+            card_last4: resolvedUser?.card_last4 || "",
+            card_brand: resolvedUser?.card_brand || "",
+            expiry_month: resolvedUser?.expiry_month || "",
+            expiry_year: resolvedUser?.expiry_year || "",
             // notifications
-            notify_email: user.notify_email ?? true,
-            notify_sms: user.notify_sms ?? false,
-            notify_push: user.notify_push ?? true,
+            notify_email: resolvedUser?.notify_email ?? true,
+            notify_sms: resolvedUser?.notify_sms ?? false,
+            notify_push: resolvedUser?.notify_push ?? true,
             // avatar file
             avatar: null,
         }),
-        [user]
+        [resolvedUser]
     );
 
     const {
@@ -118,9 +121,6 @@ const Settings = ({ user = {} }) => {
 
     // Resolve update URL safely (avoid Ziggy exceptions if route missing)
     const resolveUpdateUrl = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         try {
             if (typeof route === "function") {
                 // Ziggy may throw if name missing; check existence when possible
@@ -144,9 +144,6 @@ const Settings = ({ user = {} }) => {
     transform((formData) => ({ ...formData }));
 
     const validatePasswords = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const e = {};
         if (
             data.new_password ||
@@ -165,9 +162,6 @@ const Settings = ({ user = {} }) => {
     };
 
     const validateAvatar = (file) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const e = {};
         if (!file) return e;
         if (!ACCEPTED_IMAGE_TYPES.includes(file.type))
@@ -181,9 +175,6 @@ const Settings = ({ user = {} }) => {
     };
 
     const handleImageChange = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const file = e.target.files?.[0];
         const eAvatar = validateAvatar(file);
         setClientErrors((prev) => ({ ...prev, ...eAvatar }));
@@ -201,9 +192,6 @@ const Settings = ({ user = {} }) => {
     };
 
     const submitAll = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         e.preventDefault();
         const ePwd = validatePasswords();
         setClientErrors((prev) => ({ ...prev, ...ePwd }));
@@ -216,9 +204,6 @@ const Settings = ({ user = {} }) => {
     };
 
     const removePhoto = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         setData("avatar", null);
         setPhotoPreview(null);
         setClientErrors((prev) => ({ ...prev, avatar: undefined }));
@@ -760,7 +745,7 @@ const Settings = ({ user = {} }) => {
                             type="button"
                             onClick={() => {
                                 reset();
-                                setPhotoPreview(user?.avatar_url || null);
+                                setPhotoPreview(resolvedUser?.avatar_url || null);
                                 clearErrors();
                                 setClientErrors({});
                             }}
