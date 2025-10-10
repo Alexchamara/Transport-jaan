@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { router, Link } from "@inertiajs/react";
+import React, { useState, useEffect, useRef } from "react";
+import { router } from "@inertiajs/react";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import Header from "../../layouts/Header";
 import Footer from "../../layouts/Footer";
 
@@ -28,6 +30,7 @@ const BookingSummary = ({ booking }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [pricingDetails, setPricingDetails] = useState(INITIAL_PRICING_STATE);
+    const slipRef = useRef(null);
     
     useEffect(() => {
         const fetchBookingDetails = async () => {
@@ -75,7 +78,6 @@ const BookingSummary = ({ booking }) => {
                     }
                 } else {
                     // No saved data, redirect back to booking page
-                    setError('No booking information found');
                     toast.error('No booking information found. Please start the booking process again.');
                     setTimeout(() => {
                         router.visit('/warehouse-bookings/', {
@@ -230,6 +232,55 @@ const BookingSummary = ({ booking }) => {
 
     const monthlyDue = pricingDetails.monthly_total || (pricingDetails.monthly_rate + pricingDetails.add_ons_cost);
     const initialPaymentDue = (monthlyDue || 0) + (pricingDetails.security_deposit || 0) + (pricingDetails.setup_fee || 0);
+    const bookingReference = getBookingReference();
+    const moveInDateValue = getMoveInDate();
+    const moveOutDateValue = getMoveOutDate();
+    const formattedMoveInDate = moveInDateValue ? formatDate(moveInDateValue) : 'Not specified';
+    const formattedMoveOutDate = moveOutDateValue ? formatDate(moveOutDateValue) : 'Not specified';
+    const issuedOnDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    const storageDurationLabel = bookingData?.storage_duration || `${pricingDetails.duration || bookingData?.duration_months || 1} Month${(pricingDetails.duration || bookingData?.duration_months || 1) > 1 ? 's' : ''}`;
+
+    const handleDownloadSlip = async () => {
+        if (!slipRef.current) {
+            return;
+        }
+
+        try {
+            const canvas = await html2canvas(slipRef.current, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            });
+
+            const imageData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            let heightLeft = pdfHeight;
+            let position = 0;
+
+            pdf.addImage(imageData, 'PNG', 0, position, pdfWidth, pdfHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft > 0) {
+                position = heightLeft - pdfHeight;
+                pdf.addPage();
+                pdf.addImage(imageData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                heightLeft -= pageHeight;
+            }
+            const reference = getBookingReference();
+            const filename = reference ? `warehouse-booking-${reference}.pdf` : 'warehouse-booking-confirmation.pdf';
+            pdf.save(filename);
+        } catch (downloadError) {
+            console.error('Error generating booking confirmation slip:', downloadError);
+            toast.error('Unable to download the booking slip right now. Please try again.');
+        }
+    };
 
     const handleBackToHome = () => {
         router.visit("/warehouseList", {
@@ -238,56 +289,58 @@ const BookingSummary = ({ booking }) => {
         });
     };
 
-    const formatDate = (dateString) => {
+    function formatDate(dateString) {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         });
-    };
+    }
 
-
-
-    const getPaymentMethodLabel = (method) => {
+    function getPaymentMethodLabel(method) {
         switch (method) {
-            case 'Credit Card': return 'Credit Card';
-            case 'PayPal': return 'PayPal';
-            case 'Bank Transfer': return 'Bank Transfer';
-            default: return method;
+            case 'Credit Card':
+                return 'Credit Card';
+            case 'PayPal':
+                return 'PayPal';
+            case 'Bank Transfer':
+                return 'Bank Transfer';
+            default:
+                return method;
         }
-    };
+    }
 
-    const getPaymentOptionLabel = (option) => {
+    function getPaymentOptionLabel(option) {
         return option === 'full' ? 'Full Payment' : 'Deposit + Monthly Payments';
-    };
-    
-    const formatCurrency = (amount) => {
+    }
+
+    function formatCurrency(amount) {
         if (typeof amount !== 'number') return 'LKR 0.00';
         return `LKR ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    };
-    
-    const formatSqFt = (value) => {
+    }
+
+    function formatSqFt(value) {
         const numeric = Number(value);
         if (!Number.isFinite(numeric) || numeric <= 0) {
             return '0';
         }
         return numeric.toLocaleString();
-    };
-    
-    const getBookingReference = () => {
-        return bookingData?.booking_reference || 
-               (booking?.id ? `WH-${String(booking.id).padStart(6, '0')}` : 
-               `WH-${Math.floor(100000 + Math.random() * 900000)}`);
-    };
-    
-    const getMoveInDate = () => {
+    }
+
+    function getBookingReference() {
+        return bookingData?.booking_reference ||
+            (booking?.id ? `WH-${String(booking.id).padStart(6, '0')}` :
+                `WH-${Math.floor(100000 + Math.random() * 900000)}`);
+    }
+
+    function getMoveInDate() {
         return bookingData?.start_date || bookingData?.move_in_date || null;
-    };
-    
-    const getMoveOutDate = () => {
+    }
+
+    function getMoveOutDate() {
         return bookingData?.end_date || bookingData?.move_out_date || null;
-    };
+    }
 
     if (loading) {
         return (
@@ -307,6 +360,249 @@ const BookingSummary = ({ booking }) => {
 
     return (
         <div>
+            {bookingData && (
+                <div
+                    ref={slipRef}
+                    aria-hidden="true"
+                    className="bg-gradient-to-b from-[#F8FAFF] to-white rounded-3xl border border-[#D6E0FF] shadow-2xl text-[#182539]"
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: '-9999px',
+                        width: '794px',
+                        padding: '36px',
+                        fontFamily: "'Figtree', 'Segoe UI', sans-serif",
+                        lineHeight: 1.6
+                    }}
+                >
+                    <div className="rounded-2xl bg-gradient-to-r from-[#1E3A8A] via-[#1C51B9] to-[#2563EB] text-white px-10 py-8 mb-8 shadow-lg">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                            <div>
+                                <div className="text-[32px] font-extrabold tracking-[0.12em] uppercase">LEO Transport</div>
+                                <p className="text-sm tracking-[0.3em] uppercase opacity-80">Warehouse Booking Confirmation</p>
+                            </div>
+                            <div className="text-right text-sm leading-6 opacity-90">
+                                <p className="font-semibold text-white">LEO Transport (Pvt) Ltd</p>
+                                <p>Head Office, Colombo 05</p>
+                                <p>support@leotransport.com</p>
+                                <p>+94 11 987 6543</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6 mb-10 text-sm">
+                        <div className="bg-white/80 backdrop-blur rounded-2xl border border-[#E3E8FF] p-6 shadow-sm">
+                            <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1E3A8A] mb-3">Booking Overview</h3>
+                            <div className="space-y-2 text-[#1F2A44]">
+                                <p><span className="font-medium">Booking Reference:</span> {bookingReference}</p>
+                                <p><span className="font-medium">Issued On:</span> {issuedOnDate}</p>
+                                <p><span className="font-medium">Payment Status:</span> {bookingData.payment_status || 'Pending'}</p>
+                            </div>
+                        </div>
+                        <div className="bg-white/80 backdrop-blur rounded-2xl border border-[#E3E8FF] p-6 shadow-sm text-right">
+                            <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#1E3A8A] mb-3">Schedule</h3>
+                            <div className="space-y-2 text-[#1F2A44]">
+                                <p><span className="font-medium">Move-in:</span> {formattedMoveInDate}</p>
+                                <p><span className="font-medium">Move-out:</span> {moveOutDateValue ? formattedMoveOutDate : '—'}</p>
+                                <p><span className="font-medium">Duration:</span> {storageDurationLabel}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mb-10">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.32em] text-[#1E3A8A] mb-4">Client Details</h2>
+                        <div className="grid grid-cols-2 gap-6 bg-white rounded-2xl border border-[#E3E8FF] p-6 shadow-sm text-sm">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Contact Person</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{bookingData.contact_person || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Company</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{bookingData.company_name || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Email</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{bookingData.email || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Phone</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{bookingData.phone || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Payment Method</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{getPaymentMethodLabel(bookingData.payment_method || 'Credit Card')}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Payment Option</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{getPaymentOptionLabel(bookingData.payment_option || 'full')}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mb-10">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.32em] text-[#1E3A8A] mb-4">Warehouse Details</h2>
+                        <div className="grid grid-cols-2 gap-6 bg-white rounded-2xl border border-[#E3E8FF] p-6 shadow-sm text-sm">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Warehouse</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{warehouseData?.name || bookingData.warehouse_name || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Required Space</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{formatSqFt(pricingDetails.required_space || bookingData.required_space || 0)} sq ft</p>
+                            </div>
+                            <div className="col-span-2">
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Address</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{warehouseData?.address || bookingData.location || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Storage Type</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{bookingData.storage_type || 'General Storage'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.18em] text-[#6473A6]">Access Hours</p>
+                                <p className="text-base font-medium text-[#1F2A44]">{bookingData.access_hours || '24/7'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mb-10">
+                        <h2 className="text-xs font-semibold uppercase tracking-[0.32em] text-[#1E3A8A] mb-4">Pricing Summary</h2>
+                        <div className="rounded-2xl overflow-hidden border border-[#1C51B9] shadow-lg">
+                            <table className="w-full text-sm">
+                                <thead className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white">
+                                    <tr className="text-left">
+                                        <th className="py-3 px-6 font-semibold">Description</th>
+                                        <th className="py-3 px-6 font-semibold text-right">Amount (LKR)</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white text-[#1F2A44]">
+                                    <tr className="border-b border-[#E3E8FF]">
+                                        <td className="py-3 px-6">Monthly Storage Rate × {pricingDetails.duration || 1}</td>
+                                        <td className="py-3 px-6 text-right">{formatCurrency(pricingDetails.subtotal)}</td>
+                                    </tr>
+                                    {pricingDetails.add_ons_cost > 0 && (
+                                        <tr className="border-b border-[#E3E8FF]">
+                                            <td className="py-3 px-6">Add-ons & Services</td>
+                                            <td className="py-3 px-6 text-right">{formatCurrency(pricingDetails.add_ons_cost * (pricingDetails.duration || 1))}</td>
+                                        </tr>
+                                    )}
+                                    {pricingDetails.tax_amount > 0 && (
+                                        <tr className="border-b border-[#E3E8FF]">
+                                            <td className="py-3 px-6">Tax ({((pricingDetails.tax_rate || 0) * 100).toFixed(1)}%)</td>
+                                            <td className="py-3 px-6 text-right">{formatCurrency(pricingDetails.tax_amount)}</td>
+                                        </tr>
+                                    )}
+                                    {pricingDetails.security_deposit > 0 && (
+                                        <tr className="border-b border-[#E3E8FF]">
+                                            <td className="py-3 px-6">Security Deposit (Refundable)</td>
+                                            <td className="py-3 px-6 text-right">{formatCurrency(pricingDetails.security_deposit)}</td>
+                                        </tr>
+                                    )}
+                                    {pricingDetails.setup_fee > 0 && (
+                                        <tr className="border-b border-[#E3E8FF]">
+                                            <td className="py-3 px-6">Setup & Processing Fee</td>
+                                            <td className="py-3 px-6 text-right">{formatCurrency(pricingDetails.setup_fee)}</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="bg-[#EFF4FF]">
+                                        <td className="py-3 px-6 font-semibold text-[#1E3A8A]">Total Contract Value</td>
+                                        <td className="py-3 px-6 font-semibold text-right text-[#1E3A8A]">{formatCurrency(pricingDetails.final_amount)}</td>
+                                    </tr>
+                                    <tr className="bg-[#E3ECFF]">
+                                        <td className="py-3 px-6 text-sm font-semibold text-[#1E3A8A]">Initial Payment Due</td>
+                                        <td className="py-3 px-6 text-sm font-semibold text-right text-[#1E3A8A]">{formatCurrency(initialPaymentDue)}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 text-sm">
+                            <div className="bg-white rounded-2xl border border-[#E3E8FF] p-6 shadow-sm">
+                                <h3 className="text-xs uppercase tracking-[0.2em] text-[#1E3A8A] mb-3">Monthly Charges</h3>
+                                <div className="space-y-2 text-[#1F2A44]">
+                                    <div className="flex justify-between">
+                                        <span>Base Monthly Rate</span>
+                                        <span className="font-medium">{formatCurrency(pricingDetails.monthly_rate)}</span>
+                                    </div>
+                                    {pricingDetails.add_ons_cost > 0 && (
+                                        <div className="flex justify-between">
+                                            <span>Add-ons</span>
+                                            <span className="font-medium">+{formatCurrency(pricingDetails.add_ons_cost)}</span>
+                                        </div>
+                                    )}
+                                    <div className="border-t border-[#E3E8FF] pt-2 flex justify-between font-semibold">
+                                        <span>Monthly Due</span>
+                                        <span>{formatCurrency(monthlyDue || 0)}</span>
+                                    </div>
+                                    <p className="text-xs text-[#6473A6]">Charged each month for {pricingDetails.duration || 1} month{(pricingDetails.duration || 1) > 1 ? 's' : ''}.</p>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-[#E3E8FF] p-6 shadow-sm">
+                                <h3 className="text-xs uppercase tracking-[0.2em] text-[#1E3A8A] mb-3">One-time Fees</h3>
+                                <div className="space-y-2 text-[#1F2A44]">
+                                    {pricingDetails.security_deposit > 0 ? (
+                                        <div className="flex justify-between">
+                                            <span>Security Deposit</span>
+                                            <span className="font-medium">{formatCurrency(pricingDetails.security_deposit)}</span>
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-[#6473A6]">No security deposit required.</p>
+                                    )}
+                                    {pricingDetails.setup_fee > 0 && (
+                                        <div className="flex justify-between">
+                                            <span>Setup Fee</span>
+                                            <span className="font-medium">{formatCurrency(pricingDetails.setup_fee)}</span>
+                                        </div>
+                                    )}
+                                    <div className="border-t border-[#E3E8FF] pt-2 flex justify-between font-semibold">
+                                        <span>One-time Total</span>
+                                        <span>{formatCurrency((pricingDetails.security_deposit || 0) + (pricingDetails.setup_fee || 0))}</span>
+                                    </div>
+                                    <p className="text-xs text-[#6473A6]">Collected alongside the first month’s payment.</p>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-[#E3E8FF] p-6 shadow-sm">
+                                <h3 className="text-xs uppercase tracking-[0.2em] text-[#1E3A8A] mb-3">Contract Totals</h3>
+                                <div className="space-y-2 text-[#1F2A44]">
+                                    <div className="flex justify-between">
+                                        <span>Duration Subtotal</span>
+                                        <span className="font-medium">{formatCurrency(pricingDetails.subtotal)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Tax ({((pricingDetails.tax_rate || 0) * 100).toFixed(2)}%)</span>
+                                        <span className="font-medium">{formatCurrency(pricingDetails.tax_amount)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Initial Payment Due</span>
+                                        <span className="font-medium">{formatCurrency(initialPaymentDue)}</span>
+                                    </div>
+                                    <div className="border-t border-[#E3E8FF] pt-2 flex justify-between font-semibold text-[#1E3A8A]">
+                                        <span>Total Contract Value</span>
+                                        <span>{formatCurrency(pricingDetails.final_amount)}</span>
+                                    </div>
+                                    <p className="text-xs text-[#6473A6]">Tax is calculated on the full contract duration before one-time fees.</p>
+                                </div>
+                            </div>
+                        </div>
+                        {pricingDetails.required_space > 0 && warehouseData?.total_area && (
+                            <div className="mt-6 bg-white border border-[#E3E8FF] rounded-2xl p-5 shadow-sm text-sm text-[#1F2A44]">
+                                <h3 className="text-xs uppercase tracking-[0.2em] text-[#1E3A8A] mb-2">Space Utilization</h3>
+                                <p>
+                                    Using {(pricingDetails.space_utilization * 100).toFixed(1)}% of total warehouse capacity
+                                    ({formatSqFt(pricingDetails.required_space)} sq ft of {formatSqFt(warehouseData.total_area)} sq ft).
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-[#1E3A8A] text-white rounded-2xl px-8 py-6 shadow-lg">
+                        <p className="text-sm font-medium">Thank you for choosing LEO Transport.</p>
+                        <p className="text-xs opacity-80 mt-2">Our operations team will contact you within 24 hours to coordinate move-in logistics.</p>
+                        <p className="text-xs opacity-80 mt-2">Need assistance? Reach us at support@leotransport.com or +94 11 987 6543.</p>
+                    </div>
+                </div>
+            )}
             <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} newestOnTop closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
             <Header />
 
@@ -801,6 +1097,13 @@ const BookingSummary = ({ booking }) => {
                                             </div>
                                             <p className="text-sm text-gray-600">A confirmation email has been sent to your email address with all booking details.</p>
                                         </div>
+
+                                        <button
+                                            onClick={handleDownloadSlip}
+                                            className="w-full mb-3 border border-[#0955AC] text-[#0955AC] font-semibold py-3 px-4 rounded-md transition-colors hover:bg-[#0955AC] hover:text-white"
+                                        >
+                                            Download Confirmation Slip (PDF)
+                                        </button>
 
                                         <button
                                             onClick={handleBackToHome}
