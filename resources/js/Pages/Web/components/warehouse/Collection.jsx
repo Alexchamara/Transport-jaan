@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
 import axios from "axios";
+import { Heart } from "lucide-react";
 import card1 from "../../assets/warehouse/card1.svg";
 
 import icon1 from "../../assets/warehouse/icon1.svg";
 import icon2 from "../../assets/warehouse/icon2.svg";
 import icon3 from "../../assets/warehouse/icon3.svg";
 import icon4 from "../../assets/warehouse/icon4.svg";
-
-import heart from "../../assets/warehouse/heart.svg";
 
 
 
@@ -17,10 +16,23 @@ const Collection = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [displayCount, setDisplayCount] = useState(8);
+    const [liked, setLiked] = useState(new Set());
 
     useEffect(() => {
         fetchWarehouses();
     }, []);
+
+    const resolveWishlistUrl = () => {
+        if (typeof route === "function") {
+            try {
+                return route("client.warehouse.like.toggle");
+            } catch (err) {
+                console.warn("Falling back to API wishlist endpoint", err);
+            }
+        }
+
+        return "/api/warehouse/like-toggle";
+    };
 
     const fetchWarehouses = async () => {
         try {
@@ -59,9 +71,11 @@ const Collection = () => {
                 price: warehouse.monthly_rate || warehouse.base_price || '89.00',
                 monthly_rate: warehouse.monthly_rate || warehouse.base_price || '89.00',
                 image: warehouse.main_image?.url || warehouse.primary_image_url || card1,
+                isLiked: Boolean(warehouse.is_liked),
             }));
             
             setWarehouses(formattedWarehouses);
+            setLiked(new Set(formattedWarehouses.filter((warehouse) => warehouse.isLiked).map((warehouse) => warehouse.id)));
         } catch (err) {
             console.error('Error fetching warehouses:', err);
             setError('Failed to load warehouses');
@@ -78,6 +92,7 @@ const Collection = () => {
                     price: "89.00",
                     monthly_rate: "89.00",
                     image: card1,
+                    isLiked: false,
                 },
                 {
                     id: 2,
@@ -90,10 +105,69 @@ const Collection = () => {
                     price: "120.00",
                     monthly_rate: "120.00",
                     image: card1,
+                    isLiked: false,
                 },
             ]);
+            setLiked(new Set());
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleWishlistToggle = async (warehouseId) => {
+        try {
+            const { data } = await axios.post(resolveWishlistUrl(), {
+                warehouse_id: warehouseId,
+            });
+
+            if (Array.isArray(data.likedWarehouseIds)) {
+                const responseSet = new Set(data.likedWarehouseIds);
+                setLiked(responseSet);
+                setWarehouses((prev) =>
+                    prev.map((warehouse) => ({
+                        ...warehouse,
+                        isLiked: responseSet.has(warehouse.id),
+                    }))
+                );
+                return;
+            }
+
+            let desiredStatus;
+            setLiked((prev) => {
+                const next = new Set(prev);
+                const hasLike = next.has(warehouseId);
+                desiredStatus =
+                    typeof data.is_liked === "boolean"
+                        ? data.is_liked
+                        : !hasLike;
+
+                if (desiredStatus) {
+                    next.add(warehouseId);
+                } else {
+                    next.delete(warehouseId);
+                }
+
+                return next;
+            });
+
+            setWarehouses((prev) =>
+                prev.map((warehouse) =>
+                    warehouse.id === warehouseId
+                        ? {
+                              ...warehouse,
+                              isLiked: desiredStatus,
+                          }
+                        : warehouse
+                )
+            );
+        } catch (err) {
+            if (err.response?.status === 401) {
+                router.visit(route("signin.signin"));
+                return;
+            }
+
+            console.error("Failed to update wishlist", err);
+            setError("Unable to update wishlist right now. Please try again.");
         }
     };
 
@@ -189,10 +263,27 @@ const Collection = () => {
                                                         / month
                                                     </span>
                                                 </h1>
-                                                <img
-                                                    src={heart}
-                                                    alt="favorite"
-                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleWishlistToggle(warehouse.id)}
+                                                    className={`flex h-10 w-10 items-center justify-center rounded-full border transition ${
+                                                        liked.has(warehouse.id)
+                                                            ? "border-[#0955AC] bg-[#0955AC]/10 text-[#0955AC]"
+                                                            : "border-transparent bg-white/70 text-[#00000080] hover:border-[#0955AC]/40 hover:text-[#0955AC]"
+                                                    }`}
+                                                    aria-pressed={liked.has(warehouse.id)}
+                                                    aria-label={
+                                                        liked.has(warehouse.id)
+                                                            ? "Remove from wishlist"
+                                                            : "Add to wishlist"
+                                                    }
+                                                >
+                                                    <Heart
+                                                        className="h-5 w-5"
+                                                        strokeWidth={1.8}
+                                                        fill={liked.has(warehouse.id) ? "currentColor" : "none"}
+                                                    />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
