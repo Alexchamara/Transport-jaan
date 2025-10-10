@@ -40,23 +40,111 @@ const WarehouseCheckoutContent = () => {
         email: '',
         phone: ''
     });
+    const [userData, setUserData] = useState(null);
+    const [isLoadingUser, setIsLoadingUser] = useState(true);
+    const [userDataError, setUserDataError] = useState(null);
+    const [isEditingUserData, setIsEditingUserData] = useState(false);
 
+    // Fetch current user data
+    const fetchUserData = async () => {
+        setIsLoadingUser(true);
+        setUserDataError(null);
+        
+        try {
+            // Try primary endpoint first
+            let response;
+            try {
+                response = await axios.get('/api/user/profile', {
+                    timeout: 10000
+                });
+            } catch (primaryError) {
+                console.log('Primary profile endpoint failed, trying alternative...');
+                // Try alternative endpoint if primary fails
+                response = await axios.get('/profile', {
+                    timeout: 10000,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+            }
+            
+            if (response.data && (response.data.user || response.data.props?.auth?.user)) {
+                const user = response.data.user || response.data.props?.auth?.user || response.data;
+                console.log('User data loaded:', user);
+                setUserData(user);
+                
+                // Pre-populate form with user data if form fields are empty
+                setFormData(prev => ({
+                    company_name: prev.company_name || user.company_name || '',
+                    contact_person: prev.contact_person || user.name || '',
+                    email: prev.email || user.email || '',
+                    phone: prev.phone || user.phone || ''
+                }));
+            } else {
+                console.warn('No user data found in response:', response.data);
+                setUserDataError('No user data available');
+            }
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            console.error('Error details:', {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                data: error.response?.data,
+                message: error.message,
+                url: error.config?.url
+            });
+            setUserDataError(`Unable to load user profile: ${error.message}`);
+            
+            // If it's a 401/403 error, user might not be logged in
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                console.warn('User appears to not be authenticated');
+                setUserDataError('Please log in to continue');
+            }
+        } finally {
+            setIsLoadingUser(false);
+        }
+    };
+    
     // Load saved booking data from session storage when component mounts
     useEffect(() => {
         const savedData = sessionStorage.getItem('warehouseBookingData');
+        
+        // Debug: Log current page props to see what's available
+        console.log('Page props available:', window.page?.props);
+        console.log('Auth data from page props:', window.page?.props?.auth);
+        
+        // Check if user data is available in page props first
+        const pageUser = window.page?.props?.auth?.user;
+        if (pageUser) {
+            console.log('Found user data in page props:', pageUser);
+            setUserData(pageUser);
+            setFormData(prev => ({
+                company_name: prev.company_name || pageUser.company_name || '',
+                contact_person: prev.contact_person || pageUser.name || '',
+                email: prev.email || pageUser.email || '',
+                phone: prev.phone || pageUser.phone || ''
+            }));
+            setIsLoadingUser(false);
+        } else {
+            // Fetch user data from API if not in page props
+            fetchUserData();
+        }
         
         if (savedData) {
             try {
                 const parsedData = JSON.parse(savedData);
                 setBookingData(parsedData);
                 
-                // Populate form fields with saved data if available
-                setFormData({
-                    company_name: parsedData.company_name || '',
-                    contact_person: parsedData.contact_person || '',
-                    email: parsedData.email || '',
-                    phone: parsedData.phone || ''
-                });
+                // Populate form fields with saved data if available (this will override user data)
+                if (parsedData.company_name || parsedData.contact_person || parsedData.email || parsedData.phone) {
+                    setFormData({
+                        company_name: parsedData.company_name || '',
+                        contact_person: parsedData.contact_person || '',
+                        email: parsedData.email || '',
+                        phone: parsedData.phone || ''
+                    });
+                }
                 
                 // If warehouse_id is available, fetch warehouse details
                 if (parsedData.warehouse_id) {
@@ -84,10 +172,15 @@ const WarehouseCheckoutContent = () => {
         }
     }, [warehouseInfo, bookingData]);
     
-    // Fetch availability when move-in date or storage duration changes
+    // Fetch availability when move-in date, move-out date, or storage duration changes
     useEffect(() => {
-        if (bookingData?.warehouse_id && bookingData?.move_in_date && bookingData?.storage_duration) {
-            fetchAvailability(bookingData.warehouse_id, bookingData.move_in_date, bookingData.storage_duration);
+        if (bookingData?.warehouse_id && bookingData?.move_in_date && (bookingData?.move_out_date || bookingData?.storage_duration)) {
+            fetchAvailability(
+                bookingData.warehouse_id, 
+                bookingData.move_in_date, 
+                bookingData.storage_duration,
+                bookingData.move_out_date
+            );
         } else {
             // Reset to total space when no date selection
             setAvailabilityInfo({
@@ -97,11 +190,11 @@ const WarehouseCheckoutContent = () => {
                 timeframe: null
             });
         }
-    }, [bookingData?.warehouse_id, bookingData?.move_in_date, bookingData?.storage_duration, warehouseInfo?.total_area]);
+    }, [bookingData?.warehouse_id, bookingData?.move_in_date, bookingData?.move_out_date, bookingData?.storage_duration, warehouseInfo?.total_area]);
     
     // Auto-adjust required space when availability changes
     useEffect(() => {
-        const hasDateSelection = Boolean(bookingData?.move_in_date && bookingData?.storage_duration);
+        const hasDateSelection = Boolean(bookingData?.move_in_date && (bookingData?.move_out_date || bookingData?.storage_duration));
         if (!hasDateSelection) return;
 
         const maxSpace = Math.max(availabilityInfo.availableSpace || 0, 0);
@@ -128,7 +221,7 @@ const WarehouseCheckoutContent = () => {
                 required_space: ''
             }));
         }
-    }, [bookingData?.move_in_date, bookingData?.storage_duration, availabilityInfo.availableSpace]);
+    }, [bookingData?.move_in_date, bookingData?.move_out_date, bookingData?.storage_duration, availabilityInfo.availableSpace]);
     
     /**
      * Fetches warehouse details from the server based on warehouse ID
@@ -317,8 +410,8 @@ const WarehouseCheckoutContent = () => {
     /**
      * Fetches warehouse availability for selected dates
      */
-    const fetchAvailability = async (warehouseId, moveInDate, storageDuration) => {
-        if (!warehouseId || !moveInDate || !storageDuration) {
+    const fetchAvailability = async (warehouseId, moveInDate, storageDuration, moveOutDate = null) => {
+        if (!warehouseId || !moveInDate || (!storageDuration && !moveOutDate)) {
             setAvailabilityInfo({
                 totalSpace: warehouseInfo?.total_area || 0,
                 availableSpace: warehouseInfo?.total_area || 0,
@@ -334,11 +427,16 @@ const WarehouseCheckoutContent = () => {
         setAvailabilityError(null);
 
         try {
-            const durationMonths = parseDuration(storageDuration);
             const params = new URLSearchParams({
-                start_date: moveInDate,
-                duration_months: String(durationMonths || 1)
+                start_date: moveInDate
             });
+            
+            if (moveOutDate) {
+                params.append('end_date', moveOutDate);
+            } else if (storageDuration) {
+                const durationMonths = parseDuration(storageDuration);
+                params.append('duration_months', String(durationMonths || 1));
+            }
             
             const response = await axios.get(`/api/warehouse-units/${warehouseId}/availability?${params.toString()}`, {
                 timeout: 10000
@@ -377,7 +475,7 @@ const WarehouseCheckoutContent = () => {
      * Get maximum available space based on current selection
      */
     const getMaxAvailableSpace = () => {
-        const hasDateSelection = Boolean(bookingData?.move_in_date && bookingData?.storage_duration);
+        const hasDateSelection = Boolean(bookingData?.move_in_date && (bookingData?.move_out_date || bookingData?.storage_duration));
         const baseSpace = hasDateSelection ? availabilityInfo.availableSpace : availabilityInfo.totalSpace;
         return Math.max(Number(baseSpace) || 0, 0);
     };
@@ -405,11 +503,51 @@ const WarehouseCheckoutContent = () => {
     };
     
     /**
+     * Reset form data to user's profile data
+     */
+    const resetToUserData = () => {
+        if (userData) {
+            setFormData({
+                company_name: userData.company_name || '',
+                contact_person: userData.name || '',
+                email: userData.email || '',
+                phone: userData.phone || ''
+            });
+            setIsEditingUserData(false);
+            
+            // Clear any existing errors
+            setErrors(prev => {
+                const newErrors = {...prev};
+                delete newErrors.company_name;
+                delete newErrors.contact_person;
+                delete newErrors.email;
+                delete newErrors.phone;
+                return newErrors;
+            });
+        }
+    };
+    
+    /**
+     * Check if form data differs from user data
+     */
+    const hasFormChanges = () => {
+        if (!userData) return false;
+        
+        return (
+            formData.company_name !== (userData.company_name || '') ||
+            formData.contact_person !== (userData.name || '') ||
+            formData.email !== (userData.email || '') ||
+            formData.phone !== (userData.phone || '')
+        );
+    };
+    
+    /**
      * Handles input changes in the checkout form
      * 
      * This function:
      * 1. Updates the form data state with new values
      * 2. Clears errors for the field being edited
+     * 3. Sets editing flag if user changes data
      * 
      * @param {Event} e - The input change event
      */
@@ -421,6 +559,11 @@ const WarehouseCheckoutContent = () => {
             ...prev,
             [name]: newValue
         }));
+        
+        // Set editing flag if user is changing data
+        if (!isEditingUserData && userData) {
+            setIsEditingUserData(true);
+        }
         
         // Clear errors when user starts typing
         if (errors[name]) {
@@ -503,13 +646,13 @@ const WarehouseCheckoutContent = () => {
             }
         }
         
-        // Validate move-in time
-        if (!bookingData?.move_in_time) {
-            newErrors.move_in_time = 'Required';
+        // Validate move-out date
+        if (!bookingData?.move_out_date) {
+            newErrors.move_out_date = 'Required';
         } else {
-            // Check if move-in time is in the past (only for current date)
-            if (bookingData.move_in_date === currentDate && bookingData.move_in_time < currentTime) {
-                newErrors.move_in_time = 'Cannot select past time';
+            // Check if move-out date is before move-in date
+            if (bookingData.move_in_date && bookingData.move_out_date <= bookingData.move_in_date) {
+                newErrors.move_out_date = 'Must be after move-in date';
             }
         }
         
@@ -619,9 +762,37 @@ const WarehouseCheckoutContent = () => {
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <h1 className="text-[20px] font-[700]">
-                            Customer Information
-                        </h1>
+                        <div className="flex justify-between items-center mb-5">
+                            <h1 className="text-[20px] font-[700]">
+                                Customer Information
+                            </h1>
+                            
+                            {userData && (
+                                <div className="flex items-center gap-3">
+                                    {hasFormChanges() && (
+                                        <button
+                                            onClick={resetToUserData}
+                                            className="text-[10px] font-[600] text-[#0955AC] hover:underline transition-all"
+                                        >
+                                            Reset to Profile Data
+                                        </button>
+                                    )}
+                                    
+                                    <div className="text-[10px] text-gray-500">
+                                        {isLoadingUser ? (
+                                            <span>Loading profile...</span>
+                                        ) : userDataError ? (
+                                            <span className="text-red-500">Profile unavailable</span>
+                                        ) : (
+                                            <span>
+                                                Using {hasFormChanges() ? 'modified' : 'profile'} data
+                                                {isEditingUserData && <span className="text-orange-500 ml-1">(Modified)</span>}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         <div className="grid lg:grid-cols-2 gap-5 py-5 poppins">
                             <div>
@@ -691,6 +862,20 @@ const WarehouseCheckoutContent = () => {
                                                 ...prev,
                                                 phone: phone
                                             }));
+                                            
+                                            // Set editing flag if user is changing data
+                                            if (!isEditingUserData && userData) {
+                                                setIsEditingUserData(true);
+                                            }
+                                            
+                                            // Clear phone error when user changes value
+                                            if (errors.phone) {
+                                                setErrors(prev => {
+                                                    const newErrors = {...prev};
+                                                    delete newErrors.phone;
+                                                    return newErrors;
+                                                });
+                                            }
                                         }}
                                         containerStyle={{
                                             width: "100%",
@@ -773,33 +958,41 @@ const WarehouseCheckoutContent = () => {
 
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
-                                    Move-in Time <span className="text-red-500">*</span> :
+                                    Move-out Date <span className="text-red-500">*</span> :
                                 </label>
-                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.move_in_time ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
+                                <div className={`md:w-[374px] w-auto h-[49px] border-[1px] ${errors.move_out_date ? 'border-red-500' : 'border-[#0000004D]'} rounded-[5px]`}>
                                     <input
-                                        type="time"
-                                        min={bookingData?.move_in_date === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
-                                        value={bookingData?.move_in_time ?? ''}
+                                        type="date"
+                                        min={bookingData?.move_in_date || new Date().toISOString().split('T')[0]}
+                                        value={bookingData?.move_out_date ?? ''}
                                         onChange={(e) => {
                                             const value = e.target.value;
-                                            const selectedDate = bookingData?.move_in_date;
-                                            const today = new Date().toISOString().split('T')[0];
-                                            const currentTime = new Date().toTimeString().slice(0, 5);
+                                            const updatedBookingData = {
+                                                ...(bookingData || {}),
+                                                move_out_date: value
+                                            };
+                                            setBookingData(updatedBookingData);
                                             
-                                            // Prevent selecting past time on current date
-                                            if (selectedDate === today && value < currentTime) {
-                                                return; // Don't update if trying to select past time on current date
+                                            // Trigger availability check if both dates are set
+                                            if (value && updatedBookingData.move_in_date && updatedBookingData.warehouse_id) {
+                                                fetchAvailability(
+                                                    updatedBookingData.warehouse_id, 
+                                                    updatedBookingData.move_in_date, 
+                                                    updatedBookingData.storage_duration,
+                                                    value
+                                                );
                                             }
                                             
-                                            setBookingData((prev) => ({
-                                                ...(prev || {}),
-                                                move_in_time: value
-                                            }));
+                                            // Trigger pricing calculation
+                                            if (warehouseInfo) {
+                                                calculatePricing(warehouseInfo, updatedBookingData);
+                                            }
+                                            
                                             // Clear error when user selects
-                                            if (errors.move_in_time) {
+                                            if (errors.move_out_date) {
                                                 setErrors(prev => {
                                                     const newErrors = {...prev};
-                                                    delete newErrors.move_in_time;
+                                                    delete newErrors.move_out_date;
                                                     return newErrors;
                                                 });
                                             }
@@ -807,34 +1000,9 @@ const WarehouseCheckoutContent = () => {
                                         className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500]"
                                     />
                                 </div>
-                                {errors.move_in_time && (
-                                    <p className="text-red-500 text-[10px] mt-1">{errors.move_in_time}</p>
+                                {errors.move_out_date && (
+                                    <p className="text-red-500 text-[10px] mt-1">{errors.move_out_date}</p>
                                 )}
-                            </div>
-
-                            <div>
-                                <label className="text-[10px]/[24px] font-[600]">
-                                    Move-out Date (Optional) :
-                                </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <input
-                                        type="date"
-                                        min={bookingData?.move_in_date || new Date().toISOString().split('T')[0]}
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-[10px]/[24px] font-[600]">
-                                    Move-out Time (Optional) :
-                                </label>
-                                <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
-                                    <input
-                                        type="time"
-                                        className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent text-[12px] font-[500]"
-                                    />
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -869,7 +1037,7 @@ const WarehouseCheckoutContent = () => {
                             <div>
                                 <label className="text-[10px]/[24px] font-[600]">
                                     Required Space (sq ft) <span className="text-red-500">*</span> :
-                                    {bookingData?.move_in_date && bookingData?.storage_duration ? (
+                                    {bookingData?.move_in_date && (bookingData?.move_out_date || bookingData?.storage_duration) ? (
                                         availabilityLoading ? (
                                             <span className="text-[#0955AC] ml-2 text-[9px]">Checking availability...</span>
                                         ) : availabilityError ? (
@@ -895,7 +1063,7 @@ const WarehouseCheckoutContent = () => {
                                         max={getMaxAvailableSpace() || undefined}
                                         value={bookingData?.required_space ?? ''}
                                         placeholder={(() => {
-                                            const hasDateSelection = Boolean(bookingData?.move_in_date && bookingData?.storage_duration);
+                                            const hasDateSelection = Boolean(bookingData?.move_in_date && (bookingData?.move_out_date || bookingData?.storage_duration));
                                             const maxSpace = getMaxAvailableSpace();
                                             
                                             if (hasDateSelection) {
@@ -943,7 +1111,7 @@ const WarehouseCheckoutContent = () => {
                                     />
                                 </div>
                                 {/* Availability info */}
-                                {bookingData?.move_in_date && bookingData?.storage_duration && !availabilityLoading && !availabilityError && (
+                                {bookingData?.move_in_date && (bookingData?.move_out_date || bookingData?.storage_duration) && !availabilityLoading && !availabilityError && (
                                     <p className="text-[10px] text-gray-500 mt-1">
                                         Available for selected dates: {formatSqFt(availabilityInfo.availableSpace)} sq ft
                                     </p>
@@ -1151,7 +1319,6 @@ const WarehouseCheckoutContent = () => {
                                             Location: {warehouseInfo?.address || 'Premium Location'}
                                         </h1>
                                         <h1>Move-in Date: {bookingData?.move_in_date || 'June 23rd, 2025'}</h1>
-                                        <h1>Move-in Time: {bookingData?.move_in_time || '10:00 AM'}</h1>
                                     </div>
                                     <div>
                                         <h1 className="text-[16px] font-[700] text-[#000000]">

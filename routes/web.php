@@ -510,6 +510,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    // API route for user profile data
+    Route::get('/api/user/profile', function () {
+        return response()->json([
+            'success' => true,
+            'user' => Auth::user()
+        ]);
+    })->name('api.user.profile');
 });
 
 /*
