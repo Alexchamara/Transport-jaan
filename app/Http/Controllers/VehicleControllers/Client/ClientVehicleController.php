@@ -81,6 +81,7 @@ class ClientVehicleController extends Controller
             'brand',
             'model',
             'bodyType',
+            "capacity",
             'body_type',
         ]);
 
@@ -106,11 +107,64 @@ class ClientVehicleController extends Controller
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
             $bodyType = mb_strtolower(trim($rawBodyType));
-            $allowed = ['sedan','hatchback','suv','van','bus','pickup','jeep','other'];
+            $allowed = ['suv','wagon','crossover','family','sportcoupe','compact','coupe','truck','othe'];
             if (in_array($bodyType, $allowed, true)) {
                 $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
             }
         }
+
+        // Capacity Filter (multiple values)
+        if ($request->filled('capacity')) {
+            $capacities = explode(',', $request->capacity); // e.g. "2person,4person,8ormore"
+
+            $query->where(function ($q) use ($capacities) {
+                foreach ($capacities as $cap) {
+                    if ($cap === '8ormore') {
+                        $q->orWhere('passenger_capacity', '>=', 8);
+                    } else {
+                        $num = intval($cap); // "2person" -> 2
+                        $q->orWhere('passenger_capacity', $num);
+                    }
+                }
+            });
+        }
+
+        // Price Filter (multiple values)
+if ($request->filled('price')) {
+    $prices = explode(',', $request->price);
+
+    $query->where(function ($q) use ($prices) {
+        foreach ($prices as $price) {
+            if ($price === '200plus') {
+                // Special case: price 200+
+                $q->orWhere('rental_price_per_day', '>=', 200);
+            } else {
+                // Other ranges like "0-50"
+                [$min, $max] = explode('-', $price);
+                $q->orWhereBetween('rental_price_per_day', [(int)$min, (int)$max]);
+            }
+        }
+    });
+}
+
+        // Mileage Filter
+        if ($request->filled('mileage')) {
+            // Expecting comma-separated values like "limited,unlimited"
+            $mileages = explode(',', $request->mileage);
+
+            $query->where(function ($q) use ($mileages) {
+                foreach ($mileages as $m) {
+                    if ($m === 'limited') {
+                        // Define what "limited" means, e.g., less than 50,000 km
+                        $q->orWhere('mileage_km', '<', 50000);
+                    } elseif ($m === 'unlimited') {
+                        // "unlimited" means 50,000 km or more
+                        $q->orWhere('mileage_km', '>=', 50000);
+                    }
+                }
+            });
+        }
+
 
         $vehicles = $query->paginate(12)->withQueryString()
             ->through(function (Vehicle $v) {
@@ -288,4 +342,6 @@ class ClientVehicleController extends Controller
 
         return Storage::disk($disk)->response($path, $filename, $headers);
     }
+
+
 }
