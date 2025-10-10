@@ -382,7 +382,7 @@ const TravelExploreAnimation = ({ auth }) => {
                 {/* Carousel (shared layout, framer-motion) */}
                 <div className="relative z-50 flex justify-center md:justify-end items-start md:items-center w-full h-auto md:h-screen pointer-events-auto mt-20 md:mt-[50px] 2xl:mt-[180px] pb-10">
                     {/* Right-anchored rail showing exactly three cards */}
-                    <div className="w-full md:w-[700px] lg:w-[1000px] xl:w-[1370px]">
+                    <div className="w-[700px] md:w-[1000px] xl:w-[1370px] 2xl:w-[1400px]">
                         <div className="overflow-hidden px-10 py-5 select-none">
                             <div className="flex gap-10 items-center">
                                 {order.map((idx) => (
