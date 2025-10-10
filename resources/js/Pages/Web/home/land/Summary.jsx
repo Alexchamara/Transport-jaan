@@ -250,10 +250,6 @@ const Summary = () => {
                 DOWNLOAD SUMMARY
               </div>
             </div>
-
-            <div className="flex justify-end text-[#0955AC] text-[16px] font-[500] cursor-pointer">
-              <h1>Need a Driver ?</h1>
-            </div>
           </div>
 
           {/* right column */}
