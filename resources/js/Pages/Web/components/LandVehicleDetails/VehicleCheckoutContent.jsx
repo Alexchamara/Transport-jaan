@@ -136,13 +136,15 @@ const VehicleCheckoutContent = () => {
     const cleanedPhone = String(phone).replace(/[^\d+]/g, "");
     const phoneOk = /^\+?\d{7,15}$/.test(cleanedPhone);
     const ageNum = age === "" ? "" : Number(age);
+    const zipOk = /^\d{5}$/.test(zip);
 
     if (!firstName.trim()) e.firstName = "First name is required.";
     if (!lastName.trim()) e.lastName = "Last name is required.";
     if (!email.trim() || !emailOk) e.email = "Enter a valid email.";
     if (!phoneOk) e.phone = "Enter a valid phone number (7–15 digits, optional +).";
     if (!address.trim()) e.address = "Address is required.";
-    if (age !== "" && (Number.isNaN(ageNum) || ageNum < 18 || ageNum > 120)) e.age = "Age must be 18-120.";
+    if (age !== "" && (Number.isNaN(ageNum) || ageNum < 20 || ageNum > 120)) e.age = "Age must be 21-120.";
+     if (!zip.trim() || !zipOk) e.zip = "Zip code must be exactly 5 digits.";
     setErrors(e);
     return { ok: Object.keys(e).length === 0, cleanedPhone };
   };
@@ -371,17 +373,22 @@ const VehicleCheckoutContent = () => {
                     />
                   </div>
                 </div>
-                <div>
+               <div>
                   <label className="text-[10px]/[24px] font-[600]">Zip Code :</label>
                   <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
                       value={zip}
                       onChange={(e) => setZip(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
-                      placeholder="033302"
+                      placeholder="03330"
+                      maxLength={5} // optional, prevent typing >5 digits
+                      inputMode="numeric"
                     />
                   </div>
+                  {errors.zip && <p className="text-[10px] text-red-600 mt-1">{errors.zip}</p>}
                 </div>
+
+
               </div>
             </div>
           </div>
