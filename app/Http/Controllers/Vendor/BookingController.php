@@ -406,4 +406,154 @@ class BookingController extends Controller
             ]);
         }
     }
+
+    public function calendar(Request $request)
+    {
+        try {
+            $vendor = Auth::user();
+            $vendorId = $vendor?->id;
+
+            // Pick the first existing owner column from vehicles table
+            $ownerCol = collect(['provider_id', 'vendor_id', 'owner_id', 'user_id'])
+                ->first(fn ($col) => Schema::hasColumn('vehicles', $col));
+
+            // Get filter parameters
+            $month = $request->get('month', now()->month);
+            $year = $request->get('year', now()->year);
+            $userId = $request->get('user_id'); // Optional: filter by specific user
+
+            // Build date range for the calendar view
+            $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+            $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+            // Base query for bookings
+            $query = Booking::query()
+                ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
+                    $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
+                })
+                ->with(['client', 'customer', 'vehicle', 'schedule'])
+                ->whereHas('schedule', function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('pickup_at', [$startDate, $endDate])
+                      ->orWhereBetween('dropoff_at', [$startDate, $endDate])
+                      ->orWhere(function ($ov) use ($startDate, $endDate) {
+                          $ov->where('pickup_at', '<=', $startDate)->where('dropoff_at', '>=', $endDate);
+                      });
+                });
+
+            // Filter by user if specified
+            if ($userId) {
+                $query->where('client_id', $userId);
+            }
+
+            $bookings = $query->get();
+
+            // Process bookings into calendar events
+            $events = [];
+            foreach ($bookings as $booking) {
+                $client = $booking->client ?? $booking->customer;
+                $vehicle = $booking->vehicle;
+                $schedule = $booking->schedule;
+
+                if (!$schedule) continue;
+
+                $vehicleSnap = $booking->vehicle_snapshot ?: [];
+                $vehicleName = $vehicle
+                    ? trim(($vehicle->make ?? '') . ' ' . ($vehicle->model ?? ''))
+                    : trim(($vehicleSnap['make'] ?? '') . ' ' . ($vehicleSnap['model'] ?? ''));
+
+                $pickupDate = Carbon::parse($schedule->pickup_at);
+                $dropoffDate = Carbon::parse($schedule->dropoff_at);
+
+                // Determine status color
+                $statusMap = [
+                    'completed' => 'done',
+                    'finished' => 'done',
+                    'returned' => 'done',
+                    'cancelled' => 'cancelled',
+                    'canceled' => 'cancelled',
+                ];
+                $status = $statusMap[strtolower($booking->status)] ?? 'done';
+
+                $events[] = [
+                    'id' => $booking->id,
+                    'title' => $vehicleName ?: 'Vehicle',
+                    'person' => $client?->name ?? 'Unknown Client',
+                    'personImage' => $client?->profile_photo_url ?? null,
+                    'vehicleImage' => $vehicle?->primary_image_url ?? null,
+                    'status' => $status,
+                    'pickup_at' => $pickupDate->toIso8601String(),
+                    'dropoff_at' => $dropoffDate->toIso8601String(),
+                    'pickup_location' => $schedule->pickup_location ?? 'N/A',
+                    'dropoff_location' => $schedule->dropoff_location ?? 'N/A',
+                    'pickup_date' => $pickupDate->format('Y-m-d'),
+                    'pickup_time' => $pickupDate->format('g:i A'),
+                    'dropoff_date' => $dropoffDate->format('Y-m-d'),
+                    'dropoff_time' => $dropoffDate->format('g:i A'),
+                    'rental_days' => $booking->rental_days ?? 0,
+                    'total_amount' => (float)($booking->total_amount ?? 0),
+                    'vehicle' => [
+                        'name' => $vehicleName,
+                        'type' => $vehicle?->type ?? 'N/A',
+                        'plate_number' => $vehicle?->plate_number ?? ($vehicleSnap['plate_number'] ?? 'N/A'),
+                        'transmission' => $vehicle?->transmission ?? ($vehicleSnap['transmission'] ?? 'N/A'),
+                    ],
+                    'client' => [
+                        'name' => $client?->name ?? 'Unknown',
+                        'email' => $client?->email ?? 'N/A',
+                        'phone' => $client?->phone ?? 'N/A',
+                    ],
+                    'notes' => $booking->notes ?? null,
+                ];
+            }
+
+            // Get all unique clients who have bookings with this vendor
+            $clients = Booking::query()
+                ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
+                    $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
+                })
+                ->with('client')
+                ->get()
+                ->pluck('client')
+                ->filter()
+                ->unique('id')
+                ->map(fn($c) => [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'email' => $c->email,
+                ])
+                ->values();
+
+            // Get unread notification count
+            $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
+
+            return Inertia::render('Web/home/vendors/Calendar', [
+                'events' => $events,
+                'clients' => $clients,
+                'currentMonth' => (int)$month,
+                'currentYear' => (int)$year,
+                'selectedUserId' => $userId,
+                'vendorUser' => [
+                    'name' => $vendor?->name ?? 'Vendor',
+                    'role' => 'Vendor',
+                ],
+                'unreadNotifications' => $unreadNotifications,
+            ]);
+
+        } catch (Throwable $e) {
+            report($e);
+
+            return Inertia::render('Web/home/vendors/Calendar', [
+                'events' => [],
+                'clients' => [],
+                'currentMonth' => now()->month,
+                'currentYear' => now()->year,
+                'selectedUserId' => null,
+                'vendorUser' => [
+                    'name' => Auth::user()?->name ?? 'Vendor',
+                    'role' => 'Vendor',
+                ],
+                'server_error' => 'Failed to load calendar data. Check logs.',
+            ]);
+        }
+    }
 }

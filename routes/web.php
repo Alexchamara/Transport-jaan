@@ -406,7 +406,7 @@ Route::middleware(['auth', 'role:vendor'])
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
         Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
         Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
-        Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
+        Route::get('/calendar', [VendorBookingController::class, 'calendar'])->name('calendar');
 
         // Units UI
         Route::get('/units',         $render('Web/home/vendors/Unit'))->name('units');
