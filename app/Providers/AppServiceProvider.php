@@ -26,7 +26,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
-        
+
         $this->app['router']->aliasMiddleware('role', \App\Http\Middleware\CheckRole::class);
+
+        // Register observers
+        \App\Models\Booking::observe(\App\Observers\BookingObserver::class);
     }
 }

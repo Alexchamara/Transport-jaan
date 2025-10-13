@@ -1,6 +1,7 @@
 import React from "react";
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import NotificationDropdown from "../NotificationDropdown";
 
 import dollarIcon from "../../../assets/vendors/dashboard/icons/dollarIcon.svg";
 import carIcon from "../../../assets/vendors/dashboard/icons/carIcon.svg";
@@ -35,6 +36,7 @@ const DashContent = ({
   filters,
   vendorUser,
   recentActivities, // <— NEW (from controller)
+  unreadNotifications = 0, // NEW
 }) => {
   const computedCarTypes = (carTypes ?? []).map((t) => ({
     name: t.name ?? "Unknown",
@@ -53,9 +55,7 @@ const DashContent = ({
       <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
         <h1 className="figtree text-[35px] font-[700]">Dashboard</h1>
         <div className="flex flex-row gap-5">
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <img src={bell} />
-          </div>
+          <NotificationDropdown bellIcon={bell} unreadCount={unreadNotifications} />
           <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
             <img src={proPic} />
           </div>

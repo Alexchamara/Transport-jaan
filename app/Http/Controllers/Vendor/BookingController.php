@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Vendor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -114,6 +115,9 @@ class BookingController extends Controller
                 ];
             })->values();
 
+            // Get unread notification count
+            $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
+
             return Inertia::render('Web/home/vendors/Booking', [
                 'initialBookings' => $initialBookings,
                 'bookingData'     => $bookingData,
@@ -121,6 +125,7 @@ class BookingController extends Controller
                     'name' => $vendor?->name ?? 'Vendor',
                     'role' => 'Vendor',
                 ],
+                'unreadNotifications' => $unreadNotifications,
             ]);
         } catch (Throwable $e) {
             // Log the real error and still render the page so the SPA doesn’t white-screen.
@@ -238,10 +243,14 @@ class BookingController extends Controller
                 'sea_clients' => count($clientsByType['sea']),
             ];
 
+            // Get unread notification count
+            $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
+
             return Inertia::render('Web/home/vendors/Client', [
                 'clients' => $clientsByType,
                 'currentFilter' => $filter,
                 'stats' => $stats,
+                'unreadNotifications' => $unreadNotifications,
             ]);
 
         } catch (Throwable $e) {
@@ -369,10 +378,14 @@ class BookingController extends Controller
                 'total_transactions' => count($transactions),
             ];
 
+            // Get unread notification count
+            $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
+
             return Inertia::render('Web/home/vendors/Payment', [
                 'transactions' => $transactions,
                 'stats' => $stats,
                 'monthlyRevenue' => $monthlyRevenue,
+                'unreadNotifications' => $unreadNotifications,
             ]);
 
         } catch (Throwable $e) {

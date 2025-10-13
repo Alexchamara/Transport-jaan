@@ -17,9 +17,10 @@ import downloadLogo from "../../../../assets/financial/expenses/download.svg";
 import calendar from "../../../../assets/financial/expenses/cal.svg";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
+import NotificationDropdown from "../../NotificationDropdown";
 
 const PaymentContent = () => {
-    const { auth, transactions: propsTransactions, stats, monthlyRevenue } = usePage().props;
+    const { auth, transactions: propsTransactions, stats, monthlyRevenue, unreadNotifications = 0 } = usePage().props;
     const user = auth?.user;
 
     // Use actual transactions from backend or fallback to empty array
@@ -170,9 +171,7 @@ const PaymentContent = () => {
                 <h1 className="figtree text-[35px] font-[700]">Payment</h1>
                 <div className="flex flex-row gap-5">
 
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
+                    <NotificationDropdown bellIcon={bell} unreadCount={unreadNotifications} />
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={proPic} />
                     </div>

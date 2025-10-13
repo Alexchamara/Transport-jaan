@@ -22,6 +22,7 @@ use App\Http\Controllers\Vendor\DashboardController;
 use App\Http\Controllers\Vendor\BookingController as VendorBookingController;
 use App\Http\Controllers\Vendor\VehicleMaintenanceController;
 use App\Http\Controllers\Vendor\DriverController;
+use App\Http\Controllers\Vendor\NotificationController;
 
 // PDFs
 use App\Http\Controllers\VehiclePolicyController;
@@ -383,6 +384,12 @@ Route::middleware(['auth', 'role:vendor'])
         // Dashboard with real props
         Route::get('/dashbord', [DashboardController::class, 'index'])->name('dashboard'); // legacy spelling
         Route::get('/dashboard', [DashboardController::class, 'index']); // alias
+
+        // Notification routes
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/count', [NotificationController::class, 'unreadCount'])->name('notifications.count');
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
 
         // Bookings page with DB-fed props (table + chart)
         Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');

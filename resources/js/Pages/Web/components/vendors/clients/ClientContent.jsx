@@ -3,11 +3,12 @@ import { usePage } from "@inertiajs/react";
 
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import NotificationDropdown from "../NotificationDropdown";
 
 import ClientTable from "./ClientTable";
 
 const ClientContent = () => {
-  const { auth } = usePage().props;
+  const { auth, unreadNotifications = 0 } = usePage().props;
   const user = auth?.user;
 
     return (
@@ -17,9 +18,7 @@ const ClientContent = () => {
                 <h1 className="figtree text-[35px] font-[700]">Clients</h1>
                 <div className="flex flex-row gap-5">
 
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
+                    <NotificationDropdown bellIcon={bell} unreadCount={unreadNotifications} />
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={proPic} />
                     </div>
