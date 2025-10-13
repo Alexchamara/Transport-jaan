@@ -137,4 +137,131 @@ class BookingController extends Controller
             ]);
         }
     }
+
+    public function clients(Request $request)
+    {
+        try {
+            $vendor = Auth::user();
+            $vendorId = $vendor?->id;
+
+            // Pick the first existing owner column from vehicles table
+            $ownerCol = collect(['provider_id', 'vendor_id', 'owner_id', 'user_id'])
+                ->first(fn ($col) => Schema::hasColumn('vehicles', $col));
+
+            // Get filter parameter (default: all)
+            $filter = $request->get('filter', 'all'); // all, land, air, sea
+
+            // Base query to get bookings with clients
+            $query = Booking::query()
+                ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
+                    $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
+                })
+                ->with(['client', 'customer', 'vehicle.category', 'schedule', 'payments'])
+                ->latest('created_at');
+
+            // Filter by vehicle type if specified
+            if ($filter !== 'all') {
+                $query->whereHas('vehicle', function ($q) use ($filter) {
+                    $q->where('type', $filter);
+                });
+            }
+
+            $bookings = $query->get();
+
+            // Group clients by vehicle type
+            $clientsByType = [
+                'land' => [],
+                'air' => [],
+                'sea' => [],
+            ];
+
+            // Process bookings to extract unique clients with their booking info
+            $clientsMap = [];
+
+            foreach ($bookings as $booking) {
+                $client = $booking->client ?? $booking->customer;
+                $vehicle = $booking->vehicle;
+
+                if (!$client || !$vehicle) continue;
+
+                $clientKey = $client->email ?? $client->id;
+                $vehicleType = $vehicle->type ?? 'land';
+
+                if (!isset($clientsMap[$vehicleType][$clientKey])) {
+                    $clientsMap[$vehicleType][$clientKey] = [
+                        'id' => $client->id,
+                        'name' => $client->name ?? '—',
+                        'email' => $client->email ?? '—',
+                        'phone' => $client->phone ?? '—',
+                        'address' => $client->address ?? '—',
+                        'bookings_count' => 0,
+                        'total_spent' => 0,
+                        'vehicle_type' => ucfirst($vehicleType),
+                        'last_booking_date' => null,
+                        'bookings' => [],
+                    ];
+                }
+
+                // Add booking details
+                $clientsMap[$vehicleType][$clientKey]['bookings_count']++;
+                $clientsMap[$vehicleType][$clientKey]['total_spent'] += (float)($booking->total_amount ?? 0);
+
+                $bookingDate = $booking->created_at ? $booking->created_at->format('Y-m-d') : null;
+                if (!$clientsMap[$vehicleType][$clientKey]['last_booking_date'] ||
+                    ($bookingDate && $bookingDate > $clientsMap[$vehicleType][$clientKey]['last_booking_date'])) {
+                    $clientsMap[$vehicleType][$clientKey]['last_booking_date'] = $bookingDate;
+                }
+
+                $clientsMap[$vehicleType][$clientKey]['bookings'][] = [
+                    'id' => $booking->id,
+                    'booking_date' => $bookingDate,
+                    'vehicle' => $vehicle->model ?? '—',
+                    'status' => $booking->status ?? 'pending',
+                    'amount' => (float)($booking->total_amount ?? 0),
+                ];
+            }
+
+            // Convert to arrays and format
+            foreach ($clientsMap as $type => $clients) {
+                $clientsByType[$type] = array_values($clients);
+            }
+
+            // Statistics
+            $stats = [
+                'total_clients' => count(array_unique(array_merge(
+                    array_keys($clientsMap['land'] ?? []),
+                    array_keys($clientsMap['air'] ?? []),
+                    array_keys($clientsMap['sea'] ?? [])
+                ))),
+                'land_clients' => count($clientsByType['land']),
+                'air_clients' => count($clientsByType['air']),
+                'sea_clients' => count($clientsByType['sea']),
+            ];
+
+            return Inertia::render('Web/home/vendors/Client', [
+                'clients' => $clientsByType,
+                'currentFilter' => $filter,
+                'stats' => $stats,
+            ]);
+
+        } catch (Throwable $e) {
+            report($e);
+
+            return Inertia::render('Web/home/vendors/Client', [
+                'clients' => [
+                    'land' => [],
+                    'air' => [],
+                    'sea' => [],
+                ],
+                'currentFilter' => 'all',
+                'stats' => [
+                    'total_clients' => 0,
+                    'land_clients' => 0,
+                    'air_clients' => 0,
+                    'sea_clients' => 0,
+                ],
+                'server_error' => 'Failed to load clients. Check logs.',
+            ]);
+        }
+    }
 }

@@ -140,7 +140,7 @@ Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicl
 Route::prefix('api')->name('api.')->group(function () {
     // Public warehouse units list
     Route::get('/warehouse-units', [WarehouseBookingController::class, 'getWarehouseUnits'])->name('warehouse-units.index');
-    
+
     // Warehouse API endpoints
     Route::get('/warehouse-units/{id}', [WarehouseBookingController::class, 'getWarehouseUnit'])->name('warehouse-units.show');
     Route::get('/warehouse-units/{id}/availability', [WarehouseBookingController::class, 'getWarehouseAvailability'])->name('warehouse-units.availability');
@@ -341,9 +341,11 @@ Route::middleware(['auth', 'role:vendor'])->get('/warehouse/{path}', function (s
 // Bookings page with DB-fed props (table + chart)
 Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
 
+// Clients page with actual booking data
+Route::get('/clients', [VendorBookingController::class, 'clients'])->name('clients.public');
+
 // Other pages (shells)
 Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
-Route::get('/clients', fn() => Inertia::render('Web/home/vendors/Client'))->name('clients');
 Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
 Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
 Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
@@ -379,9 +381,11 @@ Route::middleware(['auth', 'role:vendor'])
         // Bookings page with DB-fed props (table + chart)
         Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
 
+        // Clients page with actual booking data filtered by vehicle type
+        Route::get('/clients', [VendorBookingController::class, 'clients'])->name('clients');
+
         // Other pages (shells)
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
-        Route::get('/clients', fn() => Inertia::render('Web/home/vendors/Client'))->name('clients');
         Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
         Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
         Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
@@ -510,7 +514,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    
+
     // API route for user profile data
     Route::get('/api/user/profile', function () {
         return response()->json([
