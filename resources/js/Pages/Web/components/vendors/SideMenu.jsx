@@ -147,17 +147,6 @@ const SideMenu = () => {
           <h1>Tracking</h1>
         </div>
 
-        <div
-          className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-            currentPath === "/vendors/message"
-              ? "bg-[#0955AC29] text-[#000000] font-[700]"
-              : "text-[#00000066]"
-          }`}
-          onClick={() => (window.location.href = "/vendors/message")}
-        >
-          <img src={messgLogo} className="w/[25px]" />
-          <h1>Message</h1>
-        </div>
 
         <Link
           href={route('logout')}

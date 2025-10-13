@@ -3,8 +3,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { router, usePage } from "@inertiajs/react";
 
 // top bar icons
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
+
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 
@@ -524,7 +523,7 @@ const UnitContent = () => {
       <div className="flex flex-row gap-5 justify-between items-center">
         <h1 className="figtree text-[30px] font-[700]">Units</h1>
         <div className="flex flex-row gap-3">
-          {[search, settings, bell, proPic].map((src, i) => (
+          {[ bell, proPic].map((src, i) => (
             <div key={i} className="size-[50px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
               <img src={src} alt="" />
             </div>

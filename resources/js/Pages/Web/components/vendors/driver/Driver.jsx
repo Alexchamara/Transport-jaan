@@ -3,8 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import SideMenu from "../SideMenu.jsx";
 import { usePage } from "@inertiajs/react";
 
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
+
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 
@@ -490,8 +489,7 @@ export default function Driver() {
           <div className="flex flex-row gap-5 justify-between items-center">
             <h1 className="figtree text-[28px] font-[700]">Drivers</h1>
             <div className="flex flex-row gap-4 items-center">
-              <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={search} /></div>
-              <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={settings} /></div>
+
               <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={bell} /></div>
               <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={proPic} /></div>
               <div className="figtree hidden sm:flex flex-col justify-center items-start">

@@ -1,7 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
@@ -70,12 +68,6 @@ const BookingContent = ({
       <div className="flex flex-row gap-5 justify-between items-center">
         <h1 className="figtree text-[35px] font-[700]">Bookings</h1>
         <div className="flex flex-row gap-5">
-          <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-            <img src={search} alt="Search" />
-          </div>
-          <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-            <img src={settings} alt="Settings" />
-          </div>
           <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
             <img src={bell} alt="Notifications" />
           </div>

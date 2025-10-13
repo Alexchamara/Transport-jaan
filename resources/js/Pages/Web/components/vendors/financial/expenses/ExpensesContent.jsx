@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../../assets/vendors/dashboard/settings.svg";
+
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
@@ -313,12 +312,7 @@ const ExpensesContent = () => {
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Expenses</h1>
                 <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
-                    </div>
+
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={bell} />
                     </div>
