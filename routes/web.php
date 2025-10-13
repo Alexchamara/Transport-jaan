@@ -323,7 +323,7 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('v
     Route::patch('/api/bookings/{bookingId}/reject', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'reject'])->name('api.bookings.reject');
     Route::patch('/api/bookings/{bookingId}/complete', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'complete'])->name('api.bookings.complete');
     Route::put('/api/bookings/{bookingId}', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'update'])->name('api.bookings.update');
-    
+
     // Payment endpoints
     Route::get('/api/payment-transactions', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getPaymentTransactions'])->name('api.payments.transactions');
     Route::get('/api/payment-stats', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getPaymentStats'])->name('api.payments.stats');
@@ -348,10 +348,12 @@ Route::get('/bookings', [VendorBookingController::class, 'page'])->name('booking
 // Clients page with actual booking data
 Route::get('/clients', [VendorBookingController::class, 'clients'])->name('clients.public');
 
+// Payment page with actual transaction data
+Route::get('/payment', [VendorBookingController::class, 'payments'])->name('payment.public');
+
 // Other pages (shells)
 Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
 Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
-Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
 Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
 Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
 
@@ -388,10 +390,12 @@ Route::middleware(['auth', 'role:vendor'])
         // Clients page with actual booking data filtered by vehicle type
         Route::get('/clients', [VendorBookingController::class, 'clients'])->name('clients');
 
+        // Payment page with actual transaction data
+        Route::get('/payment', [VendorBookingController::class, 'payments'])->name('payment');
+
         // Other pages (shells)
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
         Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
-        Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
         Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
         Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
 

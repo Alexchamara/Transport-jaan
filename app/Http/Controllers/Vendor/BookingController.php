@@ -264,4 +264,133 @@ class BookingController extends Controller
             ]);
         }
     }
+
+    public function payments(Request $request)
+    {
+        try {
+            $vendor = Auth::user();
+            $vendorId = $vendor?->id;
+
+            // Pick the first existing owner column from vehicles table
+            $ownerCol = collect(['provider_id', 'vendor_id', 'owner_id', 'user_id'])
+                ->first(fn ($col) => Schema::hasColumn('vehicles', $col));
+
+            // Get all bookings with payments for this vendor
+            $bookings = Booking::query()
+                ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
+                    $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
+                })
+                ->with(['client', 'customer', 'vehicle', 'payments', 'schedule'])
+                ->latest('created_at')
+                ->get();
+
+            // Process payments
+            $transactions = [];
+            $totalRevenue = 0;
+            $totalPending = 0;
+            $totalCompleted = 0;
+            $completedCount = 0;
+            $pendingCount = 0;
+
+            foreach ($bookings as $booking) {
+                $vehicle = $booking->vehicle;
+                $client = $booking->client ?? $booking->customer;
+
+                // Get vehicle model/name
+                $vehicleSnap = $booking->vehicle_snapshot ? json_decode($booking->vehicle_snapshot, true) : [];
+                $vehicleName = $vehicle
+                    ? trim(($vehicle->manufacturer ?? '') . ' ' . ($vehicle->model ?? ''))
+                    : ($vehicleSnap['model'] ?? 'N/A');
+
+                foreach ($booking->payments as $payment) {
+                    $status = strtolower($payment->status);
+                    $isPaid = in_array($status, ['paid', 'completed', 'success']);
+
+                    if ($isPaid) {
+                        $totalCompleted += (float)$payment->amount_paid;
+                        $completedCount++;
+                    } else {
+                        $totalPending += (float)$payment->amount_paid;
+                        $pendingCount++;
+                    }
+
+                    $totalRevenue += (float)$payment->amount_paid;
+
+                    $transactions[] = [
+                        'id' => 'BK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                        'booking_id' => $booking->id,
+                        'payment_id' => $payment->id,
+                        'client' => $client?->name ?? 'N/A',
+                        'car' => $vehicleName ?: 'N/A',
+                        'rentPerDay' => '$' . number_format($booking->price_per_day ?? 0, 2),
+                        'days' => $booking->rental_days ?? '0',
+                        'amount' => '$' . number_format($payment->amount_paid ?? 0, 2),
+                        'amount_raw' => (float)($payment->amount_paid ?? 0),
+                        'dueDate' => $booking->created_at ? $booking->created_at->format('Y.m.d') : 'N/A',
+                        'paymentDate' => $payment->created_at ? $payment->created_at->format('Y.m.d') : 'N/A',
+                        'method' => $payment->method ?? 'N/A',
+                        'status' => $isPaid ? 'Completed' : 'Pending',
+                        'statusColor' => $isPaid ? '#50AE31' : '#F0BB0D',
+                        'statusBg' => $isPaid ? '#6DB4464D' : '#FFCD294D',
+                        'tx_reference' => $payment->tx_reference ?? 'N/A',
+                    ];
+                }
+            }
+
+            // Calculate monthly revenue for chart (last 6 months)
+            $monthlyRevenue = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
+                $monthEnd = Carbon::now()->subMonths($i)->endOfMonth();
+
+                $revenue = Booking::query()
+                    ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
+                        $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
+                    })
+                    ->whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->with('payments')
+                    ->get()
+                    ->flatMap(fn($b) => $b->payments)
+                    ->where('status', 'paid')
+                    ->sum('amount_paid');
+
+                $monthlyRevenue[] = [
+                    'month' => $monthStart->format('M'),
+                    'revenue' => (float)$revenue,
+                ];
+            }
+
+            $stats = [
+                'total_revenue' => $totalRevenue,
+                'total_completed' => $totalCompleted,
+                'total_pending' => $totalPending,
+                'completed_count' => $completedCount,
+                'pending_count' => $pendingCount,
+                'total_transactions' => count($transactions),
+            ];
+
+            return Inertia::render('Web/home/vendors/Payment', [
+                'transactions' => $transactions,
+                'stats' => $stats,
+                'monthlyRevenue' => $monthlyRevenue,
+            ]);
+
+        } catch (Throwable $e) {
+            report($e);
+
+            return Inertia::render('Web/home/vendors/Payment', [
+                'transactions' => [],
+                'stats' => [
+                    'total_revenue' => 0,
+                    'total_completed' => 0,
+                    'total_pending' => 0,
+                    'completed_count' => 0,
+                    'pending_count' => 0,
+                    'total_transactions' => 0,
+                ],
+                'monthlyRevenue' => [],
+                'server_error' => 'Failed to load payment data. Check logs.',
+            ]);
+        }
+    }
 }
