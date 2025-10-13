@@ -636,4 +636,223 @@ class VendorWarehouseBookingController extends Controller
                 return Carbon::now()->subMonths(8)->startOfMonth();
         }
     }
+
+    /**
+     * Get payment transactions for the authenticated vendor
+     */
+    public function getPaymentTransactions(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $warehouseUnitIds = WarehouseUnit::where('user_id', $user->id)->pluck('id');
+            
+            $query = WarehouseBooking::with(['user', 'warehouseUnit'])
+                ->whereIn('warehouse_unit_id', $warehouseUnitIds);
+            
+            // Apply search filter
+            if ($request->has('search') && !empty($request->search)) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('booking_reference', 'like', "%{$search}%")
+                      ->orWhere('company_name', 'like', "%{$search}%")
+                      ->orWhere('contact_person', 'like', "%{$search}%")
+                      ->orWhereHas('user', function($userQuery) use ($search) {
+                          $userQuery->where('name', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('warehouseUnit', function($unitQuery) use ($search) {
+                          $unitQuery->where('name', 'like', "%{$search}%");
+                      });
+                });
+            }
+            
+            // Apply status filter
+            if ($request->has('status') && !empty($request->status)) {
+                $status = strtolower($request->status);
+                if ($status === 'completed') {
+                    $query->where('status', 'completed');
+                } elseif ($status === 'pending') {
+                    $query->where('status', 'pending');
+                } elseif ($status === 'confirmed') {
+                    $query->where('status', 'confirmed');
+                } elseif ($status === 'cancelled') {
+                    $query->where('status', 'cancelled');
+                }
+            }
+            
+            // Apply date filter
+            if ($request->has('date') && !empty($request->date)) {
+                $date = Carbon::parse($request->date);
+                $query->whereDate('created_at', $date);
+            }
+            
+            // Apply sorting
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+            
+            $perPage = $request->get('per_page', 10);
+            $bookings = $query->paginate($perPage);
+            
+            // Transform the data
+            $transformedBookings = $bookings->getCollection()->map(function ($booking) {
+                $startDate = Carbon::parse($booking->start_date);
+                $endDate = Carbon::parse($booking->end_date);
+                $days = $startDate->diffInDays($endDate);
+                
+                // Calculate daily rate
+                $dailyRate = $booking->monthly_rate && $days > 0 
+                    ? round($booking->monthly_rate / 30, 2) 
+                    : 0;
+                
+                // Determine status color and background
+                $statusInfo = $this->getStatusStyle($booking->status);
+                
+                return [
+                    'id' => $booking->booking_reference,
+                    'client' => $booking->user->name ?? $booking->contact_person ?? 'N/A',
+                    'warehouse' => $booking->warehouseUnit->name ?? 'N/A',
+                    'ratePerDay' => 'LKR ' . number_format($dailyRate, 2),
+                    'days' => (string)$days,
+                    'amount' => 'LKR ' . number_format($booking->final_amount ?? $booking->total_amount ?? 0, 2),
+                    'dueDate' => $booking->end_date ? Carbon::parse($booking->end_date)->format('Y.m.d') : 'N/A',
+                    'status' => ucfirst($booking->status),
+                    'statusColor' => $statusInfo['color'],
+                    'statusBg' => $statusInfo['bg'],
+                    'payment_status' => $booking->payment_status,
+                    'monthly_rate' => $booking->monthly_rate,
+                    'security_deposit' => $booking->security_deposit,
+                    'setup_fee' => $booking->setup_fee,
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'data' => $transformedBookings,
+                'pagination' => [
+                    'current_page' => $bookings->currentPage(),
+                    'last_page' => $bookings->lastPage(),
+                    'per_page' => $bookings->perPage(),
+                    'total' => $bookings->total(),
+                    'from' => $bookings->firstItem(),
+                    'to' => $bookings->lastItem(),
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error fetching payment transactions: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching payment transactions',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Get payment statistics for the vendor
+     */
+    public function getPaymentStats(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $warehouseUnitIds = WarehouseUnit::where('user_id', $user->id)->pluck('id');
+            
+            // Get current period stats
+            $currentBalance = WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
+                ->where('payment_status', 'paid')
+                ->sum('final_amount');
+            
+            $totalIncome = WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
+                ->whereIn('status', ['confirmed', 'completed', 'active'])
+                ->sum('final_amount');
+            
+            $totalExpenses = WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
+                ->where('status', 'cancelled')
+                ->where('payment_status', 'refunded')
+                ->sum('security_deposit');
+            
+            // Calculate growth percentages (comparing to last week)
+            $lastWeekBalance = WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
+                ->where('payment_status', 'paid')
+                ->where('payment_date', '<=', Carbon::now()->subWeek())
+                ->sum('final_amount');
+            
+            $lastWeekIncome = WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
+                ->whereIn('status', ['confirmed', 'completed', 'active'])
+                ->where('created_at', '<=', Carbon::now()->subWeek())
+                ->sum('final_amount');
+            
+            $balanceGrowth = $lastWeekBalance > 0 
+                ? round((($currentBalance - $lastWeekBalance) / $lastWeekBalance) * 100, 2) 
+                : 0;
+            
+            $incomeGrowth = $lastWeekIncome > 0 
+                ? round((($totalIncome - $lastWeekIncome) / $lastWeekIncome) * 100, 2) 
+                : 0;
+            
+            $expensesGrowth = 2.86; // Placeholder or calculate if you have expense tracking
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'balance' => [
+                        'amount' => number_format($currentBalance, 0),
+                        'growth' => $balanceGrowth,
+                        'isPositive' => $balanceGrowth >= 0
+                    ],
+                    'income' => [
+                        'amount' => number_format($totalIncome, 0),
+                        'growth' => $incomeGrowth,
+                        'isPositive' => $incomeGrowth >= 0
+                    ],
+                    'expenses' => [
+                        'amount' => number_format($totalExpenses, 0),
+                        'growth' => $expensesGrowth,
+                        'isPositive' => false
+                    ]
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error fetching payment stats: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching payment statistics'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Helper method to get status styling
+     */
+    private function getStatusStyle($status)
+    {
+        $statusMap = [
+            'completed' => [
+                'color' => '#50AE31',
+                'bg' => '#6DB4464D'
+            ],
+            'confirmed' => [
+                'color' => '#0955AC',
+                'bg' => '#0955AC4D'
+            ],
+            'pending' => [
+                'color' => '#F0BB0D',
+                'bg' => '#FFCD294D'
+            ],
+            'cancelled' => [
+                'color' => '#FF0000',
+                'bg' => '#FF00004D'
+            ],
+            'active' => [
+                'color' => '#50AE31',
+                'bg' => '#6DB4464D'
+            ],
+        ];
+        
+        return $statusMap[$status] ?? [
+            'color' => '#7B7B7A',
+            'bg' => '#7B7B7A4D'
+        ];
+    }
 }
