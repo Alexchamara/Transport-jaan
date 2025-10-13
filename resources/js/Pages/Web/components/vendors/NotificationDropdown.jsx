@@ -36,7 +36,7 @@ const NotificationDropdown = ({ bellIcon, unreadCount: initialUnreadCount = 0 })
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const response = await axios.get("/vendors/notifications");
+      const response = await axios.get("/vendors/notifications/data");
       setNotifications(response.data.notifications || []);
       setUnreadCount(response.data.unread_count || 0);
     } catch (error) {

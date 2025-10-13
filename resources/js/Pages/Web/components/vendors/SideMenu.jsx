@@ -10,20 +10,47 @@ import trackLogo from "../../assets/vendors/dashboard/trackLogo.svg";
 import messgLogo from "../../assets/vendors/dashboard/messgLogo.svg";
 import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg";
 
-import { Settings } from "lucide-react";
+import { Settings, Bell } from "lucide-react";
 import { Link } from "@inertiajs/react";
 
 const SideMenu = () => {
   const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
+  const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const currentPath = window.location.pathname;
 
   return (
-    <div className="poppins min-w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-10 px-10 rounded-tr-[10px] rounded-br-[10px]">
-      <h1 className="text-[25px] font-[700] text-center uppercase">
-        Company <br /> <span className="text-[#0955AC]">Logo</span>{" "}
-      </h1>
+    <>
+      <style>{`
+        .sidebar-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 3px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+          background: #9ca3af;
+        }
+        /* Firefox scrollbar styling */
+        .sidebar-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: #d1d5db transparent;
+        }
+      `}</style>
+      <div className="poppins min-w-[289px] h-screen bg-[#FFFFFF] flex flex-col py-6 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
+        {/* Logo - Fixed at top */}
+        <div className="flex-shrink-0 mb-6">
+          <h1 className="text-[25px] font-[700] text-center uppercase">
+            Company <br /> <span className="text-[#0955AC]">Logo</span>{" "}
+          </h1>
+        </div>
 
-      <div className="relative figtree flex flex-col items-start gap-10 text-[24px] font-[500] text-[#00000066] h-full py-10">
+        {/* Scrollable menu container */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">
+          <div className="figtree flex flex-col items-start gap-5 text-[20px] font-[500] text-[#00000066]">
         <div
           className={`flex flex-row justify-start items-center gap-5 cursor-pointer w/full rounded-lg px-4 py-2 ${
             currentPath === "/vendors/dashboard"
@@ -111,9 +138,9 @@ const SideMenu = () => {
         </div>
 
         {showFinancialDropdown && (
-          <div className="ml-10 mb-2 w-40 bg-white flex flex-col text-[24px] font-[500]">
+          <div className="ml-8 mb-2 w-40 bg-white flex flex-col text-[18px] font-[500]">
             <div
-              className={`px-4 py-2 cursor-pointer rounded-lg ${
+              className={`px-3 py-1.5 cursor-pointer rounded-lg ${
                 currentPath === "/vendors/payment"
                   ? "bg-[#0955AC29] text-[#000000] font-[700]"
                   : "text-[#00000066]"
@@ -123,7 +150,7 @@ const SideMenu = () => {
               Payment
             </div>
             <div
-              className={`px-4 py-2 cursor-pointer rounded-lg ${
+              className={`px-3 py-1.5 cursor-pointer rounded-lg ${
                 currentPath === "/vendors/expenses"
                   ? "bg-[#0955AC29] text-[#000000] font-[700]"
                   : "text-[#00000066]"
@@ -131,6 +158,47 @@ const SideMenu = () => {
               onClick={() => (window.location.href = "/vendors/expenses")}
             >
               Expenses
+            </div>
+          </div>
+        )}
+
+        {/* ✅ Settings with Notifications */}
+        <div
+          className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
+            ["/vendors/settings", "/vendors/notifications"].includes(currentPath)
+              ? "bg-[#0955AC29] text-[#000000] font-[700]"
+              : "text-[#00000066]"
+          }`}
+        >
+          <Settings className="w-[25px] h-[25px]" />
+          <h1 onClick={() => setShowSettingsDropdown((prev) => !prev)}>
+            Settings
+          </h1>
+        </div>
+
+        {showSettingsDropdown && (
+          <div className="ml-10 mb-2 w-48 bg-white flex flex-col text-[20px] font-[500]">
+            <div
+              className={`px-4 py-2 cursor-pointer rounded-lg flex items-center gap-2 ${
+                currentPath === "/vendors/notifications"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/vendors/notifications")}
+            >
+              <Bell className="w-[18px] h-[18px]" />
+              <span>Notifications</span>
+            </div>
+            <div
+              className={`px-4 py-2 cursor-pointer rounded-lg flex items-center gap-2 ${
+                currentPath === "/vendors/settings"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/vendors/settings")}
+            >
+              <Settings className="w-[18px] h-[18px]" />
+              <span>General</span>
             </div>
           </div>
         )}
@@ -146,19 +214,23 @@ const SideMenu = () => {
           <img src={trackLogo} className="w/[25px]" />
           <h1>Tracking</h1>
         </div>
+        </div>
+      </div>
 
-
+      {/* Logout - Fixed at bottom */}
+      <div className="flex-shrink-0 mt-4 pt-4 border-t border-gray-200 w-full">
         <Link
           href={route('logout')}
           method="post"
           as="button"
-          className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer"
+          className="flex flex-row justify-start items-center gap-5 cursor-pointer text-[22px] font-[500] text-[#00000066] px-4 py-2 hover:bg-gray-50 rounded-lg w-full"
         >
           <img src={logOutLogo} className="w-[25px]" />
           <h1>Logout</h1>
         </Link>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

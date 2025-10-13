@@ -6,9 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 class NotificationController extends Controller
 {
+    /**
+     * Show notifications page
+     */
+    public function page()
+    {
+        $user = Auth::user();
+        $unreadNotifications = Notification::where('user_id', $user->id)->unread()->count();
+
+        return Inertia::render('Web/home/vendors/Notifications', [
+            'unreadNotifications' => $unreadNotifications,
+        ]);
+    }
+
     /**
      * Get all notifications for the authenticated vendor
      */
@@ -96,6 +110,32 @@ class NotificationController extends Controller
             'success' => true,
             'message' => 'All notifications marked as read',
         ]);
+    }
+
+    /**
+     * Delete a specific notification
+     */
+    public function destroy($id)
+    {
+        $user = Auth::user();
+
+        $notification = Notification::where('user_id', $user->id)
+            ->where('id', $id)
+            ->first();
+
+        if ($notification) {
+            $notification->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification deleted successfully',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Notification not found',
+        ], 404);
     }
 
     /**

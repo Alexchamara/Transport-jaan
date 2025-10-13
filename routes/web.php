@@ -386,10 +386,12 @@ Route::middleware(['auth', 'role:vendor'])
         Route::get('/dashboard', [DashboardController::class, 'index']); // alias
 
         // Notification routes
-        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications', [NotificationController::class, 'page'])->name('notifications');
+        Route::get('/notifications/data', [NotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/count', [NotificationController::class, 'unreadCount'])->name('notifications.count');
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
         Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 
         // Bookings page with DB-fed props (table + chart)
         Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
