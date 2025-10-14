@@ -17,6 +17,11 @@ const VehicleCheckoutContent = () => {
   const vehicle = props?.vehicle || null;
   const serverQuery = props?.query || {};
   const serverExtras = Array.isArray(props?.extras) ? props.extras : [];
+  const booking = props?.booking || null;
+  const customer = booking?.customer;
+
+  console.log("Booking data", booking)
+  console.log("Customer Data:", customer)
 
   const urlQuery = useMemo(() => {
     if (typeof window === "undefined") return {};
@@ -278,7 +283,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">First Name :</label>
                   <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={firstName}
+                      value={customer?.first_name}
                       onChange={(e) => setFirstName(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Enter your full name"
@@ -290,7 +295,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Last Name :</label>
                   <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={lastName}
+                      value={customer?.last_name}
                       onChange={(e) => setLastName(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Enter your last name"
@@ -305,7 +310,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Email Address :</label>
                   <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={email}
+                      value={customer?.email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Enter your email"
@@ -333,7 +338,7 @@ const VehicleCheckoutContent = () => {
                     </div>
                     <div className="md:w-[293px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                       <input
-                        value={phone}
+                        value={customer.phone}
                         onChange={(e) => setPhone(e.target.value)}
                         inputMode="tel"
                         autoComplete="tel"
@@ -354,7 +359,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Address :</label>
                   <div className="w-full h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={address}
+                      value={customer.address}
                       onChange={(e) => setAddress(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Street, apartment, etc."
@@ -370,7 +375,7 @@ const VehicleCheckoutContent = () => {
                     <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                       <input
                         type="number"
-                        value={age}
+                        value={customer.age}
                         onChange={(e) => {
                           const val = e.target.value;
                           // remove decimals if entered
@@ -390,7 +395,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">City :</label>
                   <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={city}
+                      value={customer.city}
                       onChange={(e) => setCity(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Colombo 03"
@@ -402,7 +407,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Zip Code :</label>
                   <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={zip}
+                      value={customer.zip_code}
                       onChange={(e) => setZip(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="03330"
