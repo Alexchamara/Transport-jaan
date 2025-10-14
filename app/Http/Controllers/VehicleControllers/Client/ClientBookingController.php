@@ -148,6 +148,18 @@ class ClientBookingController extends Controller
                 ->values();
         }
 
+        $booking = null;
+        if($vehicle){
+            $booking =\App\Models\Booking::with('vehicle')
+            ->where('vehicle_id',$vehicle->id)
+            ->latest()
+            -> first();
+            if($booking){
+                $booking->load('customer');
+            }
+        }
+
+
         $query = array_merge(
             $request->only([
                 'vehicle_id',
@@ -178,6 +190,7 @@ class ClientBookingController extends Controller
             'vehicle' => $vehicle,
             'extras'  => $extras,
             'query'   => $query,
+            'booking' => $booking,
         ]);
     }
 
