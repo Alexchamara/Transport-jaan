@@ -17,11 +17,9 @@ const VehicleCheckoutContent = () => {
   const vehicle = props?.vehicle || null;
   const serverQuery = props?.query || {};
   const serverExtras = Array.isArray(props?.extras) ? props.extras : [];
-  const booking = props?.booking || null;
-  const customer = booking?.customer;
+  const user = props?.user || null;
 
-  console.log("Booking data", booking)
-  console.log("Customer Data:", customer)
+  console.log("User data",  user);
 
   const urlQuery = useMemo(() => {
     if (typeof window === "undefined") return {};
@@ -33,13 +31,13 @@ const VehicleCheckoutContent = () => {
   const q = Object.keys(serverQuery).length ? serverQuery : urlQuery;
 
   /* ---------------- Personal info ---------------- */
-  const [firstName, setFirstName] = useState(q.first_name || "");
-  const [lastName, setLastName] = useState(q.last_name || "");
-  const [email, setEmail] = useState(q.email || "");
-  const [countryCode, setCountryCode] = useState((q.country_code || "lk").toLowerCase());
-  const [phone, setPhone] = useState(q.phone || "");
-  const [address, setAddress] = useState(q.address || "");
-  const [age, setAge] = useState(q.age || "");
+const [firstName, setFirstName] = useState(user?.name || '');
+  const [lastName, setLastName] = useState(user?.last_name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [countryCode, setCountryCode] = useState((user?.country_code || "lk").toLowerCase());
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [address, setAddress] = useState(user?.address || "");
+  const [age, setAge] = useState(user?.age || "");
   const [city, setCity] = useState(q.city || "");
   const [zip, setZip] = useState(q.zip_code || "");
   const [notes, setNotes] = useState(q.notes || "");
@@ -134,6 +132,17 @@ const VehicleCheckoutContent = () => {
     return () => clearTimeout(t);
   }, [vehicle?.id, q.pickup_date, pickupTime, q.dropoff_date, dropoffTime, q.exclude_booking_id, addons]);
 
+      useEffect(() => {
+  setFirstName(user?.name || '');
+  setLastName(user?.last_name || '');
+  setEmail(user?.email || '');
+  setPhone(user?.phone || '');
+  setAddress(user?.address || '');
+  setAge(user?.age || '');
+  setCity(user?.city || '');
+  setZip(user?.zip_code || '');
+}, [user]);
+
   /* ---------------- Submit / validation ---------------- */
   const validate = () => {
     const e = {};
@@ -146,6 +155,8 @@ const VehicleCheckoutContent = () => {
     const addressTrimmed = address.trim();
     const addressOk = /^[A-Za-z0-9\s,.\-#/]+$/.test(addressTrimmed) && /[A-Za-z]/.test(addressTrimmed);
     const nameRegex = /^[A-Za-z\s]+$/;
+
+
 
     if (!firstName.trim()) {
       e.firstName = "First name is required.";
@@ -283,7 +294,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">First Name :</label>
                   <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={customer?.first_name}
+                      value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Enter your full name"
@@ -295,7 +306,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Last Name :</label>
                   <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={customer?.last_name}
+                      value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Enter your last name"
@@ -310,7 +321,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Email Address :</label>
                   <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={customer?.email}
+                      value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Enter your email"
@@ -338,7 +349,7 @@ const VehicleCheckoutContent = () => {
                     </div>
                     <div className="md:w-[293px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                       <input
-                        value={customer.phone}
+                        value={user.phone}
                         onChange={(e) => setPhone(e.target.value)}
                         inputMode="tel"
                         autoComplete="tel"
@@ -359,7 +370,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Address :</label>
                   <div className="w-full h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={customer.address}
+                      value={user.address}
                       onChange={(e) => setAddress(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Street, apartment, etc."
@@ -375,7 +386,7 @@ const VehicleCheckoutContent = () => {
                     <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                       <input
                         type="number"
-                        value={customer.age}
+                        value={user.age}
                         onChange={(e) => {
                           const val = e.target.value;
                           // remove decimals if entered
@@ -395,7 +406,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">City :</label>
                   <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={customer.city}
+                      value={user.city}
                       onChange={(e) => setCity(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Colombo 03"
@@ -407,7 +418,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Zip Code :</label>
                   <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={customer.zip_code}
+                      value={user.zip_code}
                       onChange={(e) => setZip(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="03330"
