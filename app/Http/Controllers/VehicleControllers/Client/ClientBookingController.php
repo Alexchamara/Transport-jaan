@@ -159,7 +159,6 @@ class ClientBookingController extends Controller
             }
         }
 
-
         $query = array_merge(
             $request->only([
                 'vehicle_id',
@@ -186,11 +185,14 @@ class ClientBookingController extends Controller
             $personalFromSession
         );
 
+         $user = $request->user();
+
         return Inertia::render('Web/components/LandVehicleDetails/VehicleCheckoutContent', [
             'vehicle' => $vehicle,
             'extras'  => $extras,
             'query'   => $query,
             'booking' => $booking,
+            'user' =>$user,
         ]);
     }
 
