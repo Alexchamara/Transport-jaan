@@ -42,6 +42,7 @@ class RegisterController extends Controller
             'country' => 'nullable|string|max:100',
             'date_of_birth' => 'required|date|before:today',
             'role_type' => 'required|in:client,vendor',
+            'vendor_type' => 'required_if:role_type,vendor|in:individual,business',
         ], [
             'email.unique' => 'This email is already registered.',
             'password.min' => 'Password must be at least 8 characters.',
@@ -62,6 +63,7 @@ class RegisterController extends Controller
                 'address' => $validated['address'] ?? null,
                 'country' => $validated['country'] ?? null,
                 'date_of_birth' => $validated['date_of_birth'],
+                'vendor_type' => $validated['role_type'] === 'vendor' ? $validated['vendor_type'] : null,
             ]);
         } catch (\Exception $e) {
             return back()->withErrors([

@@ -15,6 +15,7 @@ const Register = ({ role = "client" }) => {
         password: "",
         password_confirmation: "",
         role_type: role,
+        vendor_type: "",
         date_of_birth: "",
     });
 
@@ -70,6 +71,42 @@ const Register = ({ role = "client" }) => {
                             onSubmit={handleSubmit}
                             className="flex flex-col items-center"
                         >
+                             {/* vendor type - only show for vendors */}
+                                    {role === "vendor" && (
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Vendor Type
+                                            </label>
+                                            <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                                <select
+                                                    value={data.vendor_type}
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            "vendor_type",
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none text-white"
+                                                    required
+                                                >
+                                                    <option value="" className="bg-gray-800 text-white">
+                                                        Select vendor type
+                                                    </option>
+                                                    <option value="individual" className="bg-gray-800 text-white">
+                                                        Individual
+                                                    </option>
+                                                    <option value="business" className="bg-gray-800 text-white">
+                                                        Business
+                                                    </option>
+                                                </select>
+                                                {errors.vendor_type && (
+                                                    <div className="text-red-500 text-sm">
+                                                        {errors.vendor_type}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                             <div className="flex flex-row gap-10 justify-center items-center">
                                 <div className="flex flex-col gap-5">
                                     {/* username */}
@@ -194,7 +231,7 @@ const Register = ({ role = "client" }) => {
                                         </div>
                                     </div>
 
-                                    {/* phone number */}
+                                    {/* date of birth */}
                                     <div className="flex flex-col gap-2">
                                         <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                             Date of Birth
@@ -219,6 +256,8 @@ const Register = ({ role = "client" }) => {
                                             )}
                                         </div>
                                     </div>
+
+                                   
 
                                     {/* password */}
                                     <div className="flex flex-col gap-2">
