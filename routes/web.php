@@ -258,14 +258,14 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
 
 // vendor routes
-Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
+Route::middleware(['auth', 'vendor.verified'])->prefix('vendors')->name('vendors.')->group(function () {
     Route::get('/mainDashboard', function () {
         return Inertia::render('Web/home/vendors/MainDashboard');
     })->name('mainDashboard');
 });
 
 // Warehouse (vendor-only) under /vendors/warehouse/*
-Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
+Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
     Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/warehouse/Dashboard'))->name('dashboard');
     Route::get('/units', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('units');
     Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/warehouse/AddUnit'))->name('addUnit');
@@ -339,7 +339,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admi
 });
 
 // Backward-compat: if any UI still links to /warehouse/*, redirect to /vendors/warehouse/* (protect with same middleware)
-Route::middleware(['auth', 'role:vendor'])->get('/warehouse/{path}', function (string $path) {
+Route::middleware(['auth', 'vendor.verified'])->get('/warehouse/{path}', function (string $path) {
     return redirect('/vendors/warehouse/' . ltrim($path, '/'));
 })->where('path', '.*');
 
@@ -377,7 +377,7 @@ Route::get('/drivers', fn() => Inertia::render('Web/components/vendors/driver/Dr
 | Vendor App (Inertia UI)  /vendors/...
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:vendor'])
+Route::middleware(['auth', 'vendor.verified'])
     ->prefix('vendors')
     ->name('vendors.')
     ->group(function () use ($render) {

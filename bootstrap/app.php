@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'vendor.verified' => \App\Http\Middleware\VendorVerificationCheck::class,
         ]);
 
         //
