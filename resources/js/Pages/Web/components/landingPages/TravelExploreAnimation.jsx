@@ -107,7 +107,7 @@ const IMAGES = [
     },
 ];
 
-const TravelExploreAnimation = () => {
+const TravelExploreAnimation = ({ auth }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [current, setCurrent] = useState(0);
     const pauseUntilRef = useRef(0);
