@@ -33,6 +33,7 @@ use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +61,17 @@ Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPa
 Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blogExample');
 
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
+Route::prefix('couriers')->name('couriers.')->group(function () {
+    Route::get('/create', [ClientCourierController::class, 'create'])->name('create');
+    Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
+    Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
+    Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
+    Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
+    Route::post('/', [ClientCourierController::class, 'store'])->name('store');
+    Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
+        ->whereNumber('shipment')
+        ->name('bill');
+});
 Route::get('/book-a-ticket', [WebController::class, 'bookATicket'])->name('book.a.ticket');
 Route::get('/booking-home', [WebController::class, 'bookingHome'])->name('booking.home');
 Route::get('/cargo-freight', [WebController::class, 'cargoFreight'])->name('cargo.freight');
