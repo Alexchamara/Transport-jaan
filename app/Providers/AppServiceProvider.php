@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,8 +31,9 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app['router']->aliasMiddleware('role', \App\Http\Middleware\CheckRole::class);
 
-        // Register observers
-        \App\Models\Booking::observe(\App\Observers\BookingObserver::class);
+        Inertia::share([
+        'authUser' => fn () => auth()->user(),
+    ]);
     }
 
     
