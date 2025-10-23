@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,5 +29,11 @@ class AppServiceProvider extends ServiceProvider
         Vite::prefetch(concurrency: 3);
         
         $this->app['router']->aliasMiddleware('role', \App\Http\Middleware\CheckRole::class);
+
+        Inertia::share([
+        'authUser' => fn () => auth()->user(),
+    ]);
     }
+
+    
 }

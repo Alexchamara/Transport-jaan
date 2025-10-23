@@ -11,6 +11,7 @@ import heartFill from "../../assets/rentAVehicle/collection/heartFill.png";
 import heart from "../../assets/rentAVehicle/collection/heart.png";
 
 const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleIds }) => {
+  
   // normalize input (paginator or array)
   const vehicles = useMemo(
     () => (Array.isArray(initialVehicles) ? initialVehicles : (initialVehicles?.data || [])),
