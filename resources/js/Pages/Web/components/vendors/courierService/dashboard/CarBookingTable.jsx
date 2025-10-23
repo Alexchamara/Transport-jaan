@@ -1,4 +1,5 @@
 import React from "react";
+import { usePage } from "@inertiajs/react";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
@@ -96,6 +97,9 @@ const tableData = [
 ];
 
 const CarBookingTable = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     return (
         <div className="py-10">
             {/* table headings */}

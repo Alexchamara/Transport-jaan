@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const earningData = [
+const defaultEarningData = [
   { name: "Jan", value: 5000 },
   { name: "Feb", value: 7000 },
   { name: "Mar", value: 6000 },
@@ -15,7 +15,6 @@ const earningData = [
   { name: "Dec", value: 21000 },
 ];
 
-const maxValue = 24000;
 const chartHeight = 250;
 const chartWidth = 650;
 const padding = 40;
@@ -45,16 +44,42 @@ function generateSmoothPath(points) {
   return path.join(" ");
 }
 
-const EarningSummaryChart = () => {
+const EarningSummaryChart = ({ data = [] }) => {
+  // Normalize data to handle both 'value' and 'earnings' properties
+  const normalizedData = data.length > 0 
+    ? data.map(d => ({
+        name: d.name || d.month,
+        value: d.value || d.earnings || 0
+      }))
+    : defaultEarningData;
+  
+  const earningData = normalizedData;
+  const maxValue = Math.max(24000, ...earningData.map(d => d.value || 0));
+  
+  function getX(index) {
+    return padding + (index * (chartWidth - 2 * padding)) / (earningData.length - 1);
+  }
+  function getY(value) {
+    return chartHeight - padding - (value * (chartHeight - 2 * padding)) / maxValue;
+  }
+  
   // Find the index of the highest value
   const highestIndex = earningData.reduce(
-    (maxIdx, d, idx, arr) => d.value > arr[maxIdx].value ? idx : maxIdx,
+    (maxIdx, d, idx, arr) => (d.value || 0) > (arr[maxIdx].value || 0) ? idx : maxIdx,
     0
   );
   const [hovered, setHovered] = useState(highestIndex);
 
+  if (earningData.length === 0) {
+    return (
+      <div className="w-full h-[250px] flex items-center justify-center text-gray-500">
+        <span>No earnings data available</span>
+      </div>
+    );
+  }
+
   // Generate points for the paths
-  const points = earningData.map((d, i) => [getX(i), getY(d.value)]);
+  const points = earningData.map((d, i) => [getX(i), getY(d.value || 0)]);
   
   // Build the smooth line path
   const linePath = generateSmoothPath(points);
@@ -118,11 +143,11 @@ const EarningSummaryChart = () => {
           </g>
         ))}
         {/* Single Tooltip rendered outside the map to prevent flicker */}
-        {hovered !== null && (() => {
+        {hovered !== null && earningData[hovered] && (() => {
           const tooltipWidth = 108;
           const tooltipHeight = 55;
           const pointX = getX(hovered);
-          const pointY = getY(earningData[hovered].value);
+          const pointY = getY(earningData[hovered].value || 0);
           let tooltipX = pointX - tooltipWidth / 2;
           let tooltipY = pointY - tooltipHeight - 15; // 15px above the point
 
@@ -135,11 +160,13 @@ const EarningSummaryChart = () => {
           // If tooltip would overflow the bottom, show it above the point
           if (tooltipY + tooltipHeight > chartHeight) tooltipY = pointY - tooltipHeight - 15;
 
+          const earningValue = earningData[hovered].value || 0;
+
           return (
             <foreignObject x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} pointerEvents="none">
               <div className="bg-[#D8E4F2] w-[108px] h-[55px] rounded-[5px] shadow-lg px-4 py-2 flex flex-col items-center">
                 <span className="text-[14px] font-[500] mb-1">{earningData[hovered].name} 2025</span>
-                <span className="text-[16px] font-[700]">${earningData[hovered].value.toLocaleString()}</span>
+                <span className="text-[16px] font-[700]">LKR {earningValue.toLocaleString()}</span>
               </div>
             </foreignObject>
           );

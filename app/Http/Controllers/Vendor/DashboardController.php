@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\BookingPayment;
 use App\Models\BookingSchedule;
 use App\Models\Vehicle;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -248,6 +249,9 @@ class DashboardController extends Controller
         });
         $recentActivities = array_slice($activities, 0, 20);
 
+        // Get unread notification count
+        $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
+
         return Inertia::render('Web/home/vendors/Dashboard', [
             'cards' => [
                 'totalRevenue' => round($totalRevenue, 2),
@@ -267,6 +271,7 @@ class DashboardController extends Controller
                 'role' => 'Vendor',
             ],
             'recentActivities'=> $recentActivities,
+            'unreadNotifications' => $unreadNotifications,
         ]);
     }
 }

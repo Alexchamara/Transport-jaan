@@ -1,4 +1,5 @@
 import React from "react";
+import { usePage } from "@inertiajs/react";
 
 import VehicleImages from "../../units/VehicleImages";
 import VehicleInfo from "../../units/VehicleInfo";
@@ -11,6 +12,9 @@ import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 import backArrow from "../../../../assets/vendors/units/backArrow.svg";
 
 const UnitDetailsContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
@@ -30,7 +34,7 @@ const UnitDetailsContent = () => {
                         <img src={proPic} alt="Profile" />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

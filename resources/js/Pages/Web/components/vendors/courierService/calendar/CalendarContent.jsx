@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePage } from "@inertiajs/react";
 import proPicTwo from "../../../../assets/vendors/tracking/proPic.svg";
 
 import {
@@ -60,11 +61,17 @@ const monthNames = [
 ];
 
 const CalendarContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const today = new Date();
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
 
     const handlePrevMonth = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         setCurrentMonth(prev => {
             if (prev === 0) {
                 setCurrentYear(y => y - 1);
@@ -75,6 +82,9 @@ const CalendarContent = () => {
     };
 
     const handleNextMonth = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         setCurrentMonth(prev => {
             if (prev === 11) {
                 setCurrentYear(y => y + 1);
@@ -104,7 +114,7 @@ const CalendarContent = () => {
                     </div>
 
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

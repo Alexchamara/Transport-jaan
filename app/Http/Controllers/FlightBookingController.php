@@ -34,8 +34,17 @@ class FlightBookingController extends Controller
      */
     public function store(StoreFlightBookingRequest $request)
     {
+        // Check if the user is logged in
+        if (!auth()->check()) {
+            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
+        }
+
         try {
-            $flightBooking = FlightBooking::create($request->validated());
+            // Associate the booking with the authenticated user
+            $data = $request->validated();
+            $data['user_id'] = auth()->id();
+
+            $flightBooking = FlightBooking::create($data);
 
             // Send confirmation email
             try {

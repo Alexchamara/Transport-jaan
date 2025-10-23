@@ -1,4 +1,5 @@
 import React from "react";
+import { usePage } from "@inertiajs/react";
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -16,6 +17,9 @@ import time from "../../../../assets/vendors/tracking/time.svg";
 import distance from "../../../../assets/vendors/tracking/distance.svg";
 
 const TrackingContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
@@ -36,7 +40,7 @@ const TrackingContent = () => {
                     </div>
 
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

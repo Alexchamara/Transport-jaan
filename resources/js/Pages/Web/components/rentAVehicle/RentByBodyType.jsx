@@ -19,7 +19,7 @@ const RentByBodyType = ({ selectedType = "other" }) => {
     // Dynamic sets per vehicle category (mirrors RentByBrands behavior)
     const bodyTypeMap = {
         // Land vehicles
-        other: [
+        land: [
             { name: "SUV", img: suvIcon, value: "suv" },
             { name: "Crossover", img: crossoverIcon, value: "suv" }, // treat as SUV
             { name: "Wagon", img: wagonIcon, value: "other" },
@@ -33,7 +33,7 @@ const RentByBodyType = ({ selectedType = "other" }) => {
             { name: "Convertible", img: convertibleIcon, value: "other" },
         ],
         // Watercraft placeholders (use icon components until assets exist)
-        water: [
+        sea: [
             { name: "Jet Ski", Icon: Waves, value: "jetski" },
             { name: "Speedboat", Icon: Waves, value: "speedboat" },
             { name: "Yacht", Icon: Waves, value: "yacht" },

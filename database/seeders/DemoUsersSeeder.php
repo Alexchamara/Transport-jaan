@@ -22,6 +22,16 @@ class DemoUsersSeeder extends Seeder
                 'status' => 'verified',
             ]
         );
+        User::firstOrCreate(
+            ['email' => 'client@gmail.com'],
+            [
+                'name' => 'client',
+                'email' => 'client@gmail.com',
+                'password' => Hash::make('Client@1122'),
+                'role' => 'client',
+                'status' => 'verified',
+            ]
+        );
 
         // Minimal demo accounts (adjust to your auth schema / roles as needed)
         User::firstOrCreate(

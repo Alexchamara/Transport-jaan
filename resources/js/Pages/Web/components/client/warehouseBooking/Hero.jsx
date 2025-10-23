@@ -1,864 +1,990 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { router } from "@inertiajs/react";
 import { motion } from "framer-motion";
 import {
+    AlertTriangle,
+    BookmarkCheck,
     Building2,
-    Boxes,
-    Snowflake,
     Calendar,
-    MapPin,
-    Search,
-    Filter,
-    Plus,
-    Download,
     ChevronRight,
-    Star,
     CreditCard,
-    Clock,
+    Download,
+    FileText,
+    Filter,
+    Link as LinkIcon,
+    Loader2,
+    MapPin,
+    Plus,
+    RefreshCcw,
+    Search,
     ShieldCheck,
+    Snowflake,
+    Star,
+    TrendingUp,
 } from "lucide-react";
-import {
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip as RTooltip,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
-} from "recharts";
 
-// ---------- Mock Data (Warehouse Bookings) ----------
-const monthly = [
-    { month: "Jan", short: 320, long: 180, cold: 120 },
-    { month: "Feb", short: 340, long: 170, cold: 140 },
-    { month: "Mar", short: 360, long: 210, cold: 160 },
-    { month: "Apr", short: 380, long: 220, cold: 170 },
-    { month: "May", short: 400, long: 240, cold: 180 },
-    { month: "Jun", short: 420, long: 230, cold: 190 },
-    { month: "Jul", short: 450, long: 260, cold: 210 },
-    { month: "Aug", short: 460, long: 270, cold: 220 },
-    { month: "Sep", short: 430, long: 250, cold: 200 },
-    { month: "Oct", short: 410, long: 240, cold: 190 },
-    { month: "Nov", short: 395, long: 230, cold: 180 },
-    { month: "Dec", short: 380, long: 220, cold: 170 },
-];
-
-const facilities = {
-    short: [
-        {
-            id: "S-001",
-            name: "Colombo City Warehouse – Zone A",
-            rating: 4.8,
-            location: "Colombo",
-            price: 1.2,
-            unit: "pallet/day",
-        },
-        {
-            id: "S-002",
-            name: "Galle Port Storage – Bay 3",
-            rating: 4.5,
-            location: "Galle",
-            price: 1.0,
-            unit: "pallet/day",
-        },
-    ],
-    long: [
-        {
-            id: "L-101",
-            name: "Peliyagoda Mega – Block 7",
-            rating: 4.7,
-            location: "Peliyagoda",
-            price: 18,
-            unit: "sqft/month",
-        },
-        {
-            id: "L-102",
-            name: "Kandy Inland – Hall B",
-            rating: 4.4,
-            location: "Kandy",
-            price: 15,
-            unit: "sqft/month",
-        },
-    ],
-    cold: [
-        {
-            id: "C-501",
-            name: "Katunayake Cold Room – CR2",
-            rating: 4.9,
-            location: "Katunayake",
-            price: 2.8,
-            unit: "pallet/day",
-        },
-        {
-            id: "C-502",
-            name: "Trincomalee Reefers – Bay 1",
-            rating: 4.6,
-            location: "Trincomalee",
-            price: 3.1,
-            unit: "pallet/day",
-        },
-    ],
+const statusStyles = {
+    confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    paid: "bg-blue-50 text-blue-700 border-blue-200",
+    pending: "bg-amber-50 text-amber-700 border-amber-200",
+    cancelled: "bg-rose-50 text-rose-700 border-rose-200",
+    completed: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    closed: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
-const bookings = [
-    {
-        code: "WB-202508-001",
-        mode: "short",
-        item: "Colombo City Warehouse – Zone A",
-        from: "2025-08-30 09:00",
-        to: "2025-09-05 18:00",
-        hub: "Colombo",
-        status: "confirmed",
-        amount: 1.2 * 5 * 20, // 20 pallets x 5 days
-    },
-    {
-        code: "WB-202508-002",
-        mode: "long",
-        item: "Peliyagoda Mega – Block 7",
-        from: "2025-09-01 00:00",
-        to: "2025-09-30 23:59",
-        hub: "Peliyagoda",
-        status: "paid",
-        amount: 18 * 120, // 120 sqft
-    },
-    {
-        code: "WB-202508-003",
-        mode: "cold",
-        item: "Katunayake Cold Room – CR2",
-        from: "2025-09-02 08:00",
-        to: "2025-09-06 08:00",
-        hub: "Katunayake",
-        status: "pending",
-        amount: 2.8 * 4 * 10, // 10 pallets, 4 days
-    },
-    {
-        code: "WB-202508-004",
-        mode: "short",
-        item: "Galle Port Storage – Bay 3",
-        from: "2025-08-27 10:00",
-        to: "2025-08-28 18:00",
-        hub: "Galle",
-        status: "cancelled",
-        amount: 1.0 * 1 * 8, // 8 pallets x 1 day
-    },
-];
+const normalizeStatus = (status) =>
+    (status || "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-// ---------- Helpers ----------
-const ModeIcon = ({ mode, className }) => {
-    if (mode === "cold") return <Snowflake className={className} />;
-    if (mode === "long") return <Building2 className={className} />;
-    return <Boxes className={className} />; // short (default)
+const fallbackImage =
+    "https://placehold.co/640x400?text=Warehouse%20Preview";
+
+const iconForType = (type) => {
+    const value = (type || "").toLowerCase();
+    if (value.includes("cold")) return Snowflake;
+    if (value.includes("long")) return Building2;
+    if (value.includes("short")) return TrendingUp;
+    return Building2;
 };
 
-const statusMap = {
-    confirmed: {
-        label: "Confirmed",
-        tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    },
-    paid: { label: "Paid", tone: "bg-blue-50 text-blue-700 border-blue-200" },
-    pending: {
-        label: "Pending",
-        tone: "bg-amber-50 text-amber-700 border-amber-200",
-    },
-    cancelled: {
-        label: "Cancelled",
-        tone: "bg-rose-50 text-rose-700 border-rose-200",
-    },
+const formatCurrency = (amount, currency = "LKR") => {
+    if (amount === null || amount === undefined) return "-";
+    try {
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency,
+            minimumFractionDigits: 0,
+        }).format(Number(amount));
+    } catch (err) {
+        return `${currency} ${Number(amount).toLocaleString()}`;
+    }
 };
 
-const pieData = [
-    { name: "Short‑term", value: monthly.reduce((a, b) => a + b.short, 0) },
-    { name: "Long‑term", value: monthly.reduce((a, b) => a + b.long, 0) },
-    { name: "Cold", value: monthly.reduce((a, b) => a + b.cold, 0) },
-];
+const formatDate = (value) => {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat("en-GB", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    }).format(new Date(value));
+};
+
+const formatDateTime = (value) => {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat("en-GB", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(new Date(value));
+};
+
+const formatDateRange = (start, end) => {
+    if (!start && !end) return "TBC";
+    if (!end) return `${formatDate(start)} → TBD`;
+    return `${formatDate(start)} → ${formatDate(end)}`;
+};
 
 const Hero = () => {
-    const [mode, setMode] = useState("all");
-    const [q, setQ] = useState("");
-    const [origin, setOrigin] = useState("all");
-    const [sort, setSort] = useState("popular");
+    const [dashboard, setDashboard] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [filters, setFilters] = useState({
+        search: "",
+        type: "all",
+        location: "all",
+        amenity: "all",
+        sort: "ratingDesc",
+    });
+    const [liked, setLiked] = useState(new Set());
 
-    const filtered = useMemo(() => {
-        const pool =
-            mode === "all"
-                ? [...facilities.short, ...facilities.long, ...facilities.cold]
-                : facilities[mode] ?? [];
-        return pool
-            .filter((s) => {
-                const text = `${s.name} ${s.location}`.toLowerCase();
-                const okQ = q ? text.includes(q.toLowerCase()) : true;
-                const okLoc = origin === "all" ? true : s.location === origin;
-                return okQ && okLoc;
-            })
-            .sort((a, b) => {
-                if (sort === "price") return a.price - b.price;
-                if (sort === "rating") return b.rating - a.rating;
-                return b.rating - a.rating; // popular ~ rating
-            });
-    }, [mode, q, origin, sort]);
+    const fetchDashboard = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const { data } = await axios.get(
+                route("client.warehouses.dashboard-data")
+            );
+            setDashboard(data);
+        } catch (err) {
+            if (err.response?.status === 401) {
+                setError("Please sign in to manage your warehouses.");
+            } else {
+                setError("We couldn't load your warehouse dashboard. Try again.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    const origins = useMemo(() => {
-        const set = new Set([
-            "Colombo",
-            "Peliyagoda",
-            "Kandy",
-            "Galle",
-            "Katunayake",
-            "Trincomalee",
-        ]);
-        return ["all", ...Array.from(set)];
+    useEffect(() => {
+        fetchDashboard();
     }, []);
 
-    const upcoming = bookings.filter((r) =>
-        ["confirmed", "paid", "pending"].includes(r.status)
-    );
+    useEffect(() => {
+        if (dashboard?.likedWarehouseIds) {
+            setLiked(new Set(dashboard.likedWarehouseIds));
+        }
+    }, [dashboard]);
+
+    const stats = dashboard?.stats ?? {};
+    const recentActivity = dashboard?.recentActivity ?? [];
+    const recommended = dashboard?.recommended ?? [];
+    const wishlist = dashboard?.wishlist ?? [];
+    const upcoming = dashboard?.upcoming ?? [];
+    const billing = dashboard?.billing ?? {};
+    const documents = dashboard?.documents ?? [];
+    const filtersData = dashboard?.filters ?? {
+        types: [],
+        locations: [],
+        amenities: [],
+    };
+
+    const priceOf = (warehouse) =>
+        Number(warehouse.monthly_rate ?? warehouse.base_price ?? 0);
+
+    const resolveWishlistUrl = () => {
+        if (typeof route === "function") {
+            try {
+                return route("client.warehouse.like.toggle");
+            } catch (error) {
+                console.warn("Falling back to hardcoded wishlist URL", error);
+            }
+        }
+
+        return "/api/warehouse/like-toggle";
+    };
+
+    const filteredWarehouses = useMemo(() => {
+        return recommended
+            .filter((warehouse) => {
+                if (filters.type === "all") return true;
+                return (warehouse.type || "").toLowerCase() === filters.type.toLowerCase();
+            })
+            .filter((warehouse) => {
+                if (filters.location === "all") return true;
+                return (warehouse.city || "").toLowerCase() === filters.location.toLowerCase();
+            })
+            .filter((warehouse) => {
+                if (filters.amenity === "all") return true;
+                return (warehouse.amenities || [])
+                    .map((a) => a.toLowerCase())
+                    .includes(filters.amenity.toLowerCase());
+            })
+            .filter((warehouse) => {
+                if (!filters.search) return true;
+                const haystack = `${warehouse.name} ${warehouse.address} ${warehouse.type}`.toLowerCase();
+                return haystack.includes(filters.search.toLowerCase());
+            })
+            .sort((a, b) => {
+                switch (filters.sort) {
+                    case "priceAsc":
+                        return priceOf(a) - priceOf(b);
+                    case "priceDesc":
+                        return priceOf(b) - priceOf(a);
+                    case "ratingAsc":
+                        return (a.avg_rating ?? 0) - (b.avg_rating ?? 0);
+                    case "ratingDesc":
+                    default:
+                        return (b.avg_rating ?? 0) - (a.avg_rating ?? 0);
+                }
+            });
+    }, [filters, recommended]);
+
+    const handleLikeToggle = async (warehouseId) => {
+        try {
+            const { data } = await axios.post(
+                resolveWishlistUrl(),
+                { warehouse_id: warehouseId }
+            );
+
+            if (Array.isArray(data.likedWarehouseIds)) {
+                setLiked(new Set(data.likedWarehouseIds));
+            } else {
+                setLiked((prev) => {
+                    const next = new Set(prev);
+                    if (data.is_liked) {
+                        next.add(warehouseId);
+                    } else {
+                        next.delete(warehouseId);
+                    }
+                    return next;
+                });
+            }
+
+            setDashboard((prev) => {
+                if (!prev) {
+                    return prev;
+                }
+
+                const nextDashboard = {
+                    ...prev,
+                    stats: {
+                        ...prev.stats,
+                        likedWarehouses:
+                            typeof data.likedCount === "number"
+                                ? data.likedCount
+                                : prev.stats?.likedWarehouses ?? 0,
+                    },
+                };
+
+                if (Array.isArray(data.wishlist)) {
+                    nextDashboard.wishlist = data.wishlist;
+                }
+
+                if (Array.isArray(data.likedWarehouseIds) && Array.isArray(prev.recommended)) {
+                    const likedSet = new Set(data.likedWarehouseIds);
+                    nextDashboard.recommended = prev.recommended.map((warehouse) => ({
+                        ...warehouse,
+                        is_liked: likedSet.has(warehouse.id),
+                    }));
+                }
+
+                return nextDashboard;
+            });
+        } catch (err) {
+            if (err.response?.status === 401) {
+                router.visit(route("signin.signin"));
+                return;
+            }
+            setError("Unable to update wishlist right now. Please retry.");
+        }
+    };
+
+    const handleViewDetails = (warehouse) => {
+        router.visit("/warehouseDetails", {
+            method: "get",
+            data: {
+                warehouse,
+            },
+            preserveState: true,
+        });
+    };
+
+    const quickActions = [
+        {
+            label: "Browse Warehouses",
+            description: "Discover approved space across the network",
+            icon: Search,
+            onClick: () => router.visit(route("warehouse.list")),
+        },
+        {
+            label: "My Bookings",
+            description: "Track, extend or cancel reservations",
+            icon: BookmarkCheck,
+            onClick: () => router.visit(route("warehouse-bookings.list")),
+        },
+        {
+            label: "Checkout",
+            description: "Finish a draft warehouse reservation",
+            icon: CreditCard,
+            onClick: () => router.visit(route("warehouse-bookings.checkout")),
+        },
+        {
+            label: "Payments",
+            description: "Review invoices and payment options",
+            icon: TrendingUp,
+            onClick: () => router.visit(route("warehouse-bookings.payments")),
+        },
+    ];
+
+    const statCards = [
+        {
+            key: "activeBookings",
+            label: "Active bookings",
+            value: stats.activeBookings ?? 0,
+            helper: `${stats.upcomingMoveIns ?? 0} move-ins scheduled`,
+            icon: BookmarkCheck,
+        },
+        {
+            key: "totalSpend",
+            label: "Lifetime spend",
+            value: formatCurrency(stats.totalSpend ?? 0),
+            helper: `${stats.pendingPayments ?? 0} payment(s) pending`,
+            icon: CreditCard,
+        },
+        {
+            key: "likedWarehouses",
+            label: "Saved warehouses",
+            value: stats.likedWarehouses ?? 0,
+            helper: `${stats.completedBookings ?? 0} completed reservations`,
+            icon: Building2,
+        },
+        {
+            key: "expiringSoon",
+            label: "Renewals due (30d)",
+            value: stats.expiringSoon ?? 0,
+            helper: "Prepare renewals & extensions",
+            icon: Calendar,
+        },
+    ];
+
+    const renderWarehouseCard = (warehouse) => {
+        const Icon = iconForType(warehouse.type);
+        return (
+            <motion.div
+                key={warehouse.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+            >
+                <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="relative h-[200px] w-full overflow-hidden bg-slate-100">
+                        <img
+                            src={warehouse.main_image || fallbackImage}
+                            alt={warehouse.name}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            onError={(event) => {
+                                event.currentTarget.src = fallbackImage;
+                            }}
+                        />
+                        <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">
+                            <Icon className="h-4 w-4" />
+                            {normalizeStatus(warehouse.type)}
+                        </div>
+                        <button
+                            onClick={() => handleLikeToggle(warehouse.id)}
+                            className={`absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border bg-white text-sm transition ${
+                                liked.has(warehouse.id)
+                                    ? "border-[#0955AC] text-[#0955AC]"
+                                    : "border-slate-200 text-slate-500 hover:border-[#0955AC]/40 hover:text-[#0955AC]"
+                            }`}
+                            aria-label={
+                                liked.has(warehouse.id)
+                                    ? "Remove from wishlist"
+                                    : "Add to wishlist"
+                            }
+                        >
+                            <BookmarkCheck className="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    <div className="flex flex-1 flex-col gap-4 p-6">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <h3 className="text-lg font-semibold text-slate-900">
+                                    {warehouse.name}
+                                </h3>
+                                <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                                    <MapPin className="h-4 w-4" />
+                                    {warehouse.city}
+                                </div>
+                                {warehouse.liked_at ? (
+                                    <div className="mt-1 text-xs text-slate-400">
+                                        Saved {formatDate(warehouse.liked_at)}
+                                    </div>
+                                ) : null}
+                            </div>
+                            <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                                <Star className="h-4 w-4" />
+                                {(warehouse.avg_rating ?? 0).toFixed(1)}
+                                <span className="text-amber-500">
+                                    ({warehouse.reviews_count ?? 0})
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                            <span className="font-semibold text-slate-800">
+                                {formatCurrency(priceOf(warehouse), warehouse.currency)} / month
+                            </span>
+                            {warehouse.capacity ? (
+                                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                    <ShieldCheck className="h-3.5 w-3.5" />
+                                    {Number(warehouse.capacity).toLocaleString()} {warehouse.capacity_unit || "units"}
+                                </span>
+                            ) : null}
+                            {warehouse.available_from ? (
+                                <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                    <Calendar className="h-3.5 w-3.5" /> Available {formatDate(warehouse.available_from)}
+                                </span>
+                            ) : null}
+                        </div>
+
+                        {warehouse.amenities?.length ? (
+                            <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                                {warehouse.amenities.slice(0, 4).map((amenity) => (
+                                    <span
+                                        key={`${warehouse.id}-${amenity}`}
+                                        className="rounded-full border border-slate-200 px-3 py-1"
+                                    >
+                                        {amenity}
+                                    </span>
+                                ))}
+                                {warehouse.amenities.length > 4 ? (
+                                    <span className="text-slate-400">
+                                        +{warehouse.amenities.length - 4} more
+                                    </span>
+                                ) : null}
+                            </div>
+                        ) : (
+                            <div className="text-xs text-slate-400">
+                                Provider has not published amenities yet.
+                            </div>
+                        )}
+
+                        <div className="mt-auto flex items-center justify-between gap-3">
+                            <button
+                                onClick={() => handleViewDetails(warehouse)}
+                                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                            >
+                                View details
+                            </button>
+                            {/* <button
+                                onClick={() => router.visit(route("warehouse-bookings.checkout"))}
+                                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#0955AC] text-sm font-semibold text-white transition hover:bg-[#084a97]"
+                            >
+                                Start booking
+                                <ChevronRight className="ml-2 h-4 w-4" />
+                            </button> */}
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+        );
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+                <div className="mx-auto flex h-full max-w-[700px] flex-col items-center justify-center gap-4 rounded-3xl bg-white p-12 text-center shadow-sm">
+                    <Loader2 className="h-10 w-10 animate-spin text-[#0955AC]" />
+                    <p className="text-sm text-slate-500">
+                        Loading your warehouse dashboard…
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+                <div className="mx-auto flex h-full max-w-[700px] flex-col items-center justify-center gap-6 rounded-3xl bg-white p-12 text-center shadow-sm">
+                    <AlertTriangle className="h-10 w-10 text-amber-500" />
+                    <div>
+                        <h2 className="text-lg font-semibold text-slate-900">Something went wrong</h2>
+                        <p className="mt-2 text-sm text-slate-500">{error}</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => router.visit(route("signin.signin"))}
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                            Sign in
+                        </button>
+                        <button
+                            onClick={fetchDashboard}
+                            className="inline-flex h-10 items-center justify-center rounded-xl bg-[#0955AC] px-5 text-sm font-semibold text-white hover:bg-[#084a97]"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
             <div className="mx-auto max-w-[1300px]">
-                {/* Header */}
-                <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
-                            <span className="text-[#0955AC]">
-                                {" "}
-                                Warehouse Booking{" "}
-                            </span>{" "}
-                            Dashboard
+                <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-col gap-1">
+                        <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-[36px]">
+                            Warehouse Management
+                            <span className="text-[#0955AC]"> Dashboard</span>
                         </h1>
-                        <p className="text-slate-600 text-[14px]">
-                            Reserve Short‑term • Long‑term • Cold storage space.
+                        <p className="flex items-center gap-3 text-sm text-slate-500">
+                            End-to-end control for your warehouse reservations
+                            {dashboard?.lastUpdated ? (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">
+                                    <Loader2 className="h-3.5 w-3.5" />
+                                    Updated {formatDateTime(dashboard.lastUpdated)}
+                                </span>
+                            ) : null}
                         </p>
                     </div>
-                    <div className="flex gap-2 justify-center items-center">
-                        <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium">
-                            <Download className="mr-2 h-7 w-7" /> Export
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button
+                            onClick={fetchDashboard}
+                            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                        >
+                            <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
                         </button>
-                        <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
-                            <Plus className="mr-2 h-6 w-6" /> New Booking
+                        <button
+                            onClick={() => router.visit(route("warehouse-bookings.list"))}
+                            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                        >
+                            <Download className="mr-2 h-4 w-4" /> Download statement
+                        </button>
+                        <button
+                            onClick={() => router.visit(route("warehouse.list"))}
+                            className="inline-flex h-11 items-center justify-center rounded-xl bg-[#0955AC] px-6 text-sm font-semibold text-white transition hover:bg-[#084a97]"
+                        >
+                            <Plus className="mr-2 h-4 w-4" /> New booking
                         </button>
                     </div>
                 </div>
 
-                {/* KPI Cards */}
-                <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-5 pt-5 pb-2">
-                            <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Boxes className="h-8 w-8" /> Occupied Pallets
-                            </p>
-                            <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                1,240
-                            </h3>
-                        </div>
-                        <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            +5% this week
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-5 pt-5 pb-2">
-                            <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Building2 className="h-8 w-8" /> Active
-                                Contracts
-                            </p>
-                            <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                87
-                            </h3>
-                        </div>
-                        <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            12 expiring in 30 days
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-5 pt-5 pb-2">
-                            <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
-                                <Snowflake className="h-8 w-8" /> Cold Storage
-                                Utilization
-                            </p>
-                            <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                78%
-                            </h3>
-                        </div>
-                        <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            Target: ≥ 80%
-                        </div>
-                    </div>
-                </div>
-
-                {/* Top Row: Filters + Charts */}
-                <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* Area chart card */}
-                    <div className="lg:col-span-2 bg-white rounded-[10px] shadow-sm">
-                        <div className="px-10 pt-10 pb-5">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                        Bookings by Month
-                                    </h3>
-                                    <p className="text-[14px] text-slate-500 pt-1">
-                                        Short‑term • Long‑term • Cold (year to
-                                        date)
+                <div className="mb-10 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    {statCards.map((card) => {
+                        const Icon = card.icon;
+                        return (
+                            <div
+                                key={card.key}
+                                className="rounded-2xl bg-white p-6 shadow-sm"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm font-semibold text-slate-500">
+                                        {card.label}
                                     </p>
+                                    <Icon className="h-6 w-6 text-[#0955AC]" />
                                 </div>
-                                <button className="inline-flex items-center h-10 px-3 rounded-xl border border-slate-200 text-[12px] font-[600] hover:bg-slate-100">
-                                    <Filter className="mr-2 h-4 w-4" /> View
-                                </button>
+                                <p className="mt-3 text-3xl font-bold text-slate-900">
+                                    {card.key === "totalSpend"
+                                        ? card.value
+                                        : Number(card.value ?? 0).toLocaleString()}
+                                </p>
+                                <p className="mt-2 text-xs text-slate-500">
+                                    {card.helper}
+                                </p>
                             </div>
-                        </div>
-                        <div className="px-10 pb-10 pt-10">
-                            <div
-                                className="h-[350px] w-full focus:outline-none"
-                                style={{
-                                    WebkitTapHighlightColor: "transparent",
-                                    outline: "none",
-                                }}
-                            >
-                                <ResponsiveContainer
-                                    width="100%"
-                                    height="100%"
-                                    className="focus:outline-none"
-                                    tabIndex={-1}
-                                    style={{
-                                        WebkitTapHighlightColor: "transparent",
-                                        outline: "none",
-                                    }}
-                                >
-                                    <AreaChart
-                                        data={monthly}
-                                        margin={{ left: 8, right: 8, top: 10 }}
-                                    >
-                                        <defs>
-                                            <linearGradient
-                                                id="gShort"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#3b82f6"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#3b82f6"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                            <linearGradient
-                                                id="gLong"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#0955AC"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#0955AC"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                            <linearGradient
-                                                id="gCold"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#6366f1"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#6366f1"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid
-                                            vertical={false}
-                                            horizontal={true}
-                                        />
-                                        <XAxis
-                                            dataKey="month"
-                                            tickLine={false}
-                                            axisLine={false}
-                                        />
-                                        <YAxis
-                                            tickLine={false}
-                                            axisLine={false}
-                                        />
-                                        <RTooltip />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="short"
-                                            name="Short‑term"
-                                            stroke="#3b82f6"
-                                            fill="url(#gShort)"
-                                            strokeWidth={4}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="long"
-                                            name="Long‑term"
-                                            stroke="#0955AC"
-                                            fill="url(#gLong)"
-                                            strokeWidth={4}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="cold"
-                                            name="Cold"
-                                            stroke="#6366f1"
-                                            fill="url(#gCold)"
-                                            strokeWidth={4}
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pie card */}
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-10 pt-10">
-                            <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                Category Mix
-                            </h3>
-                            <p className="text-[14px] text-slate-500 mt-1">
-                                Share of total bookings
-                            </p>
-                        </div>
-                        <div className="px-10 pb-10">
-                            <div
-                                className="h-[350px] w-full"
-                                style={{
-                                    WebkitTapHighlightColor: "transparent",
-                                    outline: "none",
-                                }}
-                            >
-                                <ResponsiveContainer
-                                    width="100%"
-                                    height="100%"
-                                    className="focus:outline-none"
-                                    tabIndex={-1}
-                                    style={{
-                                        WebkitTapHighlightColor: "transparent",
-                                        outline: "none",
-                                    }}
-                                >
-                                    <PieChart>
-                                        <Pie
-                                            data={pieData}
-                                            innerRadius={90}
-                                            outerRadius={140}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cornerRadius={8}
-                                        >
-                                            {pieData.map((_, i) => (
-                                                <Cell
-                                                    key={i}
-                                                    fill={
-                                                        [
-                                                            "#3b82f6",
-                                                            "#0955AC",
-                                                            "#6366f1",
-                                                        ][i]
-                                                    }
-                                                />
-                                            ))}
-                                        </Pie>
-                                        <RTooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
-                                <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-[#3b82f6]" />{" "}
-                                    Short‑term
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-[#0955AC]" />{" "}
-                                    Long‑term
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-indigo-500" />{" "}
-                                    Cold
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
 
-                {/* Search & Filters */}
-                <div className="mb-8 rounded-2xl">
-                    <div className="px-4 pb-4 pt-6">
-                        <div className="grid items-center gap-3 md:grid-cols-2 lg:grid-cols-4 font-[600]">
-                            {/* Search */}
-                            <div className="relative">
+                <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-sm">
+                        <div className="mb-6 flex flex-wrap gap-4">
+                            <div className="relative flex-1 min-w-[220px]">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
-                                    value={q}
-                                    onChange={(e) => setQ(e.target.value)}
-                                    placeholder="Search facilities, locations…"
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none"
+                                    value={filters.search}
+                                    onChange={(event) =>
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            search: event.target.value,
+                                        }))
+                                    }
+                                    placeholder="Search warehouses, cities or types"
+                                    className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
                                 />
                             </div>
-
-                            {/* Mode select */}
-                            <div>
-                                <select
-                                    value={mode}
-                                    onChange={(e) => setMode(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
-                                >
-                                    <option value="all">All Categories</option>
-                                    <option value="short">Short‑term</option>
-                                    <option value="long">Long‑term</option>
-                                    <option value="cold">Cold</option>
-                                </select>
-                            </div>
-
-                            {/* Origin select */}
-                            <div>
-                                <select
-                                    value={origin}
-                                    onChange={(e) => setOrigin(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
-                                >
-                                    {origins.map((o) => (
-                                        <option key={o} value={o}>
-                                            {o === "all" ? "All Locations" : o}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Sort select */}
-                            <div>
-                                <select
-                                    value={sort}
-                                    onChange={(e) => setSort(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
-                                >
-                                    <option value="popular">
-                                        Most Popular
+                            <select
+                                value={filters.type}
+                                onChange={(event) =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        type: event.target.value,
+                                    }))
+                                }
+                                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
+                            >
+                                <option value="all">All types</option>
+                                {filtersData.types.map((type) => (
+                                    <option key={type} value={type.toLowerCase()}>
+                                        {normalizeStatus(type)}
                                     </option>
-                                    <option value="price">Price (Asc)</option>
-                                    <option value="rating">
-                                        Rating (Desc)
+                                ))}
+                            </select>
+                            <select
+                                value={filters.location}
+                                onChange={(event) =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        location: event.target.value,
+                                    }))
+                                }
+                                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
+                            >
+                                <option value="all">All locations</option>
+                                {filtersData.locations.map((city) => (
+                                    <option key={city} value={city.toLowerCase()}>
+                                        {city}
                                     </option>
-                                </select>
-                            </div>
+                                ))}
+                            </select>
+                            <select
+                                value={filters.amenity}
+                                onChange={(event) =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        amenity: event.target.value,
+                                    }))
+                                }
+                                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
+                            >
+                                <option value="all">Any amenity</option>
+                                {filtersData.amenities.map((amenity) => (
+                                    <option key={amenity} value={amenity.toLowerCase()}>
+                                        {amenity}
+                                    </option>
+                                ))}
+                            </select>
+                            <select
+                                value={filters.sort}
+                                onChange={(event) =>
+                                    setFilters((prev) => ({
+                                        ...prev,
+                                        sort: event.target.value,
+                                    }))
+                                }
+                                className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
+                            >
+                                <option value="ratingDesc">Top rated</option>
+                                <option value="ratingAsc">Rating (low → high)</option>
+                                <option value="priceAsc">Price (low → high)</option>
+                                <option value="priceDesc">Price (high → low)</option>
+                            </select>
                         </div>
-                    </div>
-                </div>
 
-                {/* Facilities & Upcoming */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h2 className="text-[20px] font-[600]">
-                                Available Facilities
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-xl font-semibold text-slate-900">
+                                Recommended warehouses
                             </h2>
-
-                            {/* Tabs */}
-                            <div className="hidden sm:block">
-                                <div className="rounded-2xl inline-flex gap-2">
-                                    {[
-                                        {
-                                            val: "all",
-                                            label: "All",
-                                            icon: null,
-                                        },
-                                        {
-                                            val: "short",
-                                            label: "Short‑term",
-                                            icon: Boxes,
-                                        },
-                                        {
-                                            val: "long",
-                                            label: "Long‑term",
-                                            icon: Building2,
-                                        },
-                                        {
-                                            val: "cold",
-                                            label: "Cold",
-                                            icon: Snowflake,
-                                        },
-                                    ].map(({ val, label, icon: Icon }) => {
-                                        const active =
-                                            mode === val ||
-                                            (val === "all" && mode === "all");
-                                        return (
-                                            <button
-                                                key={val}
-                                                onClick={() => setMode(val)}
-                                                className={`px-8 py-2 rounded-xl border text-[12px] font-[600] transition ${
-                                                    active
-                                                        ? "bg-[#0955AC] text-white border-[#0955AC]"
-                                                        : "border-slate-200 hover:bg-slate-100"
-                                                }`}
-                                            >
-                                                <span className="inline-flex items-center gap-2">
-                                                    {Icon ? (
-                                                        <Icon className="h-8 w-8" />
-                                                    ) : null}
-                                                    {label}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                            <span className="text-sm text-slate-500">
+                                {filteredWarehouses.length} match(es)
+                            </span>
                         </div>
 
-                        {/* Facility grid */}
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {filtered.map((s) => (
-                                <motion.div
-                                    key={s.id}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.25 }}
+                        {filteredWarehouses.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-sm text-slate-500">
+                                No warehouses match your filters. Adjust filters or explore all listings.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                {filteredWarehouses.slice(0, 6).map((warehouse) =>
+                                    renderWarehouseCard(warehouse)
+                                )}
+                            </div>
+                        )}
+
+                        <div className="mt-10">
+                            <div className="mb-4 flex items-center justify-between">
+                                <h2 className="text-xl font-semibold text-slate-900">
+                                    Saved warehouses
+                                </h2>
+                                <button
+                                    onClick={() => router.visit(route("warehouse.list"))}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
                                 >
-                                    <div className="group rounded-2xl bg-white border border-slate-200 shadow-sm">
-                                        <div className="px-10 pt-10 pb-5">
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <h3 className="text-[18px] font-semibold leading-none tracking-tight">
-                                                        {s.name}
-                                                    </h3>
-                                                    <p className="mt-1 flex items-center gap-2 text-[12px] text-slate-500">
-                                                        <MapPin className="h-3.5 w-3.5" />
-                                                        {s.location}
-                                                    </p>
-                                                </div>
-                                                <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-semibold bg-slate-50 text-slate-700">
-                                                    <Star className="mr-1 h-4 w-4" />
-                                                    {s.rating}
-                                                </span>
-                                            </div>
-                                        </div>
+                                    Browse catalog
+                                    <ChevronRight className="h-3 w-3" />
+                                </button>
+                            </div>
 
-                                        <div className="px-10 pb-10 flex items-end justify-between gap-2">
-                                            <div className="text-[14px] text-slate-600">
-                                                <div className="flex items-center gap-2 text-slate-700">
-                                                    <CreditCard className="h-4 w-4" />
-                                                    <span className="font-medium">
-                                                        {s.unit.includes(
-                                                            "month"
-                                                        )
-                                                            ? `LKR ${s.price}/${s.unit}`
-                                                            : `LKR ${s.price} per ${s.unit}`}
-                                                    </span>
-                                                </div>
-                                                <div className="mt-1 flex items-center gap-2 text-slate-500">
-                                                    <ShieldCheck className="h-4 w-4" />{" "}
-                                                    24/7 security
-                                                </div>
-                                            </div>
-                                            <button className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0955AC]">
-                                                Book{" "}
-                                                <ChevronRight className="ml-1 h-4 w-4 inline-block" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-
-                            {filtered.length === 0 && (
-                                <div className="rounded-2xl border-dashed border border-slate-200 bg-white">
-                                    <div className="px-4 py-10 text-center text-slate-500">
-                                        No results. Try changing filters.
-                                    </div>
+                            {wishlist.length === 0 ? (
+                                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-sm text-slate-500">
+                                    You have not saved any warehouses yet. Use the wishlist button to keep interesting spaces handy.
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                    {wishlist.slice(0, 6).map((warehouse) =>
+                                        renderWarehouseCard(warehouse)
+                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Sidebar: Upcoming + Quick Actions */}
-                    <div className="space-y-4">
-                        {/* Upcoming */}
-                        <div className="rounded-2xl bg-white shadow-sm">
-                            <div className="px-10 pt-10 pb-5">
-                                <h3 className="font-semibold leading-none tracking-tight text-[18px]">
-                                    Upcoming Reservations
-                                </h3>
-                                <p className="text-[14px] text-slate-500 mt-1">
-                                    Next move‑ins & extensions
-                                </p>
+                    <div className="flex flex-col gap-6">
+                        <div className="rounded-2xl bg-white p-6 shadow-sm">
+                            <div className="mb-5 flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-900">
+                                        Upcoming reservations
+                                    </h3>
+                                    <p className="text-xs text-slate-500">
+                                        Confirm move-ins, extensions and handovers
+                                    </p>
+                                </div>
+                                {/* <button
+                                    onClick={() => router.visit(route("warehouse-bookings.list"))}
+                                    className="inline-flex itemsCenter gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                                >
+                                    Manage all
+                                    <ChevronRight className="h-3 w-3" />
+                                </button> */}
                             </div>
-                            <div className="px-10 pb-10 space-y-6 text-[14px]">
-                                {upcoming.map((r) => (
-                                    <div
-                                        key={r.code}
-                                        className="rounded-2xl border p-5"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 text-slate-700">
-                                                <ModeIcon
-                                                    mode={r.mode}
-                                                    className="h-7 w-7"
-                                                />
-                                                <span className="font-medium">
-                                                    {r.item}
-                                                </span>
-                                            </div>
-                                            <span
-                                                className={`rounded-full border px-2 py-0.5 text-[10px] ${
-                                                    statusMap[r.status].tone
-                                                }`}
-                                            >
-                                                {statusMap[r.status].label}
-                                            </span>
-                                        </div>
-                                        <div className="mt-2 flex items-center gap-2 text-[12px] text-slate-600">
-                                            <Calendar className="h-4 w-4" />
-                                            <span>
-                                                {r.from} → {r.to}
-                                            </span>
-                                        </div>
-                                        <div className="mt-1 text-sm text-slate-500">
-                                            Site: {r.hub}
-                                        </div>
-                                        <div className="mt-2 flex items-center justify-between text-[12px]">
-                                            <span className="text-slate-500">
-                                                Ref: {r.code}
-                                            </span>
-                                            <button className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm">
-                                                Manage
-                                            </button>
-                                        </div>
+                            <div className="space-y-4">
+                                {upcoming.length === 0 ? (
+                                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                                        You have no upcoming reservations. Browse warehouses to make a booking.
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Quick Actions */}
-                        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm">
-                            <div className="px-10 pt-10 pb-5">
-                                <h3 className="font-semibold leading-none tracking-tight text-[18px]">
-                                    Quick Actions
-                                </h3>
-                                <p className="text-[14px] text-slate-500 mt-1">
-                                    Common tasks
-                                </p>
-                            </div>
-                            <div className="px-10 pb-10 grid grid-cols-2 gap-2 font-[500]">
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Boxes className="mr-2 h-7 w-7" /> Extend
-                                    Short‑term
-                                </button>
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Building2 className="mr-2 h-7 w-7" /> Renew
-                                    Long‑term
-                                </button>
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Snowflake className="mr-2 h-7 w-7" /> Add
-                                    Cold Space
-                                </button>
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Calendar className="mr-2 h-7 w-7" /> Change
-                                    Dates
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* History Table */}
-                <div className="mt-8 rounded-2xl bg-white shadow-sm">
-                    <div className="px-10 pt-10 pb-5">
-                        <h3 className="font-semibold leading-none tracking-tight text-[18px]">
-                            Recent Activity
-                        </h3>
-                        <p className="text-[14px] text-slate-500 mt-1">
-                            Latest warehouse bookings and changes
-                        </p>
-                    </div>
-                    <div className="px-10 pb-10">
-                        <div className="overflow-x-auto">
-                            <table className="w-full table-auto border-separate border-spacing-y-5 text-[14px]">
-                                <thead>
-                                    <tr className="text-left text-slate-500">
-                                        <th className="px-3 py-2">Category</th>
-                                        <th className="px-3 py-2">Facility</th>
-                                        <th className="px-3 py-2">From</th>
-                                        <th className="px-3 py-2">To</th>
-                                        <th className="px-3 py-2">Site</th>
-                                        <th className="px-3 py-2">Status</th>
-                                        <th className="px-3 py-2 text-right">
-                                            Amount
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {bookings.map((r) => (
-                                        <tr
-                                            key={r.code}
-                                            className="rounded-xl bg-white shadow-sm"
-                                        >
-                                            <td className="px-3 py-3">
-                                                <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2 py-1 text-slate-700">
-                                                    <ModeIcon
-                                                        mode={r.mode}
-                                                        className="h-4 w-4"
-                                                    />
-                                                    {r.mode.toUpperCase()}
+                                ) : (
+                                    upcoming.map((booking) => {
+                                        const Icon = iconForType(booking.warehouse?.type);
+                                        const tone = statusStyles[booking.status] || "bg-slate-100 text-slate-700 border-slate-200";
+                                        return (
+                                            <div
+                                                key={booking.id}
+                                                className="rounded-2xl border border-slate-200 p-4"
+                                            >
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                                                        <Icon className="h-5 w-5 text-[#0955AC]" />
+                                                        <div>
+                                                            <p className="font-semibold text-slate-800">
+                                                                {booking.warehouse?.name ?? "Warehouse"}
+                                                            </p>
+                                                            <p className="text-xs text-slate-500">
+                                                                {booking.warehouse?.address}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${tone}`}>
+                                                        {normalizeStatus(booking.status)}
+                                                    </span>
                                                 </div>
-                                            </td>
-                                            <td className="px-3 py-3 font-medium">
-                                                {r.item}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600">
-                                                {r.from}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600">
-                                                {r.to}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600">
-                                                {r.hub}
-                                            </td>
-                                            <td className="px-3 py-3">
-                                                <span
-                                                    className={`rounded-full border px-2 py-0.5 text-xs ${
-                                                        statusMap[r.status].tone
-                                                    }`}
-                                                >
-                                                    {statusMap[r.status].label}
+                                                <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                                                    <span className="inline-flex items-center gap-2">
+                                                        <Calendar className="h-4 w-4" />
+                                                        {formatDateRange(booking.start_date, booking.end_date)}
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-2">
+                                                        <CreditCard className="h-4 w-4" />
+                                                        {formatCurrency(booking.amount)}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
+                                                    <span>Reference #{booking.reference}</span>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() =>
+                                                                router.visit(
+                                                                    route(
+                                                                        "warehouse-bookings.show",
+                                                                        { id: booking.id }
+                                                                    )
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-600 hover:bg-slate-100"
+                                                        >
+                                                            View details
+                                                        </button>
+                                                        <button
+                                                            onClick={() =>
+                                                                router.visit(
+                                                                    route(
+                                                                        "warehouse-bookings.summary",
+                                                                        { bookingId: booking.id }
+                                                                    )
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center rounded-lg border border-[#0955AC]/20 bg-[#0955AC]/10 px-3 py-1 font-semibold text-[#0955AC] hover:bg-[#0955AC]/20"
+                                                        >
+                                                            Manage booking
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-900">
+                                        Quick actions
+                                    </h3>
+                                    <p className="text-xs text-slate-500">
+                                        Stay on top of key warehouse tasks
+                                    </p>
+                                </div>
+                                <Filter className="h-5 w-5 text-slate-400" />
+                            </div>
+                            <div className="mt-5 grid grid-cols-1 gap-3">
+                                {quickActions.map((action) => {
+                                    const ActionIcon = action.icon;
+                                    return (
+                                        <button
+                                            key={action.label}
+                                            onClick={action.onClick}
+                                            className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-[#0955AC] hover:bg-[#F3F8FF]"
+                                        >
+                                            <span className="flex items-center gap-3">
+                                                <ActionIcon className="h-5 w-5 text-[#0955AC]" />
+                                                <span>
+                                                    {action.label}
+                                                    <span className="block text-xs font-normal text-slate-500">
+                                                        {action.description}
+                                                    </span>
                                                 </span>
-                                            </td>
-                                            <td className="px-3 py-3 text-right font-medium">
-                                                LKR{" "}
-                                                {Number(r.amount).toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                            </span>
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-900">
+                                        Billing snapshot
+                                    </h3>
+                                    <p className="text-xs text-slate-500">
+                                        Quickly review your billing position
+                                    </p>
+                                </div>
+                                <CreditCard className="h-5 w-5 text-[#0955AC]" />
+                            </div>
+                            <div className="mt-4 space-y-3 text-sm">
+                                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+                                    <span className="text-slate-600">Outstanding balance</span>
+                                    <span className="font-semibold text-slate-900">
+                                        {formatCurrency(billing.outstanding ?? 0)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+                                    <span className="text-slate-600">Paid this year</span>
+                                    <span className="font-semibold text-slate-900">
+                                        {formatCurrency(billing.paidThisYear ?? 0)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+                                    <span className="text-slate-600">Next invoice date</span>
+                                    <span className="font-semibold text-slate-900">
+                                        {billing.nextInvoiceDate ? formatDate(billing.nextInvoiceDate) : "TBD"}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-900">
+                                        Documents & agreements
+                                    </h3>
+                                    <p className="text-xs text-slate-500">
+                                        Leases, invoices and compliance documents
+                                    </p>
+                                </div>
+                                <FileText className="h-5 w-5 text-[#0955AC]" />
+                            </div>
+                            <div className="mt-4 space-y-3">
+                                {documents.length === 0 ? (
+                                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
+                                        No documents uploaded for your bookings yet.
+                                    </div>
+                                ) : (
+                                    documents.slice(0, 5).map((doc) => (
+                                        <a
+                                            key={`${doc.booking_id}-${doc.name}`}
+                                            href={doc.url || "#"}
+                                            className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 transition hover:border-[#0955AC] hover:bg-[#F3F8FF]"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            <span className="flex items-center gap-3">
+                                                <FileText className="h-4 w-4 text-[#0955AC]" />
+                                                <span>
+                                                    {doc.name}
+                                                    <span className="block text-xs text-slate-500">
+                                                        Booking #{doc.reference}
+                                                    </span>
+                                                </span>
+                                            </span>
+                                            <LinkIcon className="h-4 w-4 text-slate-400" />
+                                        </a>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div className="mt-8 text-center text-xs text-slate-400">
-                    © {new Date().getFullYear()} Warehouse Portal · Short‑term •
-                    Long‑term • Cold
+                <div className="rounded-2xl bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold text-slate-900">
+                                Recent activity
+                            </h3>
+                            <p className="text-xs text-slate-500">
+                                Last 25 booking updates, payments and status changes
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => router.visit(route("warehouse-bookings.list"))}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                        >
+                            Export CSV
+                            <Download className="h-3 w-3" />
+                        </button>
+                    </div>
+                    <div className="mt-6 overflow-x-auto">
+                        <table className="w-full table-auto text-left text-sm">
+                            <thead>
+                                <tr className="text-xs uppercase tracking-wide text-slate-400">
+                                    <th className="py-3 pr-6 font-semibold">Booking</th>
+                                    <th className="py-3 pr-6 font-semibold">Warehouse</th>
+                                    <th className="py-3 pr-6 font-semibold">Start</th>
+                                    <th className="py-3 pr-6 font-semibold">End</th>
+                                    <th className="py-3 pr-6 font-semibold">Status</th>
+                                    <th className="py-3 pr-6 font-semibold text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {recentActivity.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="py-6 text-center text-sm text-slate-500">
+                                            No historical activity yet.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    recentActivity.map((activity) => {
+                                        const tone = statusStyles[activity.status] || "bg-slate-100 text-slate-700 border-slate-200";
+                                        return (
+                                            <tr key={activity.id} className="border-b border-slate-100 text-sm text-slate-600 last:border-0">
+                                                <td className="py-4 pr-6">
+                                                    <div className="font-semibold text-slate-800">
+                                                        #{activity.reference}
+                                                    </div>
+                                                    <div className="text-xs text-slate-400">
+                                                        {formatDateTime(activity.created_at)}
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 pr-6">
+                                                    <div className="font-medium text-slate-800">
+                                                        {activity.warehouse?.name ?? "Warehouse"}
+                                                    </div>
+                                                    <div className="text-xs text-slate-400">
+                                                        {activity.warehouse?.address}
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 pr-6 text-xs text-slate-500">
+                                                    {formatDate(activity.start_date)}
+                                                </td>
+                                                <td className="py-4 pr-6 text-xs text-slate-500">
+                                                    {formatDate(activity.end_date)}
+                                                </td>
+                                                <td className="py-4 pr-6">
+                                                    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${tone}`}>
+                                                        {normalizeStatus(activity.status)}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 pr-6 text-right font-semibold text-slate-800">
+                                                    {formatCurrency(activity.amount)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="mt-10 text-center text-xs text-slate-400">
+                    © {new Date().getFullYear()} Transport Jaan · Client Warehouse Management Suite
                 </div>
             </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 
 import WarehouseImages from "./WarehouseImages";
 import WarehouseInfo from "./WarehouseInfo";
@@ -11,6 +12,9 @@ import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 import backArrow from "../../../../assets/vendors/units/backArrow.svg";
 
 const UnitDetailsContent = ({ unitId }) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const [warehouseData, setWarehouseData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -71,7 +75,7 @@ const UnitDetailsContent = ({ unitId }) => {
                         <img src={proPic} alt="Profile" />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

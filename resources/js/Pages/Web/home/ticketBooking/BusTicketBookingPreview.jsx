@@ -112,24 +112,92 @@ const BusTicketBookingPreview = ({ trip, searchParams }) => {
 
     const onSubmit = (e) => {
         e.preventDefault();
-        const payload = {
-            tripId: trip?.id,
-            seats: selected,
-            total,
-            pricePerSeat,
-            passengerName,
-            mobile,
-            email,
-            boarding,
-            destination,
-            reuseCredits,
-            searchParams,
+
+        // Get CSRF token from the page's meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        // Create booking data object
+        const bookingData = {
+            schedule_id: trip?.id,
+            seat_numbers: selected,
+            passenger_count: selected.length,
+            passenger_name: passengerName,
+            passenger_phone: mobile,
+            passenger_email: email,
+            boarding_point: boarding,
+            destination_point: destination,
+            total_price: total
         };
-        console.log("Submit booking payload:", payload);
-        
-        // For now, redirect to the existing payment page
-        // In a full implementation, you'd store the booking data and redirect with proper parameters
-        window.location.href = `/vendors/payment`;
+
+        // Add a loading indicator or disable the button here if needed
+
+        // Use fetch for AJAX request with proper headers
+        fetch('/bus-bookings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(bookingData)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (response.redirected) {
+                console.log('Redirected to:', response.url);
+                window.location.href = response.url;
+                return null;
+            }
+
+            // Try to parse as JSON, but handle errors gracefully
+            return response.json().catch(e => {
+                console.error('JSON parsing error:', e);
+                return null;
+            });
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data === null) {
+                console.log('No data returned or already handled redirect');
+                return;
+            }
+
+            if (data && data.redirect) {
+                console.log('Redirecting to:', data.redirect);
+                window.location.href = data.redirect;
+            } else if (data && data.reference) {
+                console.log('Redirecting to success page with reference:', data.reference);
+                window.location.href = `/bus-booking-success/${data.reference}`;
+            } else if (data && data.success) {
+                console.log('Booking successful but no redirect or reference provided');
+                alert('Booking successful!');
+                window.location.href = '/flight-booking'; // Redirect to home page
+            } else if (data && data.errors) {
+                console.error('Validation errors:', data.errors);
+                const errorMessage = Object.values(data.errors).flat().join("\n");
+                alert(`Error: ${errorMessage}`);
+            } else {
+                console.warn('Unknown response format:', data);
+                alert('Booking completed but encountered an unexpected response. Please check your bookings.');
+                window.location.href = '/flight-booking';
+            }
+        })
+        .catch(error => {
+            console.error('Booking error:', error);
+            alert('There was an error processing your booking. Please try again.');
+        });
+
+        // OLD FORM APPROACH (keeping as backup)
+        /*
+        // Create a form to submit the data
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/bus-bookings';
+        form.style.display = 'none';
+        */
+
+        // Old form submission code removed
     };
 
     return (

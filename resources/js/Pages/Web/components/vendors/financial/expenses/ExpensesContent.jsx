@@ -1,8 +1,8 @@
 import React, { useState } from "react";
+import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../../assets/vendors/dashboard/settings.svg";
+
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
@@ -21,6 +21,9 @@ import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
 
 const ExpensesContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const expensesData = [
         {
             name: "Oil Change",
@@ -200,12 +203,18 @@ const ExpensesContent = () => {
     const currentExpenses = expensesData.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -237,6 +246,9 @@ const ExpensesContent = () => {
 
     // Function to download table as PDF
     const downloadTableAsPDF = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const doc = new jsPDF();
         doc.setFontSize(18);
         doc.text("Recent Transactions", 14, 20);
@@ -300,12 +312,7 @@ const ExpensesContent = () => {
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Expenses</h1>
                 <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
-                    </div>
+
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={bell} />
                     </div>
@@ -313,7 +320,7 @@ const ExpensesContent = () => {
                         <img src={proPic} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable"; 
 import {
@@ -17,6 +18,9 @@ import {
 } from "lucide-react";
 
 const PaymentContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const transactions = [
       {
         id: "INV-1001",
@@ -85,11 +89,17 @@ const PaymentContent = () => {
     const currentTransactions = transactions.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     const getPageNumbers = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -120,6 +130,9 @@ const PaymentContent = () => {
     };
 
     const handleRowSelection = (rowIndex) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const actualIndex = startIdx + rowIndex;
         const newSelectedRows = new Set(selectedRows);
         if (newSelectedRows.has(actualIndex)) {
@@ -131,6 +144,9 @@ const PaymentContent = () => {
     };
 
     const handleSelectAll = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         if (selectedRows.size === currentTransactions.length) {
             setSelectedRows(new Set());
         } else {
@@ -142,6 +158,9 @@ const PaymentContent = () => {
     };
 
     const downloadTableAsPDF = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const doc = new jsPDF();
         doc.setFontSize(18);
         doc.text("Recent Transactions", 14, 20);
@@ -218,7 +237,7 @@ const PaymentContent = () => {
                         <UserCircle2 size={28} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

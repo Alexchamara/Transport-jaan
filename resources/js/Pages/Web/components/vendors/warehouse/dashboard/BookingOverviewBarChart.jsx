@@ -1,27 +1,37 @@
 import React from "react";
 import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
-const bookingData = [
-  { name: "Jan", bookings: 450 },
-  { name: "Feb", bookings: 670 },
-  { name: "Mar", bookings: 540 },
-  { name: "Apr", bookings: 900 },
-  { name: "May", bookings: 800 },
-  { name: "Jun", bookings: 200 },
-  { name: "Jul", bookings: 340 },
-  { name: "Aug", bookings: 859 },
-  { name: "Sep", bookings: 670 },
-  { name: "Oct", bookings: 570 },
-  { name: "Nov", bookings: 400 },
-  { name: "Dec", bookings: 900 },
+const defaultBookingData = [
+  { name: "Jan", bookings: 450, confirmed: 320, pending: 80, cancelled: 50 },
+  { name: "Feb", bookings: 670, confirmed: 500, pending: 120, cancelled: 50 },
+  { name: "Mar", bookings: 540, confirmed: 400, pending: 90, cancelled: 50 },
+  { name: "Apr", bookings: 900, confirmed: 700, pending: 150, cancelled: 50 },
+  { name: "May", bookings: 800, confirmed: 600, pending: 150, cancelled: 50 },
+  { name: "Jun", bookings: 200, confirmed: 150, pending: 30, cancelled: 20 },
+  { name: "Jul", bookings: 340, confirmed: 250, pending: 60, cancelled: 30 },
+  { name: "Aug", bookings: 859, confirmed: 650, pending: 159, cancelled: 50 },
+  { name: "Sep", bookings: 670, confirmed: 500, pending: 120, cancelled: 50 },
+  { name: "Oct", bookings: 570, confirmed: 420, pending: 100, cancelled: 50 },
+  { name: "Nov", bookings: 400, confirmed: 300, pending: 70, cancelled: 30 },
+  { name: "Dec", bookings: 900, confirmed: 700, pending: 150, cancelled: 50 },
 ];
-const maxBookings = 1000;
 
-function BookingOverviewBarChart() {
+function BookingOverviewBarChart({ data = [] }) {
+  const bookingData = data.length > 0 ? data : defaultBookingData;
+  const maxBookings = Math.max(1000, ...bookingData.map(d => d.bookings || d.confirmed + d.pending + d.cancelled || 0));
   const [hovered, setHovered] = React.useState(null);
   const chartHeight = 217; // px
   // Find the index of the highest bookings
-  const maxIndex = bookingData.reduce((maxIdx, d, idx, arr) => d.bookings > arr[maxIdx].bookings ? idx : maxIdx, 0);
+  const maxIndex = bookingData.reduce((maxIdx, d, idx, arr) => (d.bookings || 0) > (arr[maxIdx].bookings || 0) ? idx : maxIdx, 0);
+  
+  if (bookingData.length === 0) {
+    return (
+      <div className="w-[600px] h-[217px] flex items-center justify-center text-gray-500">
+        <span>No booking data available</span>
+      </div>
+    );
+  }
+  
   return (
     <div className="w-[600px] h-auto flex flex-col items-stretch relative">
       {/* Chart area: grid lines and bars, fixed height */}

@@ -9,10 +9,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 use App\Models\Warehouse\WarehouseUnit;
 use App\Models\Warehouse\WarehouseBooking;
 use App\Models\Warehouse\WarehouseReview;
 use App\Models\Warehouse\WarehouseLike;
+use App\Models\Warehouse\WarehouseAmenity;
 
 class WarehouseBookingController extends Controller
 {
@@ -24,15 +28,253 @@ class WarehouseBookingController extends Controller
         return Inertia::render('Web/components/warehouseBooking/bookingCategoryPage');
     }
 
+    public function dashboardData(Request $request)
+    {
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required.',
+            ], 401);
+        }
+
+        $user = Auth::user();
+        $now = Carbon::now();
+
+        $baseQuery = WarehouseBooking::query()->where('user_id', $user->id);
+
+        $activeStatuses = ['pending', 'confirmed', 'active'];
+
+        $stats = [
+            'activeBookings' => (clone $baseQuery)->whereIn('status', $activeStatuses)->count(),
+            'upcomingMoveIns' => (clone $baseQuery)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->whereDate('start_date', '>=', $now->toDateString())
+                ->count(),
+            'expiringSoon' => (clone $baseQuery)
+                ->whereNotNull('end_date')
+                ->whereBetween('end_date', [$now->toDateString(), $now->copy()->addDays(30)->toDateString()])
+                ->count(),
+            'pendingPayments' => (clone $baseQuery)
+                ->whereIn('status', $activeStatuses)
+                ->where(function ($pending) {
+                    $pending->whereNull('payment_status')->orWhere('payment_status', 'pending');
+                })
+                ->count(),
+            'completedBookings' => (clone $baseQuery)->whereIn('status', ['completed', 'closed'])->count(),
+            'totalSpend' => (clone $baseQuery)
+                ->whereIn('status', ['confirmed', 'active', 'paid', 'completed'])
+                ->sum('final_amount'),
+            'likedWarehouses' => WarehouseLike::where('user_id', $user->id)->count(),
+        ];
+
+        $upcoming = (clone $baseQuery)
+            ->with(['warehouseUnit.mainImage'])
+            ->whereIn('status', ['pending', 'confirmed', 'active'])
+            ->whereDate('start_date', '>=', $now->copy()->subDays(1)->toDateString())
+            ->orderBy('start_date')
+            ->limit(5)
+            ->get()
+            ->map(function (WarehouseBooking $booking) {
+                $unit = $booking->warehouseUnit;
+                return [
+                    'id' => $booking->id,
+                    'reference' => $booking->booking_reference,
+                    'status' => $booking->status,
+                    'start_date' => optional($booking->start_date)?->toDateString(),
+                    'end_date' => optional($booking->end_date)?->toDateString(),
+                    'amount' => $booking->final_amount ?? $booking->total_amount,
+                    'warehouse' => $unit ? [
+                        'id' => $unit->id,
+                        'name' => $unit->name,
+                        'type' => $unit->type,
+                        'address' => $unit->address,
+                        'main_image' => optional($unit->mainImage)->url,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+        $recentActivity = (clone $baseQuery)
+            ->with(['warehouseUnit'])
+            ->orderByDesc('created_at')
+            ->limit(25)
+            ->get()
+            ->map(function (WarehouseBooking $booking) {
+                $unit = $booking->warehouseUnit;
+                return [
+                    'id' => $booking->id,
+                    'reference' => $booking->booking_reference,
+                    'status' => $booking->status,
+                    'start_date' => optional($booking->start_date)?->toDateTimeString(),
+                    'end_date' => optional($booking->end_date)?->toDateTimeString(),
+                    'created_at' => optional($booking->created_at)?->toDateTimeString(),
+                    'amount' => $booking->final_amount ?? $booking->total_amount,
+                    'warehouse' => $unit ? [
+                        'id' => $unit->id,
+                        'name' => $unit->name,
+                        'type' => $unit->type,
+                        'address' => $unit->address,
+                    ] : null,
+                ];
+            })
+            ->values();
+
+    $wishlistPayload = $this->buildWishlistPayload($user->id);
+    $likedIds = $wishlistPayload['likedIds'];
+    $wishlist = $wishlistPayload['wishlist'];
+
+        $preferredTypes = (clone $baseQuery)
+            ->with('warehouseUnit:id,type,address')
+            ->latest('start_date')
+            ->limit(5)
+            ->get()
+            ->pluck('warehouseUnit.type')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $preferredCities = (clone $baseQuery)
+            ->with('warehouseUnit:id,address')
+            ->latest('start_date')
+            ->limit(5)
+            ->get()
+            ->pluck('warehouseUnit.address')
+            ->filter()
+            ->map(function ($address) {
+                $city = trim(Str::afterLast($address, ','));
+                return $city ?: trim($address);
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        $recommendedQuery = WarehouseUnit::query()
+            ->approved()
+            ->active()
+            ->available()
+            ->with([
+                'mainImage',
+                'amenities' => function ($q) {
+                    $q->available();
+                },
+            ])
+            ->withAvg('reviews', 'rating')
+            ->withCount(['reviews', 'likes'])
+            ->limit(40);
+
+        if ($preferredTypes->isNotEmpty()) {
+            $recommendedQuery->whereIn('type', $preferredTypes);
+        }
+
+        if ($preferredCities->isNotEmpty()) {
+            $recommendedQuery->orWhere(function ($q) use ($preferredCities) {
+                foreach ($preferredCities as $index => $city) {
+                    $comparison = ['address', 'like', '%' . $city . '%'];
+                    if ($index === 0) {
+                        $q->where(...$comparison);
+                    } else {
+                        $q->orWhere(...$comparison);
+                    }
+                }
+            });
+        }
+
+        $recommended = $recommendedQuery
+            ->get()
+            ->map(function (WarehouseUnit $unit) use ($likedIds) {
+                return $this->formatWarehouseUnitSummary($unit, [
+                    'is_liked' => $likedIds->contains($unit->id),
+                ]);
+            })
+            ->values();
+
+        $filters = [
+            'types' => WarehouseUnit::approved()->active()->distinct()->pluck('type')->filter()->values(),
+            'locations' => WarehouseUnit::approved()->active()->pluck('address')
+                ->filter()
+                ->map(function ($address) {
+                    $city = trim(Str::afterLast($address, ','));
+                    return $city ?: trim($address);
+                })
+                ->filter()
+                ->unique()
+                ->values(),
+            'amenities' => WarehouseAmenity::available()->distinct()->orderBy('name')->pluck('name')->filter()->values(),
+        ];
+
+        $billing = [
+            'outstanding' => (clone $baseQuery)
+                ->where(function ($q) {
+                    $q->whereNull('payment_status')->orWhere('payment_status', 'pending');
+                })
+                ->sum('final_amount'),
+            'paidThisYear' => (clone $baseQuery)
+                ->whereYear('payment_date', $now->year)
+                ->where('payment_status', 'paid')
+                ->sum('final_amount'),
+            'nextInvoiceDate' => (clone $baseQuery)
+                ->where(function ($q) {
+                    $q->whereNull('payment_status')->orWhere('payment_status', 'pending');
+                })
+                ->orderBy('start_date')
+                ->value('start_date'),
+        ];
+
+        $documents = (clone $baseQuery)
+            ->whereNotNull('documents')
+            ->orderByDesc('updated_at')
+            ->limit(10)
+            ->get()
+            ->flatMap(function (WarehouseBooking $booking) {
+                $docs = $booking->documents;
+                if (is_string($docs)) {
+                    $docs = json_decode($docs, true) ?: [];
+                }
+
+                if (!is_array($docs)) {
+                    return collect();
+                }
+
+                return collect($docs)->map(function ($doc) use ($booking) {
+                    $path = $doc['path'] ?? $doc['file_path'] ?? null;
+                    $url = $doc['url'] ?? ($path ? Storage::url($path) : null);
+
+                    return [
+                        'booking_id' => $booking->id,
+                        'reference' => $booking->booking_reference,
+                        'name' => $doc['name'] ?? ($doc['original_name'] ?? 'Document'),
+                        'url' => $url,
+                        'updated_at' => optional($booking->updated_at)?->toDateTimeString(),
+                    ];
+                });
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'stats' => $stats,
+            'upcoming' => $upcoming,
+            'recentActivity' => $recentActivity,
+            'recommended' => $recommended,
+            'likedWarehouseIds' => $likedIds->values()->all(),
+            'wishlist' => $wishlist,
+            'filters' => $filters,
+            'billing' => $billing,
+            'documents' => $documents,
+            'lastUpdated' => $now->toDateTimeString(),
+        ]);
+    }
     /**
      * Display warehouses by type
      */
     public function index($type)
     {
         // Get warehouses by type
-        $warehouses = WarehouseUnit::where('type', $type)
-            ->where('approval_status', 'approved')
-            ->where('is_active', true)
+        $warehouses = WarehouseUnit::query()
+            ->where('type', $type)
+            ->active()
+            ->approved()
+            ->with(['amenities', 'images'])
             ->get();
 
         $warehouseDetails = $warehouses->map(function ($warehouse) {
@@ -69,10 +311,12 @@ class WarehouseBookingController extends Controller
      */
     public function details($type, $id)
     {
-        $warehouse = WarehouseUnit::where('id', $id)
+        $warehouse = WarehouseUnit::query()
+            ->where('id', $id)
             ->where('type', $type)
-            ->where('approval_status', 'approved')
-            ->where('is_active', true)
+            ->active()
+            ->approved()
+            ->with(['amenities', 'images'])
             ->firstOrFail();
 
         $warehouseDetails = [
@@ -285,7 +529,7 @@ class WarehouseBookingController extends Controller
             
             // Enhanced validation with better error messages
             $validated = Validator::make($requestData, [
-                'warehouse_id' => 'required|integer|exists:warehouse_units,id',
+                'warehouse_id' => 'required|exists:warehouse_units,id',
                 'company_name' => 'nullable|string|max:255',
                 'contact_person' => 'required|string|max:255',
                 'email' => 'required|email|max:255',
@@ -335,9 +579,11 @@ class WarehouseBookingController extends Controller
             DB::beginTransaction();
 
             // Verify warehouse is still available
-            $warehouse = WarehouseUnit::where('id', $validated['warehouse_id'])
-                ->where('approval_status', 'approved')
-                ->where('is_active', true)
+            $warehouse = WarehouseUnit::query()
+                ->where('id', $validated['warehouse_id'])
+                ->active()
+                ->approved()
+                ->available()
                 ->lockForUpdate()
                 ->first();
 
@@ -367,11 +613,11 @@ class WarehouseBookingController extends Controller
                 'status' => 'pending',
                 
                 // Company Information
-                'company_name' => $validated['company_name'] ?? 'N/A',
+                'company_name' => $validated['company_name'] ?? null,
                 'contact_person' => $validated['contact_person'],
                 'phone' => $validated['phone'],
                 'email' => $validated['email'],
-                'company_address' => $validated['company_address'] ?? 'N/A',
+                'company_address' => $validated['company_address'] ?? null,
                 
                 // Storage Requirements
                 'storage_type' => $validated['storage_type'],
@@ -528,6 +774,63 @@ class WarehouseBookingController extends Controller
     }
 
     /**
+     * Get all warehouse units for public API
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getWarehouseUnits()
+    {
+        try {
+            $warehouses = WarehouseUnit::query()
+                ->approved()
+                ->active()
+                ->with([
+                    'mainImage',
+                    'amenities' => function ($q) {
+                        $q->available();
+                    },
+                ])
+                ->orderBy('created_at', 'desc')
+                ->limit(50)
+                ->get()
+                ->map(function (WarehouseUnit $unit) {
+                    return [
+                        'id' => $unit->id,
+                        'name' => $unit->name,
+                        'address' => $unit->address,
+                        'total_area' => $unit->total_area,
+                        'capacity' => $unit->capacity,
+                        'capacity_unit' => $unit->capacity_unit,
+                        'type' => $unit->type,
+                        'monthly_rate' => $unit->monthly_rate,
+                        'base_price' => $unit->base_price,
+                        'currency' => $unit->currency ?? 'LKR',
+                        'is_available' => $unit->is_available,
+                        'is_active' => $unit->is_active,
+                        'main_image' => optional($unit->mainImage)->url,
+                        'primary_image_url' => optional($unit->mainImage)->url,
+                        'amenities' => $unit->amenities->pluck('name')->values()->all(),
+                        'available_from' => optional($unit->available_from)?->toDateString(),
+                        'available_until' => optional($unit->available_until)?->toDateString(),
+                    ];
+                });
+
+            return response()->json($warehouses);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching warehouse units: ' . $e->getMessage(), [
+                'error' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch warehouse units.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
      * Get warehouse unit details for API endpoint
      * 
      * @param int $id Warehouse unit ID
@@ -536,9 +839,11 @@ class WarehouseBookingController extends Controller
     public function getWarehouseUnit($id)
     {
         try {
-            $warehouse = WarehouseUnit::where('id', $id)
-                ->where('approval_status', 'approved')
-                ->where('is_active', true)
+            $warehouse = WarehouseUnit::query()
+                ->where('id', $id)
+                ->active()
+                ->approved()
+                ->with(['amenities', 'images', 'currentApproval'])
                 ->first();
 
             if (!$warehouse) {
@@ -556,15 +861,31 @@ class WarehouseBookingController extends Controller
                 'type' => $warehouse->type,
                 'total_area' => $warehouse->total_area,
                 'capacity' => $warehouse->capacity,
-                'price' => $warehouse->price,
-                'amenities' => $warehouse->amenities ?? [],
-                'images' => $warehouse->images ?? [],
-                'features' => $warehouse->features ?? [],
-                'security_features' => $warehouse->security_features ?? [],
-                'access_hours' => $warehouse->access_hours ?? '24/7',
-                'contact_info' => $warehouse->contact_info ?? [],
-                'approval_status' => $warehouse->approval_status,
+                'base_price' => $warehouse->base_price,
+                'monthly_rate' => $warehouse->monthly_rate,
+                'security_deposit' => $warehouse->security_deposit,
+                'setup_fee' => $warehouse->setup_fee,
+                'tax_rate' => $warehouse->tax_rate,
+                'pricing_model' => $warehouse->pricing_model,
+                'currency' => $warehouse->currency,
+                'amenities' => $warehouse->amenities?->map(function ($amenity) {
+                    return [
+                        'name' => $amenity->name,
+                        'description' => $amenity->description,
+                        'is_available' => (bool) ($amenity->is_available ?? true),
+                    ];
+                })->values()->all() ?? [],
+                'images' => $warehouse->images?->map(function ($image) {
+                    return $image->only(['id', 'path', 'type', 'is_active']);
+                })->values()->all() ?? [],
+                'access_hours' => $warehouse->operating_hours ?? $warehouse->access_hours ?? '24/7',
+                'contact_info' => [
+                    'person' => $warehouse->contact_person,
+                    'phone' => $warehouse->contact_phone,
+                    'email' => $warehouse->contact_email,
+                ],
                 'is_active' => $warehouse->is_active,
+                'current_status' => $warehouse->currentApproval?->status ?? 'pending',
             ];
 
             return response()->json([
@@ -581,6 +902,96 @@ class WarehouseBookingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch warehouse details.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
+    }
+
+    /**
+     * Calculate available warehouse space for given timeframe
+     */
+    public function getWarehouseAvailability(Request $request, int $id)
+    {
+        try {
+            $warehouse = WarehouseUnit::query()
+                ->where('id', $id)
+                ->active()
+                ->approved()
+                ->first();
+
+            if (!$warehouse) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Warehouse not found or not available.'
+                ], 404);
+            }
+
+            $validated = Validator::make($request->all(), [
+                'start_date' => 'required|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'duration_months' => 'nullable|integer|min:1|max:120',
+            ])->validate();
+
+            $startDate = Carbon::parse($validated['start_date']);
+
+            if (!empty($validated['end_date'])) {
+                $endDate = Carbon::parse($validated['end_date']);
+                $durationMonths = (int) ($validated['duration_months'] ?? max(1, $startDate->diffInMonths($endDate) ?: 1));
+            } else {
+                $durationMonths = (int) ($validated['duration_months'] ?? 1);
+                $endDate = (clone $startDate)->addMonths($durationMonths);
+            }
+
+            $overlapQuery = WarehouseBooking::query()
+                ->where('warehouse_unit_id', $warehouse->id)
+                ->whereIn('status', ['pending', 'confirmed', 'active'])
+                ->where(function ($query) use ($startDate, $endDate) {
+                    $query->where(function ($openEnded) use ($startDate, $endDate) {
+                        $openEnded->whereNull('end_date')
+                            ->where('start_date', '<=', $endDate);
+                    })->orWhere(function ($bounded) use ($startDate, $endDate) {
+                        $bounded->whereNotNull('end_date')
+                            ->where('start_date', '<=', $endDate)
+                            ->where('end_date', '>=', $startDate);
+                    });
+                });
+
+            $bookedSpace = (float) (clone $overlapQuery)->sum('required_space');
+            $activeBookings = (int) (clone $overlapQuery)->count();
+
+            $totalSpace = (float) ($warehouse->total_area ?? 0);
+            $availableSpace = max($totalSpace - $bookedSpace, 0);
+
+            return response()->json([
+                'success' => true,
+                'warehouse_id' => $warehouse->id,
+                'total_space' => round($totalSpace, 2),
+                'booked_space' => round($bookedSpace, 2),
+                'available_space' => round($availableSpace, 2),
+                'active_bookings_count' => $activeBookings,
+                'timeframe' => [
+                    'start_date' => $startDate->toDateString(),
+                    'end_date' => $endDate->toDateString(),
+                    'duration_months' => $durationMonths,
+                ],
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid availability request.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to calculate warehouse availability', [
+                'warehouse_id' => $id,
+                'request' => $request->all(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to determine availability. Please try again later.',
                 'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
             ], 500);
         }
@@ -625,10 +1036,15 @@ class WarehouseBookingController extends Controller
                 $message = 'Added to wishlist';
             }
 
+            $wishlistPayload = $this->buildWishlistPayload($userId);
+
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'is_liked' => $isLiked
+                'is_liked' => $isLiked,
+                'likedWarehouseIds' => $wishlistPayload['likedIds']->values()->all(),
+                'wishlist' => $wishlistPayload['wishlist'],
+                'likedCount' => $wishlistPayload['likedIds']->count(),
             ]);
 
         } catch (\Exception $e) {
@@ -643,6 +1059,71 @@ class WarehouseBookingController extends Controller
                 'message' => 'Failed to update wishlist'
             ], 500);
         }
+    }
+
+    protected function buildWishlistPayload(int $userId): array
+    {
+        $likes = WarehouseLike::where('user_id', $userId)
+            ->latest()
+            ->with(['warehouseUnit' => function ($query) {
+                $query
+                    ->approved()
+                    ->active()
+                    ->with(['mainImage', 'amenities' => function ($amenityQuery) {
+                        $amenityQuery->available();
+                    }])
+                    ->withAvg('reviews', 'rating')
+                    ->withCount(['reviews', 'likes']);
+            }])
+            ->get();
+
+        $likedIds = $likes->pluck('warehouse_unit_id')->map(function ($id) {
+            return (int) $id;
+        });
+
+        $wishlist = $likes
+            ->filter(function (WarehouseLike $like) {
+                return $like->warehouseUnit !== null;
+            })
+            ->map(function (WarehouseLike $like) {
+                return $this->formatWarehouseUnitSummary($like->warehouseUnit, [
+                    'is_liked' => true,
+                    'liked_at' => optional($like->created_at)?->toDateTimeString(),
+                ]);
+            })
+            ->values();
+
+        return [
+            'likedIds' => $likedIds,
+            'wishlist' => $wishlist->toArray(),
+        ];
+    }
+
+    protected function formatWarehouseUnitSummary(WarehouseUnit $unit, array $overrides = []): array
+    {
+        $city = trim(Str::afterLast($unit->address, ','));
+
+        return array_merge([
+            'id' => $unit->id,
+            'name' => $unit->name,
+            'type' => $unit->type,
+            'address' => $unit->address,
+            'city' => $city ?: $unit->address,
+            'total_area' => $unit->total_area,
+            'capacity' => $unit->capacity,
+            'capacity_unit' => $unit->capacity_unit,
+            'base_price' => $unit->base_price,
+            'monthly_rate' => $unit->monthly_rate,
+            'security_deposit' => $unit->security_deposit,
+            'currency' => $unit->currency ?? 'LKR',
+            'available_from' => optional($unit->available_from)?->toDateString(),
+            'available_until' => optional($unit->available_until)?->toDateString(),
+            'avg_rating' => round((float) ($unit->reviews_avg_rating ?? 0), 2),
+            'reviews_count' => (int) ($unit->reviews_count ?? 0),
+            'likes_count' => (int) ($unit->likes_count ?? 0),
+            'amenities' => $unit->amenities->pluck('name')->unique()->values()->all(),
+            'main_image' => optional($unit->mainImage)->url,
+        ], $overrides);
     }
 
     /**

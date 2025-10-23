@@ -1,10 +1,14 @@
 import React from "react";
+import { usePage } from "@inertiajs/react";
 import { Building2, MapPin, Thermometer, Shield, Box, Calendar } from "lucide-react";
 import proPic from "../../../../assets/landVehicleDetails/proPic.svg";
 import tag from "../../../../assets/landVehicleDetails/tag.svg";
 import star from "../../../../assets/driverBooking/star.svg";
 
 const CarDetailsTab = ({ warehouseData = {} }) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     // Default fallback data
     const defaultData = {
         name: "Loading...",
@@ -200,7 +204,7 @@ const CarDetailsTab = ({ warehouseData = {} }) => {
                         <img src={proPic} />
                         <div className="flex flex-col items-start justify-center">
                             <div className="flex flex-row gap-2 justify-center items-center">
-                                <h1 className="text-[15px] font-[700]">Steve Gibson</h1>
+                                <h1 className="text-[15px] font-[700]">{user?.name || 'Vendor'}</h1>
                                 <img src={tag} />
                             </div>
                             <div>

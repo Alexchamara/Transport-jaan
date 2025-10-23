@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
@@ -23,6 +24,9 @@ import deleteIcon from "../../../../assets/vendors/units/delete.svg";
 import AddUnit from "../../../../home/vendors/multimodal/AddUnit";
 
 const UnitContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     // Sample data array for units
     const units = [
         {
@@ -218,12 +222,18 @@ const UnitContent = () => {
     const currentUnits = units.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -260,6 +270,9 @@ const UnitContent = () => {
 
     // Handle Add Unit button click
     const handleAddUnitClick = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         setShowAddUnit(true);
     };
 
@@ -282,7 +295,7 @@ const UnitContent = () => {
                         <img src={proPic} alt="Profile" />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

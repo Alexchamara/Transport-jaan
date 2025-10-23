@@ -18,12 +18,27 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
   );
 
   // liked map for O(1) checks
+  const normalizeId = (value) => {
+    if (typeof value === "number") {
+      return value;
+    }
+
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? value : parsed;
+  };
+
   const [likedMap, setLikedMap] = useState({});
   useEffect(() => {
-    const m = {};
-    (likedWarehouseIds || []).forEach((id) => (m[id] = true));
-    setLikedMap(m);
-  }, [likedWarehouseIds]);
+    if (Object.keys(likedMap).length === 0) {
+      const next = {};
+      (likedWarehouseIds || []).forEach((id) => {
+        next[normalizeId(id)] = true;
+      });
+      setLikedMap(next);
+    }
+    // Run only on mount, not when likedWarehouseIds changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // helper: best image URL
   const getImg = (w) => {
@@ -63,6 +78,18 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
     });
   };
 
+  const resolveWishlistUrl = () => {
+    if (typeof route === "function") {
+      try {
+        return route("client.warehouse.like.toggle");
+      } catch (error) {
+        console.warn("Falling back to hardcoded wishlist URL", error);
+      }
+    }
+
+    return "/api/warehouse/like-toggle";
+  };
+
   const toggleLike = async (warehouseId) => {
     if (!authUser) {
       alert("You must be logged in to like a warehouse.");
@@ -70,10 +97,29 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
       return;
     }
     try {
-      const { data } = await axios.post(route("client.warehouse.like.toggle"), { warehouse_id: warehouseId });
-      const map = {};
-      (data.likedWarehouseIds || []).forEach((id) => (map[id] = true));
-      setLikedMap(map);
+      const { data } = await axios.post(resolveWishlistUrl(), { warehouse_id: warehouseId });
+
+      setLikedMap((prev) => {
+        const next = { ...prev };
+
+        if (Array.isArray(data.likedWarehouseIds)) {
+          const updated = {};
+          data.likedWarehouseIds.forEach((id) => {
+            updated[normalizeId(id)] = true;
+          });
+          return updated;
+        }
+
+        const normalizedId = normalizeId(warehouseId);
+        const isLiked = typeof data.is_liked === "boolean" ? data.is_liked : !prev[normalizedId];
+        if (isLiked) {
+          next[normalizedId] = true;
+        } else {
+          delete next[normalizedId];
+        }
+
+        return next;
+      });
     } catch (e) {
       console.error(e);
       alert("Something went wrong while liking the warehouse.");
@@ -155,7 +201,7 @@ const WarehouseListContent = ({ warehouses: initialWarehouses, authUser, likedWa
                   <button
                     onClick={() => toggleLike(w.id)}
                     className="h-[42px] w-[42px] rounded border border-[#0955AC] grid place-items-center bg-white"
-                    aria-label={likedMap[w.id] ? 'Unlike' : 'Like'}
+                    aria-label={likedMap[w.id] ? "Unlike" : "Like"}
                   >
                     <img
                       src={likedMap[w.id] ? heartFill : heart}

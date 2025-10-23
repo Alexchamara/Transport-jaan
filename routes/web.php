@@ -10,6 +10,7 @@ use App\Http\Controllers\WebController;
 use App\Http\Controllers\FlightBookingController;
 use App\Http\Controllers\TrainController;
 use App\Http\Controllers\BusController;
+use App\Http\Controllers\BusBookingController;
 use App\Http\Controllers\WarehouseControllers\Client\WarehouseBookingController;
 use App\Http\Controllers\User\UserDashboardController;
 use Illuminate\Foundation\Application;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Vendor\DashboardController;
 use App\Http\Controllers\Vendor\BookingController as VendorBookingController;
 use App\Http\Controllers\Vendor\VehicleMaintenanceController;
 use App\Http\Controllers\Vendor\DriverController;
+use App\Http\Controllers\Vendor\NotificationController;
 
 // PDFs
 use App\Http\Controllers\VehiclePolicyController;
@@ -30,6 +32,8 @@ use App\Http\Controllers\VehicleControllers\Client\ClientVehicleController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
+use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,6 +61,17 @@ Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPa
 Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blogExample');
 
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
+Route::prefix('couriers')->name('couriers.')->group(function () {
+    Route::get('/create', [ClientCourierController::class, 'create'])->name('create');
+    Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
+    Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
+    Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
+    Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
+    Route::post('/', [ClientCourierController::class, 'store'])->name('store');
+    Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
+        ->whereNumber('shipment')
+        ->name('bill');
+});
 Route::get('/book-a-ticket', [WebController::class, 'bookATicket'])->name('book.a.ticket');
 Route::get('/booking-home', [WebController::class, 'bookingHome'])->name('booking.home');
 Route::get('/cargo-freight', [WebController::class, 'cargoFreight'])->name('cargo.freight');
@@ -77,15 +92,16 @@ Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 // Ticket booking (public screens)
 Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
 Route::get('/trainTicketBookingDetails', [TrainController::class, 'search'])->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
-Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->name('trainTicketBookingPreview.trainTicketBookingPreview');
-Route::post('/train-bookings', [TrainController::class, 'store'])->name('train-bookings.store');
-Route::get('/train-booking-success/{reference}', [TrainController::class, 'bookingSuccess'])->name('train.booking.success');
-Route::get('/busTicketBookingDetails', [WebController::class, 'busTicketBookingDetails'])->name('busTicketBookingDetails.busTicketBookingDetails');
-Route::post('/bus-bookings', [BusController::class, 'store'])->name('bus-bookings.store');
-Route::get('/bus-booking-success/{reference}', [BusController::class, 'bookingSuccess'])->name('bus.booking.success');
-Route::get('/busTicketBookingPreview', [WebController::class, 'busTicketBookingPreview'])->name('busTicketBookingPreview.busTicketBookingPreview');
+Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->name('trainTicketBookingPreview.trainTicketBookingPreview')->middleware('auth');
+Route::post('/train-bookings', [TrainController::class, 'store'])->name('train-bookings.store')->middleware('auth');
+Route::get('/train-booking-success/{reference}', [TrainController::class, 'bookingSuccess'])->name('train.booking.success')->middleware('auth');
+// Bus booking routes (all routes are public - no auth required)
+Route::get('/busTicketBookingDetails', [BusBookingController::class, 'search'])->name('busTicketBookingDetails.busTicketBookingDetails');
+Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store')->middleware('auth');
+Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success')->middleware('auth');
+Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview')->middleware('auth');
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
-Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store');
+Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store')->middleware('auth');
 
 // Warehouse (public landing)
 Route::get('/warehouse', [WebController::class, 'warehouse'])->name('warehouse.home');
@@ -135,8 +151,12 @@ Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->nam
 Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
 // API Routes for frontend functionality
 Route::prefix('api')->name('api.')->group(function () {
+    // Public warehouse units list
+    Route::get('/warehouse-units', [WarehouseBookingController::class, 'getWarehouseUnits'])->name('warehouse-units.index');
+
     // Warehouse API endpoints
     Route::get('/warehouse-units/{id}', [WarehouseBookingController::class, 'getWarehouseUnit'])->name('warehouse-units.show');
+    Route::get('/warehouse-units/{id}/availability', [WarehouseBookingController::class, 'getWarehouseAvailability'])->name('warehouse-units.availability');
 
     // Warehouse like toggle (requires auth)
     Route::middleware(['auth'])->group(function () {
@@ -172,6 +192,8 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::post('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'store'])->name('vehicles.reviews.store');
 
         Route::get('/vehicles/{vehicle}/policy/preview', [ClientVehicleController::class, 'policyPreview'])->name('vehicles.policy.preview');
+
+        Route::get('/warehouses/dashboard-data', [WarehouseBookingController::class, 'dashboardData'])->name('warehouses.dashboard-data');
     });
 });
 
@@ -248,14 +270,14 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
 
 // vendor routes
-Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
+Route::middleware(['auth', 'vendor.verified'])->prefix('vendors')->name('vendors.')->group(function () {
     Route::get('/mainDashboard', function () {
         return Inertia::render('Web/home/vendors/MainDashboard');
     })->name('mainDashboard');
 });
 
 // Warehouse (vendor-only) under /vendors/warehouse/*
-Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
+Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
     Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/warehouse/Dashboard'))->name('dashboard');
     Route::get('/units', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('units');
     Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/warehouse/AddUnit'))->name('addUnit');
@@ -308,11 +330,16 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('v
     // API routes for warehouse bookings management
     Route::get('/api/bookings', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'index'])->name('api.bookings.index');
     Route::get('/api/bookings/stats', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getStats'])->name('api.bookings.stats');
+    Route::get('/api/bookings/chart-data', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getChartData'])->name('api.bookings.chart-data');
     Route::get('/api/bookings/{bookingId}', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'show'])->name('api.bookings.show');
     Route::patch('/api/bookings/{bookingId}/approve', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'approve'])->name('api.bookings.approve');
     Route::patch('/api/bookings/{bookingId}/reject', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'reject'])->name('api.bookings.reject');
     Route::patch('/api/bookings/{bookingId}/complete', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'complete'])->name('api.bookings.complete');
     Route::put('/api/bookings/{bookingId}', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'update'])->name('api.bookings.update');
+
+    // Payment endpoints
+    Route::get('/api/payment-transactions', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getPaymentTransactions'])->name('api.payments.transactions');
+    Route::get('/api/payment-stats', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getPaymentStats'])->name('api.payments.stats');
 });
 
 // Admin routes for warehouse approval (requires admin role)
@@ -324,18 +351,22 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admi
 });
 
 // Backward-compat: if any UI still links to /warehouse/*, redirect to /vendors/warehouse/* (protect with same middleware)
-Route::middleware(['auth', 'role:vendor'])->get('/warehouse/{path}', function (string $path) {
+Route::middleware(['auth', 'vendor.verified'])->get('/warehouse/{path}', function (string $path) {
     return redirect('/vendors/warehouse/' . ltrim($path, '/'));
 })->where('path', '.*');
 
 // Bookings page with DB-fed props (table + chart)
 Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
 
+// Clients page with actual booking data
+Route::get('/clients', [VendorBookingController::class, 'clients'])->name('clients.public');
+
+// Payment page with actual transaction data
+Route::get('/payment', [VendorBookingController::class, 'payments'])->name('payment.public');
+
 // Other pages (shells)
 Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
-Route::get('/clients', fn() => Inertia::render('Web/home/vendors/Client'))->name('clients');
 Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
-Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
 Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
 Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
 
@@ -358,7 +389,7 @@ Route::get('/drivers', fn() => Inertia::render('Web/components/vendors/driver/Dr
 | Vendor App (Inertia UI)  /vendors/...
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:vendor'])
+Route::middleware(['auth', 'vendor.verified'])
     ->prefix('vendors')
     ->name('vendors.')
     ->group(function () use ($render) {
@@ -366,16 +397,28 @@ Route::middleware(['auth', 'role:vendor'])
         Route::get('/dashbord', [DashboardController::class, 'index'])->name('dashboard'); // legacy spelling
         Route::get('/dashboard', [DashboardController::class, 'index']); // alias
 
+        // Notification routes
+        Route::get('/notifications', [NotificationController::class, 'page'])->name('notifications');
+        Route::get('/notifications/data', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('/notifications/count', [NotificationController::class, 'unreadCount'])->name('notifications.count');
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+        Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
+
         // Bookings page with DB-fed props (table + chart)
         Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
 
+        // Clients page with actual booking data filtered by vehicle type
+        Route::get('/clients', [VendorBookingController::class, 'clients'])->name('clients');
+
+        // Payment page with actual transaction data
+        Route::get('/payment', [VendorBookingController::class, 'payments'])->name('payment');
+
         // Other pages (shells)
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
-        Route::get('/clients', fn() => Inertia::render('Web/home/vendors/Client'))->name('clients');
         Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/Expenses'))->name('expenses');
-        Route::get('/payment', fn() => Inertia::render('Web/home/vendors/Payment'))->name('payment');
         Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/Tracking'))->name('tracking');
-        Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/Calendar'))->name('calendar');
+        Route::get('/calendar', [VendorBookingController::class, 'calendar'])->name('calendar');
 
         // Units UI
         Route::get('/units',         $render('Web/home/vendors/Unit'))->name('units');
@@ -454,7 +497,7 @@ Route::middleware(['auth', 'role:client'])
 | User Dashboard Routes (Client Services)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth'])
+Route::middleware(['auth', \App\Http\Middleware\ClientVerificationCheck::class])
     ->prefix('user')
     ->name('user.')
     ->group(function () {
@@ -481,9 +524,15 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 });
 
+// Client Dashboard Route with proper verification
+Route::get('/client/dashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('client.dashboard');
+
+// Main client dashboard route (referenced by auth controllers)
+Route::get('/client/main-dashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('client.mainDashboard');
+
 // Legacy client dashboard routes (public shell) - keep for backward compatibility
-Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->name('ClientDashboard');
-Route::get('/clientDashboard', fn() => Inertia::render('Web/home/client/ClientMainDashboard'))->name('clientDashboard');
+Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('ClientDashboard');
+Route::get('/clientDashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('clientDashboard');
 
 /*
 |--------------------------------------------------------------------------
@@ -494,6 +543,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // API route for user profile data
+    Route::get('/api/user/profile', function () {
+        return response()->json([
+            'success' => true,
+            'user' => Auth::user()
+        ]);
+    })->name('api.user.profile');
 });
 
 /*
@@ -877,14 +934,14 @@ Route::get('/multimodal/settingsPage', function () {
 
 
 
-// Client dashboard
+// Client dashboard - redirect to proper route
 Route::get('/clientDashboard', function () {
-    return Inertia::render('Web/home/client/ClientDashboard');
-})->name('clientDashboard');
+    return redirect()->route('client.dashboard');
+});
 
 Route::get('/clientDashboardSettings', function () {
     return Inertia::render('Web/home/client/ClientDashboardSettings');
-})->name('clientDashboardSettings');
+})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
 
 Route::get('/clientTicketBookingDashboard', function () {
     return Inertia::render('Web/home/client/ClientTicketBookingDashboard');
@@ -972,10 +1029,10 @@ foreach ($sections as $slug => $baseView) {
 | Client dashboards (public shells)
 |--------------------------------------------------------------------------
 */
-Route::get('/clientDashboard',           $render('Web/home/client/ClientDashboard'))->name('clientDashboard');
-Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->name('clientDashboardSettings');
-Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->name('clientTicketBookingDashboard');
-Route::get('/courierBookingDashboard',   $render('Web/home/client/CourierBookingDashboard'))->name('courierBookingDashboard');
+Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
+Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
+Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
+Route::get('/courierBookingDashboard',   $render('Web/home/client/CourierBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('courierBookingDashboard');
 Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
 Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');
 

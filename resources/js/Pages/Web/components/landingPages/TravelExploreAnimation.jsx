@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -42,7 +42,14 @@ const IMAGES = [
         ctaLabel: "Book Air Transport",
         href: "/clientRent",
         url: img3,
-        tags: ["Helicopter", "Private Jet", "Cargo", "Charter", "Seaplane", "Air Ambulance"],
+        tags: [
+            "Helicopter",
+            "Private Jet",
+            "Cargo",
+            "Charter",
+            "Seaplane",
+            "Air Ambulance",
+        ],
     },
     {
         title: "Warehouse",
@@ -52,7 +59,14 @@ const IMAGES = [
         ctaLabel: "Find Warehouses",
         href: "/warehouse",
         url: img4,
-        tags: ["Storage", "Inventory", "Distribution", "Cold Chain", "Fulfillment", "3PL"],
+        tags: [
+            "Storage",
+            "Inventory",
+            "Distribution",
+            "Cold Chain",
+            "Fulfillment",
+            "3PL",
+        ],
     },
     {
         title: "Freight",
@@ -72,7 +86,14 @@ const IMAGES = [
         ctaLabel: "Plan Multi-model",
         href: "/multi-model",
         url: img6,
-        tags: ["Land", "Sea", "Air", "Integrated", "Door-to-Door", "Hub-and-Spoke"],
+        tags: [
+            "Land",
+            "Sea",
+            "Air",
+            "Integrated",
+            "Door-to-Door",
+            "Hub-and-Spoke",
+        ],
     },
     {
         title: "Ticket Booking",
@@ -88,93 +109,72 @@ const IMAGES = [
 
 const TravelExploreAnimation = ({ auth }) => {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [order, setOrder] = useState(() => IMAGES.map((_, i) => i)); // queue of indices
+    const [current, setCurrent] = useState(0);
+    const pauseUntilRef = useRef(0);
 
-    const scrollRef = useRef(null);
-    const CARD_WIDTH = 260; // px (matches w-[260px])
-    const GAP = 40; // px (matches gap-10)
-    const STEP = CARD_WIDTH + GAP;
-    const pauseUntilRef = useRef(0); // used to pause auto-rotate after manual navigation
+    const user = auth?.user;
+    const userRole = user?.role;
+    const userStatus =
+        typeof user?.status === "string" ? user.status.toLowerCase() : "";
+    const isVendor = userRole === "vendor";
+    const isVendorVerified = isVendor && userStatus === "verified";
+    const isClient = userRole === "client";
+    const isSuperAdmin = userRole === "SuperAdmin";
 
-    const activeIndex = order[0]; // background is always the first item in the queue
+    const total = IMAGES.length;
+    const mod = (n, m) => ((n % m) + m) % m;
 
-    const getTags = (i) => {
-        const s = IMAGES[i]?.subtitle || "";
-        return s
-            .split(/[·|•,]/g)
-            .map((t) => t.trim())
-            .filter(Boolean);
+    const next = () => {
+        setCurrent((c) => mod(c + 1, total));
+        pauseUntilRef.current = Date.now() + 5000;
     };
 
-    const rotateNext = () => {
-        setOrder((o) => [...o.slice(1), o[0]]);
-        if (scrollRef.current)
-            scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
-        pauseUntilRef.current = Date.now() + 6000; // pause ~6s after manual nav
-    };
-
-    const rotatePrev = () => {
-        setOrder((o) => {
-            const copy = [...o];
-            const last = copy.pop();
-            copy.unshift(last);
-            return copy;
-        });
-        if (scrollRef.current)
-            scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
-        pauseUntilRef.current = Date.now() + 6000; // pause ~6s after manual nav
+    const prev = () => {
+        setCurrent((c) => mod(c - 1, total));
+        pauseUntilRef.current = Date.now() + 5000;
     };
 
     useEffect(() => {
         const id = setInterval(() => {
-            if (Date.now() < pauseUntilRef.current) return; // skip auto-advance during pause window
-            setOrder((o) => {
-                const next = [...o.slice(1), o[0]];
-                return next;
-            });
-            if (scrollRef.current) {
-                scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
-            }
+            if (Date.now() < pauseUntilRef.current) return;
+            setCurrent((c) => mod(c + 1, total));
         }, 3000);
         return () => clearInterval(id);
-    }, []);
-
-    // selectCard and scrollByStep removed; navigation is button-only.
+    }, [total]);
 
     const handleScroll = (id) => {
         const el = document.getElementById(id);
         if (el) {
-            el.scrollIntoView({ behavior: "auto" });
+            el.scrollIntoView({ behavior: "smooth" });
             setMenuOpen(false);
         }
     };
 
     return (
-        <div>
-            <div className="relative 2xl:h-screen h-auto w-full flex flex-col justify-center items-center md:items-end overflow-hidden">
-                {/* Background (shared layout) */}
-                <AnimatePresence initial={false} mode="popLayout">
+        <div className="min-h-screen bg-gray-900">
+            <div className="relative h-screen w-full flex flex-col justify-center items-center overflow-hidden">
+                {/* Background with smooth transitions */}
+                <AnimatePresence initial={false} mode="wait">
                     <motion.div
-                        key={`bg-${activeIndex}`}
-                        layout
-                        layoutId={`media-${activeIndex}`}
-                        className="absolute inset-0 z-10 overflow-hidden rounded-2xl"
-                        initial={{ opacity: 0.9, borderRadius: 20 }}
-                        animate={{ opacity: 1, borderRadius: 0 }}
-                        exit={{ opacity: 0.9, borderRadius: 20 }}
+                        key={`bg-${current}`}
+                        className="absolute inset-0 z-0"
+                        initial={{ opacity: 0, scale: 1.1 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.7, ease: "easeInOut" }}
                     >
                         <img
-                            src={IMAGES[activeIndex].url}
-                            alt={IMAGES[activeIndex].title}
+                            src={IMAGES[current].url}
+                            alt={IMAGES[current].title}
                             className="h-full w-full object-cover"
                             draggable={false}
                         />
-                        <div className="absolute inset-0 bg-black/60 pointer-events-none" />
+                        <div className="absolute inset-0 bg-black/60" />
                     </motion.div>
                 </AnimatePresence>
 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/50 z-[11] pointer-events-none" />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/50 z-10" />
 
                 {/* NAVBAR */}
                 <div className="absolute inset-x-0 top-0 xl:left-20 z-[60] pointer-events-none">
@@ -216,17 +216,25 @@ const TravelExploreAnimation = ({ auth }) => {
                                 </div>
 
                                 <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[700]">
-                                    {auth && auth.user ? (
+                                    {user ? (
                                         <>
-                                            {auth.user.role === "vendor" && (
-                                                <Link
-                                                    href="/vendors/mainDashboard"
-                                                    className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
-                                                >
-                                                    Dashboard
-                                                </Link>
-                                            )}
-                                            {auth.user.role === "client" && (
+                                            {isVendor &&
+                                                (isVendorVerified ? (
+                                                    <Link
+                                                        href="/vendors/mainDashboard"
+                                                        className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                    >
+                                                        Dashboard
+                                                    </Link>
+                                                ) : (
+                                                    <Link
+                                                        href="/approval-pending"
+                                                        className="bg-orange-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                    >
+                                                        Dashboard
+                                                    </Link>
+                                                ))}
+                                            {isClient && (
                                                 <Link
                                                     href="/client/dashboard"
                                                     className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
@@ -234,7 +242,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                                     Dashboard
                                                 </Link>
                                             )}
-                                            {auth.user.role === "SuperAdmin" && (
+                                            {isSuperAdmin && (
                                                 <Link
                                                     href="/superadmin/dashboard"
                                                     className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
@@ -277,7 +285,9 @@ const TravelExploreAnimation = ({ auth }) => {
                                     className="size-[30px] flex justify-center items-center cursor-pointer order-1"
                                     onClick={() => setMenuOpen(true)}
                                 >
-                                    <img src={burgerIcon} alt="menu" />
+                                    <span className="text-white text-2xl">
+                                        ☰
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -337,49 +347,24 @@ const TravelExploreAnimation = ({ auth }) => {
                                         </div>
                                     </div>
                                     <div className="mt-6 flex flex-row gap-3">
-                                        {auth && auth.user ? (
-                                            <>
-                                                {auth.user.role ===
-                                                    "vendor" && (
-                                                    <Link
-                                                        href="/vendors/mainDashboard"
-                                                        className="bg-yellow-600 px-3 py-2 rounded text-white text-[12px] font-medium"
-                                                    >
-                                                        Dashboard
-                                                    </Link>
-                                                )}
-                                                {auth.user.role ===
-                                                    "client" && (
-                                                    <Link
-                                                        href="/"
-                                                        className="bg-yellow-600 px-3 py-2 rounded text-white text-[12px] font-medium"
-                                                    >
-                                                        Dashboard
-                                                    </Link>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div
-                                                    className="bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer text-white"
-                                                    onClick={() =>
-                                                        (window.location.href =
-                                                            "/signin")
-                                                    }
-                                                >
-                                                    Login
-                                                </div>
-                                                <div
-                                                    className="text-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer"
-                                                    onClick={() =>
-                                                        (window.location.href =
-                                                            "/signup")
-                                                    }
-                                                >
-                                                    Register
-                                                </div>
-                                            </>
-                                        )}
+                                        <div
+                                            className="bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer text-white"
+                                            onClick={() =>
+                                                (window.location.href =
+                                                    "/signin")
+                                            }
+                                        >
+                                            Login
+                                        </div>
+                                        <div
+                                            className="text-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer"
+                                            onClick={() =>
+                                                (window.location.href =
+                                                    "/signup")
+                                            }
+                                        >
+                                            Register
+                                        </div>
                                     </div>
                                 </div>
                             </>
@@ -387,116 +372,206 @@ const TravelExploreAnimation = ({ auth }) => {
                     </div>
                 </div>
 
-                {/* Carousel (shared layout, framer-motion) */}
-                <div className="relative z-50 flex justify-center md:justify-end items-start md:items-center w-full h-auto md:h-screen pointer-events-auto mt-20 md:mt-[50px] pb-6 md:pb-0">
-                    {/* Right-anchored rail showing exactly three cards */}
-                    <div className="w-full md:w-[700px] lg:w-[1000px] xl:w-[1370px]">
+                {/* Carousel */}
+                <div className="relative z-20 w-full max-w-7xl mx-auto px-4 py-20">
+                    <div className="relative h-[500px] md:h-[600px] flex items-center justify-center">
                         <div
-                            ref={scrollRef}
-                            className="overflow-hidden px-10 py-5 select-none"
-                            style={{ scrollbarWidth: "none" }}
+                            className="relative w-full"
+                            style={{ perspective: "2000px" }}
                         >
-                            <motion.div
-                                layout
-                                className="flex gap-10 items-center"
-                            >
-                                {order.map((idx) => (
-                                    <motion.div
-                                        key={`card-${idx}`}
-                                        layoutId={`card-${idx}`}
-                                        layout
-                                        initial={false}
-                                        animate={{ borderRadius: 20 }}
-                                        whileHover={{ scale: 1.04 }}
-                                        transition={{
-                                            layout: {
-                                                duration: 0.5,
-                                                ease: [0.22, 1, 0.36, 1],
-                                            },
-                                            duration: 0.25,
-                                            ease: [0.22, 1, 0.36, 1],
-                                        }}
-                                        className={`group relative shrink-0 rounded-[20px] overflow-hidden shadow-2xl snap-start cursor-pointer transition-all duration-300 ${
-                                            idx === activeIndex
-                                                ? "w-[120px] h-[240px] md:w-[414px] md:h-[538px] z-50"
-                                                : "w-[100px] h-[200px] md:w-[313px] md:h-[409px] ring-2 ring-white/10"
-                                        }`}
-                                        style={{ borderRadius: 20 }}
-                                    >
-                                        <img
-                                            src={IMAGES[idx].url}
-                                            alt={IMAGES[idx].title}
-                                            className="h-full w-full object-cover"
-                                            draggable={false}
-                                        />
+                            {/* Cards container */}
+                            <div className="relative h-[420px] md:h-[520px]">
+                                {IMAGES.map((item, i) => {
+                                    const offset =
+                                        (i - current + total) % total;
+                                    let position =
+                                        offset > Math.floor(total / 2)
+                                            ? offset - total
+                                            : offset;
 
-                                        {/* bottom content */}
-                                        {idx === activeIndex ? (
-                                            <div className="absolute inset-x-6 bottom-10">
-                                                <div className="rounded-[25px] bg-white/15 backdrop-blur-lg ring-1 ring-white/20 shadow-xl p-4 md:p-6">
-                                                    <div className="text-white font-[900] uppercase tracking-wide text-md md:text-[25px] text-center">
-                                                        {IMAGES[idx].title}
-                                                    </div>
-                                                    {Array.isArray(
-                                                        IMAGES[idx].tags
-                                                    ) &&
-                                                        IMAGES[idx].tags
-                                                            .length > 0 && (
-                                                            <div className="mt-6 hidden md:flex flex-wrap gap-3 items-center justify-center">
-                                                                {IMAGES[
-                                                                    idx
-                                                                ].tags.map(
-                                                                    (
-                                                                        tag,
-                                                                        i
-                                                                    ) => (
-                                                                        <span
-                                                                            key={`tag-${idx}-${i}`}
-                                                                            className="px-4 py-2 rounded-[100px] md:text-[10px] font-[600] text-[#FFFFFF] border-[1.5px] border-[#FFFFFF]"
-                                                                        >
-                                                                            {
-                                                                                tag
-                                                                            }
-                                                                        </span>
-                                                                    )
-                                                                )}
+                                    const isActive = position === 0;
+                                    const absPos = Math.abs(position);
+
+                                    // --- NEW: depth-based sizing (cap after 3 steps) ---
+                                    const depth = Math.min(absPos, 3); // 0=center, 1=near, 2=mid, 3=far ends
+                                    const depthScale = [1, 0.85, 0.7, 0.55][
+                                        depth
+                                    ]; // far ends are smallest
+                                    const depthOpacity = [1, 0.95, 0.8, 0.6][
+                                        depth
+                                    ];
+
+                                    // If you want the center card slightly larger than its base size:
+                                    const baseScale = isActive ? 1 : 0.9;
+
+                                    // Final scale used by framer-motion
+                                    const scale = baseScale * depthScale;
+
+                                    // --- OPTIONAL: tighten spacing for outer cards so they “peek” nicely ---
+                                    let translateX;
+                                    if (position === 0) {
+                                        translateX = 0;
+                                    } else if (absPos === 1) {
+                                        translateX = position * 320;
+                                    } else {
+                                        // progressively compress spacing for deeper cards
+                                        const step = absPos === 2 ? 240 : 200; // far ends closer
+                                        translateX =
+                                            position > 0
+                                                ? 320 + (position - 1) * step
+                                                : -320 + (position + 1) * step;
+                                    }
+
+                                    const translateY = 0;
+                                    const rotateY = 0;
+                                    const opacity = depthOpacity;
+                                    const zIndex = 100 - depth * 10;
+
+                                    return (
+                                        <motion.div
+                                            key={i}
+                                            className="absolute left-1/2 top-1/2"
+                                            style={{
+                                                zIndex,
+                                                transformStyle: "preserve-3d",
+                                            }}
+                                            initial={false}
+                                            animate={{
+                                                x: `calc(-50% + ${translateX}px)`,
+                                                y: `calc(-50% + ${translateY}px)`,
+                                                scale,
+                                                rotateY,
+                                                opacity,
+                                            }}
+                                            transition={{
+                                                type: "spring",
+                                                stiffness: 180,
+                                                damping: 28,
+                                                mass: 1,
+                                            }}
+                                        >
+                                            <div
+                                                className={`relative rounded-2xl overflow-hidden shadow-2xl ${
+                                                    isActive
+                                                        ? "w-[300px] h-[420px] md:w-[380px] md:h-[520px]"
+                                                        : "w-[240px] h-[340px] md:w-[300px] md:h-[420px]"
+                                                }`}
+                                                style={{
+                                                    boxShadow: isActive
+                                                        ? "0 25px 50px -12px rgba(0, 0, 0, 0.7)"
+                                                        : "0 10px 30px -10px rgba(0, 0, 0, 0.5)",
+                                                }}
+                                            >
+                                                <img
+                                                    src={item.url}
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover"
+                                                    draggable={false}
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                                                {/* Content */}
+                                                <div className="absolute inset-0 flex flex-col justify-end p-6">
+                                                    {isActive ? (
+                                                        <motion.div
+                                                            initial={{
+                                                                opacity: 0,
+                                                                y: 20,
+                                                            }}
+                                                            animate={{
+                                                                opacity: 1,
+                                                                y: 0,
+                                                            }}
+                                                            transition={{
+                                                                delay: 0.2,
+                                                            }}
+                                                            className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 md:p-6 border border-white/30"
+                                                        >
+                                                            <h3 className="text-white font-bold text-xl md:text-2xl mb-2 uppercase tracking-wide">
+                                                                {item.title}
+                                                            </h3>
+                                                            <p className="text-white/90 text-sm mb-4 hidden md:block">
+                                                                {item.subtitle}
+                                                            </p>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {item.tags
+                                                                    .slice(0, 4)
+                                                                    .map(
+                                                                        (
+                                                                            tag,
+                                                                            idx
+                                                                        ) => (
+                                                                            <span
+                                                                                key={
+                                                                                    idx
+                                                                                }
+                                                                                className="px-3 py-1 rounded-full text-xs font-semibold text-white border border-white/50"
+                                                                            >
+                                                                                {
+                                                                                    tag
+                                                                                }
+                                                                            </span>
+                                                                        )
+                                                                    )}
                                                             </div>
-                                                        )}
+                                                        </motion.div>
+                                                    ) : (
+                                                        <h3 className="text-white font-bold text-lg md:text-xl uppercase tracking-wide drop-shadow-lg">
+                                                            {item.title}
+                                                        </h3>
+                                                    )}
                                                 </div>
+
+                                                {/* Click overlay */}
+                                                <a
+                                                    href={item.href}
+                                                    className="absolute inset-0 cursor-pointer"
+                                                    aria-label={`View ${item.title}`}
+                                                />
                                             </div>
-                                        ) : (
-                                            <div className="absolute inset-x-0 bottom-10 text-center">
-                                                <div className="text-white font-[900] uppercase tracking-wide text-md md:text-[25px] drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]">
-                                                    {IMAGES[idx].title}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {IMAGES[idx].href && (
-                                            <Link
-                                                href={IMAGES[idx].href}
-                                                aria-label={`Open ${IMAGES[idx].title}`}
-                                                className="absolute inset-0 z-[70]"
-                                            />
-                                        )}
-                                    </motion.div>
-                                ))}
-                            </motion.div>
-                        </div>
-                        <div className="mb-10 flex items-center justify-end gap-3 px-10">
-                            <button
-                                onClick={rotatePrev}
-                                className="w-12 h-12 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/60 border border-white/30 text-white text-xl font-bold backdrop-blur-md transition-all shadow-lg"
-                                aria-label="Previous"
-                            >
-                                ←
-                            </button>
-                            <button
-                                onClick={rotateNext}
-                                className="w-12 h-12 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/60 border border-white/30 text-white text-xl font-bold backdrop-blur-md transition-all shadow-lg"
-                                aria-label="Next"
-                            >
-                                →
-                            </button>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Controls */}
+                            <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-4">
+                                <button
+                                    onClick={prev}
+                                    className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30 transition-all shadow-lg flex items-center justify-center text-xl font-bold"
+                                    aria-label="Previous"
+                                >
+                                    ←
+                                </button>
+
+                                {/* Dots */}
+                                <div className="flex gap-2">
+                                    {IMAGES.map((_, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => {
+                                                setCurrent(i);
+                                                pauseUntilRef.current =
+                                                    Date.now() + 5000;
+                                            }}
+                                            className={`rounded-full transition-all ${
+                                                i === current
+                                                    ? "w-8 h-3 bg-white"
+                                                    : "w-3 h-3 bg-white/50 hover:bg-white/70"
+                                            }`}
+                                            aria-label={`Go to slide ${i + 1}`}
+                                        />
+                                    ))}
+                                </div>
+
+                                <button
+                                    onClick={next}
+                                    className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30 transition-all shadow-lg flex items-center justify-center text-xl font-bold"
+                                    aria-label="Next"
+                                >
+                                    →
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -7,21 +7,21 @@ import { router } from "@inertiajs/react";
 import { route } from "ziggy-js";
 
 const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
-    const [imageOrder, setImageOrder] = useState(["other", "water", "air"]);
+    const [imageOrder, setImageOrder] = useState(["land", "sea", "air"]);
 
-    useEffect(() => {
-        if (onVehicleTypeChange) {
-            onVehicleTypeChange(imageOrder[0]);
-        }
-    }, []);
+    // useEffect(() => {
+    //     if (onVehicleTypeChange) {
+    //         onVehicleTypeChange(imageOrder[0]);
+    //     }
+    // }, []);
 
     const imageData = {
-        other: {
+        land: {
             src: carImage,
             alt: "Land Vehicle",
             label: "LAND VEHICLE",
         },
-        water: {
+        sea: {
             src: shipsImage,
             alt: "Water Vehicle",
             label: "WATER VEHICLE",
@@ -33,17 +33,39 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
         },
     };
 
+    // const handleImageClick = (imageType) => {
+    //     setImageOrder((prevOrder) => {
+    //         const newOrder = prevOrder.filter((type) => type !== imageType);
+    //         newOrder.unshift(imageType);
+    //         // Notify parent about the newly selected primary type
+    //         if (onVehicleTypeChange) {
+    //             onVehicleTypeChange(imageType);
+    //         }
+    //         return newOrder;
+    //     });
+    // };
+
     const handleImageClick = (imageType) => {
-        setImageOrder((prevOrder) => {
-            const newOrder = prevOrder.filter((type) => type !== imageType);
-            newOrder.unshift(imageType);
-            // Notify parent about the newly selected primary type
-            if (onVehicleTypeChange) {
-                onVehicleTypeChange(imageType);
-            }
-            return newOrder;
-        });
-    };
+    setImageOrder((prevOrder) => {
+        // Move clicked image to the first position
+        const newOrder = prevOrder.filter((type) => type !== imageType);
+        newOrder.unshift(imageType);
+
+        // 🔹 Notify parent (HomePage) about new vehicle type
+        if (onVehicleTypeChange) {
+            // Pass 'land', 'water', or 'air' to the parent
+            const typeMap = {
+                land: "land",
+                sea: "sea",
+                air: "air",
+            };
+            onVehicleTypeChange(typeMap[imageType]);
+        }
+
+        return newOrder;
+    });
+};
+
 
     const handleFindVehicleClick = (e) => {
         e.preventDefault();
