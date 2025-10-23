@@ -18,7 +18,7 @@ const RentByBrands = ({ selectedType = "other" }) => {
     // Brand sets per category
     const BRAND_MAP = {
         // Land vehicles (showing images instead of initials)
-        other: [
+        land: [
             { name: "Toyota", value: "toyota", img: toyota },
             { name: "Honda", value: "honda", img: honda },
             { name: "Nissan", value: "nissan", img: nissan },
@@ -32,7 +32,7 @@ const RentByBrands = ({ selectedType = "other" }) => {
             { name: "Kia", value: "land-rover", img: kia },
         ],
         // Watercraft
-        water: [
+        sea: [
             { name: "Yamaha Marine", value: "yamaha" },
             { name: "Sea-Doo", value: "sea-doo" },
             { name: "Bayliner", value: "bayliner" },
@@ -94,7 +94,7 @@ const RentByBrands = ({ selectedType = "other" }) => {
                                     alt={`${brand.name} Logo`}
                                     className="h-[40px] object-contain mb-5"
                                 />
-                            ) : selectedType === "water" ? (
+                            ) : selectedType === "sea" ? (
                                 <Waves className="w-[42px] h-[42px] mb-5 text-[#0F0F0F]" />
                             ) : selectedType === "air" ? (
                                 <Plane className="w-[42px] h-[42px] mb-5 text-[#0F0F0F]" />

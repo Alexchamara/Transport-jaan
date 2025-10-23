@@ -9,7 +9,7 @@ import PopularRentals from "../components/rentAVehicle/PopularRentals";
 import HowItWorks from "../components/rentAVehicle/HowItWorks";
 import Footer from "../layouts/Footer";
 
-const HomePage = ({ auth }) => {
+const HomePage = ({ auth ,vehicles,selectedType}) => {
     const { bodyTypes } = usePage().props;
 
     const [formData, setFormData] = useState({
@@ -19,7 +19,13 @@ const HomePage = ({ auth }) => {
         dropoffDate: "",
     });
 
-    const [selectedVehicleType, setSelectedVehicleType] = useState("other");
+    const [vehicleType, setVehicleType] = useState(selectedType || "land");
+
+     const handleVehicleTypeChange =(newType) =>{
+        setVehicleType(newType);   
+
+        router.get(route("client.home", { type: newType }));
+     }
 
     const handleFormChange = (newData) => setFormData(newData);
 
@@ -43,11 +49,11 @@ const HomePage = ({ auth }) => {
                 formData={formData}
                 onFormChange={handleFormChange}
                 onSubmit={handleFormSubmit}
-                onVehicleTypeChange={setSelectedVehicleType}
+                onVehicleTypeChange={handleVehicleTypeChange}
             />
-            <RentByBrands selectedType={selectedVehicleType} />
-            <RentByBodyType selectedType={selectedVehicleType} />
-            <VehicleCollection />
+            <RentByBrands selectedType={vehicleType} />
+            <RentByBodyType selectedType={vehicleType} />
+            <VehicleCollection vehicles={vehicles} selectedType={vehicleType} />
             <PopularRentals />
             <HowItWorks />
             <Footer />

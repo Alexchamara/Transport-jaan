@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,4 +33,6 @@ class AppServiceProvider extends ServiceProvider
         // Register observers
         \App\Models\Booking::observe(\App\Observers\BookingObserver::class);
     }
+
+    
 }

@@ -38,11 +38,20 @@ const VehicleList = () => {
         <FilterSidebar searchParams={formData} />
         <div className="vehicle-list-container flex-1">
           <SearchForm formData={formData} onFormChange={handleFormChange} />
-          <VehicleListContent
+          {<VehicleListContent
             vehicles={props.vehicles}
             authUser={props.auth.user}                //pass the logged-in user
             likedVehicleIds={props.likedVehicleIds} //pass liked vehicles
-          />
+            searchParams={{
+              dropoffDate: formData.dropoffDate,
+              dropoffLocation: formData.dropoffLocation,
+              pickupDate: formData.pickupDate,
+              pickupLocation: formData.pickupLocation
+            }}
+          /> 
+          }
+
+
         </div>
       </div>
     </div>
