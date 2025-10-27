@@ -185,19 +185,19 @@ const Header = () => {
                                 </Link>
                                 <div className="ml-4 mt-1 flex flex-col space-y-1">
                                     <Link
-                                        href="/clientRent"
+                                        href="/clientRent?type=land"
                                         className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                     >
                                         Land
                                     </Link>
                                     <Link
-                                        href=""
+                                        href="/clientRent?type=air"
                                         className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                     >
                                         Air
                                     </Link>
                                     <Link
-                                        href=""
+                                        href="/clientRent?type=sea"
                                         className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                     >
                                         Water
