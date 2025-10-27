@@ -38,16 +38,7 @@ const VehicleInfo = ({ vehicle }) => {
           )}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center gap-5">
-          <div className=" w-[81px] h-[30px] rounded-[4px] border-[1px] border-[#00000030] bg-[#EAE9E8] flex flex-row justify-center items-center gap-3">
-            <img src={share} alt="share" />
-            <h1>Share</h1>
-          </div>
-          <div className=" w-[81px] h-[30px] rounded-[4px] border-[1px] border-[#0955AC] bg-[#0955AC] text-[#FFFFFF] flex flex-row justify-center items-center gap-3">
-            <img src={heartB2} alt="wishlist" />
-            <h1>Wishlist</h1>
-          </div>
-        </div>
+
       </div>
 
       <div className="flex flex-row gap-5 text-[12px] font-[600]">
