@@ -42,8 +42,19 @@ Route::get('approval-pending', function() {
         return Inertia::render('Auth/ApprovalPending');
     }
 
-    // Redirect authenticated users who are verified to client dashboard
+    // Redirect authenticated users who are verified to appropriate dashboard
     if (Auth::check() && Auth::user()->status === 'verified') {
+        $user = Auth::user();
+        
+        if ($user->role === 'vendor') {
+            return redirect()->route('vendors.mainDashboard');
+        } elseif ($user->role === 'client') {
+            return redirect()->route('client.dashboard');
+        } elseif ($user->role === 'SuperAdmin') {
+            return redirect()->route('superadmin.dashboard');
+        }
+        
+        // Default fallback
         return redirect()->route('client.dashboard');
     }
 

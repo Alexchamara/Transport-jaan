@@ -17,6 +17,9 @@ const VehicleCheckoutContent = () => {
   const vehicle = props?.vehicle || null;
   const serverQuery = props?.query || {};
   const serverExtras = Array.isArray(props?.extras) ? props.extras : [];
+  const user = props?.user || null;
+
+  console.log("User data",  user);
 
   const urlQuery = useMemo(() => {
     if (typeof window === "undefined") return {};
@@ -28,13 +31,13 @@ const VehicleCheckoutContent = () => {
   const q = Object.keys(serverQuery).length ? serverQuery : urlQuery;
 
   /* ---------------- Personal info ---------------- */
-  const [firstName, setFirstName] = useState(q.first_name || "");
-  const [lastName, setLastName] = useState(q.last_name || "");
-  const [email, setEmail] = useState(q.email || "");
-  const [countryCode, setCountryCode] = useState((q.country_code || "lk").toLowerCase());
-  const [phone, setPhone] = useState(q.phone || "");
-  const [address, setAddress] = useState(q.address || "");
-  const [age, setAge] = useState(q.age || "");
+const [firstName, setFirstName] = useState(user?.name || '');
+  const [lastName, setLastName] = useState(user?.last_name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [countryCode, setCountryCode] = useState((user?.country_code || "lk").toLowerCase());
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [address, setAddress] = useState(user?.address || "");
+  const [age, setAge] = useState(user?.age || "");
   const [city, setCity] = useState(q.city || "");
   const [zip, setZip] = useState(q.zip_code || "");
   const [notes, setNotes] = useState(q.notes || "");
@@ -129,6 +132,17 @@ const VehicleCheckoutContent = () => {
     return () => clearTimeout(t);
   }, [vehicle?.id, q.pickup_date, pickupTime, q.dropoff_date, dropoffTime, q.exclude_booking_id, addons]);
 
+      useEffect(() => {
+  setFirstName(user?.name || '');
+  setLastName(user?.last_name || '');
+  setEmail(user?.email || '');
+  setPhone(user?.phone || '');
+  setAddress(user?.address || '');
+  setAge(user?.age || '');
+  setCity(user?.city || '');
+  setZip(user?.zip_code || '');
+}, [user]);
+
   /* ---------------- Submit / validation ---------------- */
   const validate = () => {
     const e = {};
@@ -138,9 +152,24 @@ const VehicleCheckoutContent = () => {
     const ageNum =  Number(age);
     const zipOk = /^\d{5}$/.test(zip);
     const cityOk = /^[A-Za-z\s]+$/.test(city.trim());
+    const addressTrimmed = address.trim();
+    const addressOk = /^[A-Za-z0-9\s,.\-#/]+$/.test(addressTrimmed) && /[A-Za-z]/.test(addressTrimmed);
+    const nameRegex = /^[A-Za-z\s]+$/;
 
-    if (!firstName.trim()) e.firstName = "First name is required.";
-    if (!lastName.trim()) e.lastName = "Last name is required.";
+
+
+    if (!firstName.trim()) {
+      e.firstName = "First name is required.";
+    } else if (!nameRegex.test(firstName.trim())) {
+      e.firstName = "First name can only contain letters and spaces.";
+    }
+
+    if (!lastName.trim()) {
+      e.lastName = "Last name is required.";
+    } else if (!nameRegex.test(lastName.trim())) {
+      e.lastName = "Last name can only contain letters and spaces.";
+    }
+    
     if (!email.trim() || !emailOk) e.email = "Enter a valid email.";
     if (!phoneOk) e.phone = "Enter a valid phone number (7–15 digits, optional +).";
     if (!address.trim()) e.address = "Address is required.";
@@ -148,6 +177,13 @@ const VehicleCheckoutContent = () => {
     if (city.trim() && !cityOk) e.city = "City can only contain letters and spaces.";
    if (!age.trim()) {e.age = "Age is required.";} else if (Number.isNaN(ageNum) || ageNum < 21 || !Number.isInteger(ageNum)) {
     e.age = "Age must be a whole number ≥ 21.";
+  }
+   if (!addressTrimmed) {
+    e.address = "Address is required.";
+  } else if (!addressOk) {
+    e.address = "Address must include letters and can contain numbers or , . - # / symbols.";
+  } else if (addressTrimmed.length > 70) {
+    e.address = "Address exceeds the maximum allowed length of 70 characters.";
   }
     setErrors(e);
     return { ok: Object.keys(e).length === 0, cleanedPhone };
@@ -207,6 +243,7 @@ const VehicleCheckoutContent = () => {
   const deposit = quote?.deposit_amount || 0;
   const advance = quote?.advance_amount || 0;
   const grandTotal = quote?.total || 0;
+  console.log("rental days", rentalDays);
 
   return (
     <div>
@@ -312,7 +349,7 @@ const VehicleCheckoutContent = () => {
                     </div>
                     <div className="md:w-[293px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                       <input
-                        value={phone}
+                        value={user.phone}
                         onChange={(e) => setPhone(e.target.value)}
                         inputMode="tel"
                         autoComplete="tel"
@@ -333,7 +370,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Address :</label>
                   <div className="w-full h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={address}
+                      value={user.address}
                       onChange={(e) => setAddress(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Street, apartment, etc."
@@ -349,7 +386,7 @@ const VehicleCheckoutContent = () => {
                     <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                       <input
                         type="number"
-                        value={age}
+                        value={user.age}
                         onChange={(e) => {
                           const val = e.target.value;
                           // remove decimals if entered
@@ -369,7 +406,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">City :</label>
                   <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={city}
+                      value={user.city}
                       onChange={(e) => setCity(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Colombo 03"
@@ -381,7 +418,7 @@ const VehicleCheckoutContent = () => {
                   <label className="text-[10px]/[24px] font-[600]">Zip Code :</label>
                   <div className="md:w-[240px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
                     <input
-                      value={zip}
+                      value={user.zip_code}
                       onChange={(e) => setZip(e.target.value)}
                       className="w-full h-full rounded-[5px] focus:outline-none focus:ring-0 border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="03330"

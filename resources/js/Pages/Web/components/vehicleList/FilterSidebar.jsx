@@ -111,7 +111,8 @@ const handleMileagesChange = (mileageChange) => {
     { id: "honda", label: "Honda", count: 18 },
     { id: "bmw", label: "BMW", count: 10 },
     { id: "mercedes", label: "Mercedes-Benz", count: 14 },
-    { id: "audi", label: "Audi", count: 9 }
+    { id: "audi", label: "Audi", count: 9 },
+    { id: "other", label: "Other", count: 11 },
   ];
 
   return (

@@ -33,6 +33,7 @@ use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +61,17 @@ Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPa
 Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blogExample');
 
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
+Route::prefix('couriers')->name('couriers.')->group(function () {
+    Route::get('/create', [ClientCourierController::class, 'create'])->name('create');
+    Route::post('/review', [ClientCourierController::class, 'review'])->name('review');
+    Route::get('/details', [ClientCourierController::class, 'details'])->name('details');
+    Route::post('/details', [ClientCourierController::class, 'storeDetails'])->name('details.store');
+    Route::get('/summary', [ClientCourierController::class, 'summary'])->name('summary');
+    Route::post('/', [ClientCourierController::class, 'store'])->name('store');
+    Route::get('/{shipment}/bill', [ClientCourierController::class, 'downloadBill'])
+        ->whereNumber('shipment')
+        ->name('bill');
+});
 Route::get('/book-a-ticket', [WebController::class, 'bookATicket'])->name('book.a.ticket');
 Route::get('/booking-home', [WebController::class, 'bookingHome'])->name('booking.home');
 Route::get('/cargo-freight', [WebController::class, 'cargoFreight'])->name('cargo.freight');
@@ -258,14 +270,14 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
 
 // vendor routes
-Route::middleware(['auth', 'role:vendor'])->prefix('vendors')->name('vendors.')->group(function () {
+Route::middleware(['auth', 'vendor.verified'])->prefix('vendors')->name('vendors.')->group(function () {
     Route::get('/mainDashboard', function () {
         return Inertia::render('Web/home/vendors/MainDashboard');
     })->name('mainDashboard');
 });
 
 // Warehouse (vendor-only) under /vendors/warehouse/*
-Route::middleware(['auth', 'role:vendor'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
+Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->name('vendors.warehouse.')->group(function () {
     Route::get('/dashboard', fn() => Inertia::render('Web/home/vendors/warehouse/Dashboard'))->name('dashboard');
     Route::get('/units', fn() => Inertia::render('Web/home/vendors/warehouse/Unit'))->name('units');
     Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/warehouse/AddUnit'))->name('addUnit');
@@ -339,7 +351,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admi
 });
 
 // Backward-compat: if any UI still links to /warehouse/*, redirect to /vendors/warehouse/* (protect with same middleware)
-Route::middleware(['auth', 'role:vendor'])->get('/warehouse/{path}', function (string $path) {
+Route::middleware(['auth', 'vendor.verified'])->get('/warehouse/{path}', function (string $path) {
     return redirect('/vendors/warehouse/' . ltrim($path, '/'));
 })->where('path', '.*');
 
@@ -377,7 +389,7 @@ Route::get('/drivers', fn() => Inertia::render('Web/components/vendors/driver/Dr
 | Vendor App (Inertia UI)  /vendors/...
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:vendor'])
+Route::middleware(['auth', 'vendor.verified'])
     ->prefix('vendors')
     ->name('vendors.')
     ->group(function () use ($render) {

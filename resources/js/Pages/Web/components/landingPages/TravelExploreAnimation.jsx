@@ -107,10 +107,19 @@ const IMAGES = [
     },
 ];
 
-const TravelExploreAnimation = ({auth}) => {
+const TravelExploreAnimation = ({ auth }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [current, setCurrent] = useState(0);
     const pauseUntilRef = useRef(0);
+
+    const user = auth?.user;
+    const userRole = user?.role;
+    const userStatus =
+        typeof user?.status === "string" ? user.status.toLowerCase() : "";
+    const isVendor = userRole === "vendor";
+    const isVendorVerified = isVendor && userStatus === "verified";
+    const isClient = userRole === "client";
+    const isSuperAdmin = userRole === "SuperAdmin";
 
     const total = IMAGES.length;
     const mod = (n, m) => ((n % m) + m) % m;
@@ -207,17 +216,25 @@ const TravelExploreAnimation = ({auth}) => {
                                 </div>
 
                                 <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[700]">
-                                    {auth && auth.user ? (
+                                    {user ? (
                                         <>
-                                            {auth.user.role === "vendor" && (
-                                                <Link
-                                                    href="/vendors/mainDashboard"
-                                                    className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
-                                                >
-                                                    Dashboard
-                                                </Link>
-                                            )}
-                                            {auth.user.role === "client" && (
+                                            {isVendor &&
+                                                (isVendorVerified ? (
+                                                    <Link
+                                                        href="/vendors/mainDashboard"
+                                                        className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                    >
+                                                        Dashboard
+                                                    </Link>
+                                                ) : (
+                                                    <Link
+                                                        href="/approval-pending"
+                                                        className="bg-orange-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                    >
+                                                        Dashboard
+                                                    </Link>
+                                                ))}
+                                            {isClient && (
                                                 <Link
                                                     href="/client/dashboard"
                                                     className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
@@ -225,7 +242,7 @@ const TravelExploreAnimation = ({auth}) => {
                                                     Dashboard
                                                 </Link>
                                             )}
-                                            {auth.user.role === "SuperAdmin" && (
+                                            {isSuperAdmin && (
                                                 <Link
                                                     href="/superadmin/dashboard"
                                                     className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
