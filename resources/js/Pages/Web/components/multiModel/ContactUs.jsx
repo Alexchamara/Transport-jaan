@@ -22,7 +22,7 @@ const ContactUs = () => {
                     Ready to Start Your <br /> Sri Lankan Adventure?
                 </h1>
 
-                <div className="xl:w-[228px] xl:h-[56px] border-[2px] border-[#FFFFFF] rounded-[100px] flex justify-center items-center cursor-pointer text-white xl:text-[22px] text-[14px] font-[700] px-6 py-2 mt-10">Contact Us</div>
+                <div className="xl:w-[228px] xl:h-[56px] border-[2px] border-[#FFFFFF] rounded-[100px] flex justify-center items-center cursor-pointer text-white xl:text-[22px] text-[14px] font-[700] px-6 py-2 mt-10 uppercase">Contact Us</div>
             </div>
         </div>
     );
