@@ -89,9 +89,15 @@ const Hero = () => {
         <div className="flex flex-col justify-center items-center px-4 sm:px-6 lg:px-0">
             <div className="max-w-[1400px] w-full py-10 px-0 sm:px-4 lg:px-10">
                 <div
-                    className="relative overflow-hidden w-full min-h-[550px] sm:min-h-[650px] lg:min-h-[789px] rounded-[25px] bg-cover bg-center flex flex-col justify-between items-center px-5 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-10 sm:py-14 lg:py-[90px]"
-                    style={{ backgroundImage: `url(${HERO_BACKGROUNDS[activeBgIndex]})` }}
+                    className="relative overflow-hidden w-full min-h-[550px] sm:min-h-[650px] lg:min-h-[789px] rounded-[25px] flex flex-col justify-between items-center px-5 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-10 sm:py-14 lg:py-[90px]"
                 >
+                    {HERO_BACKGROUNDS.map((bgImage, idx) => (
+                        <div
+                            key={idx}
+                            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out rounded-[25px] ${idx === activeBgIndex ? "opacity-100" : "opacity-0"}`}
+                            style={{ backgroundImage: `url(${bgImage})` }}
+                        />
+                    ))}
                     <div className="pointer-events-none absolute inset-0 h-full w-full bg-black/50 rounded-[25px] z-10" />
 
                     <div className="flex flex-col gap-8 lg:flex-row lg:justify-between lg:items-end w-full relative z-20">
