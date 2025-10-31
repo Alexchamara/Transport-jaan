@@ -42,7 +42,7 @@ class RegisterController extends Controller
             'country' => 'nullable|string|max:100',
             'date_of_birth' => 'required|date|before:today',
             'role_type' => 'required|in:client,vendor',
-            'vendor_type' => 'required_if:role_type,vendor|in:individual,business',
+            'vendor_type' => 'required_if:role_type,vendor|nullable|in:individual,business',
         ], [
             'name.required' => 'Name is required.',
             'email.required' => 'Email is required.',
