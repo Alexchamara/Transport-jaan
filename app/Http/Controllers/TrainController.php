@@ -26,12 +26,12 @@ class TrainController extends Controller
         // Parse station names and get station IDs
         $fromStationRecord = null;
         $toStationRecord = null;
-        
+
         if ($fromStation) {
             $fromStationName = $this->extractStationName($fromStation);
             $fromStationRecord = TrainStation::where('name', 'like', '%' . $fromStationName . '%')->first();
         }
-        
+
         if ($toStation) {
             $toStationName = $this->extractStationName($toStation);
             $toStationRecord = TrainStation::where('name', 'like', '%' . $toStationName . '%')->first();
@@ -147,6 +147,8 @@ class TrainController extends Controller
             'returnSchedules' => $returnSchedules,
             'fromStationName' => $fromStationRecord ? $fromStationRecord->name : $fromStation,
             'toStationName' => $toStationRecord ? $toStationRecord->name : $toStation,
+            'hasActiveFilters' => $hasSearchCriteria && ($fromStationRecord && $toStationRecord && $departureDate),
+            'isShowingAllTrains' => !$hasSearchCriteria,
         ]);
     }
 
