@@ -127,6 +127,12 @@ class WebController extends Controller
     }
 
 
+    public function multiModelHomepage()
+    {
+        return Inertia::render('Web/home/multiModel/HomePage');
+    }
+
+
 
 
 
