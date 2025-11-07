@@ -151,8 +151,8 @@ const TravelExploreAnimation = ({ auth }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900">
-            <div className="relative h-screen w-full flex flex-col justify-center items-center overflow-hidden">
+        <div className="bg-gray-900">
+            <div className="relative h-auto w-full flex flex-col justify-center items-center overflow-hidden">
                 {/* Background with smooth transitions */}
                 <AnimatePresence initial={false} mode="wait">
                     <motion.div
@@ -373,7 +373,7 @@ const TravelExploreAnimation = ({ auth }) => {
                 </div>
 
                 {/* Carousel */}
-                <div className="relative z-20 w-full max-w-7xl mx-auto px-4 py-20">
+                <div className="relative z-20 w-full max-w-7xl mx-auto px-4 py-40">
                     <div className="relative h-[500px] md:h-[600px] flex items-center justify-center">
                         <div
                             className="relative w-full"

@@ -110,6 +110,13 @@ Route::get('/warehouseList', [WebController::class, 'warehouseList'])->name('war
 Route::get('/warehouseDetails', [WebController::class, 'warehouseDetails'])->name('warehouse.details');
 Route::get('/freight-booking/create', [WebController::class, 'freightHomepage'])->name('freight.booking.create');
 
+// multi - model (client-side)
+Route::get('/multiModel', [WebController::class, 'multiModelHomepage'])->name('multiModelHomepage.home');
+
+
+
+
+
 // Warehouse booking flow
 Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function () {
     // Public routes (category selection)
