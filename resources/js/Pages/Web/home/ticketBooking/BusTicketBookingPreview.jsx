@@ -76,7 +76,7 @@ const legend = [
     { label: "Already Booked", color: "bg-[#C7C7C7]" },
 ];
 
-const BusTicketBookingPreview = () => {
+const BusTicketBookingPreview = ({ trip, searchParams }) => {
     const seatMap = useMemo(buildSeatMap, []);
     const [selected, setSelected] = useState([]);
     const [passengerName, setPassengerName] = useState("");
@@ -100,7 +100,8 @@ const BusTicketBookingPreview = () => {
         );
     };
 
-    const total = selected.length * PRICE_PER_SEAT_LKR;
+    const pricePerSeat = trip?.price || PRICE_PER_SEAT_LKR;
+    const total = selected.length * pricePerSeat;
 
     const canContinue =
         selected.length > 0 &&
@@ -111,18 +112,92 @@ const BusTicketBookingPreview = () => {
 
     const onSubmit = (e) => {
         e.preventDefault();
-        const payload = {
-            seats: selected,
-            total,
-            passengerName,
-            mobile,
-            email,
-            boarding,
-            destination,
-            reuseCredits,
+
+        // Get CSRF token from the page's meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        // Create booking data object
+        const bookingData = {
+            schedule_id: trip?.id,
+            seat_numbers: selected,
+            passenger_count: selected.length,
+            passenger_name: passengerName,
+            passenger_phone: mobile,
+            passenger_email: email,
+            boarding_point: boarding,
+            destination_point: destination,
+            total_price: total
         };
-        console.log("Submit booking payload:", payload);
-        // Wire this to your route/action when ready.
+
+        // Add a loading indicator or disable the button here if needed
+
+        // Use fetch for AJAX request with proper headers
+        fetch('/bus-bookings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(bookingData)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (response.redirected) {
+                console.log('Redirected to:', response.url);
+                window.location.href = response.url;
+                return null;
+            }
+
+            // Try to parse as JSON, but handle errors gracefully
+            return response.json().catch(e => {
+                console.error('JSON parsing error:', e);
+                return null;
+            });
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data === null) {
+                console.log('No data returned or already handled redirect');
+                return;
+            }
+
+            if (data && data.redirect) {
+                console.log('Redirecting to:', data.redirect);
+                window.location.href = data.redirect;
+            } else if (data && data.reference) {
+                console.log('Redirecting to success page with reference:', data.reference);
+                window.location.href = `/bus-booking-success/${data.reference}`;
+            } else if (data && data.success) {
+                console.log('Booking successful but no redirect or reference provided');
+                alert('Booking successful!');
+                window.location.href = '/flight-booking'; // Redirect to home page
+            } else if (data && data.errors) {
+                console.error('Validation errors:', data.errors);
+                const errorMessage = Object.values(data.errors).flat().join("\n");
+                alert(`Error: ${errorMessage}`);
+            } else {
+                console.warn('Unknown response format:', data);
+                alert('Booking completed but encountered an unexpected response. Please check your bookings.');
+                window.location.href = '/flight-booking';
+            }
+        })
+        .catch(error => {
+            console.error('Booking error:', error);
+            alert('There was an error processing your booking. Please try again.');
+        });
+
+        // OLD FORM APPROACH (keeping as backup)
+        /*
+        // Create a form to submit the data
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/bus-bookings';
+        form.style.display = 'none';
+        */
+
+        // Old form submission code removed
     };
 
     return (
@@ -132,7 +207,7 @@ const BusTicketBookingPreview = () => {
                 {/* Back */}
                 <div className="mb-4">
                     <Link
-                        href="/busTicketBookingDetails"
+                        href={searchParams ? `/busTicketBookingDetails?from=${searchParams.from}&to=${searchParams.to}&date=${searchParams.date}&passengers=${searchParams.passengers}` : "/busTicketBookingDetails"}
                         className="inline-flex items-center gap-2 text-[#0955AC] text-base font-semibold"
                     >
                         <span className="inline-block rounded-full border border-[#0955AC]/20 p-1 leading-none">
@@ -145,6 +220,46 @@ const BusTicketBookingPreview = () => {
                 <h1 className="text-3xl md:text-4xl font-extrabold text-[#0955AC]">
                     Select seats &amp; fill form
                 </h1>
+
+                {/* Trip Information */}
+                {trip && (
+                    <div className="mt-6 bg-white p-4 border rounded-lg shadow-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span className="text-gray-500">From:</span>
+                                <p className="font-medium">{trip.departureStation}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">To:</span>
+                                <p className="font-medium">{trip.arrivalStation}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Date:</span>
+                                <p className="font-medium">{trip.day}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Time:</span>
+                                <p className="font-medium">{trip.depart} - {trip.arrive}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Operator:</span>
+                                <p className="font-medium">{trip.operator}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Bus Type:</span>
+                                <p className="font-medium">{trip.busType}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Duration:</span>
+                                <p className="font-medium">{trip.duration}</p>
+                            </div>
+                            <div>
+                                <span className="text-gray-500">Price per seat:</span>
+                                <p className="font-medium text-[#0955AC]">LKR {trip.price}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="mt-20 grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Seat layout */}

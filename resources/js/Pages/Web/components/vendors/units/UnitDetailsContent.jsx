@@ -1,4 +1,5 @@
 import React from "react";
+import { usePage } from "@inertiajs/react";
 
 import VehicleImages from "../../../components/vendors/units/VehicleImages";
 import VehicleInfo from "../../../components/vendors/units/VehicleInfo";
@@ -13,6 +14,9 @@ import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 import backArrow from "../../../assets/vendors/units/backArrow.svg";
 
 const UnitDetailsContent = ({ vehicle }) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
   const images = Array.isArray(vehicle?.images)
     ? vehicle.images.filter(
         (u) =>
@@ -45,7 +49,7 @@ const UnitDetailsContent = ({ vehicle }) => {
             <img src={proPic} alt="Profile" />
           </div>
           <div className="figtree flex flex-col justify-center items-start">
-            <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+            <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
             <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Vendor</h1>
           </div>
         </div>

@@ -102,7 +102,7 @@ const FAQ = () => {
                         {faqData.map((faq, idx) => (
                             <div key={idx} className={`w-auto text-justify ${openIndex === idx ? 'border-[1px] border-[#0955AC] rounded-[10px]' : ''}`}>
                                 <div
-                                    className={`xl:w-[628px] w-auto h-[63px] ${openIndex === idx ? '' : 'border-[1px] border-[#0955AC] rounded-[10px] box-shadow'} flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
+                                    className={`2xl:w-[628px] xl:w-[500px] w-auto h-[63px] ${openIndex === idx ? '' : 'border-[1px] border-[#0955AC] rounded-[10px] box-shadow'} flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
                                     onClick={() => handleToggle(idx)}
                                 >
                                     <h1>{faq.question}</h1>
@@ -117,7 +117,7 @@ const FAQ = () => {
                                     />
                                 </div>
                                 {openIndex === idx && (
-                                    <h1 className="text-[12px]/[33px] font-[400]  xl:w-[628px]  px-10 py-5">
+                                    <h1 className="text-[12px]/[33px] font-[400] 2xl:w-[628px] xl:w-[500px] w-auto px-10 py-5">
                                         {faq.answer}
                                     </h1>
                                 )}
@@ -130,7 +130,7 @@ const FAQ = () => {
                         {faqDataTwo.map((faq, idx) => (
                             <div key={idx} className={`w-auto text-justify ${openIndexTwo === idx ? 'border-[1px] border-[#0955AC] rounded-[10px]' : ''}`}>
                                 <div
-                                    className={`xl:w-[628px] w-auto h-[63px] ${openIndexTwo === idx ? '' : 'border-[1px] border-[#0955AC] rounded-[10px] box-shadow'} flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
+                                    className={`2xl:w-[628px] xl:w-[500px] w-auto h-[63px] ${openIndexTwo === idx ? '' : 'border-[1px] border-[#0955AC] rounded-[10px] box-shadow'} flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
                                     onClick={() => handleToggleTwo(idx)}
                                 >
                                     <h1>{faq.question}</h1>
@@ -145,7 +145,7 @@ const FAQ = () => {
                                     />
                                 </div>
                                 {openIndexTwo === idx && (
-                                    <h1 className="text-[12px]/[33px] xl:w-[628px] font-[400] px-10 py-5">
+                                    <h1 className="text-[12px]/[33px] 2xl:w-[628px] xl:w-[500px] w-auto font-[400] px-10 py-5">
                                         {faq.answer}
                                     </h1>
                                 )}

@@ -86,7 +86,7 @@ export default function Index({ auth, warehouses, flash }) {
                                                 <td className="py-4 px-4 whitespace-nowrap">
                                                     <div className="text-sm">
                                                         <div className="font-medium">
-                                                            ${warehouse.price} / {warehouse.pricing_model}
+                                                            ${warehouse.base_price} / {warehouse.pricing_model}
                                                         </div>
                                                         {warehouse.monthly_rate && (
                                                             <div className="text-gray-500">

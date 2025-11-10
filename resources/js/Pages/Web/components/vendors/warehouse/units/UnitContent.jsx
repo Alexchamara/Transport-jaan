@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { router, usePage } from "@inertiajs/react";
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -11,6 +12,9 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 import AddUnit from "../../../../home/vendors/warehouse/AddUnit";
 
 const UnitContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
   // State for warehouse units data
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,17 +26,22 @@ const UnitContent = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalUnits, setTotalUnits] = useState(0);
   const [showAddUnit, setShowAddUnit] = useState(false);
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  
+
   // Toggle status states
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [unitToToggle, setUnitToToggle] = useState(null);
   const [isToggling, setIsToggling] = useState(false);
-  
+
+  // Delete confirmation states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [unitToDelete, setUnitToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const perPageOptions = [5, 10, 20, 50];
 
   // Fetch warehouse units from API
@@ -43,7 +52,7 @@ const UnitContent = () => {
         page: page.toString(),
         per_page: perPage.toString(),
       });
-      
+
       if (search) params.append('search', search);
       if (type) params.append('type', type);
       if (status) params.append('status', status);
@@ -63,7 +72,7 @@ const UnitContent = () => {
       }
 
       const data = await response.json();
-      
+
       setUnits(data.data || []);
       setCurrentPage(data.current_page || 1);
       setTotalPages(data.last_page || 1);
@@ -129,11 +138,11 @@ const UnitContent = () => {
   // Confirm and execute the toggle
   const confirmToggleStatus = async () => {
     if (!unitToToggle) return;
-    
+
     setIsToggling(true);
     try {
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-      
+
       const response = await fetch(`/vendors/warehouse/api/units/${unitToToggle.id}/status`, {
         method: 'PATCH',
         headers: {
@@ -155,11 +164,11 @@ const UnitContent = () => {
       const result = await response.json();
 
       // Update the unit in the local state using the response data
-      setUnits(prevUnits => 
-        prevUnits.map(unit => 
-          unit.id === unitToToggle.id 
-            ? { 
-                ...unit, 
+      setUnits(prevUnits =>
+        prevUnits.map(unit =>
+          unit.id === unitToToggle.id
+            ? {
+                ...unit,
                 is_active: result.unit.is_active,
                 status: result.unit.status,
                 availability_status: result.unit.availability_status
@@ -171,7 +180,7 @@ const UnitContent = () => {
       // Close modal and reset state
       setShowConfirmModal(false);
       setUnitToToggle(null);
-      
+
     } catch (error) {
       console.error('Error toggling unit status:', error);
       alert('Failed to update unit status. Please try again.');
@@ -184,6 +193,75 @@ const UnitContent = () => {
   const cancelToggle = () => {
     setShowConfirmModal(false);
     setUnitToToggle(null);
+  };
+
+  // Handle view warehouse
+  const handleViewWarehouse = (unit) => {
+    router.visit(`/vendors/warehouse/unitDetails/${unit.id}`);
+  };
+
+  // Handle edit warehouse
+  const handleEditWarehouse = (unit) => {
+    router.visit(`/vendors/warehouse/editUnit/${unit.id}`);
+  };
+
+  // Handle delete warehouse
+  const handleDeleteWarehouse = (unit) => {
+    setUnitToDelete(unit);
+    setShowDeleteModal(true);
+  };
+
+  // Confirm and execute delete
+  const confirmDeleteWarehouse = async () => {
+    if (!unitToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/vendors/warehouse/api/units/${unitToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        },
+        credentials: 'same-origin',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      // Remove the deleted unit from the list
+      setUnits(prevUnits => prevUnits.filter(unit => unit.id !== unitToDelete.id));
+      setTotalUnits(prev => prev - 1);
+
+      // Show success message
+      alert(result.message || 'Warehouse unit deleted successfully');
+
+      // Refresh the list if current page is empty
+      if (units.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      } else {
+        fetchUnits(currentPage, itemsPerPage, searchTerm, typeFilter, statusFilter);
+      }
+
+    } catch (error) {
+      console.error('Error deleting warehouse unit:', error);
+      alert('Failed to delete warehouse unit. Please try again.');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setUnitToDelete(null);
+    }
+  };
+
+  // Cancel delete
+  const cancelDeleteWarehouse = () => {
+    setShowDeleteModal(false);
+    setUnitToDelete(null);
   };
 
   const statusColor = (status) => {
@@ -240,7 +318,7 @@ const UnitContent = () => {
             <img src={proPic} alt="Profile" />
           </div>
           <div className="figtree flex flex-col justify-center items-start">
-            <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+            <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
             <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Vendor</h1>
           </div>
         </div>
@@ -252,9 +330,9 @@ const UnitContent = () => {
           <div className="flex flex-row gap-5 justify-center items-center">
             <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
               <img src={miniSearchIcon} alt="Search" />
-              <input 
-                type="text" 
-                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]" 
+              <input
+                type="text"
+                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
                 placeholder="Search warehouse name, address..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -262,7 +340,7 @@ const UnitContent = () => {
             </div>
             <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
               <img src={filterIcon} className="size-[12px]" alt="Filter" />
-              <select 
+              <select
                 className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
@@ -277,7 +355,7 @@ const UnitContent = () => {
             </div>
             <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
               <img src={filterIcon} className="size-[12px]" alt="Filter" />
-              <select 
+              <select
                 className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -316,7 +394,7 @@ const UnitContent = () => {
               <div className="text-center">
                 <div className="text-red-500 text-lg font-semibold mb-2">Error</div>
                 <div className="text-[#7B7B7A] mb-4">{error}</div>
-                <button 
+                <button
                   onClick={() => fetchUnits(currentPage, itemsPerPage, searchTerm, typeFilter, statusFilter)}
                   className="px-4 py-2 bg-[#0955AC] text-white rounded-md hover:bg-[#074A94] transition-colors"
                 >
@@ -332,11 +410,11 @@ const UnitContent = () => {
               <div className="text-center">
                 <div className="text-[#7B7B7A] text-lg font-semibold mb-2">No warehouse units found</div>
                 <div className="text-[#7B7B7A] mb-4">
-                  {searchTerm || typeFilter || statusFilter 
-                    ? "Try adjusting your search or filters" 
+                  {searchTerm || typeFilter || statusFilter
+                    ? "Try adjusting your search or filters"
                     : "Start by adding your first warehouse unit"}
                 </div>
-                <button 
+                <button
                   onClick={handleAddUnitClick}
                   className="px-4 py-2 bg-[#0955AC] text-white rounded-md hover:bg-[#074A94] transition-colors"
                 >
@@ -433,7 +511,7 @@ const UnitContent = () => {
                     <div className="flex flex-col items-center gap-2 pl-[40px]">
                       <button
                         className="figtree min-w-[100px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#074A94] transition-colors"
-                        onClick={() => (window.location.href = `/vendors/warehouse/unitDetails/${unit.id}`)}
+                        onClick={() => handleViewWarehouse(unit)}
                         title="View"
                       >
                         <span className="inline-flex items-center gap-2">
@@ -456,9 +534,16 @@ const UnitContent = () => {
                       </button>
                       <button
                         className="figtree min-w-[100px] h-[44px] bg-[#F59E0B] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#D97706] transition-colors"
-                        onClick={() => (window.location.href = `/vendors/warehouse/editUnit/${unit.id}`)}
+                        onClick={() => handleEditWarehouse(unit)}
                       >
                         Edit
+                      </button>
+                      <button
+                        className="figtree min-w-[100px] h-[44px] bg-[#DC2626] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] hover:bg-[#B91C1C] transition-colors"
+                        onClick={() => handleDeleteWarehouse(unit)}
+                        title="Delete warehouse unit"
+                      >
+                        Delete
                       </button>
                       <button
                         className={`figtree min-w-[100px] h-[44px] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700] transition-colors ${
@@ -477,22 +562,22 @@ const UnitContent = () => {
                   {/* Right side action bar (icons textual to avoid extra imports) */}
                   <div className="absolute right-0 w-auto min-w-[143px] h-full bg-[#D8E4F2] flex flex-col justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px] px-3">
                     <button
-                      className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
-                      onClick={() => (window.location.href = `/vendors/warehouse/unitDetails/${unit.id}`)}
+                      className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#C5D4E8]"
+                      onClick={() => handleViewWarehouse(unit)}
                       title="View Details"
                     >
                       👁
                     </button>
                     <button
-                      className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
-                      onClick={() => (window.location.href = `/vendors/warehouse/editUnit/${unit.id}`)}
+                      className="size-[36px] border-[1.5px] border-[#F59E0B] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#C5D4E8]"
+                      onClick={() => handleEditWarehouse(unit)}
                       title="Edit"
                     >
                       ✎
                     </button>
                     <button
-                      className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer"
-                      onClick={() => alert('Delete action not implemented')}
+                      className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#C5D4E8]"
+                      onClick={() => handleDeleteWarehouse(unit)}
                       title="Delete"
                     >
                       🗑
@@ -515,9 +600,9 @@ const UnitContent = () => {
               {/* Left: Results per page */}
               <div className="flex items-center">
                 <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
-                <select 
-                  className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none" 
-                  value={itemsPerPage} 
+                <select
+                  className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+                  value={itemsPerPage}
                   onChange={(e) => setItemsPerPage(Number(e.target.value))}
                 >
                   {perPageOptions.map((opt) => (
@@ -527,9 +612,9 @@ const UnitContent = () => {
               </div>
               {/* Right: Pagination */}
               <div className="flex items-center gap-2">
-                <button 
-                  className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 hover:bg-[#E5E5E5] transition-colors" 
-                  onClick={() => goToPage(currentPage - 1)} 
+                <button
+                  className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 hover:bg-[#E5E5E5] transition-colors"
+                  onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
                   <span className="text-lg">&#60;</span>
@@ -538,22 +623,22 @@ const UnitContent = () => {
                   num === "..." ? (
                     <span key={idx} className="px-2">...</span>
                   ) : (
-                    <button 
-                      key={num} 
+                    <button
+                      key={num}
                       className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] hover:bg-[#E5E5E5] transition-colors ${
-                        currentPage === num 
-                          ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC] bg-[#F4F3F3]" 
+                        currentPage === num
+                          ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC] bg-[#F4F3F3]"
                           : "bg-[#F4F3F3]"
-                      }`} 
+                      }`}
                       onClick={() => goToPage(num)}
                     >
                       {num}
                     </button>
                   )
                 )}
-                <button 
-                  className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 hover:bg-[#E5E5E5] transition-colors" 
-                  onClick={() => goToPage(currentPage + 1)} 
+                <button
+                  className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 hover:bg-[#E5E5E5] transition-colors"
+                  onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
                   <span className="text-lg">&#62;</span>
@@ -572,13 +657,13 @@ const UnitContent = () => {
               Confirm Status Change
             </h3>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to {unitToToggle.is_active ? 'deactivate' : 'activate'} the warehouse unit 
+              Are you sure you want to {unitToToggle.is_active ? 'deactivate' : 'activate'} the warehouse unit
               <span className="font-semibold"> "{unitToToggle.name}"</span>?
             </p>
             <div className="text-sm text-gray-500 mb-6">
-              {unitToToggle.is_active 
+              {unitToToggle.is_active
                 ? "Deactivating will make this unit unavailable for bookings."
-                : unitToToggle.approval_status === 'approved' 
+                : unitToToggle.approval_status === 'approved'
                   ? "Activating will make this unit available for bookings immediately."
                   : "Activating will prepare this unit for availability once it's approved by admin."
               }
@@ -595,17 +680,58 @@ const UnitContent = () => {
                 onClick={confirmToggleStatus}
                 disabled={isToggling}
                 className={`px-4 py-2 text-white rounded-md transition-colors disabled:opacity-50 ${
-                  unitToToggle.is_active 
-                    ? 'bg-red-600 hover:bg-red-700' 
+                  unitToToggle.is_active
+                    ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-green-600 hover:bg-green-700'
                 }`}
               >
-                {isToggling 
-                  ? 'Updating...' 
-                  : unitToToggle.is_active 
-                    ? 'Deactivate' 
+                {isToggling
+                  ? 'Updating...'
+                  : unitToToggle.is_active
+                    ? 'Deactivate'
                     : 'Activate'
                 }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && unitToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-[450px] max-w-[90%] shadow-xl">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Delete Warehouse Unit
+              </h3>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Are you sure you want to permanently delete the warehouse unit
+              <span className="font-semibold"> "{unitToDelete.name}"</span>?
+            </p>
+            <p className="text-sm text-red-600 mb-6">
+              ⚠️ This action cannot be undone. All associated data including images, documents, and booking history will be permanently removed.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelDeleteWarehouse}
+                disabled={isDeleting}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteWarehouse}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Permanently'}
               </button>
             </div>
           </div>

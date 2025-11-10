@@ -5,11 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+
+
+
 class FlightBooking extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'name',
         'email',
         'phone',
@@ -31,4 +35,9 @@ class FlightBooking extends Model
     protected $attributes = [
         'status' => 'pending',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

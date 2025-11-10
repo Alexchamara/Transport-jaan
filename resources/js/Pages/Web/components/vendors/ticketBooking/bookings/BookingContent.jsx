@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePage } from "@inertiajs/react";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
@@ -20,6 +21,9 @@ import CarBookingTableTwo from "../../../../components/vendors/ticketBooking/boo
 import BookingBarChart from "./BookingBarChart";
 
 const BookingContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     // Screen restricted to Flights only
     const bookingType = "Flight";
     const paymentStatusColors = {
@@ -183,12 +187,18 @@ const BookingContent = () => {
 
     // Handle input changes for the form
     const handleInputChange = (e) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const { name, value } = e.target;
         setNewBooking((prev) => ({ ...prev, [name]: value }));
     };
 
     // Handle form submission to add new booking
     const handleAddBooking = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const baseVisual = {
             paymentStatusColor:
                 paymentStatusColors[newBooking.paymentStatus]?.color ||
@@ -260,7 +270,7 @@ const BookingContent = () => {
                     </div>
 
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

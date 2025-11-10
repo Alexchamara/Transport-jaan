@@ -11,6 +11,8 @@ use App\Mail\FreightQuoteSubmitted;
 use Inertia\Inertia;
 use App\Models\Vehicle;
 use App\Models\Warehouse\WarehouseUnit;
+use App\Models\Warehouse\WarehouseLike;
+use App\Models\Warehouse\WarehouseReview;
 
 
 
@@ -125,6 +127,12 @@ class WebController extends Controller
     }
 
 
+    public function multiModelHomepage()
+    {
+        return Inertia::render('Web/home/multiModel/HomePage');
+    }
+
+
 
 
 
@@ -189,11 +197,21 @@ class WebController extends Controller
 
     public function freightTicketBooking()
     {
-        return Inertia::render('Web/home/ticketBooking/TicketBooking');
-    }
+        // Check if the user is logged in
+        if (!Auth::check()) {
+            // If not logged in, redirect to signin with a message
+            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
+        }
 
-    public function ticketBooking()
+        return Inertia::render('Web/home/ticketBooking/TicketBooking');
+    }    public function ticketBooking()
     {
+        // Check if the user is logged in
+        if (!Auth::check()) {
+            // If not logged in, redirect to login with a message
+            return redirect()->route('signin')->with('message', 'Please log in to make a booking.');
+        }
+
         return Inertia::render('Web/home/ticketBooking/TicketBooking');
     }
 
@@ -202,9 +220,60 @@ class WebController extends Controller
         return Inertia::render('Web/home/ticketBooking/TrainTicketBookingDetails');
     }
 
-    public function busTicketBookingDetails()
+    public function busTicketBookingDetails(Request $request)
     {
-        return Inertia::render('Web/home/ticketBooking/BusTicketBookingDetails');
+        // Get stations for dropdown
+        $stations = \App\Models\BusStation::where('status', 'active')->get();
+
+        $schedules = collect();
+        $searchParams = [
+            'from' => $request->input('from'),
+            'to' => $request->input('to'),
+            'date' => $request->input('date')
+        ];
+
+        if ($searchParams['from'] && $searchParams['to'] && $searchParams['date']) {
+            // Find departure and arrival stations
+            $departureStation = \App\Models\BusStation::where('name', $searchParams['from'])->first();
+            $arrivalStation = \App\Models\BusStation::where('name', $searchParams['to'])->first();
+
+            if ($departureStation && $arrivalStation) {
+                $schedules = \App\Models\BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
+                    ->where('departure_station_id', $departureStation->id)
+                    ->where('arrival_station_id', $arrivalStation->id)
+                    ->where('date', $searchParams['date'])
+                    ->where('status', 'active')
+                    ->orderBy('departure_time')
+                    ->get()
+                    ->map(function ($schedule) {
+                        return [
+                            'id' => $schedule->id,
+                            'operator' => $schedule->bus->operator,
+                            'busType' => $schedule->bus->bus_type,
+                            'routeNo' => $schedule->bus->route_number,
+                            'busNo' => $schedule->bus->bus_number,
+                            'depart' => date('g:i A', strtotime($schedule->departure_time)),
+                            'arrive' => date('g:i A', strtotime($schedule->arrival_time)),
+                            'day' => date('j M', strtotime($schedule->date)),
+                            'duration' => $schedule->getFormattedDurationAttribute(),
+                            'price' => $schedule->price,
+                            'seatsAvailable' => $schedule->available_seats,
+                            'totalSeats' => $schedule->bus->capacity,
+                            'expressway' => $schedule->is_expressway,
+                            'soldOut' => $schedule->available_seats <= 0,
+                            'facilities' => $schedule->bus->facilities ?? [],
+                            'departureStation' => $schedule->departureStation->name,
+                            'arrivalStation' => $schedule->arrivalStation->name,
+                        ];
+                    });
+            }
+        }
+
+        return Inertia::render('Web/home/ticketBooking/BusTicketBookingDetails', [
+            'stations' => $stations,
+            'schedules' => $schedules,
+            'searchParams' => $searchParams
+        ]);
     }
 
     public function flightBooking()
@@ -217,9 +286,50 @@ class WebController extends Controller
         return Inertia::render('Web/home/ticketBooking/TrainTicketBookingPreview');
     }
 
-    public function busTicketBookingPreview()
+    public function busTicketBookingPreview(Request $request)
     {
-        return Inertia::render('Web/home/ticketBooking/BusTicketBookingPreview');
+        $scheduleId = $request->get('id');
+        $searchParams = [
+            'from' => $request->get('from'),
+            'to' => $request->get('to'),
+            'date' => $request->get('date'),
+            'passengers' => $request->get('passengers', 1)
+        ];
+
+        $schedule = null;
+        $tripData = null;
+
+        if ($scheduleId) {
+            $schedule = \App\Models\BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
+                ->find($scheduleId);
+
+            if ($schedule) {
+                $tripData = [
+                    'id' => $schedule->id,
+                    'operator' => $schedule->bus->operator,
+                    'busType' => $schedule->bus->bus_type,
+                    'routeNo' => $schedule->bus->route_number,
+                    'busNo' => $schedule->bus->bus_number,
+                    'depart' => date('g:i A', strtotime($schedule->departure_time)),
+                    'arrive' => date('g:i A', strtotime($schedule->arrival_time)),
+                    'day' => date('j M', strtotime($schedule->date)),
+                    'duration' => $schedule->getFormattedDurationAttribute(),
+                    'price' => $schedule->price,
+                    'seatsAvailable' => $schedule->available_seats,
+                    'totalSeats' => $schedule->bus->capacity,
+                    'expressway' => $schedule->is_expressway,
+                    'soldOut' => $schedule->available_seats <= 0,
+                    'facilities' => $schedule->bus->facilities ?? [],
+                    'departureStation' => $schedule->departureStation->name,
+                    'arrivalStation' => $schedule->arrivalStation->name,
+                ];
+            }
+        }
+
+        return Inertia::render('Web/home/ticketBooking/BusTicketBookingPreview', [
+            'trip' => $tripData,
+            'searchParams' => $searchParams
+        ]);
     }
 
 
@@ -272,12 +382,12 @@ class WebController extends Controller
     {
         // Get approved and active warehouses from database
         $searchParams = $request->all();
-        
-        $query = WarehouseUnit::where('approval_status', 'approved')
-            ->where('is_active', true);
+
+        $query = WarehouseUnit::approved()
+            ->active();
 
         // Apply filters based on search parameters
-        
+
         // Location filter (from both search form and filter sidebar)
         if (isset($searchParams['location']) && !empty($searchParams['location'])) {
             $query->where('address', 'LIKE', '%' . $searchParams['location'] . '%');
@@ -350,7 +460,17 @@ class WebController extends Controller
         //     // Add lease duration filtering logic if your model supports it
         // }
 
-        $warehouses = $query->orderBy('created_at', 'desc')->get();
+        $warehouses = $query->with(['images' => function($q) {
+            $q->active()->ordered();
+        }, 'mainImage'])->orderBy('created_at', 'desc')->get();
+
+        // Check if JSON format is requested
+        if ($request->get('format') === 'json' || $request->expectsJson()) {
+            return response()->json([
+                'warehouses' => $warehouses,
+                'searchParams' => $searchParams
+            ]);
+        }
 
         return Inertia::render('Web/home/warehouse/WarehouseList', [
             'warehouses' => $warehouses,
@@ -361,22 +481,126 @@ class WebController extends Controller
     public function warehouseDetails(Request $request)
     {
         $warehouseData = $request->get('warehouse');
-        
+
         if (!$warehouseData) {
             return redirect()->route('warehouse.list');
         }
 
+        // If warehouse data contains an ID, fetch full data with relationships
+        if (isset($warehouseData['id'])) {
+            $warehouse = WarehouseUnit::with([
+                'owner',
+                'amenities' => function($query) {
+                    $query->available();
+                },
+                'images' => function($query) {
+                    $query->active()->ordered();
+                },
+                'activeImages' => function($query) {
+                    $query->active()->ordered();
+                },
+                'mainImage' => function($query) {
+                    $query->active();
+                },
+                'galleryImages' => function($query) {
+                    $query->active()->ordered();
+                },
+                'documents' => function($query) {
+                    $query->public()->active();
+                },
+                'currentApproval',
+                'reviews' => function($query) {
+                    $query->with('user')->latest();
+                }
+            ])->approved()->active()->find($warehouseData['id']);
+
+            if ($warehouse) {
+                // Prepare warehouse data with all relationships
+                $warehouseData = array_merge($warehouseData, [
+                    'owner' => $warehouse->owner,
+                    'amenities' => $warehouse->amenities->map(function($amenity) {
+                        return $amenity->name;
+                    })->toArray(),
+                    'images' => $warehouse->images,
+                    'active_images' => $warehouse->activeImages,
+                    'main_image' => $warehouse->mainImage,
+                    'gallery_images' => $warehouse->galleryImages,
+                    'primary_image_url' => $warehouse->mainImage ? $warehouse->mainImage->url : null,
+                    'documents' => $warehouse->documents,
+                    'rating_avg' => $warehouse->averageRating(),
+                    'reviews_count' => $warehouse->reviewsCount(),
+                    'reviews' => $warehouse->reviews->map(function($review) {
+                        return [
+                            'id' => $review->id,
+                            'rating' => $review->rating,
+                            'comment' => $review->comment,
+                            'pros' => $review->pros,
+                            'cons' => $review->cons,
+                            'stay_duration' => $review->stay_duration,
+                            'verified' => $review->verified,
+                            'helpful_votes' => $review->helpful_votes,
+                            'created_at' => $review->created_at,
+                            'user' => $review->user ? [
+                                'id' => $review->user->id,
+                                'name' => $review->user->name,
+                            ] : null,
+                            'customer_name' => $review->customer_name ?: $review->user?->name
+                        ];
+                    }),
+                    'is_liked' => $warehouse->isLikedBy(Auth::id()),
+                    'status' => $warehouse->is_available ? 'available' : 'unavailable',
+                    'terms_conditions' => $warehouse->terms_conditions,
+                    'terms_pdf_path' => $warehouse->terms_pdf_path,
+                    'operating_hours' => $warehouse->operating_hours,
+                    'security_level' => $warehouse->security_level ?? 'standard',
+                ]);
+            }
+        }
+
         // Get related warehouses (same type, different warehouse)
-        $relatedWarehouses = WarehouseUnit::where('approval_status', 'approved')
-            ->where('is_active', true)
+        $relatedWarehouses = WarehouseUnit::approved()
+            ->active()
+            ->with(['mainImage', 'amenities'])
             ->where('type', $warehouseData['type'] ?? '')
             ->where('id', '!=', $warehouseData['id'])
             ->limit(3)
             ->get();
 
+        // Get liked warehouse IDs for the current user
+        $likedWarehouseIds = [];
+        if (Auth::check()) {
+            $likedWarehouseIds = WarehouseLike::where('user_id', Auth::id())
+                ->pluck('warehouse_unit_id')
+                ->toArray();
+        }
+
         return Inertia::render('Web/home/warehouse/WarehouseDetails', [
             'warehouse' => $warehouseData,
-            'relatedWarehouses' => $relatedWarehouses
+            'relatedWarehouses' => $relatedWarehouses,
+            'likedWarehouseIds' => $likedWarehouseIds
         ]);
+    }
+
+    /**
+     * Redirect to appropriate dashboard based on user role
+     */
+    public function redirectToDashboard()
+    {
+        if (!Auth::check()) {
+            return redirect()->route('signin.signin');
+        }
+
+        $user = Auth::user();
+
+        switch ($user->role) {
+            case 'client':
+                return redirect()->route('client.mainDashboard');
+            case 'vendor':
+                return redirect()->route('vendor.dashboard');
+            case 'SuperAdmin':
+                return redirect()->route('superadmin.dashboard');
+            default:
+                return redirect()->route('user.dashboard');
+        }
     }
 }

@@ -107,10 +107,19 @@ const IMAGES = [
     },
 ];
 
-const TravelExploreAnimation = () => {
+const TravelExploreAnimation = ({ auth }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [current, setCurrent] = useState(0);
     const pauseUntilRef = useRef(0);
+
+    const user = auth?.user;
+    const userRole = user?.role;
+    const userStatus =
+        typeof user?.status === "string" ? user.status.toLowerCase() : "";
+    const isVendor = userRole === "vendor";
+    const isVendorVerified = isVendor && userStatus === "verified";
+    const isClient = userRole === "client";
+    const isSuperAdmin = userRole === "SuperAdmin";
 
     const total = IMAGES.length;
     const mod = (n, m) => ((n % m) + m) % m;
@@ -142,8 +151,8 @@ const TravelExploreAnimation = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900">
-            <div className="relative h-screen w-full flex flex-col justify-center items-center overflow-hidden">
+        <div className="bg-gray-900">
+            <div className="relative h-auto w-full flex flex-col justify-center items-center overflow-hidden">
                 {/* Background with smooth transitions */}
                 <AnimatePresence initial={false} mode="wait">
                     <motion.div
@@ -207,22 +216,63 @@ const TravelExploreAnimation = () => {
                                 </div>
 
                                 <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[700]">
-                                    <div
-                                        className="lg:w-[137px] h-[38px] bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer text-[#FFFFFF]"
-                                        onClick={() =>
-                                            (window.location.href = "/signin")
-                                        }
-                                    >
-                                        Login
-                                    </div>
-                                    <div
-                                        className="lg:w-[137px] h-[38px] text-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer bg-transparent px-4 py-2"
-                                        onClick={() =>
-                                            (window.location.href = "/signup")
-                                        }
-                                    >
-                                        Register
-                                    </div>
+                                    {user ? (
+                                        <>
+                                            {isVendor &&
+                                                (isVendorVerified ? (
+                                                    <Link
+                                                        href="/vendors/mainDashboard"
+                                                        className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                    >
+                                                        Dashboard
+                                                    </Link>
+                                                ) : (
+                                                    <Link
+                                                        href="/approval-pending"
+                                                        className="bg-orange-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                    >
+                                                        Dashboard
+                                                    </Link>
+                                                ))}
+                                            {isClient && (
+                                                <Link
+                                                    href="/client/dashboard"
+                                                    className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                >
+                                                    Dashboard
+                                                </Link>
+                                            )}
+                                            {isSuperAdmin && (
+                                                <Link
+                                                    href="/superadmin/dashboard"
+                                                    className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
+                                                >
+                                                    Dashboard
+                                                </Link>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div
+                                                className="lg:w-[137px] h-[38px] bg-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center px-4 py-2 cursor-pointer text-[#FFFFFF]"
+                                                onClick={() =>
+                                                    (window.location.href =
+                                                        "/signin")
+                                                }
+                                            >
+                                                Login
+                                            </div>
+                                            <div
+                                                className="lg:w-[137px] h-[38px] text-[#FF7003] border-[1.2px] border-[#FF7003] rounded-[100px] flex justify-center items-center cursor-pointer bg-transparent px-4 py-2"
+                                                onClick={() =>
+                                                    (window.location.href =
+                                                        "/signup")
+                                                }
+                                            >
+                                                Register
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
@@ -323,7 +373,7 @@ const TravelExploreAnimation = () => {
                 </div>
 
                 {/* Carousel */}
-                <div className="relative z-20 w-full max-w-7xl mx-auto px-4 py-20">
+                <div className="relative z-20 w-full max-w-7xl mx-auto px-4 py-40">
                     <div className="relative h-[500px] md:h-[600px] flex items-center justify-center">
                         <div
                             className="relative w-full"

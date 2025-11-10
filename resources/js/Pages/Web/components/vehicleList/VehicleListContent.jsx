@@ -11,6 +11,7 @@ import heartFill from "../../assets/rentAVehicle/collection/heartFill.png";
 import heart from "../../assets/rentAVehicle/collection/heart.png";
 
 const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleIds }) => {
+  
   // normalize input (paginator or array)
   const vehicles = useMemo(
     () => (Array.isArray(initialVehicles) ? initialVehicles : (initialVehicles?.data || [])),
@@ -37,22 +38,32 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
     return "/placeholder.png";
   };
 
-  const toggleLike = async (vehicleId) => {
-    if (!authUser) {
-      alert("You must be logged in to like a vehicle.");
-      router.visit("/signin");
-      return;
-    }
-    try {
-      const { data } = await axios.post(route("client.vehicle.like.toggle"), { vehicle_id: vehicleId });
-      const map = {};
-      (data.likedVehicleIds || []).forEach((id) => (map[id] = true));
-      setLikedMap(map);
-    } catch (e) {
-      console.error(e);
-      alert("Something went wrong while liking the vehicle.");
-    }
-  };
+ const toggleLike = async (vehicleId) => {
+  if (!authUser) {
+    alert("You must be logged in to like a vehicle.");
+    router.visit("/signin");
+    return;
+  }
+  const next = !likedMap[vehicleId];
+  setLikedMap((prev) => ({ ...prev, [vehicleId]: next }));                                
+  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+  try {
+    const { data } = await axios.post(
+      route("client.vehicle.like.toggle"),
+      { vehicle_id: vehicleId },
+      { headers: { 'X-CSRF-TOKEN': token } }  // <-- include CSRF token here
+    );
+
+    const map = {};
+    (data.likedVehicleIds || []).forEach((id) => (map[id] = true));
+    setLikedMap(map);
+  } catch (e) {
+    console.error(e);
+    alert("Something went wrong while liking the vehicle.");
+  }
+};
+
 
   const view = (id) => router.visit(`/vehicleDetails/${id}`);
 

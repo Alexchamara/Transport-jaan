@@ -33,9 +33,9 @@ const Hero = () => {
                     >
                         FIND A WAREHOUSE
                     </div>
-                    <div className="w-[190px] h-[45px] border-[2px] border-[#FFFFFF] flex justify-center items-center rounded-[9px] cursor-pointer">
+                    {/* <div className="w-[190px] h-[45px] border-[2px] border-[#FFFFFF] flex justify-center items-center rounded-[9px] cursor-pointer">
                         GET A QUOTE
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </div>

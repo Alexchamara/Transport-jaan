@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, usePage } from "@inertiajs/react";
+import { Link, usePage, router } from "@inertiajs/react";
 import TrainCard from "./TrainCard";
 
 export default function HeroDetails() {
@@ -9,7 +9,9 @@ export default function HeroDetails() {
         outboundSchedules = [],
         returnSchedules = [],
         fromStationName = '',
-        toStationName = ''
+        toStationName = '',
+        hasActiveFilters = false,
+        isShowingAllTrains = false
     } = props;
 
     const [sortBy, setSortBy] = useState('fare');
@@ -52,29 +54,62 @@ export default function HeroDetails() {
             </div>
 
             {/* Search Summary */}
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                <h2 className="text-lg font-semibold text-gray-800 mb-2">Search Results</h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                        <span className="font-medium text-gray-600">From:</span>
-                        <p className="text-[#0955AC] font-semibold">{fromStationName || searchParams.from}</p>
-                    </div>
-                    <div>
-                        <span className="font-medium text-gray-600">To:</span>
-                        <p className="text-[#0955AC] font-semibold">{toStationName || searchParams.to}</p>
-                    </div>
-                    <div>
-                        <span className="font-medium text-gray-600">Date:</span>
-                        <p className="text-[#0955AC] font-semibold">{searchParams.departureDate}</p>
-                    </div>
-                    <div>
-                        <span className="font-medium text-gray-600">Passengers:</span>
-                        <p className="text-[#0955AC] font-semibold">
-                            {searchParams.adults} Adults, {searchParams.children} Children, {searchParams.infants} Infants
-                        </p>
+            {hasActiveFilters && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                    <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                            <h2 className="text-lg font-semibold text-gray-800 mb-2">Search Results</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                    <span className="font-medium text-gray-600">From:</span>
+                                    <p className="text-[#0955AC] font-semibold">{fromStationName || searchParams.from}</p>
+                                </div>
+                                <div>
+                                    <span className="font-medium text-gray-600">To:</span>
+                                    <p className="text-[#0955AC] font-semibold">{toStationName || searchParams.to}</p>
+                                </div>
+                                <div>
+                                    <span className="font-medium text-gray-600">Date:</span>
+                                    <p className="text-[#0955AC] font-semibold">{searchParams.departureDate}</p>
+                                </div>
+                                <div>
+                                    <span className="font-medium text-gray-600">Passengers:</span>
+                                    <p className="text-[#0955AC] font-semibold">
+                                        {searchParams.adults} Adults, {searchParams.children} Children, {searchParams.infants} Infants
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => router.get('/trainTicketBookingDetails')}
+                            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg transition-colors border border-gray-300 font-semibold ml-4"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                            Clear Filters
+                        </button>
                     </div>
                 </div>
-            </div>
+            )}
+
+            {isShowingAllTrains && (
+                <div className="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                    <div className="flex items-start">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 mr-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                            <p className="text-sm font-semibold text-blue-800">
+                                Showing all available trains
+                            </p>
+                            <p className="text-sm text-blue-700 mt-1">
+                                Use the search form above to filter trains by route, date, and passengers.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Search form for modification */}
             <div className="mb-20">
@@ -108,11 +143,13 @@ export default function HeroDetails() {
                             </button>
                         ))}
                     </div>
-                    <div className="ml-auto flex items-center gap-4 text-lg text-gray-600">
-                        <span>{fromStationName} → {toStationName}</span>
-                        <span>•</span>
-                        <span>{searchParams.departureDate}</span>
-                    </div>
+                    {hasActiveFilters && (
+                        <div className="ml-auto flex items-center gap-4 text-lg text-gray-600">
+                            <span>{fromStationName} → {toStationName}</span>
+                            <span>•</span>
+                            <span>{searchParams.departureDate}</span>
+                        </div>
+                    )}
                 </div>
             </div>
 

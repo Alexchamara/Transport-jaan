@@ -17,6 +17,8 @@ const Summary = () => {
   const booking = props.booking;
   const schedule = booking?.schedule;
   const vehicle = booking?.vehicle;
+  const provider = vehicle?.provider;
+  const client = booking?.customer;
 
   // ---- helpers ----
   const C = booking?.currency || "USD";
@@ -83,7 +85,7 @@ const Summary = () => {
     }));
   }, [booking?.addons]);
 
-  const downloadSummaryPDF = async () => {
+  const downloadSummaryPDF = async () => {  
     if (!quoteRef.current) return;
 
     const canvas = await html2canvas(quoteRef.current, {
@@ -248,10 +250,6 @@ const Summary = () => {
                 DOWNLOAD SUMMARY
               </div>
             </div>
-
-            <div className="flex justify-end text-[#0955AC] text-[16px] font-[500] cursor-pointer">
-              <h1>Need a Driver ?</h1>
-            </div>
           </div>
 
           {/* right column */}
@@ -368,10 +366,10 @@ const Summary = () => {
           {/* HEADER */}
           <div className="flex flex-row justify-between items-center">
             <div className="figtree text-[16px] font-[600]">
-              <h1>{props?.vendor?.name || "Vendor name"}</h1>
-              <h1>{props?.vendor?.address || "Vendor Address"}</h1>
-              <h1>{props?.vendor?.phone || "Vendor Contact Number"}</h1>
-              <h1>{props?.vendor?.email || "Vendor Email"}</h1>
+              <h1>Vendor name: {provider?.name || "-"}</h1>
+              <h1>Vendor address: {provider?.address || ""}</h1>
+              <h1>Vendor phone: {provider?.phone || ""}</h1>
+              <h1>Vendor email: {provider?.email || ""}</h1>
             </div>
 
             <div className="text-center poppins text-[25px] font-[700] uppercase">
@@ -382,16 +380,16 @@ const Summary = () => {
           </div>
 
           <div className="figtree flex flex-row justify-end text-[35px] font-[700] text-[#0955AC]">
-            <h1>Quotation</h1>
+            <h1>Summary</h1>
           </div>
 
           {/* BILL TO + META */}
           <div className="flex flex-row justify-between items-end">
             <div className="text-[16px] font-[600]">
               <h1 className="text-[#0955AC]">Bill To</h1>
-              <h1>{props?.customer?.name || booking?.customer_name || "Client Name"}</h1>
-              <h1>{props?.customer?.address || booking?.customer_address || "Client Address"}</h1>
-              <h1>{props?.customer?.phone || booking?.customer_phone || "Client contact number"}</h1>
+              <h1>Client Name: {client?.first_name} {client?.last_name}</h1>
+              <h1>Client Address: {client?.address || ""}</h1>
+              <h1>Client contact number: {client?.phone || ""}</h1>
             </div>
 
             <div className="text-right text-[16px] font-[600]">

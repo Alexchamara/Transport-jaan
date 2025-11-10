@@ -58,6 +58,8 @@ const Payments = () => {
   const [slipNumber, setSlipNumber] = useState("");
   const [slipPdf, setSlipPdf] = useState(null);
   const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState({ slipNumber: "" });
+  const slipNumberRegex = /^(\d+|[a-zA-Z]+\d+|[a-zA-Z]+-\d+)$/;
 
   // NEW: in-window popup instead of alert for T&C message
   const [showTermsPopup, setShowTermsPopup] = useState(false);
@@ -67,6 +69,29 @@ const Payments = () => {
       alert("Missing booking. Please go back.");
       return;
     }
+
+    if (!slipNumber || !slipNumberRegex.test(slipNumber)) {
+      setError((prev) => ({
+        ...prev,
+        slipNumber: "Please enter a valid slip number",
+      }));
+      return;
+    }
+    else {
+      setError((prev) => ({ ...prev, slipNumber: "" }));
+    }
+
+    if (!slipPdf) {
+      setError((prev) => ({
+        ...prev,
+        slipPdf: "Please upload the bank slip PDF",
+      }));
+      return;
+    }
+    else {
+      setError((prev) => ({ ...prev, slipPdf: "" }));
+    }
+
     if (!agreed) {
       // ⬇ show custom modal, no browser alert
       setShowTermsPopup(true);
@@ -227,14 +252,33 @@ const Payments = () => {
               <div className="mt-4 grid lg:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px]/[24px] font-[600]">Slip Number :</label>
-                  <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px]">
+                  <div
+                    className={`md:w-[374px] w-auto h-[49px] border-[1px] rounded-[5px] ${error.slipNumber ? "border-red-500" : "border-[#0000004D]"
+                      }`}
+                  >
                     <input
                       value={slipNumber}
-                      onChange={(e) => setSlipNumber(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setSlipNumber(value);
+
+                        // Real-time validation
+                        if (!slipNumberRegex.test(value)) {
+                          setError((prev) => ({
+                            ...prev,
+                            slipNumber: "Invalid slip number format",
+                          }));
+                        } else {
+                          setError((prev) => ({ ...prev, slipNumber: "" }));
+                        }
+                      }}
                       className="w-full h-full px-3 rounded-[5px] focus:outline-none focus:ring-0 focus:border-transparent border-transparent placeholder:text-[12px] placeholder:font-[500] placeholder:text-[#808080]"
                       placeholder="Enter slip number"
                     />
                   </div>
+                  {error.slipNumber && (
+                    <p className="text-red-500 text-[10px]">{error.slipNumber}</p>
+                  )}
                 </div>
 
                 <div>
@@ -242,13 +286,42 @@ const Payments = () => {
                   <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] flex items-center px-3">
                     <input
                       type="file"
-                      accept="application/pdf"
-                      onChange={(e) => setSlipPdf(e.target.files?.[0] ?? null)}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        if (file) {
+                          const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+                          const maxSize = 5 * 1024 * 1024; // 5 MB in bytes
+
+                          if (!allowedTypes.includes(file.type)) {
+                            setError((prev) => ({ ...prev, slipPdf: 'Invalid file type. Only PDF, JPG, JPEG, PNG allowed.' }));
+                            setSlipPdf(null);
+                            return;
+                          }
+
+                          if (file.size > maxSize) {
+                            setError((prev) => ({ ...prev, slipPdf: 'File size exceeds 5 MB.' }));
+                            setSlipPdf(null);
+                            return;
+                          }
+
+                          // Valid file
+                          setSlipPdf(file);
+                          setError((prev) => ({ ...prev, slipPdf: '' }));
+                        } else {
+                          setSlipPdf(null);
+                          setError((prev) => ({ ...prev, slipPdf: '' }));
+                        }
+                      }}
                       className="w-full text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
                     />
                   </div>
-                  <p className="text-[10px] text-[#00000080] mt-1">Only PDF files are allowed.</p>
+
+                  {error.slipPdf && <p className="text-red-500 text-[10px]">{error.slipPdf}</p>}
+
+                  <p className="text-[10px] text-[#00000080] mt-1">Only PDF, JPG, JPEG, PNG files are allowed. Max size 5MB.</p>
                 </div>
+
               </div>
             )}
           </div>

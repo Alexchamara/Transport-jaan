@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "@inertiajs/react";
-
+import { router } from "@inertiajs/react";
 
 const BusCard = () => {
     const [busFrom, setBusFrom] = useState("");
@@ -8,18 +7,41 @@ const BusCard = () => {
     const [busDate, setBusDate] = useState("");
 
     const stationOptions = [
-        "Colombo Fort",
-        "Kandy",
-        "Galle",
-        "Matara",
-        "Anuradhapura",
+        "Colombo Central Bus Stand",
+        "Pettah Bus Station",
+        "Kandy Bus Terminal",
+        "Galle Bus Station",
+        "Matara Bus Station",
+        "Anuradhapura Bus Station",
+        "Kurunegala Bus Station",
+        "Ratnapura Bus Station",
+        "Badulla Bus Station",
+        "Jaffna Bus Station",
+        "Negombo Bus Station",
+        "Gampaha Bus Station",
+        "Kalutara Bus Station",
+        "Hambantota Bus Station",
+        "Trincomalee Bus Station",
+        "Batticaloa Bus Station",
+        "Polonnaruwa Bus Station",
+        "Nuwara Eliya Bus Station",
+        "Bandarawela Bus Station",
+        "Chilaw Bus Station"
     ];
+
     const onSubmitBus = (e) => {
         e.preventDefault();
-        console.log("Bus search", {
+        
+        if (!busFrom || !busTo || !busDate) {
+            alert('Please fill in all fields');
+            return;
+        }
+
+        // Navigate to bus booking details with search parameters
+        router.get('/busTicketBookingDetails', {
             from: busFrom,
             to: busTo,
-            date: busDate,
+            date: busDate
         });
     };
 
@@ -39,6 +61,7 @@ const BusCard = () => {
                             value={busFrom}
                             onChange={(e) => setBusFrom(e.target.value)}
                             className="w-full border rounded-[10px] p-3"
+                            required
                         >
                             <option value="" disabled>
                                 Enter your departure station
@@ -59,6 +82,7 @@ const BusCard = () => {
                             value={busTo}
                             onChange={(e) => setBusTo(e.target.value)}
                             className="w-full border rounded-[10px] p-3"
+                            required
                         >
                             <option value="" disabled>
                                 Enter your arrival station
@@ -80,18 +104,18 @@ const BusCard = () => {
                             value={busDate}
                             onChange={(e) => setBusDate(e.target.value)}
                             className="w-full border rounded-[10px] p-3"
+                            required
+                            min={new Date().toISOString().split('T')[0]}
                         />
                     </div>
 
                     <div className="md:pt-5">
-                        <Link href="busTicketBookingDetails">
-                            <button
-                                type="submit"
-                                className="w-full bg-[#0955AC] text-white font-semibold rounded-[10px] py-3 hover:bg-blue-700"
-                            >
-                                Search
-                            </button>
-                        </Link>
+                        <button
+                            type="submit"
+                            className="w-full bg-[#0955AC] text-white font-semibold rounded-[10px] py-3 hover:bg-blue-700"
+                        >
+                            Search
+                        </button>
                     </div>
                 </div>
             </form>

@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable"; 
-import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../../assets/vendors/dashboard/settings.svg";
+import autoTable from "jspdf-autotable";
+
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
@@ -17,199 +17,31 @@ import downloadLogo from "../../../../assets/financial/expenses/download.svg";
 import calendar from "../../../../assets/financial/expenses/cal.svg";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
+import NotificationDropdown from "../../NotificationDropdown";
 
 const PaymentContent = () => {
-    const transactions = [
-        {
-            id: "JV-L001",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L002",
-            client: "Alice Jhonson",
-            car: "Tucson Hyundai",
-            rentPerDay: "$2000",
-            days: "04",
-            amount: "$2000",
-            dueDate: "2025.08.10",
-            status: "Pending",
-            statusColor: "#F0BB0D",
-            statusBg: "#FFCD294D",
-        },
-        {
-            id: "JV-L003",
-            client: "Alice Jhonson",
-            car: "Tucson Hyundai",
-            rentPerDay: "$2000",
-            days: "04",
-            amount: "$2000",
-            dueDate: "2025.08.10",
-            status: "Pending",
-            statusColor: "#F0BB0D",
-            statusBg: "#FFCD294D",
-        },
-        {
-            id: "JV-L004",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L005",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L006",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L007",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L008",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L009",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0010",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0011",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0012",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0013",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0014",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "JV-L0015",
-            client: "Bob Smith",
-            car: "Tucson Hyundai",
-            rentPerDay: "$100",
-            days: "03",
-            amount: "$100",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-    ];
+    const { auth, transactions: propsTransactions, stats, monthlyRevenue, unreadNotifications = 0 } = usePage().props;
+    const user = auth?.user;
+
+    // Use actual transactions from backend or fallback to empty array
+    const [transactions] = useState(propsTransactions || []);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Filter transactions based on search
+    const filteredTransactions = transactions.filter(txn =>
+        txn.client?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        txn.car?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        txn.id?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedRows, setSelectedRows] = useState(new Set());
     const perPageOptions = [5, 10, 20, 50];
-    const totalPages = Math.ceil(transactions.length / itemsPerPage);
+    const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
-    const currentTransactions = transactions.slice(startIdx, endIdx);
+    const currentTransactions = filteredTransactions.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
         if (page < 1 || page > totalPages) return;
@@ -273,7 +105,7 @@ const PaymentContent = () => {
         doc.setFontSize(18);
         doc.text("Recent Transactions", 14, 20);
 
-        const tableData = transactions.map((txn) => [
+        const tableData = filteredTransactions.map((txn) => [
             txn.id,
             txn.client,
             txn.car,
@@ -328,9 +160,9 @@ const PaymentContent = () => {
         doc.save("transactions.pdf");
     };
 
-    React.useEffect(() => {
+    useEffect(() => {
         setCurrentPage(1);
-    }, [itemsPerPage]);
+    }, [itemsPerPage, searchTerm]);
 
     return (
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
@@ -338,20 +170,13 @@ const PaymentContent = () => {
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Payment</h1>
                 <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
+
+                    <NotificationDropdown bellIcon={bell} unreadCount={unreadNotifications} />
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={proPic} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>
@@ -375,9 +200,11 @@ const PaymentContent = () => {
                         </div>
                         <div>
                             <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                Balance
+                                Total Revenue
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$8,450</h1>
+                            <h1 className="text-[26px] font-[700]">
+                                ${stats?.total_revenue?.toFixed(2) || '0.00'}
+                            </h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -403,17 +230,18 @@ const PaymentContent = () => {
                         </div>
                         <div>
                             <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                Income
+                                Completed
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$25,700</h1>
+                            <h1 className="text-[26px] font-[700]">
+                                ${stats?.total_completed?.toFixed(2) || '0.00'}
+                            </h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                        <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                            <img src={upArrow} className="size-[19px]" />
-                            <h1 className="">+1.73%</h1>
+                        <div className="w-[100px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                            <h1 className="">{stats?.completed_count || 0} Payments</h1>
                         </div>
-                        <h1 className="text-[#7B7B7A]">from last week</h1>
+                        <h1 className="text-[#7B7B7A]">paid transactions</h1>
                     </div>
                 </div>
                 {/* end of card 2 */}
@@ -432,22 +260,18 @@ const PaymentContent = () => {
                             </div>
                             <div>
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                    Expenses
+                                    Pending
                                 </h1>
                                 <h1 className="text-[26px] font-[700]">
-                                    $14,756
+                                    ${stats?.total_pending?.toFixed(2) || '0.00'}
                                 </h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px] rotate-180"
-                                />
-                                <h1 className="">+2.86%</h1>
+                            <div className="w-[100px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
+                                <h1>{stats?.pending_count || 0} Payments</h1>
                             </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
+                            <h1 className="text-[#7B7B7A]">awaiting payment</h1>
                         </div>
                     </div>
                     {/* end of card 3 */}
@@ -470,8 +294,10 @@ const PaymentContent = () => {
                             <img src={miniSearchIcon} />
                             <input
                                 type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="Search client name, car, etc."
+                                placeholder="Search client name, car, invoice..."
                             />
                         </div>
                         <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">

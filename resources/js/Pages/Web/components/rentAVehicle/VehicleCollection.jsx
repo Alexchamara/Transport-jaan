@@ -13,44 +13,61 @@ import heart from "../../assets/rentAVehicle/collection/heart.png";
 // bundled placeholder (resources/js/assets/placeholder.jpg)
 import placeholderImg from "@/assets/placeholder.jpg";
 
-const VehicleCollection = () => {
-  const { vehicles, likedVehicleIds, authUser } = usePage().props;
+const VehicleCollection = ({vehicles, selectedType}) => {
+  const { likedVehicleIds, authUser } = usePage().props;
+  
+  console.log("authUser:", authUser);
 
-  const [likedVehicles, setLikedVehicles] = useState({});
+  // const [likedVehicles, setLikedVehicles] = useState({});
+    // liked map for O(1) checks
+    const [likedMap, setLikedMap] = useState({});
+    useEffect(() => {
+      const m = {};
+      (likedVehicleIds || []).forEach((id) => (m[id] = true));
+      setLikedMap(m);
+    }, [likedVehicleIds]);
+  
 
-  useEffect(() => {
-    if (likedVehicleIds) {
-      const initial = {};
-      likedVehicleIds.forEach((id) => (initial[id] = true));
-      setLikedVehicles(initial);
-    }
-  }, [likedVehicleIds]);
+  // useEffect(() => {
+  //   if (likedVehicleIds) {
+  //     const initial = {};
+  //     likedVehicleIds.forEach((id) => (initial[id] = true));
+  //     setLikedVehicles(initial);
+  //   }
+  // }, [likedVehicleIds]);
 
   const toggleLike = async (vehicleId) => {
-    if (!authUser) {
-      alert("You must be logged in to like a vehicle.");
-      router.visit("/signin");
-      return;
-    }
-    try {
-      const { data } = await axios.post(route("client.vehicle.like.toggle"), {
-        vehicle_id: vehicleId,
-      });
-      const next = {};
-      (data.likedVehicleIds || []).forEach((id) => (next[id] = true));
-      setLikedVehicles(next);
-    } catch (e) {
-      console.error(e);
-      alert("Something went wrong while liking the vehicle.");
-    }
-  };
+  if (!authUser) {
+    alert("You must be logged in to like a vehicle.");
+    router.visit("/signin");
+    return;
+  }
+  const next = !likedMap[vehicleId];
+  setLikedMap((prev) => ({ ...prev, [vehicleId]: next }));                                
+  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+  try {
+    const { data } = await axios.post(
+      route("client.vehicle.like.toggle"),
+      { vehicle_id: vehicleId },
+      { headers: { 'X-CSRF-TOKEN': token } }  // <-- include CSRF token here
+    );
+
+    const map = {};
+    (data.likedVehicleIds || []).forEach((id) => (map[id] = true));
+    setLikedMap(map);
+  } catch (e) {
+    console.error(e);
+    alert("Something went wrong while liking the vehicle.");
+  }
+};                                                                            
 
   const handleViewDetails = (vehicleId) => {
     if (!vehicleId) return;
-    router.visit(`/vehicleDetails/${vehicleId}`);
+router.visit(route('vehicle.details', vehicleId));
   };
 
-  const handleViewMore = () => router.visit("/vehicleList");
+  const handleViewMore = () => router.get("/vehicleList", { type: selectedType });
 
   // choose the best available image URL
   const getVehicleImageSrc = (v) => {
@@ -78,7 +95,6 @@ const VehicleCollection = () => {
           Ranging from elegant sedans to powerful vehicles, all carefully selected to provide
           our customers <br /> with the ultimate driving experience.
         </p>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-[50px] justify-items-center p-5 px-20">
           {vehicles.map((vehicle) => (
             <div
@@ -94,7 +110,7 @@ const VehicleCollection = () => {
                   </div>
                   <div className="flex flex-col items-center gap-1">
                     <img src={gearBox} alt="Transmission" className="w-[17px] h-[17px]" />
-                    <span>{vehicle.landSpec?.transmission_type || "-"}</span>
+                    <span>{vehicle.transmission_type || "-"}</span>
                   </div>
                   <div className="flex flex-col items-center gap-1">
                     <img src={user} alt="Seats" className="w-[17px] h-[17px]" />
@@ -147,12 +163,13 @@ const VehicleCollection = () => {
                   </button>
                   <button
                     onClick={() => toggleLike(vehicle.id)}
-                    className="bebas-neue border-[1.5px] border-[#0955AC] text-[8px] sm:text-[9px] font-[400] p-1 rounded-[4px] h-[28px] sm:h-[30px] w-[28px] sm:w-[30px] cursor-pointer flex items-center justify-center bg-white text-[#0955AC]"
+                    className="h-[42px] w-[42px] rounded border border-[#0955AC] grid place-items-center bg-white"
+                    aria-label={likedMap[vehicle.id] ? 'Unlike' : 'Like'}
                   >
                     <img
-                      src={likedVehicles[vehicle.id] ? heartFill : heart}
-                      alt="heart"
-                      className="w-[14px] sm:w-[16px] h-[11px] sm:h-[13px] object-contain"
+                      src={likedMap[vehicle.id] ? heartFill : heart}
+                      alt=""
+                      className="w-[18px] h-[18px]"
                     />
                   </button>
                 </div>

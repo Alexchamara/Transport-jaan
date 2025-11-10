@@ -24,17 +24,27 @@ class TrainController extends Controller
         $infants = $request->input('infants', 0);
 
         // Parse station names and get station IDs
-        $fromStationName = $this->extractStationName($fromStation);
-        $toStationName = $this->extractStationName($toStation);
+        $fromStationRecord = null;
+        $toStationRecord = null;
 
-        $fromStationRecord = TrainStation::where('name', 'like', '%' . $fromStationName . '%')->first();
-        $toStationRecord = TrainStation::where('name', 'like', '%' . $toStationName . '%')->first();
+        if ($fromStation) {
+            $fromStationName = $this->extractStationName($fromStation);
+            $fromStationRecord = TrainStation::where('name', 'like', '%' . $fromStationName . '%')->first();
+        }
+
+        if ($toStation) {
+            $toStationName = $this->extractStationName($toStation);
+            $toStationRecord = TrainStation::where('name', 'like', '%' . $toStationName . '%')->first();
+        }
 
         $outboundSchedules = collect();
         $returnSchedules = collect();
 
-        if ($fromStationRecord && $toStationRecord && $departureDate) {
-            // Get outbound schedules
+        // Check if any search criteria is provided
+        $hasSearchCriteria = $fromStation || $toStation || $departureDate;
+
+        if ($hasSearchCriteria && $fromStationRecord && $toStationRecord && $departureDate) {
+            // Get filtered outbound schedules based on search criteria
             $outboundSchedules = TrainSchedule::with(['train', 'departureStation', 'arrivalStation'])
                 ->where('departure_station_id', $fromStationRecord->id)
                 ->where('arrival_station_id', $toStationRecord->id)
@@ -91,6 +101,35 @@ class TrainController extends Controller
                         ];
                     });
             }
+        } elseif (!$hasSearchCriteria) {
+            // If no search criteria provided, show all available trains
+            $outboundSchedules = TrainSchedule::with(['train', 'departureStation', 'arrivalStation'])
+                ->where('status', 'active')
+                ->where('date', '>=', Carbon::today()->format('Y-m-d'))
+                ->orderBy('date')
+                ->orderBy('departure_time')
+                ->limit(20) // Limit to prevent overwhelming the UI
+                ->get()
+                ->map(function ($schedule) {
+                    return [
+                        'id' => $schedule->id,
+                        'name' => $schedule->train->name,
+                        'class' => $schedule->train->class_type,
+                        'route' => 'Route number: ' . $schedule->train->route_number,
+                        'depart' => Carbon::parse($schedule->departure_time)->format('g:i A'),
+                        'arrive' => Carbon::parse($schedule->arrival_time)->format('g:i A'),
+                        'date' => Carbon::parse($schedule->date)->format('j M'),
+                        'duration' => $this->formatDuration($schedule->duration_minutes),
+                        'price' => $schedule->price,
+                        'available_seats' => $schedule->available_seats,
+                        'total_capacity' => $schedule->train->capacity,
+                        'status' => $schedule->available_seats > 0 ? 'View Seats' : 'Sold Out',
+                        'soldOut' => $schedule->available_seats == 0,
+                        'facilities' => $schedule->train->facilities ?? [],
+                        'train_number' => $schedule->train->train_number,
+                        'operator' => $schedule->train->operator,
+                    ];
+                });
         }
 
         return Inertia::render('Web/home/ticketBooking/TrainTicketBookingDetails', [
@@ -108,11 +147,18 @@ class TrainController extends Controller
             'returnSchedules' => $returnSchedules,
             'fromStationName' => $fromStationRecord ? $fromStationRecord->name : $fromStation,
             'toStationName' => $toStationRecord ? $toStationRecord->name : $toStation,
+            'hasActiveFilters' => $hasSearchCriteria && ($fromStationRecord && $toStationRecord && $departureDate),
+            'isShowingAllTrains' => !$hasSearchCriteria,
         ]);
     }
 
     public function preview(Request $request)
     {
+        // Check if the user is logged in
+        if (!auth()->check()) {
+            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
+        }
+
         $scheduleId = $request->input('schedule_id');
         $returnScheduleId = $request->input('return_schedule_id');
         $adults = $request->input('adults', 1);
@@ -181,6 +227,11 @@ class TrainController extends Controller
 
     public function store(Request $request)
     {
+        // Check if the user is logged in
+        if (!auth()->check()) {
+            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
+        }
+
         $request->validate([
             'train_schedule_id' => 'required|exists:train_schedules,id',
             'passenger_name' => 'required|string|max:255',

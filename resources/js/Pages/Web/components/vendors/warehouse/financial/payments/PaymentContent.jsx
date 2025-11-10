@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { usePage, router } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable"; 
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
@@ -19,198 +20,94 @@ import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
 const PaymentContent = () => {
-    // Updated to warehouse-oriented data (no car fields)
-    const transactions = [
-        {
-            id: "WH-INV-001",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A12",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-002",
-            client: "Alice Johnson",
-            warehouse: "Biyagama Storage - Racking B3",
-            ratePerDay: "$80",
-            days: "04",
-            amount: "$320",
-            dueDate: "2025.08.10",
-            status: "Pending",
-            statusColor: "#F0BB0D",
-            statusBg: "#FFCD294D",
-        },
-        {
-            id: "WH-INV-003",
-            client: "Alice Johnson",
-            warehouse: "Biyagama Storage - Racking B4",
-            ratePerDay: "$80",
-            days: "04",
-            amount: "$320",
-            dueDate: "2025.08.10",
-            status: "Pending",
-            statusColor: "#F0BB0D",
-            statusBg: "#FFCD294D",
-        },
-        {
-            id: "WH-INV-004",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A13",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-005",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A14",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-006",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A15",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-007",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A16",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-008",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A17",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-009",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A18",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-010",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A19",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-011",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A20",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-012",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A21",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-013",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A22",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-014",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A23",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-        {
-            id: "WH-INV-015",
-            client: "Bob Smith",
-            warehouse: "Colombo Central - Bay A24",
-            ratePerDay: "$45",
-            days: "03",
-            amount: "$135",
-            dueDate: "2025.08.10",
-            status: "Completed",
-            statusColor: "#50AE31",
-            statusBg: "#6DB4464D",
-        },
-    ];
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
+    // State management
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        balance: { amount: '0', growth: 0, isPositive: true },
+        income: { amount: '0', growth: 0, isPositive: true },
+        expenses: { amount: '0', growth: 0, isPositive: false }
+    });
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [selectedRows, setSelectedRows] = useState(new Set());
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalRecords, setTotalRecords] = useState(0);
+    
+    // Filter states
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [dateFilter, setDateFilter] = useState('');
+    
     const perPageOptions = [5, 10, 20, 50];
-    const totalPages = Math.ceil(transactions.length / itemsPerPage);
+
+    // Fetch payment statistics
+    const fetchStats = async () => {
+        try {
+            const response = await fetch('/vendors/warehouse/api/payment-stats');
+            const data = await response.json();
+            if (data.success) {
+                setStats(data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching payment stats:', error);
+        }
+    };
+
+    // Fetch payment transactions
+    const fetchTransactions = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                page: currentPage,
+                per_page: itemsPerPage,
+                ...(searchQuery && { search: searchQuery }),
+                ...(statusFilter && { status: statusFilter }),
+                ...(dateFilter && { date: dateFilter })
+            });
+
+            const response = await fetch(`/vendors/warehouse/api/payment-transactions?${params}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                setTransactions(data.data);
+                setTotalPages(data.pagination.last_page);
+                setTotalRecords(data.pagination.total);
+            }
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial load and when filters change
+    useEffect(() => {
+        fetchStats();
+    }, []);
+
+    useEffect(() => {
+        fetchTransactions();
+    }, [currentPage, itemsPerPage, searchQuery, statusFilter, dateFilter]);
+
+    // Debounced search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (currentPage === 1) {
+                fetchTransactions();
+            } else {
+                setCurrentPage(1);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     const startIdx = (currentPage - 1) * itemsPerPage;
-    const endIdx = startIdx + itemsPerPage;
-    const currentTransactions = transactions.slice(startIdx, endIdx);
+    const currentTransactions = transactions;
 
     const goToPage = (page) => {
         if (page < 1 || page > totalPages) return;
@@ -267,6 +164,20 @@ const PaymentContent = () => {
             );
             setSelectedRows(new Set(allCurrentIndices));
         }
+    };
+
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+    };
+
+    const handleStatusChange = (e) => {
+        setStatusFilter(e.target.value);
+        setCurrentPage(1);
+    };
+
+    const handleDateChange = (e) => {
+        setDateFilter(e.target.value);
+        setCurrentPage(1);
     };
 
     const downloadTableAsPDF = () => {
@@ -328,10 +239,6 @@ const PaymentContent = () => {
         doc.save("warehouse-transactions.pdf");
     };
 
-    React.useEffect(() => {
-        setCurrentPage(1);
-    }, [itemsPerPage]);
-
     return (
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
@@ -351,7 +258,7 @@ const PaymentContent = () => {
                         <img src={proPic} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>
@@ -362,7 +269,7 @@ const PaymentContent = () => {
 
             {/* mini 4 cards */}
             <div className="flex flex-row gap-5 w-full">
-                {/* card 1 */}
+                {/* card 1 - Balance */}
                 <div
                     className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
@@ -377,20 +284,27 @@ const PaymentContent = () => {
                             <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
                                 Balance
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$8,450</h1>
+                            <h1 className="text-[26px] font-[700]">LKR {stats.balance.amount}</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                        <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                            <img src={upArrow} className="size-[19px]" />
-                            <h1 className="">+2.86%</h1>
+                        <div 
+                            className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${
+                                stats.balance.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
+                            }`}
+                        >
+                            <img 
+                                src={upArrow} 
+                                className={`size-[19px] ${!stats.balance.isPositive ? 'rotate-180' : ''}`}
+                            />
+                            <h1>{stats.balance.isPositive ? '+' : ''}{stats.balance.growth}%</h1>
                         </div>
                         <h1 className="text-[#7B7B7A]">from last week</h1>
                     </div>
                 </div>
                 {/* end of card 1 */}
 
-                {/* card 2 */}
+                {/* card 2 - Income */}
                 <div
                     className="min-w=[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
@@ -405,13 +319,20 @@ const PaymentContent = () => {
                             <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
                                 Income
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$25,700</h1>
+                            <h1 className="text-[26px] font-[700]">LKR {stats.income.amount}</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                        <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                            <img src={upArrow} className="size-[19px]" />
-                            <h1 className="">+1.73%</h1>
+                        <div 
+                            className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${
+                                stats.income.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
+                            }`}
+                        >
+                            <img 
+                                src={upArrow} 
+                                className={`size-[19px] ${!stats.income.isPositive ? 'rotate-180' : ''}`}
+                            />
+                            <h1>{stats.income.isPositive ? '+' : ''}{stats.income.growth}%</h1>
                         </div>
                         <h1 className="text-[#7B7B7A]">from last week</h1>
                     </div>
@@ -419,7 +340,7 @@ const PaymentContent = () => {
                 {/* end of card 2 */}
 
                 <div className="flex flex-row gap-5 w-full">
-                    {/* card 3 */}
+                    {/* card 3 - Expenses */}
                     <div
                         className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
@@ -435,7 +356,7 @@ const PaymentContent = () => {
                                     Expenses
                                 </h1>
                                 <h1 className="text-[26px] font-[700]">
-                                    $14,756
+                                    LKR {stats.expenses.amount}
                                 </h1>
                             </div>
                         </div>
@@ -445,7 +366,7 @@ const PaymentContent = () => {
                                     src={upArrow}
                                     className="size-[19px] rotate-180"
                                 />
-                                <h1 className="">+2.86%</h1>
+                                <h1>+{stats.expenses.growth}%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
@@ -470,31 +391,40 @@ const PaymentContent = () => {
                             <img src={miniSearchIcon} />
                             <input
                                 type="text"
+                                value={searchQuery}
+                                onChange={handleSearchChange}
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
                                 placeholder="Search client, warehouse, etc."
                             />
                         </div>
                         <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img src={filterIcon} className="size-[12px]" />
-                            <input
-                                type="text"
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="Status"
-                            />
+                            <select
+                                value={statusFilter}
+                                onChange={handleStatusChange}
+                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-[14px]"
+                            >
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
                             <img src={miniDownArrow} />
                         </div>
                         <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img src={calendar} className="size-[17px]" />
                             <input
-                                type="text"
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="25th May"
+                                type="date"
+                                value={dateFilter}
+                                onChange={handleDateChange}
+                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-[12px]"
                             />
-                            <img src={miniDownArrow} />
                         </div>
                         <button
                             onClick={downloadTableAsPDF}
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+                            disabled={loading || transactions.length === 0}
+                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <img src={downloadLogo} />
                             <h1>Download</h1>
@@ -581,7 +511,24 @@ const PaymentContent = () => {
                     </div>
                 </div>
                 {/* end */}
-                {currentTransactions.map((txn, idx) => (
+                
+                {loading ? (
+                    <div className="flex justify-center items-center h-[400px]">
+                        <div className="text-center">
+                            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0955AC] border-r-transparent"></div>
+                            <p className="mt-4 text-[#7B7B7A]">Loading transactions...</p>
+                        </div>
+                    </div>
+                ) : transactions.length === 0 ? (
+                    <div className="flex justify-center items-center h-[400px]">
+                        <div className="text-center">
+                            <p className="text-[#7B7B7A] text-[18px]">No transactions found</p>
+                            <p className="text-[#7B7B7A] text-[14px] mt-2">Try adjusting your filters</p>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        {currentTransactions.map((txn, idx) => (
                     <div
                         key={startIdx + idx}
                         className="grid grid-cols-9 h-[100px] justify-center items-center text-[15px] font-[500] px-10 border-b-[1.5px] border-[#00000033]"
@@ -686,6 +633,8 @@ const PaymentContent = () => {
                         </button>
                     </div>
                 </div>
+                    </>
+                )}
             </div>
         </div>
     );

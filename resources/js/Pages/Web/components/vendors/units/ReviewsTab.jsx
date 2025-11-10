@@ -1,5 +1,6 @@
 import React from "react";
 import ReviewSection from "../../vehicleDetails/ReviewSection";
+// Adjust depth: units -> vendors (..1) -> components (..2) -> Web (..3) then into assets
 import starSec from "../../../assets/landVehicleDetails/starsSec.svg";
 
 const ReviewsTab = () => (

@@ -1,9 +1,9 @@
 // resources/js/Pages/Web/components/vendors/driver/Driver.jsx
 import React, { useEffect, useRef, useState } from "react";
 import SideMenu from "../SideMenu.jsx";
+import { usePage } from "@inertiajs/react";
 
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
+
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 
@@ -21,6 +21,9 @@ const selectClasses = inputClasses;
 /* ---------------------------------------- */
 
 export default function Driver() {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [loading, setLoading] = useState(false);
@@ -28,9 +31,12 @@ export default function Driver() {
   const [query] = useState(""); // kept empty (no free-text search)
   const [sort, setSort] = useState({ key: "created_at", dir: "desc" });
   const [errors, setErrors] = useState({});
+  const [warnings, setWarnings] = useState({}); // For duplicate warnings
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedRows, setExpandedRows] = useState(() => new Set()); // details toggle
+  const [imageRefreshKey, setImageRefreshKey] = useState(Date.now()); // For cache busting
   const gotCsrf = useRef(false);
+  const checkTimeouts = useRef({}); // For debouncing duplicate checks
 
   const formRef = useRef(null);
 
@@ -43,8 +49,8 @@ export default function Driver() {
     return new URL(withSlash, window.location.origin).toString();
   };
 
-  // stream/download controller endpoints
-  const driverStream = (id, kind) => `/vendor/drivers/${id}/${kind}/stream`;     // kind: 'license' | 'nic'
+  // stream/download controller endpoints with cache-busting
+  const driverStream = (id, kind) => `/vendor/drivers/${id}/${kind}/stream?t=${Date.now()}`;     // kind: 'license' | 'nic'
   const driverDownload = (id, kind) => `/vendor/drivers/${id}/${kind}/download`; // direct download
   // --------------------------------
 
@@ -124,8 +130,8 @@ export default function Driver() {
   }
 
   const api = {
-    list: (q, sort, dir, page, per_page) =>
-      http("GET", "/drivers", null, { q, sort, dir, page, per_page }),
+    list: (q, status, sort, dir, page, per_page) =>
+      http("GET", "/drivers", null, { q, status, sort, dir, page, per_page }),
     create: (payload) => http("POST", "/drivers", toFormData(payload)),
     update: (id, payload) => {
       const fd = toFormData(payload);
@@ -153,8 +159,8 @@ export default function Driver() {
   const fetchData = async (page = 1) => {
     setLoading(true);
     try {
-      const searchText = statusFilter === "All" ? "" : `${statusFilter}`;
-      const data = await api.list(searchText, sort.key, sort.dir, page, PAGE_SIZE);
+      const statusParam = statusFilter === "All" ? "" : statusFilter;
+      const data = await api.list(query, statusParam, sort.key, sort.dir, page, PAGE_SIZE);
       setRows(data.data);
       setMeta({ current_page: data.current_page, last_page: data.last_page, total: data.total });
     } finally {
@@ -171,10 +177,47 @@ export default function Driver() {
   const validate = () => {
     const e = {};
     if (!form.full_name.trim()) e.full_name = "Name is required";
-    if (!form.phone.trim()) e.phone = "Phone is required";
-    if (!form.license_no.trim()) e.license_no = "License no. is required";
+
+    // Phone validation
+    if (!form.phone.trim()) {
+      e.phone = "Phone is required";
+    } else {
+      // Remove spaces and special characters for validation
+      const cleanPhone = form.phone.replace(/[\s\-\(\)]/g, '');
+
+      // Check if it contains only digits and optional + at the start
+      if (!/^\+?\d+$/.test(cleanPhone)) {
+        e.phone = "Phone must contain only numbers (+ allowed at start)";
+      } else if (cleanPhone.length < 10) {
+        e.phone = "Phone number must be at least 10 digits";
+      } else if (cleanPhone.length > 15) {
+        e.phone = "Phone number must not exceed 15 digits";
+      }
+    }
+
+    // License number validation
+    if (!form.license_no.trim()) {
+      e.license_no = "License no. is required";
+    } else {
+      // Allow letters, numbers, hyphens, slashes, and spaces
+      if (!/^[A-Z0-9\-\/\s]{5,20}$/i.test(form.license_no)) {
+        e.license_no = "License number must be 5-20 characters (letters, numbers, -, /, spaces only)";
+      }
+    }
+
     if (!form.vehicle_type.trim()) e.vehicle_type = "Vehicle type is required";
-    if (!form.vehicle_no.trim()) e.vehicle_no = "Vehicle no. is required";
+
+    // Vehicle number validation
+    if (!form.vehicle_no.trim()) {
+      e.vehicle_no = "Vehicle no. is required";
+    } else {
+      // Format: 1-3 letters, optional space/hyphen, 1-4 letters/numbers, optional space/hyphen, 1-4 numbers
+      // Examples: WP ABC-1234, CAA-1234, KA 01 AB 1234
+      if (!/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i.test(form.vehicle_no)) {
+        e.vehicle_no = "Invalid vehicle number format. Use: WP ABC-1234 or CAA-1234";
+      }
+    }
+
     if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) e.email = "Invalid email";
 
     const needsLicense = !editing || (editing && form.license_photo instanceof File);
@@ -206,7 +249,11 @@ export default function Driver() {
     e.preventDefault();
     if (!validate()) return;
     try {
-      if (editing) await api.update(editing, form);
+      if (editing) {
+        await api.update(editing, form);
+        // Refresh image cache key to force reload of images
+        setImageRefreshKey(Date.now());
+      }
       else await api.create(form);
       resetForm();
       await fetchData(meta.current_page);
@@ -256,13 +303,101 @@ export default function Driver() {
     <label className="block text-[14px] font-medium text-gray-700">{children}</label>
   );
 
+  // Debounced duplicate check function
+  const checkDuplicate = async (field, value) => {
+    if (!value || value.trim().length < 3) {
+      setWarnings(prev => ({ ...prev, [field]: '' }));
+      return;
+    }
+
+    try {
+      const exists = rows.some(driver => {
+        if (editing && driver.id === editing) return false; // Exclude current driver when editing
+        return driver[field]?.toLowerCase() === value.toLowerCase();
+      });
+
+      if (exists) {
+        setWarnings(prev => ({
+          ...prev,
+          [field]: `This ${field.replace('_', ' ')} is already registered with another driver.`
+        }));
+      } else {
+        setWarnings(prev => ({ ...prev, [field]: '' }));
+      }
+    } catch (error) {
+      console.error('Duplicate check failed:', error);
+    }
+  };
+
+  // Helper function to handle phone input
+  const handlePhoneChange = (value) => {
+    // Allow only numbers, +, spaces, hyphens, and parentheses
+    const sanitized = value.replace(/[^0-9+\s\-\(\)]/g, '');
+    setForm({ ...form, phone: sanitized });
+
+    // Clear error if user starts typing
+    if (errors.phone) {
+      setErrors({ ...errors, phone: '' });
+    }
+
+    // Debounced duplicate check
+    if (checkTimeouts.current.phone) clearTimeout(checkTimeouts.current.phone);
+    checkTimeouts.current.phone = setTimeout(() => checkDuplicate('phone', sanitized), 800);
+  };
+
+  // Helper function to handle license number input
+  const handleLicenseChange = (value) => {
+    // Allow only letters, numbers, hyphens, slashes, and spaces
+    const sanitized = value.replace(/[^A-Za-z0-9\-\/\s]/g, '').toUpperCase();
+    setForm({ ...form, license_no: sanitized });
+
+    // Clear error if user starts typing
+    if (errors.license_no) {
+      setErrors({ ...errors, license_no: '' });
+    }
+
+    // Debounced duplicate check
+    if (checkTimeouts.current.license_no) clearTimeout(checkTimeouts.current.license_no);
+    checkTimeouts.current.license_no = setTimeout(() => checkDuplicate('license_no', sanitized), 800);
+  };
+
+  // Helper function to handle vehicle number input
+  const handleVehicleNoChange = (value) => {
+    // Allow only letters, numbers, hyphens, and spaces
+    const sanitized = value.replace(/[^A-Za-z0-9\-\s]/g, '').toUpperCase();
+    setForm({ ...form, vehicle_no: sanitized });
+
+    // Clear error if user starts typing
+    if (errors.vehicle_no) {
+      setErrors({ ...errors, vehicle_no: '' });
+    }
+
+    // Debounced duplicate check
+    if (checkTimeouts.current.vehicle_no) clearTimeout(checkTimeouts.current.vehicle_no);
+    checkTimeouts.current.vehicle_no = setTimeout(() => checkDuplicate('vehicle_no', sanitized), 800);
+  };
+
+  // Helper function to handle email input with duplicate checking
+  const handleEmailChange = (value) => {
+    setForm({ ...form, email: value });
+
+    // Clear error and warning if user starts typing
+    if (errors.email) {
+      setErrors({ ...errors, email: '' });
+    }
+
+    // Debounced duplicate check
+    if (checkTimeouts.current.email) clearTimeout(checkTimeouts.current.email);
+    checkTimeouts.current.email = setTimeout(() => checkDuplicate('email', value), 800);
+  };
+
   const ImageInput = ({ label, field, urlField, requiredText, kind }) => {
     const file = form[field];
     const hasExisting = !!form[urlField] || !!editing;
     const previewSrc = file
       ? URL.createObjectURL(file)
       : editing
-      ? driverStream(editing, kind)
+      ? `${driverStream(editing, kind)}&refresh=${imageRefreshKey}`
       : (form[urlField] ? toAbsoluteUrl(form[urlField]) : "");
 
     return (
@@ -294,6 +429,7 @@ export default function Driver() {
         </div>
         {previewSrc ? (
           <img
+            key={`preview-${field}-${imageRefreshKey}`}
             src={previewSrc}
             alt={`${typeof label === "string" ? label : "Image"} preview`}
             className="mt-2 h-16 w-16 object-cover rounded-md border border-gray-200"
@@ -308,11 +444,12 @@ export default function Driver() {
 
   const ThumbCell = ({ id, url, kind }) => {
     if (!url) return <span className="text-[#00000066]">-</span>;
-    const imgSrc = driverStream(id, kind);
+    const imgSrc = `${driverStream(id, kind)}&refresh=${imageRefreshKey}`;
     const dlHref = driverDownload(id, kind);
     return (
       <div className="flex items-center gap-2">
         <img
+          key={`${id}-${kind}-${imageRefreshKey}`}
           src={imgSrc}
           alt={`${kind} preview`}
           className="h-10 w-10 object-cover rounded border"
@@ -352,12 +489,11 @@ export default function Driver() {
           <div className="flex flex-row gap-5 justify-between items-center">
             <h1 className="figtree text-[28px] font-[700]">Drivers</h1>
             <div className="flex flex-row gap-4 items-center">
-              <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={search} /></div>
-              <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={settings} /></div>
+
               <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={bell} /></div>
               <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={proPic} /></div>
               <div className="figtree hidden sm:flex flex-col justify-center items-start">
-                <div className="text-[16px] font-[700]">Steve Gibson</div>
+                <div className="text-[16px] font-[700]">{user?.name || 'Vendor'}</div>
                 <div className="text-[13px] font-[600] text-[#7B7B7A]">Vendor</div>
               </div>
             </div>
@@ -388,12 +524,18 @@ export default function Driver() {
               <div className="space-y-1">
                 <Label>Phone <Req /></Label>
                 <input
+                  type="tel"
                   className={inputClasses(!!errors.phone)}
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
                   placeholder="+94 77 123 4567"
+                  maxLength="20"
                 />
                 {errors.phone && <span className="text-red-500 text-xs">{errors.phone}</span>}
+                {!errors.phone && warnings.phone && <span className="text-yellow-600 text-xs">⚠ {warnings.phone}</span>}
+                {!errors.phone && !warnings.phone && form.phone && (
+                  <span className="text-gray-500 text-xs">Format: +94 77 123 4567 or 0771234567</span>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -402,21 +544,28 @@ export default function Driver() {
                   type="email"
                   className={inputClasses(!!errors.email)}
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) => handleEmailChange(e.target.value)}
                   placeholder="john@example.com"
                 />
                 {errors.email && <span className="text-red-500 text-xs">{errors.email}</span>}
+                {!errors.email && warnings.email && <span className="text-yellow-600 text-xs">⚠ {warnings.email}</span>}
               </div>
 
               <div className="space-y-1">
                 <Label>License No. <Req /></Label>
                 <input
+                  type="text"
                   className={inputClasses(!!errors.license_no)}
                   value={form.license_no}
-                  onChange={(e) => setForm({ ...form, license_no: e.target.value })}
-                  placeholder="B1234567"
+                  onChange={(e) => handleLicenseChange(e.target.value)}
+                  placeholder="B1234567 or DL/2023/12345"
+                  maxLength="20"
                 />
                 {errors.license_no && <span className="text-red-500 text-xs">{errors.license_no}</span>}
+                {!errors.license_no && warnings.license_no && <span className="text-yellow-600 text-xs">⚠ {warnings.license_no}</span>}
+                {!errors.license_no && !warnings.license_no && form.license_no && (
+                  <span className="text-gray-500 text-xs">5-20 characters: letters, numbers, -, /, spaces</span>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -443,12 +592,18 @@ export default function Driver() {
               <div className="space-y-1">
                 <Label>Vehicle No. <Req /></Label>
                 <input
+                  type="text"
                   className={inputClasses(!!errors.vehicle_no)}
                   value={form.vehicle_no}
-                  onChange={(e) => setForm({ ...form, vehicle_no: e.target.value })}
-                  placeholder="WP ABC-1234"
+                  onChange={(e) => handleVehicleNoChange(e.target.value)}
+                  placeholder="WP ABC-1234 or CAA-1234"
+                  maxLength="20"
                 />
                 {errors.vehicle_no && <span className="text-red-500 text-xs">{errors.vehicle_no}</span>}
+                {!errors.vehicle_no && warnings.vehicle_no && <span className="text-yellow-600 text-xs">⚠ {warnings.vehicle_no}</span>}
+                {!errors.vehicle_no && !warnings.vehicle_no && form.vehicle_no && (
+                  <span className="text-gray-500 text-xs">Format: Province Code + Letters/Numbers (e.g., WP ABC-1234)</span>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -664,7 +819,8 @@ export default function Driver() {
                                     {r.license_photo_url ? (
                                       <div className="flex items-center gap-3">
                                         <img
-                                          src={driverStream(r.id, "license")}
+                                          key={`license-large-${r.id}-${imageRefreshKey}`}
+                                          src={`${driverStream(r.id, "license")}&refresh=${imageRefreshKey}`}
                                           alt="License"
                                           className="h-28 w-28 object-cover rounded-md border border-gray-200"
                                         />
@@ -684,7 +840,8 @@ export default function Driver() {
                                     {r.nic_photo_url ? (
                                       <div className="flex items-center gap-3">
                                         <img
-                                          src={driverStream(r.id, "nic")}
+                                          key={`nic-large-${r.id}-${imageRefreshKey}`}
+                                          src={`${driverStream(r.id, "nic")}&refresh=${imageRefreshKey}`}
                                           alt="NIC"
                                           className="h-28 w-28 object-cover rounded-md border border-gray-200"
                                         />

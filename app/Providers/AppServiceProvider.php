@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
         ini_set('upload_max_filesize', '50M');
         ini_set('post_max_size', '100M');
         ini_set('max_file_uploads', '20');
-        ini_set('max_execution_time', '300');
+        ini_set('max_execution_time', '0');
         ini_set('memory_limit', '512M');
     }
 
@@ -26,7 +27,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
-        
+
         $this->app['router']->aliasMiddleware('role', \App\Http\Middleware\CheckRole::class);
+
+        // Register observers
+        \App\Models\Booking::observe(\App\Observers\BookingObserver::class);
     }
+
+    
 }

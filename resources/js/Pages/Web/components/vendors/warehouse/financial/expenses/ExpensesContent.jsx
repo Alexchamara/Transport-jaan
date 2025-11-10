@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
@@ -21,6 +22,9 @@ import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
 
 const ExpensesContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const expensesData = [
         {
             name: "Warehouse Rent",
@@ -164,12 +168,18 @@ const ExpensesContent = () => {
     const currentExpenses = expensesData.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -201,6 +211,9 @@ const ExpensesContent = () => {
 
     // Function to download table as PDF
     const downloadTableAsPDF = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const doc = new jsPDF();
         doc.setFontSize(18);
         doc.text("Recent Transactions", 14, 20);
@@ -277,7 +290,7 @@ const ExpensesContent = () => {
                         <img src={proPic} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>

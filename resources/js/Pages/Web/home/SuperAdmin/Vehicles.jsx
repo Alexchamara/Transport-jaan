@@ -9,7 +9,7 @@ import Dots from "../../assets/superAdmin/Dots Icon.svg";
 import ArrowLeftB from "../../assets/superAdmin/Arrow LeftB.svg";
 import ArrowRight from "../../assets/superAdmin/Arrow Right.svg";
 
-const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
+const Vehicles = ({ vehicles = { data: [] }, categories = [], filters = {}, stats = {}, auth }) => {
     const [selectedVehicles, setSelectedVehicles] = useState([]);
     const [showBulkActions, setShowBulkActions] = useState(false);
     const [rejectionReason, setRejectionReason] = useState("");
@@ -246,12 +246,7 @@ const Vehicles = ({ vehicles, categories, filters, stats, auth }) => {
                             </div>
                         </div>
 
-                        <Link
-                            className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm"
-                            href="/superadmin/vehicles/export"
-                        >
-                            <h1>Export Data</h1>
-                        </Link>
+
                     </div>
 
                     {/* Stats Cards */}

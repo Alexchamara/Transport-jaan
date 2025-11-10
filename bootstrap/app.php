@@ -8,7 +8,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 ini_set('upload_max_filesize', '50M');
 ini_set('post_max_size', '100M');
 ini_set('max_file_uploads', '20');
-ini_set('max_execution_time', '300');
+ini_set('max_execution_time', '0');
 ini_set('memory_limit', '512M');
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -21,11 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\RefreshSessionOnAuth::class,
         ]);
 
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'vendor.verified' => \App\Http\Middleware\VendorVerificationCheck::class,
         ]);
 
         //

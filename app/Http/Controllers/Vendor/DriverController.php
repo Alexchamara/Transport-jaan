@@ -14,6 +14,14 @@ class DriverController extends Controller
     {
         $query = Driver::query();
 
+        // Dedicated status filter
+        if ($status = $request->query('status')) {
+            if (in_array($status, ['Active', 'Inactive'], true)) {
+                $query->where('status', $status);
+            }
+        }
+
+        // General search across other fields (excluding status from general search)
         if ($search = $request->query('q')) {
             $query->where(function ($q) use ($search) {
                 $q->where('full_name', 'like', "%{$search}%")
@@ -21,8 +29,7 @@ class DriverController extends Controller
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('license_no', 'like', "%{$search}%")
                   ->orWhere('vehicle_no', 'like', "%{$search}%")
-                  ->orWhere('vehicle_type', 'like', "%{$search}%")
-                  ->orWhere('status', 'like', "%{$search}%");
+                  ->orWhere('vehicle_type', 'like', "%{$search}%");
             });
         }
 
@@ -41,17 +48,25 @@ class DriverController extends Controller
     {
         $data = $request->validate([
             'full_name'      => 'required|string|max:255',
-            'phone'          => 'required|string|max:50',
-            'email'          => 'nullable|email|max:255',
-            'license_no'     => 'required|string|max:100',
+            'phone'          => ['required', 'string', 'max:10', 'regex:/^\+?[0-9\s\-\(\)]{10,20}$/', 'unique:drivers,phone'],
+            'email'          => 'nullable|email|max:255|unique:drivers,email',
+            'license_no'     => ['required', 'string', 'max:100', 'regex:/^[A-Z0-9\-\/\s]{5,20}$/i', 'unique:drivers,license_no'],
             'license_expiry' => 'nullable|date',
             'vehicle_type'   => 'required|string|max:100',
-            'vehicle_no'     => 'required|string|max:100',
+            'vehicle_no'     => ['required', 'string', 'max:100', 'regex:/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i', 'unique:drivers,vehicle_no'],
             'status'         => ['nullable', Rule::in(['Active','Inactive'])],
             'address'        => 'nullable|string',
             'notes'          => 'nullable|string',
             'license_photo'  => 'required|image|max:4096',
             'nic_photo'      => 'required|image|max:4096',
+        ], [
+            'phone.regex' => 'Phone number format is invalid. Use format: +94 77 123 4567 or 0771234567',
+            'phone.unique' => 'This phone number is already registered.',
+            'email.unique' => 'This email address is already registered.',
+            'license_no.regex' => 'License number format is invalid. Use letters, numbers, hyphens, or slashes (e.g., B1234567 or DL/2023/12345)',
+            'license_no.unique' => 'This license number is already registered.',
+            'vehicle_no.regex' => 'Vehicle number format is invalid. Use format: WP ABC-1234 or CAA-1234',
+            'vehicle_no.unique' => 'This vehicle number is already registered.',
         ]);
 
         if ($request->hasFile('license_photo')) {
@@ -74,17 +89,24 @@ class DriverController extends Controller
     {
         $data = $request->validate([
             'full_name'      => 'sometimes|required|string|max:255',
-            'phone'          => 'sometimes|required|string|max:50',
-            'email'          => 'nullable|email|max:255',
-            'license_no'     => 'sometimes|required|string|max:100',
+            'phone'          => ['sometimes', 'required', 'string', 'max:50', 'regex:/^\+?[0-9\s\-\(\)]{10,20}$/', Rule::unique('drivers')->ignore($driver->id)],
+            'email'          => ['nullable', 'email', 'max:255', Rule::unique('drivers')->ignore($driver->id)],
+            'license_no'     => ['sometimes', 'required', 'string', 'max:100', 'regex:/^[A-Z0-9\-\/\s]{5,20}$/i', Rule::unique('drivers')->ignore($driver->id)],
             'license_expiry' => 'nullable|date',
             'vehicle_type'   => 'sometimes|required|string|max:100',
-            'vehicle_no'     => 'sometimes|required|string|max:100',
+            'vehicle_no'     => ['sometimes', 'required', 'string', 'max:100', 'regex:/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i', Rule::unique('drivers')->ignore($driver->id)],
             'status'         => ['nullable', Rule::in(['Active','Inactive'])],
             'address'        => 'nullable|string',
             'notes'          => 'nullable|string',
             'license_photo'  => 'nullable|image|max:4096',
             'nic_photo'      => 'nullable|image|max:4096',
+        ], [
+            'phone.unique' => 'This phone number is already registered.',
+            'email.unique' => 'This email address is already registered.',
+            'license_no.regex' => 'License number format is invalid. Use letters, numbers, hyphens, or slashes (e.g., B1234567 or DL/2023/12345)',
+            'license_no.unique' => 'This license number is already registered.',
+            'vehicle_no.regex' => 'Vehicle number format is invalid. Use format: WP ABC-1234 or CAA-1234',
+            'vehicle_no.unique' => 'This vehicle number is already registered.',
         ]);
 
         if ($request->hasFile('license_photo')) {

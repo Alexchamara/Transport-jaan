@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Search from "../../../assets/superAdmin/Search.png";
 import UserGroup from "../../../assets/superAdmin/User group Icon.svg";
 import DotsThreeY from "../../../assets/superAdmin/DotsThreeY.svg";
@@ -16,6 +16,85 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
     const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
 
+    // Sync local state with props when they change
+    useEffect(() => {
+        setSearchTerm(filters.search || '');
+        setRoleFilter(filters.role || 'all');
+        setStatusFilter(filters.status || 'all');
+    }, [filters]);
+
+    // Auto-refresh mechanism for handling back navigation and stale data
+    useEffect(() => {
+        // Check if we have inconsistent data state
+        const shouldHaveUsers = roleFilter === 'all' && statusFilter === 'all' && !searchTerm;
+        const hasCounts = counts && counts.total > 0;
+        const hasNoUsers = !users || users.length === 0;
+
+        // If we should have users based on counts but don't, refresh the data
+        if (hasNoUsers && shouldHaveUsers && hasCounts) {
+            console.log('Auto-refreshing: Data inconsistency detected');
+            router.get('/superadmin/Users', {}, {
+                preserveState: false,
+                replace: true
+            });
+            return;
+        }
+
+        // Also check when filters indicate we should have data but don't
+        if (hasNoUsers && counts && Object.keys(counts).length > 0) {
+            const totalExpected = counts.total || 0;
+            if (totalExpected > 0) {
+                console.log('Auto-refreshing: Expected users but none found');
+                router.get('/superadmin/Users', {
+                    search: searchTerm,
+                    role: roleFilter,
+                    status: statusFilter
+                }, {
+                    preserveState: false,
+                    replace: true
+                });
+            }
+        }
+    }, [users, counts, roleFilter, statusFilter, searchTerm]);
+
+    // Handle page visibility change to refresh stale data
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden && (!users || users.length === 0) && counts && counts.total > 0) {
+                console.log('Auto-refreshing: Page became visible with stale data');
+                router.get('/superadmin/Users', {
+                    search: searchTerm,
+                    role: roleFilter,
+                    status: statusFilter
+                }, {
+                    preserveState: false,
+                    replace: true
+                });
+            }
+        };
+
+        // Handle browser back/forward navigation
+        const handlePopState = () => {
+            console.log('Auto-refreshing: Browser navigation detected');
+            router.get('/superadmin/Users', {
+                search: searchTerm,
+                role: roleFilter,
+                status: statusFilter
+            }, {
+                preserveState: false,
+                replace: true
+            });
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('popstate', handlePopState);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, [users, counts, searchTerm, roleFilter, statusFilter]);
+
     const handleSearch = (e) => {
         if (e.key === 'Enter') {
             performSearch();
@@ -28,7 +107,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
             role: roleFilter,
             status: statusFilter
         }, {
-            preserveState: true,
+            preserveState: false,
             replace: true
         });
     };
@@ -45,7 +124,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
         if (filterType === 'status') setStatusFilter(value);
 
         router.get('/superadmin/Users', newFilters, {
-            preserveState: true,
+            preserveState: false,
             replace: true
         });
     };
@@ -82,7 +161,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                     </Link>
                 </div>
 
-               
+
             </div>
 
             {/* Cards */}
@@ -193,7 +272,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         <option value="rejected">Rejected</option>
                     </select>
                 </div>
-  
+
             <div className="w-[1125px] h-auto mx-[48px] ">
                 <div className="w-[1035px] h-auto border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
                     <AllUsers users={users} />

@@ -13,66 +13,70 @@ use Inertia\Inertia;
 class ClientVehicleController extends Controller
 {
     /** Home Page */
-    public function home()
-    {
-        // -- CASE-INSENSITIVE BRANDS --
-        $brands = Vehicle::query()
-            ->whereNotNull('manufacturer')
-            ->selectRaw('LOWER(manufacturer) AS key_name, MIN(manufacturer) AS display_name')
-            ->groupBy('key_name')
-            ->orderBy('display_name')
-            ->get()
-            ->map(fn($row) => [
-                'name' => $row->display_name,
-                'logo' => '/brand-logos/' . strtolower($row->display_name) . '.png',
-            ]);
+ public function home()
+{
+    $type = request()->get('type', 'land'); // 'land', 'water', 'air'
 
-        // Land body types (from categories)
-        $bodyTypes = VehicleCategory::where('type', 'land')
-            ->orderBy('name')
-            ->get()
-            ->map(fn($c) => [
-                'name' => $c->name,
-                'icon' => '/body-icons/' . strtolower($c->name) . '.png',
-            ]);
-
-        // Vehicles: send browser-usable image URLs
-        $vehicles = Vehicle::with(['landSpec', 'images', 'primaryImage'])
-            ->active()
-            ->type('land')
-            ->take(12)
-            ->get()
-            ->map(function ($v) {
-                $primaryUrl = $v->primary_image_url
-                    ?? optional($v->images->sortByDesc('is_primary')->sortBy('sort_order')->first())->url;
-
-                return [
-                    'id'                   => $v->id,
-                    'model'                => $v->model,
-                    'manufacturer'         => $v->manufacturer,
-                    'rental_price_per_day' => $v->rental_price_per_day,
-                    'primary_image_url'    => $primaryUrl,
-                    'landSpec'             => $v->landSpec,
-                    'mileage_km'           => $v->mileage_km,
-                    'passenger_capacity'   => $v->passenger_capacity,
-                ];
-            });
-
-        $likedVehicleIds = Auth::check()
-            ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
-            : [];
-
-        return Inertia::render('Web/home/HomePage', [
-            'brands'          => $brands,
-            'bodyTypes'       => $bodyTypes,
-            'vehicles'        => $vehicles,
-            'likedVehicleIds' => $likedVehicleIds,
+    // --- BRANDS ---
+    $brands = Vehicle::query()
+        ->whereNotNull('manufacturer')
+        ->selectRaw('LOWER(manufacturer) AS key_name, MIN(manufacturer) AS display_name')
+        ->groupBy('key_name')
+        ->orderBy('display_name')
+        ->get()
+        ->map(fn($row) => [
+            'name' => $row->display_name,
+            'logo' => '/brand-logos/' . strtolower($row->display_name) . '.png',
         ]);
-    }
+
+    // --- BODY TYPES ---
+    $bodyTypes = VehicleCategory::where('type', $type)
+        ->orderBy('name')
+        ->get()
+        ->map(fn($c) => [
+            'name' => $c->name,
+            'icon' => '/body-icons/' . strtolower($c->name) . '.png',
+        ]);
+
+    // --- VEHICLES ---
+    $vehicles = Vehicle::with([$type . 'Spec', 'images', 'primaryImage'])
+        ->active()
+        ->type($type)
+        ->take(12)
+        ->get()
+        ->map(function ($v) use ($type) {
+            $primaryUrl = $v->primary_image_url
+                ?? optional($v->images->sortByDesc('is_primary')->sortBy('sort_order')->first())->url;
+
+            return [
+                'id'                   => $v->id,
+                'model'                => $v->model,
+                'manufacturer'         => $v->manufacturer,
+                'rental_price_per_day' => $v->rental_price_per_day,
+                'primary_image_url'    => $primaryUrl,
+                'specs'                => $type === 'land' ? $v->landSpec : null,
+                'mileage_km'           => $v->mileage_km,
+                'passenger_capacity'   => $v->passenger_capacity,
+            ];
+        });
+
+    $likedVehicleIds = Auth::check()
+        ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
+        : [];
+
+    return Inertia::render('Web/home/HomePage', [
+        'brands'          => $brands,
+        'bodyTypes'       => $bodyTypes,
+        'vehicles'        => $vehicles,
+        'likedVehicleIds' => $likedVehicleIds,
+        'selectedType'    => $type, // helps frontend know current type
+    ]);
+}
 
     /** Vehicle List with filters (brand/model case-insensitive) */
     public function vehicleList(Request $request)
     {
+        $type = $request->get('type', 'land'); // 'land', 'water', 'air'
         $filters = $request->only([
             'pickupLocation',
             'pickupDate',
@@ -81,6 +85,7 @@ class ClientVehicleController extends Controller
             'brand',
             'model',
             'bodyType',
+            "capacity",
             'body_type',
         ]);
 
@@ -91,7 +96,7 @@ class ClientVehicleController extends Controller
                 ->orderBy('id'),
         ])
             ->active()
-            ->type('land');
+            ->type($type);
 
         if (!empty($filters['brand'])) {
             $brand = mb_strtolower(trim($filters['brand']));
@@ -106,11 +111,64 @@ class ClientVehicleController extends Controller
         $rawBodyType = $filters['bodyType'] ?? $filters['body_type'] ?? null;
         if (!empty($rawBodyType)) {
             $bodyType = mb_strtolower(trim($rawBodyType));
-            $allowed = ['sedan','hatchback','suv','van','bus','pickup','jeep','other'];
+            $allowed = ['suv','wagon','crossover','family','sportcoupe','compact','coupe','truck','othe'];
             if (in_array($bodyType, $allowed, true)) {
                 $query->whereHas('landSpec', fn($q) => $q->whereRaw('LOWER(body_type) = ?', [$bodyType]));
             }
         }
+
+        // Capacity Filter (multiple values)
+        if ($request->filled('capacity')) {
+            $capacities = explode(',', $request->capacity); // e.g. "2person,4person,8ormore"
+
+            $query->where(function ($q) use ($capacities) {
+                foreach ($capacities as $cap) {
+                    if ($cap === '8ormore') {
+                        $q->orWhere('passenger_capacity', '>=', 8);
+                    } else {
+                        $num = intval($cap); // "2person" -> 2
+                        $q->orWhere('passenger_capacity', $num);
+                    }
+                }
+            });
+        }
+
+                // Price Filter (multiple values)
+        if ($request->filled('price')) {
+            $prices = explode(',', $request->price);
+
+            $query->where(function ($q) use ($prices) {
+                foreach ($prices as $price) {
+                    if ($price === '200plus') {
+                        // Special case: price 200+
+                        $q->orWhere('rental_price_per_day', '>=', 200);
+                    } else {
+                        // Other ranges like "0-50"
+                        [$min, $max] = explode('-', $price);
+                        $q->orWhereBetween('rental_price_per_day', [(int)$min, (int)$max]);
+                    }
+                }
+            });
+        }
+
+        // Mileage Filter
+        if ($request->filled('mileage')) {
+            // Expecting comma-separated values like "limited,unlimited"
+            $mileages = explode(',', $request->mileage);
+
+            $query->where(function ($q) use ($mileages) {
+                foreach ($mileages as $m) {
+                    if ($m === 'limited') {
+                        // Define what "limited" means, e.g., less than 50,000 km
+                        $q->orWhere('mileage_km', '<', 50000);
+                    } elseif ($m === 'unlimited') {
+                        // "unlimited" means 50,000 km or more
+                        $q->orWhere('mileage_km', '>=', 50000);
+                    }
+                }
+            });
+        }
+
 
         $vehicles = $query->paginate(12)->withQueryString()
             ->through(function (Vehicle $v) {
@@ -203,8 +261,8 @@ class ClientVehicleController extends Controller
             ])
             ->withAvg('reviews as rating_avg', 'rating')
             ->withCount('reviews as reviews_count')
-            ->active()
-            ->type('land');
+            ->active();
+            // ->type('land');
 
         $vehicle = (clone $base)
             ->when(
@@ -288,4 +346,6 @@ class ClientVehicleController extends Controller
 
         return Storage::disk($disk)->response($path, $filename, $headers);
     }
+
+
 }

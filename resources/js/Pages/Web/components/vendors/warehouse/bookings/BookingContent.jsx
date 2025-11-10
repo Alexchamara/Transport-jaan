@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePage } from "@inertiajs/react";
 import WarehouseBookingService from "../../../../../../services/WarehouseBookingService";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
@@ -22,6 +23,9 @@ import BookingBarChart from "./BookingBarChart";
 
 
 const BookingContent = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
     const paymentStatusColors = {
         Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
         Pending: { color: "#FF60608C", bg: "#FF60608C" }, // Solid colors for Pending
@@ -41,61 +45,82 @@ const BookingContent = () => {
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [filters, setFilters] = useState({
+        search: "",
+        warehouseType: "",
+        status: "",
+    });
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Fetch bookings and stats from API
     useEffect(() => {
+        let isMounted = true;
+
         const fetchData = async () => {
             try {
                 setLoading(true);
+                setError(null);
+
                 const [bookingsResponse, statsResponse] = await Promise.all([
-                    WarehouseBookingService.getBookings(),
-                    WarehouseBookingService.getBookingStats()
+                    WarehouseBookingService.getBookings({ page: 1, per_page: 10 }),
+                    WarehouseBookingService.getBookingStats(),
                 ]);
-                
-                if (bookingsResponse.success) {
-                    const formattedBookings = bookingsResponse.data.map(booking => 
+
+                if (!isMounted) {
+                    return;
+                }
+
+                if (bookingsResponse?.success) {
+                    const formattedBookings = (bookingsResponse.data || []).map((booking) =>
                         WarehouseBookingService.formatBookingForDisplay(booking)
                     );
                     setBookings(formattedBookings);
+                } else {
+                    setBookings([]);
+                    setError((prev) => prev ?? bookingsResponse?.message ?? "Failed to load bookings");
                 }
-                
-                if (statsResponse.success) {
-                    setStats(statsResponse.data);
+
+                if (statsResponse?.success) {
+                    setStats({
+                        upcoming_bookings: statsResponse.data?.upcoming_bookings ?? 0,
+                        pending_bookings: statsResponse.data?.pending_bookings ?? 0,
+                        cancelled_bookings: statsResponse.data?.cancelled_bookings ?? 0,
+                        completed_bookings: statsResponse.data?.completed_bookings ?? 0,
+                    });
+                } else {
+                    setStats({
+                        upcoming_bookings: 0,
+                        pending_bookings: 0,
+                        cancelled_bookings: 0,
+                        completed_bookings: 0,
+                    });
+                    setError((prev) => prev ?? statsResponse?.message ?? "Failed to load booking statistics");
                 }
             } catch (error) {
-                console.error('Error fetching data:', error);
+                if (!isMounted) {
+                    return;
+                }
+                console.error('Error loading data:', error);
                 setError('Failed to load booking data');
-                // Fallback to sample data if API fails
-                setBookings([
-                    {
-                        id: "WB-001",
-                        bookingDate: "September 8, 2025",
-                        clientName: "Fresh Foods Ltd",
-                        warehouseName: "Central Cold Storage A",
-                        warehouseUnit: "WH-A12",
-                        purpose: "Food Storage",
-                        specialRequirements: "Temperature -18°C, FDA compliant",
-                        durationUnit: "months",
-                        durationValue: 6,
-                        quantity: 200,
-                        startDate: "September 15, 2025",
-                        endDate: "March 15, 2026",
-                        totalPrice: "$2,400",
-                        paymentStatus: "Pending",
-                        paymentStatusColor: paymentStatusColors.Pending.color,
-                        paymentStatusBg: paymentStatusColors.Pending.bg,
-                        status: "pending",
-                        statusBg: "#FFA500",
-                        statusText: "#FFFFFF",
-                        notes: "New client booking requiring approval for frozen goods storage",
-                    }
-                ]);
+                setBookings([]);
+                setStats({
+                    upcoming_bookings: 0,
+                    pending_bookings: 0,
+                    cancelled_bookings: 0,
+                    completed_bookings: 0,
+                });
             } finally {
-                setLoading(false);
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchData();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
@@ -120,12 +145,18 @@ const BookingContent = () => {
 
     // Handle input changes for the form
     const handleInputChange = (e) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const { name, value } = e.target;
         setNewBooking((prev) => ({ ...prev, [name]: value }));
     };
 
     // Handle form submission to add new booking
     const handleAddBooking = () => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
         const newBookingEntry = {
             ...newBooking,
             paymentStatusColor:
@@ -159,6 +190,51 @@ const BookingContent = () => {
         });
     };
 
+    const warehouseTypeOptions = [
+        { value: "", label: "All warehouse types" },
+        { value: "cold_storage", label: "Cold Storage" },
+        { value: "dry_storage", label: "Dry Storage" },
+        { value: "hazardous_material", label: "Hazardous Material" },
+        { value: "bonded", label: "Bonded" },
+    ];
+
+    const statusOptions = [
+        { value: "", label: "All statuses" },
+        { value: "pending", label: "Pending" },
+        { value: "confirmed", label: "Confirmed" },
+        { value: "active", label: "Active" },
+        { value: "completed", label: "Completed" },
+        { value: "cancelled", label: "Cancelled" },
+    ];
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setFilters((prev) =>
+                prev.search === searchTerm ? prev : { ...prev, search: searchTerm }
+            );
+        }, 300);
+
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
+
+    const handleWarehouseTypeChange = (event) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
+        const { value } = event.target;
+        setFilters((prev) => (
+            prev.warehouseType === value ? prev : { ...prev, warehouseType: value }
+        ));
+    };
+
+    const handleStatusChange = (event) => {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
+        const { value } = event.target;
+        setFilters((prev) => (prev.status === value ? prev : { ...prev, status: value }));
+    };
+
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
@@ -179,7 +255,7 @@ const BookingContent = () => {
                     </div>
 
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
                             Vendor
                         </h1>
@@ -340,36 +416,62 @@ const BookingContent = () => {
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
                                 placeholder="Search client, warehouse, purpose..."
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
                             />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="relative w-[139px] h-[35px]">
+                            <select
+                                className="w-full h-full bg-[#F3F3F3] rounded-[6px] py-2 pl-9 pr-8 text-[14px] font-[500] text-[#7B7B7ACC] appearance-none focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                value={filters.warehouseType}
+                                onChange={handleWarehouseTypeChange}
+                            >
+                                {warehouseTypeOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                             <img
                                 src={filterIcon}
-                                className="size-[12px]"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 size-[12px]"
                                 alt="Filter"
                             />
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Warehouse type
-                            </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
+                            {/* <img
+                                src={miniDownArrow}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                                alt="Dropdown"
+                            /> */}
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="relative w-[125px] h-[35px]">
+                            <select
+                                className="w-full h-full bg-[#F3F3F3] rounded-[6px] py-2 pl-9 pr-8 text-[14px] font-[500] text-[#7B7B7ACC] appearance-none focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                value={filters.status}
+                                onChange={handleStatusChange}
+                            >
+                                {statusOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                             <img
                                 src={filterIcon}
-                                className="size-[12px]"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 size-[12px]"
                                 alt="Filter"
                             />
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Status
-                            </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
+                            {/* <img
+                                src={miniDownArrow}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                                alt="Dropdown"
+                            /> */}
                         </div>
-                        <button
+                        {/* <button
                             className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
                             onClick={() => setIsAddPopupOpen(true)}
                         >
                             Add Booking
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 
@@ -618,16 +720,18 @@ const BookingContent = () => {
                     <div className="flex justify-center items-center py-20">
                         <div className="text-[18px] text-gray-600">Loading bookings...</div>
                     </div>
-                ) : error ? (
-                    <div className="flex justify-center items-center py-20">
-                        <div className="text-[18px] text-red-600">{error}</div>
-                    </div>
                 ) : (
-                    <WarehouseBookingTable
-                        bookings={bookings}
-                        setBookings={setBookings}
-                        statusColors={statusColors} // Pass statusColors as a prop
-                    />
+                    <>
+                        {error && (
+                            <div className="mb-6 text-center text-[16px] text-red-600">{error}</div>
+                        )}
+                        <WarehouseBookingTable
+                            bookings={bookings}
+                            setBookings={setBookings}
+                            statusColors={statusColors} // Pass statusColors as a prop
+                            filters={filters}
+                        />
+                    </>
                 )}
             </div>
             {/* end */}

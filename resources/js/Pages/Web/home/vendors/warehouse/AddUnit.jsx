@@ -45,13 +45,19 @@ const initialState = {
 };
 
 const warehouseTypes = [
-  'Cold Storage', 'Dry Storage', 'Climate Controlled', 'Hazmat Storage', 
-  'Bulk Storage', 'Pharmaceutical', 'Food Grade', 'General Purpose'
+  { value: 'cold_storage', label: 'Cold Storage' },
+  { value: 'dry', label: 'Dry Storage' },
+  { value: 'climate_controlled', label: 'Climate Controlled' },
+  { value: 'hazmat', label: 'Hazmat Storage' },
+  { value: 'bonded', label: 'Bonded Storage' },
+  { value: 'open_yard', label: 'Open Yard' }
 ];
 
 const pricingModels = [
-  'per_sqft_monthly', 'per_sqft_daily', 'per_pallet_monthly', 
-  'per_pallet_daily', 'flat_rate_monthly', 'flat_rate_daily'
+  { value: 'hourly', label: 'Hourly' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' }
 ];
 
 const defaultAmenities = [
@@ -69,6 +75,9 @@ const AddUnit = () => {
   const [errorItems, setErrorItems] = useState([]);
   const [amenityInput, setAmenityInput] = useState('');
   const [amenityOptions, setAmenityOptions] = useState(defaultAmenities);
+
+  // Get props for flash messages
+  const { props } = usePage();
 
   // image previews
   const [imageFiles, setImageFiles] = useState([]); // File[]
@@ -394,8 +403,7 @@ const AddUnit = () => {
         },
         preserveState: true,
         onSuccess: () => {
-          // show success modal
-          setShowSuccessModal(true);
+          // Success will be handled by flash message after redirect
         }
       });
     } catch (error) {
@@ -403,7 +411,17 @@ const AddUnit = () => {
       setErrorItems([error?.message || 'Something went wrong. Please try again.']);
       setShowErrorModal(true);
     }
-  };  // Google Maps script loader and autocomplete
+  };
+
+  // Handle flash messages
+  useEffect(() => {
+    const msg = props?.flash?.success;
+    if (msg && !showSuccessModal) {
+      setShowSuccessModal(true);
+    }
+  }, [props?.flash?.success, showSuccessModal]);
+
+  // Google Maps script loader and autocomplete
   useEffect(() => {
     if (!googleApiKey || mapScriptLoadedRef.current) return;
     const script = document.createElement('script');
@@ -560,7 +578,7 @@ const AddUnit = () => {
                 >
                   <option value="">Select warehouse type</option>
                   {warehouseTypes.map((type) => (
-                    <option key={type} value={type}>{type}</option>
+                    <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </select>
                 {errors.type && <div className="text-[#DC2626] text-[12px] mt-1">{errors.type}</div>}
@@ -578,7 +596,7 @@ const AddUnit = () => {
                 >
                   <option value="">Select pricing model</option>
                   {pricingModels.map((model) => (
-                    <option key={model} value={model}>{model.replace(/_/g, ' ').toUpperCase()}</option>
+                    <option key={model.value} value={model.value}>{model.label}</option>
                   ))}
                 </select>
                 {errors.pricing_model && <div className="text-[#DC2626] text-[12px] mt-1">{errors.pricing_model}</div>}
@@ -986,7 +1004,9 @@ const AddUnit = () => {
               ✕
             </button>
             <h2 className="text-[28px] font-[600] mt-2">Success</h2>
-            <p className="mt-2 text-[#6B6B6B] text-center">Your warehouse was created and submitted for approval.</p>
+            <p className="mt-2 text-[#6B6B6B] text-center">
+              {props?.flash?.success || 'Your warehouse was created and submitted for approval.'}
+            </p>
             <div className="mt-6 flex gap-3">
               <button
                 onClick={() => setShowSuccessModal(false)}

@@ -1,17 +1,75 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { router, usePage, Link } from "@inertiajs/react";
 import downArrow from "../assets/rentAVehicle/header/downArrow.png";
 import proPic from "../assets/header/profilePic.svg";
 import bell from "../assets/header/bell.svg";
 import search from "../assets/header/search.svg";
+import useCSRFRefresh from "../../../hooks/useCSRFRefresh.js";
 
 const Header = () => {
     const { auth } = usePage().props;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    const handleLogout = (e) => {
+    // Enable automatic CSRF token refresh for authenticated users
+    useCSRFRefresh();
+
+    // Function to refresh CSRF token
+    const refreshCSRFToken = async () => {
+        try {
+            const response = await fetch('/csrf-token');
+            const data = await response.json();
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) {
+                metaTag.setAttribute('content', data.token);
+            }
+            return data.token;
+        } catch (error) {
+            console.error('Failed to refresh CSRF token:', error);
+            return null;
+        }
+    };
+
+    const handleLogout = async (e) => {
         e.preventDefault();
-        router.post(route('logout'));
+
+        // First attempt: regular POST logout
+        const attemptLogout = () => {
+            router.post(route('logout'), {}, {
+                onError: async (errors) => {
+                    console.warn('POST logout failed, trying to refresh CSRF token...', errors);
+
+                    // Check if it's a CSRF error
+                    if (errors && (errors.message?.includes('CSRF') || errors.message?.includes('expired'))) {
+                        // Try to refresh CSRF token and retry once
+                        const newToken = await refreshCSRFToken();
+                        if (newToken) {
+                            // Retry with fresh token
+                            router.post(route('logout'), {}, {
+                                onError: () => {
+                                    // If still fails, use alternative method
+                                    console.warn('Retried logout failed, using alternative method...');
+                                    window.location.href = route('logout.alt');
+                                },
+                                onSuccess: () => {
+                                    window.location.href = '/';
+                                }
+                            });
+                        } else {
+                            // Fallback to GET logout
+                            window.location.href = route('logout.alt');
+                        }
+                    } else {
+                        // Other errors, try alternative method
+                        window.location.href = route('logout.alt');
+                    }
+                },
+                onSuccess: () => {
+                    window.location.href = '/';
+                }
+            });
+        };
+
+        attemptLogout();
     };
 
     const toggleMenu = () => {
@@ -70,9 +128,9 @@ const Header = () => {
                     </div>
                     <div
                         className="size-[27px] md:size-[55px] flex justify-center items-center cursor-pointer"
-                        onClick={() =>
-                            (window.location.href = "/clientDashboard")
-                        }
+                        onClick={() => {
+                            router.visit("/client/dashboard");
+                        }}
                     >
                         <img
                             src={proPic}
@@ -236,7 +294,7 @@ const Header = () => {
                                     )}
                                     {auth.user.role_type === "user" && (
                                         <Link
-                                            href="/user/view"
+                                            href="/client/dashboard"
                                             className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
                                         >
                                             User Dashboard

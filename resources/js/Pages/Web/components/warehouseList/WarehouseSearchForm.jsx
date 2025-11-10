@@ -1,5 +1,4 @@
 import React from "react";
-import { router } from "@inertiajs/react";
 import calendarBlue from "../../assets/vehicleList/calendarBlue.png"
 import locationBlue from "../../assets/vehicleList/locationBlue.png"
 
@@ -12,35 +11,10 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
     });
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    
-    // Build search parameters
-    const searchParams = {
-      warehouseLocation: formData.warehouseLocation,
-      requiredSpace: formData.requiredSpace,
-      moveinDate: formData.moveinDate,
-      leaseDuration: formData.leaseDuration
-    };
-
-    // Remove empty parameters
-    Object.keys(searchParams).forEach(key => {
-      if (!searchParams[key]) {
-        delete searchParams[key];
-      }
-    });
-
-    // Navigate to warehouse list with search parameters
-    router.get('/warehouseList', searchParams, {
-      preserveState: true,
-      preserveScroll: true
-    });
-  };
-
   return (
     <div className="p-4 sm:p-6 md:p-10">
       {/* Search Form */}
-      <form onSubmit={handleSearch} className="figtree bg-white p-4 sm:p-6 rounded-[15px] shadow-2xl shadow-[#00000040] w-full max-w-[1110px] min-h-[132px] text-[#286BB6] text-[13px] font-[400]">
+      <div className="figtree bg-white p-4 sm:p-6 rounded-[15px] shadow-2xl shadow-[#00000040] w-full max-w-[1110px] min-h-[132px] text-[#286BB6] text-[13px] font-[400]">
         {/* Combined Inputs and Button */}
         <div className="flex flex-col sm:flex-row items-end gap-4">
           {/* Input Fields Container */}
@@ -64,7 +38,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
               </div>
             </div>
 
-            {/* Required Space (sq ft) */}
+            {/* Required Space */}
             <div className="w-full sm:flex-1">
               <label htmlFor="requiredSpace" className="block mb-1">
                 Required Space (sq ft)
@@ -75,7 +49,7 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
                 placeholder="e.g., 10000"
                 value={formData.requiredSpace}
                 onChange={handleInputChange}
-                className="shadow-sm w-full border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                className="shadow-sm w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
               />
             </div>
 
@@ -125,14 +99,11 @@ const WarehouseSearchForm = ({ formData, onFormChange }) => {
           </div>
 
           {/* Find a Warehouse Button */}
-          <button 
-            type="submit"
-            className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[8px] focus:outline-none focus:shadow-outline cursor-pointer mt-4 sm:mt-0 hover:bg-[#0744A0] transition-colors"
-          >
+          <button className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[8px] focus:outline-none focus:shadow-outline cursor-pointer mt-4 sm:mt-0">
             →
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

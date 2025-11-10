@@ -35,6 +35,7 @@ class RegisteredUserController extends Controller
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role_type' => ['required', 'in:client,vendor'],
+            'vendor_type' => ['required_if:role_type,vendor', 'in:individual,business'],
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:255',
             'country' => 'required|string|max:2',
@@ -45,6 +46,8 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role_type,
+            'vendor_type' => $request->role_type === 'vendor' ? $request->vendor_type : null,
+            'status' => $request->role_type === 'client' ? 'verified' : 'unverified',
             'phone' => $request->phone,
             'address' => $request->address,
             'country' => $request->country,
@@ -55,7 +58,7 @@ class RegisteredUserController extends Controller
         Auth::login($user);
 
         $redirectTo = match($user->role) {
-            'client' => route('home', absolute: false),
+            'client' => route('client.mainDashboard', absolute: false),
             'vendor' => route('vendors.mainDashboard', absolute: false),
             default => route('landingPage.home', absolute: false),
         };

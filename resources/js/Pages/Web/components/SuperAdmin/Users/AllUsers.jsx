@@ -16,7 +16,11 @@ const UserDetailsModal = ({ user, onClose }) => {
             { status: newStatus },
             {
                 onSuccess: () => {
-                    router.reload();
+                    // Force reload with fresh data
+                    router.get('/superadmin/Users', {}, {
+                        preserveState: false,
+                        replace: false
+                    });
                     onClose();
                 },
                 onError: (errors) => {
@@ -193,6 +197,14 @@ const AllUsers = ({ users = [] }) => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
 
+    // Debug logging
+    React.useEffect(() => {
+        console.log('AllUsers component - users prop:', {
+            usersLength: users?.length || 0,
+            usersData: users
+        });
+    }, [users]);
+
     const getStatusStyles = (status) => {
         switch (status) {
             case 'verified':
@@ -279,8 +291,11 @@ const AllUsers = ({ users = [] }) => {
 
             {/* Rows */}
             {users.length === 0 ? (
-                <div className="text-white text-[12px] font-400 w-full text-center py-8">
-                    No users found.
+                <div className="text-white text-[12px] font-400 w-full text-center py-8 space-y-2">
+                    <div>No users found.</div>
+                    <div className="text-[#AEB9E1] text-[10px]">
+                        If you expected to see users here, try clicking the "Refresh" button above.
+                    </div>
                 </div>
             ) : (
                 users.map((user, index) => {
