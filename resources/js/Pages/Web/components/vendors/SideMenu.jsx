@@ -15,7 +15,7 @@ import proPic from "../../assets/vendors/dashboard/proPic.svg";
 import { Settings, Bell } from "lucide-react";
 import { Link } from "@inertiajs/react";
 
-const SideMenu = ({ vendorUser }) => {
+const SideMenu = () => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
     const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
     const currentPath = window.location.pathname;
@@ -247,32 +247,17 @@ const SideMenu = ({ vendorUser }) => {
                 </div>
 
                 {/* Logout - Fixed at bottom */}
-                <div className="flex-shrink-0 mt-2 pt-2 border-t border-gray-200 w-full">
-                    {/* Vendor User Info */}
-                    <div className="flex flex-row justify-start items-center gap-5 mb-2 px-3 py-1.5">
-                        <div className="size-[30px] rounded-[6px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={proPic} className="" />
-                        </div>
-                        <div className="figtree flex flex-col justify-center items-start">
-                            <h1 className="text-[14px] font-[600] text-[#00000066]">
-                                {vendorUser?.name ?? "Vendor"}
-                            </h1>
-                            <h1 className="text-[12px] font-[500] text-[#00000066]">
-                                {vendorUser?.role ?? "Vendor"}
-                            </h1>
-                        </div>
-                    </div>
-
+                {/* <div className="flex-shrink-0 mt-2 pt-4 border-t border-gray-200 w-full">
                     <Link
                         href={route("logout")}
                         method="post"
                         as="button"
-                        className="flex flex-row justify-start items-center gap-5 cursor-pointer text-[18px] font-[500] text-[#00000066] px-3 py-1.5 hover:bg-gray-50 rounded-lg w-full"
+                        className="figtree flex flex-row justify-start items-center gap-5 cursor-pointer text-[18px] font-[500] text-[#00000066] px-3 py-2.5 hover:bg-[#FEF2F2] hover:text-[#DC2626] rounded-lg w-full transition-all duration-200 group"
                     >
-                        <img src={logOutLogo} className="w-[22px]" />
+                        <img src={logOutLogo} className="w-[22px] h-[22px] group-hover:brightness-0 group-hover:invert group-hover:sepia group-hover:saturate-[5000%] group-hover:hue-rotate-[340deg] transition-all duration-200" />
                         <h1>Logout</h1>
                     </Link>
-                </div>
+                </div> */}
             </div>
         </>
     );
