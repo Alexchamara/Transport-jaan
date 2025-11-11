@@ -23,9 +23,9 @@ const ClientCardDashboard = () => {
       icon: '🎫',
       route: '/ticketBooking',
       subOptions: [
-        { name: 'Flight Tickets', route: '/flightBooking' },
-        { name: 'Train Tickets', route: '/trainTicketBookingDetails' },
-        { name: 'Bus Tickets', route: '/busTicketBookingDetails' }
+        { name: 'Flight Tickets', route: '/ticketBooking' },
+        { name: 'Train Tickets', route: '/ticketBooking' },
+        { name: 'Bus Tickets', route: '/ticketBooking'}
       ]
     },
     {
