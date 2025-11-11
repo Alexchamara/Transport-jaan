@@ -42,17 +42,17 @@ const SideMenu = () => {
         }
       `}</style>
             <div className="poppins min-w-[279px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
-                {/* Logo - Fixed at top */}
-                <div className="flex-shrink-0 mb-4 flex items-center justify-between">
+                {/* Logo - Fixed at top with Back Button */}
+                <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
                     <button
                         onClick={() => window.history.back()}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         title="Go back"
                     >
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </button>
                     <h1
-                        className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer flex-1"
+                        className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
                         onClick={() =>
                             (window.location.href = "/mainDashboard")
                         }

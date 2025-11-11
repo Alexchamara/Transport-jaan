@@ -8,7 +8,7 @@ import finLogo from "../../../assets/vendors/dashboard/finLogo.svg";
 import trackLogo from "../../../assets/vendors/dashboard/trackLogo.svg";
 import messgLogo from "../../../assets/vendors/dashboard/messgLogo.svg";
 import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg";
-import { Settings, Bell } from "lucide-react";
+import { Settings, Bell, ArrowLeft} from "lucide-react";
 
 const SideMenu = () => {
   const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
@@ -31,16 +31,25 @@ const SideMenu = () => {
 
       <div className="poppins min-w-[279px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
 
-        {/* Logo – same as first */}
-        <div className="flex-shrink-0 mb-4">
-          <h1
-            className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
-            onClick={() => (window.location.href = "/mainDashboard")}
-          >
-            Company <br />
-            <span className="text-[#0955AC]">Logo</span>
-          </h1>
-        </div>
+        {/* Logo - Fixed at top with Back Button */}
+                <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
+                    <button
+                        onClick={() => window.history.back()}
+                        className="absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Go back"
+                    >
+                        <ArrowLeft className="w-5 h-5 text-gray-600" />
+                    </button>
+                    <h1
+                        className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
+                        onClick={() =>
+                            (window.location.href = "/mainDashboard")
+                        }
+                    >
+                        Company <br />
+                        <span className="text-[#0955AC]">Logo</span>
+                    </h1>
+                </div>
 
         {/* Scrollable Menu */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">
