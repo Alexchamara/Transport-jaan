@@ -32,7 +32,11 @@ const ClientCardDashboard = () => {
       title: 'Courier Service',
       description: 'Send packages and track shipments.',
       icon: '📦',
-      route: '/courier-service'
+      route: '/courier-service',
+      subOptions: [
+        { name: 'Book Courier', route: '/courier-service' },
+        { name: 'My Courier Bookings', route: '/courierBookingDashboard' }
+      ]
     },
     {
       title: 'Warehouse Services',
