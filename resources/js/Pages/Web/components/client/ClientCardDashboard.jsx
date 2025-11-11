@@ -64,7 +64,7 @@ const ClientCardDashboard = () => {
       subOptions: [
         { name: 'All Bookings', route: '/dashboard/view' },
         { name: 'Flight Bookings', route: '/user/flight-view' },
-        { name: 'Booking Summary', route: '/user/booking-view' }
+        { name: 'Multimodal - Coming Soon', route: null, disabled: true }
       ]
     },
   ];
