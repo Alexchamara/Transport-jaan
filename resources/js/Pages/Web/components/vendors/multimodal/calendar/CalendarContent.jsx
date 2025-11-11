@@ -14,69 +14,189 @@ import miniDownArrow from "../../../../assets/vendors/calendar/miniDown.svg";
 import CalendarMonthPicker from "./CalendarMonthPicker";
 import CalendarGrid from "./CalendarGrid";
 
+import UserDropdown from "../../Userdropdown";
 // Define days, times, and events for the calendar
 const days = [
-  { label: "Mon", date: 14 },
-  { label: "Tue", date: 15 },
-  { label: "Wed", date: 16 },
-  { label: "Thu", date: 17 },
-  { label: "Fri", date: 18 },
-  { label: "Sat", date: 19 },
-  { label: "Sun", date: 20 },
+    { label: "Mon", date: 14 },
+    { label: "Tue", date: 15 },
+    { label: "Wed", date: 16 },
+    { label: "Thu", date: 17 },
+    { label: "Fri", date: 18 },
+    { label: "Sat", date: 19 },
+    { label: "Sun", date: 20 },
 ];
 
 const times = [
-  "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
-  "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM"
+    "8:00 AM",
+    "9:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "12:00 PM",
+    "1:00 PM",
+    "2:00 PM",
+    "3:00 PM",
+    "4:00 PM",
 ];
 
 const events = [
-  // Monday
-  { day: 0, time: "8:00 AM", title: "BMW LX3", person: "Steve Gibson", status: "done" },
-  { day: 0, time: "12:00 PM", title: "BMW LX3", person: "Steve Gibson", status: "done" },
-  { day: 0, time: "3:00 PM", title: "BMW LX3", person: "Steve Gibson", status: "done" },
-  // Tuesday
-  { day: 1, time: "9:00 AM", title: "BMW LX3", person: "Steve Gibson", status: "cancelled" },
-  { day: 1, time: "1:00 PM", title: "BMW LX3", person: "Steve Gibson", status: "cancelled" },
-  // Wednesday
-  { day: 2, time: "8:00 AM", title: "BMW LX3", person: "Steve Gibson", status: "done" },
-  // Thursday
-  { day: 3, time: "9:30 AM", title: "BMW LX3", person: "Steve Gibson", status: "done" },
-  { day: 3, time: "9:30 AM", title: "Toyota Vezel", person: "Steve Gibson", status: "done" },
-  { day: 3, time: "12:30 PM", title: "BMW LX3", person: "Steve Gibson", status: "done" },
-  { day: 3, time: "1:00 PM", title: "BMW LX3", person: "Steve Gibson", status: "cancelled" },
-  { day: 3, time: "1:00 PM", title: "Toyota Vezel", person: "Steve Gibson", status: "cancelled" },
-  // Friday
-  { day: 4, time: "8:00 AM", title: "BMW LX3", person: "Steve Gibson", status: "done" },
-  { day: 4, time: "11:00 AM", title: "BMW LX3", person: "Steve Gibson", status: "cancelled" },
-  // Saturday
-  { day: 5, time: "9:00 AM", title: "BMW LX3", person: "Steve Gibson", status: "done" },
-  // Sunday
-  { day: 6, time: "8:00 AM", title: "BMW LX3", person: "Steve Gibson", status: "cancelled" },
-  { day: 6, time: "1:00 PM", title: "BMW LX3", person: "Steve Gibson", status: "cancelled" },
-  { day: 6, time: "4:00 PM", title: "BMW LX3", person: "Steve Gibson", status: "done" },
+    // Monday
+    {
+        day: 0,
+        time: "8:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 0,
+        time: "12:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 0,
+        time: "3:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    // Tuesday
+    {
+        day: 1,
+        time: "9:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    {
+        day: 1,
+        time: "1:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    // Wednesday
+    {
+        day: 2,
+        time: "8:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    // Thursday
+    {
+        day: 3,
+        time: "9:30 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 3,
+        time: "9:30 AM",
+        title: "Toyota Vezel",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 3,
+        time: "12:30 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 3,
+        time: "1:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    {
+        day: 3,
+        time: "1:00 PM",
+        title: "Toyota Vezel",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    // Friday
+    {
+        day: 4,
+        time: "8:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 4,
+        time: "11:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    // Saturday
+    {
+        day: 5,
+        time: "9:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    // Sunday
+    {
+        day: 6,
+        time: "8:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    {
+        day: 6,
+        time: "1:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    {
+        day: 6,
+        time: "4:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
 ];
 
 const monthNames = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
 ];
 
 const CalendarContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     const today = new Date();
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
 
     const handlePrevMonth = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
-        setCurrentMonth(prev => {
+        setCurrentMonth((prev) => {
             if (prev === 0) {
-                setCurrentYear(y => y - 1);
+                setCurrentYear((y) => y - 1);
                 return 11;
             }
             return prev - 1;
@@ -84,12 +204,12 @@ const CalendarContent = () => {
     };
 
     const handleNextMonth = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
-        setCurrentMonth(prev => {
+        setCurrentMonth((prev) => {
             if (prev === 11) {
-                setCurrentYear(y => y + 1);
+                setCurrentYear((y) => y + 1);
                 return 0;
             }
             return prev + 1;
@@ -100,8 +220,10 @@ const CalendarContent = () => {
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Multimodal Calendar</h1>
-                <div className="flex flex-row gap-5">
+                <h1 className="figtree text-[35px] font-[700]">
+                    Multimodal Calendar
+                </h1>
+                {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
                     </div>
@@ -121,6 +243,9 @@ const CalendarContent = () => {
                             Vendor
                         </h1>
                     </div>
+                </div> */}
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown />
                 </div>
             </div>
             {/* end of header section */}
@@ -235,9 +360,7 @@ const CalendarContent = () => {
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-
-                  <CalendarMonthPicker />
-                  
+                    <CalendarMonthPicker />
                 </div>
             </div>
 
@@ -253,10 +376,16 @@ const CalendarContent = () => {
                             Today
                         </div>
                         <div className="flex flex-row justify-center items-center gap-2">
-                            <div className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer" onClick={handlePrevMonth}>
+                            <div
+                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer"
+                                onClick={handlePrevMonth}
+                            >
                                 <img src={leftArrow} />
                             </div>
-                            <div className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer" onClick={handleNextMonth}>
+                            <div
+                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer"
+                                onClick={handleNextMonth}
+                            >
                                 <img src={leftArrow} className="rotate-180" />
                             </div>
                         </div>
@@ -299,7 +428,14 @@ const CalendarContent = () => {
                 </div>
 
                 <div className="grid grid-cols-8 border-t border-l border-[#00000026]">
-                  <CalendarGrid days={days} times={times} events={events} proPicTwo={proPicTwo} currentMonth={currentMonth} currentYear={currentYear} />
+                    <CalendarGrid
+                        days={days}
+                        times={times}
+                        events={events}
+                        proPicTwo={proPicTwo}
+                        currentMonth={currentMonth}
+                        currentYear={currentYear}
+                    />
                 </div>
             </div>
         </div>

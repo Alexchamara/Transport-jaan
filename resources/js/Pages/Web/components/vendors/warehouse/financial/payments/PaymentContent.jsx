@@ -19,6 +19,8 @@ import calendar from "../../../../../assets/financial/expenses/cal.svg";
 import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
+import UserDropdown from "../../../Userdropdown";
+
 const PaymentContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
@@ -244,7 +246,7 @@ const PaymentContent = () => {
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Warehouse Payment</h1>
-                <div className="flex flex-row gap-5">
+                {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
                     </div>
@@ -263,6 +265,9 @@ const PaymentContent = () => {
                             Vendor
                         </h1>
                     </div>
+                </div> */}
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown />
                 </div>
             </div>
             {/* end of header section */}

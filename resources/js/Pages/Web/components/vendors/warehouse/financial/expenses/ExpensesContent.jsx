@@ -21,9 +21,11 @@ import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg
 import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
 
+import UserDropdown from "../../../Userdropdown";
+
 const ExpensesContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     const expensesData = [
         {
@@ -41,7 +43,11 @@ const ExpensesContent = () => {
         },
         {
             name: "Utilities - Electricity",
-            category: { label: "Utilities", width: "w-[78px]", color: "#39CEF3" },
+            category: {
+                label: "Utilities",
+                width: "w-[78px]",
+                color: "#39CEF3",
+            },
             quantity: 1,
             amount: "$2,450",
             date: "2025.08.05",
@@ -54,7 +60,11 @@ const ExpensesContent = () => {
         },
         {
             name: "Forklift Maintenance",
-            category: { label: "Maintenance", width: "w-[92px]", color: "#2E4683" },
+            category: {
+                label: "Maintenance",
+                width: "w-[92px]",
+                color: "#2E4683",
+            },
             quantity: 3,
             amount: "$1,200",
             date: "2025.08.10",
@@ -67,7 +77,11 @@ const ExpensesContent = () => {
         },
         {
             name: "Pallet Purchase",
-            category: { label: "Inventory Supplies", width: "w-[125px]", color: "#39CEF3" },
+            category: {
+                label: "Inventory Supplies",
+                width: "w-[125px]",
+                color: "#39CEF3",
+            },
             quantity: 500,
             amount: "$3,750",
             date: "2025.08.12",
@@ -80,7 +94,11 @@ const ExpensesContent = () => {
         },
         {
             name: "Packaging Materials",
-            category: { label: "Operations", width: "w-[86px]", color: "#39CEF3" },
+            category: {
+                label: "Operations",
+                width: "w-[86px]",
+                color: "#39CEF3",
+            },
             quantity: 200,
             amount: "$980",
             date: "2025.08.14",
@@ -93,7 +111,11 @@ const ExpensesContent = () => {
         },
         {
             name: "Warehouse Insurance",
-            category: { label: "Insurance", width: "w-[82px]", color: "#39CEF3" },
+            category: {
+                label: "Insurance",
+                width: "w-[82px]",
+                color: "#39CEF3",
+            },
             quantity: 1,
             amount: "$1,800",
             date: "2025.08.15",
@@ -106,7 +128,11 @@ const ExpensesContent = () => {
         },
         {
             name: "Racking Inspection",
-            category: { label: "Compliance", width: "w-[92px]", color: "#2E4683" },
+            category: {
+                label: "Compliance",
+                width: "w-[92px]",
+                color: "#2E4683",
+            },
             quantity: 1,
             amount: "$650",
             date: "2025.08.18",
@@ -119,7 +145,11 @@ const ExpensesContent = () => {
         },
         {
             name: "Cleaning Services",
-            category: { label: "Services", width: "w-[72px]", color: "#39CEF3" },
+            category: {
+                label: "Services",
+                width: "w-[72px]",
+                color: "#39CEF3",
+            },
             quantity: 4,
             amount: "$400",
             date: "2025.08.20",
@@ -132,7 +162,11 @@ const ExpensesContent = () => {
         },
         {
             name: "Security Services",
-            category: { label: "Services", width: "w-[72px]", color: "#39CEF3" },
+            category: {
+                label: "Services",
+                width: "w-[72px]",
+                color: "#39CEF3",
+            },
             quantity: 1,
             amount: "$1,100",
             date: "2025.08.22",
@@ -145,7 +179,11 @@ const ExpensesContent = () => {
         },
         {
             name: "WMS Software Subscription",
-            category: { label: "Software", width: "w-[78px]", color: "#2E4683" },
+            category: {
+                label: "Software",
+                width: "w-[78px]",
+                color: "#2E4683",
+            },
             quantity: 1,
             amount: "$299",
             date: "2025.08.25",
@@ -168,8 +206,8 @@ const ExpensesContent = () => {
     const currentExpenses = expensesData.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
@@ -177,8 +215,8 @@ const ExpensesContent = () => {
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const pages = [];
         if (totalPages <= 5) {
@@ -211,8 +249,8 @@ const ExpensesContent = () => {
 
     // Function to download table as PDF
     const downloadTableAsPDF = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const doc = new jsPDF();
         doc.setFontSize(18);
@@ -275,8 +313,10 @@ const ExpensesContent = () => {
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Warehouse Expenses</h1>
-                <div className="flex flex-row gap-5">
+                <h1 className="figtree text-[35px] font-[700]">
+                    Warehouse Expenses
+                </h1>
+                {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
                     </div>
@@ -295,6 +335,9 @@ const ExpensesContent = () => {
                             Vendor
                         </h1>
                     </div>
+                </div> */}
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown />
                 </div>
             </div>
             {/* end of header section */}

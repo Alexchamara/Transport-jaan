@@ -22,8 +22,8 @@ const TrackingContent = () => {
   const user = auth?.user;
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
-            {/* Header section */}
+        <div className="w-full h-auto pr-5">
+            {/* Header section
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Tracking</h1>
                 <div className="flex flex-row gap-5">
@@ -42,7 +42,7 @@ const TrackingContent = () => {
                         </h1>
                     </div>
                 </div>
-            </div>
+            </div> */}
             {/* end of header section */}
 
             <div className="flex flex-row gap-4 w-full py-10">

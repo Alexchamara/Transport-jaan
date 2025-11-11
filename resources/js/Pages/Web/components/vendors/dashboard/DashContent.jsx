@@ -1,7 +1,4 @@
-import React, { useState } from "react";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
-import NotificationDropdown from "../NotificationDropdown";
+import React from "react";
 
 import dollarIcon from "../../../assets/vendors/dashboard/icons/dollarIcon.svg";
 import carIcon from "../../../assets/vendors/dashboard/icons/carIcon.svg";
@@ -26,9 +23,7 @@ import car1 from "../../../assets/vendors/dashboard/icons/car1.svg";
 import car3 from "../../../assets/vendors/dashboard/icons/car3.svg";
 
 import { Link } from "@inertiajs/react";
-import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg";
-import { ChevronDown } from "lucide-react";
-
+import UserDropdown from "../../../components/vendors/Userdropdown";
 
 const DashContent = ({
     cards,
@@ -43,8 +38,8 @@ const DashContent = ({
     recentActivities, // <— NEW (from controller)
     unreadNotifications = 0, // NEW
 }) => {
-    const [showUserDropdown, setShowUserDropdown] = useState(false);
-    
+    // UserDropdown component handles its own open/close logic
+
     const computedCarTypes = (carTypes ?? []).map((t) => ({
         name: t.name ?? "Unknown",
         percent: Number(t.percent ?? 0),
@@ -65,52 +60,8 @@ const DashContent = ({
             {/* Header */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Dashboard</h1>
-                <div className="flex flex-row gap-5 relative">
-                    {/* <NotificationDropdown
-                        bellIcon={bell}
-                        unreadCount={unreadNotifications}
-                    /> */}
-                    
-                    {/* User Profile - Hover to show dropdown */}
-                    <div 
-                        className="flex flex-row gap-5 items-center cursor-pointer px-4 py-2 rounded-lg transition-all duration-200 group"
-                        onMouseEnter={() => setShowUserDropdown(true)}
-                        onMouseLeave={() => setShowUserDropdown(false)}
-                    >
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={proPic} />
-                        </div>
-
-                        <div className="figtree flex flex-col justify-center items-start">
-                            <h1 className="text-[20px] font-[700]">
-                                {vendorUser?.name ?? "Vendor"}
-                            </h1>
-                            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                                {vendorUser?.role ?? "Vendor"}
-                            </h1>
-                        </div>
-
-                        <ChevronDown 
-                            className={`w-5 h-5 text-[#7B7B7A] transition-transform duration-200 ${
-                                showUserDropdown ? 'rotate-180' : ''
-                            }`}
-                        />
-
-                        {/* Dropdown Menu */}
-                        {showUserDropdown && (
-                            <div className="absolute top-[80px] right-0 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                                <Link
-                                    href={route("logout")}
-                                    method="post"
-                                    as="button"
-                                    className="w-full figtree flex flex-row justify-start items-center gap-3 cursor-pointer text-[16px] font-[500] text-[#DC2626] px-4 py-3 hover:bg-[#FEF2F2] transition-colors"
-                                >
-                                    <img src={logOutLogo} className="w-[20px] h-[20px]" />
-                                    <span>Logout</span>
-                                </Link>
-                            </div>
-                        )}
-                    </div>
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown />
                 </div>
             </div>
 

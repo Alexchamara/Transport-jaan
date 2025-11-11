@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable"; 
+import autoTable from "jspdf-autotable";
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -19,9 +19,11 @@ import calendar from "../../../../../assets/financial/expenses/cal.svg";
 import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
+import UserDropdown from "../../../Userdropdown";
+
 const PaymentContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     const transactions = [
         {
@@ -216,16 +218,16 @@ const PaymentContent = () => {
     const currentTransactions = transactions.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     const getPageNumbers = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const pages = [];
         if (totalPages <= 5) {
@@ -257,8 +259,8 @@ const PaymentContent = () => {
     };
 
     const handleRowSelection = (rowIndex) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const actualIndex = startIdx + rowIndex;
         const newSelectedRows = new Set(selectedRows);
@@ -271,8 +273,8 @@ const PaymentContent = () => {
     };
 
     const handleSelectAll = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         if (selectedRows.size === currentTransactions.length) {
             setSelectedRows(new Set());
@@ -285,8 +287,8 @@ const PaymentContent = () => {
     };
 
     const downloadTableAsPDF = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const doc = new jsPDF();
         doc.setFontSize(18);
@@ -355,26 +357,31 @@ const PaymentContent = () => {
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Freight Payment</h1>
-                <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
-                    </div>
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
+                <h1 className="figtree text-[35px] font-[700]">
+                    Freight Payment
+                </h1>
+                {/* <div className="flex flex-row gap-5">
+                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+                            <img src={search} />
+                        </div>
+                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+                            <img src={settings} />
+                        </div>
+                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+                            <img src={bell} />
+                        </div>
+                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+                            <img src={proPic} />
+                        </div>
+                        <div className="figtree flex flex-col justify-center items-start">
+                            <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
+                            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
+                                Vendor
+                            </h1>
+                        </div>
+                    </div> */}
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown />
                 </div>
             </div>
             {/* end of header section */}

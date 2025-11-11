@@ -31,6 +31,8 @@ import car3 from "../../../../assets/vendors/dashboard/icons/car3.svg";
 
 import cal from "../../../../assets/vendors/dashboard/icons/cal.svg";
 
+import UserDropdown from "../../UserDropdown";
+
 const carTypes = [
     { name: "Hatchback", percent: 45, img: car1 },
     { name: "SUV", percent: 75, img: car3 },
@@ -41,15 +43,17 @@ const carTypes = [
 ];
 
 const DashContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Multimodal Dashboard</h1>
-                <div className="flex flex-row gap-5">
+                <h1 className="figtree text-[35px] font-[700]">
+                    Multimodal Dashboard
+                </h1>
+                {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
                     </div>
@@ -69,6 +73,10 @@ const DashContent = () => {
                             Vendor
                         </h1>
                     </div>
+                </div> */}
+
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown />
                 </div>
             </div>
             {/* end of header section */}
