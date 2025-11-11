@@ -72,6 +72,15 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
         ->whereNumber('shipment')
         ->name('bill');
 });
+
+// Courier Booking Dashboard (protected - requires auth)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/courierBookingDashboard', [ClientCourierController::class, 'dashboard'])->name('courierBookingDashboard');
+    Route::get('/courier-shipment/{id}', [ClientCourierController::class, 'show'])->name('courier.shipment.show');
+    Route::post('/courier-shipment/{id}/update-status', [ClientCourierController::class, 'updateStatus'])->name('courier.shipment.updateStatus');
+    Route::post('/courier-shipment/{id}/cancel', [ClientCourierController::class, 'cancelShipment'])->name('courier.shipment.cancel');
+});
+
 Route::get('/book-a-ticket', [WebController::class, 'bookATicket'])->name('book.a.ticket');
 Route::get('/booking-home', [WebController::class, 'bookingHome'])->name('booking.home');
 Route::get('/cargo-freight', [WebController::class, 'cargoFreight'])->name('cargo.freight');
@@ -954,9 +963,7 @@ Route::get('/clientTicketBookingDashboard', function () {
     return Inertia::render('Web/home/client/ClientTicketBookingDashboard');
 })->name('clientTicketBookingDashboard');
 
-Route::get('/courierBookingDashboard', function () {
-    return Inertia::render('Web/home/client/CourierBookingDashboard');
-})->name('courierBookingDashboard');
+// Courier booking dashboard moved to protected routes with controller
 
 Route::get('/warehouseBookingDashboard', function () {
     return Inertia::render('Web/home/client/WarehouseBookingDashboard');
@@ -1039,7 +1046,7 @@ foreach ($sections as $slug => $baseView) {
 Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
 Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
 Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
-Route::get('/courierBookingDashboard',   $render('Web/home/client/CourierBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('courierBookingDashboard');
+// Courier booking dashboard moved to protected routes with controller above
 Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
 Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');
 
