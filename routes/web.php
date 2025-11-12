@@ -990,17 +990,6 @@ Route::get('/multimodal/settingsPage', function () {
 // end ==================================================
 
 
-
-
-
-
-
-
-
-
-
-
-
 // Client dashboard - redirect to proper route
 Route::get('/clientDashboard', function () {
     return redirect()->route('client.dashboard');

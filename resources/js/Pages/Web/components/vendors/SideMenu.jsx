@@ -45,9 +45,11 @@ const SideMenu = () => {
                 {/* Logo - Fixed at top with Back Button */}
                 <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
                     <button
-                        onClick={() => window.history.back()}
+                        onClick={() =>
+                            (window.location.href = "/mainDashboard")
+                        }
                         className="absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Go back"
+                        title="Go to Dashboard"
                     >
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </button>
