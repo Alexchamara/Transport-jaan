@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { usePage, Link, router } from "@inertiajs/react";
 import proPic from "../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg";
-import { ChevronDown, Settings } from "lucide-react";
+import { ChevronDown, Settings, User} from "lucide-react";
 
 const UserDropdown = ({ settingsRoute }) => {
     const { auth } = usePage().props;
@@ -82,7 +82,7 @@ const UserDropdown = ({ settingsRoute }) => {
                     onMouseLeave={() => setIsOpen(false)}
                 >
                     {/* Profile – always the same */}
-                    <Link
+                    {/* <Link
                         href="/profile"
                         className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-[500] text-[#000000CC] hover:bg-[#F3F4F6] transition-colors"
                     >
@@ -92,15 +92,15 @@ const UserDropdown = ({ settingsRoute }) => {
                             alt="Profile"
                         />
                         <span>Profile</span>
-                    </Link>
+                    </Link> */}
 
                     {/* SETTINGS – dynamic route */}
                     <Link
                         href={settingsRoute}
                         className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-[500] text-[#000000CC] hover:bg-[#F3F4F6] transition-colors"
                     >
-                        <Settings className="w-[20px] h-[20px]" />
-                        <span>Settings</span>
+                        <User className="w-[20px] h-[20px]" />
+                        <span>Profile</span>
                     </Link>
 
                     <div className="w-full h-[1px] bg-[#E5E7EB] my-1" />

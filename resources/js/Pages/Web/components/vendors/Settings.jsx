@@ -9,770 +9,677 @@ import proPic from "../../assets/vendors/dashboard/proPic.svg";
 
 import UserDropdown from "./UserDropdown";
 
-
-const Section = ({ title, description, children }) => (
-    <section className="bg-white rounded-[10px] border border-gray-200 p-6 md:p-10">
-        <div className="mb-6">
-            <h2 className="text-[18px] font-[700] text-gray-900">{title}</h2>
-            {description && (
-                <p className="text-[12px] text-gray-500">{description}</p>
-            )}
-        </div>
-        {children}
-    </section>
+/* ------------------------------------------------------------------ */
+/*  Re-usable components (unchanged)                                   */
+/* ------------------------------------------------------------------ */
+const Section = ({ title, description, children, editBtn }) => (
+  <section className="bg-white rounded-[10px] border border-gray-200 p-6 md:p-10">
+    <div className="mb-6 flex items-center justify-between">
+      <div>
+        <h2 className="text-[18px] font-[700] text-gray-900">{title}</h2>
+        {description && (
+          <p className="text-[12px] text-gray-500">{description}</p>
+        )}
+      </div>
+      {editBtn}
+    </div>
+    {children}
+  </section>
 );
 
 const Field = ({ label, htmlFor, children, required, help }) => (
-    <label className="block" htmlFor={htmlFor}>
-        <span className="block text-[14px] font-[700] text-gray-700">
-            {label} {required && <span className="text-red-500">*</span>}
-        </span>
-        <div className="mt-1">{children}</div>
-        {help && <p className="mt-1 text-[10px] text-gray-500">{help}</p>}
-    </label>
+  <label className="block" htmlFor={htmlFor}>
+    <span className="block text-[14px] font-[700] text-gray-700">
+      {label} {required && <span className="text-red-500">*</span>}
+    </span>
+    <div className="mt-1">{children}</div>
+    {help && <p className="mt-1 text-[10px] text-gray-500">{help}</p>}
+  </label>
 );
 
 const ErrorText = ({ children }) =>
-    children ? (
-        <p className="mt-1 text-[14px] text-red-600">{children}</p>
-    ) : null;
+  children ? (
+    <p className="mt-1 text-[14px] text-red-600">{children}</p>
+  ) : null;
 
 const Toggle = ({ label, checked, onChange, description }) => (
-    <div className="flex items-start justify-between gap-4 py-3">
-        <div>
-            <p className="text-[14px] font-medium text-gray-900">{label}</p>
-            {description && (
-                <p className="text-[10px] text-gray-500">{description}</p>
-            )}
-        </div>
-        <button
-            type="button"
-            role="switch"
-            aria-checked={checked}
-            onClick={() => onChange(!checked)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                checked ? "bg-[#0955AC]" : "bg-gray-300"
-            }`}
-        >
-            <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    checked ? "translate-x-6" : "translate-x-1"
-                }`}
-            />
-        </button>
+  <div className="flex items-start justify-between gap-4 py-3">
+    <div>
+      <p className="text-[14px] font-medium text-gray-900">{label}</p>
+      {description && (
+        <p className="text-[10px] text-gray-500">{description}</p>
+      )}
     </div>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        checked ? "bg-[#0955AC]" : "bg-gray-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          checked ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  </div>
 );
 
-const MAX_AVATAR_MB = 3; // sensible default
+/* ------------------------------------------------------------------ */
+/*  EditableSection – wrapper that shows Edit / Save / Cancel          */
+/* ------------------------------------------------------------------ */
+const EditableSection = ({
+  title,
+  description,
+  isEditing,
+  toggleEdit,
+  onSave,
+  children,
+}) => {
+  return (
+    <Section
+      title={title}
+      description={description}
+      editBtn={
+        <div className="flex gap-2">
+          {isEditing ? (
+            <>
+              <button
+                type="button"
+                onClick={onSave}
+                className="px-3 py-1 text-sm font-medium text-white bg-[#0955AC] rounded-md"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={toggleEdit}
+                className="px-3 py-1 text-sm font-medium text-gray-700 border border-gray-300 rounded-md"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={toggleEdit}
+              className="px-3 py-1 text-sm font-medium text-[#0955AC] border border-[#0955AC] rounded-md"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+      }
+    >
+      {children}
+    </Section>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+const MAX_AVATAR_MB = 3;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+/* ------------------------------------------------------------------ */
+/*  Main component                                                     */
+/* ------------------------------------------------------------------ */
 const Settings = ({ user = {} }) => {
-    const page = usePage();
-    const authUser = page?.props?.auth?.user;
-    const resolvedUser = authUser || user;
+  const page = usePage();
+  const authUser = page?.props?.auth?.user;
+  const resolvedUser = authUser || user;
 
-    const fileInputRef = useRef(null);
-    const [photoPreview, setPhotoPreview] = useState(
-        resolvedUser?.avatar_url || null
-    );
-    const [clientErrors, setClientErrors] = useState({});
+  const fileInputRef = useRef(null);
+  const [photoPreview, setPhotoPreview] = useState(
+    resolvedUser?.avatar_url || null
+  );
+  const [clientErrors, setClientErrors] = useState({});
 
-    const initial = useMemo(
-        () => ({
-            // profile
-            first_name: resolvedUser?.first_name || "",
-            last_name: resolvedUser?.last_name || "",
-            email: resolvedUser?.email || "",
-            phone: resolvedUser?.phone || "",
-            // address
-            address_line1: resolvedUser?.address_line1 || "",
-            address_line2: resolvedUser?.address_line2 || "",
-            city: resolvedUser?.city || "",
-            state: resolvedUser?.state || "",
-            postal_code: resolvedUser?.postal_code || "",
-            country: resolvedUser?.country || "",
-            // security
-            current_password: "",
-            new_password: "",
-            confirm_password: "",
-            // payment (tokenized – last4/brand shown for UX)
-            cardholder_name: resolvedUser?.cardholder_name || "",
-            card_last4: resolvedUser?.card_last4 || "",
-            card_brand: resolvedUser?.card_brand || "",
-            expiry_month: resolvedUser?.expiry_month || "",
-            expiry_year: resolvedUser?.expiry_year || "",
-            // notifications
-            notify_email: resolvedUser?.notify_email ?? true,
-            notify_sms: resolvedUser?.notify_sms ?? false,
-            notify_push: resolvedUser?.notify_push ?? true,
-            // avatar file
-            avatar: null,
-        }),
-        [resolvedUser]
-    );
+  /* ---------- editing flags for each section (except notifications) ---------- */
+  const [editing, setEditing] = useState({
+    profile: false,
+    address: false,
+    security: false,
+    payment: false,
+  });
 
-    const {
-        data,
-        setData,
-        post,
-        processing,
-        errors,
-        clearErrors,
-        reset,
-        transform,
-    } = useForm(initial);
+  const toggleSection = (section) =>
+    setEditing((prev) => ({ ...prev, [section]: !prev[section] }));
 
-    // Resolve update URL safely (avoid Ziggy exceptions if route missing)
-    const resolveUpdateUrl = () => {
-        try {
-            if (typeof route === "function") {
-                // Ziggy may throw if name missing; check existence when possible
-                if (
-                    typeof route().has === "function"
-                        ? route().has("client.settings.update")
-                        : true
-                ) {
-                    return route("client.settings.update");
-                }
-            }
-        } catch (_) {
-            // ignore and fallback
+  /* ---------- form data (unchanged) ---------- */
+  const initial = useMemo(
+    () => ({
+      first_name: resolvedUser?.first_name || "",
+      last_name: resolvedUser?.last_name || "",
+      email: resolvedUser?.email || "",
+      phone: resolvedUser?.phone || "",
+      address_line1: resolvedUser?.address_line1 || "",
+      address_line2: resolvedUser?.address_line2 || "",
+      city: resolvedUser?.city || "",
+      state: resolvedUser?.state || "",
+      postal_code: resolvedUser?.postal_code || "",
+      country: resolvedUser?.country || "",
+      current_password: "",
+      new_password: "",
+      confirm_password: "",
+      cardholder_name: resolvedUser?.cardholder_name || "",
+      card_last4: resolvedUser?.card_last4 || "",
+      card_brand: resolvedUser?.card_brand || "",
+      expiry_month: resolvedUser?.expiry_month || "",
+      expiry_year: resolvedUser?.expiry_year || "",
+      notify_email: resolvedUser?.notify_email ?? true,
+      notify_sms: resolvedUser?.notify_sms ?? false,
+      notify_push: resolvedUser?.notify_push ?? true,
+      avatar: null,
+    }),
+    [resolvedUser]
+  );
+
+  const {
+    data,
+    setData,
+    post,
+    processing,
+    errors,
+    clearErrors,
+    reset,
+    transform,
+  } = useForm(initial);
+
+  const resolveUpdateUrl = () => {
+    try {
+      if (typeof route === "function") {
+        if (route().has?.("client.settings.update")) {
+          return route("client.settings.update");
         }
-        return "/client/settings";
-    };
+      }
+    } catch (_) {}
+    return "/client/settings";
+  };
+  const updateUrl = resolveUpdateUrl();
 
-    const updateUrl = resolveUpdateUrl();
+  transform((formData) => ({ ...formData }));
 
-    // Ensure file uploads work
-    transform((formData) => ({ ...formData }));
+  /* ---------- validation helpers ---------- */
+  const validatePasswords = () => {
+    const e = {};
+    if (data.new_password || data.confirm_password || data.current_password) {
+      if (!data.current_password)
+        e.current_password = "Current password is required.";
+      if ((data.new_password?.length || 0) < 8)
+        e.new_password = "Use at least 8 characters.";
+      if (data.new_password !== data.confirm_password)
+        e.confirm_password = "Passwords do not match.";
+    }
+    return e;
+  };
 
-        const validatePasswords = () => {
-        const e = {};
-        if (
-            data.new_password ||
-            data.confirm_password ||
-            data.current_password
-        ) {
-            if (!data.current_password)
-                e.current_password =
-                    "Current password is required to change your password.";
-            if ((data.new_password?.length || 0) < 8)
-                e.new_password = "Use at least 8 characters.";
-            if (data.new_password !== data.confirm_password)
-                e.confirm_password = "Passwords do not match.";
-        }
-        return e;
-    };
+  const validateAvatar = (file) => {
+    const e = {};
+    if (!file) return e;
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type))
+      e.avatar = "Please upload a JPG, PNG, or WEBP image.";
+    const sizeMb = file.size / (1024 * 1024);
+    if (sizeMb > MAX_AVATAR_MB)
+      e.avatar = `Image must be under ${MAX_AVATAR_MB}MB (current ~${sizeMb.toFixed(
+        1
+      )}MB).`;
+    return e;
+  };
 
-        const validateAvatar = (file) => {
-        const e = {};
-        if (!file) return e;
-        if (!ACCEPTED_IMAGE_TYPES.includes(file.type))
-            e.avatar = "Please upload a JPG, PNG, or WEBP image.";
-        const sizeMb = file.size / (1024 * 1024);
-        if (sizeMb > MAX_AVATAR_MB)
-            e.avatar = `Image must be under ${MAX_AVATAR_MB}MB (current ~${sizeMb.toFixed(
-                1
-            )}MB).`;
-        return e;
-    };
-
-        const handleImageChange = (e) => {
-        const file = e.target.files?.[0];
-        const eAvatar = validateAvatar(file);
-        setClientErrors((prev) => ({ ...prev, ...eAvatar }));
-        if (Object.keys(eAvatar).length === 0) {
-            setData("avatar", file || null);
-            clearErrors("avatar");
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => setPhotoPreview(ev.target.result);
-                reader.readAsDataURL(file);
-            } else {
-                setPhotoPreview(null);
-            }
-        }
-    };
-
-        const submitAll = (e) => {
-        e.preventDefault();
-        const ePwd = validatePasswords();
-        setClientErrors((prev) => ({ ...prev, ...ePwd }));
-        if (Object.keys(ePwd).length > 0) return; // stop submit
-
-        post(updateUrl, {
-            preserveScroll: true,
-            forceFormData: true, // required for file upload
-        });
-    };
-
-        const removePhoto = () => {
-        setData("avatar", null);
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    const eAvatar = validateAvatar(file);
+    setClientErrors((prev) => ({ ...prev, ...eAvatar }));
+    if (Object.keys(eAvatar).length === 0) {
+      setData("avatar", file || null);
+      clearErrors("avatar");
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => setPhotoPreview(ev.target.result);
+        reader.readAsDataURL(file);
+      } else {
         setPhotoPreview(null);
-        setClientErrors((prev) => ({ ...prev, avatar: undefined }));
-    };
+      }
+    }
+  };
 
-    return (
-        <div className="bg-[#E5E5E5] poppins w-full">
-            {/* <div className="max-w-[1300px] mx-auto px-4 md:px-6 lg:px-10 py-20"> */}
-            {/* <div className="mb-8">
-                    <h1 className="text-2xl md:text-[35px] font-[700] text-gray-900">
-                        Account <span className="text-[#0955AC]"> Settings</span>
-                    </h1>
-                    <p className="mt-3 text-gray-600 text-[14px]">
-                        Manage your personal info, security, and payment
-                        preferences.
-                    </p>
-                </div> */}
-            <div className="w-full h-auto pr-5 py-10">
-                {/* Header section */}
-                <div className="flex flex-row gap-5 justify-between items-center">
-                    <h1 className="figtree text-[35px] font-[700]">
-                         Vehicle Rental Settings
-                    </h1>
-                    {/* <div className="flex flex-row gap-5">
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={search} />
-                        </div>
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={bell} />
-                        </div>
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={proPic} />
-                        </div>
+  const removePhoto = () => {
+    setData("avatar", null);
+    setPhotoPreview(null);
+    setClientErrors((prev) => ({ ...prev, avatar: undefined }));
+  };
 
-                        <div className="figtree flex flex-col justify-center items-start">
-                            <h1 className="text-[20px] font-[700]">
-                                Steve Gibson
-                            </h1>
-                            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                                Vendor
-                            </h1>
-                        </div>
-                    </div> */}
+  const submitAll = (e) => {
+    e.preventDefault();
+    const ePwd = validatePasswords();
+    setClientErrors((prev) => ({ ...prev, ...ePwd }));
+    if (Object.keys(ePwd).length > 0) return;
 
-                    <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown settingsRoute={route("settingsPage")} />
-                </div>
-                </div>
+    post(updateUrl, {
+      preserveScroll: true,
+      forceFormData: true,
+    });
+  };
 
-                <form onSubmit={submitAll} className="space-y-8 mt-10" noValidate>
-                    {/* Profile photo & basic info */}
-                    <Section
-                        title="Profile"
-                        description="Update your photo and personal details."
-                    >
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="md:col-span-1">
-                                <div className="flex items-center gap-4">
-                                    <div className="sm:h-40 sm:w-40 w-20 h-20 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
-                                        {photoPreview ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
-                                                src={photoPreview}
-                                                alt="Profile preview"
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="h-full w-full flex items-center justify-center text-gray-400 sm:text-[14px] text-[10px]">
-                                                No photo
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept={ACCEPTED_IMAGE_TYPES.join(
-                                                ","
-                                            )}
-                                            className="hidden"
-                                            onChange={handleImageChange}
-                                        />
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    fileInputRef.current?.click()
-                                                }
-                                                className="px-3 py-2 text-[14px] text-[#FFFFFF] font-[700] rounded-md bg-[#0955AC] border border-[#0955AC]"
-                                            >
-                                                Upload
-                                            </button>
-                                            {photoPreview && (
-                                                <button
-                                                    type="button"
-                                                    onClick={removePhoto}
-                                                    className="px-3 py-2 text-[14px] font-medium rounded-md border border-red-300 text-red-600 hover:bg-red-50"
-                                                >
-                                                    Remove
-                                                </button>
-                                            )}
-                                        </div>
-                                        <ErrorText>
-                                            {clientErrors.avatar ||
-                                                errors.avatar}
-                                        </ErrorText>
-                                        <p className="text-[12px] text-gray-500">
-                                            JPG, PNG, or WEBP up to{" "}
-                                            {MAX_AVATAR_MB}MB.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+  /* ---------- Render helpers for read-only values ---------- */
+  const ReadOnly = ({ value }) => (
+    <p className="h-16 flex items-center text-gray-900">{value ?? "-"}</p>
+  );
 
-                            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <Field
-                                    label="First name"
-                                    htmlFor="first_name"
-                                    required
-                                >
-                                    <input
-                                        id="first_name"
-                                        type="text"
-                                        value={data.first_name}
-                                        onChange={(e) =>
-                                            setData(
-                                                "first_name",
-                                                e.target.value
-                                            )
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="John"
-                                        required
-                                    />
-                                    <ErrorText>{errors.first_name}</ErrorText>
-                                </Field>
-
-                                <Field
-                                    label="Last name"
-                                    htmlFor="last_name"
-                                    required
-                                >
-                                    <input
-                                        id="last_name"
-                                        type="text"
-                                        value={data.last_name}
-                                        onChange={(e) =>
-                                            setData("last_name", e.target.value)
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="Doe"
-                                        required
-                                    />
-                                    <ErrorText>{errors.last_name}</ErrorText>
-                                </Field>
-
-                                <Field label="Email" htmlFor="email" required>
-                                    <input
-                                        id="email"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(e) =>
-                                            setData("email", e.target.value)
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="john@example.com"
-                                        required
-                                        autoComplete="email"
-                                    />
-                                    <ErrorText>{errors.email}</ErrorText>
-                                </Field>
-
-                                <Field
-                                    label="Phone"
-                                    htmlFor="phone"
-                                    help="Include country code, e.g., +94 70 123 4567"
-                                >
-                                    <input
-                                        id="phone"
-                                        type="tel"
-                                        value={data.phone}
-                                        onChange={(e) =>
-                                            setData("phone", e.target.value)
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="+94 70 123 4567"
-                                        autoComplete="tel"
-                                    />
-                                    <ErrorText>{errors.phone}</ErrorText>
-                                </Field>
-                            </div>
-                        </div>
-                    </Section>
-
-                    {/* Address */}
-                    <Section
-                        title="Address"
-                        description="Your primary address will be used for billing and receipts."
-                    >
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <Field
-                                label="Address line 1"
-                                htmlFor="address_line1"
-                                required
-                            >
-                                <input
-                                    id="address_line1"
-                                    type="text"
-                                    value={data.address_line1}
-                                    onChange={(e) =>
-                                        setData("address_line1", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="No. 123, Main Street"
-                                    required
-                                    autoComplete="address-line1"
-                                />
-                                <ErrorText>{errors.address_line1}</ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Address line 2"
-                                htmlFor="address_line2"
-                            >
-                                <input
-                                    id="address_line2"
-                                    type="text"
-                                    value={data.address_line2}
-                                    onChange={(e) =>
-                                        setData("address_line2", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="Apartment, suite, etc. (optional)"
-                                    autoComplete="address-line2"
-                                />
-                                <ErrorText>{errors.address_line2}</ErrorText>
-                            </Field>
-
-                            <Field label="City" htmlFor="city" required>
-                                <input
-                                    id="city"
-                                    type="text"
-                                    value={data.city}
-                                    onChange={(e) =>
-                                        setData("city", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    required
-                                    autoComplete="address-level2"
-                                />
-                                <ErrorText>{errors.city}</ErrorText>
-                            </Field>
-
-                            <Field label="State/Province" htmlFor="state">
-                                <input
-                                    id="state"
-                                    type="text"
-                                    value={data.state}
-                                    onChange={(e) =>
-                                        setData("state", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    autoComplete="address-level1"
-                                />
-                                <ErrorText>{errors.state}</ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Postal code"
-                                htmlFor="postal_code"
-                                required
-                            >
-                                <input
-                                    id="postal_code"
-                                    type="text"
-                                    value={data.postal_code}
-                                    onChange={(e) =>
-                                        setData("postal_code", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    required
-                                    autoComplete="postal-code"
-                                />
-                                <ErrorText>{errors.postal_code}</ErrorText>
-                            </Field>
-
-                            <Field label="Country" htmlFor="country" required>
-                                <input
-                                    id="country"
-                                    type="text"
-                                    value={data.country}
-                                    onChange={(e) =>
-                                        setData("country", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="Sri Lanka"
-                                    required
-                                    autoComplete="country-name"
-                                />
-                                <ErrorText>{errors.country}</ErrorText>
-                            </Field>
-                        </div>
-                    </Section>
-
-                    {/* Security */}
-                    <Section
-                        title="Security"
-                        description="Change your password to keep your account secure."
-                    >
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <Field
-                                label="Current password"
-                                htmlFor="current_password"
-                            >
-                                <input
-                                    id="current_password"
-                                    type="password"
-                                    value={data.current_password}
-                                    onChange={(e) =>
-                                        setData(
-                                            "current_password",
-                                            e.target.value
-                                        )
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    autoComplete="current-password"
-                                    aria-invalid={
-                                        !!clientErrors.current_password
-                                    }
-                                />
-                                <ErrorText>
-                                    {clientErrors.current_password ||
-                                        errors.current_password}
-                                </ErrorText>
-                            </Field>
-
-                            <Field label="New password" htmlFor="new_password">
-                                <input
-                                    id="new_password"
-                                    type="password"
-                                    value={data.new_password}
-                                    onChange={(e) =>
-                                        setData("new_password", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    autoComplete="new-password"
-                                    aria-invalid={!!clientErrors.new_password}
-                                />
-                                <ErrorText>
-                                    {clientErrors.new_password ||
-                                        errors.new_password}
-                                </ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Confirm password"
-                                htmlFor="confirm_password"
-                            >
-                                <input
-                                    id="confirm_password"
-                                    type="password"
-                                    value={data.confirm_password}
-                                    onChange={(e) =>
-                                        setData(
-                                            "confirm_password",
-                                            e.target.value
-                                        )
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    autoComplete="new-password"
-                                    aria-invalid={
-                                        !!clientErrors.confirm_password
-                                    }
-                                />
-                                <ErrorText>
-                                    {clientErrors.confirm_password ||
-                                        errors.confirm_password}
-                                </ErrorText>
-                            </Field>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                            If you fill any password field, all three are
-                            required. Password must be at least 8 characters.
-                        </p>
-                    </Section>
-
-                    {/* Payment */}
-                    <Section
-                        title="Payment details"
-                        description="Update your saved card details. We recommend using tokenized gateways; do not store raw card numbers."
-                    >
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <Field
-                                label="Cardholder name"
-                                htmlFor="cardholder_name"
-                                required
-                            >
-                                <input
-                                    id="cardholder_name"
-                                    type="text"
-                                    value={data.cardholder_name}
-                                    onChange={(e) =>
-                                        setData(
-                                            "cardholder_name",
-                                            e.target.value
-                                        )
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    required
-                                />
-                                <ErrorText>{errors.cardholder_name}</ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Card brand"
-                                htmlFor="card_brand"
-                                help="e.g., Visa / Mastercard"
-                            >
-                                <input
-                                    id="card_brand"
-                                    type="text"
-                                    value={data.card_brand}
-                                    onChange={(e) =>
-                                        setData("card_brand", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="Visa / Mastercard"
-                                />
-                                <ErrorText>{errors.card_brand}</ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Last 4 digits"
-                                htmlFor="card_last4"
-                                help="Shown for reference only; store tokens on backend."
-                            >
-                                <input
-                                    id="card_last4"
-                                    type="text"
-                                    inputMode="numeric"
-                                    maxLength={4}
-                                    value={data.card_last4}
-                                    onChange={(e) =>
-                                        setData(
-                                            "card_last4",
-                                            e.target.value
-                                                .replace(/\D/g, "")
-                                                .slice(0, 4)
-                                        )
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="1234"
-                                />
-                                <ErrorText>{errors.card_last4}</ErrorText>
-                            </Field>
-
-                            <div className="grid grid-cols-2 gap-6">
-                                <Field
-                                    label="Expiry month"
-                                    htmlFor="expiry_month"
-                                >
-                                    <input
-                                        id="expiry_month"
-                                        type="text"
-                                        inputMode="numeric"
-                                        maxLength={2}
-                                        value={data.expiry_month}
-                                        onChange={(e) =>
-                                            setData(
-                                                "expiry_month",
-                                                e.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 2)
-                                            )
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="MM"
-                                    />
-                                    <ErrorText>{errors.expiry_month}</ErrorText>
-                                </Field>
-                                <Field
-                                    label="Expiry year"
-                                    htmlFor="expiry_year"
-                                >
-                                    <input
-                                        id="expiry_year"
-                                        type="text"
-                                        inputMode="numeric"
-                                        maxLength={4}
-                                        value={data.expiry_year}
-                                        onChange={(e) =>
-                                            setData(
-                                                "expiry_year",
-                                                e.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 4)
-                                            )
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="YYYY"
-                                    />
-                                    <ErrorText>{errors.expiry_year}</ErrorText>
-                                </Field>
-                            </div>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                            Tip: Integrate Stripe/PayHere and collect a payment
-                            method token on the frontend; submit that token here
-                            instead of card numbers.
-                        </p>
-                    </Section>
-
-                    {/* Notifications */}
-                    <Section
-                        title="Notifications"
-                        description="Choose how you want to be notified."
-                    >
-                        <div className="divide-y divide-gray-200">
-                            <Toggle
-                                label="Email notifications"
-                                description="Get updates and receipts in your inbox."
-                                checked={data.notify_email}
-                                onChange={(v) => setData("notify_email", v)}
-                            />
-                            <Toggle
-                                label="SMS notifications"
-                                description="Receive updates via text messages."
-                                checked={data.notify_sms}
-                                onChange={(v) => setData("notify_sms", v)}
-                            />
-                            <Toggle
-                                label="Push notifications"
-                                description="Allow push notifications on this device."
-                                checked={data.notify_push}
-                                onChange={(v) => setData("notify_push", v)}
-                            />
-                        </div>
-                    </Section>
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-end gap-3">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                reset();
-                                setPhotoPreview(resolvedUser?.avatar_url || null);
-                                clearErrors();
-                                setClientErrors({});
-                            }}
-                            className="px-4 py-2 rounded-[10px] text-[14px] font-[700] text-[#0955AC] border border-[#0955AC] disabled:opacity-60"
-                            disabled={processing}
-                        >
-                            Reset
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 rounded-[10px] text-[14px] font-[700] bg-[#0955AC] text-[#FFFFFF] disabled:opacity-60"
-                            disabled={processing}
-                        >
-                            {processing ? "Saving…" : "Save changes"}
-                        </button>
-                    </div>
-                </form>
-            </div>
+  /* ------------------------------------------------------------------ */
+  return (
+    <div className="bg-[#E5E5E5] poppins w-full">
+      <div className="w-full h-auto pr-5 py-10">
+        {/* Header */}
+        <div className="flex flex-row gap-5 justify-between items-center">
+          <h1 className="figtree text-[35px] font-[700]">
+            Vehicle Rental Profile
+          </h1>
+          <div className="flex flex-row gap-5 relative items-center">
+            <UserDropdown settingsRoute={route("settingsPage")} />
+          </div>
         </div>
-    );
+
+        <form onSubmit={submitAll} className="space-y-8 mt-10" noValidate>
+          {/* ====================== PROFILE ====================== */}
+          <EditableSection
+            title="Profile"
+            description="Update your photo and personal details."
+            isEditing={editing.profile}
+            toggleEdit={() => toggleSection("profile")}
+            onSave={() => toggleSection("profile")}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Photo */}
+              <div className="md:col-span-1">
+                <div className="flex items-center gap-4">
+                  <div className="sm:h-40 sm:w-40 w-20 h-20 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+                    {photoPreview ? (
+                      <img
+                        src={photoPreview}
+                        alt="Profile preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-gray-400 sm:text-[14px] text-[10px]">
+                        No photo
+                      </div>
+                    )}
+                  </div>
+
+                  {editing.profile ? (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                        className="hidden"
+                        onChange={handleImageChange}
+                      />
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-3 py-2 text-[14px] text-[#FFFFFF] font-[700] rounded-md bg-[#0955AC] border border-[#0955AC]"
+                        >
+                          Upload
+                        </button>
+                        {photoPreview && (
+                          <button
+                            type="button"
+                            onClick={removePhoto}
+                            className="px-3 py-2 text-[14px] font-medium rounded-md border border-red-300 text-red-600 hover:bg-red-50"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <ErrorText>
+                        {clientErrors.avatar || errors.avatar}
+                      </ErrorText>
+                      <p className="text-[12px] text-gray-500">
+                        JPG, PNG, or WEBP up to {MAX_AVATAR_MB}MB.
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Name / Email / Phone */}
+              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <Field label="First name" htmlFor="first_name" required>
+                  {editing.profile ? (
+                    <input
+                      id="first_name"
+                      type="text"
+                      value={data.first_name}
+                      onChange={(e) => setData("first_name", e.target.value)}
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      required
+                    />
+                  ) : (
+                    <ReadOnly value={data.first_name} />
+                  )}
+                  <ErrorText>{errors.first_name}</ErrorText>
+                </Field>
+
+                <Field label="Last name" htmlFor="last_name" required>
+                  {editing.profile ? (
+                    <input
+                      id="last_name"
+                      type="text"
+                      value={data.last_name}
+                      onChange={(e) => setData("last_name", e.target.value)}
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      required
+                    />
+                  ) : (
+                    <ReadOnly value={data.last_name} />
+                  )}
+                  <ErrorText>{errors.last_name}</ErrorText>
+                </Field>
+
+                <Field label="Email" htmlFor="email" required>
+                  {editing.profile ? (
+                    <input
+                      id="email"
+                      type="email"
+                      value={data.email}
+                      onChange={(e) => setData("email", e.target.value)}
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      required
+                    />
+                  ) : (
+                    <ReadOnly value={data.email} />
+                  )}
+                  <ErrorText>{errors.email}</ErrorText>
+                </Field>
+
+                <Field
+                  label="Phone"
+                  htmlFor="phone"
+                  help="Include country code, e.g., +94 70 123 4567"
+                >
+                  {editing.profile ? (
+                    <input
+                      id="phone"
+                      type="tel"
+                      value={data.phone}
+                      onChange={(e) => setData("phone", e.target.value)}
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                    />
+                  ) : (
+                    <ReadOnly value={data.phone} />
+                  )}
+                  <ErrorText>{errors.phone}</ErrorText>
+                </Field>
+              </div>
+            </div>
+          </EditableSection>
+
+          {/* ====================== ADDRESS ====================== */}
+          <EditableSection
+            title="Address"
+            description="Your primary address will be used for billing and receipts."
+            isEditing={editing.address}
+            toggleEdit={() => toggleSection("address")}
+            onSave={() => toggleSection("address")}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {[
+                { id: "address_line1", label: "Address line 1", required: true },
+                { id: "address_line2", label: "Address line 2" },
+                { id: "city", label: "City", required: true },
+                { id: "state", label: "State/Province" },
+                { id: "postal_code", label: "Postal code", required: true },
+                { id: "country", label: "Country", required: true },
+              ].map((f) => (
+                <Field
+                  key={f.id}
+                  label={f.label}
+                  htmlFor={f.id}
+                  required={f.required}
+                >
+                  {editing.address ? (
+                    <input
+                      id={f.id}
+                      type="text"
+                      value={data[f.id]}
+                      onChange={(e) => setData(f.id, e.target.value)}
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      required={f.required}
+                    />
+                  ) : (
+                    <ReadOnly value={data[f.id]} />
+                  )}
+                  <ErrorText>{errors[f.id]}</ErrorText>
+                </Field>
+              ))}
+            </div>
+          </EditableSection>
+
+          {/* ====================== SECURITY ====================== */}
+          <EditableSection
+            title="Security"
+            description="Change your password to keep your account secure."
+            isEditing={editing.security}
+            toggleEdit={() => toggleSection("security")}
+            onSave={() => {
+              const pwdErr = validatePasswords();
+              setClientErrors((prev) => ({ ...prev, ...pwdErr }));
+              if (Object.keys(pwdErr).length === 0) toggleSection("security");
+            }}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {[
+                { id: "current_password", label: "Current password" },
+                { id: "new_password", label: "New password" },
+                { id: "confirm_password", label: "Confirm password" },
+              ].map((f) => (
+                <Field key={f.id} label={f.label} htmlFor={f.id}>
+                  {editing.security ? (
+                    <input
+                      id={f.id}
+                      type="password"
+                      value={data[f.id]}
+                      onChange={(e) => setData(f.id, e.target.value)}
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      autoComplete={f.id.includes("current") ? "current-password" : "new-password"}
+                    />
+                  ) : (
+                    <ReadOnly value={data[f.id] ? "••••••••" : "-"} />
+                  )}
+                  <ErrorText>
+                    {clientErrors[f.id] || errors[f.id]}
+                  </ErrorText>
+                </Field>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              If you fill any password field, all three are required. Password
+              must be at least 8 characters.
+            </p>
+          </EditableSection>
+
+          {/* ====================== PAYMENT ====================== */}
+          <EditableSection
+            title="Payment details"
+            description="Update your saved card details. We recommend using tokenized gateways."
+            isEditing={editing.payment}
+            toggleEdit={() => toggleSection("payment")}
+            onSave={() => toggleSection("payment")}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Field label="Cardholder name" htmlFor="cardholder_name" required>
+                {editing.payment ? (
+                  <input
+                    id="cardholder_name"
+                    type="text"
+                    value={data.cardholder_name}
+                    onChange={(e) => setData("cardholder_name", e.target.value)}
+                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                    required
+                  />
+                ) : (
+                  <ReadOnly value={data.cardholder_name} />
+                )}
+                <ErrorText>{errors.cardholder_name}</ErrorText>
+              </Field>
+
+              <Field label="Card brand" htmlFor="card_brand" help="e.g., Visa / Mastercard">
+                {editing.payment ? (
+                  <input
+                    id="card_brand"
+                    type="text"
+                    value={data.card_brand}
+                    onChange={(e) => setData("card_brand", e.target.value)}
+                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                  />
+                ) : (
+                  <ReadOnly value={data.card_brand} />
+                )}
+                <ErrorText>{errors.card_brand}</ErrorText>
+              </Field>
+
+              <Field label="Last 4 digits" htmlFor="card_last4">
+                {editing.payment ? (
+                  <input
+                    id="card_last4"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={data.card_last4}
+                    onChange={(e) =>
+                      setData(
+                        "card_last4",
+                        e.target.value.replace(/\D/g, "").slice(0, 4)
+                      )
+                    }
+                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                  />
+                ) : (
+                  <ReadOnly value={data.card_last4} />
+                )}
+                <ErrorText>{errors.card_last4}</ErrorText>
+              </Field>
+
+              <div className="grid grid-cols-2 gap-6">
+                <Field label="Expiry month" htmlFor="expiry_month">
+                  {editing.payment ? (
+                    <input
+                      id="expiry_month"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={2}
+                      value={data.expiry_month}
+                      onChange={(e) =>
+                        setData(
+                          "expiry_month",
+                          e.target.value.replace(/\D/g, "").slice(0, 2)
+                        )
+                      }
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                    />
+                  ) : (
+                    <ReadOnly value={data.expiry_month} />
+                  )}
+                  <ErrorText>{errors.expiry_month}</ErrorText>
+                </Field>
+
+                <Field label="Expiry year" htmlFor="expiry_year">
+                  {editing.payment ? (
+                    <input
+                      id="expiry_year"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={data.expiry_year}
+                      onChange={(e) =>
+                        setData(
+                          "expiry_year",
+                          e.target.value.replace(/\D/g, "").slice(0, 4)
+                        )
+                      }
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                    />
+                  ) : (
+                    <ReadOnly value={data.expiry_year} />
+                  )}
+                  <ErrorText>{errors.expiry_year}</ErrorText>
+                </Field>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Tip: Integrate Stripe/PayHere and collect a payment method token
+              on the frontend.
+            </p>
+          </EditableSection>
+
+          {/* ====================== NOTIFICATIONS (NO EDIT BUTTON) ====================== */}
+          <Section
+            title="Notifications"
+            description="Choose how you want to be notified."
+          >
+            <div className="divide-y divide-gray-200">
+              <Toggle
+                label="Email notifications"
+                description="Get updates and receipts in your inbox."
+                checked={data.notify_email}
+                onChange={(v) => setData("notify_email", v)}
+              />
+              <Toggle
+                label="SMS notifications"
+                description="Receive updates via text messages."
+                checked={data.notify_sms}
+                onChange={(v) => setData("notify_sms", v)}
+              />
+              <Toggle
+                label="Push notifications"
+                description="Allow push notifications on this device."
+                checked={data.notify_push}
+                onChange={(v) => setData("notify_push", v)}
+              />
+            </div>
+          </Section>
+
+          {/* ====================== GLOBAL ACTIONS ====================== */}
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                reset();
+                setPhotoPreview(resolvedUser?.avatar_url || null);
+                clearErrors();
+                setClientErrors({});
+                setEditing({
+                  profile: false,
+                  address: false,
+                  security: false,
+                  payment: false,
+                });
+              }}
+              className="px-4 py-2 rounded-[10px] text-[14px] font-[700] text-[#0955AC] border border-[#0955AC] disabled:opacity-60"
+              disabled={processing}
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-[10px] text-[14px] font-[700] bg-[#0955AC] text-[#FFFFFF] disabled:opacity-60"
+              disabled={processing}
+            >
+              {processing ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 };
 
 export default Settings;
