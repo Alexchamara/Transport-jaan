@@ -18,16 +18,20 @@ const Tracking = () => {
                 <SideMenu />
 
                 <div className="flex-1 pr-5 py-10">
-                    {/* ==================== HEADER WITH DROPDOWN ==================== */}
+                    {/* ==================== HEADER WITH DROPDOWN ====================
                     <div className="flex flex-row gap-5 justify-between items-center mb-10">
                         <h1 className="figtree text-[35px] font-[700]">
-                            Tracking
+                            Vehicle Rental Tracking
                         </h1>
 
                         <div className="flex flex-row gap-5 relative items-center">
-                            <UserDropdown />
+                            <div className="flex flex-row gap-5 relative items-center">
+                                <UserDropdown
+                                    settingsRoute={route("settingsPage")}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* ==================== TRACKING CONTENT ==================== */}
                     <TrackingContent />

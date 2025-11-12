@@ -801,6 +801,14 @@ const DashContent = () => {
         }
     }, [realtimeStats, allBookings]);
 
+    const settingsRoute = (() => {
+    try {
+        return route("warehouse.settingsPage");
+    } catch {
+        return "/warehouse/settings";
+    }
+})();
+
     // Helper function to check if date is today
     const isToday = (date) => {
         const today = new Date();
@@ -1088,7 +1096,7 @@ const DashContent = () => {
                 </div> */}
 
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown />
+                    <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}

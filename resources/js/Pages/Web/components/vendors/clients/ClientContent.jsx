@@ -19,10 +19,12 @@ const ClientContent = () => {
         <div className="w-full h-auto pr-5 py-10">
             {/* ==================== HEADER WITH NOTIFICATION + DROPDOWN ==================== */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Clients</h1>
+                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Clients</h1>
 
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown />
+                    <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("settingsPage")} />
+                </div>
                 </div>
             </div>
 

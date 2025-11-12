@@ -246,7 +246,7 @@ const CalendarContent = () => {
                     </div>
                 </div> */}
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown />
+                    <UserDropdown settingsRoute={route("freight.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}

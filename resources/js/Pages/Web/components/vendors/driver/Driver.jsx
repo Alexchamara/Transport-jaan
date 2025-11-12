@@ -453,10 +453,12 @@ export default function Driver() {
         {/* ==================== HEADER WITH DROPDOWN ==================== */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-row gap-5 justify-between items-center">
-            <h1 className="figtree text-[28px] font-[700]">Drivers</h1>
+            <h1 className="figtree text-[28px] font-[700]">Vehicle Rental Drivers</h1>
 
             <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown />
+                    <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("settingsPage")} />
+                </div>
                 </div>
           </div>
         </div>

@@ -303,10 +303,12 @@ const ExpensesContent = () => {
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* ==================== HEADER WITH DROPDOWN ==================== */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Expenses</h1>
+                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Expenses</h1>
 
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown />
+                    <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("settingsPage")} />
+                </div>
                 </div>
             </div>
 

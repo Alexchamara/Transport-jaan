@@ -100,9 +100,11 @@ const BookingContent = ({
         <div className="w-full h-auto pr-5 py-10">
             {/* Header */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Bookings</h1>
+                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Bookings</h1>
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown />
+                    <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("settingsPage")} />
+                </div>
                 </div>
             </div>
 

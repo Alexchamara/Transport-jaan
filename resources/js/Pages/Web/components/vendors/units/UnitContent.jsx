@@ -455,10 +455,10 @@ const UnitContent = () => {
         <div className="w-full h-auto pr-5 py-10">
             {/* ==================== HEADER WITH DROPDOWN ==================== */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[30px] font-[700]">Units</h1>
+                <h1 className="figtree text-[30px] font-[700]">Vehicle Rental Units</h1>
 
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown />
+                    <UserDropdown settingsRoute={route("settingsPage")} />
                 </div>
             </div>
 

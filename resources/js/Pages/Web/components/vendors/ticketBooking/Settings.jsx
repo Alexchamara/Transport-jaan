@@ -7,6 +7,8 @@ import settings from "../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 
+import UserDropdown from "../Userdropdown.jsx";
+
 const Section = ({ title, description, children }) => (
     <section className="bg-white rounded-[10px] border border-gray-200 p-6 md:p-10">
         <div className="mb-6">
@@ -227,7 +229,7 @@ const Settings = ({ user = {} }) => {
                     <h1 className="figtree text-[35px] font-[700]">
                         Ticket Booking Settings
                     </h1>
-                    <div className="flex flex-row gap-5">
+                    {/* <div className="flex flex-row gap-5">
                         <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                             <img src={search} />
                         </div>
@@ -246,6 +248,9 @@ const Settings = ({ user = {} }) => {
                                 Vendor
                             </h1>
                         </div>
+                    </div> */}
+                    <div className="flex flex-row gap-5 relative items-center">
+                        <UserDropdown settingsRoute={route("ticketBooking.settingsPage")} />
                     </div>
                 </div>
 
