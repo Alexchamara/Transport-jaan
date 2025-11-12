@@ -705,7 +705,58 @@ Route::get('/SuperAdmin/AddUser', function () {
     return Inertia::render('Web/home/SuperAdmin/AddUser');
 })->name('SuperAdmin.AddUser');
 
+<<<<<<< HEAD
 Route::get('/warehouse/units', function () {
+=======
+Route::get('/SuperAdmin/Dashboard', function () {
+    return Inertia::render('Web/home/SuperAdmin/Dashboard');
+})->name('SuperAdmin.Dashboard');
+
+Route::get('/SuperAdmin/Analytics', function () {
+    return Inertia::render('Web/home/SuperAdmin/Analytics');
+})->name('SuperAdmin.Analytics');
+
+Route::get('/SuperAdmin/Users', function () {
+    return Inertia::render('Web/home/SuperAdmin/Users');
+})->name('SuperAdmin.Users');
+
+Route::get('/SuperAdmin/AddUser', function () {
+    return Inertia::render('Web/home/SuperAdmin/AddUser');
+})->name('SuperAdmin.AddUser');
+
+Route::get('/SuperAdmin/Vehicles', function () {
+    return Inertia::render('Web/home/SuperAdmin/Vehicles');
+})->name('SuperAdmin.Vehicles');
+
+Route::get('/SuperAdmin/Warehouse', function () {
+    return Inertia::render('Web/home/SuperAdmin/Warehouse');
+})->name('SuperAdmin.Warehouse');
+
+// Route::get('/SuperAdmin/LandVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
+// })->name('SuperAdmin.LandVehicleDetails');
+
+// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
+// })->name('SuperAdmin.SeaVehicleDetails');
+
+// Route::get('/SuperAdmin/AirVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
+// })->name('SuperAdmin.AirVehicleDetails');
+
+Route::get('/SuperAdmin/Vender', function () {
+    return Inertia::render('Web/home/SuperAdmin/NewVender');
+})->name('SuperAdmin.NewVender');
+
+
+
+
+
+
+
+// vendor - warehouse rent
+Route::get('/warehouse/unit', function () {
+>>>>>>> ujith-dev
     return Inertia::render('Web/home/vendors/warehouse/Unit');
 })->name('warehouse.units');
 

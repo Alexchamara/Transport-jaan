@@ -17,6 +17,10 @@ const Vender = ({ newVendors, verifiedVendors, blockedVendors, totalVendors }) =
         }
     }, [flash]);
 
+<<<<<<< HEAD
+=======
+const Vender = () => {
+>>>>>>> ujith-dev
     return (
         <div className="flex flex-row bg-[#081028] min-h-screen sm:flex-col md:flex-row lg:flex-row poppins">
             {flash?.success && (

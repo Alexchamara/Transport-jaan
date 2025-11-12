@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Eye from "../../../assets/superAdmin/eye.png";
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+import { motion } from 'framer-motion';
+>>>>>>> Stashed changes
 import { Link, router } from "@inertiajs/react";
 
 const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyClicked, isRejectClicked }) => {
@@ -74,6 +79,49 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
             setIsLoading(false);
         }
     };
+=======
+
+const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyClicked }) => {
+    // Function to get button colors based on type
+    const getButtonColors = (type) => {
+        if (type === "verify") {
+            return { bg: "bg-[#05C16833]", hoverBg: "hover:bg-[#05C1684D]", text: "text-[#14CA74]" };
+        } else if (type === "close") {
+            return { bg: "bg-[#0955AC]", hoverBg: "hover:bg-[#074a92]", text: "text-white" };
+        }
+    };
+
+    // Function to get styles for status
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case "Active":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Inactive":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Suspended":
+                return { border: "border-[#FF5A6533]", bg: "bg-[#FF5A6533]", dot: "bg-[#FF5A65]", text: "text-[#FF5A65]" };
+            case "Blocked":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+        }
+    };
+
+    // Function to get styles for approval
+    const getApprovalStyles = (approval) => {
+        switch (approval) {
+            case "Approved":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Pending":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Rejected":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+        }
+    };
+
+>>>>>>> ujith-dev
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -121,6 +169,7 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         </span>
                     </div>
                 </div>
+<<<<<<< HEAD
 
                 <div className="mt-8 flex gap-4 justify-center">
                     <motion.button
@@ -145,6 +194,23 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
                         className="bg-[#0955AC] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#074a92] transition-colors duration-50 shadow-md"
+=======
+                <div className="mt-8 flex gap-4 justify-center flex-wrap">
+                    {!isVerifyClicked && (
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 1 }}
+                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("verify").bg} ${getButtonColors("verify").hoverBg} ${getButtonColors("verify").text}`}
+                            onClick={() => onStatusAndApprovalChange()}
+                        >
+                            Verify
+                        </motion.button>
+                    )}
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 1 }}
+                        className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("close").bg} ${getButtonColors("close").hoverBg} ${getButtonColors("close").text}`}
+>>>>>>> ujith-dev
                         onClick={onClose}
                     >
                         Close
@@ -155,11 +221,32 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
     );
 };
 
+<<<<<<< HEAD
 const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }) => {
+=======
+const NewUsers = () => {
+>>>>>>> ujith-dev
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+<<<<<<< Updated upstream
+=======
+    const [users, setUsers] = useState([
+        { name: "John Doe", email: "john.doe@example.com", phone: "+1-555-123-4567", regDate: "2025-09-01", status: "Pending", approval: "Pending" },
+        { name: "Jane Smith", email: "jane.smith@example.com", phone: "+1-555-234-5678", regDate: "2025-09-02", status: "Pending", approval: "Pending" },
+        { name: "Alice Johnson", email: "alice.j@example.com", phone: "+1-555-345-6789", regDate: "2025-09-03", status: "Pending", approval: "Pending" },
+        { name: "Bob Wilson", email: "bob.wilson@example.com", phone: "+1-555-456-7890", regDate: "2025-09-04", status: "Pending", approval: "Pending" },
+        { name: "Emma Brown", email: "emma.brown@example.com", phone: "+1-555-567-8901", regDate: "2025-09-05", status: "Pending", approval: "Pending" },
+        { name: "Michael Lee", email: "michael.lee@example.com", phone: "+1-555-678-9012", regDate: "2025-09-06", status: "Pending", approval: "Pending" },
+        { name: "Sarah Davis", email: "sarah.davis@example.com", phone: "+1-555-789-0123", regDate: "2025-09-07", status: "Pending", approval: "Pending" },
+        { name: "David Clark", email: "david.clark@example.com", phone: "+1-555-890-1234", regDate: "2025-09-08", status: "Pending", approval: "Pending" },
+        { name: "Laura Martinez", email: "laura.m@example.com", phone: "+1-555-901-2345", regDate: "2025-09-09", status: "Pending", approval: "Pending" },
+        { name: "James Taylor", email: "james.taylor@example.com", phone: "+1-555-012-3456", regDate: "2025-09-10", status: "Pending", approval: "Pending" },
+    ]);
+    // State to track button clicks for each user
+>>>>>>> Stashed changes
     const [buttonClicks, setButtonClicks] = useState({});
 
+<<<<<<< HEAD
     // Use the provided vendors data instead of hardcoded data
     const users = vendors.map(vendor => ({
         id: vendor.id,
@@ -171,8 +258,23 @@ const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }
         approval: vendor.approval === 'unverified' ? 'Pending' : vendor.approval,
     }));
 
+<<<<<<< Updated upstream
     // Filter users to only show those with status and approval as Pending
     const filteredUsers = users.filter((user) => user.status === "Pending" && user.approval === "Pending");
+=======
+    // Filter users based on status and approval
+    const filteredUsers = users.filter((user) => {
+        const matchesStatus =
+            statusFilter === "all" || user.status === statusFilter;
+        const matchesApproval =
+            approvalFilter === "all" || user.approval === approvalFilter;
+        return matchesStatus && matchesApproval;
+    });
+=======
+    // Filter users to only show those with status and approval as Pending
+    const filteredUsers = users.filter((user) => user.status === "Pending" && user.approval === "Pending");
+>>>>>>> ujith-dev
+>>>>>>> Stashed changes
 
     // Log filtered users for debugging
     console.log("Filtered Users:", filteredUsers);
@@ -218,6 +320,14 @@ const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }
     };
 
     const handleStatusAndApprovalChange = () => {
+<<<<<<< Updated upstream
+=======
+        setUsers((prevUsers) =>
+            prevUsers.map((u) =>
+                u.email === selectedUser.email ? { ...u, status: "Active", approval: "Approved" } : u
+            )
+        );
+>>>>>>> Stashed changes
         setSelectedUser((prev) => (prev ? { ...prev, status: "Active", approval: "Approved" } : prev));
         // Mark Verify button as clicked for this user
         setButtonClicks((prev) => ({
@@ -343,7 +453,10 @@ const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }
                     onClose={closeModal}
                     onStatusAndApprovalChange={handleStatusAndApprovalChange}
                     isVerifyClicked={buttonClicks[selectedUser.email]?.verify || false}
+<<<<<<< Updated upstream
                     isRejectClicked={buttonClicks[selectedUser.email]?.reject || false}
+=======
+>>>>>>> Stashed changes
                 />
             )}
         </div>

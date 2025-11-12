@@ -57,7 +57,11 @@ const SideMenu = () => {
         } else if (window.location.pathname === "/SuperAdmin/Models/Multimodel") {
             setActiveSubsection("Multimodel");
             setIsModelsOpen(true);
+<<<<<<< Updated upstream
         } else if (window.location.pathname === "/superadmin/Vender") {
+=======
+        } else if (window.location.pathname === "/SuperAdmin/Vender") {
+>>>>>>> Stashed changes
             setActiveSubsection("Vender");
         } else if (window.location.pathname === "/SuperAdmin/AccountSettings") {
             setActiveSubsection("AccountSettings");
@@ -84,6 +88,15 @@ const SideMenu = () => {
             setIsDashboardOpen(false);
             setIsModelsOpen(false);
             setIsAccountOpen(false);
+<<<<<<< Updated upstream
+=======
+        }
+    };
+
+    const handleLogout = () => {
+        if (confirm("Are you sure you want to logout?")) {
+            router.post('/logout');
+>>>>>>> Stashed changes
         }
     };
 
@@ -370,7 +383,11 @@ const SideMenu = () => {
 
                     {/* Vender */}
                     <Link
+<<<<<<< Updated upstream
                         href="/superadmin/Vender"
+=======
+                        href="/SuperAdmin/Vender"
+>>>>>>> Stashed changes
                         className={`w-[244px] h-[42px] flex flex-row justify-between items-center cursor-pointer px-4 ${
                             activeSubsection === "Vender"
                                 ? "bg-[#181A2A] rounded-[10px]"
@@ -502,6 +519,7 @@ const SideMenu = () => {
                     </div>
                 </div>
             </div>
+<<<<<<< Updated upstream
 
             {/* Logout Confirmation Modal */}
             {showLogoutModal && (
@@ -542,3 +560,10 @@ const SideMenu = () => {
 };
 
 export default SideMenu;
+=======
+        </div>
+    );
+};
+
+export default SideMenu;
+>>>>>>> Stashed changes
