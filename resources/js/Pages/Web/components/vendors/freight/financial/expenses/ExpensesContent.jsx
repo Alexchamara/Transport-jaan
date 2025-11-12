@@ -21,9 +21,11 @@ import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg
 import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
 
+import UserDropdown from "../../../Userdropdown";
+
 const ExpensesContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     const expensesData = [
         {
@@ -204,8 +206,8 @@ const ExpensesContent = () => {
     const currentExpenses = expensesData.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
@@ -213,8 +215,8 @@ const ExpensesContent = () => {
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const pages = [];
         if (totalPages <= 5) {
@@ -247,8 +249,8 @@ const ExpensesContent = () => {
 
     // Function to download table as PDF
     const downloadTableAsPDF = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const doc = new jsPDF();
         doc.setFontSize(18);
@@ -311,8 +313,10 @@ const ExpensesContent = () => {
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Freight Expenses</h1>
-                <div className="flex flex-row gap-5">
+                <h1 className="figtree text-[35px] font-[700]">
+                    Freight Expenses
+                </h1>
+                {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
                     </div>
@@ -331,6 +335,9 @@ const ExpensesContent = () => {
                             Vendor
                         </h1>
                     </div>
+                </div> */}
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("freight.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}

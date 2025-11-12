@@ -225,9 +225,9 @@ const Settings = ({ user = {} }) => {
                 {/* Header section */}
                 <div className="flex flex-row gap-5 justify-between items-center">
                     <h1 className="figtree text-[35px] font-[700]">
-                        Ticket Booking Settings
+                        Warehouse Settings
                     </h1>
-                    <div className="flex flex-row gap-5">
+                    {/* <div className="flex flex-row gap-5">
                         <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                             <img src={search} />
                         </div>
@@ -246,10 +246,22 @@ const Settings = ({ user = {} }) => {
                                 Vendor
                             </h1>
                         </div>
+                    </div> */}
+                    {/* Header */}
+                    <div className="flex flex-row gap-5 relative items-center">
+                        <div className="flex flex-row gap-5 relative items-center">
+                            <UserDropdown
+                                settingsRoute={route("settingsPage")}
+                            />
+                        </div>
                     </div>
                 </div>
 
-                <form onSubmit={submitAll} className="space-y-8 mt-10" noValidate>
+                <form
+                    onSubmit={submitAll}
+                    className="space-y-8 mt-10"
+                    noValidate
+                >
                     {/* Profile photo & basic info */}
                     <Section
                         title="Profile"
@@ -745,7 +757,9 @@ const Settings = ({ user = {} }) => {
                             type="button"
                             onClick={() => {
                                 reset();
-                                setPhotoPreview(resolvedUser?.avatar_url || null);
+                                setPhotoPreview(
+                                    resolvedUser?.avatar_url || null
+                                );
                                 clearErrors();
                                 setClientErrors({});
                             }}

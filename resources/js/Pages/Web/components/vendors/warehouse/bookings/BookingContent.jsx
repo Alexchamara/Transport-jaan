@@ -21,10 +21,11 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 import WarehouseBookingTable from "./WarehouseBookingTable";
 import BookingBarChart from "./BookingBarChart";
 
+import UserDropdown from "../../Userdropdown";
 
 const BookingContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
@@ -41,7 +42,7 @@ const BookingContent = () => {
         upcoming_bookings: 0,
         pending_bookings: 0,
         cancelled_bookings: 0,
-        completed_bookings: 0
+        completed_bookings: 0,
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -62,7 +63,10 @@ const BookingContent = () => {
                 setError(null);
 
                 const [bookingsResponse, statsResponse] = await Promise.all([
-                    WarehouseBookingService.getBookings({ page: 1, per_page: 10 }),
+                    WarehouseBookingService.getBookings({
+                        page: 1,
+                        per_page: 10,
+                    }),
                     WarehouseBookingService.getBookingStats(),
                 ]);
 
@@ -71,21 +75,33 @@ const BookingContent = () => {
                 }
 
                 if (bookingsResponse?.success) {
-                    const formattedBookings = (bookingsResponse.data || []).map((booking) =>
-                        WarehouseBookingService.formatBookingForDisplay(booking)
+                    const formattedBookings = (bookingsResponse.data || []).map(
+                        (booking) =>
+                            WarehouseBookingService.formatBookingForDisplay(
+                                booking
+                            )
                     );
                     setBookings(formattedBookings);
                 } else {
                     setBookings([]);
-                    setError((prev) => prev ?? bookingsResponse?.message ?? "Failed to load bookings");
+                    setError(
+                        (prev) =>
+                            prev ??
+                            bookingsResponse?.message ??
+                            "Failed to load bookings"
+                    );
                 }
 
                 if (statsResponse?.success) {
                     setStats({
-                        upcoming_bookings: statsResponse.data?.upcoming_bookings ?? 0,
-                        pending_bookings: statsResponse.data?.pending_bookings ?? 0,
-                        cancelled_bookings: statsResponse.data?.cancelled_bookings ?? 0,
-                        completed_bookings: statsResponse.data?.completed_bookings ?? 0,
+                        upcoming_bookings:
+                            statsResponse.data?.upcoming_bookings ?? 0,
+                        pending_bookings:
+                            statsResponse.data?.pending_bookings ?? 0,
+                        cancelled_bookings:
+                            statsResponse.data?.cancelled_bookings ?? 0,
+                        completed_bookings:
+                            statsResponse.data?.completed_bookings ?? 0,
                     });
                 } else {
                     setStats({
@@ -94,14 +110,19 @@ const BookingContent = () => {
                         cancelled_bookings: 0,
                         completed_bookings: 0,
                     });
-                    setError((prev) => prev ?? statsResponse?.message ?? "Failed to load booking statistics");
+                    setError(
+                        (prev) =>
+                            prev ??
+                            statsResponse?.message ??
+                            "Failed to load booking statistics"
+                    );
                 }
             } catch (error) {
                 if (!isMounted) {
                     return;
                 }
-                console.error('Error loading data:', error);
-                setError('Failed to load booking data');
+                console.error("Error loading data:", error);
+                setError("Failed to load booking data");
                 setBookings([]);
                 setStats({
                     upcoming_bookings: 0,
@@ -145,8 +166,8 @@ const BookingContent = () => {
 
     // Handle input changes for the form
     const handleInputChange = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const { name, value } = e.target;
         setNewBooking((prev) => ({ ...prev, [name]: value }));
@@ -154,8 +175,8 @@ const BookingContent = () => {
 
     // Handle form submission to add new booking
     const handleAddBooking = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const newBookingEntry = {
             ...newBooking,
@@ -210,7 +231,9 @@ const BookingContent = () => {
     useEffect(() => {
         const handler = setTimeout(() => {
             setFilters((prev) =>
-                prev.search === searchTerm ? prev : { ...prev, search: searchTerm }
+                prev.search === searchTerm
+                    ? prev
+                    : { ...prev, search: searchTerm }
             );
         }, 300);
 
@@ -218,29 +241,35 @@ const BookingContent = () => {
     }, [searchTerm]);
 
     const handleWarehouseTypeChange = (event) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const { value } = event.target;
-        setFilters((prev) => (
-            prev.warehouseType === value ? prev : { ...prev, warehouseType: value }
-        ));
+        setFilters((prev) =>
+            prev.warehouseType === value
+                ? prev
+                : { ...prev, warehouseType: value }
+        );
     };
 
     const handleStatusChange = (event) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const { value } = event.target;
-        setFilters((prev) => (prev.status === value ? prev : { ...prev, status: value }));
+        setFilters((prev) =>
+            prev.status === value ? prev : { ...prev, status: value }
+        );
     };
 
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Warehouse Bookings</h1>
-                <div className="flex flex-row gap-5">
+                <h1 className="figtree text-[35px] font-[700]">
+                    Warehouse Bookings
+                </h1>
+                {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
                         <img src={search} alt="Search" />
                     </div>
@@ -260,6 +289,10 @@ const BookingContent = () => {
                             Vendor
                         </h1>
                     </div>
+                </div> */}
+
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}
@@ -282,7 +315,9 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Upcoming Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">{stats.upcoming_bookings || 0}</h1>
+                                <h1 className="text-[26px] font-[700]">
+                                    {stats.upcoming_bookings || 0}
+                                </h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -313,7 +348,9 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Pending Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">{stats.pending_bookings || 0}</h1>
+                                <h1 className="text-[26px] font-[700]">
+                                    {stats.pending_bookings || 0}
+                                </h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -344,7 +381,9 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Cancelled Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">{stats.cancelled_bookings || 0}</h1>
+                                <h1 className="text-[26px] font-[700]">
+                                    {stats.cancelled_bookings || 0}
+                                </h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -375,7 +414,9 @@ const BookingContent = () => {
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Completed Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">{stats.completed_bookings || 0}</h1>
+                                <h1 className="text-[26px] font-[700]">
+                                    {stats.completed_bookings || 0}
+                                </h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -408,7 +449,9 @@ const BookingContent = () => {
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
                 <div className="flex flex-row justify-between">
-                    <h1 className="text-[24px] font-[700]">Warehouse Booking</h1>
+                    <h1 className="text-[24px] font-[700]">
+                        Warehouse Booking
+                    </h1>
                     <div className="flex flex-row gap-5">
                         <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} alt="Search" />
@@ -417,7 +460,9 @@ const BookingContent = () => {
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
                                 placeholder="Search client, warehouse, purpose..."
                                 value={searchTerm}
-                                onChange={(event) => setSearchTerm(event.target.value)}
+                                onChange={(event) =>
+                                    setSearchTerm(event.target.value)
+                                }
                             />
                         </div>
                         <div className="relative w-[139px] h-[35px]">
@@ -427,7 +472,10 @@ const BookingContent = () => {
                                 onChange={handleWarehouseTypeChange}
                             >
                                 {warehouseTypeOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
+                                    <option
+                                        key={option.value}
+                                        value={option.value}
+                                    >
                                         {option.label}
                                     </option>
                                 ))}
@@ -450,7 +498,10 @@ const BookingContent = () => {
                                 onChange={handleStatusChange}
                             >
                                 {statusOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
+                                    <option
+                                        key={option.value}
+                                        value={option.value}
+                                    >
                                         {option.label}
                                     </option>
                                 ))}
@@ -680,8 +731,12 @@ const BookingContent = () => {
                                         className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                                     >
                                         <option value="active">Active</option>
-                                        <option value="completed">Completed</option>
-                                        <option value="cancelled">Cancelled</option>
+                                        <option value="completed">
+                                            Completed
+                                        </option>
+                                        <option value="cancelled">
+                                            Cancelled
+                                        </option>
                                     </select>
                                 </div>
                                 <div className="mb-4 col-span-2">
@@ -718,12 +773,16 @@ const BookingContent = () => {
 
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
-                        <div className="text-[18px] text-gray-600">Loading bookings...</div>
+                        <div className="text-[18px] text-gray-600">
+                            Loading bookings...
+                        </div>
                     </div>
                 ) : (
                     <>
                         {error && (
-                            <div className="mb-6 text-center text-[16px] text-red-600">{error}</div>
+                            <div className="mb-6 text-center text-[16px] text-red-600">
+                                {error}
+                            </div>
                         )}
                         <WarehouseBookingTable
                             bookings={bookings}

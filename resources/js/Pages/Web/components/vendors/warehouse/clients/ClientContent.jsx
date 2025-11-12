@@ -7,6 +7,8 @@ import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 
 import ClientTable from "./ClientTable";
 
+import UserDropdown from "../../Userdropdown";
+
 const ClientContent = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
@@ -16,7 +18,7 @@ const ClientContent = () => {
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Warehouse Clients</h1>
-                <div className="flex flex-row gap-5">
+                {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
                     </div>
@@ -36,6 +38,9 @@ const ClientContent = () => {
                             Vendor
                         </h1>
                     </div>
+                </div> */}
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}

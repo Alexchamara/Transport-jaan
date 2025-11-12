@@ -1,191 +1,226 @@
 import React, { useState } from "react";
-import { Link } from "@inertiajs/react";
 import {
-    LayoutDashboard,
-    Building2,
-    Boxes,
-    Calendar,
-    Users,
-    Wallet,
-    Route,
-    Settings,
-    LogOut,
+  LayoutDashboard,
+  Building2,
+  Boxes,
+  Calendar,
+  Users,
+  Wallet,
+  Route,
+  Settings,
+  LogOut,
+  Bell,
+  ArrowLeft
 } from "lucide-react";
 
 const SideMenu = () => {
-    const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
-    const currentPath = window.location.pathname;
+  const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
+  const currentPath = window.location.pathname;
 
-    const handleLogout = () => {
-        // Use Inertia to POST to Laravel's logout route
-        router.post("/logout");
-    };
+  return (
+    <>
+      {/* Custom Scrollbar – same as first sidebar */}
+      <style>{`
+        .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 3px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
+      `}</style>
 
-    return (
-        <div className="poppins min-w-[289px] h-[1070px] bg-[#FFFFFF] flex flex-col items-center py-10 px-10 rounded-tr-[10px] rounded-br-[10px]">
-            <h1
-                className="text-[25px] font-[700] text-center uppercase cursor-pointer"
-                onClick={() => (window.location.href = "/mainDashboard")}
-            >
-                Company <br /> <span className="text-[#0955AC]">Logo</span>{" "}
-            </h1>
+      <div className="poppins min-w-[279px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
 
-            <div className="relative figtree flex flex-col items-start gap-10 text-[24px] font-[500] text-[#00000066] h-full py-10">
-                <div
-                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/warehouse/dashboard"
-                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                            : "text-[#00000066]"
-                    }`}
-                    onClick={() =>
-                        (window.location.href = "/warehouse/dashboard")
-                    }
-                >
-                    <LayoutDashboard className="w-[25px] h-[25px]" />
-                    <h1>Dashboard</h1>
-                </div>
-                <div
-                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/warehouse/vendors"
-                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                            : "text-[#00000066]"
-                    }`}
-                    onClick={() =>
-                        (window.location.href = "/warehouse/bookings")
-                    }
-                >
-                    <Building2 className="w-[25px] h-[25px]" />
-                    <h1>Bookings</h1>
-                </div>
-                <div
-                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/units"
-                            ? "bg-[#0955AC29] text-[#000000]  font-[700]"
-                            : "text-[#00000066]"
-                    }`}
-                    onClick={() => (window.location.href = "/warehouse/units")}
-                >
-                    <Boxes className="w-[25px] h-[25px]" />
-                    <h1>Units</h1>
-                </div>
-                <div
-                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/calendar"
-                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                            : "text-[#00000066]"
-                    }`}
-                    onClick={() =>
-                        (window.location.href = "/warehouse/calendar")
-                    }
-                >
-                    <Calendar className="w-[25px] h-[25px]" />
-                    <h1>Calendar</h1>
-                </div>
-                <div
-                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/clients"
-                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                            : "text-[#00000066]"
-                    }`}
-                    onClick={() =>
-                        (window.location.href = "/warehouse/clients")
-                    }
-                >
-                    <Users className="w-[25px] h-[25px]" />
-                    <h1>Clients</h1>
-                </div>
-                {/* <div
-                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/drivers"
-                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                            : "text-[#00000066]"
-                    }`}
-                    onClick={() => (window.location.href = "/vendors/drivers")}
-                >
-                    <img src={driversLogo} className="w-[25px]" />
-                    <h1>Drivers</h1>
-                </div> */}
-                <div
-                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        [
-                            "/vendors/warehouse/payment",
-                            "/warehouse/expenses",
-                        ].includes(currentPath)
-                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                            : "text-[#00000066]"
-                    }`}
-                >
-                    <Wallet className="w-[25px] h-[25px]" />
+        {/* Logo - Fixed at top with Back Button */}
+                <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
+                    <button
+                        onClick={() => window.history.back()}
+                        className="absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Go back"
+                    >
+                        <ArrowLeft className="w-5 h-5 text-gray-600" />
+                    </button>
                     <h1
+                        className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
                         onClick={() =>
-                            setShowFinancialDropdown((prev) => !prev)
+                            (window.location.href = "/mainDashboard")
                         }
                     >
-                        Financial
+                        Company <br />
+                        <span className="text-[#0955AC]">Logo</span>
                     </h1>
                 </div>
-                {showFinancialDropdown && (
-                    <div className="ml-10 mb-2 w-40 bg-white flex flex-col text-[24px] font-[500]">
-                        <div
-                            className={`px-4 py-2 cursor-pointer rounded-lg ${
-                                currentPath === "/vendors/warehouse/payment"
-                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                                    : "text-[#00000066]"
-                            }`}
-                            onClick={() =>
-                                (window.location.href = "/warehouse/payment")
-                            }
-                        >
-                            Payment
-                        </div>
-                        <div
-                            className={`px-4 py-2 cursor-pointer rounded-lg ${
-                                currentPath === "/vendors/warehouse/expenses"
-                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                                    : "text-[#00000066]"
-                            }`}
-                            onClick={() =>
-                                (window.location.href = "/warehouse/expenses")
-                            }
-                        >
-                            Expenses
-                        </div>
-                    </div>
-                )}
-                <div
-                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/tracking"
-                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                            : "text-[#00000066]"
-                    }`}
-                    onClick={() =>
-                        (window.location.href = "/warehouse/tracking")
-                    }
-                >
-                    <Route className="w-[25px] h-[25px]" />
-                    <h1>Tracking</h1>
-                </div>
-                <div
-                    className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-4 py-2 ${
-                        currentPath === "/vendors/warehouse/settingsPage"
-                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                            : "text-[#00000066]"
-                    }`}
-                    onClick={() =>
-                        (window.location.href = "/warehouse/settingsPage")
-                    }
-                >
-                    <Settings className="w-[25px] h-[25px]" />
-                    <h1>Settings</h1>
-                </div>
-                <div className="absolute bottom-10 flex flex-row justify-start items-center gap-5 cursor-pointer" onClick={handleLogout}>
-                    <LogOut className="w-[25px] h-[25px]" />
-                    <h1>Logout</h1>
-                {/* </Link> */}
+
+        {/* Scrollable Menu */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">
+          <div className="figtree flex flex-col items-start gap-4 text-[18px] font-[500] text-[#00000066]">
+
+            {/* Dashboard */}
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/warehouse/dashboard" ||
+                currentPath === "/warehouse/dashboard"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/warehouse/dashboard")}
+            >
+              <LayoutDashboard className="w-[22px] h-[22px]" />
+              <span>Dashboard</span>
             </div>
+
+            {/* Bookings */}
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/warehouse/bookings" ||
+                currentPath === "/warehouse/bookings"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/warehouse/bookings")}
+            >
+              <Building2 className="w-[22px] h-[22px]" />
+              <span>Bookings</span>
+            </div>
+
+            {/* Units */}
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/warehouse/units" ||
+                currentPath === "/warehouse/units"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/warehouse/units")}
+            >
+              <Boxes className="w-[22px] h-[22px]" />
+              <span>Units</span>
+            </div>
+
+            {/* Calendar */}
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/warehouse/calendar" ||
+                currentPath === "/warehouse/calendar"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/warehouse/calendar")}
+            >
+              <Calendar className="w-[22px] h-[22px]" />
+              <span>Calendar</span>
+            </div>
+
+            {/* Clients */}
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/warehouse/clients" ||
+                currentPath === "/warehouse/clients"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/warehouse/clients")}
+            >
+              <Users className="w-[22px] h-[22px]" />
+              <span>Clients</span>
+            </div>
+
+            {/* Financial Dropdown */}
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                [
+                  "/vendors/warehouse/payment",
+                  "/warehouse/payment",
+                  "/vendors/warehouse/expenses",
+                  "/warehouse/expenses",
+                ].includes(currentPath)
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => setShowFinancialDropdown((prev) => !prev)}
+            >
+              <Wallet className="w-[22px] h-[22px]" />
+              <span>Financial</span>
+            </div>
+
+            {showFinancialDropdown && (
+              <div className="ml-8 mb-2 w-40 bg-white flex flex-col text-[18px] font-[500]">
+                <div
+                  className={`px-3 py-1.5 cursor-pointer rounded-lg ${
+                    currentPath === "/vendors/warehouse/payment" ||
+                    currentPath === "/warehouse/payment"
+                      ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                      : "text-[#00000066]"
+                  }`}
+                  onClick={() => (window.location.href = "/warehouse/payment")}
+                >
+                  Payment
+                </div>
+                <div
+                  className={`px-3 py-1.5 cursor-pointer rounded-lg ${
+                    currentPath === "/vendors/warehouse/expenses" ||
+                    currentPath === "/warehouse/expenses"
+                      ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                      : "text-[#00000066]"
+                  }`}
+                  onClick={() => (window.location.href = "/warehouse/expenses")}
+                >
+                  Expenses
+                </div>
+              </div>
+            )}
+
+            {/* Tracking */}
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/warehouse/tracking" ||
+                currentPath === "/warehouse/tracking"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/warehouse/tracking")}
+            >
+              <Route className="w-[22px] h-[22px]" />
+              <span>Tracking</span>
+            </div>
+
+            {/* Settings
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/warehouse/settingsPage" ||
+                currentPath === "/warehouse/settingsPage"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/warehouse/settingsPage")}
+            >
+              <Settings className="w-[22px] h-[22px]" />
+              <span>Settings</span>
+            </div> */}
+          </div>
         </div>
-        </div>
-    );
+
+        {/* Logout – fixed bottom
+        <div className="flex-shrink-0 mt-2 pt-4 border-t border-gray-200 w-full">
+          <div
+            className="figtree flex items-center gap-5 text-[18px] font-[500] text-[#00000066] px-3 py-2.5 hover:bg-[#FEF2F2] hover:text-[#DC2626] rounded-lg w-full transition-all duration-200 group cursor-pointer"
+            onClick={() => (window.location.href = "/logout")}
+          >
+            <LogOut
+              className="w-[22px] h-[22px] group-hover:fill-[#DC2626] transition-all"
+              style={{
+                filter:
+                  "brightness(0) saturate(100%) invert(20%) sepia(90%) saturate(5000%) hue-rotate(340deg)",
+              }}
+            />
+            <span>Logout</span>
+          </div>
+        </div> */}
+      </div>
+    </>
+  );
 };
 
 export default SideMenu;

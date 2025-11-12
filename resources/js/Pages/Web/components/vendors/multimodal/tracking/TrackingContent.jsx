@@ -18,16 +18,20 @@ import cal2 from "../../../../assets/vendors/tracking/cal2.svg";
 import time from "../../../../assets/vendors/tracking/time.svg";
 import distance from "../../../../assets/vendors/tracking/distance.svg";
 
+import UserDropdown from "../../Userdropdown";
+
 const TrackingContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Multimodal Tracking</h1>
-                <div className="flex flex-row gap-5">
+                <h1 className="figtree text-[35px] font-[700]">
+                    Multimodal Tracking
+                </h1>
+                {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
                     </div>
@@ -47,6 +51,10 @@ const TrackingContent = () => {
                             Vendor
                         </h1>
                     </div>
+                </div> */}
+
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("multimodal.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}

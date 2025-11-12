@@ -1,14 +1,39 @@
-import React, { useState, useEffect } from "react";
-import { usePage } from "@inertiajs/react";
+// resources/js/Pages/Web/components/vendors/notifications/NotificationsPage.jsx
+import React, { useState, useEffect, useRef } from "react";
+import { usePage, Link } from "@inertiajs/react";
 import axios from "axios";
 import SideMenu from "../../components/vendors/SideMenu";
 import bell from "../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
+import { ChevronDown } from "lucide-react"; // ← NEW
 import NotificationDropdown from "../../components/vendors/NotificationDropdown";
 
 const NotificationsPage = () => {
   const { auth, unreadNotifications: initialUnread = 0 } = usePage().props;
   const user = auth?.user;
+
+  // USER DROPDOWN STATE
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on outside click or Escape
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowUserDropdown(false);
+      }
+    };
+    const handleEsc = (e) => {
+      if (e.key === "Escape") setShowUserDropdown(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, []);
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +92,6 @@ const NotificationsPage = () => {
     }
 
     try {
-      // Note: You'll need to add a delete route in the backend
       await axios.delete(`/vendors/notifications/${notificationId}`);
 
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
@@ -133,22 +157,66 @@ const NotificationsPage = () => {
         <SideMenu />
 
         <div className="w-full h-auto pr-5 py-10">
-          {/* Header */}
+          {/* ==================== HEADER WITH DROPDOWN ==================== */}
           <div className="flex flex-row gap-5 justify-between items-center mb-10">
             <h1 className="figtree text-[35px] font-[700]">Notifications</h1>
-            <div className="flex flex-row gap-5">
-              <NotificationDropdown bellIcon={bell} unreadCount={unreadCount} />
-              <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                <img src={proPic} alt="Profile" />
-              </div>
-              <div className="figtree flex flex-col justify-center items-start">
-                <h1 className="text-[20px] font-[700]">{user?.name || "Vendor"}</h1>
-                <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Vendor</h1>
+
+            <div className="flex flex-row gap-5 items-center">
+              {/* Notification Bell
+              <NotificationDropdown bellIcon={bell} unreadCount={unreadCount} /> */}
+
+              {/* USER PROFILE + DROPDOWN */}
+              <div
+                ref={dropdownRef}
+                className="flex flex-row gap-5 items-center cursor-pointer px-4 py-2 rounded-lg transition-all duration-200 group"
+                onClick={() => setShowUserDropdown((s) => !s)}
+              >
+                <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+                  <img src={proPic} alt="Profile" />
+                </div>
+
+                <div className="figtree flex flex-col justify-center items-start">
+                  <h1 className="text-[20px] font-[700]">{user?.name || "Vendor"}</h1>
+                  <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Vendor</h1>
+                </div>
+
+                <ChevronDown
+                  className={`w-5 h-5 text-[#7B7B7A] transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
+                />
+
+                {/* DROPDOWN MENU */}
+                {showUserDropdown && (
+                  <div
+                    className="absolute top-[120px] right-[20px] w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+                    onMouseEnter={() => setShowUserDropdown(true)}
+                    onMouseLeave={() => setShowUserDropdown(false)}
+                  >
+                    <Link
+                      href="/profile"
+                      className="w-full figtree flex flex-row justify-start items-center gap-3 cursor-pointer text-[16px] font-[500] text-[#000000CC] px-4 py-3 hover:bg-[#F3F4F6] transition-colors"
+                    >
+                      <img src={proPic} className="w-[20px] h-[20px] rounded-full" alt="profile" />
+                      <span>Profile</span>
+                    </Link>
+
+                    <div className="w-full h-[1px] bg-[#E5E7EB] my-1" />
+
+                    <Link
+                      href={route("logout")}
+                      method="post"
+                      as="button"
+                      className="w-full figtree flex flex-row justify-start items-center gap-3 cursor-pointer text-[16px] font-[500] text-[#DC2626] px-4 py-3 hover:bg-[#FEF2F2] transition-colors"
+                    >
+                      <img src={logOutLogo} className="w-[20px] h-[20px]" alt="logout" />
+                      <span>Logout</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Stats & Actions */}
+          {/* ==================== STATS & ACTIONS ==================== */}
           <div className="bg-white rounded-[10px] px-8 py-6 mb-6 shadow-sm">
             <div className="flex justify-between items-center">
               <div className="flex gap-8">
@@ -179,7 +247,7 @@ const NotificationsPage = () => {
             </div>
           </div>
 
-          {/* Filter Tabs */}
+          {/* ==================== FILTER TABS ==================== */}
           <div className="bg-white rounded-[10px] px-8 py-4 mb-6 shadow-sm">
             <div className="flex gap-4">
               <button
@@ -215,7 +283,7 @@ const NotificationsPage = () => {
             </div>
           </div>
 
-          {/* Notifications List */}
+          {/* ==================== NOTIFICATIONS LIST ==================== */}
           <div className="bg-white rounded-[10px] shadow-sm">
             {loading ? (
               <div className="px-8 py-20 text-center">
@@ -304,7 +372,7 @@ const NotificationsPage = () => {
                               onClick={() => (window.location.href = "/vendors/bookings")}
                               className="text-sm text-gray-600 hover:text-gray-800 font-semibold"
                             >
-                              View Booking →
+                              View Booking
                             </button>
                           )}
                           <button

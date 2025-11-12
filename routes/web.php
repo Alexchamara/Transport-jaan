@@ -1084,3 +1084,5 @@ Route::get('/storage/download/{path}', function ($path) {
 |--------------------------------------------------------------------------
 */
 require __DIR__ . '/auth.php';
+
+

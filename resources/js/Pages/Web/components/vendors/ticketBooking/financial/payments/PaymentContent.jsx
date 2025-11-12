@@ -1,11 +1,14 @@
-import React, { useState } from "react";
-import { usePage } from "@inertiajs/react";
+import React, { useState, useRef, useEffect } from "react";
+import { usePage, Link } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable"; 
+import autoTable from "jspdf-autotable";
+
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../../../../assets/vendors/dashboard/logOutLogo.svg"; // Added
+
 import upArrow from "../../../../../assets/vendors/dashboard/icons/upArrow.svg";
 import wallet from "../../../../../assets/financial/expenses/wallet.svg";
 import income from "../../../../../assets/financial/expenses/income.svg";
@@ -19,9 +22,11 @@ import calendar from "../../../../../assets/financial/expenses/cal.svg";
 import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
+import UserDropdown from "../../../Userdropdown";
+
 const PaymentContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     const transactions = [
         {
@@ -215,18 +220,13 @@ const PaymentContent = () => {
     const endIdx = startIdx + itemsPerPage;
     const currentTransactions = transactions.slice(startIdx, endIdx);
 
-    const goToPage = (page) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
 
+    const goToPage = (page) => {
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     const getPageNumbers = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -257,9 +257,6 @@ const PaymentContent = () => {
     };
 
     const handleRowSelection = (rowIndex) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const actualIndex = startIdx + rowIndex;
         const newSelectedRows = new Set(selectedRows);
         if (newSelectedRows.has(actualIndex)) {
@@ -271,9 +268,6 @@ const PaymentContent = () => {
     };
 
     const handleSelectAll = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         if (selectedRows.size === currentTransactions.length) {
             setSelectedRows(new Set());
         } else {
@@ -285,9 +279,6 @@ const PaymentContent = () => {
     };
 
     const downloadTableAsPDF = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const doc = new jsPDF();
         doc.setFontSize(18);
         doc.text("Recent Transactions", 14, 20);
@@ -304,7 +295,6 @@ const PaymentContent = () => {
         ]);
 
         autoTable(doc, {
-            // Use autoTable directly
             head: [
                 [
                     "Invoice Id",
@@ -355,25 +345,22 @@ const PaymentContent = () => {
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Ticket Booking Payment</h1>
-                <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
-                    </div>
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
+                <h1 className="figtree text-[35px] font-[700]">
+                    Ticket Booking Payment
+                </h1>
+                <div className="flex flex-row gap-5 relative items-center">
+                    {/* <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <img src={search} alt="Search" />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <img src={settings} alt="Settings" />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <img src={bell} alt="Notifications" />
+          </div> */}
+
+                    <div className="flex flex-row gap-5 relative items-center">
+                        <UserDropdown settingsRoute={route("ticketBooking.settingsPage")} />
                     </div>
                 </div>
             </div>
@@ -390,7 +377,7 @@ const PaymentContent = () => {
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                            <img src={wallet} />
+                            <img src={wallet} alt="Wallet" />
                         </div>
                         <div>
                             <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
@@ -401,7 +388,11 @@ const PaymentContent = () => {
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                            <img src={upArrow} className="size-[19px]" />
+                            <img
+                                src={upArrow}
+                                className="size-[19px]"
+                                alt="Increase"
+                            />
                             <h1 className="">+2.86%</h1>
                         </div>
                         <h1 className="text-[#7B7B7A]">from last week</h1>
@@ -418,7 +409,7 @@ const PaymentContent = () => {
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                            <img src={income} />
+                            <img src={income} alt="Income" />
                         </div>
                         <div>
                             <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
@@ -429,7 +420,11 @@ const PaymentContent = () => {
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                            <img src={upArrow} className="size-[19px]" />
+                            <img
+                                src={upArrow}
+                                className="size-[19px]"
+                                alt="Increase"
+                            />
                             <h1 className="">+1.73%</h1>
                         </div>
                         <h1 className="text-[#7B7B7A]">from last week</h1>
@@ -447,7 +442,7 @@ const PaymentContent = () => {
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={expenses} />
+                                <img src={expenses} alt="Expenses" />
                             </div>
                             <div>
                                 <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
@@ -463,6 +458,7 @@ const PaymentContent = () => {
                                 <img
                                     src={upArrow}
                                     className="size-[19px] rotate-180"
+                                    alt="Decrease"
                                 />
                                 <h1 className="">+2.86%</h1>
                             </div>
@@ -486,7 +482,7 @@ const PaymentContent = () => {
                     </h1>
                     <div className="flex flex-row gap-5">
                         <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                            <img src={miniSearchIcon} />
+                            <img src={miniSearchIcon} alt="Search" />
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
@@ -494,28 +490,36 @@ const PaymentContent = () => {
                             />
                         </div>
                         <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={filterIcon} className="size-[12px]" />
+                            <img
+                                src={filterIcon}
+                                className="size-[12px]"
+                                alt="Filter"
+                            />
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
                                 placeholder="Status"
                             />
-                            <img src={miniDownArrow} />
+                            <img src={miniDownArrow} alt="Dropdown" />
                         </div>
                         <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={calendar} className="size-[17px]" />
+                            <img
+                                src={calendar}
+                                className="size-[17px]"
+                                alt="Calendar"
+                            />
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
                                 placeholder="25th May"
                             />
-                            <img src={miniDownArrow} />
+                            <img src={miniDownArrow} alt="Dropdown" />
                         </div>
                         <button
                             onClick={downloadTableAsPDF}
                             className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
                         >
-                            <img src={downloadLogo} />
+                            <img src={downloadLogo} alt="Download" />
                             <h1>Download</h1>
                         </button>
                     </div>
@@ -538,64 +542,136 @@ const PaymentContent = () => {
                         />
                         <h1>Invoice Id</h1>
                         <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Down"
+                            />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
                         <h1>Client Name</h1>
                         <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Down"
+                            />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
                         <h1>Car Model</h1>
                         <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Down"
+                            />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center ml-5">
                         <h1>Rent Per Day</h1>
                         <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Down"
+                            />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center ml-10">
                         <h1>Days</h1>
                         <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Down"
+                            />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
                         <h1>Amount</h1>
                         <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Down"
+                            />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
                         <h1>DueDate</h1>
                         <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Down"
+                            />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
                         <h1>Status</h1>
                         <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Down"
+                            />
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
                         <h1>Action</h1>
                         <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Down"
+                            />
                         </div>
                     </div>
                 </div>
@@ -675,7 +751,7 @@ const PaymentContent = () => {
                             onClick={() => goToPage(currentPage - 1)}
                             disabled={currentPage === 1}
                         >
-                            <span className="text-lg">&#60;</span>
+                            <span className="text-lg">&lt;</span>
                         </button>
                         {getPageNumbers().map((num, idx) =>
                             num === "..." ? (
@@ -701,7 +777,7 @@ const PaymentContent = () => {
                             onClick={() => goToPage(currentPage + 1)}
                             disabled={currentPage === totalPages}
                         >
-                            <span className="text-lg">&#62;</span>
+                            <span className="text-lg">&gt;</span>
                         </button>
                     </div>
                 </div>

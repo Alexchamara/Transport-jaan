@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { usePage } from "@inertiajs/react";
+// resources/js/Pages/Web/components/vendors/payments/PaymentContent.jsx
+import React, { useState, useEffect, useRef } from "react";
+import { usePage, Link } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -17,21 +18,31 @@ import downloadLogo from "../../../../assets/financial/expenses/download.svg";
 import calendar from "../../../../assets/financial/expenses/cal.svg";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
+import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
+
 import NotificationDropdown from "../../NotificationDropdown";
+import UserDropdown from "../../Userdropdown";
 
 const PaymentContent = () => {
-    const { auth, transactions: propsTransactions, stats, monthlyRevenue, unreadNotifications = 0 } = usePage().props;
+    const {
+        auth,
+        transactions: propsTransactions,
+        stats,
+        monthlyRevenue,
+        unreadNotifications = 0,
+    } = usePage().props;
     const user = auth?.user;
 
     // Use actual transactions from backend or fallback to empty array
     const [transactions] = useState(propsTransactions || []);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Filter transactions based on search
-    const filteredTransactions = transactions.filter(txn =>
-        txn.client?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        txn.car?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        txn.id?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredTransactions = transactions.filter(
+        (txn) =>
+            txn.client?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            txn.car?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            txn.id?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -117,7 +128,6 @@ const PaymentContent = () => {
         ]);
 
         autoTable(doc, {
-            // Use autoTable directly
             head: [
                 [
                     "Invoice Id",
@@ -166,132 +176,116 @@ const PaymentContent = () => {
 
     return (
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
-            {/* Header section */}
+            {/* ==================== HEADER WITH DROPDOWN ==================== */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Payment</h1>
-                <div className="flex flex-row gap-5">
+                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Payments</h1>
 
-                    <NotificationDropdown bellIcon={bell} unreadCount={unreadNotifications} />
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
-                    </div>
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
+                <div className="flex flex-row gap-5 relative items-center">
+                    <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("settingsPage")} />
+                </div>
                 </div>
             </div>
-            {/* end of header section */}
 
-            {/* mini 4 cards */}
+            {/* ==================== MINI CARDS ==================== */}
             <div className="flex flex-row gap-5 w-full">
                 {/* card 1 */}
                 <div
                     className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{
-                        boxShadow: "4px 4px 4px #0000001A",
-                    }}
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                            <img src={wallet} />
+                            <img src={wallet} alt="wallet" />
                         </div>
                         <div>
                             <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
                                 Total Revenue
                             </h1>
                             <h1 className="text-[26px] font-[700]">
-                                ${stats?.total_revenue?.toFixed(2) || '0.00'}
+                                ${stats?.total_revenue?.toFixed(2) || "0.00"}
                             </h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                            <img src={upArrow} className="size-[19px]" />
-                            <h1 className="">+2.86%</h1>
+                            <img
+                                src={upArrow}
+                                className="size-[19px]"
+                                alt="up"
+                            />
+                            <h1>+2.86%</h1>
                         </div>
                         <h1 className="text-[#7B7B7A]">from last week</h1>
                     </div>
                 </div>
-                {/* end of card 1 */}
 
                 {/* card 2 */}
                 <div
                     className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{
-                        boxShadow: "4px 4px 4px #0000001A",
-                    }}
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                            <img src={income} />
+                            <img src={income} alt="income" />
                         </div>
                         <div>
                             <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
                                 Completed
                             </h1>
                             <h1 className="text-[26px] font-[700]">
-                                ${stats?.total_completed?.toFixed(2) || '0.00'}
+                                ${stats?.total_completed?.toFixed(2) || "0.00"}
                             </h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                         <div className="w-[100px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                            <h1 className="">{stats?.completed_count || 0} Payments</h1>
+                            <h1>{stats?.completed_count || 0} Payments</h1>
                         </div>
                         <h1 className="text-[#7B7B7A]">paid transactions</h1>
                     </div>
                 </div>
-                {/* end of card 2 */}
 
-                <div className="flex flex-row gap-5 w-full">
-                    {/* card 3 */}
-                    <div
-                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={expenses} />
-                            </div>
-                            <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                    Pending
-                                </h1>
-                                <h1 className="text-[26px] font-[700]">
-                                    ${stats?.total_pending?.toFixed(2) || '0.00'}
-                                </h1>
-                            </div>
+                {/* card 3 */}
+                <div
+                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                >
+                    <div className="flex flex-row gap-5 justify-center items-center">
+                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                            <img src={expenses} alt="expenses" />
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[100px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
-                                <h1>{stats?.pending_count || 0} Payments</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">awaiting payment</h1>
+                        <div>
+                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                Pending
+                            </h1>
+                            <h1 className="text-[26px] font-[700]">
+                                ${stats?.total_pending?.toFixed(2) || "0.00"}
+                            </h1>
                         </div>
                     </div>
-                    {/* end of card 3 */}
+                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                        <div className="w-[100px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
+                            <h1>{stats?.pending_count || 0} Payments</h1>
+                        </div>
+                        <h1 className="text-[#7B7B7A]">awaiting payment</h1>
+                    </div>
                 </div>
             </div>
 
+            {/* ==================== TABLE CARD ==================== */}
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
-                style={{
-                    boxShadow: "4px 4px 4px #0000001A",
-                }}
+                style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
-                {/* card header */}
+                {/* Card Header */}
                 <div className="flex flex-row justify-between">
                     <h1 className="text-[24px] font-[700]">
                         Recent Transactions
                     </h1>
                     <div className="flex flex-row gap-5">
                         <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                            <img src={miniSearchIcon} />
+                            <img src={miniSearchIcon} alt="search" />
                             <input
                                 type="text"
                                 value={searchTerm}
@@ -301,112 +295,90 @@ const PaymentContent = () => {
                             />
                         </div>
                         <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={filterIcon} className="size-[12px]" />
+                            <img
+                                src={filterIcon}
+                                className="size-[12px]"
+                                alt="filter"
+                            />
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
                                 placeholder="Status"
                             />
-                            <img src={miniDownArrow} />
+                            <img src={miniDownArrow} alt="arrow" />
                         </div>
                         <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={calendar} className="size-[17px]" />
+                            <img
+                                src={calendar}
+                                className="size-[17px]"
+                                alt="calendar"
+                            />
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
                                 placeholder="25th May"
                             />
-                            <img src={miniDownArrow} />
+                            <img src={miniDownArrow} alt="arrow" />
                         </div>
                         <button
                             onClick={downloadTableAsPDF}
                             className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
                         >
-                            <img src={downloadLogo} />
+                            <img src={downloadLogo} alt="download" />
                             <h1>Download</h1>
                         </button>
                     </div>
                 </div>
-                {/* end */}
 
-                {/* expenses table */}
-                {/* table headings */}
+                {/* Table Headings */}
                 <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
-                    <div className="flex flex-row gap-3 items-center">
-                        <input
-                            type="checkbox"
-                            className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                            checked={
-                                selectedRows.size ===
-                                    currentTransactions.length &&
-                                currentTransactions.length > 0
-                            }
-                            onChange={handleSelectAll}
-                        />
-                        <h1>Invoice Id</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                    {[
+                        ["Invoice Id", true],
+                        ["Client Name", false],
+                        ["Car Model", false],
+                        ["Rent Per Day", false],
+                        ["Days", false],
+                        ["Amount", false],
+                        ["DueDate", false],
+                        ["Status", false],
+                        ["Action", false],
+                    ].map(([label, hasCheckbox], idx) => (
+                        <div
+                            key={label}
+                            className={`flex flex-row gap-2 items-center ${
+                                idx === 3 ? "ml-5" : idx === 4 ? "ml-10" : ""
+                            }`}
+                        >
+                            {hasCheckbox && (
+                                <input
+                                    type="checkbox"
+                                    className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                                    checked={
+                                        selectedRows.size ===
+                                            currentTransactions.length &&
+                                        currentTransactions.length > 0
+                                    }
+                                    onChange={handleSelectAll}
+                                />
+                            )}
+                            <h1>{label}</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img
+                                    src={miniUp}
+                                    className="w-[6px] h-[4px]"
+                                    alt="up"
+                                />
+                                <img
+                                    src={miniDown}
+                                    className="w-[6px] h-[4px]"
+                                    alt="down"
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Client Name</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Car Model</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center ml-5">
-                        <h1>Rent Per Day</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center ml-10">
-                        <h1>Days</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Amount</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>DueDate</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Status</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Action</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
+                    ))}
                 </div>
-                {/* end */}
+
+                {/* Table Rows */}
                 {currentTransactions.map((txn, idx) => (
                     <div
                         key={startIdx + idx}
@@ -426,7 +398,7 @@ const PaymentContent = () => {
                             />
                             <h1>{txn.id}</h1>
                         </div>
-                        <div className="">{txn.client}</div>
+                        <div>{txn.client}</div>
                         <div>{txn.car}</div>
                         <div className="ml-5">{txn.rentPerDay}</div>
                         <div className="ml-10">{txn.days}</div>
@@ -454,9 +426,9 @@ const PaymentContent = () => {
                         </div>
                     </div>
                 ))}
-                {/* Pagination Controls and Results per page inline */}
+
+                {/* Pagination */}
                 <div className="flex justify-between items-center gap-2 mt-20">
-                    {/* Left: Results per page */}
                     <div className="flex items-center">
                         <span className="mr-3 text-[#00000080] text-[15px]">
                             Results per page
@@ -475,14 +447,14 @@ const PaymentContent = () => {
                             ))}
                         </select>
                     </div>
-                    {/* Right: Pagination */}
+
                     <div className="flex items-center gap-2">
                         <button
                             className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
                             onClick={() => goToPage(currentPage - 1)}
                             disabled={currentPage === 1}
                         >
-                            <span className="text-lg">&#60;</span>
+                            <span className="text-lg">&lt;</span>
                         </button>
                         {getPageNumbers().map((num, idx) =>
                             num === "..." ? (
@@ -494,7 +466,7 @@ const PaymentContent = () => {
                                     key={num}
                                     className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
                                         currentPage === num
-                                            ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
+                                            ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
                                     }`}
                                     onClick={() => goToPage(num)}
@@ -508,7 +480,7 @@ const PaymentContent = () => {
                             onClick={() => goToPage(currentPage + 1)}
                             disabled={currentPage === totalPages}
                         >
-                            <span className="text-lg">&#62;</span>
+                            <span className="text-lg">&gt;</span>
                         </button>
                     </div>
                 </div>
