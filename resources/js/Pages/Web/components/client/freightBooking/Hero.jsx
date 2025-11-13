@@ -242,12 +242,12 @@ const Hero = () => {
                         </p>
                     </div>
                     <div className="flex gap-2 justify-center items-center">
-                        <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium">
+                        {/* <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium">
                             <Download className="mr-2 h-7 w-7" /> Export
                         </button>
                         <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
                             <Plus className="mr-2 h-6 w-6" /> New Booking
-                        </button>
+                        </button> */}
                     </div>
                 </div>
 
@@ -678,10 +678,10 @@ const Hero = () => {
                                                     Schedule weekly sailings
                                                 </div>
                                             </div>
-                                            <button className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0955AC]">
+                                            {/* <button className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0955AC]">
                                                 Book{" "}
                                                 <ChevronRight className="ml-1 h-4 w-4 inline-block" />
-                                            </button>
+                                            </button> */}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -746,9 +746,9 @@ const Hero = () => {
                                             <span className="text-slate-500">
                                                 Ref: {r.code}
                                             </span>
-                                            <button className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm">
+                                            {/* <button className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm">
                                                 Manage
-                                            </button>
+                                            </button> */}
                                         </div>
                                     </div>
                                 ))}
