@@ -303,7 +303,7 @@ const ClientVehicleDashboard = () => {
                                 <div className="p-6">
                                     <div className="flex justify-between items-center mb-6">
                                         <h2 className="text-xl font-semibold text-gray-800">Current Bookings</h2>
-                                        <button 
+                                        <button
                                             onClick={handleNewBooking}
                                             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                                         >
@@ -333,13 +333,13 @@ const ClientVehicleDashboard = () => {
                                                         </p>
                                                     </div>
                                                     <div className="flex space-x-2">
-                                                        <button 
+                                                        <button
                                                             onClick={() => handleViewDetails(booking)}
                                                             className="text-blue-600 hover:text-blue-800 font-medium"
                                                         >
                                                             View Details
                                                         </button>
-                                                        <button 
+                                                        <button
                                                             onClick={() => handleCancelBooking(booking)}
                                                             className="text-red-600 hover:text-red-800 font-medium"
                                                         >
@@ -366,7 +366,7 @@ const ClientVehicleDashboard = () => {
                                                 onChange={handleSearchChange}
                                                 className="border border-gray-300 rounded-lg px-3 py-2 w-48"
                                             />
-                                            <select 
+                                            <select
                                                 value={selectedFilter}
                                                 onChange={handleFilterChange}
                                                 className="border border-gray-300 rounded-lg px-3 py-2"
@@ -376,7 +376,7 @@ const ClientVehicleDashboard = () => {
                                                 <option>Train</option>
                                                 <option>Flight</option>
                                             </select>
-                                            <button 
+                                            <button
                                                 onClick={handleSearchClick}
                                                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                                             >
@@ -404,7 +404,7 @@ const ClientVehicleDashboard = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex space-x-2">
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleBookNow(vehicle)}
                                                         disabled={vehicle.availability === 'Booked'}
                                                         className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
@@ -415,7 +415,7 @@ const ClientVehicleDashboard = () => {
                                                     >
                                                         {vehicle.availability === 'Available' ? 'Book Now' : 'Unavailable'}
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleViewVehicleDetails(vehicle)}
                                                         className="flex-1 border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors text-sm"
                                                     >
@@ -448,13 +448,13 @@ const ClientVehicleDashboard = () => {
                                                     <p className="text-gray-600">Date: 2024-10-15</p>
                                                 </div>
                                                 <div className="flex space-x-2">
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleViewReceipt()}
                                                         className="text-blue-600 hover:text-blue-800 font-medium"
                                                     >
                                                         View Receipt
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleRateTrip()}
                                                         className="text-green-600 hover:text-green-800 font-medium"
                                                     >
