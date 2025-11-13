@@ -102,8 +102,27 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         </span>
                     </div>
                 </div>
-
-                <div className="mt-8 flex gap-4 justify-center">
+                <div className="mt-8 flex gap-4 justify-center flex-wrap">
+                    {!isVerifyClicked && (
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 1 }}
+                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("verify").bg} ${getButtonColors("verify").hoverBg} ${getButtonColors("verify").text}`}
+                            onClick={() => onStatusAndApprovalChange("Active", "Approved")}
+                        >
+                            Verify
+                        </motion.button>
+                    )}
+                    {!isVerifyClicked && !isPendingClicked && (
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 1 }}
+                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("pending").bg} ${getButtonColors("pending").hoverBg} ${getButtonColors("pending").text}`}
+                            onClick={() => onStatusAndApprovalChange("Pending", "Pending")}
+                        >
+                            Pending
+                        </motion.button>
+                    )}
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
@@ -127,7 +146,7 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
     );
 };
 
-const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }) => {
+const BlockUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [buttonClicks, setButtonClicks] = useState({});
@@ -330,4 +349,4 @@ const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }
     );
 };
 
-export default NewUsers;
+export default BlockUsers;

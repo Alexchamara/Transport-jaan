@@ -17,33 +17,23 @@ import cal2 from "../../../assets/vendors/tracking/cal2.svg";
 import time from "../../../assets/vendors/tracking/time.svg";
 import distance from "../../../assets/vendors/tracking/distance.svg";
 
+import UserDropdown from "../../../components/vendors/UserDropdown";
+
 const TrackingContent = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
-            {/* Header section */}
+        <div className="w-full h-auto pr-5">
+           {/* Header */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Tracking</h1>
-                <div className="flex flex-row gap-5">
-
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
-                    </div>
-
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
+                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Tracking</h1>
+                <div className="flex flex-row gap-5 relative items-center">
+                    <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("settingsPage")} />
+                </div>
                 </div>
             </div>
-            {/* end of header section */}
 
             <div className="flex flex-row gap-4 w-full py-10">
                 <div

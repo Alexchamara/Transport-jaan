@@ -72,12 +72,6 @@ const ClientHeader = () => {
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <img
-                            src={search}
-                            className="size-[18px] md:w-[24px] md:h-[23px]"
-                        />
-                    </div>
-                    <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
-                        <img
                             src={bell}
                             className="size-[18px] md:w-[24px] md:h-[23px]"
                         />
@@ -147,19 +141,19 @@ const ClientHeader = () => {
                                         className="ml-4 mt-1 flex flex-col space-y-1"
                                     >
                                         <Link
-                                            href="/clientDashboard"
+                                            href="/clientRent?type=land"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Land
                                         </Link>
                                         <Link
-                                             href="/clientDashboard"
+                                             href="/clientRent?type=air"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Air
                                         </Link>
                                         <Link
-                                            href="/clientDashboard"
+                                            href="/clientRent?type=sea"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Sea

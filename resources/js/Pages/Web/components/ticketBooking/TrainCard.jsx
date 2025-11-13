@@ -37,7 +37,7 @@ const trainStations = [
 ];
 
 // LocationDropdown component for train stations
-const StationDropdown = ({ label, id, value, onChange, placeholder }) => {
+const StationDropdown = ({ label, id, value, onChange, placeholder, error }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(value);
     const [filteredStations, setFilteredStations] = useState([]);
@@ -99,8 +99,11 @@ const StationDropdown = ({ label, id, value, onChange, placeholder }) => {
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
                 placeholder={placeholder}
-                className="appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                className={`appearance-none w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
+                    error ? 'border-red-500' : 'border-[#0000001A]'
+                }`}
                 autoComplete="off"
+                required
             />
 
             {/* Dropdown List */}
@@ -146,6 +149,8 @@ const TrainCard = () => {
     const [children, setChildren] = useState(0);
     const [infants, setInfants] = useState(0);
 
+    const [errors, setErrors] = useState({});
+
     const handleCount = (setter, delta) => {
         setter((prev) => Math.max(0, prev + delta));
     };
@@ -155,17 +160,60 @@ const TrainCard = () => {
             ...prev,
             [field]: value
         }));
+
+        // Clear error when user starts typing
+        if (errors[field]) {
+            setErrors(prev => ({
+                ...prev,
+                [field]: ''
+            }));
+        }
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+
+        if (!formData.fromStation.trim()) {
+            newErrors.fromStation = 'From station is required';
+        }
+
+        if (!formData.toStation.trim()) {
+            newErrors.toStation = 'To station is required';
+        }
+
+        if (!formData.departureDate.trim()) {
+            newErrors.departureDate = 'Departure date is required';
+        }
+
+        // For round trip, return date is also required
+        if (tripType === 'roundtrip' && !formData.returnDate.trim()) {
+            newErrors.returnDate = 'Return date is required';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSearchClick = (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+            // Scroll to first error field
+            const firstErrorField = Object.keys(errors)[0];
+            if (firstErrorField) {
+                document.getElementById(firstErrorField)?.focus();
+            }
+            return;
+        }
+
+        // If validation passes, navigate to train booking details
+        const url = `/trainTicketBookingDetails?from=${encodeURIComponent(formData.fromStation)}&to=${encodeURIComponent(formData.toStation)}&departureDate=${formData.departureDate}&returnDate=${formData.returnDate}&tripType=${tripType}&adults=${adults}&children=${children}&infants=${infants}`;
+        window.location.href = url;
     };
 
     const onSubmitTrain = (e) => {
         e.preventDefault();
-        console.log("Train search", {
-            tripType,
-            formData,
-            adults,
-            children,
-            infants,
-        });
+        handleSearchClick(e);
     };
 
     return (
@@ -200,16 +248,22 @@ const TrainCard = () => {
 
                 {/* From & Date */}
                 <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
-                    <StationDropdown
-                        label="From Station"
-                        id="fromStation"
-                        value={formData.fromStation}
-                        onChange={(value) => handleInputChange('fromStation', value)}
-                        placeholder="Search departure station"
-                    />
+                    <div>
+                        <StationDropdown
+                            label="From Station *"
+                            id="fromStation"
+                            value={formData.fromStation}
+                            onChange={(value) => handleInputChange('fromStation', value)}
+                            placeholder="Search departure station"
+                            error={errors.fromStation}
+                        />
+                        {errors.fromStation && (
+                            <p className="text-red-500 text-xs mt-1">{errors.fromStation}</p>
+                        )}
+                    </div>
                     <div>
                         <label htmlFor="departureDate" className="block mb-1 text-[#286BB6] text-[13px] font-[400]">
-                            Departure Date
+                            Departure Date *
                         </label>
                         <input
                             type="text"
@@ -217,26 +271,38 @@ const TrainCard = () => {
                             value={formData.departureDate}
                             onChange={(e) => handleInputChange('departureDate', e.target.value)}
                             placeholder="DD/MM/YYYY"
-                            className="w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                            className={`w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
+                                errors.departureDate ? 'border-red-500' : 'border-[#0000001A]'
+                            }`}
                             onFocus={(e) => (e.target.type = "date")}
                             onBlur={(e) => (e.target.type = "text")}
+                            required
                         />
+                        {errors.departureDate && (
+                            <p className="text-red-500 text-xs mt-1">{errors.departureDate}</p>
+                        )}
                     </div>
                 </div>
 
                 {/* To (+ Return Date when Round Trip) */}
                 {tripType === "roundtrip" ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
-                        <StationDropdown
-                            label="To Station"
-                            id="toStation"
-                            value={formData.toStation}
-                            onChange={(value) => handleInputChange('toStation', value)}
-                            placeholder="Search destination station"
-                        />
+                        <div>
+                            <StationDropdown
+                                label="To Station *"
+                                id="toStation"
+                                value={formData.toStation}
+                                onChange={(value) => handleInputChange('toStation', value)}
+                                placeholder="Search destination station"
+                                error={errors.toStation}
+                            />
+                            {errors.toStation && (
+                                <p className="text-red-500 text-xs mt-1">{errors.toStation}</p>
+                            )}
+                        </div>
                         <div>
                             <label htmlFor="returnDate" className="block mb-1 text-[#286BB6] text-[13px] font-[400]">
-                                Return Date
+                                Return Date *
                             </label>
                             <input
                                 type="text"
@@ -244,21 +310,31 @@ const TrainCard = () => {
                                 value={formData.returnDate}
                                 onChange={(e) => handleInputChange('returnDate', e.target.value)}
                                 placeholder="DD/MM/YYYY"
-                                className="w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                                className={`w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
+                                    errors.returnDate ? 'border-red-500' : 'border-[#0000001A]'
+                                }`}
                                 onFocus={(e) => (e.target.type = "date")}
                                 onBlur={(e) => (e.target.type = "text")}
+                                required
                             />
+                            {errors.returnDate && (
+                                <p className="text-red-500 text-xs mt-1">{errors.returnDate}</p>
+                            )}
                         </div>
                     </div>
                 ) : (
                     <div className="w-full">
                         <StationDropdown
-                            label="To Station"
+                            label="To Station *"
                             id="toStation"
                             value={formData.toStation}
                             onChange={(value) => handleInputChange('toStation', value)}
                             placeholder="Search destination station"
+                            error={errors.toStation}
                         />
+                        {errors.toStation && (
+                            <p className="text-red-500 text-xs mt-1">{errors.toStation}</p>
+                        )}
                     </div>
                 )}
 
@@ -329,12 +405,13 @@ const TrainCard = () => {
                 </div>
 
                 {/* Search Button */}
-                <Link
-                    href={`/trainTicketBookingDetails?from=${encodeURIComponent(formData.fromStation)}&to=${encodeURIComponent(formData.toStation)}&departureDate=${formData.departureDate}&returnDate=${formData.returnDate}&tripType=${tripType}&adults=${adults}&children=${children}&infants=${infants}`}
+                <button
+                    type="button"
+                    onClick={handleSearchClick}
                     className="bg-[#0955AC] text-white font-bold h-[56px] w-full rounded-[10px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#07448a] transition-colors flex justify-center items-center"
                 >
                     Search
-                </Link>
+                </button>
             </form>
         </div>
     );

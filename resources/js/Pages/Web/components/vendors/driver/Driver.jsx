@@ -1,11 +1,13 @@
 // resources/js/Pages/Web/components/vendors/driver/Driver.jsx
 import React, { useEffect, useRef, useState } from "react";
 import SideMenu from "../SideMenu.jsx";
-import { usePage } from "@inertiajs/react";
-
+import { usePage, Link } from "@inertiajs/react";
 
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
+
+import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
 
 const PAGE_SIZE = 8;
 
@@ -39,6 +41,7 @@ export default function Driver() {
   const checkTimeouts = useRef({}); // For debouncing duplicate checks
 
   const formRef = useRef(null);
+
 
   // ---------- helpers ----------
   const toAbsoluteUrl = (u) => {
@@ -182,10 +185,7 @@ export default function Driver() {
     if (!form.phone.trim()) {
       e.phone = "Phone is required";
     } else {
-      // Remove spaces and special characters for validation
       const cleanPhone = form.phone.replace(/[\s\-\(\)]/g, '');
-
-      // Check if it contains only digits and optional + at the start
       if (!/^\+?\d+$/.test(cleanPhone)) {
         e.phone = "Phone must contain only numbers (+ allowed at start)";
       } else if (cleanPhone.length < 10) {
@@ -199,7 +199,6 @@ export default function Driver() {
     if (!form.license_no.trim()) {
       e.license_no = "License no. is required";
     } else {
-      // Allow letters, numbers, hyphens, slashes, and spaces
       if (!/^[A-Z0-9\-\/\s]{5,20}$/i.test(form.license_no)) {
         e.license_no = "License number must be 5-20 characters (letters, numbers, -, /, spaces only)";
       }
@@ -211,8 +210,6 @@ export default function Driver() {
     if (!form.vehicle_no.trim()) {
       e.vehicle_no = "Vehicle no. is required";
     } else {
-      // Format: 1-3 letters, optional space/hyphen, 1-4 letters/numbers, optional space/hyphen, 1-4 numbers
-      // Examples: WP ABC-1234, CAA-1234, KA 01 AB 1234
       if (!/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i.test(form.vehicle_no)) {
         e.vehicle_no = "Invalid vehicle number format. Use: WP ABC-1234 or CAA-1234";
       }
@@ -251,7 +248,6 @@ export default function Driver() {
     try {
       if (editing) {
         await api.update(editing, form);
-        // Refresh image cache key to force reload of images
         setImageRefreshKey(Date.now());
       }
       else await api.create(form);
@@ -312,7 +308,7 @@ export default function Driver() {
 
     try {
       const exists = rows.some(driver => {
-        if (editing && driver.id === editing) return false; // Exclude current driver when editing
+        if (editing && driver.id === editing) return false;
         return driver[field]?.toLowerCase() === value.toLowerCase();
       });
 
@@ -329,64 +325,34 @@ export default function Driver() {
     }
   };
 
-  // Helper function to handle phone input
+  // Helper functions for input handling
   const handlePhoneChange = (value) => {
-    // Allow only numbers, +, spaces, hyphens, and parentheses
     const sanitized = value.replace(/[^0-9+\s\-\(\)]/g, '');
     setForm({ ...form, phone: sanitized });
-
-    // Clear error if user starts typing
-    if (errors.phone) {
-      setErrors({ ...errors, phone: '' });
-    }
-
-    // Debounced duplicate check
+    if (errors.phone) setErrors({ ...errors, phone: '' });
     if (checkTimeouts.current.phone) clearTimeout(checkTimeouts.current.phone);
     checkTimeouts.current.phone = setTimeout(() => checkDuplicate('phone', sanitized), 800);
   };
 
-  // Helper function to handle license number input
   const handleLicenseChange = (value) => {
-    // Allow only letters, numbers, hyphens, slashes, and spaces
     const sanitized = value.replace(/[^A-Za-z0-9\-\/\s]/g, '').toUpperCase();
     setForm({ ...form, license_no: sanitized });
-
-    // Clear error if user starts typing
-    if (errors.license_no) {
-      setErrors({ ...errors, license_no: '' });
-    }
-
-    // Debounced duplicate check
+    if (errors.license_no) setErrors({ ...errors, license_no: '' });
     if (checkTimeouts.current.license_no) clearTimeout(checkTimeouts.current.license_no);
     checkTimeouts.current.license_no = setTimeout(() => checkDuplicate('license_no', sanitized), 800);
   };
 
-  // Helper function to handle vehicle number input
   const handleVehicleNoChange = (value) => {
-    // Allow only letters, numbers, hyphens, and spaces
     const sanitized = value.replace(/[^A-Za-z0-9\-\s]/g, '').toUpperCase();
     setForm({ ...form, vehicle_no: sanitized });
-
-    // Clear error if user starts typing
-    if (errors.vehicle_no) {
-      setErrors({ ...errors, vehicle_no: '' });
-    }
-
-    // Debounced duplicate check
+    if (errors.vehicle_no) setErrors({ ...errors, vehicle_no: '' });
     if (checkTimeouts.current.vehicle_no) clearTimeout(checkTimeouts.current.vehicle_no);
     checkTimeouts.current.vehicle_no = setTimeout(() => checkDuplicate('vehicle_no', sanitized), 800);
   };
 
-  // Helper function to handle email input with duplicate checking
   const handleEmailChange = (value) => {
     setForm({ ...form, email: value });
-
-    // Clear error and warning if user starts typing
-    if (errors.email) {
-      setErrors({ ...errors, email: '' });
-    }
-
-    // Debounced duplicate check
+    if (errors.email) setErrors({ ...errors, email: '' });
     if (checkTimeouts.current.email) clearTimeout(checkTimeouts.current.email);
     checkTimeouts.current.email = setTimeout(() => checkDuplicate('email', value), 800);
   };
@@ -484,23 +450,20 @@ export default function Driver() {
       <SideMenu />
 
       <main className="flex-1 w-full py-8">
-        {/* Header */}
+        {/* ==================== HEADER WITH DROPDOWN ==================== */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-row gap-5 justify-between items-center">
-            <h1 className="figtree text-[28px] font-[700]">Drivers</h1>
-            <div className="flex flex-row gap-4 items-center">
+            <h1 className="figtree text-[28px] font-[700]">Vehicle Rental Drivers</h1>
 
-              <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={bell} /></div>
-              <div className="size-10 rounded-[10px] bg-[#E8EBEF] flex justify-center items-center"><img src={proPic} /></div>
-              <div className="figtree hidden sm:flex flex-col justify-center items-start">
-                <div className="text-[16px] font-[700]">{user?.name || 'Vendor'}</div>
-                <div className="text-[13px] font-[600] text-[#7B7B7A]">Vendor</div>
-              </div>
-            </div>
+            <div className="flex flex-row gap-5 relative items-center">
+                    <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("settingsPage")} />
+                </div>
+                </div>
           </div>
         </div>
 
-        {/* Form: reduced padding & width, matches table width */}
+        {/* ==================== FORM ==================== */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
           <form
             ref={formRef}
@@ -532,7 +495,7 @@ export default function Driver() {
                   maxLength="20"
                 />
                 {errors.phone && <span className="text-red-500 text-xs">{errors.phone}</span>}
-                {!errors.phone && warnings.phone && <span className="text-yellow-600 text-xs">⚠ {warnings.phone}</span>}
+                {!errors.phone && warnings.phone && <span className="text-yellow-600 text-xs">Warning: {warnings.phone}</span>}
                 {!errors.phone && !warnings.phone && form.phone && (
                   <span className="text-gray-500 text-xs">Format: +94 77 123 4567 or 0771234567</span>
                 )}
@@ -548,7 +511,7 @@ export default function Driver() {
                   placeholder="john@example.com"
                 />
                 {errors.email && <span className="text-red-500 text-xs">{errors.email}</span>}
-                {!errors.email && warnings.email && <span className="text-yellow-600 text-xs">⚠ {warnings.email}</span>}
+                {!errors.email && warnings.email && <span className="text-yellow-600 text-xs">Warning: {warnings.email}</span>}
               </div>
 
               <div className="space-y-1">
@@ -562,7 +525,7 @@ export default function Driver() {
                   maxLength="20"
                 />
                 {errors.license_no && <span className="text-red-500 text-xs">{errors.license_no}</span>}
-                {!errors.license_no && warnings.license_no && <span className="text-yellow-600 text-xs">⚠ {warnings.license_no}</span>}
+                {!errors.license_no && warnings.license_no && <span className="text-yellow-600 text-xs">Warning: {warnings.license_no}</span>}
                 {!errors.license_no && !warnings.license_no && form.license_no && (
                   <span className="text-gray-500 text-xs">5-20 characters: letters, numbers, -, /, spaces</span>
                 )}
@@ -600,7 +563,7 @@ export default function Driver() {
                   maxLength="20"
                 />
                 {errors.vehicle_no && <span className="text-red-500 text-xs">{errors.vehicle_no}</span>}
-                {!errors.vehicle_no && warnings.vehicle_no && <span className="text-yellow-600 text-xs">⚠ {warnings.vehicle_no}</span>}
+                {!errors.vehicle_no && warnings.vehicle_no && <span className="text-yellow-600 text-xs">Warning: {warnings.vehicle_no}</span>}
                 {!errors.vehicle_no && !warnings.vehicle_no && form.vehicle_no && (
                   <span className="text-gray-500 text-xs">Format: Province Code + Letters/Numbers (e.g., WP ABC-1234)</span>
                 )}
@@ -677,10 +640,10 @@ export default function Driver() {
           </form>
         </div>
 
-        {/* Table: same width as form, includes details toggle + images */}
+        {/* ==================== TABLE ==================== */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
           <div className="w-full bg-white rounded-lg border border-gray-200">
-            {/* Header with chips (Add button removed) */}
+            {/* Header with chips */}
             <div className="px-4 sm:px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-white border-b border-gray-200 rounded-t-lg">
               <div className="flex items-center gap-4">
                 <div className="flex text-[#0955AC] text-[14px] font-[700]">
@@ -713,7 +676,6 @@ export default function Driver() {
                 </div>
               </div>
 
-              {/* Right side now empty since Add button removed */}
               <div className="h-0 md:h-auto" />
             </div>
 
@@ -768,7 +730,6 @@ export default function Driver() {
                             </td>
                             <td className="px-4 sm:px-6 py-3 whitespace-nowrap">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "-"}</td>
 
-                            {/* Small thumbs */}
                             <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
                               <ThumbCell id={r.id} url={r.license_photo_url} kind="license" />
                             </td>
@@ -776,7 +737,6 @@ export default function Driver() {
                               <ThumbCell id={r.id} url={r.nic_photo_url} kind="nic" />
                             </td>
 
-                            {/* Details toggle */}
                             <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
                               <button
                                 type="button"
@@ -795,7 +755,6 @@ export default function Driver() {
                             </td>
                           </tr>
 
-                          {/* Expanded full details row */}
                           {isOpen && (
                             <tr className="border-t border-gray-100 bg-[#FAFAFA]">
                               <td colSpan={13} className="px-4 sm:px-6 py-4">
@@ -813,7 +772,6 @@ export default function Driver() {
                                     <div className="text-sm text-gray-900 whitespace-pre-line">{r.notes || "-"}</div>
                                   </div>
 
-                                  {/* Large previews + downloads */}
                                   <div className="space-y-2">
                                     <div className="text-xs text-gray-500">License Image</div>
                                     {r.license_photo_url ? (
@@ -856,7 +814,6 @@ export default function Driver() {
                                     ) : <div className="text-sm text-gray-500">—</div>}
                                   </div>
 
-                                  {/* Meta */}
                                   <div className="space-y-1">
                                     <div className="text-xs text-gray-500">Meta</div>
                                     <div className="text-sm text-gray-900">

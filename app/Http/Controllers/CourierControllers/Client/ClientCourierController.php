@@ -13,6 +13,346 @@ use Inertia\Inertia;
 
 class ClientCourierController extends Controller
 {
+    public function dashboard(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('signin.signin');
+        }
+
+        // Fetch all shipments for the user with relationships
+        $shipments = CourierShipment::with([
+            'sender',
+            'recipient',
+            'senderAddress',
+            'recipientAddress',
+            'packages',
+            'trackingEvents' => function ($query) {
+                $query->orderBy('recorded_at', 'desc');
+            }
+        ])
+            ->where('requested_by_user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Calculate statistics
+        $totalShipments = $shipments->count();
+        
+        // Count by package type
+        $documentCount = 0;
+        $parcelCount = 0;
+        $freightCount = 0;
+        
+        foreach ($shipments as $shipment) {
+            foreach ($shipment->packages as $package) {
+                if (stripos($package->package_type, 'document') !== false) {
+                    $documentCount++;
+                } elseif (stripos($package->package_type, 'freight') !== false) {
+                    $freightCount++;
+                } else {
+                    $parcelCount++;
+                }
+            }
+        }
+
+        // Count by status
+        $confirmedCount = $shipments->where('status', 'confirmed')->count();
+        $inTransitCount = $shipments->where('status', 'in_transit')->count();
+        $deliveredCount = $shipments->where('status', 'delivered')->count();
+        $pendingCount = $shipments->where('status', 'pending')->count();
+        $cancelledCount = $shipments->where('status', 'cancelled')->count();
+
+        // Monthly breakdown (last 12 months)
+        $monthlyData = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $month = now()->subMonths($i);
+            $monthStart = $month->copy()->startOfMonth();
+            $monthEnd = $month->copy()->endOfMonth();
+            
+            $monthShipments = $shipments->filter(function ($shipment) use ($monthStart, $monthEnd) {
+                return $shipment->created_at >= $monthStart && $shipment->created_at <= $monthEnd;
+            });
+            
+            $docCount = 0;
+            $parcCount = 0;
+            $freightCount = 0;
+            
+            foreach ($monthShipments as $shipment) {
+                foreach ($shipment->packages as $package) {
+                    if (stripos($package->package_type, 'document') !== false) {
+                        $docCount++;
+                    } elseif (stripos($package->package_type, 'freight') !== false) {
+                        $freightCount++;
+                    } else {
+                        $parcCount++;
+                    }
+                }
+            }
+            
+            $monthlyData[] = [
+                'month' => $month->format('M'),
+                'document' => $docCount,
+                'parcel' => $parcCount,
+                'freight' => $freightCount,
+            ];
+        }
+
+        // Format shipments for frontend
+        $formattedShipments = $shipments->map(function ($shipment) {
+            $totalCost = $shipment->packages->sum('quoted_price_usd');
+            $packageTypes = $shipment->packages->pluck('package_type')->unique()->implode(', ');
+            
+            return [
+                'id' => $shipment->id,
+                'code' => $shipment->reference,
+                'status' => $shipment->status,
+                'serviceLevel' => $shipment->service_level,
+                'pickupDate' => $shipment->pickup_date?->format('Y-m-d'),
+                'pickupWindowStart' => $shipment->pickup_window_start?->format('H:i'),
+                'pickupWindowEnd' => $shipment->pickup_window_end?->format('H:i'),
+                'from' => $shipment->senderAddress ? [
+                    'name' => $shipment->sender?->name,
+                    'city' => $shipment->senderAddress->city,
+                    'country' => $shipment->senderAddress->country,
+                    'full' => implode(', ', array_filter([
+                        $shipment->senderAddress->city,
+                        $shipment->senderAddress->state,
+                        $shipment->senderAddress->country,
+                    ])),
+                ] : null,
+                'to' => $shipment->recipientAddress ? [
+                    'name' => $shipment->recipient?->name,
+                    'city' => $shipment->recipientAddress->city,
+                    'country' => $shipment->recipientAddress->country,
+                    'full' => implode(', ', array_filter([
+                        $shipment->recipientAddress->city,
+                        $shipment->recipientAddress->state,
+                        $shipment->recipientAddress->country,
+                    ])),
+                ] : null,
+                'packages' => $shipment->packages->map(function ($package) {
+                    return [
+                        'id' => $package->id,
+                        'label' => $package->label,
+                        'type' => $package->package_type,
+                        'provider' => $package->courier_provider_name,
+                        'service' => $package->service_tier_label,
+                        'weight' => (float) $package->weight_kg,
+                        'quantity' => (int) $package->quantity,
+                        'price' => (float) $package->quoted_price_usd,
+                        'eta' => $package->service_eta,
+                    ];
+                }),
+                'packageTypes' => $packageTypes,
+                'totalWeight' => (float) $shipment->packages->sum('weight_kg'),
+                'totalCost' => (float) $totalCost,
+                'estimatedCost' => $shipment->estimated_cost ? (float) $shipment->estimated_cost : null,
+                'currencyCode' => $shipment->currency_code ?? 'USD',
+                'insuranceRequired' => $shipment->insurance_required,
+                'declaredValue' => $shipment->declared_value,
+                'deliveryNotes' => $shipment->delivery_notes,
+                'latestTracking' => $shipment->trackingEvents->first(),
+                'createdAt' => $shipment->created_at->format('Y-m-d H:i:s'),
+                'updatedAt' => $shipment->updated_at->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        return Inertia::render('Web/home/client/CourierBookingDashboard', [
+            'shipments' => $formattedShipments,
+            'statistics' => [
+                'total' => $totalShipments,
+                'document' => $documentCount,
+                'parcel' => $parcelCount,
+                'freight' => $freightCount,
+                'confirmed' => $confirmedCount,
+                'inTransit' => $inTransitCount,
+                'delivered' => $deliveredCount,
+                'pending' => $pendingCount,
+                'cancelled' => $cancelledCount,
+            ],
+            'monthlyData' => $monthlyData,
+        ]);
+    }
+
+    public function show(Request $request, $id)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('signin.signin');
+        }
+
+        // Fetch shipment with all relationships
+        $shipment = CourierShipment::with([
+            'sender',
+            'recipient',
+            'senderAddress',
+            'recipientAddress',
+            'packages',
+            'trackingEvents' => function ($query) {
+                $query->orderBy('recorded_at', 'desc');
+            }
+        ])
+            ->where('id', $id)
+            ->where('requested_by_user_id', $user->id)
+            ->firstOrFail();
+
+        // Format shipment data
+        $shipmentData = [
+            'id' => $shipment->id,
+            'code' => $shipment->reference,
+            'status' => $shipment->status,
+            'serviceLevel' => $shipment->service_level,
+            'pickupDate' => $shipment->pickup_date?->format('Y-m-d'),
+            'pickupWindowStart' => $shipment->pickup_window_start?->format('H:i'),
+            'pickupWindowEnd' => $shipment->pickup_window_end?->format('H:i'),
+            'sender' => [
+                'name' => $shipment->sender?->name,
+                'email' => $shipment->sender?->email,
+                'phone' => $shipment->sender?->phone,
+                'company' => $shipment->sender?->company_name,
+                'address' => $shipment->senderAddress ? [
+                    'line1' => $shipment->senderAddress->line1,
+                    'line2' => $shipment->senderAddress->line2,
+                    'city' => $shipment->senderAddress->city,
+                    'state' => $shipment->senderAddress->state,
+                    'postalCode' => $shipment->senderAddress->postal_code,
+                    'country' => $shipment->senderAddress->country,
+                    'instructions' => $shipment->senderAddress->delivery_instructions,
+                ] : null,
+            ],
+            'recipient' => [
+                'name' => $shipment->recipient?->name,
+                'email' => $shipment->recipient?->email,
+                'phone' => $shipment->recipient?->phone,
+                'company' => $shipment->recipient?->company_name,
+                'address' => $shipment->recipientAddress ? [
+                    'line1' => $shipment->recipientAddress->line1,
+                    'line2' => $shipment->recipientAddress->line2,
+                    'city' => $shipment->recipientAddress->city,
+                    'state' => $shipment->recipientAddress->state,
+                    'postalCode' => $shipment->recipientAddress->postal_code,
+                    'country' => $shipment->recipientAddress->country,
+                    'instructions' => $shipment->recipientAddress->delivery_instructions,
+                ] : null,
+            ],
+            'packages' => $shipment->packages->map(function ($package) {
+                return [
+                    'id' => $package->id,
+                    'label' => $package->label,
+                    'type' => $package->package_type,
+                    'provider' => $package->courier_provider_name,
+                    'providerKey' => $package->courier_provider_key,
+                    'service' => $package->service_tier_label,
+                    'serviceKey' => $package->service_tier_key,
+                    'eta' => $package->service_eta,
+                    'weight' => (float) $package->weight_kg,
+                    'length' => $package->length_cm ? (float) $package->length_cm : null,
+                    'width' => $package->width_cm ? (float) $package->width_cm : null,
+                    'height' => $package->height_cm ? (float) $package->height_cm : null,
+                    'quantity' => (int) $package->quantity,
+                    'price' => (float) $package->quoted_price_usd,
+                    'declaredValue' => $package->declared_value ? (float) $package->declared_value : null,
+                    'description' => $package->description,
+                ];
+            }),
+            'trackingEvents' => $shipment->trackingEvents->map(function ($event) {
+                return [
+                    'id' => $event->id,
+                    'status' => $event->status,
+                    'location' => $event->location,
+                    'description' => $event->description,
+                    'timestamp' => $event->recorded_at ? $event->recorded_at->format('Y-m-d H:i:s') : null,
+                ];
+            }),
+            'insuranceRequired' => $shipment->insurance_required,
+            'declaredValue' => $shipment->declared_value ? (float) $shipment->declared_value : null,
+            'currencyCode' => $shipment->currency_code ?? 'USD',
+            'estimatedCost' => $shipment->estimated_cost ? (float) $shipment->estimated_cost : null,
+            'actualCost' => $shipment->actual_cost ? (float) $shipment->actual_cost : null,
+            'deliveryNotes' => $shipment->delivery_notes,
+            'internalNotes' => $shipment->internal_notes,
+            'createdAt' => $shipment->created_at->format('Y-m-d H:i:s'),
+            'updatedAt' => $shipment->updated_at->format('Y-m-d H:i:s'),
+        ];
+
+        return Inertia::render('Web/home/client/CourierShipmentDetail', [
+            'shipment' => $shipmentData,
+        ]);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $shipment = CourierShipment::where('id', $id)
+            ->where('requested_by_user_id', $user->id)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:pending,confirmed,in_transit,delivered,cancelled',
+        ]);
+
+        $shipment->update([
+            'status' => $validated['status'],
+        ]);
+
+        // Optionally create a tracking event
+        if ($request->has('create_tracking_event') && $request->create_tracking_event) {
+            $shipment->trackingEvents()->create([
+                'status' => $validated['status'],
+                'location' => $request->input('location'),
+                'description' => $request->input('description', 'Status updated to ' . $validated['status']),
+                'recorded_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status updated successfully',
+            'shipment' => [
+                'id' => $shipment->id,
+                'status' => $shipment->status,
+            ],
+        ]);
+    }
+
+    public function cancelShipment(Request $request, $id)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return redirect()->route('signin.signin');
+        }
+
+        $shipment = CourierShipment::where('id', $id)
+            ->where('requested_by_user_id', $user->id)
+            ->firstOrFail();
+
+        // Only allow cancellation if not already delivered or cancelled
+        if (in_array($shipment->status, ['delivered', 'cancelled'])) {
+            return back()->with('error', 'Cannot cancel this shipment.');
+        }
+
+        $shipment->update([
+            'status' => 'cancelled',
+        ]);
+
+        // Create tracking event
+        $shipment->trackingEvents()->create([
+            'status' => 'cancelled',
+            'description' => 'Shipment cancelled by customer',
+            'recorded_at' => now(),
+        ]);
+
+        return back()->with('success', 'Shipment cancelled successfully.');
+    }
+
     public function create(Request $request)
     {
         $serviceLevels = ['Same Day', 'Express', 'Standard'];

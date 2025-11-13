@@ -1,28 +1,35 @@
-import React, { useState } from "react";
-import { usePage } from "@inertiajs/react";
+import React, { useState, useRef, useEffect } from "react";
+import { usePage, Link } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
-  Search,
-  Settings,
-  Bell,
-  UserCircle2,
-  Wallet,
-  TrendingUp,
-  TrendingDown,
-  MoreVertical,
-  Filter,
-  ChevronDown,
-  ChevronsUpDown,
-  Download,
-  Calendar,
+    Search,
+    Settings,
+    Bell,
+    UserCircle2,
+    Wallet,
+    TrendingUp,
+    TrendingDown,
+    MoreVertical,
+    Filter,
+    ChevronDown,
+    ChevronsUpDown,
+    Download,
+    Calendar,
 } from "lucide-react";
+
+// Import assets for dropdown
+import proPic from "../../../../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../../../../assets/vendors/dashboard/logOutLogo.svg";
+
 import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
 
+import UserDropdown from "../../../UserDropdown";
+
 const ExpensesContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     const expensesData = [
         {
@@ -196,19 +203,17 @@ const ExpensesContent = () => {
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [selectedRows, setSelectedRows] = useState(new Set());
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
+    const wrapperRef = useRef(null);
+
     const perPageOptions = [5, 10, 20, 50];
     const totalPages = Math.ceil(expensesData.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
     const currentExpenses = expensesData.slice(startIdx, endIdx);
 
-    // Row selection state (per current page)
-    const [selectedRows, setSelectedRows] = useState(new Set());
-
     const handleRowSelection = (rowIdxOnPage) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         setSelectedRows((prev) => {
             const next = new Set(prev);
             const absoluteIdx = startIdx + rowIdxOnPage;
@@ -219,9 +224,6 @@ const ExpensesContent = () => {
     };
 
     const handleSelectAll = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const checked = e.target.checked;
         if (checked) {
             const allOnPage = new Set(
@@ -235,25 +237,20 @@ const ExpensesContent = () => {
         } else {
             setSelectedRows((prev) => {
                 const next = new Set(prev);
-                currentExpenses.forEach((_, idx) => next.delete(startIdx + idx));
+                currentExpenses.forEach((_, idx) =>
+                    next.delete(startIdx + idx)
+                );
                 return next;
             });
         }
     };
 
     const goToPage = (page) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
-    // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -283,11 +280,7 @@ const ExpensesContent = () => {
         return pages;
     };
 
-    // Function to download table as PDF
     const downloadTableAsPDF = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const doc = new jsPDF();
         doc.setFontSize(18);
         doc.text("Recent Transactions", 14, 20);
@@ -303,14 +296,7 @@ const ExpensesContent = () => {
 
         autoTable(doc, {
             head: [
-                [
-                    "Expense",
-                    "Category",
-                    "Qty",
-                    "Amount ($)",
-                    "Date",
-                    "Status",
-                ],
+                ["Expense", "Category", "Qty", "Amount ($)", "Date", "Status"],
             ],
             body: tableData,
             startY: 30,
@@ -340,8 +326,7 @@ const ExpensesContent = () => {
         doc.save("expenses.pdf");
     };
 
-    // Reset to first page when itemsPerPage changes
-    React.useEffect(() => {
+    useEffect(() => {
         setCurrentPage(1);
     }, [itemsPerPage]);
 
@@ -349,25 +334,22 @@ const ExpensesContent = () => {
         <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Courier Service Expenses</h1>
-                <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Search size={28} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Settings size={28} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Bell size={28} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <UserCircle2 size={28} />
-                    </div>
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
+                <h1 className="figtree text-[35px] font-[700]">
+                    Courier Service Expenses
+                </h1>
+                <div className="flex flex-row gap-5 relative items-center">
+                    {/* <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <Search size={28} />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <Settings size={28} />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <Bell size={28} />
+          </div> */}
+
+                    <div className="flex flex-row gap-5 relative items-center">
+                        <UserDropdown />
                     </div>
                 </div>
             </div>
@@ -378,9 +360,7 @@ const ExpensesContent = () => {
                 {/* card 1 */}
                 <div
                     className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{
-                        boxShadow: "4px 4px 4px #0000001A",
-                    }}
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -396,7 +376,7 @@ const ExpensesContent = () => {
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <TrendingUp className="w-[19px] h-[19px]" />
-                            <h1 className="">+2.86%</h1>
+                            <h1>+2.86%</h1>
                         </div>
                         <h1 className="text-[#7B7B7A]">from last week</h1>
                     </div>
@@ -406,9 +386,7 @@ const ExpensesContent = () => {
                 {/* card 2 */}
                 <div
                     className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                    style={{
-                        boxShadow: "4px 4px 4px #0000001A",
-                    }}
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
                         <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -424,7 +402,7 @@ const ExpensesContent = () => {
                     <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <TrendingUp className="w-[19px] h-[19px]" />
-                            <h1 className="">+1.73%</h1>
+                            <h1>+1.73%</h1>
                         </div>
                         <h1 className="text-[#7B7B7A]">from last week</h1>
                     </div>
@@ -435,9 +413,7 @@ const ExpensesContent = () => {
                     {/* card 3 */}
                     <div
                         className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -455,7 +431,7 @@ const ExpensesContent = () => {
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                             <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                                 <TrendingDown className="w-[19px] h-[19px]" />
-                                <h1 className="">+2.86%</h1>
+                                <h1>+2.86%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
@@ -468,19 +444,15 @@ const ExpensesContent = () => {
             <div className="flex flex-row w-full gap-8">
                 <div
                     className="min-w-[730px] min-h-[426px] bg-[#FFFFFF] rounded-[10px]"
-                    style={{
-                        boxShadow: "4px 4px 4px #0000001A",
-                    }}
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <CashflowChart />
                 </div>
                 <div
                     className="min-w-[339px] w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
-                    style={{
-                        boxShadow: "4px 4px 4px #0000001A",
-                    }}
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <div className="w-full flex flex-row justify-between items-center ">
+                    <div className="w-full flex flex-row justify-between items-center">
                         <h2 className="text-[24px] font-bold mb-2 w-full text-left">
                             Expenses Breakdown
                         </h2>
@@ -493,9 +465,7 @@ const ExpensesContent = () => {
             {/* Transaction table */}
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
-                style={{
-                    boxShadow: "4px 4px 4px #0000001A",
-                }}
+                style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
                 {/* card header */}
                 <div className="flex flex-row justify-between">
@@ -503,39 +473,39 @@ const ExpensesContent = () => {
                         Recent Transactions
                     </h1>
                     <div className="flex flex-row gap-5">
-                    <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                        <Search size={14} />
-                        <input
-                            type="text"
-                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                            placeholder="Search expense, category, etc."
-                        />
-                    </div>
-                    <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                        <Filter size={12} />
-                        <input
-                            type="text"
-                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                            placeholder="Status"
-                        />
-                        <ChevronDown size={14} />
-                    </div>
-                    <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                        <Calendar size={17} />
-                        <input
-                            type="text"
-                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                            placeholder="25th May"
-                        />
-                        <ChevronDown size={14} />
-                    </div>
-                    <button
-                        onClick={downloadTableAsPDF}
-                        className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
-                    >
-                        <Download size={18} />
-                        <h1>Download</h1>
-                    </button>
+                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                            <Search size={14} />
+                            <input
+                                type="text"
+                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                                placeholder="Search expense, category, etc."
+                            />
+                        </div>
+                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                            <Filter size={12} />
+                            <input
+                                type="text"
+                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                                placeholder="Status"
+                            />
+                            <ChevronDown size={14} />
+                        </div>
+                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                            <Calendar size={17} />
+                            <input
+                                type="text"
+                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                                placeholder="25th May"
+                            />
+                            <ChevronDown size={14} />
+                        </div>
+                        <button
+                            onClick={downloadTableAsPDF}
+                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+                        >
+                            <Download size={18} />
+                            <h1>Download</h1>
+                        </button>
                     </div>
                 </div>
                 {/* end */}
@@ -547,7 +517,12 @@ const ExpensesContent = () => {
                         <input
                             type="checkbox"
                             className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                            checked={currentExpenses.length > 0 && currentExpenses.every((_, idx) => selectedRows.has(startIdx + idx))}
+                            checked={
+                                currentExpenses.length > 0 &&
+                                currentExpenses.every((_, idx) =>
+                                    selectedRows.has(startIdx + idx)
+                                )
+                            }
                             onChange={handleSelectAll}
                             aria-label="Select all on page"
                         />
@@ -609,7 +584,7 @@ const ExpensesContent = () => {
                                 <h1>{expense.category.label}</h1>
                             </div>
                         </div>
-                        <div className="">{expense.quantity}</div>
+                        <div>{expense.quantity}</div>
                         <div>{expense.amount}</div>
                         <div>{expense.date}</div>
                         <div>
@@ -664,7 +639,7 @@ const ExpensesContent = () => {
                             onClick={() => goToPage(currentPage - 1)}
                             disabled={currentPage === 1}
                         >
-                            <span className="text-lg">&#60;</span>
+                            <span className="text-lg">&lt;</span>
                         </button>
                         {getPageNumbers().map((num, idx) =>
                             num === "..." ? (
@@ -676,7 +651,7 @@ const ExpensesContent = () => {
                                     key={num}
                                     className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
                                         currentPage === num
-                                            ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
+                                            ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
                                     }`}
                                     onClick={() => goToPage(num)}
@@ -690,7 +665,7 @@ const ExpensesContent = () => {
                             onClick={() => goToPage(currentPage + 1)}
                             disabled={currentPage === totalPages}
                         >
-                            <span className="text-lg">&#62;</span>
+                            <span className="text-lg">&gt;</span>
                         </button>
                     </div>
                 </div>

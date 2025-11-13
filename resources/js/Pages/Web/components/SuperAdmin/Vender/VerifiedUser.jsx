@@ -106,12 +106,11 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isBlockCli
                         </span>
                     </div>
                 </div>
-
-                <div className="mt-8 flex gap-4 justify-center">
+                <div className="mt-8 flex gap-4 justify-center flex-wrap">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
+                        className="bg-red-600 text-white text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
                         onClick={handleBlock}
                         disabled={isLoading}
                     >

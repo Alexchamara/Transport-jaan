@@ -74,6 +74,7 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
             setIsLoading(false);
         }
     };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -171,8 +172,14 @@ const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }
         approval: vendor.approval === 'unverified' ? 'Pending' : vendor.approval,
     }));
 
-    // Filter users to only show those with status and approval as Pending
-    const filteredUsers = users.filter((user) => user.status === "Pending" && user.approval === "Pending");
+    // Filter users based on status and approval
+    const filteredUsers = users.filter((user) => {
+        const matchesStatus =
+            statusFilter === "all" || user.status === statusFilter;
+        const matchesApproval =
+            approvalFilter === "all" || user.approval === approvalFilter;
+        return matchesStatus && matchesApproval;
+    });
 
     // Log filtered users for debugging
     console.log("Filtered Users:", filteredUsers);

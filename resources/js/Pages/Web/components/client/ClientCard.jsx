@@ -26,10 +26,16 @@ const ClientCard = ({ title, description, icon, route, subOptions }) => {
                     {subOptions.map((option, idx) => (
                         <div
                             key={idx}
-                            className="bg-[#F5F5F5] text-[#0955AC] rounded-lg py-2 px-3 text-sm font-semibold hover:bg-[#0955AC] hover:text-white transition cursor-pointer group-hover:bg-white/20 group-hover:text-white"
+                            className={`rounded-lg py-2 px-3 text-sm font-semibold transition ${
+                                option.disabled
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                                    : 'bg-[#F5F5F5] text-[#0955AC] hover:bg-[#0955AC] hover:text-white cursor-pointer group-hover:bg-white/20 group-hover:text-white'
+                            }`}
                             onClick={(e) => {
                                 e.stopPropagation(); // prevent parent click
-                                handleNavigate(option.route);
+                                if (!option.disabled) {
+                                    handleNavigate(option.route);
+                                }
                             }}
                         >
                             {option.name}

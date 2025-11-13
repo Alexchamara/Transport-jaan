@@ -72,6 +72,15 @@ Route::prefix('couriers')->name('couriers.')->group(function () {
         ->whereNumber('shipment')
         ->name('bill');
 });
+
+// Courier Booking Dashboard (protected - requires auth)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/courierBookingDashboard', [ClientCourierController::class, 'dashboard'])->name('courierBookingDashboard');
+    Route::get('/courier-shipment/{id}', [ClientCourierController::class, 'show'])->name('courier.shipment.show');
+    Route::post('/courier-shipment/{id}/update-status', [ClientCourierController::class, 'updateStatus'])->name('courier.shipment.updateStatus');
+    Route::post('/courier-shipment/{id}/cancel', [ClientCourierController::class, 'cancelShipment'])->name('courier.shipment.cancel');
+});
+
 Route::get('/book-a-ticket', [WebController::class, 'bookATicket'])->name('book.a.ticket');
 Route::get('/booking-home', [WebController::class, 'bookingHome'])->name('booking.home');
 Route::get('/cargo-freight', [WebController::class, 'cargoFreight'])->name('cargo.freight');
@@ -716,7 +725,40 @@ Route::get('/SuperAdmin/AddUser', function () {
     return Inertia::render('Web/home/SuperAdmin/AddUser');
 })->name('SuperAdmin.AddUser');
 
-Route::get('/warehouse/units', function () {
+Route::get('/SuperAdmin/Dashboard', function () {
+    return Inertia::render('Web/home/SuperAdmin/Dashboard');
+})->name('SuperAdmin.Dashboard');
+
+Route::get('/SuperAdmin/Analytics', function () {
+    return Inertia::render('Web/home/SuperAdmin/Analytics');
+})->name('SuperAdmin.Analytics');
+
+Route::get('/SuperAdmin/Vehicles', function () {
+    return Inertia::render('Web/home/SuperAdmin/Vehicles');
+})->name('SuperAdmin.Vehicles');
+
+Route::get('/SuperAdmin/Warehouse', function () {
+    return Inertia::render('Web/home/SuperAdmin/Warehouse');
+})->name('SuperAdmin.Warehouse');
+
+// Route::get('/SuperAdmin/LandVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
+// })->name('SuperAdmin.LandVehicleDetails');
+
+// Route::get('/SuperAdmin/SeaVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/SeaVehicleDetails');
+// })->name('SuperAdmin.SeaVehicleDetails');
+
+// Route::get('/SuperAdmin/AirVehicleDetails', function () {
+//     return Inertia::render('Web/home/SuperAdmin/AirVehicleDetails');
+// })->name('SuperAdmin.AirVehicleDetails');
+
+Route::get('/SuperAdmin/Vender', function () {
+    return Inertia::render('Web/home/SuperAdmin/NewVender');
+})->name('SuperAdmin.NewVender');
+
+// vendor - warehouse rent
+Route::get('/warehouse/unit', function () {
     return Inertia::render('Web/home/vendors/warehouse/Unit');
 })->name('warehouse.units');
 
@@ -950,17 +992,6 @@ Route::get('/multimodal/settingsPage', function () {
 // end ==================================================
 
 
-
-
-
-
-
-
-
-
-
-
-
 // Client dashboard - redirect to proper route
 Route::get('/clientDashboard', function () {
     return redirect()->route('client.dashboard');
@@ -974,9 +1005,11 @@ Route::get('/clientTicketBookingDashboard', function () {
     return Inertia::render('Web/home/client/ClientTicketBookingDashboard');
 })->name('clientTicketBookingDashboard');
 
-Route::get('/courierBookingDashboard', function () {
-    return Inertia::render('Web/home/client/CourierBookingDashboard');
-})->name('courierBookingDashboard');
+Route::get('/clientVehicleDashboard', function () {
+    return Inertia::render('Web/home/client/ClientVehicleDashboard');
+})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientVehicleDashboard');
+
+// Courier booking dashboard moved to protected routes with controller
 
 Route::get('/warehouseBookingDashboard', function () {
     return Inertia::render('Web/home/client/WarehouseBookingDashboard');
@@ -1059,7 +1092,7 @@ foreach ($sections as $slug => $baseView) {
 Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
 Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
 Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
-Route::get('/courierBookingDashboard',   $render('Web/home/client/CourierBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('courierBookingDashboard');
+// Courier booking dashboard moved to protected routes with controller above
 Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
 Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');
 
@@ -1097,3 +1130,5 @@ Route::get('/storage/download/{path}', function ($path) {
 |--------------------------------------------------------------------------
 */
 require __DIR__ . '/auth.php';
+
+

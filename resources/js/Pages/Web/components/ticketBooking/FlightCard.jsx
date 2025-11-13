@@ -29,7 +29,7 @@ const locations = [
 ];
 
 // LocationDropdown component
-const LocationDropdown = ({ label, id, value, onChange, placeholder }) => {
+const LocationDropdown = ({ label, id, value, onChange, placeholder, error }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState(value);
     const [filteredLocations, setFilteredLocations] = useState([]);
@@ -91,8 +91,11 @@ const LocationDropdown = ({ label, id, value, onChange, placeholder }) => {
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
                 placeholder={placeholder}
-                className="appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                className={`appearance-none w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
+                    error ? 'border-red-500' : 'border-[#0000001A]'
+                }`}
                 autoComplete="off"
+                required
             />
 
             {/* Dropdown List */}
@@ -133,11 +136,60 @@ const FlightCard = () => {
         dropoffDate: ''
     });
 
+    const [errors, setErrors] = useState({});
+
     const handleInputChange = (field, value) => {
         setFormData(prev => ({
             ...prev,
             [field]: value
         }));
+
+        // Clear error when user starts typing
+        if (errors[field]) {
+            setErrors(prev => ({
+                ...prev,
+                [field]: ''
+            }));
+        }
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+
+        if (!formData.pickupLocation.trim()) {
+            newErrors.pickupLocation = 'Pick-up location is required';
+        }
+
+        if (!formData.pickupDate.trim()) {
+            newErrors.pickupDate = 'Pick-up date is required';
+        }
+
+        if (!formData.dropoffLocation.trim()) {
+            newErrors.dropoffLocation = 'Drop-off location is required';
+        }
+
+        if (!formData.dropoffDate.trim()) {
+            newErrors.dropoffDate = 'Drop-off date is required';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleStartClick = (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+            // Scroll to first error field
+            const firstErrorField = Object.keys(errors)[0];
+            if (firstErrorField) {
+                document.getElementById(firstErrorField)?.focus();
+            }
+            return;
+        }
+
+        // If validation passes, navigate to flight booking
+        window.location.href = '/flightBooking';
     };
 
     return (
@@ -154,18 +206,24 @@ const FlightCard = () => {
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
                     {/* Pick-up Location */}
-                    <LocationDropdown
-                        label="Pick-up Location"
-                        id="pickupLocation"
-                        value={formData.pickupLocation}
-                        onChange={(value) => handleInputChange('pickupLocation', value)}
-                        placeholder="Search departure airport"
-                    />
+                    <div>
+                        <LocationDropdown
+                            label="Pick-up Location *"
+                            id="pickupLocation"
+                            value={formData.pickupLocation}
+                            onChange={(value) => handleInputChange('pickupLocation', value)}
+                            placeholder="Search departure airport"
+                            error={errors.pickupLocation}
+                        />
+                        {errors.pickupLocation && (
+                            <p className="text-red-500 text-xs mt-1">{errors.pickupLocation}</p>
+                        )}
+                    </div>
 
                     {/* Pick-up Date */}
                     <div>
                         <label htmlFor="pickupDate" className="block mb-1">
-                            Pick-up Date
+                            Pick-up Date *
                         </label>
                         <input
                             type="text"
@@ -173,27 +231,39 @@ const FlightCard = () => {
                             value={formData.pickupDate}
                             onChange={(e) => handleInputChange('pickupDate', e.target.value)}
                             placeholder="DD/MM/YYYY"
-                            className="w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                            className={`w-full border-[1px] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
+                                errors.pickupDate ? 'border-red-500' : 'border-[#0000001A]'
+                            }`}
                             onFocus={(e) => (e.target.type = "date")}
                             onBlur={(e) => (e.target.type = "text")}
+                            required
                         />
+                        {errors.pickupDate && (
+                            <p className="text-red-500 text-xs mt-1">{errors.pickupDate}</p>
+                        )}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 justify-between w-full gap-4">
                     {/* Drop-off Location */}
-                    <LocationDropdown
-                        label="Drop-off Location"
-                        id="dropoffLocation"
-                        value={formData.dropoffLocation}
-                        onChange={(value) => handleInputChange('dropoffLocation', value)}
-                        placeholder="Search destination airport"
-                    />
+                    <div>
+                        <LocationDropdown
+                            label="Drop-off Location *"
+                            id="dropoffLocation"
+                            value={formData.dropoffLocation}
+                            onChange={(value) => handleInputChange('dropoffLocation', value)}
+                            placeholder="Search destination airport"
+                            error={errors.dropoffLocation}
+                        />
+                        {errors.dropoffLocation && (
+                            <p className="text-red-500 text-xs mt-1">{errors.dropoffLocation}</p>
+                        )}
+                    </div>
 
                     {/* Drop-off Date */}
                     <div>
                         <label htmlFor="dropoffDate" className="block mb-1">
-                            Drop-off Date
+                            Drop-off Date *
                         </label>
                         <input
                             type="text"
@@ -201,22 +271,27 @@ const FlightCard = () => {
                             value={formData.dropoffDate}
                             onChange={(e) => handleInputChange('dropoffDate', e.target.value)}
                             placeholder="DD/MM/YYYY"
-                            className="border-[1px] border-[#0000001A] rounded-[8px] p-[16px] w-full leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
+                            className={`border-[1px] rounded-[8px] p-[16px] w-full leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6] ${
+                                errors.dropoffDate ? 'border-red-500' : 'border-[#0000001A]'
+                            }`}
                             onFocus={(e) => (e.target.type = "date")}
                             onBlur={(e) => (e.target.type = "text")}
+                            required
                         />
+                        {errors.dropoffDate && (
+                            <p className="text-red-500 text-xs mt-1">{errors.dropoffDate}</p>
+                        )}
                     </div>
                 </div>
 
-                {/* Action Button (unchanged behavior) */}
-                <Link
-                    href="/flightBooking"
-                    type="submit"
-                    // onClick={handleFindVehicleClick}
+                {/* Action Button */}
+                <button
+                    type="button"
+                    onClick={handleStartClick}
                     className="bg-[#0955AC] text-white font-bold h-[56px] w-full rounded-[10px] focus:outline-none focus:shadow-outline cursor-pointer hover:bg-[#07448a] transition-colors flex justify-center items-center"
                 >
                     Start
-                </Link>
+                </button>
             </form>
         </div>
     );

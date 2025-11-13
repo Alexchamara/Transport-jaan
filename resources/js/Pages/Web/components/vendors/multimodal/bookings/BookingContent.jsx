@@ -20,6 +20,8 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 import CarBookingTableTwo from "../../../../components/vendors/multimodal/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
 
+import UserDropdown from "../../UserDropdown";
+
 
 const BookingContent = () => {
   const { auth } = usePage().props;
@@ -304,7 +306,7 @@ const BookingContent = () => {
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">Multimodal Bookings</h1>
-                <div className="flex flex-row gap-5">
+                {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
                         <img src={search} alt="Search" />
                     </div>
@@ -324,6 +326,9 @@ const BookingContent = () => {
                             Vendor
                         </h1>
                     </div>
+                </div> */}
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("multimodal.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}

@@ -14,6 +14,7 @@ const ClientCardDashboard = () => {
       subOptions: [
         { name: 'Cars & SUVs', route: '/clientRent?type=land' },
         { name: 'Aircraft', route: '/clientRent?type=air' },
+        { name: 'Vehicle Dashboard', route: '/clientVehicleDashboard' },
         { name: 'Boats & Ships', route: '/clientRent?type=sea' }
       ]
     },
@@ -23,16 +24,22 @@ const ClientCardDashboard = () => {
       icon: '🎫',
       route: '/ticketBooking',
       subOptions: [
-        { name: 'Flight Tickets', route: '/flightBooking' },
-        { name: 'Train Tickets', route: '/trainTicketBookingDetails' },
-        { name: 'Bus Tickets', route: '/busTicketBookingDetails' }
+        { name: 'Book New Tickets', route: '/ticketBooking' },
+        { name: 'Ticket Dashboard', route: '/clientTicketBookingDashboard' },
+        { name: 'Flight Tickets', route: '/ticketBooking?type=flight' },
+        { name: 'Train Tickets', route: '/ticketBooking?type=train' },
+        { name: 'Bus Tickets', route: '/ticketBooking?type=bus'}
       ]
     },
     {
       title: 'Courier Service',
       description: 'Send packages and track shipments.',
       icon: '📦',
-      route: '/courier-service'
+      route: '/courier-service',
+      subOptions: [
+        { name: 'Book Courier', route: '/courier-service' },
+        { name: 'My Courier Bookings', route: '/courierBookingDashboard' }
+      ]
     },
     {
       title: 'Warehouse Services',
@@ -64,7 +71,7 @@ const ClientCardDashboard = () => {
       subOptions: [
         { name: 'All Bookings', route: '/dashboard/view' },
         { name: 'Flight Bookings', route: '/user/flight-view' },
-        { name: 'Booking Summary', route: '/user/booking-view' }
+        { name: 'Multimodal - Coming Soon', route: null, disabled: true }
       ]
     },
   ];

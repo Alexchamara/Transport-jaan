@@ -295,6 +295,62 @@ const Service = () => {
                         </div>
                     </div>
                 </div>
+
+                 {/* Card 6 */}
+                <div
+                    className="w-[305px] h-[740px] relative group overflow-hidden"
+                    onClick={() => (window.location.href = "/clientRent")}
+                >
+                    {/* Background image */}
+                    <img src={card1} className="w-full h-full object-cover" />
+
+                    {/* Default (non-hover) content */}
+                    <div className="absolute top-0 left-0 w-full h-full flex flex-col justify-end items-start px-10 py-20 z-10 transition-opacity duration-300 group-hover:opacity-0">
+                        <h1 className="text-[40px] text-[#DF6203] font-[600]">
+                            06
+                        </h1>
+                        <h1 className="text-[21px] font-[600]">
+                            Multimodal
+                        </h1>
+                        <div className="size-[38px] bg-[#D9D9D982] rounded-full flex justify-center items-center cursor-pointer mt-20">
+                            <img src={rightArrow} />
+                        </div>
+                    </div>
+
+                    {/* Hover content */}
+                    <div className="absolute top-0 left-0 w-full h-full translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out z-20 overflow-hidden">
+                        {/* Colored background layer */}
+                        <div className="absolute top-0 left-0 w-full h-full bg-[#D9D9D9] bg-opacity-90 z-0" />
+
+                        {/* Monostone overlay image — FULL cover */}
+                        <img
+                            src={monostone}
+                            alt="Overlay"
+                            className="absolute top-0 left-0 w-full h-full object-cover z-0 pointer-events-none opacity-20"
+                        />
+
+                        {/* Foreground content */}
+                        <div className="relative z-10 flex flex-col justify-end items-center h-full px-10 py-20">
+                            <div className="text-[#0955AC]">
+                                <h1 className="text-[40px] text-[#DF6203] font-[600]">
+                                    06
+                                </h1>
+                                <h1 className="text-[21px] font-[600] mt-5">
+                                    Multimodal
+                                </h1>
+                                <p className="text-[12px]/[33px] font-[500] text-justify">
+                                    Lorem ipsum dolor sit amet, consectetur
+                                    adipiscing elit. Donec semper eu risus ut
+                                    ornare. In.Lorem ipsum dolor sit amet,
+                                    consectetur{" "}
+                                </p>
+                                <div className="size-[38px] bg-[#0955AC87] rounded-full flex justify-center items-center cursor-pointer mt-10">
+                                    <img src={rightArrow} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -129,7 +129,7 @@ const Header = () => {
                     <div
                         className="size-[27px] md:size-[55px] flex justify-center items-center cursor-pointer"
                         onClick={() => {
-                            router.visit("/client/dashboard");
+                            router.visit("/settingsPage");
                         }}
                     >
                         <img

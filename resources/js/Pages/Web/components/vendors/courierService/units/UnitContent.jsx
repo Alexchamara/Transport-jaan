@@ -1,28 +1,33 @@
-import React, { useState, useEffect } from "react";
-import { usePage } from "@inertiajs/react";
+import React, { useState, useEffect, useRef } from "react";
+import { usePage, Link } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import {
-  Search,
-  Settings,
-  Bell,
-  UserCircle2,
-  Filter,
-  ChevronDown,
-  Truck,
-  CheckCircle2,
-  Gauge,
-  Cog,
-  Users,
-  Droplet,
-  Pencil,
-  Trash2
+    Search,
+    Settings,
+    Bell,
+    UserCircle2,
+    Filter,
+    ChevronDown,
+    Truck,
+    CheckCircle2,
+    Gauge,
+    Cog,
+    Users,
+    Droplet,
+    Pencil,
+    Trash2,
 } from "lucide-react";
+
+import proPic from "../../../../assets/vendors/dashboard/proPic.svg"; // Added
+import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; // Added
 
 import AddUnit from "../../../../home/vendors/courierService/AddUnit";
 
+import UserDropdown from "../../UserDropdown";
+
 const UnitContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     // Sample data array for units
     const units = [
@@ -219,18 +224,12 @@ const UnitContent = () => {
     const currentUnits = units.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -267,9 +266,6 @@ const UnitContent = () => {
 
     // Handle Add Unit button click
     const handleAddUnitClick = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         setShowAddUnit(true);
     };
 
@@ -277,25 +273,22 @@ const UnitContent = () => {
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Courier Service Units</h1>
-                <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Search size={28} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Settings size={28} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Bell size={28} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <UserCircle2 size={28} />
-                    </div>
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
+                <h1 className="figtree text-[35px] font-[700]">
+                    Courier Service Units
+                </h1>
+                <div className="flex flex-row gap-5 relative items-center">
+                    {/* <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <Search size={28} />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <Settings size={28} />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <Bell size={28} />
+          </div> */}
+
+                    <div className="flex flex-row gap-5 relative items-center">
+                        <UserDropdown />
                     </div>
                 </div>
             </div>
@@ -355,87 +348,108 @@ const UnitContent = () => {
                             </div>
                             {/* text section */}
                             <div className="flex-1 px-5 py-5 flex flex-row justify-between items-stretch">
-                              {/* left: title & quick badges */}
-                              <div className="flex-1 pr-6">
-                                <div className="bebas-neue text-[30px] leading-[1.1] font-[400]">
-                                  <h1>
-                                    {unit.brand}{" "}
-                                    <span className="text-[#0955AC]">{unit.model}</span>
-                                  </h1>
+                                {/* left: title & quick badges */}
+                                <div className="flex-1 pr-6">
+                                    <div className="bebas-neue text-[30px] leading-[1.1] font-[400]">
+                                        <h1>
+                                            {unit.brand}{" "}
+                                            <span className="text-[#0955AC]">
+                                                {unit.model}
+                                            </span>
+                                        </h1>
+                                    </div>
+
+                                    {/* pricing & quick meta */}
+                                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                                        <div className="figtree text-[18px] font-[700]">
+                                            ${unit.price}
+                                            <span className="text-[#00000080] text-[14px] font-[600]">
+                                                /km
+                                            </span>
+                                        </div>
+                                        <div className="px-2 h-[22px] rounded-[4px] bg-[#EAF2FF] border border-[#0955AC33] text-[#0955AC] text-[12px] font-[600] flex items-center">
+                                            Units available: {unit.unitsCount}
+                                        </div>
+                                        <div className="px-2 h-[22px] rounded-[4px] bg-[#E9F7EE] border border-[#3C9A3433] text-[#3C9A34] text-[12px] font-[700] flex items-center">
+                                            {unit.status}
+                                        </div>
+                                    </div>
+
+                                    {/* route/service badges (example placeholders; wire to your data if available) */}
+                                    <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
+                                        <span className="px-2 py-[2px] rounded-[4px] bg-[#F3F3F3] border border-[#0000001A] text-[#00000099]">
+                                            Urban
+                                        </span>
+                                        <span className="px-2 py-[2px] rounded-[4px] bg-[#F3F3F3] border border-[#0000001A] text-[#00000099]">
+                                            Intercity
+                                        </span>
+                                        <span className="px-2 py-[2px] rounded-[4px] bg-[#F3F3F3] border border-[#0000001A] text-[#00000099]">
+                                            Same‑day
+                                        </span>
+                                    </div>
                                 </div>
 
-                                {/* pricing & quick meta */}
-                                <div className="mt-2 flex flex-wrap items-center gap-3">
-                                  <div className="figtree text-[18px] font-[700]">
-                                    ${unit.price}
-                                    <span className="text-[#00000080] text-[14px] font-[600]">/km</span>
-                                  </div>
-                                  <div className="px-2 h-[22px] rounded-[4px] bg-[#EAF2FF] border border-[#0955AC33] text-[#0955AC] text-[12px] font-[600] flex items-center">
-                                    Units available: {unit.unitsCount}
-                                  </div>
-                                  <div className="px-2 h-[22px] rounded-[4px] bg-[#E9F7EE] border border-[#3C9A3433] text-[#3C9A34] text-[12px] font-[700] flex items-center">
-                                    {unit.status}
-                                  </div>
-                                </div>
+                                {/* middle: courier specs */}
+                                <div className="flex flex-col lg:flex-row gap-10 items-center justify-center px-6 border-l border-[#0000001A]">
+                                    <div className="poppins grid grid-cols-2 gap-x-12 gap-y-6 text-[15px] font-[600]">
+                                        <div className="flex items-center gap-3">
+                                            <Users className="w-[22px] h-[22px]" />
+                                            <div className="flex flex-col leading-tight">
+                                                <span className="text-[#00000080] text-[12px] font-[600]">
+                                                    Load capacity
+                                                </span>
+                                                <span>{unit.capacity}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Droplet className="w-[22px] h-[22px]" />
+                                            <div className="flex flex-col leading-tight">
+                                                <span className="text-[#00000080] text-[12px] font-[600]">
+                                                    Fuel
+                                                </span>
+                                                <span>{unit.fuelType}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Cog className="w-[22px] h-[22px]" />
+                                            <div className="flex flex-col leading-tight">
+                                                <span className="text-[#00000080] text-[12px] font-[600]">
+                                                    Transmission
+                                                </span>
+                                                <span>{unit.transmission}</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Gauge className="w-[22px] h-[22px]" />
+                                            <div className="flex flex-col leading-tight">
+                                                <span className="text-[#00000080] text-[12px] font-[600]">
+                                                    Mileage
+                                                </span>
+                                                <span>{unit.mileage}</span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                {/* route/service badges (example placeholders; wire to your data if available) */}
-                                <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
-                                  <span className="px-2 py-[2px] rounded-[4px] bg-[#F3F3F3] border border-[#0000001A] text-[#00000099]">Urban</span>
-                                  <span className="px-2 py-[2px] rounded-[4px] bg-[#F3F3F3] border border-[#0000001A] text-[#00000099]">Intercity</span>
-                                  <span className="px-2 py-[2px] rounded-[4px] bg-[#F3F3F3] border border-[#0000001A] text-[#00000099]">Same‑day</span>
+                                    <button
+                                        className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700]"
+                                        onClick={() =>
+                                            (window.location.href =
+                                                "/courierService/unitDetails")
+                                        }
+                                    >
+                                        Assign
+                                    </button>
                                 </div>
-                              </div>
-
-                              {/* middle: courier specs */}
-                              <div className="flex flex-col lg:flex-row gap-10 items-center justify-center px-6 border-l border-[#0000001A]">
-                                <div className="poppins grid grid-cols-2 gap-x-12 gap-y-6 text-[15px] font-[600]">
-                                  <div className="flex items-center gap-3">
-                                    <Users className="w-[22px] h-[22px]" />
-                                    <div className="flex flex-col leading-tight">
-                                      <span className="text-[#00000080] text-[12px] font-[600]">Load capacity</span>
-                                      <span>{unit.capacity}</span>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <Droplet className="w-[22px] h-[22px]" />
-                                    <div className="flex flex-col leading-tight">
-                                      <span className="text-[#00000080] text-[12px] font-[600]">Fuel</span>
-                                      <span>{unit.fuelType}</span>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <Cog className="w-[22px] h-[22px]" />
-                                    <div className="flex flex-col leading-tight">
-                                      <span className="text-[#00000080] text-[12px] font-[600]">Transmission</span>
-                                      <span>{unit.transmission}</span>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <Gauge className="w-[22px] h-[22px]" />
-                                    <div className="flex flex-col leading-tight">
-                                      <span className="text-[#00000080] text-[12px] font-[600]">Mileage</span>
-                                      <span>{unit.mileage}</span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <button
-                                  className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700]"
-                                  onClick={() => (window.location.href = "/courierService/unitDetails")}
-                                >
-                                  Assign
-                                </button>
-                              </div>
                             </div>
 
                             {/* actions rail */}
                             <div className="absolute right-0 w-[160px] h-full bg-[#D8E4F2] flex flex-col lg:flex-col justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px]">
-                              <div className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-white/60">
-                                <Pencil className="size-[24px]" />
-                              </div>
-                              <div className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-white/60">
-                                <Trash2 className="size-[24px]" />
-                              </div>
+                                <div className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-white/60">
+                                    <Pencil className="size-[24px]" />
+                                </div>
+                                <div className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-white/60">
+                                    <Trash2 className="size-[24px]" />
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -468,7 +482,7 @@ const UnitContent = () => {
                                 onClick={() => goToPage(currentPage - 1)}
                                 disabled={currentPage === 1}
                             >
-                                <span className="text-lg">&#60;</span>
+                                <span className="text-lg">&lt;</span>
                             </button>
                             {getPageNumbers().map((num, idx) =>
                                 num === "..." ? (
@@ -494,7 +508,7 @@ const UnitContent = () => {
                                 onClick={() => goToPage(currentPage + 1)}
                                 disabled={currentPage === totalPages}
                             >
-                                <span className="text-lg">&#62;</span>
+                                <span className="text-lg">&gt;</span>
                             </button>
                         </div>
                     </div>

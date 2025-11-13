@@ -1,6 +1,8 @@
-import React from "react";
-import { usePage } from "@inertiajs/react";
+import React, { useState, useRef, useEffect } from "react";
+import { usePage, Link } from "@inertiajs/react";
 import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; // Added
+
 import BookingOverviewBarChart from "./BookingOverviewBarChart";
 import EarningSummaryChart from "./EarningSummaryChart";
 import RealStatusPieChart from "./RealStatusPieChart";
@@ -19,8 +21,10 @@ import {
     ChevronDown,
     Calendar,
     Clock,
-    Filter
+    Filter,
 } from "lucide-react";
+
+import UserDropdown from "../../UserDropdown";
 
 const serviceTypes = [
     { name: "Standard Delivery", percent: 45, Icon: ClipboardList },
@@ -32,33 +36,29 @@ const serviceTypes = [
 ];
 
 const DashContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Courier Service Dashboard</h1>
-                <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Search className="size-[24px]" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Settings className="size-[24px]" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <Bell className="size-[24px]" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
-                    </div>
+                <h1 className="figtree text-[35px] font-[700]">
+                    Courier Service Dashboard
+                </h1>
+                <div className="flex flex-row gap-5 relative items-center">
+                    {/* <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <Search className="size-[24px]" />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <Settings className="size-[24px]" />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <Bell className="size-[24px]" />
+          </div> */}
 
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
+                    <div className="flex flex-row gap-5 relative items-center">
+                        <UserDropdown />
                     </div>
                 </div>
             </div>
@@ -207,7 +207,6 @@ const DashContent = () => {
                             className="min-w-[742px] h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            {/* Booking Overview header and dropdown */}
                             <div className="flex flex-row items-center justify-between mb-16 w-full">
                                 <h1 className="text-[24px] font-[700]">
                                     Booking Overview
@@ -219,7 +218,6 @@ const DashContent = () => {
                                     <ChevronDown className="size-[16px]" />
                                 </div>
                             </div>
-                            {/* Booking Overview Bar Chart */}
                             <BookingOverviewBarChart />
                         </div>
 
@@ -305,7 +303,7 @@ const DashContent = () => {
                             <RealStatusPieChart />
                         </div>
 
-                        {/* Reminder section  */}
+                        {/* Reminder section */}
                         <div
                             className="min-w-[349px] w-full min-h-[335px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -353,13 +351,14 @@ const DashContent = () => {
                 </div>
 
                 {/* car booking section */}
-
                 <div
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row justify-between">
-                        <h1 className="text-[24px] font-[700]">Delivery Orders</h1>
+                        <h1 className="text-[24px] font-[700]">
+                            Delivery Orders
+                        </h1>
                         <div className="flex flex-row gap-5">
                             <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                                 <Search className="size-[16px]" />
@@ -456,7 +455,8 @@ const DashContent = () => {
                             <div className="flex flex-col py-5 gap-10 text-[20px] font-[700]">
                                 <div>
                                     <h1>
-                                        Alice Johnson completed delivery for Order #A2345
+                                        Alice Johnson completed delivery for
+                                        Order #A2345
                                     </h1>
                                     <h1 className="font-[600] text-[#0F0F0F80]">
                                         10:45 AM
@@ -464,7 +464,8 @@ const DashContent = () => {
                                 </div>
                                 <div>
                                     <h1>
-                                        Bob Smith's delivery for Order #A2345 is pending payment
+                                        Bob Smith's delivery for Order #A2345 is
+                                        pending payment
                                     </h1>
                                     <h1 className="font-[600] text-[#0F0F0F80]">
                                         15:45 PM
@@ -493,7 +494,8 @@ const DashContent = () => {
                             <div className="flex flex-col py-5 gap-10 text-[20px] font-[700]">
                                 <div>
                                     <h1>
-                                        Alice Johnson completed delivery for Order #A2345
+                                        Alice Johnson completed delivery for
+                                        Order #A2345
                                     </h1>
                                     <h1 className="font-[600] text-[#0F0F0F80]">
                                         10:45 AM
@@ -501,7 +503,8 @@ const DashContent = () => {
                                 </div>
                                 <div>
                                     <h1>
-                                        Bob Smith's delivery for Order #A2345 is pending payment
+                                        Bob Smith's delivery for Order #A2345 is
+                                        pending payment
                                     </h1>
                                     <h1 className="font-[600] text-[#0F0F0F80]">
                                         15:45 PM
@@ -509,7 +512,8 @@ const DashContent = () => {
                                 </div>
                                 <div>
                                     <h1>
-                                        Bob Smith's delivery for Order #A2345 is pending payment
+                                        Bob Smith's delivery for Order #A2345 is
+                                        pending payment
                                     </h1>
                                     <h1 className="font-[600] text-[#0F0F0F80]">
                                         15:45 PM

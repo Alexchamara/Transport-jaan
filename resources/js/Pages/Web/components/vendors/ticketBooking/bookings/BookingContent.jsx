@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { usePage } from "@inertiajs/react";
+import React, { useState, useRef, useEffect } from "react";
+import { usePage, Link } from "@inertiajs/react";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; // Added
 
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 
@@ -20,20 +21,22 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 import CarBookingTableTwo from "../../../../components/vendors/ticketBooking/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
 
+import UserDropdown from "../../UserDropdown";
+
 const BookingContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     // Screen restricted to Flights only
     const bookingType = "Flight";
     const paymentStatusColors = {
-        Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
-        Pending: { color: "#FF60608C", bg: "#FF60608C" }, // Solid colors for Pending
+        Paid: { color: "#3B8F31", bg: "#ACE199" },
+        Pending: { color: "#FF60608C", bg: "#FF60608C" },
     };
 
     const statusColors = {
-        Ongoing: { bg: "#FFCD29", text: "#000000" }, // Yellow background, black text
-        Returned: { bg: "#3B8F31", text: "#FFCD29" }, // Dark green background, yellow text
+        Ongoing: { bg: "#FFCD29", text: "#000000" },
+        Returned: { bg: "#3B8F31", text: "#FFCD29" },
     };
 
     const [flightBookings, setFlightBookings] = useState([
@@ -187,18 +190,12 @@ const BookingContent = () => {
 
     // Handle input changes for the form
     const handleInputChange = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const { name, value } = e.target;
         setNewBooking((prev) => ({ ...prev, [name]: value }));
     };
 
     // Handle form submission to add new booking
     const handleAddBooking = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const baseVisual = {
             paymentStatusColor:
                 paymentStatusColors[newBooking.paymentStatus]?.color ||
@@ -255,26 +252,8 @@ const BookingContent = () => {
                 <h1 className="figtree text-[35px] font-[700]">
                     Ticket Bookings
                 </h1>
-                <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={search} alt="Search" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={settings} alt="Settings" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={bell} alt="Notifications" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={proPic} alt="Profile" />
-                    </div>
-
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown settingsRoute={route("ticketBooking.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}

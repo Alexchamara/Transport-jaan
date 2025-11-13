@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { usePage } from "@inertiajs/react";
+import React, { useState, useRef, useEffect } from "react";
+import { usePage, Link } from "@inertiajs/react";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg";
 
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 
@@ -20,10 +21,13 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 import CarBookingTableTwo from "../../../../components/vendors/courierService/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
 
+import { ChevronDown, Settings as SettingsIcon } from "lucide-react";
+
+import UserDropdown from "../../UserDropdown";
 
 const BookingContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F314D", bg: "#ACE19957" },
@@ -44,7 +48,7 @@ const BookingContent = () => {
             recipient: "Alice Johnson",
             serviceType: "Express Delivery",
             packageBadge: "2 kg",
-            route: "Colombo → Kandy",
+            route: "Colombo to Kandy",
             slotDate: "Aug 29, 2025",
             slotTime: "10:30 AM",
             payment: "$12.50",
@@ -61,7 +65,7 @@ const BookingContent = () => {
             recipient: "Bob Smith",
             serviceType: "Standard Delivery",
             packageBadge: "Fragile",
-            route: "Galle → Colombo",
+            route: "Galle to Colombo",
             slotDate: "Aug 30, 2025",
             slotTime: "02:15 PM",
             payment: "$7.90",
@@ -78,7 +82,7 @@ const BookingContent = () => {
             recipient: "Steve Gibson",
             serviceType: "Same Day",
             packageBadge: "3 kg",
-            route: "Negombo → Colombo",
+            route: "Negombo to Colombo",
             slotDate: "Aug 27, 2025",
             slotTime: "04:45 PM",
             payment: "$9.20",
@@ -95,7 +99,7 @@ const BookingContent = () => {
             recipient: "Nimal Perera",
             serviceType: "International",
             packageBadge: "Docs",
-            route: "Colombo → Chennai",
+            route: "Colombo to Chennai",
             slotDate: "Aug 31, 2025",
             slotTime: "09:00 AM",
             payment: "$38.00",
@@ -112,7 +116,7 @@ const BookingContent = () => {
             recipient: "Chamari Silva",
             serviceType: "Economy",
             packageBadge: "1.2 kg",
-            route: "Matara → Galle",
+            route: "Matara to Galle",
             slotDate: "Aug 29, 2025",
             slotTime: "11:15 AM",
             payment: "$5.40",
@@ -142,25 +146,20 @@ const BookingContent = () => {
 
     // Handle input changes for the form
     const handleInputChange = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const { name, value } = e.target;
         setNewBooking((prev) => ({ ...prev, [name]: value }));
     };
 
     // Handle form submission to add new booking
     const handleAddBooking = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const newBookingEntry = {
             ...newBooking,
             paymentStatusColor:
                 paymentStatusColors[newBooking.paymentStatus]?.color ||
                 "#FF6060",
             paymentStatusBg:
-                paymentStatusColors[newBooking.paymentStatus]?.bg || "#FF60608C",
+                paymentStatusColors[newBooking.paymentStatus]?.bg ||
+                "#FF60608C",
             statusBg: statusColors[newBooking.status]?.bg || "#FFCD29",
             statusText: statusColors[newBooking.status]?.text || "#000000",
         };
@@ -186,40 +185,22 @@ const BookingContent = () => {
         <div className="w-full h-auto pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Courier Service Bookings</h1>
-                <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={search} alt="Search" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={settings} alt="Settings" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={bell} alt="Notifications" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={proPic} alt="Profile" />
-                    </div>
-
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
+                <h1 className="figtree text-[35px] font-[700]">
+                    Courier Service Bookings
+                </h1>
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown />
                 </div>
             </div>
             {/* end of header section */}
 
+            {/* Mini Cards + Chart */}
             <div className="flex flex-row gap-10 justify-between py-20 w-full">
-                {/* mini left */}
                 <div className="flex flex-col gap-8 w-full">
-                    {/* card 1 */}
+                    {/* Card 1 */}
                     <div
                         className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -239,18 +220,16 @@ const BookingContent = () => {
                                     className="size-[19px]"
                                     alt="Increase"
                                 />
-                                <h1 className="">+2.86%</h1>
+                                <h1>+2.86%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
                     </div>
-                    {/* end of card 1 */}
-                    {/* card 2 */}
+
+                    {/* Card 2 */}
                     <div
                         className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -270,18 +249,16 @@ const BookingContent = () => {
                                     className="size-[19px]"
                                     alt="Increase"
                                 />
-                                <h1 className="">+2.86%</h1>
+                                <h1>+2.86%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
                     </div>
-                    {/* end of card 2 */}
-                    {/* card 3 */}
+
+                    {/* Card 3 */}
                     <div
                         className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -301,18 +278,16 @@ const BookingContent = () => {
                                     className="size-[19px]"
                                     alt="Increase"
                                 />
-                                <h1 className="">+2.86%</h1>
+                                <h1>+2.86%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
                     </div>
-                    {/* end of card 3 */}
-                    {/* card 4 */}
+
+                    {/* Card 4 */}
                     <div
                         className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
@@ -332,15 +307,14 @@ const BookingContent = () => {
                                     className="size-[19px]"
                                     alt="Increase"
                                 />
-                                <h1 className="">+2.86%</h1>
+                                <h1>+2.86%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
                     </div>
-                    {/* end of card 4 */}
                 </div>
 
-                {/* mini right */}
+                {/* Chart */}
                 <div
                     className="min-w-[712px] w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -349,7 +323,7 @@ const BookingContent = () => {
                 </div>
             </div>
 
-            {/* car booking section */}
+            {/* Table Section */}
             <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -405,55 +379,156 @@ const BookingContent = () => {
                             </h2>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Order ID</label>
-                                    <input type="text" name="id" value={newBooking.id} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0" placeholder="e.g. D-OR1006" />
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Order ID
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="id"
+                                        value={newBooking.id}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. D-OR1006"
+                                    />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Booking Date</label>
-                                    <input type="text" name="bookingDate" value={newBooking.bookingDate} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0" placeholder="e.g. Aug 29, 2025" />
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Booking Date
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="bookingDate"
+                                        value={newBooking.bookingDate}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. Aug 29, 2025"
+                                    />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Recipient</label>
-                                    <input type="text" name="recipient" value={newBooking.recipient} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0" placeholder="e.g. John Doe" />
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Recipient
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="recipient"
+                                        value={newBooking.recipient}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. John Doe"
+                                    />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Service Type</label>
-                                    <input type="text" name="serviceType" value={newBooking.serviceType} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0" placeholder="e.g. Express Delivery" />
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Service Type
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="serviceType"
+                                        value={newBooking.serviceType}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. Express Delivery"
+                                    />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Package Badge</label>
-                                    <input type="text" name="packageBadge" value={newBooking.packageBadge} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0" placeholder="e.g. 2 kg / Fragile / Docs" />
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Package Badge
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="packageBadge"
+                                        value={newBooking.packageBadge}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. 2 kg / Fragile / Docs"
+                                    />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Route</label>
-                                    <input type="text" name="route" value={newBooking.route} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0" placeholder="e.g. Colombo → Kandy" />
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Route
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="route"
+                                        value={newBooking.route}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. Colombo to Kandy"
+                                    />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Slot Date</label>
-                                    <input type="text" name="slotDate" value={newBooking.slotDate} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0" placeholder="e.g. Aug 30, 2025" />
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Slot Date
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="slotDate"
+                                        value={newBooking.slotDate}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. Aug 30, 2025"
+                                    />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Slot Time</label>
-                                    <input type="text" name="slotTime" value={newBooking.slotTime} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0" placeholder="e.g. 10:30 AM" />
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Slot Time
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="slotTime"
+                                        value={newBooking.slotTime}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. 10:30 AM"
+                                    />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Payment Amount</label>
-                                    <input type="text" name="payment" value={newBooking.payment} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0" placeholder="e.g. $12.50" />
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Payment Amount
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="payment"
+                                        value={newBooking.payment}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                        placeholder="e.g. $12.50"
+                                    />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Payment Status</label>
-                                    <select name="paymentStatus" value={newBooking.paymentStatus} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Payment Status
+                                    </label>
+                                    <select
+                                        name="paymentStatus"
+                                        value={newBooking.paymentStatus}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                    >
                                         <option value="Paid">Paid</option>
                                         <option value="Pending">Pending</option>
                                     </select>
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-[14px] font-[500] mb-1">Status</label>
-                                    <select name="status" value={newBooking.status} onChange={handleInputChange} className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0">
+                                    <label className="block text-[14px] font-[500] mb-1">
+                                        Status
+                                    </label>
+                                    <select
+                                        name="status"
+                                        value={newBooking.status}
+                                        onChange={handleInputChange}
+                                        className="w-full p-2 border focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
+                                    >
                                         <option value="Ongoing">Ongoing</option>
-                                        <option value="Scheduled">Scheduled</option>
-                                        <option value="Delivered">Delivered</option>
-                                        <option value="Returned">Returned</option>
+                                        <option value="Scheduled">
+                                            Scheduled
+                                        </option>
+                                        <option value="Delivered">
+                                            Delivered
+                                        </option>
+                                        <option value="Returned">
+                                            Returned
+                                        </option>
                                     </select>
                                 </div>
                             </div>
@@ -478,10 +553,9 @@ const BookingContent = () => {
                 <CarBookingTableTwo
                     bookings={bookings}
                     setBookings={setBookings}
-                    statusColors={statusColors} // Pass statusColors as a prop
+                    statusColors={statusColors}
                 />
             </div>
-            {/* end */}
         </div>
     );
 };
