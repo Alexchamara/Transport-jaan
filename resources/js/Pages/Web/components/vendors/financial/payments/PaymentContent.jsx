@@ -21,7 +21,7 @@ import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
 
 import NotificationDropdown from "../../NotificationDropdown";
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const PaymentContent = () => {
     const {

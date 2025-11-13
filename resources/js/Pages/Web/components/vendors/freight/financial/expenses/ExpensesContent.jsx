@@ -21,7 +21,7 @@ import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg
 import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
 
-import UserDropdown from "../../../Userdropdown";
+import UserDropdown from "../../../UserDropdown";
 
 const ExpensesContent = () => {
     const { auth } = usePage().props;

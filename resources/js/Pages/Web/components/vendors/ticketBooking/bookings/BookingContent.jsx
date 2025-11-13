@@ -21,7 +21,7 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 import CarBookingTableTwo from "../../../../components/vendors/ticketBooking/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const BookingContent = () => {
     const { auth } = usePage().props;

@@ -8,7 +8,7 @@ import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; //
 
 import ClientTable from "./ClientTable";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const ClientContent = () => {
     const { auth } = usePage().props;

@@ -6,7 +6,7 @@ import TrackingContent from "../../components/vendors/tracking/TrackingContent";
 import bell from "../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../assets/vendors/dashboard/proPic.svg";
 
-import UserDropdown from "../../components/vendors/Userdropdown.jsx";
+import UserDropdown from "../../components/vendors/UserDropdown.jsx";
 
 const Tracking = () => {
     const { auth, unreadNotifications = 0 } = usePage().props;

@@ -23,7 +23,7 @@ import EarningSummaryChart from "./EarningSummaryChart";
 import RealStatusPieChart from "./RealStatusPieChart";
 import CarBookingTable from "./CarBookingTable";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const DashContent = () => {
     const { auth } = usePage().props;

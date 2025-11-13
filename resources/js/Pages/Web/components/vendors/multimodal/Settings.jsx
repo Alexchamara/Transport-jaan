@@ -6,7 +6,7 @@ import search from "../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
-import UserDropdown from "../Userdropdown.jsx";
+import UserDropdown from "../UserDropdown.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Reusable UI Components                                            */

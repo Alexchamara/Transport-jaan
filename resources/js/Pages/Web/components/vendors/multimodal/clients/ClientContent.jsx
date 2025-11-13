@@ -7,7 +7,7 @@ import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 
 import ClientTable from "./ClientTable";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const ClientContent = () => {
     const { auth } = usePage().props;

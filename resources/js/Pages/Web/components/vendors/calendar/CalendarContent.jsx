@@ -15,7 +15,7 @@ import miniDownArrow from "../../../assets/vendors/calendar/miniDown.svg";
 import CalendarMonthPicker from "./CalendarMonthPicker";
 import CalendarGrid from "./CalendarGrid";
 
-import UserDropdown from "../../../components/vendors/Userdropdown.jsx";
+import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
 
 const monthNames = [
     "January",

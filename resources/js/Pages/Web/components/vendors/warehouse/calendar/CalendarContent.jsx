@@ -15,7 +15,9 @@ import { Warehouse, Boxes, Package } from "lucide-react";
 import CalendarMonthPicker from "./CalendarMonthPicker";
 import CalendarGrid from "./CalendarGrid";
 
-import UserDropdown from "../../Userdropdown";
+import { LucideSearch, LucideChevronDown, LucidePlus, LucideFilter } from 'lucide-react';
+
+import UserDropdown from "../../UserDropdown";
 
 // Define days, times, and events for the calendar
 const days = [

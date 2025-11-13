@@ -23,7 +23,7 @@ import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; //
 
 import AddUnit from "../../../../home/vendors/courierService/AddUnit";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const UnitContent = () => {
     const { auth } = usePage().props;

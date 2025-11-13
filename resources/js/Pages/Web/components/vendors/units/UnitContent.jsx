@@ -24,7 +24,7 @@ import deleteIcon from "../../../assets/vendors/units/delete.svg";
 import AddUnit from "../../../home/vendors/AddUnit";
 import { ChevronDown } from "lucide-react";
 
-import UserDropdown from "../../../components/vendors/Userdropdown.jsx";
+import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
 
 /* ────────────────────────────── HELPERS & CONSTANTS ────────────────────────────── */
 const nbsp = (s) => (typeof s === "string" ? s.replace(/ /g, "\u00A0") : s);

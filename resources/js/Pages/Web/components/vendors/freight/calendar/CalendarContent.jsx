@@ -14,7 +14,7 @@ import miniDownArrow from "../../../../assets/vendors/calendar/miniDown.svg";
 import CalendarMonthPicker from "./CalendarMonthPicker";
 import CalendarGrid from "./CalendarGrid";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 // Define days, times, and events for the calendar
 const days = [

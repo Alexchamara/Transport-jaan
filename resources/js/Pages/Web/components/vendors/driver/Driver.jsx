@@ -7,7 +7,7 @@ import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
 
-import UserDropdown from "../../../components/vendors/Userdropdown.jsx";
+import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
 
 const PAGE_SIZE = 8;
 

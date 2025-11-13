@@ -11,7 +11,7 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 
 import AddUnit from "../../../../home/vendors/warehouse/AddUnit";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const UnitContent = () => {
     const { auth } = usePage().props;

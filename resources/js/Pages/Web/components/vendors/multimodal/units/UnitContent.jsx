@@ -23,7 +23,7 @@ import deleteIcon from "../../../../assets/vendors/units/delete.svg";
 
 import AddUnit from "../../../../home/vendors/multimodal/AddUnit";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const UnitContent = () => {
   const { auth } = usePage().props;
