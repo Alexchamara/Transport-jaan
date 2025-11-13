@@ -7,7 +7,10 @@ const ClientVehicleDashboard = () => {
     const [activeTab, setActiveTab] = useState('bookings');
     const [bookings, setBookings] = useState([]);
     const [vehicles, setVehicles] = useState([]);
+    const [allVehicles, setAllVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedFilter, setSelectedFilter] = useState('All Types');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Auto-refresh the page EVERY time it's visited to prevent stale CSRF token
     useEffect(() => {
@@ -54,22 +57,64 @@ const ClientVehicleDashboard = () => {
                 }
             ]);
 
-            setVehicles([
+            const vehicleData = [
                 {
                     id: 1,
                     name: "Toyota Camry",
                     type: "Bus",
                     availability: "Available",
-                    rating: 4.5
+                    rating: 4.5,
+                    price: "Rs. 5000/day",
+                    location: "Colombo"
                 },
                 {
                     id: 2,
                     name: "Express Train",
                     type: "Train",
                     availability: "Booked",
-                    rating: 4.8
+                    rating: 4.8,
+                    price: "Rs. 300/trip",
+                    location: "Colombo Fort"
+                },
+                {
+                    id: 3,
+                    name: "SriLankan Airlines A320",
+                    type: "Flight",
+                    availability: "Available",
+                    rating: 4.6,
+                    price: "$450/trip",
+                    location: "CMB Airport"
+                },
+                {
+                    id: 4,
+                    name: "Luxury Coach",
+                    type: "Bus",
+                    availability: "Available",
+                    rating: 4.3,
+                    price: "Rs. 3500/day",
+                    location: "Kandy"
+                },
+                {
+                    id: 5,
+                    name: "Intercity Express",
+                    type: "Train",
+                    availability: "Available",
+                    rating: 4.7,
+                    price: "Rs. 450/trip",
+                    location: "Colombo Fort"
+                },
+                {
+                    id: 6,
+                    name: "Emirates Boeing 777",
+                    type: "Flight",
+                    availability: "Available",
+                    rating: 4.9,
+                    price: "$650/trip",
+                    location: "CMB Airport"
                 }
-            ]);
+            ];
+            setAllVehicles(vehicleData);
+            setVehicles(vehicleData);
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {
@@ -102,6 +147,85 @@ const ClientVehicleDashboard = () => {
         return availability === 'Available'
             ? 'bg-green-100 text-green-800'
             : 'bg-red-100 text-red-800';
+    };
+
+    // Button click handlers
+    const handleNewBooking = () => {
+        alert('Redirecting to new booking page...');
+        // Add your navigation logic here
+        // window.location.href = '/clientRent';
+    };
+
+    const handleViewDetails = (booking) => {
+        alert(`Viewing details for booking: ${booking.vehicle || booking.name}`);
+        // Add your view details logic here
+    };
+
+    const handleCancelBooking = (booking) => {
+        if (confirm(`Are you sure you want to cancel booking for ${booking.vehicle}?`)) {
+            alert('Booking cancelled successfully!');
+            // Add your cancel booking logic here
+            // Update bookings state to remove cancelled booking
+        }
+    };
+
+    const handleBookNow = (vehicle) => {
+        alert(`Booking ${vehicle.name}...`);
+        // Add your booking logic here
+        // window.location.href = `/book-vehicle/${vehicle.id}`;
+    };
+
+    const handleViewVehicleDetails = (vehicle) => {
+        alert(`Viewing details for ${vehicle.name}`);
+        // Add your view vehicle details logic here
+    };
+
+    const handleViewReceipt = (booking) => {
+        alert(`Downloading receipt for ${booking.vehicle || 'Luxury Bus Service'}...`);
+        // Add your receipt download logic here
+    };
+
+    const handleRateTrip = (booking) => {
+        alert(`Rating trip: ${booking.vehicle || 'Luxury Bus Service'}`);
+        // Add your rating logic here
+    };
+
+    // Filter functionality
+    const handleFilterChange = (e) => {
+        const filterValue = e.target.value;
+        setSelectedFilter(filterValue);
+        applyFilters(filterValue, searchQuery);
+    };
+
+    const handleSearchChange = (e) => {
+        const query = e.target.value;
+        setSearchQuery(query);
+        applyFilters(selectedFilter, query);
+    };
+
+    const applyFilters = (filter, query) => {
+        let filteredVehicles = [...allVehicles];
+
+        // Apply type filter
+        if (filter !== 'All Types') {
+            filteredVehicles = filteredVehicles.filter(vehicle => vehicle.type === filter);
+        }
+
+        // Apply search query
+        if (query.trim() !== '') {
+            filteredVehicles = filteredVehicles.filter(vehicle =>
+                vehicle.name.toLowerCase().includes(query.toLowerCase()) ||
+                vehicle.location.toLowerCase().includes(query.toLowerCase()) ||
+                vehicle.type.toLowerCase().includes(query.toLowerCase())
+            );
+        }
+
+        setVehicles(filteredVehicles);
+    };
+
+    const handleSearchClick = () => {
+        applyFilters(selectedFilter, searchQuery);
+        alert(`Searching for: ${searchQuery || 'all vehicles'} in ${selectedFilter}`);
     };
 
     return (
@@ -179,7 +303,10 @@ const ClientVehicleDashboard = () => {
                                 <div className="p-6">
                                     <div className="flex justify-between items-center mb-6">
                                         <h2 className="text-xl font-semibold text-gray-800">Current Bookings</h2>
-                                        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                        <button 
+                                            onClick={handleNewBooking}
+                                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
                                             New Booking
                                         </button>
                                     </div>
@@ -206,10 +333,16 @@ const ClientVehicleDashboard = () => {
                                                         </p>
                                                     </div>
                                                     <div className="flex space-x-2">
-                                                        <button className="text-blue-600 hover:text-blue-800 font-medium">
+                                                        <button 
+                                                            onClick={() => handleViewDetails(booking)}
+                                                            className="text-blue-600 hover:text-blue-800 font-medium"
+                                                        >
                                                             View Details
                                                         </button>
-                                                        <button className="text-red-600 hover:text-red-800 font-medium">
+                                                        <button 
+                                                            onClick={() => handleCancelBooking(booking)}
+                                                            className="text-red-600 hover:text-red-800 font-medium"
+                                                        >
                                                             Cancel
                                                         </button>
                                                     </div>
@@ -226,13 +359,27 @@ const ClientVehicleDashboard = () => {
                                     <div className="flex justify-between items-center mb-6">
                                         <h2 className="text-xl font-semibold text-gray-800">Available Vehicles</h2>
                                         <div className="flex space-x-2">
-                                            <select className="border border-gray-300 rounded-lg px-3 py-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Search vehicles..."
+                                                value={searchQuery}
+                                                onChange={handleSearchChange}
+                                                className="border border-gray-300 rounded-lg px-3 py-2 w-48"
+                                            />
+                                            <select 
+                                                value={selectedFilter}
+                                                onChange={handleFilterChange}
+                                                className="border border-gray-300 rounded-lg px-3 py-2"
+                                            >
                                                 <option>All Types</option>
                                                 <option>Bus</option>
                                                 <option>Train</option>
                                                 <option>Flight</option>
                                             </select>
-                                            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                            <button 
+                                                onClick={handleSearchClick}
+                                                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                            >
                                                 Search
                                             </button>
                                         </div>
@@ -248,17 +395,30 @@ const ClientVehicleDashboard = () => {
                                                             {vehicle.availability}
                                                         </span>
                                                     </div>
-                                                    <p className="text-gray-600 mb-2">Type: {vehicle.type}</p>
+                                                    <p className="text-gray-600 mb-1">Type: {vehicle.type}</p>
+                                                    <p className="text-gray-600 mb-1">Location: {vehicle.location}</p>
+                                                    <p className="text-gray-600 mb-2 font-semibold text-green-600">{vehicle.price}</p>
                                                     <div className="flex items-center">
                                                         <span className="text-yellow-400">★</span>
                                                         <span className="ml-1 text-gray-600">{vehicle.rating}</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex space-x-2">
-                                                    <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                                                        Book Now
+                                                    <button 
+                                                        onClick={() => handleBookNow(vehicle)}
+                                                        disabled={vehicle.availability === 'Booked'}
+                                                        className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                                                            vehicle.availability === 'Available'
+                                                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        }`}
+                                                    >
+                                                        {vehicle.availability === 'Available' ? 'Book Now' : 'Unavailable'}
                                                     </button>
-                                                    <button className="flex-1 border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors text-sm">
+                                                    <button 
+                                                        onClick={() => handleViewVehicleDetails(vehicle)}
+                                                        className="flex-1 border border-blue-600 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors text-sm"
+                                                    >
                                                         View Details
                                                     </button>
                                                 </div>
@@ -288,10 +448,16 @@ const ClientVehicleDashboard = () => {
                                                     <p className="text-gray-600">Date: 2024-10-15</p>
                                                 </div>
                                                 <div className="flex space-x-2">
-                                                    <button className="text-blue-600 hover:text-blue-800 font-medium">
+                                                    <button 
+                                                        onClick={() => handleViewReceipt()}
+                                                        className="text-blue-600 hover:text-blue-800 font-medium"
+                                                    >
                                                         View Receipt
                                                     </button>
-                                                    <button className="text-green-600 hover:text-green-800 font-medium">
+                                                    <button 
+                                                        onClick={() => handleRateTrip()}
+                                                        className="text-green-600 hover:text-green-800 font-medium"
+                                                    >
                                                         Rate Trip
                                                     </button>
                                                 </div>
