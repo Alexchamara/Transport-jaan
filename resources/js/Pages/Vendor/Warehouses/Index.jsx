@@ -84,7 +84,21 @@ export default function Index({ auth, warehouses, flash }) {
                                                     {warehouse.total_area} sq. ft.
                                                 </td>
                                                 <td className="py-4 px-4 whitespace-nowrap">
-                                                    ${warehouse.price} / {warehouse.pricing_model}
+                                                    <div className="text-sm">
+                                                        <div className="font-medium">
+                                                            ${warehouse.base_price} / {warehouse.pricing_model}
+                                                        </div>
+                                                        {warehouse.monthly_rate && (
+                                                            <div className="text-gray-500">
+                                                                Monthly: ${warehouse.monthly_rate}
+                                                            </div>
+                                                        )}
+                                                        {warehouse.final_amount && (
+                                                            <div className="text-gray-500">
+                                                                Total: ${warehouse.final_amount}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="py-4 px-4 whitespace-nowrap">
                                                     <button 

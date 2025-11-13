@@ -8,7 +8,7 @@ import burgerIcon from "../../assets/landingPages/burgerIcon.svg";
 import { Link } from '@inertiajs/react';
 
 const Hero = ({ auth }) => {
-    // console.log(auth); 
+    // console.log(auth);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Scroll to section by id
@@ -97,7 +97,7 @@ const Hero = ({ auth }) => {
                 )}
                 {auth.user.role === "client" && (
                   <Link
-                    href="/"
+                    href="/client/dashboard"
                     className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[18px] font-medium"
                   >
                     Dashboard
@@ -208,7 +208,7 @@ const Hero = ({ auth }) => {
                     )}
                     {auth.user.role === "client" && (
                       <Link
-                        href="/"
+                        href="/client/dashboard"
                         className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
                       >
                         Dashboard

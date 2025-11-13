@@ -1,7 +1,11 @@
 import React from "react";
+import { router } from "@inertiajs/react";
 import bg from "../../assets/warehouse/bg.svg";
 
 const Hero = () => {
+    const handleFindWarehouse = () => {
+        router.visit('/warehouseList');
+    };
     return (
         <div
             className="w-full h-auto min-h-[829px] flex flex-col justify-center items-center"
@@ -23,12 +27,15 @@ const Hero = () => {
                     aliquet faucibus. Morbi lectus eros,
                 </p>
                 <div className="text-[16px] font-[700] figtree flex md:flex-row flex-col justify-center items-center gap-10">
-                    <div className="w-[190px] h-[45px] bg-[#0955AC] border-[2px] border-[#0955AC] flex justify-center items-center rounded-[9px] cursor-pointer">
+                    <div 
+                        className="w-[190px] h-[45px] bg-[#0955AC] border-[2px] border-[#0955AC] flex justify-center items-center rounded-[9px] cursor-pointer"
+                        onClick={handleFindWarehouse}
+                    >
                         FIND A WAREHOUSE
                     </div>
-                    <div className="w-[190px] h-[45px] border-[2px] border-[#FFFFFF] flex justify-center items-center rounded-[9px] cursor-pointer">
+                    {/* <div className="w-[190px] h-[45px] border-[2px] border-[#FFFFFF] flex justify-center items-center rounded-[9px] cursor-pointer">
                         GET A QUOTE
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </div>

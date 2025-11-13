@@ -35,6 +35,7 @@ export default function WarehouseForm({ warehouse = null, onSubmit }) {
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name: warehouse?.name ?? '',
+        description: warehouse?.description ?? '',
         address: warehouse?.address ?? '',
         latitude: warehouse?.latitude ?? '',
         longitude: warehouse?.longitude ?? '',
@@ -43,11 +44,49 @@ export default function WarehouseForm({ warehouse = null, onSubmit }) {
         type: warehouse?.type ?? '',
         amenities: warehouse?.amenities ?? [],
         pricing_model: warehouse?.pricing_model ?? '',
-        price: warehouse?.price ?? '',
+        base_price: warehouse?.base_price ?? '',
+        // Detailed Pricing
+        monthly_rate: warehouse?.monthly_rate ?? '',
+        security_deposit: warehouse?.security_deposit ?? '',
+        setup_fee: warehouse?.setup_fee ?? '',
+        tax_rate: warehouse?.tax_rate ?? '',
+        total_amount: warehouse?.total_amount ?? '',
+        tax_amount: warehouse?.tax_amount ?? '',
+        final_amount: warehouse?.final_amount ?? '',
         terms_conditions: warehouse?.terms_conditions ?? '',
         images: [],
         documents: [],
     });
+
+    // Calculate pricing totals automatically
+    const calculatePricingTotals = () => {
+        const monthlyRate = parseFloat(data.monthly_rate || 0);
+        const securityDeposit = parseFloat(data.security_deposit || 0);
+        const setupFee = parseFloat(data.setup_fee || 0);
+        const taxRate = parseFloat(data.tax_rate || 0);
+
+        // Calculate total before tax
+        const totalAmount = monthlyRate + securityDeposit + setupFee;
+        
+        // Calculate tax amount
+        const taxAmount = (totalAmount * taxRate) / 100;
+        
+        // Calculate final amount including tax
+        const finalAmount = totalAmount + taxAmount;
+
+        // Update the calculated fields
+        setData(prevData => ({
+            ...prevData,
+            total_amount: totalAmount.toFixed(2),
+            tax_amount: taxAmount.toFixed(2),
+            final_amount: finalAmount.toFixed(2)
+        }));
+    };
+
+    // Run calculation whenever pricing fields change
+    useEffect(() => {
+        calculatePricingTotals();
+    }, [data.monthly_rate, data.security_deposit, data.setup_fee, data.tax_rate]);
 
     // Initialize map
     useEffect(() => {
@@ -163,6 +202,22 @@ export default function WarehouseForm({ warehouse = null, onSubmit }) {
                     />
                     {errors.name && (
                         <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                    )}
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                        Description
+                    </label>
+                    <textarea
+                        value={data.description}
+                        onChange={e => setData('description', e.target.value)}
+                        rows={3}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Describe your warehouse facility..."
+                    />
+                    {errors.description && (
+                        <p className="mt-1 text-sm text-red-600">{errors.description}</p>
                     )}
                 </div>
 
@@ -324,50 +379,223 @@ export default function WarehouseForm({ warehouse = null, onSubmit }) {
             </div>
 
             {/* Pricing */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Pricing Model
-                    </label>
-                    <select
-                        value={data.pricing_model}
-                        onChange={e => setData('pricing_model', e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        required
-                    >
-                        <option value="">Select Pricing Model</option>
-                        {PRICING_MODELS.map(model => (
-                            <option key={model.value} value={model.value}>
-                                {model.label}
-                            </option>
-                        ))}
-                    </select>
-                    {errors.pricing_model && (
-                        <p className="mt-1 text-sm text-red-600">{errors.pricing_model}</p>
-                    )}
+            <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-900">Pricing Information</h3>
+                
+                {/* Basic Pricing */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Pricing Model
+                        </label>
+                        <select
+                            value={data.pricing_model}
+                            onChange={e => setData('pricing_model', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            required
+                        >
+                            <option value="">Select Pricing Model</option>
+                            {PRICING_MODELS.map(model => (
+                                <option key={model.value} value={model.value}>
+                                    {model.label}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.pricing_model && (
+                            <p className="mt-1 text-sm text-red-600">{errors.pricing_model}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Base Price
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                                type="number"
+                                value={data.base_price}
+                                onChange={e => setData('base_price', e.target.value)}
+                                className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                required
+                                min="0"
+                                step="0.01"
+                            />
+                        </div>
+                        {errors.base_price && (
+                            <p className="mt-1 text-sm text-red-600">{errors.base_price}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Monthly Rate
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                                type="number"
+                                value={data.monthly_rate}
+                                onChange={e => setData('monthly_rate', e.target.value)}
+                                className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                            />
+                        </div>
+                        {errors.monthly_rate && (
+                            <p className="mt-1 text-sm text-red-600">{errors.monthly_rate}</p>
+                        )}
+                    </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Price
-                    </label>
-                    <div className="mt-1 relative rounded-md shadow-sm">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span className="text-gray-500 sm:text-sm">$</span>
+                {/* Additional Fees */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Security Deposit
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                                type="number"
+                                value={data.security_deposit}
+                                onChange={e => setData('security_deposit', e.target.value)}
+                                className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                            />
                         </div>
-                        <input
-                            type="number"
-                            value={data.price}
-                            onChange={e => setData('price', e.target.value)}
-                            className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            required
-                            min="0"
-                            step="0.01"
-                        />
+                        {errors.security_deposit && (
+                            <p className="mt-1 text-sm text-red-600">{errors.security_deposit}</p>
+                        )}
                     </div>
-                    {errors.price && (
-                        <p className="mt-1 text-sm text-red-600">{errors.price}</p>
-                    )}
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Setup Fee
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                                type="number"
+                                value={data.setup_fee}
+                                onChange={e => setData('setup_fee', e.target.value)}
+                                className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                min="0"
+                                step="0.01"
+                                placeholder="0.00"
+                            />
+                        </div>
+                        {errors.setup_fee && (
+                            <p className="mt-1 text-sm text-red-600">{errors.setup_fee}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Tax Rate (%)
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                            <input
+                                type="number"
+                                value={data.tax_rate}
+                                onChange={e => setData('tax_rate', e.target.value)}
+                                className="pr-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                placeholder="0.00"
+                            />
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm">%</span>
+                            </div>
+                        </div>
+                        {errors.tax_rate && (
+                            <p className="mt-1 text-sm text-red-600">{errors.tax_rate}</p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Calculated Totals (Read-only) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 p-4 rounded-lg">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Total Amount (Before Tax)
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                                type="number"
+                                value={data.total_amount}
+                                onChange={e => setData('total_amount', e.target.value)}
+                                className="pl-7 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                step="0.01"
+                                placeholder="0.00"
+                                readOnly
+                            />
+                        </div>
+                        {errors.total_amount && (
+                            <p className="mt-1 text-sm text-red-600">{errors.total_amount}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Tax Amount
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                                type="number"
+                                value={data.tax_amount}
+                                onChange={e => setData('tax_amount', e.target.value)}
+                                className="pl-7 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                step="0.01"
+                                placeholder="0.00"
+                                readOnly
+                            />
+                        </div>
+                        {errors.tax_amount && (
+                            <p className="mt-1 text-sm text-red-600">{errors.tax_amount}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Final Amount (Including Tax)
+                        </label>
+                        <div className="mt-1 relative rounded-md shadow-sm">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                                type="number"
+                                value={data.final_amount}
+                                onChange={e => setData('final_amount', e.target.value)}
+                                className="pl-7 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                step="0.01"
+                                placeholder="0.00"
+                                readOnly
+                            />
+                        </div>
+                        {errors.final_amount && (
+                            <p className="mt-1 text-sm text-red-600">{errors.final_amount}</p>
+                        )}
+                    </div>
                 </div>
             </div>
 

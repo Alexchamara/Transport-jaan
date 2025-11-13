@@ -1,0 +1,424 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Head, Link, usePage, router } from "@inertiajs/react";
+import Header from "../layouts/Header";
+import Footer from "../layouts/Footer";
+
+const PROGRESS_STEPS = [
+    {
+        id: 1,
+        title: "Sender details",
+        description: "Pickup information",
+    },
+    {
+        id: 2,
+        title: "Recipient details",
+        description: "Delivery information",
+    },
+    {
+        id: 3,
+        title: "Shipment preferences",
+        description: "Service options",
+    },
+    {
+        id: 4,
+        title: "Package details",
+        description: "Courier selections",
+    },
+];
+
+const Summary = () => {
+    const { props } = usePage();
+    const {
+        formData,
+        errors = {},
+        countries = [],
+        serviceLevels = [],
+    } = props;
+    const hasErrors = Object.keys(errors).length > 0;
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const initialData = useMemo(() => (formData ? JSON.parse(JSON.stringify(formData)) : null), [formData]);
+    const [formState, setFormState] = useState(initialData);
+
+    useEffect(() => {
+        setFormState(initialData);
+    }, [initialData]);
+
+    const scrollToTop = useCallback(() => {
+        if (typeof window !== "undefined") {
+            window.scrollTo({ top: 0, behavior: "auto" });
+        }
+    }, []);
+
+    const [displayCurrency, setDisplayCurrency] = useState(() => initialData?.reviewContext?.displayCurrency || initialData?.shipment?.currency || "LKR");
+
+    useEffect(() => {
+        if (initialData) {
+            setDisplayCurrency(initialData.reviewContext?.displayCurrency || initialData.shipment?.currency || "USD");
+        }
+    }, [initialData]);
+
+    const updateNestedField = (path, value) => {
+        setFormState((previous) => {
+            if (!previous) {
+                return previous;
+            }
+
+            const next = { ...previous };
+            const keys = path.split('.');
+            let cursor = next;
+
+            keys.forEach((key, index) => {
+                if (index === keys.length - 1) {
+                    cursor[key] = value;
+                    return;
+                }
+
+                const current = cursor[key];
+                if (Array.isArray(current)) {
+                    cursor[key] = [...current];
+                } else {
+                    cursor[key] = current ? { ...current } : {};
+                }
+                cursor = cursor[key];
+            });
+
+            return next;
+        });
+    };
+
+    const handleCurrencyChange = (value) => {
+        const nextCurrency = value || "USD";
+        setDisplayCurrency(nextCurrency);
+        updateNestedField('shipment.currency', nextCurrency);
+        updateNestedField('reviewContext.displayCurrency', nextCurrency);
+    };
+
+    if (!formState) {
+        return (
+            <div className="min-h-screen flex flex-col bg-[#F4F7FB] text-[#0B1739]">
+                <Head title="Courier Summary" />
+                <Header />
+                <main className="flex flex-1 items-center justify-center px-4">
+                    <div className="max-w-md w-full rounded-2xl bg-white p-8 text-center shadow-lg">
+                        <h1 className="text-xl font-semibold mb-3">No summary available</h1>
+                        <p className="text-sm text-[#5B6887]">
+                            Start by creating a courier request and selecting your services.
+                        </p>
+                        <Link
+                            href="/couriers/create"
+                            className="mt-6 inline-flex items-center justify-center rounded-lg bg-[#0955AC] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#0a4b93]"
+                        >
+                            Go to courier form
+                        </Link>
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
+    const senderAddress = formState.sender?.address ?? {};
+    const recipientAddress = formState.recipient?.address ?? {};
+    const selectedQuotes = formState.reviewContext?.selectedQuotes || [];
+    const totalPriceUSD = formState.reviewContext?.totalPriceUSD || 0;
+    const USD_TO_LKR_RATE = 325;
+
+    const currencyFormatter = useMemo(() => {
+        try {
+            return new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: displayCurrency,
+                minimumFractionDigits: 2,
+            });
+        } catch (error) {
+            return new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "LKR",
+                minimumFractionDigits: 2,
+            });
+        }
+    }, [displayCurrency]);
+
+    const formatCurrency = (value = 0) => {
+        const numericValue = Number(value) || 0;
+        const convertedValue = displayCurrency === "LKR" ? numericValue * USD_TO_LKR_RATE : numericValue;
+        return currencyFormatter.format(convertedValue);
+    };
+
+    const selectedQuotesMap = useMemo(() => {
+        return selectedQuotes.reduce((acc, quote) => {
+            acc[quote.packageIndex] = quote;
+            return acc;
+        }, {});
+    }, [selectedQuotes]);
+
+    const formatAddress = (address) => {
+        if (!address) {
+            return "—";
+        }
+
+        const streetParts = [address.line1, address.line2].filter(Boolean).join(", ");
+        const localityParts = [address.city, address.state, address.postalCode].filter(Boolean).join(", ");
+        const countryPart = address.country;
+
+        return [streetParts, localityParts, countryPart].filter(Boolean).join(" • ");
+    };
+
+    const insuranceLabel = formState.shipment?.insurance ? "Yes" : "No";
+    const totalEstimateDisplay = formatCurrency(totalPriceUSD);
+
+    const handleConfirm = () => {
+        if (!formState || isSubmitting) {
+            return;
+        }
+
+        router.post('/couriers', formState, {
+            preserveScroll: false,
+            onStart: () => setIsSubmitting(true),
+            onSuccess: scrollToTop,
+            onError: scrollToTop,
+            onFinish: () => setIsSubmitting(false),
+        });
+    };
+
+    return (
+        <div className="min-h-screen flex flex-col bg-[#F4F7FB] text-[#0B1739]">
+            <Head title="Courier Summary" />
+            <Header />
+
+            <section className="bg-[#0B1739] text-white">
+                <div className="container mx-auto px-4 py-12">
+                    <p className="uppercase tracking-wide text-xs text-[#6FB3FF]">Courier Service</p>
+                    <h1 className="text-3xl md:text-4xl font-semibold mt-3">Review your shipment</h1>
+                    <p className="mt-4 max-w-2xl text-sm md:text-base text-white/80">
+                        Confirm sender and recipient information, shipment preferences, and selected courier services before final submission.
+                    </p>
+                    <div className="mt-6">
+                        <Link
+                            href="/couriers/details"
+                            className="inline-flex items-center gap-2 text-xs md:text-sm text-white/70 underline-offset-4 hover:text-white hover:underline transition"
+                        >
+                            ← Edit shipment details
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
+            <main className="container mx-auto px-4 -mt-16 mb-16 flex-1">
+                <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
+                    {hasErrors && (
+                        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                            <p className="font-semibold">We couldn't submit the courier request.</p>
+                            <p className="mt-1">Please review the details and update any missing or invalid information.</p>
+                            <div className="mt-3 space-y-1">
+                                {Object.values(errors)
+                                    .slice(0, 4)
+                                    .map((message, index) => (
+                                        <p key={`error-${index}`} className="flex items-start gap-2 text-xs text-red-600">
+                                            <span className="mt-[2px]">•</span>
+                                            <span>{message}</span>
+                                        </p>
+                                    ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="mb-10">
+                        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <h2 className="text-2xl font-semibold text-[#0B1739]">Shipment progress</h2>
+                                <p className="mt-2 text-sm text-[#5B6887]">
+                                    All steps are complete. Review the details below before you finalize the request.
+                                </p>
+                            </div>
+                            <Link
+                                href="/couriers/details"
+                                className="inline-flex items-center gap-2 rounded-lg border border-[#0955AC] px-4 py-2 text-sm font-semibold text-[#0955AC] transition hover:bg-[#0955AC] hover:text-white"
+                            >
+                                ← Modify details
+                            </Link>
+                        </div>
+
+                        <div className="mt-8 flex flex-col gap-6">
+                            <div className="flex flex-col gap-6 md:flex-row md:items-center md:gap-4">
+                                {PROGRESS_STEPS.map((step, index) => (
+                                    <React.Fragment key={step.id}>
+                                        <div className="flex flex-1 items-center gap-3">
+                                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0955AC] text-white shadow">
+                                                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold uppercase tracking-wide text-[#5B6887]">
+                                                    Step {step.id}
+                                                </p>
+                                                <h3 className="text-sm font-semibold text-[#0B1739]">{step.title}</h3>
+                                                <p className="text-xs text-[#6B7893]">{step.description}</p>
+                                            </div>
+                                        </div>
+                                        {index < PROGRESS_STEPS.length - 1 && (
+                                            <div className="hidden flex-1 md:block">
+                                                <div className="h-1 w-full rounded bg-[#0955AC]/30" />
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
+                            <h3 className="text-lg font-semibold text-[#0B1739]">Sender details</h3>
+                            <div className="mt-4 space-y-2 text-sm text-[#5B6887]">
+                                <p><span className="font-medium text-[#0B1739]">Name:</span> {formState.sender?.name || "—"}</p>
+                                <p><span className="font-medium text-[#0B1739]">Email:</span> {formState.sender?.email || "—"}</p>
+                                <p><span className="font-medium text-[#0B1739]">Phone:</span> {formState.sender?.phone || "—"}</p>
+                                <p><span className="font-medium text-[#0B1739]">Company:</span> {formState.sender?.company || "—"}</p>
+                                <p><span className="font-medium text-[#0B1739]">Address:</span> {formatAddress(senderAddress)}</p>
+                                {senderAddress.instructions && (
+                                    <p><span className="font-medium text-[#0B1739]">Instructions:</span> {senderAddress.instructions}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
+                            <h3 className="text-lg font-semibold text-[#0B1739]">Recipient details</h3>
+                            <div className="mt-4 space-y-2 text-sm text-[#5B6887]">
+                                <p><span className="font-medium text-[#0B1739]">Name:</span> {formState.recipient?.name || "—"}</p>
+                                <p><span className="font-medium text-[#0B1739]">Email:</span> {formState.recipient?.email || "—"}</p>
+                                <p><span className="font-medium text-[#0B1739]">Phone:</span> {formState.recipient?.phone || "—"}</p>
+                                <p><span className="font-medium text-[#0B1739]">Company:</span> {formState.recipient?.company || "—"}</p>
+                                <p><span className="font-medium text-[#0B1739]">Address:</span> {formatAddress(recipientAddress)}</p>
+                                {recipientAddress.instructions && (
+                                    <p><span className="font-medium text-[#0B1739]">Instructions:</span> {recipientAddress.instructions}</p>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="mt-8 rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
+                        <h3 className="text-lg font-semibold text-[#0B1739]">Shipment preferences</h3>
+                        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 text-sm text-[#5B6887]">
+                            <p><span className="font-medium text-[#0B1739]">Preferred service level:</span> {formState.shipment?.serviceLevel || "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Pickup date:</span> {formState.shipment?.pickupDate || "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Pickup window:</span> {formState.shipment?.pickupWindowStart && formState.shipment?.pickupWindowEnd ? `${formState.shipment.pickupWindowStart} - ${formState.shipment.pickupWindowEnd}` : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Insurance required:</span> {insuranceLabel}</p>
+                            <p><span className="font-medium text-[#0B1739]">Declared value:</span> {formState.shipment?.estimatedValue ? formatCurrency(Number(formState.shipment.estimatedValue)) : "—"}</p>
+                            <p><span className="font-medium text-[#0B1739]">Currency:</span> {displayCurrency}</p>
+                        </div>
+                        {formState.shipment?.deliveryNotes && (
+                            <div className="mt-4 rounded-lg bg-white p-4 text-sm text-[#5B6887]">
+                                <p className="font-medium text-[#0B1739]">Delivery notes</p>
+                                <p className="mt-2 leading-relaxed">{formState.shipment.deliveryNotes}</p>
+                            </div>
+                        )}
+                    </section>
+
+                    <section className="mt-8 rounded-2xl border border-[#E3EAF5] bg-[#F9FBFF] p-6">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <h3 className="text-lg font-semibold text-[#0B1739]">Package details</h3>
+                            {selectedQuotes.length > 0 && (
+                                <div className="rounded-full bg-[#0955AC]/10 px-4 py-1 text-sm font-medium text-[#0955AC]">
+                                    Estimated total: {totalEstimateDisplay}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-6 space-y-5">
+                            {(formState.packages || []).map((pkg, index) => {
+                                const selection = selectedQuotesMap[index];
+                                const volumetricInfo = selection?.billableWeight && selection.billableWeight !== selection.weight
+                                    ? `${selection.billableWeight.toFixed(2)} kg billable`
+                                    : null;
+
+                                return (
+                                    <div key={`summary-package-${index}`} className="rounded-2xl border border-[#E3EAF5] bg-white p-5 shadow-sm">
+                                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                            <div>
+                                                <p className="text-sm uppercase tracking-wide text-[#5B6887]">Package {index + 1}</p>
+                                                <h4 className="text-lg font-semibold text-[#0B1739]">{pkg.label || `Package ${index + 1}`}</h4>
+                                            </div>
+                                            {selection && (
+                                                <span className="inline-flex items-center rounded-full bg-[#0955AC]/10 px-3 py-1 text-xs font-semibold text-[#0955AC]">
+                                                    {selection.providerName} · {selection.serviceLabel}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-[#5B6887] md:grid-cols-2">
+                                            <p><span className="font-medium text-[#0B1739]">Quantity:</span> {pkg.quantity || "—"}</p>
+                                            <p><span className="font-medium text-[#0B1739]">Weight:</span> {pkg.weightKg ? `${pkg.weightKg} kg` : "—"}</p>
+                                            <p>
+                                                <span className="font-medium text-[#0B1739]">Dimensions:</span> {pkg.lengthCm && pkg.widthCm && pkg.heightCm
+                                                    ? `${pkg.lengthCm} × ${pkg.widthCm} × ${pkg.heightCm} cm`
+                                                    : "—"}
+                                            </p>
+                                            <p><span className="font-medium text-[#0B1739]">Declared value:</span> {pkg.declaredValue ? formatCurrency(Number(pkg.declaredValue)) : "—"}</p>
+                                            <p><span className="font-medium text-[#0B1739]">Type:</span> {pkg.packageType || "—"}</p>
+                                            {volumetricInfo && (
+                                                <p><span className="font-medium text-[#0B1739]">Billable weight:</span> {volumetricInfo}</p>
+                                            )}
+                                        </div>
+
+                                        {pkg.description && (
+                                            <div className="mt-4 rounded-lg bg-[#F9FBFF] p-4 text-sm text-[#5B6887]">
+                                                <p className="font-medium text-[#0B1739]">Description</p>
+                                                <p className="mt-2 leading-relaxed">{pkg.description}</p>
+                                            </div>
+                                        )}
+
+                                        {selection ? (
+                                            <div className="mt-4 rounded-lg bg-[#0955AC]/5 p-4 text-sm text-[#0B1739]">
+                                                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                                    <div>
+                                                        <p className="font-semibold text-[#0B1739]">Selected courier service</p>
+                                                        <p className="text-xs text-[#5B6887]">{selection.description || selection.eta}</p>
+                                                    </div>
+                                                    <div className="text-right text-base font-semibold text-[#0955AC]">
+                                                        {formatCurrency(selection.priceUSD)}
+                                                        <p className="text-xs font-normal text-[#5B6887]">{selection.eta}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="mt-4 rounded-lg border border-dashed border-[#E3EAF5] p-4 text-sm text-[#5B6887]">
+                                                No courier service selected yet for this package.
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+
+                    <p className="mt-10 text-center text-xs text-[#5B6887]">
+                        Once you confirm the shipment, our team will finalize the booking with the selected courier partners and share the pickup confirmation.
+                    </p>
+
+                    <div className="mt-8 flex flex-col items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={handleConfirm}
+                            disabled={isSubmitting}
+                            className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${
+                                isSubmitting ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                            }`}
+                        >
+                            {isSubmitting ? 'Submitting courier request...' : 'Confirm & Submit'}
+                        </button>
+                        <p className="text-xs text-[#5B6887]">
+                            Need changes? Use the Modify details link above to adjust the form before submitting.
+                        </p>
+                    </div>
+                </div>
+            </main>
+
+            <Footer />
+        </div>
+    );
+};
+
+export default Summary;

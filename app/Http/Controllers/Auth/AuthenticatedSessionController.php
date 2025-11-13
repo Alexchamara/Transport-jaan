@@ -18,7 +18,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Login', [
+        return Inertia::render('Auth/signin', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
         ]);
@@ -33,10 +33,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $role = Auth::user()->role;
-        
+        $user = Auth::user();
+
+        // Check if user is unverified
+        if ($user->status === 'unverified') {
+            return redirect()->route('approval.pending');
+        }
+
+        // Proceed with role-based redirection for verified users
+        $role = $user->role;
+
         $redirectTo = match($role) {
-            'client' => route('home'),
+            'SuperAdmin' => route('superadmin.dashboard'),
+            'client' => route('client.mainDashboard'),
             'vendor' => route('vendors.mainDashboard'),
             'admin' => route('landingPage.home'),
             default => route('landingPage.home'),
@@ -50,12 +59,26 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
+        try {
+            Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
+            $request->session()->invalidate();
 
-        $request->session()->regenerateToken();
+            $request->session()->regenerateToken();
 
-        return redirect('/');
+            // Clear any existing messages and redirect to home
+            return redirect('/')->with('message', 'You have been successfully logged out.');
+        } catch (\Exception $e) {
+            // If there's an error, still try to logout and redirect
+            Auth::guard('web')->logout();
+
+            // Force session regeneration even if there's an error
+            if ($request->session()) {
+                $request->session()->flush();
+                $request->session()->regenerate();
+            }
+
+            return redirect('/')->with('message', 'You have been logged out.');
+        }
     }
 }
