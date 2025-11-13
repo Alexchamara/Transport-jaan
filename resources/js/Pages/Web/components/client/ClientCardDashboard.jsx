@@ -14,6 +14,7 @@ const ClientCardDashboard = () => {
       subOptions: [
         { name: 'Cars & SUVs', route: '/clientRent?type=land' },
         { name: 'Aircraft', route: '/clientRent?type=air' },
+        { name: 'Vehicle Dashboard', route: '/clientVehicleDashboard' },
         { name: 'Boats & Ships', route: '/clientRent?type=sea' }
       ]
     },
