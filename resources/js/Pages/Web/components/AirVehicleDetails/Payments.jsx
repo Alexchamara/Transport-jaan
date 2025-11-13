@@ -58,8 +58,19 @@ const Payments = () => {
   const [slipNumber, setSlipNumber] = useState("");
   const [slipPdf, setSlipPdf] = useState(null);
   const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState({ slipNumber: "" });
+  // include slipPdf in errors so checks are consistent
+  const [error, setError] = useState({ slipNumber: "", slipPdf: "" });
   const slipNumberRegex = /^(\d+|[a-zA-Z]+\d+|[a-zA-Z]+-\d+)$/;
+
+  const handlePaymentMethodChange = (m) => {
+    setSelectedPayment(m);
+    // clear slip fields & errors when not using bank transfer
+    if (m !== "Bank Transfer") {
+      setSlipNumber("");
+      setSlipPdf(null);
+      setError((prev) => ({ ...prev, slipNumber: "", slipPdf: "" }));
+    }
+  };
 
   // NEW: in-window popup instead of alert for T&C message
   const [showTermsPopup, setShowTermsPopup] = useState(false);
@@ -70,26 +81,30 @@ const Payments = () => {
       return;
     }
 
-    if (!slipNumber || !slipNumberRegex.test(slipNumber)) {
-      setError((prev) => ({
-        ...prev,
-        slipNumber: "Please enter a valid slip number",
-      }));
-      return;
-    }
-    else {
-      setError((prev) => ({ ...prev, slipNumber: "" }));
-    }
+    // Only require slip number and slip PDF when Bank Transfer is selected
+    if (selectedPayment === "Bank Transfer") {
+      if (!slipNumber || !slipNumberRegex.test(slipNumber)) {
+        setError((prev) => ({
+          ...prev,
+          slipNumber: "Please enter a valid slip number",
+        }));
+        return;
+      } else {
+        setError((prev) => ({ ...prev, slipNumber: "" }));
+      }
 
-    if (!slipPdf) {
-      setError((prev) => ({
-        ...prev,
-        slipPdf: "Please upload the bank slip PDF",
-      }));
-      return;
-    }
-    else {
-      setError((prev) => ({ ...prev, slipPdf: "" }));
+      if (!slipPdf) {
+        setError((prev) => ({
+          ...prev,
+          slipPdf: "Please upload the bank slip file (PDF or image).",
+        }));
+        return;
+      } else {
+        setError((prev) => ({ ...prev, slipPdf: "" }));
+      }
+    } else {
+      // Clear any slip-related errors when another payment is selected
+      setError((prev) => ({ ...prev, slipNumber: "", slipPdf: "" }));
     }
 
     if (!agreed) {
@@ -102,7 +117,7 @@ const Payments = () => {
     formData.append("payment_option", paymentOption);
     if (slipNumber) formData.append("slip_number", slipNumber);
     if (slipPdf && selectedPayment === "Bank Transfer") formData.append("slip_pdf", slipPdf);
-    router.post(route("client.bookings.confirm", booking.id), formData, {
+    router.post(route("client.airBookings.confirm", booking.id), formData, {
       forceFormData: true,
       preserveScroll: true,
     });
@@ -238,7 +253,7 @@ const Payments = () => {
                     name="paymentMethod"
                     value={m}
                     checked={selectedPayment === m}
-                    onChange={() => setSelectedPayment(m)}
+                    onChange={() => handlePaymentMethodChange(m)}
                     className="peer appearance-none w-[14px] h-[14px] rounded-full border border-[#0955AC] bg-[#0955AC] focus:outline-none focus:ring-transparent transition-colors cursor-pointer"
                   />
                   <span className="peer-checked:text-[#000000] text-[#00000080] text-[16px] font-[600]">
@@ -282,44 +297,51 @@ const Payments = () => {
                 </div>
 
                 <div>
-                  <label className="text-[10px]/[24px] font-[600]">Upload Bank Slip (PDF) :</label>
-                  <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] flex items-center px-3">
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] ?? null;
-                        if (file) {
-                          const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-                          const maxSize = 5 * 1024 * 1024; // 5 MB in bytes
+                  <label className="text-[10px]/[24px] font-[600]">Upload Bank Slip (PDF, JPG, JPEG or PNG) :</label>
+                    <div className="md:w-[374px] w-auto h-[49px] border-[1px] border-[#0000004D] rounded-[5px] flex items-center px-3">
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null;
+                          if (file) {
+                            // Allowed standard MIME types. Some devices/browsers may not set file.type,
+                            // so we fallback to extension check when needed.
+                            const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+                            const maxSize = 5 * 1024 * 1024; // 5 MB in bytes
 
-                          if (!allowedTypes.includes(file.type)) {
-                            setError((prev) => ({ ...prev, slipPdf: 'Invalid file type. Only PDF, JPG, JPEG, PNG allowed.' }));
+                            const isTypeAllowed = file.type ? allowedTypes.includes(file.type) : false;
+                            const name = (file.name || '').toLowerCase();
+                            const extAllowed = ['.pdf', '.jpg', '.jpeg', '.png'];
+                            const hasAllowedExt = extAllowed.some((ext) => name.endsWith(ext));
+
+                            if (!isTypeAllowed && !hasAllowedExt) {
+                              setError((prev) => ({ ...prev, slipPdf: 'Invalid file type. Only PDF, JPG, JPEG, PNG allowed.' }));
+                              setSlipPdf(null);
+                              return;
+                            }
+
+                            if (file.size > maxSize) {
+                              setError((prev) => ({ ...prev, slipPdf: 'File size exceeds 5 MB.' }));
+                              setSlipPdf(null);
+                              return;
+                            }
+
+                            // Valid file
+                            setSlipPdf(file);
+                            setError((prev) => ({ ...prev, slipPdf: '' }));
+                          } else {
                             setSlipPdf(null);
-                            return;
+                            setError((prev) => ({ ...prev, slipPdf: '' }));
                           }
+                        }}
+                        className="w-full text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
+                      />
+                    </div>
 
-                          if (file.size > maxSize) {
-                            setError((prev) => ({ ...prev, slipPdf: 'File size exceeds 5 MB.' }));
-                            setSlipPdf(null);
-                            return;
-                          }
+                    {error.slipPdf && <p className="text-red-500 text-[10px]">{error.slipPdf}</p>}
 
-                          // Valid file
-                          setSlipPdf(file);
-                          setError((prev) => ({ ...prev, slipPdf: '' }));
-                        } else {
-                          setSlipPdf(null);
-                          setError((prev) => ({ ...prev, slipPdf: '' }));
-                        }
-                      }}
-                      className="w-full text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
-                    />
-                  </div>
-
-                  {error.slipPdf && <p className="text-red-500 text-[10px]">{error.slipPdf}</p>}
-
-                  <p className="text-[10px] text-[#00000080] mt-1">Only PDF, JPG, JPEG, PNG files are allowed. Max size 5MB.</p>
+                    <p className="text-[10px] text-[#00000080] mt-1">Only PDF, JPG, JPEG or PNG files are allowed. Max size 5MB.</p>
                 </div>
 
               </div>

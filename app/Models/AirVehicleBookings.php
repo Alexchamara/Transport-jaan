@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\AirVehicleBookingSchedule;
+use App\Models\AirVehicleBookingPayment;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 class AirVehicleBookings extends Model
 {
     public const VEHICLE_OWNER_KEY = 'provider_id';
@@ -44,10 +47,15 @@ class AirVehicleBookings extends Model
 
     public function client()   { return $this->belongsTo(User::class, 'client_id'); }
     public function vehicle()  { return $this->belongsTo(Vehicle::class); }
-    public function schedule() { return $this->hasOne(AirVehicleBookingSchedule::class); }
-    public function addons()   { return $this->hasMany(BookingAddon::class); }
-    public function payments() { return $this->hasMany(BookingPayment::class); }
-    public function customer() { return $this->hasOne(BookingCustomer::class); }
+    // Explicit foreign key because this model class name is plural. Laravel would otherwise
+    // assume `air_vehicle_bookings_id` which doesn't exist (migration uses `air_vehicle_booking_id`).
+    public function schedule() { return $this->hasOne(AirVehicleBookingSchedule::class, 'air_vehicle_booking_id'); }
+    // Use the dedicated AirVehicleBookingAddon model and explicit FK name.
+    // Without an explicit FK Laravel would guess `air_vehicle_bookings_id` (incorrect),
+    // so set the related model and the correct foreign key `air_vehicle_booking_id`.
+    public function addons()   { return $this->hasMany(AirVehicleBookingAddon::class, 'air_vehicle_booking_id'); }
+    public function payments() { return $this->hasMany(AirVehicleBookingPayment::class, 'air_vehicle_booking_id'); }
+    public function customer() { return $this->hasOne(BookingCustomer::class, 'air_vehicle_booking_id'); }
 
     public function getStartDateAttribute(): ?Carbon
     {
@@ -80,4 +88,6 @@ class AirVehicleBookings extends Model
               });
         });
     }
+
+    
 }

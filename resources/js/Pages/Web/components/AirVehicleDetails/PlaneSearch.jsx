@@ -107,7 +107,7 @@ const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
       return;
     }
     try {
-      const { data } = await axios.get(route("client.bookings.quote"), {
+      const { data } = await axios.get(route("client.airBookings.quote"), {
         params: {
           vehicle_id: vehicleId,
           pickup_date: pickupDate,

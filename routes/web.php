@@ -191,6 +191,10 @@ Route::prefix('client')->as('client.')->group(function () {
     Route::patch('/bookings/{booking}/addons', [ClientBookingController::class, 'updateAddons'])->name('bookings.updateAddons');
     Route::patch('/bookings/{airVehicleBooking}/addons', [ClientBookingController::class, 'updateAirVehicleAddons'])->name('bookings.updateAirVehicleAddons');
 
+    // Authenticated client routes (must be client role)
+    // NOTE: this route group is for client users. It previously used `role:vendor` which
+    // prevented client accounts from accessing these pages (air/land booking checkout/payments).
+    // Change to `role:client` so authenticated clients can reach the booking flows.
     Route::middleware(['auth', 'role:client'])->group(function () {
         Route::get('/bookings/checkout', [ClientBookingController::class, 'showCheckout'])->name('bookings.checkout');
         Route::post('/bookings', [ClientBookingController::class, 'store'])->name('bookings.store');
@@ -202,10 +206,12 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/airBookings/quote', [ClientBookingController::class, 'airVehicleQuote'])->name('airBookings.quote');
         Route::get('/airBookings/checkout', [ClientBookingController::class, 'showAirVehicleCheckout'])->name('airBookings.checkout');
         Route::post('/airBookings', [ClientBookingController::class, 'airVehicleStore'])->name('airBookings.store');
-        Route::get('/airBookings/{airBooking}/payments', [ClientBookingController::class, 'airVehiclePayments'])->name('airBookings.payments');
-        Route::post('/airBookings/{airBooking}/confirm', [ClientBookingController::class, 'airVehicleConfirm'])->name('airBookings.confirm');
-        Route::get('/airBookings/{airBooking}/summary', [ClientBookingController::class, 'airVehicleSummary'])->name('airBookings.summary');
-        Route::post('/airBookings/{airBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
+    // Use a consistent route parameter name so Laravel's route-model binding
+    // can inject the AirVehicleBookings model into controller methods.
+    Route::get('/airBookings/{airVehicleBooking}/payments', [ClientBookingController::class, 'airVehiclePayments'])->name('airBookings.payments');
+    Route::post('/airBookings/{airVehicleBooking}/confirm', [ClientBookingController::class, 'airVehicleConfirm'])->name('airBookings.confirm');
+    Route::get('/airBookings/{airVehicleBooking}/summary', [ClientBookingController::class, 'airVehicleSummary'])->name('airBookings.summary');
+    Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
 
 
         Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');

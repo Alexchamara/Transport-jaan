@@ -8,7 +8,7 @@ use App\Models\AirVehicleBookings;
 class AirVehicleBookingSchedule extends Model
 {
     protected $fillable = [
-        'booking_id',
+        'air_vehicle_booking_id',
         'pickup_at',
         'dropoff_at',
         'pickup_location',
@@ -24,6 +24,7 @@ class AirVehicleBookingSchedule extends Model
 
 public function airVehicleBooking()
     {
-        return $this->belongsTo(AirVehicleBookings::class);
+        // Explicit foreign key to match the DB column added by the migration: air_vehicle_booking_id
+        return $this->belongsTo(AirVehicleBookings::class, 'air_vehicle_booking_id');
     }
 }

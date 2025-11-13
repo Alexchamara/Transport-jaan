@@ -6,17 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingAddon;
 use App\Models\BookingPayment;
+use App\Models\AirVehicleBookingPayment;
 use App\Models\BookingSchedule;
 use App\Models\Vehicle;
 use App\Models\VehicleFeaturePricing;
 use App\Models\BookingCustomer;
+use App\Models\AirVehicleBookingCustomer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use App\Models\AirVehicleBookings;
+use App\Models\AirVehicleBookingSchedule;
+use App\Models\AirVehicleBookingAddon;
+
 
 class ClientBookingController extends Controller
 {
@@ -161,6 +167,8 @@ class ClientBookingController extends Controller
         }
 
         $query = array_merge(
+            $tripFromSession,
+            $personalFromSession,
             $request->only([
                 'vehicle_id',
                 'pickup_location',
@@ -182,8 +190,6 @@ class ClientBookingController extends Controller
                 'address',
                 'exclude_booking_id', // NEW: forward this into the page props
             ]),
-            $tripFromSession,
-            $personalFromSession
         );
 
          $user = $request->user();
@@ -362,7 +368,8 @@ class ClientBookingController extends Controller
             'payment_method' => ['required', 'in:Credit Card,PayPal,Bank Transfer'],
             'payment_option' => ['required', 'in:full,advance'],
             'slip_number'    => ['nullable', 'string', 'max:255'],
-            'slip_pdf'       => ['nullable', 'file', 'mimetypes:application/pdf', 'max:10240'],
+            // Accept PDF or common image formats for bank slip uploads
+            'slip_pdf'       => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png', 'max:10240'],
         ]);
 
         $payNow = $validated['payment_option'] === 'full'
@@ -613,7 +620,7 @@ class ClientBookingController extends Controller
         return response()->json($calc);
     }
 
-      public function updateAirVehicleAddons(Request $request, AirVehicleBookings $airVehicleBooking)
+    public function updateAirVehicleAddons(Request $request, AirVehicleBookings $airVehicleBooking)
     {
         $this->authorizeBooking($airVehicleBooking);
 
@@ -653,6 +660,7 @@ class ClientBookingController extends Controller
             foreach ($calc['addons_lines'] as $line) {
                 AirVehicleBookingAddon::create([
                     'air_vehicle_booking_id' => $airVehicleBooking->id,
+                    'vehicle_id' => $airVehicleBooking->vehicle_id,
                     'name'       => $line['name'],
                     'price'      => $line['price'],
                     'qty'        => $line['qty'],
@@ -662,7 +670,7 @@ class ClientBookingController extends Controller
         });
 
         return response()->json([
-            'booking' => $booking->fresh(['vehicle', 'schedule', 'addons']),
+            'booking' => $airVehicleBooking->fresh(['vehicle', 'schedule', 'addons']),
         ]);
     }
 
@@ -703,6 +711,8 @@ class ClientBookingController extends Controller
         }
 
         $query = array_merge(
+            $tripFromSession,
+            $personalFromSession,
             $request->only([
                 'vehicle_id',
                 'pickup_location',
@@ -724,8 +734,7 @@ class ClientBookingController extends Controller
                 'address',
                 'exclude_booking_id', // NEW: forward this into the page props
             ]),
-            $tripFromSession,
-            $personalFromSession
+            
         );
 
          $user = $request->user();
@@ -739,7 +748,7 @@ class ClientBookingController extends Controller
         ]);
     }
 
-       public function airVehicleStore(Request $request)
+    public function airVehicleStore(Request $request)
     {
         $userId = Auth::id();
         abort_unless($userId, 403, 'Please login to continue.');
@@ -818,8 +827,8 @@ class ClientBookingController extends Controller
                         'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
                     ]);
                 } else {
-                    BookingSchedule::create([
-                        'booking_id'       => $existing->id,
+                    AirVehicleBookingSchedule::create([
+                        'air_vehicle_booking_id' => $existing->id,
                         'pickup_at'        => $pickup ,
                         'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
                         'dropoff_at'       => $dropoff,
@@ -827,10 +836,11 @@ class ClientBookingController extends Controller
                     ]);
                 }
 
-                BookingAddon::where('booking_id', $existing->id)->delete();
+                AirVehicleBookingAddon::where('air_vehicle_booking_id', $existing->id)->delete();
                 foreach ($calc['addons_lines'] as $line) {
-                    BookingAddon::create([
-                        'booking_id' => $existing->id,
+                    AirVehicleBookingAddon::create([
+                        'air_vehicle_booking_id' => $existing->id,
+                        'vehicle_id'      => $existing->vehicle_id,
                         'name'       => $line['name'],
                         'price'      => $line['price'],
                         'qty'        => $line['qty'],
@@ -858,8 +868,8 @@ class ClientBookingController extends Controller
                 'notes'           => $request->string('notes')->toString() ?: null,
             ]);
 
-            BookingSchedule::create([
-                'booking_id'       => $booking->id,
+            AirVehicleBookingSchedule::create([
+                'air_vehicle_booking_id' => $booking->id,
                 'pickup_at'        => $pickup ,
                 'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
                 'dropoff_at'       => $dropoff,
@@ -867,8 +877,9 @@ class ClientBookingController extends Controller
             ]);
 
             foreach ($calc['addons_lines'] as $line) {
-                BookingAddon::create([
-                    'booking_id' => $booking->id,
+                AirVehicleBookingAddon::create([
+                    'air_vehicle_booking_id' => $booking->id,
+                    'vehicle_id'      => $booking->vehicle_id,
                     'name'       => $line['name'],
                     'price'      => $line['price'],
                     'qty'        => $line['qty'],
@@ -879,8 +890,123 @@ class ClientBookingController extends Controller
             return $booking->fresh(['schedule', 'addons']);
         });
 
-        return redirect()->route('client.Airookings.payments', $booking->id)
+        return redirect()->route('client.airBookings.payments', $booking->id)
             ->with('success', 'Booking created. Continue with payment.');
     }
+
+    private function authorizeAirVehicleBooking(AirVehicleBookings $airVehicleBooking): void
+    {
+        $user = Auth::user();
+        if (!$user) abort(403);
+        if ($user->role !== 'client' && $user->id !== $airVehicleBooking->client_id) abort(403);
+    }
+
+        /** RENDER:  Air Vehicle Payments page */
+     public function airVehiclePayments(AirVehicleBookings $airVehicleBooking)
+{
+    $this->authorizeAirVehicleBooking($airVehicleBooking);
+    $airVehicleBooking->load('vehicle', 'schedule', 'addons', 'customer');
+
+ 
+
+
+    return Inertia::render('Web/components/AirVehicleDetails/Payments', [
+        'booking' => $airVehicleBooking,
+    ]);
+}
+
+    /** CONFIRM: POST /airBookings/{airVehicleBooking}/confirm */
+    public function airVehicleConfirm(Request $request, AirVehicleBookings $airVehicleBooking)
+    {
+
+        $this->authorizeAirVehicleBooking($airVehicleBooking);
+
+        $validated = $request->validate([
+            'payment_method' => ['required', 'in:Credit Card,PayPal,Bank Transfer'],
+            'payment_option' => ['required', 'in:full,advance'],
+            'slip_number'    => ['nullable', 'string', 'max:255'],
+            // Accept PDF or common image formats for bank slip uploads
+            'slip_pdf'       => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png', 'max:10240'],
+        ]);
+
+        $payNow = $validated['payment_option'] === 'full'
+            ? $airVehicleBooking->total_amount
+            : min($airVehicleBooking->advance_amount ?: 0, $airVehicleBooking->total_amount);
+
+        $slipPath = null;
+        if (($validated['payment_method'] === 'Bank Transfer') && $request->file('slip_pdf')) {
+            $slipPath = $request->file('slip_pdf')->store('bank_slips', 'public');
+        }
+
+        DB::transaction(function () use ($airVehicleBooking, $validated, $payNow, $slipPath, $request) {
+            // Use the dedicated air booking payments table to avoid FK conflicts
+            AirVehicleBookingPayment::create([
+                'air_vehicle_booking_id' => $airVehicleBooking->id,
+                'method'       => $validated['payment_method'],
+                'option'       => $validated['payment_option'],
+                'amount_paid'  => $payNow,
+                'status'       => 'paid',
+                'slip_number'  => $validated['slip_number'] ?? null,
+                'slip_path'    => $slipPath,
+                'tx_reference' => null,
+            ]);
+
+            $rawPersonal = (array) $request->session()->pull('booking_personal', []);
+                if ($rawPersonal && !$airVehicleBooking->customer) {
+                $personal = Validator::make($rawPersonal, [
+                    'first_name'   => ['nullable', 'string', 'max:255'],
+                    'last_name'    => ['nullable', 'string', 'max:255'],
+                    'email'        => ['nullable', 'email', 'max:255'],
+                    'phone'        => ['nullable', 'regex:/^\+?\d{7,15}$/', 'max:20'],
+                    'country_code' => ['nullable', 'string', 'max:5'],
+                    'city'         => ['nullable', 'string', 'max:255'],
+                    'zip_code'     => ['nullable', 'string', 'max:20'],
+                    'age'          => ['nullable', 'integer', 'min:18', 'max:120'],
+                    'address'      => ['nullable', 'string', 'max:255'],
+                    'notes'        => ['nullable', 'string'],
+                ])->validate();
+
+                if (collect($personal)->filter(fn($v) => filled($v))->isNotEmpty()) {
+                    // For air vehicle bookings create a dedicated air booking customer row.
+                    AirVehicleBookingCustomer::create(array_merge($personal, ['air_vehicle_booking_id' => $airVehicleBooking->id]));
+                }
+            }
+
+            $airVehicleBooking->load('schedule');
+            $overlap = AirVehicleBookings::where('vehicle_id', $airVehicleBooking->vehicle_id)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->where('id', '!=', $airVehicleBooking->id)
+                ->whereHas('schedule', function ($q) use ($airVehicleBooking) {
+                    $q->where('pickup_at', '<', $airVehicleBooking->schedule->dropoff_at)
+                      ->where('dropoff_at', '>', $airVehicleBooking->schedule->pickup_at);
+                })
+                ->lockForUpdate()
+                ->exists();
+            if ($overlap) {
+                abort(422, 'Vehicle is no longer available for those dates.');
+            }
+
+            $airVehicleBooking->update(['status' => 'confirmed']);
+            $request->session()->forget(['booking_trip']);
+        });
+
+        // Use a proper redirect so we can flash session data with ->with()
+        return redirect()->route('client.airBookings.summary', $airVehicleBooking->id)
+            ->with('success', 'Booking confirmed!');
+    }
+
+    /** RENDER: Summary page */
+    public function airVehicleSummary(AirVehicleBookings $airVehicleBooking)
+    {
+        // Use the air-specific authorizer and the correct model type.
+        $this->authorizeAirVehicleBooking($airVehicleBooking);
+        $airVehicleBooking->load('vehicle', 'vehicle.provider', 'schedule', 'addons', 'payments', 'customer');
+
+        return Inertia::render('Web/home/air/Summary', [
+            'booking' => $airVehicleBooking,
+        ]);
+    }
+
+
 
 }

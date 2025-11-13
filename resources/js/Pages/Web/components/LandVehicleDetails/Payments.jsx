@@ -101,7 +101,7 @@ const Payments = () => {
     formData.append("payment_method", selectedPayment);
     formData.append("payment_option", paymentOption);
     if (slipNumber) formData.append("slip_number", slipNumber);
-    if (slipPdf && selectedPayment === "Bank Transfer") formData.append("slip_pdf", slipPdf);
+    if (slipPdf && selectedPayment === "Bank Transfer") formData.append("slip_pdf", slipPdf);  
     router.post(route("client.bookings.confirm", booking.id), formData, {
       forceFormData: true,
       preserveScroll: true,

@@ -19,7 +19,6 @@ const VehicleCheckoutContent = () => {
   const serverExtras = Array.isArray(props?.extras) ? props.extras : [];
   const user = props?.user || null;
 
-  console.log("User data",  user);
 
   const urlQuery = useMemo(() => {
     if (typeof window === "undefined") return {};
@@ -201,7 +200,7 @@ const [firstName, setFirstName] = useState(user?.name || '');
     }
 
     router.post(
-      route("client.Bookings.store"),
+      route("client.bookings.store"),
       {
         vehicle_id: vehicle.id,
         pickup_location: q.pickup_location || "",

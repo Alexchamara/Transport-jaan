@@ -19,7 +19,6 @@ const AirVehicleCheckoutContent = () => {
   const serverExtras = Array.isArray(props?.extras) ? props.extras : [];
   const user = props?.user || null;
 
-  console.log("User data",  user);
 
   const urlQuery = useMemo(() => {
     if (typeof window === "undefined") return {};
@@ -243,10 +242,6 @@ const AirVehicleCheckoutContent = () => {
   const deposit = quote?.deposit_amount || 0;
   const advance = quote?.advance_amount || 0;
   const grandTotal = quote?.total || 0;
-
-
-  console.log("rental days", rentalDays);
-console.log("quote object", quote);
 
   return (
     <div>
