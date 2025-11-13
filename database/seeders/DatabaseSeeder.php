@@ -13,11 +13,57 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+         $this->call([
+            // User seeders (must run first)
+            SuperAdminSeeder::class,
+            DemoUsersSeeder::class,
+            VendorUsersSeeder::class,
+            DriverSeeder::class,
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            // Vehicle Category & Vehicle seeders
+            VehicleCategorySeeder::class,
+            VehicleSeeder::class,
+            LandVehicleSpecSeeder::class,
+            AirVehicleSpecSeeder::class,
+            SeaVehicleSpecSeeder::class,
+
+            // Vehicle related data
+            VehicleMediaSeeder::class,
+            VehicleDocumentSeeder::class,
+            VehicleCrewSeeder::class,
+            VehicleFeaturePricingSeeder::class,
+            VehiclePolicySeeder::class,
+            VehicleMaintenanceSeeder::class,
+            VehicleReviewSeeder::class,
+            VehicleLikeSeeder::class,
+
+            // Units
+            UnitSeeder::class,
+
+            // Bookings
+            BookingSeeder::class,
+            BookingScheduleSeeder::class,
+            BookingAddonSeeder::class,
+            BookingPaymentSeeder::class,
+            BookingCustomerSeeder::class,
+
+            // Freight & Flight
+            FreightQuoteSeeder::class,
+            FlightBookingSeeder::class,
+
+            // Bus & Train
+            BusStationSeeder::class,
+            BusSeeder::class,
+            BusScheduleSeeder::class,
+            BusBookingSeeder::class,
+
+            TrainStationSeeder::class,
+            TrainSeeder::class,
+            TrainScheduleSeeder::class,
+            TrainBookingSeeder::class,
+
+            // Warehouse
+            WarehouseUnitSeeder::class,
         ]);
     }
 }

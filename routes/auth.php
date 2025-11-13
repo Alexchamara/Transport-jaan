@@ -10,7 +10,9 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\WebController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::middleware('guest')->group(function () {
     Route::get('/registerNew', [RegisterController::class, 'create'])->name('register.show');
@@ -34,11 +36,35 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
+Route::get('approval-pending', function() {
+    // Check if user is authenticated but unverified
+    if (Auth::check() && Auth::user()->status !== 'verified') {
+        return Inertia::render('Auth/ApprovalPending');
+    }
+
+    // Redirect authenticated users who are verified to appropriate dashboard
+    if (Auth::check() && Auth::user()->status === 'verified') {
+        $user = Auth::user();
+        
+        if ($user->role === 'vendor') {
+            return redirect()->route('vendors.mainDashboard');
+        } elseif ($user->role === 'client') {
+            return redirect()->route('client.dashboard');
+        } elseif ($user->role === 'SuperAdmin') {
+            return redirect()->route('superadmin.dashboard');
+        }
+        
+        // Default fallback
+        return redirect()->route('client.dashboard');
+    }
+
+    // Redirect guests to signin
+    return redirect()->route('signin.signin');
+})->name('approval.pending');
+
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
-        ->name('verification.notice');
-
-    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
+                ->name('verification.notice');    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
         ->middleware(['signed', 'throttle:6,1'])
         ->name('verification.verify');
 
@@ -55,4 +81,13 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    // Alternative logout route in case CSRF fails
+    Route::get('logout-alt', [AuthenticatedSessionController::class, 'destroy'])
+        ->name('logout.alt');
 });
+
+// CSRF token refresh route (without CSRF protection)
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+})->name('csrf.refresh');

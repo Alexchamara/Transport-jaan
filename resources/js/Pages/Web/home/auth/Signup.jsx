@@ -11,7 +11,7 @@ const Signup = () => {
         password: '',
     });
     return (
-        <div className="bg-[#000000] text-[#FFFFFF] poppins">
+        <div className="bg-[#000000] text-[#FFFFFF] poppins min-h-screen">
             <div className="flex relative justify-center items-center md:py-10 md:px-20 px-10 poppins">
                 <h1
                     className="absolute md:top-[30px] top-[10px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
@@ -21,11 +21,11 @@ const Signup = () => {
                 </h1>
 
                 <div
-                    className="h-screen w-full bg-cover bg-center py-[100px] px-10 xl:px-20 flex justify-center items-center"
+                    className="min-h-screen w-full bg-cover bg-center bg-no-repeat py-[100px] px-10 xl:px-20 flex justify-center items-center bg-gradient-to-br from-gray-900 to-black"
                     style={{ backgroundImage: `url(${bg})` }}
                 >
                     <div
-                        className="w-[548px] h-[650px] bg-white/5 rounded-[30px] backdrop-blur-sm px-10 py-20 flex flex-col items-center relative mt-20"
+                        className="w-[548px] h-[680px] bg-white/5 rounded-[30px] backdrop-blur-lg px-10 py-10 flex flex-col items-center relative"
                         style={{
                             boxShadow: "4px 4px 4px 0px rgba(0, 0, 0, 0.25)",
                         }}
@@ -37,9 +37,9 @@ const Signup = () => {
                             Kindly fill in your details below to create an
                             account
                         </p>
-                        <div className="flex flex-col gap-5 py-5">
+                        <div className="flex flex-col gap-0 py-5">
                             {/* username */}
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2 mb-6">
                                 <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                     Email Address
                                 </label>
@@ -52,11 +52,15 @@ const Signup = () => {
                                         placeholder="Enter your email"
                                         required
                                     />
-                                    {errors.email && <div className="text-red-500 text-sm mt-1">{errors.email}</div>}
                                 </div>
+                                {errors.email && (
+                                    <div className="text-red-500 text-sm px-10 mt-1">
+                                        {errors.email}
+                                    </div>
+                                )}
                             </div>
                             {/* password */}
-                            <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2 mb-6">
                                 <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                     Password
                                 </label>
@@ -75,9 +79,13 @@ const Signup = () => {
                                         onClick={() => setShowPassword(!showPassword)}
                                         alt="Toggle password visibility"
                                     />
-                                    {errors.password && <div className="text-red-500 text-sm mt-1">{errors.password}</div>}
                                 </div>
-                                <h1 className="flex justify-end font-[500] cursor-pointer">
+                                {errors.password && (
+                                    <div className="text-red-500 text-sm px-10 mt-1">
+                                        {errors.password}
+                                    </div>
+                                )}
+                                <h1 className="flex justify-end font-[500] cursor-pointer px-10">
                                     Forgot Password?
                                 </h1>
                             </div>
@@ -93,7 +101,7 @@ const Signup = () => {
                                 });
                             }}
                             disabled={processing}
-                            className="w-[397px] h-[56px] bg-[#2E6099] rounded-[100px] text-[16px] font-[600] flex justify-center items-center cursor-pointer disabled:opacity-50"
+                            className="w-[397px] h-[56px] bg-[#2E6099] rounded-[100px] text-[16px] font-[600] flex justify-center items-center cursor-pointer disabled:opacity-50 px-4 py-2"
                         >
                             {processing ? 'Logging in...' : 'Login'}
                         </button>
@@ -116,7 +124,7 @@ const Signup = () => {
                             <div className="w-[174px] h-[1px] bg-[#FFFFFF80]" />
                         </div>
 
-                        <div className="w-[397px] h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] text-[16px] font-[600] flex flex-row gap-5 justify-center items-center cursor-pointer">
+                        <div className="w-[397px] h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] text-[16px] font-[600] flex flex-row gap-5 justify-center items-center cursor-pointer px-4 py-2">
                             <img src={google} />
                             <h1>Continue with Google</h1>
                         </div>

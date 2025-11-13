@@ -3,29 +3,29 @@ import { usePage } from "@inertiajs/react";
 import Header from "../layouts/Header";
 import FilterSidebar from "../components/vehicleList/FilterSidebar";
 import VehicleListContent from "../components/vehicleList/VehicleListContent";
-import SearchForm from "../components/vehicleList/searchForm";
-import bg from "../assets/rentAVehicle/bg/bg.png"
+import SearchForm from "../components/vehicleList/SearchForm";
+import bg from "../assets/rentAVehicle/bg/bg.png";
 
 const VehicleList = () => {
   const { props } = usePage();
+
   const [formData, setFormData] = useState({
     pickupLocation: "",
     pickupDate: "",
     dropoffLocation: "",
     dropoffDate: "",
     brand: "",
-    bodyType: ""
+    bodyType: "",
   });
 
   useEffect(() => {
-    // Update form data when search params change
-    if (props.searchParams) {
-      setFormData(prevData => ({
+    if (props.filters) {
+      setFormData((prevData) => ({
         ...prevData,
-        ...props.searchParams
+        ...props.filters,
       }));
     }
-  }, [props.searchParams]);
+  }, [props.filters]);
 
   const handleFormChange = (newData) => {
     setFormData(newData);
@@ -34,15 +34,24 @@ const VehicleList = () => {
   return (
     <div className="vehicle-list-page">
       <Header />
-      <div 
-        className="main-content flex">
+      <div className="main-content flex">
         <FilterSidebar searchParams={formData} />
         <div className="vehicle-list-container flex-1">
-          <SearchForm 
-            formData={formData} 
-            onFormChange={handleFormChange}
-          />
-          <VehicleListContent vehicles={props.vehicles} />
+          <SearchForm formData={formData} onFormChange={handleFormChange} />
+          {<VehicleListContent
+            vehicles={props.vehicles}
+            authUser={props.auth.user}                //pass the logged-in user
+            likedVehicleIds={props.likedVehicleIds} //pass liked vehicles
+            searchParams={{
+              dropoffDate: formData.dropoffDate,
+              dropoffLocation: formData.dropoffLocation,
+              pickupDate: formData.pickupDate,
+              pickupLocation: formData.pickupLocation
+            }}
+          /> 
+          }
+
+
         </div>
       </div>
     </div>

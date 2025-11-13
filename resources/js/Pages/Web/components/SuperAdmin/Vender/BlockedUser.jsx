@@ -1,0 +1,438 @@
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+<<<<<<< Updated upstream
+import Eye from "../../../assets/superAdmin/eye.png";
+=======
+<<<<<<< HEAD
+>>>>>>> Stashed changes
+import { Link, router } from "@inertiajs/react";
+
+const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyClicked, isPendingClicked }) => {
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Function to get styles for status
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case "Active":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Inactive":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Suspended":
+                return { border: "border-[#FF5A6533]", bg: "bg-[#FF5A6533]", dot: "bg-[#FF5A65]", text: "text-[#FF5A65]" };
+            case "Blocked":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+        }
+    };
+
+    // Function to get styles for approval
+    const getApprovalStyles = (approval) => {
+        switch (approval) {
+            case "Approved":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Pending":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Rejected":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+        }
+    };
+
+    const handleUnblock = async () => {
+        setIsLoading(true);
+        try {
+            await router.post(`/superadmin/vendors/${user.id}/unblock`, {}, {
+                onSuccess: () => {
+                    onStatusAndApprovalChange("Active", "Approved");
+                    onClose();
+                    router.reload();
+                },
+                onError: (errors) => {
+                    console.error('Unblock failed:', errors);
+                },
+                onFinish: () => setIsLoading(false)
+            });
+        } catch (error) {
+            console.error('Error unblocking user:', error);
+            setIsLoading(false);
+        }
+    };
+=======
+import Eye from "../../../assets/superAdmin/eye.png";
+
+const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyClicked, isPendingClicked }) => {
+    // Function to get button colors based on type
+    const getButtonColors = (type) => {
+        if (type === "verify") {
+            return { bg: "bg-[#05C16833]", hoverBg: "hover:bg-[#05C1684D]", text: "text-[#14CA74]" };
+        } else if (type === "pending") {
+            return { bg: "bg-[#FFB01633]", hoverBg: "hover:bg-[#FFB0164D]", text: "text-[#FDB52A]" };
+        } else if (type === "close") {
+            return { bg: "bg-[#0955AC]", hoverBg: "hover:bg-[#074a92]", text: "text-white" };
+        }
+    };
+
+    // Function to get styles for status
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case "Active":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Inactive":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Suspended":
+                return { border: "border-[#FF5A6533]", bg: "bg-[#FF5A6533]", dot: "bg-[#FF5A65]", text: "text-[#FF5A65]" };
+            case "Blocked":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+        }
+    };
+
+    // Function to get styles for approval
+    const getApprovalStyles = (approval) => {
+        switch (approval) {
+            case "Approved":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Pending":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Rejected":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+        }
+    };
+
+>>>>>>> ujith-dev
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-lg flex justify-center items-center z-50"
+        >
+            <motion.div
+                initial={{ scale: 0.8, y: 50 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ duration: 0.1, ease: "easeOut" }}
+                className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-8 rounded-2xl text-white w-[600px] max-w-[90vw] max-h-[80vh] overflow-y-auto shadow-2xl"
+            >
+                <h2 className="text-2xl font-semibold mb-6 text-center tracking-wide">
+                    User Profile
+                </h2>
+                <div className="flex flex-col items-start gap-4 px-4">
+                    <div className="flex items-center gap-2 w-full">
+                        <span className="font-medium text-gray-300 w-32">Name:</span>
+                        <span className="font-light">{user.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 w-full">
+                        <span className="font-medium text-gray-300 w-32">Email:</span>
+                        <span className="font-light">{user.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2 w-full">
+                        <span className="font-medium text-gray-300 w-32">Phone:</span>
+                        <span className="font-light">{user.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2 w-full">
+                        <span className="font-medium text-gray-300 w-32">Registered:</span>
+                        <span className="font-light">{user.regDate}</span>
+                    </div>
+                    <div className="flex items-center gap-2 w-full">
+                        <span className="font-medium text-gray-300 w-32">Status:</span>
+                        <span className={`font-light ${getStatusStyles(user.status).text}`}>
+                            {user.status}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2 w-full">
+                        <span className="font-medium text-gray-300 w-32">Approval:</span>
+                        <span className={`font-light ${getApprovalStyles(user.approval).text}`}>
+                            {user.approval}
+                        </span>
+                    </div>
+                </div>
+                <div className="mt-8 flex gap-4 justify-center flex-wrap">
+                    {!isVerifyClicked && (
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 1 }}
+                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("verify").bg} ${getButtonColors("verify").hoverBg} ${getButtonColors("verify").text}`}
+                            onClick={() => onStatusAndApprovalChange("Active", "Approved")}
+                        >
+                            Verify
+                        </motion.button>
+                    )}
+                    {!isVerifyClicked && !isPendingClicked && (
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 1 }}
+                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("pending").bg} ${getButtonColors("pending").hoverBg} ${getButtonColors("pending").text}`}
+                            onClick={() => onStatusAndApprovalChange("Pending", "Pending")}
+                        >
+                            Pending
+                        </motion.button>
+                    )}
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 1 }}
+<<<<<<< HEAD
+                        className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
+                        onClick={handleUnblock}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Processing...' : 'Unblock'}
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 1 }}
+<<<<<<< Updated upstream
+                        className="bg-[#0955AC] text-white text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#074a92] transition-colors duration-50 shadow-md"
+=======
+                        className="bg-[#0955AC] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#074a92] transition-colors duration-50 shadow-md"
+=======
+                        className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("close").bg} ${getButtonColors("close").hoverBg} ${getButtonColors("close").text}`}
+>>>>>>> ujith-dev
+>>>>>>> Stashed changes
+                        onClick={onClose}
+                    >
+                        Close
+                    </motion.button>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+};
+
+<<<<<<< HEAD
+const NewUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all" }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [buttonClicks, setButtonClicks] = useState({});
+
+    // Use the provided vendors data instead of hardcoded data
+    const users = vendors.map(vendor => ({
+        id: vendor.id,
+        name: vendor.name,
+        email: vendor.email,
+        phone: vendor.phone,
+        regDate: vendor.regDate,
+        status: vendor.status === 'blocked' || vendor.status === 'rejected' ? 'Blocked' : vendor.status,
+        approval: vendor.approval === 'blocked' || vendor.approval === 'rejected' ? 'Blocked' : vendor.approval,
+    }));
+=======
+const BlockUsers = ({ statusFilter = "all", approvalFilter = "all" }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [users, setUsers] = useState([
+        { name: "Amara Patel", email: "amara.patel@example.com", phone: "+1-612-987-6543", regDate: "2025-08-15", status: "Blocked", approval: "Blocked" },
+        { name: "Liam Nguyen", email: "liam.nguyen@example.com", phone: "+1-718-456-7890", regDate: "2025-08-16", status: "Blocked", approval: "Blocked" },
+        { name: "Sofia Alvarez", email: "sofia.alvarez@example.com", phone: "+1-503-234-5678", regDate: "2025-08-17", status: "Blocked", approval: "Blocked" },
+        { name: "Ethan Kim", email: "ethan.kim@example.com", phone: "+1-415-678-9012", regDate: "2025-08-18", status: "Blocked", approval: "Blocked" },
+        { name: "Isabella Rossi", email: "isabella.rossi@example.com", phone: "+1-206-789-0123", regDate: "2025-08-19", status: "Blocked", approval: "Blocked" },
+        { name: "Noah Khan", email: "noah.khan@example.com", phone: "+1-312-890-1234", regDate: "2025-08-20", status: "Blocked", approval: "Blocked" },
+        { name: "Ava Gupta", email: "ava.gupta@example.com", phone: "+1-510-901-2345", regDate: "2025-08-21", status: "Blocked", approval: "Blocked" },
+        { name: "Lucas Ferreira", email: "lucas.ferreira@example.com", phone: "+1-617-012-3456", regDate: "2025-08-22", status: "Blocked", approval: "Blocked" },
+        { name: "Mia Wong", email: "mia.wong@example.com", phone: "+1-720-123-4567", regDate: "2025-08-23", status: "Blocked", approval: "Blocked" },
+        { name: "Oliver Schmidt", email: "oliver.schmidt@example.com", phone: "+1-303-234-6789", regDate: "2025-08-24", status: "Blocked", approval: "Blocked" },
+    ]);
+    // State to track button clicks for each user
+    const [buttonClicks, setButtonClicks] = useState({});
+>>>>>>> ujith-dev
+
+    // Filter users based on status and approval
+    const filteredUsers = users.filter((user) => {
+        const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+        const matchesApproval = approvalFilter === "all" || user.approval === approvalFilter;
+        return matchesStatus && matchesApproval;
+    });
+
+    // Log filtered users for debugging
+    console.log("Filtered Users:", filteredUsers);
+
+    // Function to get styles for status
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case "Active":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Inactive":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Suspended":
+                return { border: "border-[#FF5A6533]", bg: "bg-[#FF5A6533]", dot: "bg-[#FF5A65]", text: "text-[#FF5A65]" };
+            case "Blocked":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+        }
+    };
+
+    // Function to get styles for approval
+    const getApprovalStyles = (approval) => {
+        switch (approval) {
+            case "Approved":
+                return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
+            case "Pending":
+                return { border: "border-[#FFB01633]", bg: "bg-[#FFB01633]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
+            case "Rejected":
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+            default:
+                return { border: "border-[#FF572280]", bg: "bg-[#FF572233]", dot: "bg-[#FF5722]", text: "text-[#FF5722]" };
+        }
+    };
+
+    const handleViewDetails = (user) => {
+        setSelectedUser(user);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedUser(null);
+    };
+
+    const handleStatusAndApprovalChange = (newStatus, newApproval) => {
+<<<<<<< Updated upstream
+=======
+        setUsers((prevUsers) =>
+            prevUsers.map((u) =>
+                u.email === selectedUser.email ? { ...u, status: newStatus, approval: newApproval } : u
+            )
+        );
+>>>>>>> Stashed changes
+        setSelectedUser((prev) => (prev ? { ...prev, status: newStatus, approval: newApproval } : prev));
+        // Mark both buttons as clicked for this user
+        setButtonClicks((prev) => ({
+            ...prev,
+            [selectedUser.email]: {
+                ...prev[selectedUser.email],
+                verify: newStatus === "Active" && newApproval === "Approved",
+                pending: newStatus === "Pending" && newApproval === "Pending"
+            },
+        }));
+    };
+
+    return (
+        <div className="poppins flex flex-col items-center min-h-screen w-full gap-1">
+            <div className="w-[962px] flex flex-row justify-between items-center text-white text-[16px] font-500 pt-6">
+                <h1>Blocked Users</h1>
+                <h1 className="text-[#0955AC] text-[14px] font-400">
+                    1 - {filteredUsers.length}{" "}
+                    <span className="text-[#AEB9E1]">of {users.length}</span>
+                </h1>
+            </div>
+            <div className="w-full">
+                <div className="h-[1px] w-full bg-[#343B4F] mt-2"></div>
+            </div>
+
+            {/* Header */}
+            <div className="flex flex-row justify-center items-center w-full h-[61px]">
+                <div className="flex flex-row justify-start items-start w-full px-[35px]">
+                    <div className="flex flex Abilities row justify-start items-center gap-4 w-[180px]">
+                        <h1 className="text-white text-[10px] font-400">User Name</h1>
+                    </div>
+                    <div>
+                        <h1 className="text-white text-[10px] font-400 w-[170px]">Email</h1>
+                    </div>
+                    <div>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Phone</h1>
+                    </div>
+                    <div>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Registration Date</h1>
+                    </div>
+                    <div>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Status</h1>
+                    </div>
+                    <div>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">Approval Status</h1>
+                    </div>
+                    <div>
+                        <h1 className="text-white text-[10px] font-400"></h1>
+                    </div>
+                </div>
+            </div>
+
+            {/* Rows */}
+            {filteredUsers.length === 0 ? (
+                <div className="text-white text-[12px] font-400 w-full text-center py-4">
+                    No users found matching the selected filters.
+                </div>
+            ) : (
+                filteredUsers.map((user, index) => (
+                    <div
+                        key={index}
+                        className="flex flex-row justify-center items-center w-full h-[61px]"
+                    >
+                        <div className="flex flex-row justify-start items-start w-full px-[35px]">
+                            <div>
+                                <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[180px]">
+                                    {user.name}
+                                </h1>
+                            </div>
+                            <div>
+                                <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[170px]">
+                                    {user.email}
+                                </h1>
+                            </div>
+                            <div>
+                                <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[150px]">
+                                    {user.phone}
+                                </h1>
+                            </div>
+                            <div>
+                                <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[150px]">
+                                    {user.regDate}
+                                </h1>
+                            </div>
+                            <div className="w-[150px]">
+                                <div
+                                    className={`flex flex-row justify-center items-center gap-1 border ${getStatusStyles(user.status).border} ${getStatusStyles(user.status).bg} px-[6px] py-[2px] rounded-[5px] w-[70px]`}
+                                >
+                                    <div
+                                        className={`w-1 h-1 rounded-full ${getStatusStyles(user.status).dot}`}
+                                    />
+                                    <h1
+                                        className={`${getStatusStyles(user.status).text} text-[10px] font-500 flex flex-row justify-center items-center`}
+                                    >
+                                        {user.status}
+                                    </h1>
+                                </div>
+                            </div>
+                            <div className="w-[150px]">
+                                <div
+                                    className={`flex flex-row justify-center items-center gap-1 border ${getApprovalStyles(user.approval).border} ${getApprovalStyles(user.approval).bg} px-[6px] py-[2px] rounded-[5px] w-[70px]`}
+                                >
+                                    <div
+                                        className={`w-1 h-1 rounded-full ${getApprovalStyles(user.approval).dot}`}
+                                    />
+                                    <h1
+                                        className={`${getApprovalStyles(user.approval).text} text-[10px] font-500 flex flex-row justify-center items-center`}
+                                    >
+                                        {user.approval}
+                                    </h1>
+                                </div>
+                            </div>
+                            <div className="w-[20px]">
+                                <button onClick={() => handleViewDetails(user)}>
+                                    <img src={Eye} alt="View" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ))
+            )}
+
+            {/* User Details Modal */}
+            {isModalOpen && selectedUser && (
+                <UserDetailsModal
+                    user={selectedUser}
+                    onClose={closeModal}
+                    onStatusAndApprovalChange={handleStatusAndApprovalChange}
+                    isVerifyClicked={buttonClicks[selectedUser.email]?.verify || false}
+                    isPendingClicked={buttonClicks[selectedUser.email]?.pending || false}
+                />
+            )}
+        </div>
+    );
+};
+
+export default BlockUsers;

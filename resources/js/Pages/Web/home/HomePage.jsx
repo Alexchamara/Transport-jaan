@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { router } from "@inertiajs/react";
+import { router, usePage } from "@inertiajs/react";
 import Header from "../layouts/Header";
 import HeroSection from "../components/rentAVehicle/HeroSection";
 import RentByBrands from "../components/rentAVehicle/RentByBrands";
@@ -8,10 +8,10 @@ import VehicleCollection from "../components/rentAVehicle/VehicleCollection";
 import PopularRentals from "../components/rentAVehicle/PopularRentals";
 import HowItWorks from "../components/rentAVehicle/HowItWorks";
 import Footer from "../layouts/Footer";
-import bg from "../assets/rentAVehicle/bg/bg.png";
-import "../../../../css/app.css";
 
-const HomePage = ({ auth }) => {
+const HomePage = ({ auth ,vehicles,selectedType}) => {
+    const { bodyTypes } = usePage().props;
+
     const [formData, setFormData] = useState({
         pickupLocation: "",
         pickupDate: "",
@@ -19,42 +19,44 @@ const HomePage = ({ auth }) => {
         dropoffDate: "",
     });
 
-    const handleFormChange = (newData) => {
-        setFormData(newData);
-    };
+    const [vehicleType, setVehicleType] = useState(selectedType || "land");
+
+     const handleVehicleTypeChange =(newType) =>{
+        setVehicleType(newType);   
+
+        router.get(route("client.home", { type: newType }));
+     }
+
+    const handleFormChange = (newData) => setFormData(newData);
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
-        if (!auth || !auth.user) {
+        if (!auth?.user) {
             alert("You must be registered and logged in to find a vehicle.");
             window.location.href = "/register";
             return;
         }
         router.visit("/couriers", {
-            data: {
-                searchParams: formData,
-                method: "get",
-            },
+            data: { searchParams: formData },
+            method: "get",
         });
     };
 
     return (
-        <div>
-            <div className="relative flex flex-col">
-                <Header />
-
-                <HeroSection
-                    formData={formData}
-                    onFormChange={handleFormChange}
-                    onSubmit={handleFormSubmit}
-                />
-                <RentByBrands />
-                <RentByBodyType />
-                <VehicleCollection />
-                <PopularRentals />
-                <HowItWorks />
-                <Footer />
-            </div>
+        <div className="relative flex flex-col">
+            <Header />
+            <HeroSection
+                formData={formData}
+                onFormChange={handleFormChange}
+                onSubmit={handleFormSubmit}
+                onVehicleTypeChange={handleVehicleTypeChange}
+            />
+            <RentByBrands selectedType={vehicleType} />
+            <RentByBodyType selectedType={vehicleType} />
+            <VehicleCollection vehicles={vehicles} selectedType={vehicleType} />
+            <PopularRentals />
+            <HowItWorks />
+            <Footer />
         </div>
     );
 };

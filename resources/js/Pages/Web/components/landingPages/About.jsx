@@ -14,26 +14,26 @@ const About = () => {
             </div>
             <div className="flex xl:flex-row flex-col gap-10 justify-center items-center py-10">
                 <div className="flex md:flex-row flex-col gap-5 items-center justify-center">
-                    <img src={img1} />
+                    <img src={img1} className="w-[272px] 2xl:w-[372px]" />
                     <div className="flex flex-col gap-5">
                         <div
-                            className="lg:w-[337px] lg:h-[219px] p-5 rounded-[30px] font-[600] text-[#29D3DC] flex flex-col justify-center items-center"
+                            className="w-[237px] 2xl:w-[337px] xl:h-[219px] p-5 rounded-[30px] font-[600] text-[#29D3DC] flex flex-col justify-center items-center"
                             style={{
                                 background:
                                     "linear-gradient(180deg, #11207D 0%, #1F3AE3 100%)",
                             }}
                         >
-                            <h1 className="text-[82px]">10+</h1>
-                            <h1 className="text-[28px] text-center">
+                            <h1 className="2xl:text-[82px] text-[72px]">10+</h1>
+                            <h1 className="2xl:text-[28px] text-[24px] text-center">
                                 Years of experience{" "}
                             </h1>
                         </div>
-                        <img src={img2} />
+                        <img src={img2} className="w-[237px] 2xl:w-[337px]" />
                     </div>
                 </div>
 
-                <div className="xl:w-[600px] text-[14px]/[33px] font-[400] md:text-justify flex flex-col gap-10">
-                    <h1 className="text-[47px] font-[600]">
+                <div className="max-w-[600px] 2xl:text-[14px]/[50px] text-[12px]/[40px] font-[400] xl:text-justify flex flex-col gap-10">
+                    <h1 className="2xl:text-[47px] text-[45px] font-[600]">
                         Why is Company Name?
                     </h1>
 

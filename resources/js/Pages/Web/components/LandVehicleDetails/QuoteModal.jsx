@@ -1,26 +1,45 @@
 import React from "react";
 
 const QuoteModal = ({ open, onClose, children }) => {
-    if (!open) return null;
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40" onClick={onClose}>
-            <div
-                className="bg-white rounded-[10px] p-10 shadow-lg xl:w-auto xl:h-auto relative"
-                onClick={e => e.stopPropagation()}
-            >
-                <button
-                    className="absolute top-5 right-5 text-gray-500 hover:text-gray-700 text-xl font-bold"
-                    onClick={onClose}
-                    aria-label="Close"
-                >
-                    &times;
-                </button>
-                {children}
-            </div>
+  // Lock background scroll while the modal is open
+  React.useEffect(() => {
+    if (!open) return;
+    const { style } = document.documentElement; // or document.body
+    const prev = style.overflow;
+    style.overflow = "hidden";
+    return () => {
+      style.overflow = prev;
+    };
+  }, [open]);
 
+  if (!open) return null;
 
-        </div>
-    );
+  // Only close when clicking the backdrop itself
+  const handleBackdrop = (e) => {
+    if (e.target === e.currentTarget) onClose?.();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4"
+      onClick={handleBackdrop}
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Constrain box to viewport; make inside scrollable */}
+      <div className="relative w-full max-w-[900px] max-h-[90vh] overflow-y-auto bg-white rounded-[10px] shadow-lg">
+        <button
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl leading-none"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          &times;
+        </button>
+
+        <div className="p-6 sm:p-10">{children}</div>
+      </div>
+    </div>
+  );
 };
 
-export default QuoteModal; 
+export default QuoteModal;

@@ -1,5 +1,5 @@
 import React from "react";
-import Header from "../../layouts/Header";
+import Header from "./ClientHeader";
 import Hero from "../../components/client/Hero";
 
 const ClientDashboard = () => {
