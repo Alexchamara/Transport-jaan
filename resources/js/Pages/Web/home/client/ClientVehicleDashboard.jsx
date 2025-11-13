@@ -32,7 +32,7 @@ const ClientVehicleDashboard = () => {
             // Add your API calls here to fetch bookings and vehicles
             // const bookingsResponse = await fetch('/api/client/bookings');
             // const vehiclesResponse = await fetch('/api/client/vehicles');
-            
+
             // Mock data for now
             setBookings([
                 {
@@ -98,15 +98,15 @@ const ClientVehicleDashboard = () => {
     };
 
     const getAvailabilityColor = (availability) => {
-        return availability === 'Available' 
-            ? 'bg-green-100 text-green-800' 
+        return availability === 'Available'
+            ? 'bg-green-100 text-green-800'
             : 'bg-red-100 text-red-800';
     };
 
     return (
         <div className="bg-[#E5E5E5] min-h-screen">
             <ClientHeader />
-            
+
             <div className="container mx-auto px-4 py-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-800 mb-2">Vehicle Dashboard</h1>
@@ -169,7 +169,7 @@ const ClientVehicleDashboard = () => {
                                             New Booking
                                         </button>
                                     </div>
-                                    
+
                                     <div className="space-y-4">
                                         {bookings.map((booking) => (
                                             <div key={booking.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -223,7 +223,7 @@ const ClientVehicleDashboard = () => {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {vehicles.map((vehicle) => (
                                             <div key={vehicle.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -258,7 +258,7 @@ const ClientVehicleDashboard = () => {
                             {activeTab === 'history' && (
                                 <div className="p-6">
                                     <h2 className="text-xl font-semibold text-gray-800 mb-6">Booking History</h2>
-                                    
+
                                     <div className="space-y-4">
                                         <div className="border border-gray-200 rounded-lg p-4">
                                             <div className="flex justify-between items-start">
