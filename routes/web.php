@@ -705,9 +705,6 @@ Route::get('/SuperAdmin/AddUser', function () {
     return Inertia::render('Web/home/SuperAdmin/AddUser');
 })->name('SuperAdmin.AddUser');
 
-<<<<<<< HEAD
-Route::get('/warehouse/units', function () {
-=======
 Route::get('/SuperAdmin/Dashboard', function () {
     return Inertia::render('Web/home/SuperAdmin/Dashboard');
 })->name('SuperAdmin.Dashboard');
@@ -715,14 +712,6 @@ Route::get('/SuperAdmin/Dashboard', function () {
 Route::get('/SuperAdmin/Analytics', function () {
     return Inertia::render('Web/home/SuperAdmin/Analytics');
 })->name('SuperAdmin.Analytics');
-
-Route::get('/SuperAdmin/Users', function () {
-    return Inertia::render('Web/home/SuperAdmin/Users');
-})->name('SuperAdmin.Users');
-
-Route::get('/SuperAdmin/AddUser', function () {
-    return Inertia::render('Web/home/SuperAdmin/AddUser');
-})->name('SuperAdmin.AddUser');
 
 Route::get('/SuperAdmin/Vehicles', function () {
     return Inertia::render('Web/home/SuperAdmin/Vehicles');
@@ -748,15 +737,8 @@ Route::get('/SuperAdmin/Vender', function () {
     return Inertia::render('Web/home/SuperAdmin/NewVender');
 })->name('SuperAdmin.NewVender');
 
-
-
-
-
-
-
 // vendor - warehouse rent
 Route::get('/warehouse/unit', function () {
->>>>>>> ujith-dev
     return Inertia::render('Web/home/vendors/warehouse/Unit');
 })->name('warehouse.units');
 
