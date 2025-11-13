@@ -514,12 +514,12 @@ const Hero = () => {
                         >
                             <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
                         </button>
-                        <button
+                        {/* <button
                             onClick={() => router.visit(route("warehouse-bookings.list"))}
                             className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
                         >
                             <Download className="mr-2 h-4 w-4" /> Download statement
-                        </button>
+                        </button> */}
                         <button
                             onClick={() => router.visit(route("warehouse.list"))}
                             className="inline-flex h-11 items-center justify-center rounded-xl bg-[#0955AC] px-6 text-sm font-semibold text-white transition hover:bg-[#084a97]"

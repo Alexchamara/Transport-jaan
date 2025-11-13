@@ -109,7 +109,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
         // Search filter
         if (q) {
             const query = q.toLowerCase();
-            filtered = filtered.filter(s => 
+            filtered = filtered.filter(s =>
                 s.code?.toLowerCase().includes(query) ||
                 s.from?.city?.toLowerCase().includes(query) ||
                 s.to?.city?.toLowerCase().includes(query) ||
@@ -142,8 +142,8 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
     }, [shipments, q, statusFilter, sort]);
 
     // Upcoming deliveries (confirmed or in transit)
-    const upcoming = useMemo(() => 
-        filteredShipments.filter(s => 
+    const upcoming = useMemo(() =>
+        filteredShipments.filter(s =>
             ['confirmed', 'in_transit', 'pending'].includes(s.status)
         ).slice(0, 3),
         [filteredShipments]
@@ -182,13 +182,13 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                         </p>
                     </div>
                     <div className="flex gap-2 justify-center items-center">
-                        <button 
+                        {/* <button
                             onClick={handleExport}
                             className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium hover:bg-slate-50"
                         >
                             <Download className="mr-2 h-7 w-7" /> Export
-                        </button>
-                        <button 
+                        </button> */}
+                        <button
                             onClick={handleNewBooking}
                             className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium hover:bg-[#074a94]"
                         >
@@ -472,7 +472,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                                                 <div className="text-[12px] text-slate-500">
                                                     Created: {new Date(shipment.createdAt).toLocaleDateString()}
                                                 </div>
-                                                <button 
+                                                <button
                                                     onClick={() => handleViewShipment(shipment.id)}
                                                     className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#074a94] inline-flex items-center gap-2"
                                                 >
@@ -490,12 +490,12 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                                     <Package className="h-16 w-16 mx-auto mb-4 opacity-20" />
                                     <p className="text-lg mb-2">No shipments found</p>
                                     <p className="text-sm mb-4">
-                                        {q || statusFilter !== 'all' 
-                                            ? 'Try adjusting your filters' 
+                                        {q || statusFilter !== 'all'
+                                            ? 'Try adjusting your filters'
                                             : 'Create your first courier booking to get started'}
                                     </p>
                                     {!q && statusFilter === 'all' && (
-                                        <button 
+                                        <button
                                             onClick={handleNewBooking}
                                             className="mt-2 px-6 py-2 rounded-xl bg-[#0955AC] text-white hover:bg-[#074a94]"
                                         >
@@ -542,7 +542,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                                         </div>
                                         <div className="mt-2 flex items-center justify-between text-[12px]">
                                             <span className="text-slate-500">Ref: {shipment.code}</span>
-                                            <button 
+                                            <button
                                                 onClick={() => handleViewShipment(shipment.id)}
                                                 className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm"
                                             >
@@ -587,12 +587,12 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                                 >
                                     <FileText className="mr-2 h-7 w-7" /> View History
                                 </button>
-                                <button
+                                {/* <button
                                     onClick={handleExport}
                                     className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center"
                                 >
                                     <Download className="mr-2 h-7 w-7" /> Export Data
-                                </button>
+                                </button> */}
                             </div>
                         </div>
                     </div>
