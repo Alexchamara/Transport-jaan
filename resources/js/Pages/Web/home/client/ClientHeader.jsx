@@ -72,12 +72,6 @@ const ClientHeader = () => {
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <img
-                            src={search}
-                            className="size-[18px] md:w-[24px] md:h-[23px]"
-                        />
-                    </div>
-                    <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
-                        <img
                             src={bell}
                             className="size-[18px] md:w-[24px] md:h-[23px]"
                         />
