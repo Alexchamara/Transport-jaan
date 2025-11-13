@@ -1,5 +1,5 @@
 import React from 'react'
-import { usePage } from '@inertiajs/react';
+import { usePage, Link } from '@inertiajs/react';
 import Header from "./ClientHeader";
 import HeroEnhanced from "../../components/client/courierBooking/HeroEnhanced";
 
@@ -7,9 +7,23 @@ const CourierBookingDashboard = () => {
   const { shipments, statistics, monthlyData } = usePage().props;
 
   return (
-    <div>
+    <div className="bg-[#E5E5E5] min-h-screen">
      <Header />
-     <HeroEnhanced 
+
+     {/* Back Button */}
+     <div className="container mx-auto px-4 py-6">
+       <Link
+         href="/client/dashboard"
+         className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
+       >
+         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+         </svg>
+         Back to Main Dashboard
+       </Link>
+     </div>
+
+     <HeroEnhanced
        shipments={shipments || []}
        statistics={statistics || {}}
        monthlyData={monthlyData || []}
