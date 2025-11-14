@@ -80,12 +80,27 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
             return;
         }
 
-        // Redirect to /vehicleList with query params
-        router.get(route("vehicle.list"), {
+        // Determine vehicle type from URL query param (e.g. ?type=air)
+        // Fallback to the currently selected primary image type if not present
+        const urlParams = new URLSearchParams(window.location.search);
+        const vehicleType = urlParams.get("type") || imageOrder[0];
+
+        // Map vehicle type to the appropriate list route
+        const routeNameMap = {
+            air: "airVehicle.list",
+            sea: "seaVehicle.list",
+            land: "vehicle.list",
+        };
+
+        const targetRouteName = routeNameMap[vehicleType] || "vehicle.list";
+
+        // Redirect to the chosen vehicle list route and include the type
+        router.get(route(targetRouteName), {
             pickupLocation: formData.pickupLocation,
             pickupDate: formData.pickupDate,
             dropoffLocation: formData.dropoffLocation,
             dropoffDate: formData.dropoffDate,
+            type: vehicleType,
         });
     };
 

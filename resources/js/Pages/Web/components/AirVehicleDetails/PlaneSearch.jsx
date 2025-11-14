@@ -30,6 +30,7 @@ const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const [pickupTime, setPickupTime] = useState("0:00");
   const [dropoffDate, setDropoffDate] = useState("");
   const [dropoffTime, setDropoffTime] = useState("0:00");
+  const [dateError, setDateError] = useState("");
 
   const [serverExtras, setServerExtras] = useState(
     Array.isArray(props?.extras) ? props.extras : []
@@ -65,6 +66,25 @@ const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
     if (msg) showCenter(msg, "Unavailable", "error");
   }, [props?.errors?.availability]);
 
+  // Validate that pickup date is not after dropoff date
+  useEffect(() => {
+    if (pickupDate && dropoffDate) {
+      try {
+        const p = new Date(pickupDate);
+        const d = new Date(dropoffDate);
+        if (p > d) {
+          setDateError("Pick-up date cannot be after drop-off date.");
+        } else {
+          setDateError("");
+        }
+      } catch (e) {
+        setDateError("");
+      }
+    } else {
+      setDateError("");
+    }
+  }, [pickupDate, dropoffDate]);
+
   const featureList = useMemo(() => {
     const raw = Array.isArray(serverExtras) ? serverExtras : [];
     return raw
@@ -82,6 +102,13 @@ const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
     });
     return map;
   }, [featureList]);
+  const roundedRentalDays = useMemo(() => {
+    const raw = quote?.rental_days;
+    if (raw === undefined || raw === null) return null;
+    const n = Number(raw);
+    if (Number.isNaN(n)) return null;
+    return Math.round(n);
+  }, [quote?.rental_days]);
 
   const [extras, setExtras] = useState({});
   useEffect(() => {
@@ -104,6 +131,10 @@ const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const getQuote = async () => {
     if (!vehicleId || !pickupDate || !dropoffDate) {
       showCenter("Please select pick-up and drop-off dates.", "Missing dates", "info");
+      return;
+    }
+    if (dateError) {
+      showCenter(dateError, "Invalid dates", "error");
       return;
     }
     try {
@@ -132,6 +163,11 @@ const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const continueToCheckout = async () => {
     if (!vehicleId || !pickupDate || !dropoffDate) {
       showCenter("Please fill pick-up and drop-off first.", "Missing info", "info");
+      return;
+    }
+
+    if (dateError) {
+      showCenter(dateError, "Invalid dates", "error");
       return;
     }
 
@@ -284,13 +320,13 @@ const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
               {vehicle?.manufacturer} {vehicle?.model}
             </h1>
             <h1 className="w-[140px]">
-              {quote?.rental_days || "-"} {quote?.rental_days === 1 ? "Day" : "Days"}
+              {roundedRentalDays == null ? "-" : `${roundedRentalDays} ${roundedRentalDays === 1 ? "Day" : "Days"}`}
             </h1>
             <h1 className="w-[140px]">
               {quote ? Number(quote.price_per_day).toFixed(2) : "-"}
             </h1>
             <h1 className="w-[140px] text-end">
-              {quote ? (quote.price_per_day * quote.rental_days).toFixed(2) : "-"}
+              {quote ? (quote.price_per_day *   quote.rental_days).toFixed(2) : "-"}
             </h1>
           </div>
 
@@ -443,6 +479,9 @@ const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
               </div>
             </div>
           </div>
+          {dateError && (
+            <div className="text-[12px] text-red-600 mb-3">{dateError}</div>
+          )}
         </form>
 
         <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-10">
