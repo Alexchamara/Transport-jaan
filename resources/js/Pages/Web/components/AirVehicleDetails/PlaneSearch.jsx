@@ -10,12 +10,15 @@ import "sweetalert2/dist/sweetalert2.min.css";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
+const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const { props } = usePage();
   const vehicle = vehicleProp || props.vehicle || null;
   const vehicleId = vehicleIdProp || vehicle?.id;
   const provider = vehicle?.provider || null;
   const authUser = props?.authUser;
+
+  // Authenticated client (if any)
+  const client = props?.auth?.user || props?.user || null;
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quote, setQuote] = useState(null);
@@ -104,7 +107,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
       return;
     }
     try {
-      const { data } = await axios.get(route("client.bookings.quote"), {
+      const { data } = await axios.get(route("client.airBookings.quote"), {
         params: {
           vehicle_id: vehicleId,
           pickup_date: pickupDate,
@@ -133,7 +136,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
     }
 
     try {
-      await axios.get(route("client.bookings.quote"), {
+      await axios.get(route("client.airBookings.checkout"), {
         params: {
           vehicle_id: vehicleId,
           pickup_date: pickupDate,
@@ -144,7 +147,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
         },
       });
 
-      router.visit(route("client.bookings.checkout"), {
+      router.visit(route("client.airBookings.checkout"), {
         method: "get",
         data: {
           vehicle_id: vehicleId,
@@ -229,10 +232,10 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
         <div ref={quoteRef}>
           <div className="flex flex-row justify-between items-center">
             <div className="figtree text-[16px] font-[600]">
-              <h1>Vendor name: {provider?.name}</h1>
-              <h1>Vendor Address: {provider?.address}</h1>
-              <h1>Vendor Contact Number: {provider?.phone}</h1>
-              <h1>Vendor Email: {provider?.email}</h1>
+              <h1>{vehicle?.provider?.name || vehicle?.provider?.company_name || 'Vendor name'}</h1>
+              <h1>{vehicle?.provider?.address || vehicle?.provider?.city || ''}</h1>
+              <h1>{vehicle?.provider?.phone || vehicle?.provider?.phone_number || ''}</h1>
+              <h1>{vehicle?.provider?.email || ''}</h1>
             </div>
 
             <div className="text-center poppins text-[25px] font-[700] uppercase">
@@ -249,17 +252,18 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
           <div className="flex flex-row justify-between items-end">
             <div className="text-[16px] font-[600]">
               <h1 className="text-[#0955AC]">Bill To</h1>
-              <h1>Client Name: {authUser?.name}</h1>
-              <h1>Client Address: {authUser?.address}</h1>
-              <h1>Client Contact Number: {authUser?.phone}</h1>
+              <h1>{client?.name || client?.first_name || 'Client Name'}</h1>
+              <h1>{client?.address || client?.city || ''}</h1>
+              <h1>{client?.phone || client?.phone_number || ''}</h1>
             </div>
 
             <div className="text-right text-[16px] font-[600]">
               <h1>
-                <span className="text-[#0955AC]">Quotation No:</span> #123456
+                <span className="text-[#0955AC]">Quotation No:</span>{' '}
+                {quote?.quotation_no || `Q-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(Date.now() / 1000)}`}
               </h1>
               <h1>
-                <span className="text-[#0955AC]">Quotation Date:</span>{" "}
+                <span className="text-[#0955AC]">Quotation Date:</span>{' '}
                 {new Date().toLocaleDateString()}
               </h1>
               <h1>
@@ -492,4 +496,4 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   );
 };
 
-export default VehicleSearch;
+export default PlaneSearch;

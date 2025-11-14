@@ -6,16 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingAddon;
 use App\Models\BookingPayment;
+use App\Models\AirVehicleBookingPayment;
 use App\Models\BookingSchedule;
 use App\Models\Vehicle;
 use App\Models\VehicleFeaturePricing;
 use App\Models\BookingCustomer;
+use App\Models\AirVehicleBookingCustomer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
+use App\Models\AirVehicleBookings;
+use App\Models\AirVehicleBookingSchedule;
+use App\Models\AirVehicleBookingAddon;
+
 
 class ClientBookingController extends Controller
 {
@@ -160,6 +167,8 @@ class ClientBookingController extends Controller
         }
 
         $query = array_merge(
+            $tripFromSession,
+            $personalFromSession,
             $request->only([
                 'vehicle_id',
                 'pickup_location',
@@ -181,8 +190,6 @@ class ClientBookingController extends Controller
                 'address',
                 'exclude_booking_id', // NEW: forward this into the page props
             ]),
-            $tripFromSession,
-            $personalFromSession
         );
 
          $user = $request->user();
@@ -361,7 +368,8 @@ class ClientBookingController extends Controller
             'payment_method' => ['required', 'in:Credit Card,PayPal,Bank Transfer'],
             'payment_option' => ['required', 'in:full,advance'],
             'slip_number'    => ['nullable', 'string', 'max:255'],
-            'slip_pdf'       => ['nullable', 'file', 'mimetypes:application/pdf', 'max:10240'],
+            // Accept PDF or common image formats for bank slip uploads
+            'slip_pdf'       => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png', 'max:5120'],
         ]);
 
         $payNow = $validated['payment_option'] === 'full'
@@ -576,4 +584,429 @@ class ClientBookingController extends Controller
             ],
         ];
     }
+
+    public function airVehicleQuote(Request $request)
+    {
+        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForQuote($request);
+
+        // NEW: allow the caller to exclude a booking (e.g., the one they just created)
+        $excludeId = $request->integer('exclude_booking_id');
+        $userId    = Auth::id();
+
+        // ✅ Availability check (read-only quote)
+        $overlap = AirVehicleBookings::where('vehicle_id', $vehicle->id)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))               // NEW
+            // Ignore my *own* pending draft when just quoting again
+            ->when($userId, function ($q) use ($userId) {                                  // NEW
+                $q->where(function ($qq) use ($userId) {
+                    $qq->where('client_id', '!=', $userId)
+                       ->orWhere('status', 'confirmed'); // still block confirmed (even if mine)
+                });
+            })
+            ->whereHas('schedule', function ($q) use ($pickup , $dropoff) {
+                $q->where('pickup_at', '<', $dropoff)
+                  ->where('dropoff_at', '>', $pickup );
+            })
+            ->exists();
+
+        if ($overlap) {
+            return response()->json([
+                'message' => 'Vehicle is not available for the selected dates.'
+            ], 422);
+        }
+
+        $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
+        return response()->json($calc);
+    }
+
+    public function updateAirVehicleAddons(Request $request, AirVehicleBookings $airVehicleBooking)
+    {
+        $this->authorizeBooking($airVehicleBooking);
+
+        $data = $request->validate([
+            'addons' => ['array'],
+            'addons.*.name' => ['required_with:addons', 'string'],
+            'addons.*.qty' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $airVehicleBooking->load('vehicle', 'schedule');
+
+        if (!$airVehicleBooking->vehicle || !$airVehicleBooking->schedule) {
+            return response()->json(['message' => 'Booking missing vehicle or schedule.'], 422);
+        }
+
+        $calc = $this->calculateTotals(
+            $airVehicleBooking->vehicle,
+            Carbon::parse($airVehicleBooking->schedule->pickup_at),
+            Carbon::parse($airVehicleBooking->schedule->dropoff_at),
+            $data['addons'] ?? []
+        );
+
+        DB::transaction(function () use ($airVehicleBooking, $calc) {
+            $airVehicleBooking->update([
+                'price_per_day'   => $calc['price_per_day'],
+                'rental_days'     => $calc['rental_days'],
+                'addons_total'    => $calc['addons_total'],
+                'subtotal'        => $calc['subtotal'],
+                'deposit_amount'  => $calc['deposit_amount'],
+                'advance_amount'  => $calc['advance_amount'],
+                'total_amount'    => $calc['total'],
+                'currency'        => $calc['currency'],
+                'addons_snapshot' => $calc['addons_lines'],
+            ]);
+
+            AirVehicleBookingAddon::where('air_vehicle_booking_id', $airVehicleBooking->id)->delete();
+            foreach ($calc['addons_lines'] as $line) {
+                AirVehicleBookingAddon::create([
+                    'air_vehicle_booking_id' => $airVehicleBooking->id,
+                    'vehicle_id' => $airVehicleBooking->vehicle_id,
+                    'name'       => $line['name'],
+                    'price'      => $line['price'],
+                    'qty'        => $line['qty'],
+                    'line_total' => $line['line_total'],
+                ]);
+            }
+        });
+
+        return response()->json([
+            'booking' => $airVehicleBooking->fresh(['vehicle', 'schedule', 'addons']),
+        ]);
+    }
+
+      /** RENDER: Checkout page */
+    public function showAirVehicleCheckout(Request $request)
+    {
+        $tripFromSession     = (array) $request->session()->get('booking_trip', []);
+        $personalFromSession = (array) $request->session()->get('booking_personal', []);
+
+        $vehicleIdFromReq  = $request->integer('vehicle_id');
+        $vehicleIdFromSess = isset($tripFromSession['vehicle_id']) ? (int) $tripFromSession['vehicle_id'] : null;
+
+        $vehicle = $vehicleIdFromReq
+            ? Vehicle::find($vehicleIdFromReq)
+            : ($vehicleIdFromSess ? Vehicle::find($vehicleIdFromSess) : null);
+
+        $extras = [];
+        if ($vehicle) {
+            $extras = VehicleFeaturePricing::forVehicle($vehicle->id)
+                ->orderBy('additional_feature_name')
+                ->get(['additional_feature_name', 'additional_feature_price'])
+                ->map(fn($row) => [
+                    'name'  => $row->additional_feature_name,
+                    'price' => (float) $row->additional_feature_price,
+                ])
+                ->values();
+        }
+
+        $booking = null;
+        if($vehicle){
+            $booking =\App\Models\AirVehicleBookings::with('vehicle')
+            ->where('vehicle_id',$vehicle->id)
+            ->latest()
+            -> first();
+            if($booking){
+                $booking->load('customer');
+            }
+        }
+
+        $query = array_merge(
+            $tripFromSession,
+            $personalFromSession,
+            $request->only([
+                'vehicle_id',
+                'pickup_location',
+                'dropoff_location',
+                'pickup_date',
+                'pickup_time',
+                'dropoff_date',
+                'dropoff_time',
+                'addons',
+                'first_name',
+                'last_name',
+                'email',
+                'phone',
+                'country_code',
+                'age',
+                'city',
+                'zip_code',
+                'notes',
+                'address',
+                'exclude_booking_id', // NEW: forward this into the page props
+            ]),
+            
+        );
+
+         $user = $request->user();
+
+        return Inertia::render('Web/components/AirVehicleDetails/AirVehicleCheckoutContent', [
+            'vehicle' => $vehicle,
+            'extras'  => $extras,
+            'query'   => $query,
+            'booking' => $booking,
+            'user' =>$user,
+        ]);
+    }
+
+    public function airVehicleStore(Request $request)
+    {
+        $userId = Auth::id();
+        abort_unless($userId, 403, 'Please login to continue.');
+
+        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForStoreDraft($request);
+
+        $request->session()->put('booking_trip', array_merge(
+            $request->only([
+                'vehicle_id',
+                'pickup_location',
+                'dropoff_location',
+                'pickup_date',
+                'pickup_time',
+                'dropoff_date',
+                'dropoff_time',
+            ]),
+            ['addons' => $addonsReq]
+        ));
+        $request->session()->put('booking_personal', $request->only([
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'country_code',
+            'age',
+            'city',
+            'zip_code',
+            'notes',
+            'address'
+        ]));
+
+        $booking = DB::transaction(function () use ($vehicle, $pickup , $dropoff, $addonsReq, $userId, $request) {
+            $existing = AirVehicleBookings::where('client_id', $userId)
+                ->where('vehicle_id', $vehicle->id)
+                ->where('status', 'pending')
+                ->with('schedule')
+                ->lockForUpdate()
+                ->first();
+
+            $overlap = AirVehicleBookings::where('vehicle_id', $vehicle->id)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->when($existing, fn($q) => $q->where('id', '!=', $existing->id))
+                ->whereHas('schedule', function ($q) use ($pickup , $dropoff) {
+                    $q->where('pickup_at', '<', $dropoff)
+                      ->where('dropoff_at', '>', $pickup );
+                })
+                ->lockForUpdate()
+                ->exists();
+
+            if ($overlap) {
+                abort(422, 'Vehicle is not available for the selected dates.');
+            }
+
+            $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
+
+            if ($existing) {
+                $existing->update([
+                    'price_per_day'   => $calc['price_per_day'],
+                    'rental_days'     => $calc['rental_days'],
+                    'addons_total'    => $calc['addons_total'],
+                    'subtotal'        => $calc['subtotal'],
+                    'deposit_amount'  => $calc['deposit_amount'],
+                    'advance_amount'  => $calc['advance_amount'],
+                    'total_amount'    => $calc['total'],
+                    'currency'        => $vehicle->currency,
+                    'addons_snapshot' => $calc['addons_lines'],
+                    'vehicle_snapshot'=> $calc['vehicle_snapshot'],
+                    'notes'           => $request->string('notes')->toString() ?: null,
+                ]);
+
+                if ($existing->schedule) {
+                    $existing->schedule->update([
+                        'pickup_at'        => $pickup ,
+                        'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
+                        'dropoff_at'       => $dropoff,
+                        'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
+                    ]);
+                } else {
+                    AirVehicleBookingSchedule::create([
+                        'air_vehicle_booking_id' => $existing->id,
+                        'pickup_at'        => $pickup ,
+                        'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
+                        'dropoff_at'       => $dropoff,
+                        'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
+                    ]);
+                }
+
+                AirVehicleBookingAddon::where('air_vehicle_booking_id', $existing->id)->delete();
+                foreach ($calc['addons_lines'] as $line) {
+                    AirVehicleBookingAddon::create([
+                        'air_vehicle_booking_id' => $existing->id,
+                        'vehicle_id'      => $existing->vehicle_id,
+                        'name'       => $line['name'],
+                        'price'      => $line['price'],
+                        'qty'        => $line['qty'],
+                        'line_total' => $line['line_total'],
+                    ]);
+                }
+
+                return $existing->fresh(['schedule', 'addons']);
+            }
+
+            $booking = AirVehicleBookings::create([
+                'client_id'       => $userId,
+                'vehicle_id'      => $vehicle->id,
+                'status'          => 'pending',
+                'price_per_day'   => $calc['price_per_day'],
+                'rental_days'     => $calc['rental_days'],
+                'addons_total'    => $calc['addons_total'],
+                'subtotal'        => $calc['subtotal'],
+                'deposit_amount'  => $calc['deposit_amount'],
+                'advance_amount'  => $calc['advance_amount'],
+                'total_amount'    => $calc['total'],
+                'currency'        => $vehicle->currency,
+                'addons_snapshot' => $calc['addons_lines'],
+                'vehicle_snapshot'=> $calc['vehicle_snapshot'],
+                'notes'           => $request->string('notes')->toString() ?: null,
+            ]);
+
+            AirVehicleBookingSchedule::create([
+                'air_vehicle_booking_id' => $booking->id,
+                'pickup_at'        => $pickup ,
+                'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
+                'dropoff_at'       => $dropoff,
+                'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
+            ]);
+
+            foreach ($calc['addons_lines'] as $line) {
+                AirVehicleBookingAddon::create([
+                    'air_vehicle_booking_id' => $booking->id,
+                    'vehicle_id'      => $booking->vehicle_id,
+                    'name'       => $line['name'],
+                    'price'      => $line['price'],
+                    'qty'        => $line['qty'],
+                    'line_total' => $line['line_total'],
+                ]);
+            }
+
+            return $booking->fresh(['schedule', 'addons']);
+        });
+
+        return redirect()->route('client.airBookings.payments', $booking->id)
+            ->with('success', 'Booking created. Continue with payment.');
+    }
+
+    private function authorizeAirVehicleBooking(AirVehicleBookings $airVehicleBooking): void
+    {
+        $user = Auth::user();
+        if (!$user) abort(403);
+        if ($user->role !== 'client' && $user->id !== $airVehicleBooking->client_id) abort(403);
+    }
+
+        /** RENDER:  Air Vehicle Payments page */
+     public function airVehiclePayments(AirVehicleBookings $airVehicleBooking)
+{
+    $this->authorizeAirVehicleBooking($airVehicleBooking);
+    $airVehicleBooking->load('vehicle', 'schedule', 'addons', 'customer');
+
+ 
+
+
+    return Inertia::render('Web/components/AirVehicleDetails/Payments', [
+        'booking' => $airVehicleBooking,
+    ]);
+}
+
+    /** CONFIRM: POST /airBookings/{airVehicleBooking}/confirm */
+    public function airVehicleConfirm(Request $request, AirVehicleBookings $airVehicleBooking)
+    {
+
+        $this->authorizeAirVehicleBooking($airVehicleBooking);
+
+        $validated = $request->validate([
+            'payment_method' => ['required', 'in:Credit Card,PayPal,Bank Transfer'],
+            'payment_option' => ['required', 'in:full,advance'],
+            'slip_number'    => ['nullable', 'string', 'max:255'],
+            // Accept PDF or common image formats for bank slip uploads
+            'slip_pdf'       => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png', 'max:5120'],
+        ]);
+
+        $payNow = $validated['payment_option'] === 'full'
+            ? $airVehicleBooking->total_amount
+            : min($airVehicleBooking->advance_amount ?: 0, $airVehicleBooking->total_amount);
+
+        $slipPath = null;
+        if (($validated['payment_method'] === 'Bank Transfer') && $request->file('slip_pdf')) {
+            $slipPath = $request->file('slip_pdf')->store('bank_slips', 'public');
+        }
+
+        DB::transaction(function () use ($airVehicleBooking, $validated, $payNow, $slipPath, $request) {
+            // Use the dedicated air booking payments table to avoid FK conflicts
+            AirVehicleBookingPayment::create([
+                'air_vehicle_booking_id' => $airVehicleBooking->id,
+                'method'       => $validated['payment_method'],
+                'option'       => $validated['payment_option'],
+                'amount_paid'  => $payNow,
+                'status'       => 'paid',
+                'slip_number'  => $validated['slip_number'] ?? null,
+                'slip_path'    => $slipPath,
+                'tx_reference' => null,
+            ]);
+
+            $rawPersonal = (array) $request->session()->pull('booking_personal', []);
+                if ($rawPersonal && !$airVehicleBooking->customer) {
+                $personal = Validator::make($rawPersonal, [
+                    'first_name'   => ['nullable', 'string', 'max:255'],
+                    'last_name'    => ['nullable', 'string', 'max:255'],
+                    'email'        => ['nullable', 'email', 'max:255'],
+                    'phone'        => ['nullable', 'regex:/^\+?\d{7,15}$/', 'max:20'],
+                    'country_code' => ['nullable', 'string', 'max:5'],
+                    'city'         => ['nullable', 'string', 'max:255'],
+                    'zip_code'     => ['nullable', 'string', 'max:20'],
+                    'age'          => ['nullable', 'integer', 'min:18', 'max:120'],
+                    'address'      => ['nullable', 'string', 'max:255'],
+                    'notes'        => ['nullable', 'string'],
+                ])->validate();
+
+                if (collect($personal)->filter(fn($v) => filled($v))->isNotEmpty()) {
+                    // For air vehicle bookings create a dedicated air booking customer row.
+                    AirVehicleBookingCustomer::create(array_merge($personal, ['air_vehicle_booking_id' => $airVehicleBooking->id]));
+                }
+            }
+
+            $airVehicleBooking->load('schedule');
+            $overlap = AirVehicleBookings::where('vehicle_id', $airVehicleBooking->vehicle_id)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->where('id', '!=', $airVehicleBooking->id)
+                ->whereHas('schedule', function ($q) use ($airVehicleBooking) {
+                    $q->where('pickup_at', '<', $airVehicleBooking->schedule->dropoff_at)
+                      ->where('dropoff_at', '>', $airVehicleBooking->schedule->pickup_at);
+                })
+                ->lockForUpdate()
+                ->exists();
+            if ($overlap) {
+                abort(422, 'Vehicle is no longer available for those dates.');
+            }
+
+            $airVehicleBooking->update(['status' => 'confirmed']);
+            $request->session()->forget(['booking_trip']);
+        });
+
+        // Use a proper redirect so we can flash session data with ->with()
+        return redirect()->route('client.airBookings.summary', $airVehicleBooking->id)
+            ->with('success', 'Booking confirmed!');
+    }
+
+    /** RENDER: Summary page */
+    public function airVehicleSummary(AirVehicleBookings $airVehicleBooking)
+    {
+        // Use the air-specific authorizer and the correct model type.
+        $this->authorizeAirVehicleBooking($airVehicleBooking);
+        $airVehicleBooking->load('vehicle', 'vehicle.provider', 'schedule', 'addons', 'payments', 'customer');
+
+        return Inertia::render('Web/home/air/Summary', [
+            'booking' => $airVehicleBooking,
+        ]);
+    }
+
+
+
 }

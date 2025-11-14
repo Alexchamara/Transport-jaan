@@ -12,7 +12,7 @@ import "react-phone-input-2/lib/style.css";
 
 const money = (v) => Number(v ?? 0).toFixed(2);
 
-const VehicleCheckoutContent = () => {
+const AirVehicleCheckoutContent = () => {
   const { props } = usePage();
   const vehicle = props?.vehicle || null;
   const serverQuery = props?.query || {};
@@ -30,7 +30,7 @@ const VehicleCheckoutContent = () => {
   const q = Object.keys(serverQuery).length ? serverQuery : urlQuery;
 
   /* ---------------- Personal info ---------------- */
-const [firstName, setFirstName] = useState(user?.name || '');
+  const [firstName, setFirstName] = useState(user?.name || '');
   const [lastName, setLastName] = useState(user?.last_name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [countryCode, setCountryCode] = useState((user?.country_code || "lk").toLowerCase());
@@ -116,7 +116,7 @@ const [firstName, setFirstName] = useState(user?.name || '');
         });
 
         // ✅ use prefixed route name
-        const res = await fetch(`${route("client.bookings.quote")}?${params.toString()}`, {
+        const res = await fetch(`${route("client.airBookings.quote")}?${params.toString()}`, {
           headers: { Accept: "application/json" },
         });
 
@@ -200,15 +200,15 @@ const [firstName, setFirstName] = useState(user?.name || '');
     }
 
     router.post(
-      route("client.bookings.store"),
+      route("client.airBookings.store"),
       {
         vehicle_id: vehicle.id,
         pickup_location: q.pickup_location || "",
         dropoff_location: q.dropoff_location || "",
         pickup_date: q.pickup_date,
-  pickup_time: pickupTime,
+        pickup_time: pickupTime,
         dropoff_date: q.dropoff_date,
-  dropoff_time: dropoffTime,
+        dropoff_time: dropoffTime,
         addons,
         first_name: firstName,
         last_name: lastName,
@@ -227,10 +227,10 @@ const [firstName, setFirstName] = useState(user?.name || '');
 
   // ✅ use named, prefixed routes for navigation too
   const handleConfirmBooking = () =>
-    router.visit(route("client.bookings.checkout"), { method: "get", preserveScroll: true });
+    router.visit(route("client.airBookings.checkout"), { method: "get", preserveScroll: true });
 
   const handleVehicleList = () =>
-    router.visit(route("client.vehicle.list"), { method: "get", preserveScroll: true });
+    router.visit(route("client.airVehicles.list"), { method: "get", preserveScroll: true });
 
   /* ---------------- Derived values ---------------- */
   const currency = quote?.currency || vehicle?.currency || "$";
@@ -242,7 +242,6 @@ const [firstName, setFirstName] = useState(user?.name || '');
   const deposit = quote?.deposit_amount || 0;
   const advance = quote?.advance_amount || 0;
   const grandTotal = quote?.total || 0;
-  console.log("rental days", rentalDays);
 
   return (
     <div>
@@ -255,7 +254,7 @@ const [firstName, setFirstName] = useState(user?.name || '');
               onClick={handleVehicleList}
             >
               <div className="w-[18px] h-[18px] rounded-full bg-[#1565c0]" style={{ boxShadow: "0 0 10px 8px #1565c088" }} />
-              <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Select Car</h1>
+              <h1 className="figtree text-[16px] font-[700] text-[#0955AC]">Select Plane</h1>
             </div>
             <div className="lg:w-[136px] w-[50px] md:block hidden h-[2px] bg-[#0955AC] mt-3" />
             <div className="md:flex flex-col hidden justify-center items-center gap-3">
@@ -675,4 +674,4 @@ const [firstName, setFirstName] = useState(user?.name || '');
   );
 };
 
-export default VehicleCheckoutContent;
+export default AirVehicleCheckoutContent;

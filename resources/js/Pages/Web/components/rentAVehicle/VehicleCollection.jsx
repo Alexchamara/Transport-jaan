@@ -16,7 +16,6 @@ import placeholderImg from "@/assets/placeholder.jpg";
 const VehicleCollection = ({vehicles, selectedType}) => {
   const { likedVehicleIds, authUser } = usePage().props;
   
-  console.log("authUser:", authUser);
 
   // const [likedVehicles, setLikedVehicles] = useState({});
     // liked map for O(1) checks
@@ -67,7 +66,21 @@ const VehicleCollection = ({vehicles, selectedType}) => {
 router.visit(route('vehicle.details', vehicleId));
   };
 
-  const handleViewMore = () => router.get("/vehicleList", { type: selectedType });
+const handleViewMore = () => {
+  switch (selectedType) {
+    case "car":
+      router.get("/vehicleList", { type: "land" });
+      break;
+    case "sea":
+      router.get("/seaVehicleList", { type: "sea" });
+      break;
+    case "air":
+      router.get("/airVehicleList", { type: "air" });
+      break;
+    default:
+      router.get("/vehicleList", { type: selectedType });
+  }
+};
 
   // choose the best available image URL
   const getVehicleImageSrc = (v) => {

@@ -164,7 +164,11 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
 */
 Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('client.home');
 Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
+Route::get('/seaVehicleList', [ClientVehicleController::class, 'seaVehicleList'])->name('seaVehicle.list');
+Route::get('/airVehicleList', [ClientVehicleController::class, 'airVehicleList'])->name('airVehicle.list');
 Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
+Route::get('/airVehicleDetails/{vehicle}', [ClientVehicleController::class, 'airVehicleDetails'])->name('airVehicle.details');
+Route::get('/seaVehicleDetails/{vehicle}', [ClientVehicleController::class, 'seaVehicleDetails'])->name('seaVehicle.details');
 // API Routes for frontend functionality
 Route::prefix('api')->name('api.')->group(function () {
     // Public warehouse units list
@@ -194,7 +198,12 @@ Route::prefix('client')->as('client.')->group(function () {
     Route::get('/bookings/quote', [ClientBookingController::class, 'quote'])->name('bookings.quote');
     Route::get('/vehicles/{vehicle}/extras', [ClientBookingController::class, 'extras'])->name('vehicles.extras');
     Route::patch('/bookings/{booking}/addons', [ClientBookingController::class, 'updateAddons'])->name('bookings.updateAddons');
+    Route::patch('/bookings/{airVehicleBooking}/addons', [ClientBookingController::class, 'updateAirVehicleAddons'])->name('bookings.updateAirVehicleAddons');
 
+    // Authenticated client routes (must be client role)
+    // NOTE: this route group is for client users. It previously used `role:vendor` which
+    // prevented client accounts from accessing these pages (air/land booking checkout/payments).
+    // Change to `role:client` so authenticated clients can reach the booking flows.
     Route::middleware(['auth', 'role:client'])->group(function () {
         Route::get('/bookings/checkout', [ClientBookingController::class, 'showCheckout'])->name('bookings.checkout');
         Route::post('/bookings', [ClientBookingController::class, 'store'])->name('bookings.store');
@@ -202,6 +211,17 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::post('/bookings/{booking}/confirm', [ClientBookingController::class, 'confirm'])->name('bookings.confirm');
         Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])->name('bookings.summary');
         Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])->name('bookings.cancel');
+
+        Route::get('/airBookings/quote', [ClientBookingController::class, 'airVehicleQuote'])->name('airBookings.quote');
+        Route::get('/airBookings/checkout', [ClientBookingController::class, 'showAirVehicleCheckout'])->name('airBookings.checkout');
+        Route::post('/airBookings', [ClientBookingController::class, 'airVehicleStore'])->name('airBookings.store');
+    // Use a consistent route parameter name so Laravel's route-model binding
+    // can inject the AirVehicleBookings model into controller methods.
+    Route::get('/airBookings/{airVehicleBooking}/payments', [ClientBookingController::class, 'airVehiclePayments'])->name('airBookings.payments');
+    Route::post('/airBookings/{airVehicleBooking}/confirm', [ClientBookingController::class, 'airVehicleConfirm'])->name('airBookings.confirm');
+    Route::get('/airBookings/{airVehicleBooking}/summary', [ClientBookingController::class, 'airVehicleSummary'])->name('airBookings.summary');
+    Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
+
 
         Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');
         Route::get('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'index'])->name('vehicles.reviews.index');
