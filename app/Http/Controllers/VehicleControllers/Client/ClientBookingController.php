@@ -369,7 +369,7 @@ class ClientBookingController extends Controller
             'payment_option' => ['required', 'in:full,advance'],
             'slip_number'    => ['nullable', 'string', 'max:255'],
             // Accept PDF or common image formats for bank slip uploads
-            'slip_pdf'       => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png', 'max:10240'],
+            'slip_pdf'       => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png', 'max:5120'],
         ]);
 
         $payNow = $validated['payment_option'] === 'full'
@@ -926,7 +926,7 @@ class ClientBookingController extends Controller
             'payment_option' => ['required', 'in:full,advance'],
             'slip_number'    => ['nullable', 'string', 'max:255'],
             // Accept PDF or common image formats for bank slip uploads
-            'slip_pdf'       => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png', 'max:10240'],
+            'slip_pdf'       => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png', 'max:5120'],
         ]);
 
         $payNow = $validated['payment_option'] === 'full'
