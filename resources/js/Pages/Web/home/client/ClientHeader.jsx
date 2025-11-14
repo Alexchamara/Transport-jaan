@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { router, usePage, Link } from "@inertiajs/react";
 import downArrow from "../../assets/rentAVehicle/header/downArrow.png";
 import proPic from "../../assets/header/profilePic.svg";
@@ -23,19 +23,89 @@ const ClientHeader = () => {
         }));
     };
 
-    const handleLogout = (e) => {
-        e.preventDefault();
-        router.post(route('logout'));
+    // ---------- CSRF & Logout ----------
+    const refreshCSRFToken = async () => {
+        try {
+            const response = await fetch("/csrf-token");
+            const data = await response.json();
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) metaTag.setAttribute("content", data.token);
+            return data.token;
+        } catch (error) {
+            console.error("Failed to refresh CSRF token:", error);
+            return null;
+        }
     };
 
-    const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen);
+    const handleLogout = async (e) => {
+        e.preventDefault();
+
+        const attemptLogout = () => {
+            router.post(
+                route("logout"),
+                {},
+                {
+                    onError: async (errors) => {
+                        console.warn("POST logout failed, trying to refresh CSRF token...", errors);
+                        if (
+                            errors &&
+                            (errors.message?.includes("CSRF") ||
+                                errors.message?.includes("expired"))
+                        ) {
+                            const newToken = await refreshCSRFToken();
+                            if (newToken) {
+                                router.post(
+                                    route("logout"),
+                                    {},
+                                    {
+                                        onError: () => (window.location.href = route("logout.alt")),
+                                        onSuccess: () => (window.location.href = "/"),
+                                    }
+                                );
+                            } else {
+                                window.location.href = route("logout.alt");
+                            }
+                        } else {
+                            window.location.href = route("logout.alt");
+                        }
+                    },
+                    onSuccess: () => (window.location.href = "/"),
+                }
+            );
+        };
+        attemptLogout();
     };
+
+    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+    // ---------- Smooth scroll ----------
+    const handleScrollTo = (id) => {
+        if (window.location.pathname === "/" || window.location.pathname === "/home") {
+            const el = document.getElementById(id);
+            if (el) {
+                el.scrollIntoView({ behavior: "smooth" });
+                setIsMenuOpen(false);
+            }
+        } else {
+            router.visit(`/#${id}`);
+        }
+    };
+
+    // Auto-scroll when page loads with a hash
+    useEffect(() => {
+        const hash = window.location.hash.substring(1);
+        if (hash && ["home", "about", "services", "blog", "contact"].includes(hash)) {
+            setTimeout(() => {
+                const el = document.getElementById(hash);
+                if (el) el.scrollIntoView({ behavior: "smooth" });
+            }, 300);
+        }
+    }, []);
 
     return (
         <header className="relative z-50 w-full h-auto py-[5px]">
             <div className="poppins font-[500] px-3 sm:px-4 md:px-6 lg:px-10 py-2 sm:py-4 flex items-center justify-between relative">
-                {/* Hamburger always visible, but hide when menu is open */}
+                {/* Hamburger */}
                 {!isMenuOpen && (
                     <div className="size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
                         <button
@@ -59,7 +129,7 @@ const ClientHeader = () => {
                     </div>
                 )}
 
-                {/* Centered Company Name/Logo */}
+                {/* Logo */}
                 <div
                     onClick={() => router.visit("/")}
                     className="absolute left-1/2 transform -translate-x-1/2 text-[16px] sm:text-[20px] md:text-[25px] lg:text-[30px] font-[700] text-black text-center cursor-pointer hover:text-[#0955AC] transition-colors"
@@ -68,54 +138,34 @@ const ClientHeader = () => {
                     COMPANY LOGO
                 </div>
 
-                {/* right side buttons */}
+                {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
-                        <img
-                            src={bell}
-                            className="size-[18px] md:w-[24px] md:h-[23px]"
-                        />
+                        <img src={bell} className="size-[18px] md:w-[24px] md:h-[23px]" alt="Notifications" />
                     </div>
                     <div className="size-[27px] md:size-[55px] flex justify-center items-center">
-                        <img
-                            src={proPic}
-                            className="size-[18px] md:size-[55px]"
-                        />
+                        <img src={proPic} className="size-[18px] md:size-[55px]" alt="Profile" />
                     </div>
                 </div>
             </div>
 
-            {/* Overlay Menu */}
+            {/* Mobile overlay menu */}
             {isMenuOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 z-20 flex justify-end">
                     <div className="w-[300px] max-w-full h-full rounded-r-[20px] bg-white shadow-lg py-10 px-8 flex flex-col space-y-4 animate-slide-in relative">
-                        {/* Close X button inside overlay */}
+                        {/* Close button */}
                         <button
                             onClick={toggleMenu}
                             className="absolute top-7 right-4 p-2 text-gray-600 hover:text-[#EF3826] focus:outline-none z-50"
                         >
-                            <svg
-                                className="w-[22px] h-[18px]"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
+                            <svg className="w-[22px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
+
                         {/* Navigation */}
                         <nav className="flex flex-col space-y-8 text-[#000000cc] text-[15px] font-[700]">
-                            {/* <Link
-                                href="/clientDashboard"
-                                className="hover:text-[#0955AC]"
-                            >
-                                Home
-                            </Link> */}
+                            {/* Vehicle Rental */}
                             <div className="relative">
                                 <button
                                     type="button"
@@ -128,39 +178,25 @@ const ClientHeader = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.vehicle
-                                                ? "rotate-180"
-                                                : ""
-                                        }`}
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.vehicle ? "rotate-180" : ""}`}
                                     />
                                 </button>
                                 {openDropdown.vehicle && (
-                                    <div
-                                        id="vehicle-dropdown"
-                                        className="ml-4 mt-1 flex flex-col space-y-1"
-                                    >
-                                        <Link
-                                            href="/clientRent?type=land"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
+                                    <div id="vehicle-dropdown" className="ml-4 mt-1 flex flex-col space-y-1">
+                                        <Link href="/clientRent?type=land" className="block text-sm text-gray-700 hover:text-[#0955AC]">
                                             Land
                                         </Link>
-                                        <Link
-                                             href="/clientRent?type=air"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
+                                        <Link href="/clientRent?type=air" className="block text-sm text-gray-700 hover:text-[#0955AC]">
                                             Air
                                         </Link>
-                                        <Link
-                                            href="/clientRent?type=sea"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
+                                        <Link href="/clientRent?type=sea" className="block text-sm text-gray-700 hover:text-[#0955AC]">
                                             Sea
                                         </Link>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Ticket Booking */}
                             <div className="relative">
                                 <button
                                     type="button"
@@ -173,39 +209,25 @@ const ClientHeader = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.ticket
-                                                ? "rotate-180"
-                                                : ""
-                                        }`}
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.ticket ? "rotate-180" : ""}`}
                                     />
                                 </button>
                                 {openDropdown.ticket && (
-                                    <div
-                                        id="ticket-dropdown"
-                                        className="ml-4 mt-1 flex flex-col space-y-1"
-                                    >
-                                        <Link
-                                            href="/clientTicketBookingDashboard"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
+                                    <div id="ticket-dropdown" className="ml-4 mt-1 flex flex-col space-y-1">
+                                        <Link href="/clientTicketBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
                                             Flight
                                         </Link>
-                                        <Link
-                                            href="/clientTicketBookingDashboard"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
+                                        <Link href="/clientTicketBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
                                             Train
                                         </Link>
-                                        <Link
-                                            href="clientTicketBookingDashboard"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
+                                        <Link href="/clientTicketBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
                                             Bus
                                         </Link>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Courier Booking */}
                             <div className="relative">
                                 <button
                                     type="button"
@@ -218,56 +240,73 @@ const ClientHeader = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
-                                            openDropdown.courier
-                                                ? "rotate-180"
-                                                : ""
-                                        }`}
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.courier ? "rotate-180" : ""}`}
                                     />
                                 </button>
                                 {openDropdown.courier && (
-                                    <div
-                                        id="courier-dropdown"
-                                        className="ml-4 mt-1 flex flex-col space-y-1"
-                                    >
-                                        <Link
-                                            href="/courierBookingDashboard"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
+                                    <div id="courier-dropdown" className="ml-4 mt-1 flex flex-col space-y-1">
+                                        <Link href="/courierBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
                                             Land
                                         </Link>
-                                        <Link
-                                            href="/courierBookingDashboard"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
+                                        <Link href="/courierBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
                                             Air
                                         </Link>
-                                        <Link
-                                            href="/courierBookingDashboard"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
+                                        <Link href="/courierBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
                                             Sea
                                         </Link>
                                     </div>
                                 )}
                             </div>
+
                             <a href="/warehouseBookingDashboard" className="hover:text-[#0955AC]">
                                 Warehouse Booking
                             </a>
                             <a href="/freightBookingDashboard" className="hover:text-[#0955AC]">
                                 Freight Booking
                             </a>
-                            <Link
-                                href="/clientDashboardSettings"
-                                className="hover:text-[#0955AC]"
-                            >
+                            <Link href="/clientDashboardSettings" className="hover:text-[#0955AC]">
                                 Settings
                             </Link>
+
+                            {/* ---------- Scroll-to-section links (Home, About Us, …) ---------- */}
+                            <div className="border-t pt-4 space-y-3">
+                                <div
+                                    className="hover:text-[#ilas5AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("home")}
+                                >
+                                    Home
+                                </div>
+                                <div
+                                    className="hover:text-[#0955AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("about")}
+                                >
+                                    About Us
+                                </div>
+                                <div
+                                    className="hover:text-[#0955AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("services")}
+                                >
+                                    Our Services
+                                </div>
+                                <div
+                                    className="hover:text-[#0955AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("blog")}
+                                >
+                                    Blog
+                                </div>
+                                <div
+                                    className="hover:text-[#0955AC] cursor-pointer"
+                                    onClick={() => handleScrollTo("contact")}
+                                >
+                                    Contact Us
+                                </div>
+                            </div>
                         </nav>
+
+                        {/* Auth / Dashboard section */}
                         <div className="border-t pt-10 flex flex-col space-y-2">
                             {auth?.user ? (
                                 <>
-                                    {/* Dashboard Links Based on Role */}
                                     {auth.user.role_type === "driver" && (
                                         <Link
                                             href="/driver/dashboard"
@@ -284,9 +323,7 @@ const ClientHeader = () => {
                                             User Dashboard
                                         </Link>
                                     )}
-                                    {["admin", "superadmin"].includes(
-                                        auth.user.role_type
-                                    ) && (
+                                    {["admin", "superadmin"].includes(auth.user.role_type) && (
                                         <Link
                                             href="/admin"
                                             className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
@@ -302,17 +339,12 @@ const ClientHeader = () => {
                                             Freight Dashboard
                                         </Link>
                                     )}
+
                                     <div className="flex items-center gap-2 mt-2">
                                         <div className="h-7 w-7 border border-black rounded-full flex justify-center items-center text-[14px]">
-                                            {auth.user.name
-                                                .charAt(0)
-                                                .toUpperCase()}
+                                            {auth.user.name.charAt(0).toUpperCase()}
                                         </div>
-                                        <img
-                                            src={downArrow}
-                                            alt="dropdown"
-                                            className="w-[8px] h-[5px]"
-                                        />
+                                        <img src={downArrow} alt="dropdown" className="w-[8px] h-[5px]" />
                                     </div>
                                     <button
                                         onClick={handleLogout}
@@ -324,16 +356,16 @@ const ClientHeader = () => {
                             ) : (
                                 <>
                                     <Link
-                                        // href="/login"
+                                        href="/signin"
                                         className="h-[40px] border-2 border-[#0955AC] rounded-[10px] px-3 py-2 text-[#0955AC] text-[12px] font-bold hover:bg-[#0955AC] hover:text-white flex justify-center items-center"
                                     >
                                         Login
                                     </Link>
                                     <Link
-                                        // href="/register"
+                                        href="/signup"
                                         className="bg-[#0955AC] h-[40px] rounded-[10px] border-2 border-[#0955AC] px-3 py-2 text-white font-bold text-[12px] flex justify-center items-center"
                                     >
-                                        Logout
+                                        Register
                                     </Link>
                                 </>
                             )}

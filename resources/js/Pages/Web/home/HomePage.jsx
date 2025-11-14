@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import Header from "../layouts/Header";
+import Header from "../../../../js/Pages/Web/home/client/ClientHeader";
 import HeroSection from "../components/rentAVehicle/HeroSection";
 import RentByBrands from "../components/rentAVehicle/RentByBrands";
 import RentByBodyType from "../components/rentAVehicle/RentByBodyType";
