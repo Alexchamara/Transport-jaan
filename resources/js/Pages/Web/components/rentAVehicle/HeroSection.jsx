@@ -89,13 +89,39 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
             return;
         }
 
-        router.get(route("vehicle.list"), {
+        // Determine selected vehicle type from the image order (first item)
+        const selectedType = (imageOrder && imageOrder[0]) || "land";
+
+        // Map our internal type to a list path. Adjust paths if your routes differ.
+        const listPathMap = {
+            air: "/airVehicleList",
+            land: "/landVehicleList",
+            sea: "/seaVehicleList",
+        };
+
+        // Build query params
+        const params = {
             pickupLocation: formData.pickupLocation,
             pickupDate: formData.pickupDate,
             dropoffLocation: formData.dropoffLocation,
             dropoffDate: formData.dropoffDate,
-            type: vehicleType,
-        });
+            type: selectedType,
+        };
+
+        const qs = new URLSearchParams(params).toString();
+
+        // Navigate to the appropriate list page (full URL like http://127.0.0.1:8000/airVehicleList?type=air)
+        const base = typeof window !== "undefined" ? window.location.origin : "";
+        const path = listPathMap[selectedType] || "/vehicleList";
+        const target = `${base}${path}?${qs}`;
+
+        // Use a full redirect to ensure the correct page loads
+        if (typeof window !== "undefined") {
+            window.location.href = target;
+        } else {
+            // Fallback to Inertia if running on server (unlikely in browser UI)
+            router.get(route("vehicle.list"), params);
+        }
     };
 
     const handleInputChange = (e) => {

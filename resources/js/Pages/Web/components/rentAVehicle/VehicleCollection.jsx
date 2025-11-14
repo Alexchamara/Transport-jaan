@@ -12,9 +12,6 @@ import heart from "../../assets/rentAVehicle/collection/heart.png";
 
 // bundled placeholder (resources/js/assets/placeholder.jpg)
 import placeholderImg from "@/assets/placeholder.jpg";
-import airPlaceholder from "@/assets/air-placeholder.svg";
-import seaPlaceholder from "@/assets/sea-placeholder.svg";
-import landPlaceholder from "@/assets/land-placeholder.svg";
 
 const VehicleCollection = ({vehicles, selectedType}) => {
   const { likedVehicleIds, authUser } = usePage().props;
