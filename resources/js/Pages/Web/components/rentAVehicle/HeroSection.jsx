@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import carImage from "../../assets/rentAVehicle/car.jpg";
 import flightImage from "../../assets/rentAVehicle/flight.jpg";
 import shipsImage from "../../assets/rentAVehicle/ships.jpg";
@@ -8,12 +8,6 @@ import { route } from "ziggy-js";
 
 const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
     const [imageOrder, setImageOrder] = useState(["land", "sea", "air"]);
-
-    // useEffect(() => {
-    //     if (onVehicleTypeChange) {
-    //         onVehicleTypeChange(imageOrder[0]);
-    //     }
-    // }, []);
 
     const imageData = {
         land: {
@@ -33,39 +27,25 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
         },
     };
 
-    // const handleImageClick = (imageType) => {
-    //     setImageOrder((prevOrder) => {
-    //         const newOrder = prevOrder.filter((type) => type !== imageType);
-    //         newOrder.unshift(imageType);
-    //         // Notify parent about the newly selected primary type
-    //         if (onVehicleTypeChange) {
-    //             onVehicleTypeChange(imageType);
-    //         }
-    //         return newOrder;
-    //     });
-    // };
-
     const handleImageClick = (imageType) => {
-    setImageOrder((prevOrder) => {
-        // Move clicked image to the first position
-        const newOrder = prevOrder.filter((type) => type !== imageType);
-        newOrder.unshift(imageType);
+        setImageOrder((prevOrder) => {
+            // Create new array with clicked type moved to the front
+            const newOrder = prevOrder.filter((type) => type !== imageType);
+            newOrder.unshift(imageType);
 
-        // 🔹 Notify parent (HomePage) about new vehicle type
-        if (onVehicleTypeChange) {
-            // Pass 'land', 'water', or 'air' to the parent
-            const typeMap = {
-                land: "land",
-                sea: "sea",
-                air: "air",
-            };
-            onVehicleTypeChange(typeMap[imageType]);
-        }
+            // Notify parent about vehicle type change
+            if (onVehicleTypeChange) {
+                const typeMap = {
+                    land: "land",
+                    sea: "sea", // change to "water" here if your backend uses "water"
+                    air: "air",
+                };
+                onVehicleTypeChange(typeMap[imageType]);
+            }
 
-        return newOrder;
-    });
-};
-
+            return newOrder;
+        });
+    };
 
     const handleFindVehicleClick = (e) => {
         e.preventDefault();
@@ -80,7 +60,6 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
             return;
         }
 
-        // Redirect to /vehicleList with query params
         router.get(route("vehicle.list"), {
             pickupLocation: formData.pickupLocation,
             pickupDate: formData.pickupDate,
@@ -99,6 +78,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
 
     return (
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between min-h-screen px-4 md:px-16 gap-8 overflow-hidden pb-10">
+            {/* Left: Text + Form */}
             <div className="text-black md:order-1 order-2 text-left p-8 md:p-0 w-full md:max-w-4xl md:w-1/3 flex-shrink-0 mt-8">
                 <div className="w-[50px] h-[5px] bg-[#000000] mb-6 rounded-sm"></div>
                 <h1 className="bebas-neue text-[32px] sm:text-[38px] md:text-[45px]/[58px] font-[400] mb-4">
@@ -139,6 +119,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                                 className="appearance-none w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
                             />
                         </div>
+
                         {/* Pick-up Date */}
                         <div>
                             <label htmlFor="pickupDate" className="block mb-1">
@@ -172,6 +153,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                                 className="w-full border-[1px] border-[#0000001A] rounded-[8px] p-[16px] leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#286BB6]"
                             />
                         </div>
+
                         {/* Drop-off Date */}
                         <div>
                             <label htmlFor="dropoffDate" className="block mb-1">
@@ -197,15 +179,17 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                 </form>
             </div>
 
-            {/* Images Section */}
-            <div className="bebas-neue hidden order-2 md:flex flex-row items-stretch md:h-[500px] lg:h-[680px] gap-4 w-full md:w-2/3 flex-shrink-0">
+            {/* ✅ Single Images Section (Desktop + Mobile responsive) */}
+            <div className="bebas-neue order-1 md:order-2 mt-20 md:mt-0 flex flex-row items-stretch h-[200px] md:h-[500px] lg:h-[680px] gap-4 w-full md:w-2/3 flex-shrink-0">
                 {imageOrder.map((type, idx) => (
                     <div
                         key={type}
-                        className={`relative h-full overflow-hidden rounded-[25px] shadow-lg transition-all duration-300 ease-in-out cursor-pointer flex-shrink-0 ${
-                            idx === 0 ? "xl:w-[559px] sm:w-[350px] w-[300px]" : "w-[150px] sm:w-[220px]"
-                        }`}
                         onClick={() => handleImageClick(type)}
+                        className={`relative h-full overflow-hidden rounded-[10px] md:rounded-[25px] shadow-lg transition-all duration-300 ease-in-out cursor-pointer flex-shrink-0 ${
+                            idx === 0
+                                ? "w-[180px] sm:w-[220px] md:w-[350px] xl:w-[559px]"
+                                : "w-[60px] sm:w-[80px] md:w-[150px] lg:w-[220px]"
+                        }`}
                     >
                         <img
                             src={imageData[type].src}
@@ -215,36 +199,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
                         <div className="absolute inset-0 bg-[#00000066]"></div>
                         <div className="absolute inset-0 flex items-center justify-center">
                             <span
-                                className={`text-white text-[24px] lg:text-[32px] font-[400] rotate-[270deg] ${
-                                    idx === 0 ? "hidden" : ""
-                                }`}
-                            >
-                                {imageData[type].label}
-                            </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Images Section 2 */}
-            <div className="bebas-neue flex lg:hidden order-1 mt-20 flex-row items-stretch md:h-[680px] h-[200px] gap-4 w-full flex-shrink-0">
-                {imageOrder.map((type, idx) => (
-                    <div
-                        key={type}
-                        className={`relative h-full overflow-hidden rounded-[10px] shadow-lg transition-all duration-300 ease-in-out cursor-pointer flex-shrink-0 ${
-                            idx === 0 ? "sm:w-[350px] w-[180px]" : "sm:w-[80px] w-[60px]"
-                        }`}
-                        onClick={() => handleImageClick(type)}
-                    >
-                        <img
-                            src={imageData[type].src}
-                            alt={imageData[type].alt}
-                            className="absolute inset-0 w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-[#00000066]"></div>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span
-                                className={`text-white text-[18px] lg:text-[32px] font-[400] rotate-[270deg] ${
+                                className={`text-white text-[14px] sm:text-[18px] md:text-[24px] lg:text-[32px] font-[400] rotate-[270deg] ${
                                     idx === 0 ? "hidden" : ""
                                 }`}
                             >

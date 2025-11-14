@@ -103,7 +103,7 @@ const IMAGES = [
         ctaLabel: "Book Tickets",
         href: "/ticketBooking",
         url: img7,
-        tags: ["Bus", "Train", "Ferry", "Flight", "Sleeper", "Express"],
+        tags: ["Bus", "Train", "Flight",],
     },
 ];
 

@@ -1,5 +1,5 @@
 import React from 'react'
-import Header from '../../layouts/Header'
+import Header from '../../home/client/ClientHeader'
 import Hero from '../../components/flight/Hero'
 import ContentOne from '../../components/flight/ContentOne'
 import Why from '../../components/flight/Why'
