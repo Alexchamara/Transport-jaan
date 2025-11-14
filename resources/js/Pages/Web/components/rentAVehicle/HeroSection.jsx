@@ -3,11 +3,40 @@ import carImage from "../../assets/rentAVehicle/car.jpg";
 import flightImage from "../../assets/rentAVehicle/flight.jpg";
 import shipsImage from "../../assets/rentAVehicle/ships.jpg";
 
+
 import { router } from "@inertiajs/react";
 import { route } from "ziggy-js";
 
+const getInitialImageOrder = () => {
+    if (typeof window === "undefined") {
+        return ["land", "sea", "air"];
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const urlType = params.get("type");
+
+    let activeType;
+    // Map URL type to one of our internal keys
+    switch (urlType) {
+        case "sea":
+        case "water":
+            activeType = "sea";
+            break;
+        case "air":
+            activeType = "air";
+            break;
+        case "land":
+        default:
+            activeType = "land";
+            break;
+    }
+
+    const baseOrder = ["land", "sea", "air"];
+    return [activeType, ...baseOrder.filter((t) => t !== activeType)];
+};
+
 const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
-    const [imageOrder, setImageOrder] = useState(["land", "sea", "air"]);
+    const [imageOrder, setImageOrder] = useState(getInitialImageOrder);
 
     const imageData = {
         land: {
