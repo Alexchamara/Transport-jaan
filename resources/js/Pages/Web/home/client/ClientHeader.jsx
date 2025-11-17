@@ -4,6 +4,10 @@ import downArrow from "../../assets/rentAVehicle/header/downArrow.png";
 import proPic from "../../assets/header/profilePic.svg";
 import bell from "../../assets/header/bell.svg";
 import search from "../../assets/header/search.svg";
+import { ArrowLeft } from "lucide-react";
+{
+    /* ← Only new import */
+}
 
 const ClientHeader = () => {
     const { auth } = usePage().props;
@@ -46,7 +50,10 @@ const ClientHeader = () => {
                 {},
                 {
                     onError: async (errors) => {
-                        console.warn("POST logout failed, trying to refresh CSRF token...", errors);
+                        console.warn(
+                            "POST logout failed, trying to refresh CSRF token...",
+                            errors
+                        );
                         if (
                             errors &&
                             (errors.message?.includes("CSRF") ||
@@ -58,8 +65,11 @@ const ClientHeader = () => {
                                     route("logout"),
                                     {},
                                     {
-                                        onError: () => (window.location.href = route("logout.alt")),
-                                        onSuccess: () => (window.location.href = "/"),
+                                        onError: () =>
+                                            (window.location.href =
+                                                route("logout.alt")),
+                                        onSuccess: () =>
+                                            (window.location.href = "/"),
                                     }
                                 );
                             } else {
@@ -80,7 +90,10 @@ const ClientHeader = () => {
 
     // ---------- Smooth scroll ----------
     const handleScrollTo = (id) => {
-        if (window.location.pathname === "/" || window.location.pathname === "/home") {
+        if (
+            window.location.pathname === "/" ||
+            window.location.pathname === "/home"
+        ) {
             const el = document.getElementById(id);
             if (el) {
                 el.scrollIntoView({ behavior: "smooth" });
@@ -94,7 +107,10 @@ const ClientHeader = () => {
     // Auto-scroll when page loads with a hash
     useEffect(() => {
         const hash = window.location.hash.substring(1);
-        if (hash && ["home", "about", "services", "blog", "contact"].includes(hash)) {
+        if (
+            hash &&
+            ["home", "about", "services", "blog", "contact"].includes(hash)
+        ) {
             setTimeout(() => {
                 const el = document.getElementById(hash);
                 if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -141,10 +157,18 @@ const ClientHeader = () => {
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
                     <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} className="size-[18px] md:w-[24px] md:h-[23px]" alt="Notifications" />
+                        <img
+                            src={bell}
+                            className="size-[18px] md:w-[24px] md:h-[23px]"
+                            alt="Notifications"
+                        />
                     </div>
                     <div className="size-[27px] md:size-[55px] flex justify-center items-center">
-                        <img src={proPic} className="size-[18px] md:size-[55px]" alt="Profile" />
+                        <img
+                            src={proPic}
+                            className="size-[18px] md:size-[55px]"
+                            alt="Profile"
+                        />
                     </div>
                 </div>
             </div>
@@ -152,16 +176,37 @@ const ClientHeader = () => {
             {/* Mobile overlay menu */}
             {isMenuOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 z-20 flex justify-end">
-                    <div className="w-[300px] max-w-full h-full rounded-r-[20px] bg-white shadow-lg py-10 px-8 flex flex-col space-y-4 animate-slide-in relative">
-                        {/* Close button */}
-                        <button
-                            onClick={toggleMenu}
-                            className="absolute top-7 right-4 p-2 text-gray-600 hover:text-[#EF3826] focus:outline-none z-50"
-                        >
-                            <svg className="w-[22px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                    <div className="w-[300px] max-w-full h-full rounded-r-[20px] bg-white shadow-lg py-10 px-8 flex flex-col relative animate-slide-in">
+                        <div className="flex justify-between items-center mb-8">
+                            {/* Back to Dashboard Button */}
+                            <Link
+                                href={route("client.mainDashboard")}
+                                onClick={toggleMenu}
+                                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Back to Dashboard"
+                            >
+                                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                            </Link>
+
+                            <button
+                                onClick={toggleMenu}
+                                className="p-2 text-gray-600 hover:text-[#EF3826] focus:outline-none z-50"
+                            >
+                                <svg
+                                    className="w-7 h-7"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
 
                         {/* Navigation */}
                         <nav className="flex flex-col space-y-8 text-[#000000cc] text-[15px] font-[700]">
@@ -178,18 +223,34 @@ const ClientHeader = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.vehicle ? "rotate-180" : ""}`}
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
+                                            openDropdown.vehicle
+                                                ? "rotate-180"
+                                                : ""
+                                        }`}
                                     />
                                 </button>
                                 {openDropdown.vehicle && (
-                                    <div id="vehicle-dropdown" className="ml-4 mt-1 flex flex-col space-y-1">
-                                        <Link href="/clientRent?type=land" className="block text-sm text-gray-700 hover:text-[#0955AC]">
+                                    <div
+                                        id="vehicle-dropdown"
+                                        className="ml-4 mt-1 flex flex-col space-y-1"
+                                    >
+                                        <Link
+                                            href="/clientRent?type=land"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
                                             Land
                                         </Link>
-                                        <Link href="/clientRent?type=air" className="block text-sm text-gray-700 hover:text-[#0955AC]">
+                                        <Link
+                                            href="/clientRent?type=air"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
                                             Air
                                         </Link>
-                                        <Link href="/clientRent?type=sea" className="block text-sm text-gray-700 hover:text-[#0955AC]">
+                                        <Link
+                                            href="/clientRent?type=sea"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
                                             Sea
                                         </Link>
                                     </div>
@@ -209,18 +270,34 @@ const ClientHeader = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.ticket ? "rotate-180" : ""}`}
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
+                                            openDropdown.ticket
+                                                ? "rotate-180"
+                                                : ""
+                                        }`}
                                     />
                                 </button>
                                 {openDropdown.ticket && (
-                                    <div id="ticket-dropdown" className="ml-4 mt-1 flex flex-col space-y-1">
-                                        <Link href="/clientTicketBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
+                                    <div
+                                        id="ticket-dropdown"
+                                        className="ml-4 mt-1 flex flex-col space-y-1"
+                                    >
+                                        <Link
+                                            href="/clientTicketBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
                                             Flight
                                         </Link>
-                                        <Link href="/clientTicketBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
+                                        <Link
+                                            href="/clientTicketBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
                                             Train
                                         </Link>
-                                        <Link href="/clientTicketBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
+                                        <Link
+                                            href="/clientTicketBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
                                             Bus
                                         </Link>
                                     </div>
@@ -240,38 +317,63 @@ const ClientHeader = () => {
                                     <img
                                         src={downArrow}
                                         alt="dropdown"
-                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${openDropdown.courier ? "rotate-180" : ""}`}
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
+                                            openDropdown.courier
+                                                ? "rotate-180"
+                                                : ""
+                                        }`}
                                     />
                                 </button>
                                 {openDropdown.courier && (
-                                    <div id="courier-dropdown" className="ml-4 mt-1 flex flex-col space-y-1">
-                                        <Link href="/courierBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
+                                    <div
+                                        id="courier-dropdown"
+                                        className="ml-4 mt-1 flex flex-col space-y-1"
+                                    >
+                                        <Link
+                                            href="/courierBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
                                             Land
                                         </Link>
-                                        <Link href="/courierBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
+                                        <Link
+                                            href="/courierBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
                                             Air
                                         </Link>
-                                        <Link href="/courierBookingDashboard" className="block text-sm text-gray-700 hover:text-[#0955AC]">
+                                        <Link
+                                            href="/courierBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
                                             Sea
                                         </Link>
                                     </div>
                                 )}
                             </div>
 
-                            <a href="/warehouseBookingDashboard" className="hover:text-[#0955AC]">
+                            <a
+                                href="/warehouseBookingDashboard"
+                                className="hover:text-[#0955AC]"
+                            >
                                 Warehouse Booking
                             </a>
-                            <a href="/freightBookingDashboard" className="hover:text-[#0955AC]">
+                            <a
+                                href="/freightBookingDashboard"
+                                className="hover:text-[#0955AC]"
+                            >
                                 Freight Booking
                             </a>
-                            <Link href="/clientDashboardSettings" className="hover:text-[#0955AC]">
+                            <Link
+                                href="/clientDashboardSettings"
+                                className="hover:text-[#0955AC]"
+                            >
                                 Settings
                             </Link>
 
                             {/* ---------- Scroll-to-section links (Home, About Us, …) ---------- */}
                             <div className="border-t pt-4 space-y-3">
                                 <div
-                                    className="hover:text-[#ilas5AC] cursor-pointer"
+                                    className="hover:text-[#0955AC] cursor-pointer"
                                     onClick={() => handleScrollTo("home")}
                                 >
                                     Home
@@ -304,7 +406,7 @@ const ClientHeader = () => {
                         </nav>
 
                         {/* Auth / Dashboard section */}
-                        <div className="border-t pt-10 flex flex-col space-y-2">
+                        <div className="border-t pt-10 flex flex-col space-y-2 mt-auto">
                             {auth?.user ? (
                                 <>
                                     {auth.user.role_type === "driver" && (
@@ -323,7 +425,9 @@ const ClientHeader = () => {
                                             User Dashboard
                                         </Link>
                                     )}
-                                    {["admin", "superadmin"].includes(auth.user.role_type) && (
+                                    {["admin", "superadmin"].includes(
+                                        auth.user.role_type
+                                    ) && (
                                         <Link
                                             href="/admin"
                                             className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center"
@@ -342,9 +446,15 @@ const ClientHeader = () => {
 
                                     <div className="flex items-center gap-2 mt-2">
                                         <div className="h-7 w-7 border border-black rounded-full flex justify-center items-center text-[14px]">
-                                            {auth.user.name.charAt(0).toUpperCase()}
+                                            {auth.user.name
+                                                .charAt(0)
+                                                .toUpperCase()}
                                         </div>
-                                        <img src={downArrow} alt="dropdown" className="w-[8px] h-[5px]" />
+                                        <img
+                                            src={downArrow}
+                                            alt="dropdown"
+                                            className="w-[8px] h-[5px]"
+                                        />
                                     </div>
                                     <button
                                         onClick={handleLogout}
