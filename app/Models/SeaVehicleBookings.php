@@ -3,6 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\SeaVehicleBookingSchedule;
+use App\Models\SeaVehicleBookingPayment;
+use App\Models\SeaVehicleBookingAddon;
+use App\Models\SeaVehicleBookingCustomer;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class SeaVehicleBookings extends Model
 {
@@ -44,10 +50,11 @@ class SeaVehicleBookings extends Model
 
     public function client()   { return $this->belongsTo(User::class, 'client_id'); }
     public function vehicle()  { return $this->belongsTo(Vehicle::class); }
-    public function schedule() { return $this->hasOne(BookingSchedule::class); }
-    public function addons()   { return $this->hasMany(BookingAddon::class); }
-    public function payments() { return $this->hasMany(BookingPayment::class); }
-    public function customer() { return $this->hasOne(BookingCustomer::class); }
+    // Sea-specific relations use explicit foreign keys and dedicated models
+    public function schedule() { return $this->hasOne(SeaVehicleBookingSchedule::class, 'sea_vehicle_booking_id'); }
+    public function addons()   { return $this->hasMany(SeaVehicleBookingAddon::class, 'sea_vehicle_booking_id'); }
+    public function payments() { return $this->hasMany(SeaVehicleBookingPayment::class, 'sea_vehicle_booking_id'); }
+    public function customer() { return $this->hasOne(SeaVehicleBookingCustomer::class, 'sea_vehicle_booking_id'); }
 
     public function getStartDateAttribute(): ?Carbon
     {

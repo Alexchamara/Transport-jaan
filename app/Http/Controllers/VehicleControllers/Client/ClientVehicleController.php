@@ -795,5 +795,104 @@ class ClientVehicleController extends Controller
         return Storage::disk($disk)->response($path, $filename, $headers);
     }
 
+      /** Vehicle Details Page */
+    public function seaVehicleDetails($idOrSlug)
+    {
+        $base = Vehicle::query()
+            ->with([
+                'airSpec',
+                'images' => fn($q) => $q->orderByDesc('is_primary')->orderBy('sort_order')->orderBy('id'),
+                'primaryImage',
+                'documents',
+                'crewMembers',
+                'category',
+                'provider',
+                'reviews' => fn($q) => $q->latest(),
+                'reviews.client:id,name,email,country',
+                'policy',
+            ])
+            ->withAvg('reviews as rating_avg', 'rating')
+            ->withCount('reviews as reviews_count')
+            ->active();
+            // ->type('land');
+
+        $vehicle = (clone $base)
+            ->when(
+                is_numeric($idOrSlug),
+                fn($q) => $q->where('id', (int) $idOrSlug),
+                fn($q) => $q->where('registration_number', $idOrSlug)
+            )
+            ->firstOrFail();
+
+        // Ratings histogram
+        $rawBreakdown = $vehicle->reviews()
+            ->selectRaw('rating, COUNT(*) as count')
+            ->groupBy('rating')
+            ->pluck('count', 'rating');
+
+        $ratingBreakdown = collect([5, 4, 3, 2, 1])
+            ->mapWithKeys(fn($star) => [$star => (int) ($rawBreakdown[$star] ?? 0)]);
+
+        // Likes / my review
+        $likedVehicleIds = Auth::check()
+            ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
+            : [];
+        $vehicle->setAttribute('is_liked', Auth::check() && in_array($vehicle->id, $likedVehicleIds, true));
+        $myReview   = Auth::check() ? $vehicle->reviews->firstWhere('client_id', Auth::id()) : null;
+
+        $authUser =Auth::check() ? Auth::user() : null;
+        $authUserId = Auth::id();
+
+        $provider = $vehicle->provider
+        ?[
+            'id' => $vehicle->provider->id,
+            'name' => $vehicle->provider->name,
+            'email' => $vehicle->provider->email,
+            'phone' => $vehicle->provider->phone,
+        ] : null;
+        // Frontend-friendly aliases (include URLs)
+        $vehicle ->setAttribute('provider', $provider);
+        $vehicle->setAttribute('airSpec', $vehicle->airSpec);
+        $vehicle->setAttribute('primaryImage', $vehicle->primaryImage);
+        $vehicle->setAttribute('primary_image_url', $vehicle->primary_image_url);
+        $vehicle->setAttribute('images', $vehicle->images->map(fn($m) => [
+            'id'         => $m->id,
+            'title'      => $m->title,
+            'url'        => $m->url,
+            'is_primary' => (bool) $m->is_primary,
+            'sort_order' => (int) $m->sort_order,
+        ]));
+
+        // Policy URLs for UI
+        $vehicle->setAttribute('policy_pdf_url', $vehicle->policy_pdf_url);
+        $vehicle->setAttribute('policy_stream_url', $vehicle->policy_stream_url);
+
+        $similarVehicles = Vehicle::query()
+            ->active()
+            ->type('air')
+            ->where('id', '!=', $vehicle->id)
+            ->when($vehicle->category_id, fn($q) => $q->where('category_id', $vehicle->category_id))
+            ->when($vehicle->manufacturer, fn($q) => $q->where('manufacturer', $vehicle->manufacturer))
+            ->with(['primaryImage'])
+            ->take(8)
+            ->get()
+            ->map(fn($v) => [
+                'id'                   => $v->id,
+                'model'                => $v->model,
+                'manufacturer'         => $v->manufacturer,
+                'primary_image_url'    => $v->primary_image_url,
+                'rental_price_per_day' => $v->rental_price_per_day,
+            ]);
+
+        return Inertia::render('Web/home/seaVehicle/SeaVehicleDetails', [
+            'vehicle'          => $vehicle,
+            'similarVehicles'  => $similarVehicles,
+            'ratingBreakdown'  => $ratingBreakdown,
+            'likedVehicleIds'  => $likedVehicleIds,
+            'myReview'         => $myReview,
+            'authUserId'       => $authUserId,
+            'authUser'         => $authUser,
+        ]);
+    }
 
 }

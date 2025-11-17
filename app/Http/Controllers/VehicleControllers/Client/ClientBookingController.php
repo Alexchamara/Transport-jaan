@@ -22,7 +22,11 @@ use Inertia\Inertia;
 use App\Models\AirVehicleBookings;
 use App\Models\AirVehicleBookingSchedule;
 use App\Models\AirVehicleBookingAddon;
-
+use App\Models\SeaVehicleBookings;
+use App\Models\SeaVehicleBookingSchedule;   
+use App\Models\SeaVehicleBookingAddon;
+use App\Models\SeaVehicleBookingCustomer;
+use App\Models\SeaVehicleBookingPayment;
 
 class ClientBookingController extends Controller
 {
@@ -1007,6 +1011,339 @@ class ClientBookingController extends Controller
         ]);
     }
 
+
+       /** RENDER: Checkout page */
+    public function showSeaVehicleCheckout(Request $request)
+    {
+        $tripFromSession     = (array) $request->session()->get('booking_trip', []);
+        $personalFromSession = (array) $request->session()->get('booking_personal', []);
+
+        $vehicleIdFromReq  = $request->integer('vehicle_id');
+        $vehicleIdFromSess = isset($tripFromSession['vehicle_id']) ? (int) $tripFromSession['vehicle_id'] : null;
+
+        $vehicle = $vehicleIdFromReq
+            ? Vehicle::find($vehicleIdFromReq)
+            : ($vehicleIdFromSess ? Vehicle::find($vehicleIdFromSess) : null);
+
+        $extras = [];
+        if ($vehicle) {
+            $extras = VehicleFeaturePricing::forVehicle($vehicle->id)
+                ->orderBy('additional_feature_name')
+                ->get(['additional_feature_name', 'additional_feature_price'])
+                ->map(fn($row) => [
+                    'name'  => $row->additional_feature_name,
+                    'price' => (float) $row->additional_feature_price,
+                ])
+                ->values();
+        }
+
+        $booking = null;
+        if($vehicle){
+            $booking =\App\Models\SeaVehicleBookings::with('vehicle')
+            ->where('vehicle_id',$vehicle->id)
+            ->latest()
+            -> first();
+            if($booking){
+                $booking->load('customer');
+            }
+        }
+
+        $query = array_merge(
+            $tripFromSession,
+            $personalFromSession,
+            $request->only([
+                'vehicle_id',
+                'pickup_location',
+                'dropoff_location',
+                'pickup_date',
+                'pickup_time',
+                'dropoff_date',
+                'dropoff_time',
+                'addons',
+                'first_name',
+                'last_name',
+                'email',
+                'phone',
+                'country_code',
+                'age',
+                'city',
+                'zip_code',
+                'notes',
+                'address',
+                'exclude_booking_id', // NEW: forward this into the page props
+            ]),
+            
+        );
+
+         $user = $request->user();
+
+        return Inertia::render('Web/components/SeaVehicleDetails/SeaVehicleCheckoutContent', [
+            'vehicle' => $vehicle,
+            'extras'  => $extras,
+            'query'   => $query,
+            'booking' => $booking,
+            'user' =>$user,
+        ]);
+    }
+
+    public function seaVehicleStore(Request $request)
+    {
+        $userId = Auth::id();
+        abort_unless($userId, 403, 'Please login to continue.');
+
+        [$vehicle, $pickup , $dropoff, $addonsReq] = $this->validateInputsForStoreDraft($request);
+
+        $request->session()->put('booking_trip', array_merge(
+            $request->only([
+                'vehicle_id',
+                'pickup_location',
+                'dropoff_location',
+                'pickup_date',
+                'pickup_time',
+                'dropoff_date',
+                'dropoff_time',
+            ]),
+            ['addons' => $addonsReq]
+        ));
+        $request->session()->put('booking_personal', $request->only([
+            'first_name',
+            'last_name',
+            'email',
+            'phone',
+            'country_code',
+            'age',
+            'city',
+            'zip_code',
+            'notes',
+            'address'
+        ]));
+
+        $booking = DB::transaction(function () use ($vehicle, $pickup , $dropoff, $addonsReq, $userId, $request) {
+            $existing = SeaVehicleBookings::where('client_id', $userId)
+                ->where('vehicle_id', $vehicle->id)
+                ->where('status', 'pending')
+                ->with('schedule')
+                ->lockForUpdate()
+                ->first();
+
+            $overlap = SeaVehicleBookings::where('vehicle_id', $vehicle->id)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->when($existing, fn($q) => $q->where('id', '!=', $existing->id))
+                ->whereHas('schedule', function ($q) use ($pickup , $dropoff) {
+                    $q->where('pickup_at', '<', $dropoff)
+                      ->where('dropoff_at', '>', $pickup );
+                })
+                ->lockForUpdate()
+                ->exists();
+
+            if ($overlap) {
+                abort(422, 'Vehicle is not available for the selected dates.');
+            }
+
+            $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
+
+            if ($existing) {
+                $existing->update([
+                    'price_per_day'   => $calc['price_per_day'],
+                    'rental_days'     => $calc['rental_days'],
+                    'addons_total'    => $calc['addons_total'],
+                    'subtotal'        => $calc['subtotal'],
+                    'deposit_amount'  => $calc['deposit_amount'],
+                    'advance_amount'  => $calc['advance_amount'],
+                    'total_amount'    => $calc['total'],
+                    'currency'        => $vehicle->currency,
+                    'addons_snapshot' => $calc['addons_lines'],
+                    'vehicle_snapshot'=> $calc['vehicle_snapshot'],
+                    'notes'           => $request->string('notes')->toString() ?: null,
+                ]);
+
+                if ($existing->schedule) {
+                    $existing->schedule->update([
+                        'pickup_at'        => $pickup ,
+                        'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
+                        'dropoff_at'       => $dropoff,
+                        'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
+                    ]);
+                } else {
+                    SeaVehicleBookingSchedule::create([
+                        'sea_vehicle_booking_id' => $existing->id,
+                        'pickup_at'        => $pickup ,
+                        'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
+                        'dropoff_at'       => $dropoff,
+                        'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
+                    ]);
+                }
+
+                SeaVehicleBookingAddon::where('sea_vehicle_booking_id', $existing->id)->delete();
+                foreach ($calc['addons_lines'] as $line) {
+                    SeaVehicleBookingAddon::create([
+                        'sea_vehicle_booking_id' => $existing->id,
+                        'vehicle_id'      => $existing->vehicle_id,
+                        'name'       => $line['name'],
+                        'price'      => $line['price'],
+                        'qty'        => $line['qty'],
+                        'line_total' => $line['line_total'],
+                    ]);
+                }
+
+                return $existing->fresh(['schedule', 'addons']);
+            }
+
+            $booking = SeaVehicleBookings::create([
+                'client_id'       => $userId,
+                'vehicle_id'      => $vehicle->id,
+                'status'          => 'pending',
+                'price_per_day'   => $calc['price_per_day'],
+                'rental_days'     => $calc['rental_days'],
+                'addons_total'    => $calc['addons_total'],
+                'subtotal'        => $calc['subtotal'],
+                'deposit_amount'  => $calc['deposit_amount'],
+                'advance_amount'  => $calc['advance_amount'],
+                'total_amount'    => $calc['total'],
+                'currency'        => $vehicle->currency,
+                'addons_snapshot' => $calc['addons_lines'],
+                'vehicle_snapshot'=> $calc['vehicle_snapshot'],
+                'notes'           => $request->string('notes')->toString() ?: null,
+            ]);
+
+            SeaVehicleBookingSchedule::create([
+                'sea_vehicle_booking_id' => $booking->id,
+                'pickup_at'        => $pickup ,
+                'pickup_location'  => $request->string('pickup_location')->toString() ?: null,
+                'dropoff_at'       => $dropoff,
+                'dropoff_location' => $request->string('dropoff_location')->toString() ?: null,
+            ]);
+
+            foreach ($calc['addons_lines'] as $line) {
+                SeaVehicleBookingAddon::create([
+                    'sea_vehicle_booking_id' => $booking->id,
+                    'vehicle_id'      => $booking->vehicle_id,
+                    'name'       => $line['name'],
+                    'price'      => $line['price'],
+                    'qty'        => $line['qty'],
+                    'line_total' => $line['line_total'],
+                ]);
+            }
+
+            return $booking->fresh(['schedule', 'addons']);
+        });
+
+        return redirect()->route('client.seaBookings.payments', $booking->id)
+            ->with('success', 'Booking created. Continue with payment.');
+    }
+
+       private function authorizeSeaVehicleBooking(SeaVehicleBookings $seaVehicleBooking): void
+    {
+        $user = Auth::user();
+        if (!$user) abort(403);
+        if ($user->role !== 'client' && $user->id !== $seaVehicleBooking->client_id) abort(403);
+    }
+
+        /** RENDER:  Sea Vehicle Payments page */
+     public function seaVehiclePayments(SeaVehicleBookings $seaVehicleBooking)
+{
+    $this->authorizeSeaVehicleBooking($seaVehicleBooking);
+    $seaVehicleBooking->load('vehicle', 'schedule', 'addons', 'customer');
+
+ 
+
+
+    return Inertia::render('Web/components/SeaVehicleDetails/Payments', [
+        'booking' => $seaVehicleBooking,
+    ]);
+}
+
+   /** CONFIRM: POST /airBookings/{airVehicleBooking}/confirm */
+    public function seaVehicleConfirm(Request $request, SeaVehicleBookings $seaVehicleBooking)
+    {
+
+        $this->authorizeSeaVehicleBooking($seaVehicleBooking);
+
+        $validated = $request->validate([
+            'payment_method' => ['required', 'in:Credit Card,PayPal,Bank Transfer'],
+            'payment_option' => ['required', 'in:full,advance'],
+            'slip_number'    => ['nullable', 'string', 'max:255'],
+            // Accept PDF or common image formats for bank slip uploads
+            'slip_pdf'       => ['nullable', 'file', 'mimes:pdf,jpeg,jpg,png', 'max:5120'],
+        ]);
+
+        $payNow = $validated['payment_option'] === 'full'
+            ? $seaVehicleBooking->total_amount
+            : min($seaVehicleBooking->advance_amount ?: 0, $seaVehicleBooking->total_amount);
+
+        $slipPath = null;
+        if (($validated['payment_method'] === 'Bank Transfer') && $request->file('slip_pdf')) {
+            $slipPath = $request->file('slip_pdf')->store('bank_slips', 'public');
+        }
+
+        DB::transaction(function () use ($seaVehicleBooking, $validated, $payNow, $slipPath, $request) {
+            // Use the dedicated sea booking payments table to avoid FK conflicts
+            SeaVehicleBookingPayment::create([
+                'sea_vehicle_booking_id' => $seaVehicleBooking->id,
+                'method'       => $validated['payment_method'],
+                'option'       => $validated['payment_option'],
+                'amount_paid'  => $payNow,
+                'status'       => 'paid',
+                'slip_number'  => $validated['slip_number'] ?? null,
+                'slip_path'    => $slipPath,
+                'tx_reference' => null,
+            ]);
+
+            $rawPersonal = (array) $request->session()->pull('booking_personal', []);
+                if ($rawPersonal && !$seaVehicleBooking->customer) {
+                $personal = Validator::make($rawPersonal, [
+                    'first_name'   => ['nullable', 'string', 'max:255'],
+                    'last_name'    => ['nullable', 'string', 'max:255'],
+                    'email'        => ['nullable', 'email', 'max:255'],
+                    'phone'        => ['nullable', 'regex:/^\+?\d{7,15}$/', 'max:20'],
+                    'country_code' => ['nullable', 'string', 'max:5'],
+                    'city'         => ['nullable', 'string', 'max:255'],
+                    'zip_code'     => ['nullable', 'string', 'max:20'],
+                    'age'          => ['nullable', 'integer', 'min:18', 'max:120'],
+                    'address'      => ['nullable', 'string', 'max:255'],
+                    'notes'        => ['nullable', 'string'],
+                ])->validate();
+
+                if (collect($personal)->filter(fn($v) => filled($v))->isNotEmpty()) {
+                    // For sea vehicle bookings create a dedicated sea booking customer row.
+                    SeaVehicleBookingCustomer::create(array_merge($personal, ['sea_vehicle_booking_id' => $seaVehicleBooking->id]));
+                }
+            }
+
+            $seaVehicleBooking->load('schedule');
+            $overlap = SeaVehicleBookings::where('vehicle_id', $seaVehicleBooking->vehicle_id)
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->where('id', '!=', $seaVehicleBooking->id)
+                ->whereHas('schedule', function ($q) use ($seaVehicleBooking) {
+                    $q->where('pickup_at', '<', $seaVehicleBooking->schedule->dropoff_at)
+                      ->where('dropoff_at', '>', $seaVehicleBooking->schedule->pickup_at);
+                })
+                ->lockForUpdate()
+                ->exists();
+            if ($overlap) {
+                abort(422, 'Vehicle is no longer available for those dates.');
+            }
+
+            $seaVehicleBooking->update(['status' => 'confirmed']);
+            $request->session()->forget(['booking_trip']);
+        });
+
+        // Use a proper redirect so we can flash session data with ->with()
+        return redirect()->route('client.seaBookings.summary', $seaVehicleBooking->id)
+            ->with('success', 'Booking confirmed!');
+    }
+
+    /** RENDER: Summary page */
+    public function seaVehicleSummary(SeaVehicleBookings $seaVehicleBooking)
+    {
+        // Use the sea-specific authorizer and the correct model type.
+        $this->authorizeSeaVehicleBooking($seaVehicleBooking);
+        $seaVehicleBooking->load('vehicle', 'vehicle.provider', 'schedule', 'addons', 'payments', 'customer');
+
+        return Inertia::render('Web/home/seaVehicle/Summary', [
+            'booking' => $seaVehicleBooking,
+        ]);
+    }
 
 
 }

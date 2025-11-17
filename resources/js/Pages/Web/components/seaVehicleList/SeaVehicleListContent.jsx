@@ -65,7 +65,7 @@ const SeaVehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehic
 };
 
 
-  const view = (id) => router.visit(`/vehicleDetails/${id}`);
+  const view = (id) => router.visit(`/seaVehicleDetails/${id}`);
 
   return (
     <div className="w-full py-6 md:py-12 px-4 md:px-40">
