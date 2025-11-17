@@ -299,7 +299,7 @@ const Create = () => {
                 </div>
             </section>
 
-            <main className="container mx-auto px-4 -mt-16 mb-16 flex-1">
+            <main className="container mx-auto px-4 mt-16 mb-16 flex-1">
                 <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
                     {flash?.success && (
                         <div className="mb-6 space-y-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
