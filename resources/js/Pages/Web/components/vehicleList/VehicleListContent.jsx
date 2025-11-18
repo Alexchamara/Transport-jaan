@@ -64,8 +64,10 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
   }
 };
 
-
-  const view = (id) => router.visit(`/vehicleDetails/${id}`);
+ const view = (id) => {
+    const search = window.location.search || "";
+    router.visit(`/vehicleDetails/${id}${search}`);
+  };
 
   return (
     <div className="w-full py-6 md:py-12 px-4 md:px-40">

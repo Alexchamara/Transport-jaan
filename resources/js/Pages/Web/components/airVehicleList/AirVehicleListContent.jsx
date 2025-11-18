@@ -64,8 +64,10 @@ const AirVehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehic
   }
 };
 
-
-  const view = (id) => router.visit(`/airVehicleDetails/${id}`);
+ const view = (id) => {
+    const search = window.location.search || "";
+    router.visit(`/airVehicleDetails/${id}${search}`);
+  };
 
   return (
     <div className="w-full py-6 md:py-12 px-4 md:px-40">

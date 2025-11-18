@@ -27,6 +27,31 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const [pickupTime, setPickupTime] = useState("0:00");
   const [dropoffDate, setDropoffDate] = useState("");
   const [dropoffTime, setDropoffTime] = useState("0:00");
+  const [dateError, setDateError] = useState("");
+
+  // Initialize form values from URL query params (if present)
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search || "");
+      const pLoc = sp.get("pickupLocation") || sp.get("pickup_location");
+      const dLoc = sp.get("dropoffLocation") || sp.get("dropoff_location");
+      const pDate = sp.get("pickupDate") || sp.get("pickup_date");
+      const dDate = sp.get("dropoffDate") || sp.get("dropoff_date");
+      const pTime = sp.get("pickupTime") || sp.get("pickup_time");
+      const dTime = sp.get("dropoffTime") || sp.get("dropoff_time");
+
+      if (pLoc && !pickupLocation) setPickupLocation(pLoc);
+      if (dLoc && !dropoffLocation) setDropoffLocation(dLoc);
+      if (pDate && !pickupDate) setPickupDate(pDate);
+      if (dDate && !dropoffDate) setDropoffDate(dDate);
+      if (pTime && (pickupTime === "0:00" || !pickupTime)) setPickupTime(pTime);
+      if (dTime && (dropoffTime === "0:00" || !dropoffTime)) setDropoffTime(dTime);
+    } catch (e) {
+      // ignore
+    }
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [serverExtras, setServerExtras] = useState(
     Array.isArray(props?.extras) ? props.extras : []
