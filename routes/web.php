@@ -336,7 +336,7 @@ Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->nam
     Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/warehouse/Expenses'))->name('expenses');
     Route::get('/payment', fn() => Inertia::render('Web/home/vendors/warehouse/Payment'))->name('payment');
     Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/warehouse/Tracking'))->name('tracking');
-    Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/warehouse/Calendar'))->name('calendar');
+    Route::get('/calendar', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseCalendarController::class, 'index'])->name('calendar');
 
     // API routes for warehouse units
     Route::get('/api/units', [WarehouseUnitController::class, 'index'])->name('api.units.index');
@@ -794,9 +794,7 @@ Route::get('/warehouse/tracking', function () {
     return Inertia::render('Web/home/vendors/warehouse/Tracking');
 })->name('warehouse.tracking');
 
-Route::get('/warehouse/calendar', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Calendar');
-})->name('warehouse.calendar');
+Route::get('/warehouse/calendar', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseCalendarController::class, 'index'])->name('warehouse.calendar');
 
 Route::get('/warehouse/addUnit', function () {
     return Inertia::render('Web/home/vendors/warehouse/AddUnit');
