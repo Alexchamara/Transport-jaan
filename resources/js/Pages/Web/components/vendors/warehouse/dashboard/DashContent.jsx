@@ -1015,50 +1015,6 @@ const DashContent = () => {
                     <h1 className="figtree text-[35px] font-[700]">
                         Warehouse Dashboard
                     </h1>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={refreshAllData}
-                            disabled={refreshing}
-                            className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors disabled:opacity-50"
-                            title="Refresh dashboard data"
-                        >
-                            <RefreshCw
-                                size={20}
-                                className={`text-blue-600 ${
-                                    refreshing ? "animate-spin" : ""
-                                }`}
-                            />
-                        </button>
-                        <button
-                            onClick={toggleLiveMode}
-                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                                liveMode
-                                    ? "bg-green-100 text-green-800 border border-green-200"
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
-                            title={
-                                liveMode
-                                    ? "Disable live updates"
-                                    : "Enable live updates"
-                            }
-                        >
-                            <div className="flex items-center gap-1">
-                                <div
-                                    className={`w-2 h-2 rounded-full ${
-                                        liveMode
-                                            ? "bg-green-500 animate-pulse"
-                                            : "bg-gray-400"
-                                    }`}
-                                ></div>
-                                {liveMode ? "LIVE" : "OFFLINE"}
-                            </div>
-                        </button>
-                        {liveMode && (
-                            <span className="text-xs text-gray-500">
-                                Updated: {lastUpdated.toLocaleTimeString()}
-                            </span>
-                        )}
-                    </div>
                 </div>
                 {/* <div className="flex flex-row gap-5">
                     <div 
