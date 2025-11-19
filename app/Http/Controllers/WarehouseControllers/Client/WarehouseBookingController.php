@@ -490,7 +490,7 @@ class WarehouseBookingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Please log in to make a booking.',
-                'redirect' => route('login')
+                'redirect' => route('signin')
             ], 401);
         }
 
