@@ -338,6 +338,14 @@ Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->nam
     Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/warehouse/Tracking'))->name('tracking');
     Route::get('/calendar', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseCalendarController::class, 'index'])->name('calendar');
 
+    // Notification routes
+    Route::get('/notifications', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'index'])->name('notifications');
+    Route::get('/notifications/data', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'getData'])->name('notifications.data');
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'destroy'])->name('notifications.destroy');
+
     // API routes for warehouse units
     Route::get('/api/units', [WarehouseUnitController::class, 'index'])->name('api.units.index');
     Route::post('/api/units', [WarehouseUnitController::class, 'store'])->name('api.units.store');

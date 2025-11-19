@@ -5,10 +5,13 @@ import proPic from "../assets/header/profilePic.svg";
 import bell from "../assets/header/bell.svg";
 import search from "../assets/header/search.svg";
 import useCSRFRefresh from "../../../hooks/useCSRFRefresh.js";
+import NotificationDropdown from "../components/vendors/warehouse/NotificationDropdown";
 
 const Header = () => {
     const { auth } = usePage().props;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     // ---------- Dropdown state ----------
     const [openDropdown, setOpenDropdown] = useState({
@@ -23,6 +26,35 @@ const Header = () => {
             ticket: key === "ticket" ? !prev.ticket : false,
             courier: key === "courier" ? !prev.courier : false,
         }));
+    };
+
+    // ---------- Fetch notifications ----------
+    useEffect(() => {
+        if (auth?.user) {
+            fetchNotifications();
+            // Refresh notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [auth?.user]);
+
+    const fetchNotifications = async () => {
+        try {
+            console.log('Fetching warehouse notifications...');
+            const response = await fetch('/vendors/warehouse/notifications/data');
+            console.log('Response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Notifications data:', data);
+                setNotifications(data.notifications || []);
+                setUnreadCount(data.unreadCount || 0);
+            } else {
+                console.error('Failed to fetch notifications:', response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error('Failed to fetch notifications:', error);
+        }
     };
 
     // ---------- CSRF & Logout ----------
@@ -158,12 +190,10 @@ const Header = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    <div className="size-[27px] md:size-[55px] rounded-full bg-[#E8EBEF] flex justify-center items-center">
-                        <img
-                            src={bell}
-                            className="size-[18px] md:w-[24px] md:h-[23px]"
-                        />
-                    </div>
+                    <NotificationDropdown 
+                        notifications={notifications}
+                        unreadCount={unreadCount}
+                    />
                     <div
                         className="size-[27px] md:size-[55px] flex justify-center items-center cursor-pointer"
                         onClick={() => router.visit("/settingsPage")}
