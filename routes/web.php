@@ -1021,7 +1021,7 @@ Route::get('/clientDashboardSettings', function () {
 
 Route::get('/clientTicketBookingDashboard', function () {
     return Inertia::render('Web/home/client/ClientTicketBookingDashboard');
-})->name('clientTicketBookingDashboard');
+})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
 
 Route::get('/clientVehicleDashboard', function () {
     return Inertia::render('Web/home/client/ClientVehicleDashboard');
@@ -1109,7 +1109,6 @@ foreach ($sections as $slug => $baseView) {
 */
 Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
 Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
-Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
 // Courier booking dashboard moved to protected routes with controller above
 Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
 Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');

@@ -30,81 +30,15 @@ import {
 } from "recharts";
 
 // ---------- Mock Data (Ticket Bookings) ----------
-const monthly = [
-  { month: "Jan", flight: 120, train: 240, bus: 360 },
-  { month: "Feb", flight: 140, train: 220, bus: 380 },
-  { month: "Mar", flight: 160, train: 260, bus: 400 },
-  { month: "Apr", flight: 180, train: 250, bus: 390 },
-  { month: "May", flight: 200, train: 270, bus: 420 },
-  { month: "Jun", flight: 210, train: 300, bus: 450 },
-  { month: "Jul", flight: 230, train: 320, bus: 470 },
-  { month: "Aug", flight: 240, train: 330, bus: 480 },
-  { month: "Sep", flight: 220, train: 310, bus: 460 },
-  { month: "Oct", flight: 210, train: 290, bus: 430 },
-  { month: "Nov", flight: 180, train: 270, bus: 410 },
-  { month: "Dec", flight: 160, train: 250, bus: 390 },
-];
+const monthly = [];
 
 const services = {
-  flight: [
-    { id: "F-001", name: "CMB → DXB", rating: 4.7, location: "Colombo", price: 420, unit: "ticket" },
-    { id: "F-002", name: "CMB → SIN", rating: 4.6, location: "Colombo", price: 350, unit: "ticket" },
-    { id: "F-003", name: "CMB → DEL", rating: 4.5, location: "Colombo", price: 280, unit: "ticket" },
-  ],
-  train: [
-    { id: "T-101", name: "Colombo ⇄ Kandy (Intercity)", rating: 4.8, location: "Colombo", price: 5, unit: "seat" },
-    { id: "T-102", name: "Colombo ⇄ Galle (Express)", rating: 4.5, location: "Colombo", price: 4, unit: "seat" },
-    { id: "T-103", name: "Kandy ⇄ Badulla (Scenic)", rating: 4.9, location: "Kandy", price: 6, unit: "seat" },
-  ],
-  bus: [
-    { id: "B-501", name: "Colombo ⇄ Jaffna (Night)", rating: 4.4, location: "Colombo", price: 9, unit: "seat" },
-    { id: "B-502", name: "Colombo ⇄ Trincomalee", rating: 4.3, location: "Colombo", price: 8, unit: "seat" },
-    { id: "B-503", name: "Matara ⇄ Colombo (AC)", rating: 4.6, location: "Matara", price: 7, unit: "seat" },
-  ],
+  flight: [],
+  train: [],
+  bus: [],
 };
 
-const bookings = [
-  {
-    code: "TB-202508-001",
-    mode: "flight",
-    item: "CMB → DXB",
-    from: "2025-09-01 05:30",
-    to: "2025-09-01 09:20",
-    pickup: "BIA (CMB)",
-    status: "confirmed",
-    amount: 420,
-  },
-  {
-    code: "TB-202508-002",
-    mode: "train",
-    item: "Colombo ⇄ Kandy (Intercity)",
-    from: "2025-08-30 07:00",
-    to: "2025-08-30 09:35",
-    pickup: "Fort Station",
-    status: "paid",
-    amount: 10,
-  },
-  {
-    code: "TB-202508-003",
-    mode: "bus",
-    item: "Colombo ⇄ Jaffna (Night)",
-    from: "2025-09-02 22:00",
-    to: "2025-09-03 05:30",
-    pickup: "Bastian Mawatha",
-    status: "pending",
-    amount: 18,
-  },
-  {
-    code: "TB-202508-004",
-    mode: "flight",
-    item: "CMB → SIN",
-    from: "2025-08-28 13:10",
-    to: "2025-08-28 19:40",
-    pickup: "BIA (CMB)",
-    status: "cancelled",
-    amount: 350,
-  },
-];
+const bookings = [];
 
 // ---------- Helpers ----------
 const ModeIcon = ({ mode, className }) => {
@@ -163,6 +97,16 @@ const Hero = () => {
 
   const upcoming = bookings.filter((r) => ["confirmed", "paid", "pending"].includes(r.status));
 
+  // Calculate KPI values
+  const upcomingFlights = bookings.filter((r) => r.mode === "flight" && ["confirmed", "paid", "pending"].includes(r.status)).length;
+  const trainSeatsReserved = bookings.filter((r) => r.mode === "train" && ["confirmed", "paid", "pending"].includes(r.status)).length;
+  const busTicketsThisMonth = bookings.filter((r) => {
+    if (r.mode !== "bus" || !["confirmed", "paid", "pending"].includes(r.status)) return false;
+    const bookingDate = new Date(r.from);
+    const currentDate = new Date();
+    return bookingDate.getMonth() === currentDate.getMonth() && bookingDate.getFullYear() === currentDate.getFullYear();
+  }).length;
+
   return (
     <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
       <div className="mx-auto max-w-[1300px]">
@@ -191,9 +135,11 @@ const Hero = () => {
               <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
                 <Plane className="h-8 w-8" /> Upcoming Flights
               </p>
-              <h3 className="text-[26px] font-[700] text-[#0955AC]">7</h3>
+              <h3 className="text-[26px] font-[700] text-[#0955AC]">{upcomingFlights}</h3>
             </div>
-            <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">+2 this week</div>
+            <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
+              {upcomingFlights > 0 ? `${upcomingFlights} booking${upcomingFlights !== 1 ? 's' : ''}` : 'No upcoming flights'}
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm">
@@ -201,9 +147,11 @@ const Hero = () => {
               <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
                 <TrainFront className="h-8 w-8" /> Train Seats Reserved
               </p>
-              <h3 className="text-[26px] font-[700] text-[#0955AC]">124</h3>
+              <h3 className="text-[26px] font-[700] text-[#0955AC]">{trainSeatsReserved}</h3>
             </div>
-            <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">4 services today</div>
+            <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
+              {trainSeatsReserved > 0 ? `${trainSeatsReserved} seat${trainSeatsReserved !== 1 ? 's' : ''}` : 'No train bookings'}
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm">
@@ -211,9 +159,11 @@ const Hero = () => {
               <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
                 <Bus className="h-8 w-8" /> Bus Tickets This Month
               </p>
-              <h3 className="text-[26px] font-[700] text-[#0955AC]">480</h3>
+              <h3 className="text-[26px] font-[700] text-[#0955AC]">{busTicketsThisMonth}</h3>
             </div>
-            <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">+5% vs last month</div>
+            <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
+              {busTicketsThisMonth > 0 ? `${busTicketsThisMonth} ticket${busTicketsThisMonth !== 1 ? 's' : ''}` : 'No bus tickets'}
+            </div>
           </div>
         </div>
 
