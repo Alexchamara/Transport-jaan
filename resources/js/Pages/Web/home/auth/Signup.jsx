@@ -93,7 +93,7 @@ const Signup = () => {
                         <button 
                             onClick={e => {
                                 e.preventDefault();
-                                post(route('signin'), {
+                                post(route('login'), {
                                     onFinish: () => {
                                         // Reset form
                                         setData('password', '');

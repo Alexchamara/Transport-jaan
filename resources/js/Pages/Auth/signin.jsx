@@ -4,7 +4,7 @@ import { router } from '@inertiajs/react';
 export default function Signin() {
     useEffect(() => {
         // Redirect to the actual login page
-        router.visit('/signin');
+        router.visit('/login');
     }, []);
 
     return (

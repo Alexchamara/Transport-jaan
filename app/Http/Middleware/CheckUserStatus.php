@@ -38,7 +38,7 @@ class CheckUserStatus
                 return response()->json(['message' => 'Your account has been deactivated.'], 403);
             }
 
-            return redirect()->route('signin')
+            return redirect()->route('login')
                 ->with('status', 'Your account has been deactivated. Please contact admin for assistance.');
         }
 
