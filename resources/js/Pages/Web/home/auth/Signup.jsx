@@ -9,6 +9,7 @@ const Signup = () => {
     const { data, setData, post, processing, errors } = useForm({
         email: '',
         password: '',
+        remember: false,
     });
 
     const handleSubmit = (e) => {
@@ -96,9 +97,20 @@ const Signup = () => {
                                             {errors.password}
                                         </div>
                                     )}
-                                    <h1 className="flex justify-end font-[500] cursor-pointer px-10">
-                                        Forgot Password?
-                                    </h1>
+                                    <div className="flex flex-col gap-2 px-10">
+                                        <label className="flex items-center gap-2 text-[12px] font-[500] text-[#FFFFFFB2]">
+                                            <input
+                                                type="checkbox"
+                                                checked={data.remember}
+                                                onChange={e => setData('remember', e.target.checked)}
+                                                className="w-4 h-4 accent-[#2E6099]"
+                                            />
+                                            Remember me on this device
+                                        </label>
+                                        <span className="text-[12px] font-[500] text-right cursor-pointer">
+                                            Forgot Password?
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             <button 
