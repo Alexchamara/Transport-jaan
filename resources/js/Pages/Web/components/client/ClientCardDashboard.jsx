@@ -48,7 +48,7 @@ const ClientCardDashboard = () => {
       route: '/warehouse',
       subOptions: [
         { name: 'Find Warehouses', route: '/warehouseList' },
-        { name: 'Book Storage', route: '/warehouse-bookings' },
+        // { name: 'Book Storage', route: '/warehouse-bookings' },
         { name: 'My Warehouse Bookings', route: '/warehouseBookingDashboard' }
       ]
     },
