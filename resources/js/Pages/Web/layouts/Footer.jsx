@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "@inertiajs/react";
 
 import linkedin from "../assets/rentAVehicle/footer/linkedin.png";
 import fb from "../assets/rentAVehicle/footer/fb.png";
@@ -7,6 +8,13 @@ import twitter from "../assets/rentAVehicle/footer/twitter.png";
 import CurrentYear from "../components/rentAVehicle/CurrentYear";
 
 const Footer = () => {
+    const handleScroll = (id) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: "smooth" });
+        }
+    };
+
     return (
         <footer className="w-full py-6 sm:py-12 bg-[#0A142F] text-white">
             <div className="container mx-auto px-4 sm:px-6 mt-6 sm:mt-10">
@@ -20,24 +28,24 @@ const Footer = () => {
                             </h3>
                             <ul className="space-y-2">
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link href="/clientRent" className="hover:text-blue-400 transition-colors duration-200">
                                         Vehicle Rental
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link href="/ticketBooking" className="hover:text-blue-400 transition-colors duration-200">
                                         Ticket Booking
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link href="/courier-service" className="hover:text-blue-400 transition-colors duration-200">
                                         Courier Service
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link href="/drivers-home" className="hover:text-blue-400 transition-colors duration-200">
                                         Drivers
-                                    </a>
+                                    </Link>
                                 </li>
                             </ul>
                         </div>
@@ -49,19 +57,33 @@ const Footer = () => {
                             </h3>
                             <ul className="space-y-2">
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="#faq"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleScroll("faq");
+                                        }}
+                                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                                    >
                                         FAQ
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link href="/landingPage/blog" className="hover:text-blue-400 transition-colors duration-200">
                                         Blog
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="#support"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleScroll("support");
+                                        }}
+                                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                                    >
                                         Support
-                                    </a>
+                                    </Link>
                                 </li>
                             </ul>
                         </div>
@@ -73,19 +95,40 @@ const Footer = () => {
                             </h3>
                             <ul className="space-y-2">
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="#about"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleScroll("about");
+                                        }}
+                                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                                    >
                                         About Us
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="#careers"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleScroll("careers");
+                                        }}
+                                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                                    >
                                         Careers
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="#contact"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleScroll("contact");
+                                        }}
+                                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                                    >
                                         Contact Us
-                                    </a>
+                                    </Link>
                                 </li>
                             </ul>
                         </div>
@@ -97,19 +140,40 @@ const Footer = () => {
                             </h3>
                             <ul className="space-y-2">
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="#privacy"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleScroll("privacy");
+                                        }}
+                                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                                    >
                                         Privacy Policy
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="#terms"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleScroll("terms");
+                                        }}
+                                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                                    >
                                         Terms & Conditions
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li>
-                                    <a href="#" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="#help"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleScroll("help");
+                                        }}
+                                        className="hover:text-blue-400 transition-colors duration-200 cursor-pointer"
+                                    >
                                         Help Center
-                                    </a>
+                                    </Link>
                                 </li>
                             </ul>
                         </div>
@@ -163,11 +227,11 @@ const Footer = () => {
                 <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-700 flex flex-col md:flex-row items-center justify-between gap-4">
                     {/* Logo */}
                     <div className="text-center md:text-left">
-                        <h3 className="text-xl sm:text-2xl font-bold">
+                        <Link href="/" className="text-xl sm:text-2xl font-bold hover:text-blue-400 transition-colors duration-200">
                             COMPANY
                             <br />
                             LOGO
-                        </h3>
+                        </Link>
                     </div>
                     {/* Copyright */}
                     <p className="figtree text-[14px] sm:text-[16px] text-[#FFFFFF] text-center">
@@ -178,7 +242,9 @@ const Footer = () => {
                     <div className="flex space-x-3 sm:space-x-4">
                         {/* LinkedIn Icon */}
                         <a
-                            href="#"
+                            href="https://www.linkedin.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-gray-400 hover:text-blue-400 flex items-center justify-center rounded-full border-[1.5px] border-[#FFFFFF] w-[32px] h-[32px] sm:w-[35px] sm:h-[35px] p-2 transition-colors duration-200"
                         >
                             <img
@@ -189,7 +255,9 @@ const Footer = () => {
                         </a>
                         {/* Facebook Icon */}
                         <a
-                            href="#"
+                            href="https://www.facebook.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-gray-400 hover:text-blue-400 flex items-center justify-center rounded-full border-[1.5px] border-[#FFFFFF] w-[32px] h-[32px] sm:w-[35px] sm:h-[35px] p-2 transition-colors duration-200"
                         >
                             <img
@@ -200,7 +268,9 @@ const Footer = () => {
                         </a>
                         {/* Twitter Icon */}
                         <a
-                            href="#"
+                            href="https://www.twitter.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="text-gray-400 hover:text-blue-400 flex items-center justify-center rounded-full border-[1.5px] border-[#FFFFFF] w-[32px] h-[32px] sm:w-[35px] sm:h-[35px] p-2 transition-colors duration-200"
                         >
                             <img

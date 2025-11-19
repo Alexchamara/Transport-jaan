@@ -9,6 +9,10 @@ import route from "../../assets/flight/route.svg";
 import leftArrow from "../../assets/flight/arrowLeft.svg";
 
 const ContentOne = () => {
+    const handleBookNow = () => {
+        alert('Coming Soon');
+    };
+
     return (
         <div className="flex flex-col justify-center items-center px-10 py-10 bg-[#DCDCDC]">
             <h1 className="bebas-neue text-[52px]/[76px] font-[400]">
@@ -71,7 +75,7 @@ const ContentOne = () => {
                                 <h1 className="text-[16px] text-[#737373] font-[500]">
                                     18 Seats left
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] border-[1px] border-[#E4E6E8] text-[14px] font-[800] flex justify-center items-center cursor-pointer">
+                                <div onClick={handleBookNow} className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] border-[1px] border-[#E4E6E8] text-[14px] font-[800] flex justify-center items-center cursor-pointer">
                                     Book Now
                                 </div>
                             </div>
@@ -128,7 +132,7 @@ const ContentOne = () => {
                                 <h1 className="text-[16px] text-[#737373] font-[500]">
                                     18 Seats left
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] border-[1px] border-[#E4E6E8] text-[14px] font-[800] flex justify-center items-center cursor-pointer">
+                                <div onClick={handleBookNow} className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] border-[1px] border-[#E4E6E8] text-[14px] font-[800] flex justify-center items-center cursor-pointer">
                                     Book Now
                                 </div>
                             </div>
@@ -188,7 +192,7 @@ const ContentOne = () => {
                                 <h1 className="text-[16px] text-[#737373] font-[500]">
                                     18 Seats left
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] border-[1px] border-[#E4E6E8] text-[14px] font-[800] flex justify-center items-center cursor-pointer">
+                                <div onClick={handleBookNow} className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] border-[1px] border-[#E4E6E8] text-[14px] font-[800] flex justify-center items-center cursor-pointer">
                                     Book Now
                                 </div>
                             </div>
@@ -245,7 +249,7 @@ const ContentOne = () => {
                                 <h1 className="text-[16px] text-[#737373] font-[500]">
                                     18 Seats left
                                 </h1>
-                                <div className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] border-[1px] border-[#E4E6E8] text-[14px] font-[800] flex justify-center items-center cursor-pointer">
+                                <div onClick={handleBookNow} className="w-[104px] h-[40px] bg-[#F2F4F6] rounded-[50px] border-[1px] border-[#E4E6E8] text-[14px] font-[800] flex justify-center items-center cursor-pointer">
                                     Book Now
                                 </div>
                             </div>
