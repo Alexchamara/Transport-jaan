@@ -122,16 +122,16 @@ const Footer = () => {
                             <h4 className="text-[16px] font-[700] mb-2">
                                 Subscribe
                             </h4>
-                            <div className="flex mt-5 justify-items-center">
+                            <div className="flex flex-col sm:flex-row mt-5 items-center gap-2">
                                 <input
                                     type="email"
                                     placeholder="Email address"
-                                    className="flex-1 px-3 sm:px-4 py-2 text-[#7A7E92] bg-[#FFFFFF] h-[45px] sm:h-[50px] w-auto rounded-l-[6px] text-sm sm:text-base"
+                                    className="w-full flex-1 px-3 sm:px-4 py-2 text-[#7A7E92] bg-[#FFFFFF] h-[45px] sm:h-[50px] rounded-t-[6px] sm:rounded-t-none sm:rounded-l-[6px] text-sm sm:text-base"
                                 />
-                                <button className="px-3 sm:px-4 py-5 bg-[#0955AC] rounded-r-[6px] cursor-pointer h-[45px] sm:h-[50px] hover:bg-[#074a94] transition-colors duration-200">
+                                <button className="w-full sm:w-auto px-4 bg-[#0955AC] rounded-b-[6px] sm:rounded-b-none sm:rounded-r-[6px] cursor-pointer h-[45px] sm:h-[50px] flex items-center justify-center hover:bg-[#074a94] transition-colors duration-200">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
-                                        className="h-5 w-5 sm:h-6 sm:w-6"
+                                        className="h-5 w-5 sm:h-6 sm:w-6 text-white"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                         stroke="currentColor"

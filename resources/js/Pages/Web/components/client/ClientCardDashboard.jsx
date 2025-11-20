@@ -77,12 +77,14 @@ const ClientCardDashboard = () => {
   ];
 
   return (
-    <div className='flex flex-col justify-start items-center px-10 py-20 relative h-full'>
-      <h1 className="text-[40px] font-[700] text-[#0955AC] absolute top-0 left-20 poppins">Client Dashboard</h1>
-      <div className='w-full rounded-[10px] mb-20 text-[44px] font-[700] pl-10 poppins'>
+    <div className='flex flex-col justify-start items-center px-4 sm:px-10 py-8 sm:py-20 relative h-full'>
+      <h1 className="w-full max-w-6xl text-2xl sm:text-3xl md:text-4xl font-[700] text-[#0955AC] poppins mb-6 sm:mb-10">
+        Client Dashboard
+      </h1>
+      <div className='w-full max-w-6xl rounded-[10px] mb-6 sm:mb-12 text-lg sm:text-2xl font-[700] px-4 sm:px-8 poppins'>
         Hello, {auth?.user?.name || 'Guest'} 👋
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
         {services.map((service, index) => (
           <ClientCard
             key={index}

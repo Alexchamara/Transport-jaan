@@ -140,20 +140,20 @@ const handleViewMore = () => {
   };
 
   return (
-    <div className="w-full py-12 px-10">
+    <div className="w-full py-12 px-4 sm:px-6 lg:px-10">
       <div className="container mx-auto">
-        <h2 className="bebas-neue text-[40px] font-[400] text-center mb-8">
+        <h2 className="bebas-neue text-[28px] sm:text-[36px] md:text-[40px] font-[400] text-center mb-8">
           OUR <span className="text-[#0955AC]">IMPRESSIVE COLLECTION</span> OF VEHICLES
         </h2>
-        <p className="poppins text-[#0F0F0F80] text-[15px] text-center mb-10">
+        <p className="poppins text-[#0F0F0F80] text-[14px] sm:text-[15px] text-center mb-10">
           Ranging from elegant sedans to powerful vehicles, all carefully selected to provide
           our customers <br /> with the ultimate driving experience.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-[50px] justify-items-center p-5 px-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-[50px] justify-items-center p-4 sm:p-6 md:p-8 lg:p-10">
           {vehicles.map((vehicle) => (
             <div
               key={vehicle.id}
-              className="bg-[#EAEAE9] shadow-md overflow-hidden h-auto w-full max-w-[286px] py-3 sm:py-4 md:py-5"
+              className="bg-[#EAEAE9] shadow-md overflow-hidden h-auto w-full sm:max-w-[286px] py-3 sm:py-4 md:py-5"
             >
               {/* Specs */}
               <div className="flex items-center justify-center mt-3 sm:mt-4 md:mt-5">
@@ -179,22 +179,22 @@ const handleViewMore = () => {
 
               {/* Vehicle Image */}
               <div className="flex items-center justify-center p-2 sm:p-3 md:p-4">
-                <div className="relative w-full h-[180px] sm:h-[200px] md:h-[220px] overflow-hidden bg-white rounded">
-                  <img
-                    src={getVehicleImageSrc(vehicle)}
-                    alt={vehicle.model || "Vehicle"}
-                    className="absolute inset-0 w-full h-full object-cover object-center"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = placeholderImg;
-                    }}
-                    loading="lazy"
-                  />
-                </div>
+                    <div className="relative w-full overflow-hidden bg-white rounded" style={{ aspectRatio: '3 / 4' }}>
+                      <img
+                        src={getVehicleImageSrc(vehicle)}
+                        alt={vehicle.model || "Vehicle"}
+                        className="absolute inset-0 w-full h-full object-contain object-center"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = placeholderImg;
+                        }}
+                        loading="lazy"
+                      />
+                    </div>
               </div>
 
               {/* Vehicle Info */}
-              <div className="p-2 sm:p-3 flex flex-col items-center justify-center">
+                <div className="p-2 sm:p-3 flex flex-col items-center justify-center">
                 <h3 className="bebas-neue text-[24px] sm:text-[26px] md:text-[30px] font-[400] text-center">
                   {(vehicle.model || "").split(" ").map((word, i) => (
                     <span key={i} className={i === 1 ? "text-[#0955AC]" : ""}>
@@ -208,16 +208,16 @@ const handleViewMore = () => {
                 </p>
 
                 {/* Buttons */}
-                <div className="flex gap-2 mt-3 sm:mt-4 w-full justify-center">
+                <div className="flex flex-col sm:flex-row gap-2 mt-3 sm:mt-4 w-full justify-center items-center">
                   <button
                     onClick={() => handleViewDetails(vehicle.id)}
-                    className="bebas-neue bg-[#0955AC] hover:bg-white hover:text-black text-white text-[8px] sm:text-[9px] font-[400] py-1.5 sm:py-2 px-3 sm:px-4 rounded w-[160px] sm:w-[180px] md:w-[194px] h-[28px] sm:h-[30px] cursor-pointer"
+                    className="bebas-neue bg-[#0955AC] hover:bg-white hover:text-black text-white text-[10px] sm:text-[11px] font-[400] py-2 px-4 rounded w-full sm:w-[160px] md:w-[180px] h-[36px] sm:h-[38px] cursor-pointer"
                   >
                     View Details
                   </button>
                   <button
                     onClick={() => toggleLike(vehicle.id)}
-                    className="h-[42px] w-[42px] rounded border border-[#0955AC] grid place-items-center bg-white"
+                    className="h-[42px] w-[42px] rounded border border-[#0955AC] grid place-items-center bg-white mt-2 sm:mt-0 sm:ml-2"
                     aria-label={likedMap[vehicle.id] ? 'Unlike' : 'Like'}
                   >
                     <img
