@@ -1099,6 +1099,10 @@ Route::get('/clientVehicleDashboard', function () {
     ]);
 })->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientVehicleDashboard');
 
+Route::get('/clientAllBookings', function () {
+    return Inertia::render('Web/home/client/ClientAllBookings');
+})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientAllBookings');
+
 // Courier booking dashboard moved to protected routes with controller
 
 Route::get('/warehouseBookingDashboard', function () {

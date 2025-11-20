@@ -67,10 +67,10 @@ const ClientCardDashboard = () => {
       title: 'My Bookings',
       description: 'View and manage all your bookings.',
       icon: '📋',
-      route: '/dashboard/view',
+      route: '/clientAllBookings',
       subOptions: [
-        { name: 'All Bookings', route: '/dashboard/view' },
-        { name: 'Flight Bookings', route: '/user/flight-view' },
+        { name: 'All Bookings', route: '/clientAllBookings' },
+        // { name: 'Flight Bookings', route: '/user/flight-view' },
         { name: 'Multimodal - Coming Soon', route: null, disabled: true }
       ]
     },
