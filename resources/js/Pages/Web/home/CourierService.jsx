@@ -17,7 +17,7 @@ const CourierService = () => {
             <WhyOurService />
             <Process />
             <Services />
-            <ShippingSolution />
+            {/* <ShippingSolution /> */}
             <FAQ />
             <Footer />
         </div>

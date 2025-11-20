@@ -1,12 +1,12 @@
 import React from "react";
 import { Link } from "@inertiajs/react";
-import Header from "./ClientHeader";
-import Hero from "../../components/client/ticketBooking/Hero";
+import ClientHeader from "./ClientHeader";
+import Hero from "../../components/client/allBooking/Hero";
 
-const ClientTicketBookingDashboard = () => {
+const ClientAllBookings = ({ allBookings = [], statistics = {}, monthlyData = [] }) => {
     return (
         <div className="bg-[#E5E5E5] min-h-screen">
-            <Header />
+            <ClientHeader />
 
             {/* Back Button */}
             <div className="container mx-auto px-4 py-6">
@@ -21,9 +21,13 @@ const ClientTicketBookingDashboard = () => {
                 </Link>
             </div>
 
-            <Hero />
+            <Hero 
+                allBookings={allBookings} 
+                statistics={statistics} 
+                monthlyData={monthlyData} 
+            />
         </div>
     );
 };
 
-export default ClientTicketBookingDashboard;
+export default ClientAllBookings;

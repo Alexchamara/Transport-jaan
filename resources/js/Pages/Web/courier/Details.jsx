@@ -464,7 +464,7 @@ const Details = () => {
                 </div>
             </section>
 
-            <main className="container mx-auto px-4 -mt-16 mb-16 flex-1">
+            <main className="container mx-auto px-4 mt-16 mb-16 flex-1">
                 <div className="bg-white shadow-xl rounded-2xl px-6 md:px-10 py-10 poppins">
                     <form onSubmit={handleSubmit} className="space-y-10">
                         {packages.length > 0 && (

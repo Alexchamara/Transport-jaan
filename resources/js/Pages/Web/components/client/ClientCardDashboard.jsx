@@ -24,7 +24,7 @@ const ClientCardDashboard = () => {
       icon: '🎫',
       route: '/ticketBooking',
       subOptions: [
-        { name: 'Book New Tickets', route: '/ticketBooking' },
+        // { name: 'Book New Tickets', route: '/ticketBooking' },
         { name: 'Ticket Dashboard', route: '/clientTicketBookingDashboard' },
         { name: 'Flight Tickets', route: '/ticketBooking?type=flight' },
         { name: 'Train Tickets', route: '/ticketBooking?type=train' },
@@ -48,7 +48,7 @@ const ClientCardDashboard = () => {
       route: '/warehouse',
       subOptions: [
         { name: 'Find Warehouses', route: '/warehouseList' },
-        { name: 'Book Storage', route: '/warehouse-bookings' },
+        // { name: 'Book Storage', route: '/warehouse-bookings' },
         { name: 'My Warehouse Bookings', route: '/warehouseBookingDashboard' }
       ]
     },
@@ -67,10 +67,10 @@ const ClientCardDashboard = () => {
       title: 'My Bookings',
       description: 'View and manage all your bookings.',
       icon: '📋',
-      route: '/dashboard/view',
+      route: '/clientAllBookings',
       subOptions: [
-        { name: 'All Bookings', route: '/dashboard/view' },
-        { name: 'Flight Bookings', route: '/user/flight-view' },
+        { name: 'All Bookings', route: '/clientAllBookings' },
+        // { name: 'Flight Bookings', route: '/user/flight-view' },
         { name: 'Multimodal - Coming Soon', route: null, disabled: true }
       ]
     },

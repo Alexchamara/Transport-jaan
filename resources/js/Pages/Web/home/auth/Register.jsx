@@ -17,6 +17,7 @@ const Register = ({ role = "client" }) => {
         role_type: role,
         vendor_type: "",
         date_of_birth: "",
+        remember: false,
     });
 
     const handleSubmit = (e) => {
@@ -303,6 +304,18 @@ const Register = ({ role = "client" }) => {
                                         )}
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 self-start px-10 mt-4">
+                                <input
+                                    type="checkbox"
+                                    checked={data.remember}
+                                    onChange={(e) => setData("remember", e.target.checked)}
+                                    className="w-4 h-4 accent-[#2E6099] cursor-pointer"
+                                />
+                                <span className="text-[12px] md:text-[13px] font-[500] text-[#FFFFFFB2]">
+                                    Remember me on this device
+                                </span>
                             </div>
 
                             <button

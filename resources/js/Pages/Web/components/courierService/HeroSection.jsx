@@ -1,9 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "@inertiajs/react";
 import bg from "../../assets/courierService/bg.png";
 import person from "../../assets/courierService/person.png";
 
 const HeroSection = () => {
+    const [showTrackingModal, setShowTrackingModal] = useState(false);
+
+    const handleTrackingClick = (e) => {
+        e.preventDefault();
+        setShowTrackingModal(true);
+    };
+
     return (
         <div className="relative h-[600px]">
             <img src={bg} className="w-full h-full object-cover" />
@@ -47,12 +54,12 @@ const HeroSection = () => {
                                 >
                                     Send a package
                                 </Link>
-                                <Link
-                                    href="/track"
-                                    className="bg-[#FFFFFF82] border-[2px] border-[#0955AC] text-[#0955AC] rounded-lg transition duration-300 w-[100px] h-[25px] md:w-[202px] md:h-[56px] flex justify-center items-center"
+                                <button
+                                    onClick={handleTrackingClick}
+                                    className="bg-[#FFFFFF82] border-[2px] border-[#0955AC] text-[#0955AC] rounded-lg transition duration-300 w-[100px] h-[25px] md:w-[202px] md:h-[56px] flex justify-center items-center hover:bg-[#FFFFFF] cursor-pointer"
                                 >
                                     Track Parcel
-                                </Link>
+                                </button>
                             </div>
                         </div>
                         <div className="flex justify-end w-full h-auto overflow-visible">
@@ -65,6 +72,43 @@ const HeroSection = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Tracking Coming Soon Modal */}
+            {showTrackingModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-[20px] p-8 max-w-md w-full shadow-2xl">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-16 h-16 bg-[#0955AC] rounded-full flex items-center justify-center mb-4">
+                                <svg 
+                                    className="w-8 h-8 text-white" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round" 
+                                        strokeWidth={2} 
+                                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                                    />
+                                </svg>
+                            </div>
+                            <h2 className="text-[24px] font-[700] text-[#000000] mb-2">
+                                Coming Soon!
+                            </h2>
+                            <p className="text-[16px] text-[#6B6B6B] mb-6">
+                                Parcel tracking functionality will be available once the courier APIs are connected. Stay tuned!
+                            </p>
+                            <button
+                                onClick={() => setShowTrackingModal(false)}
+                                className="bg-[#0955AC] text-white font-[700] px-8 py-3 rounded-lg hover:bg-[#074494] transition-colors"
+                            >
+                                Got it
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

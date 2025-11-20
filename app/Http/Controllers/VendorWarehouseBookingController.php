@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Warehouse\WarehouseBooking;
 use App\Models\Warehouse\WarehouseUnit;
+use App\Models\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -179,6 +180,19 @@ class VendorWarehouseBookingController extends Controller
             $booking->status = 'confirmed';
             $booking->save();
             
+            // Create notification for the user who made the booking
+            Notification::create([
+                'user_id' => $booking->user_id,
+                'type' => 'warehouse_approval',
+                'data' => [
+                    'title' => 'Warehouse Booking Approved',
+                    'message' => "Your warehouse booking (Ref: {$booking->booking_reference}) has been approved by the vendor.",
+                    'unit_name' => $booking->warehouseUnit->name ?? 'N/A',
+                    'booking_id' => $booking->booking_reference,
+                ],
+                'booking_id' => $booking->id,
+            ]);
+            
             // Log the action
             Log::info('Booking approved', [
                 'booking_id' => $bookingId,
@@ -243,6 +257,20 @@ class VendorWarehouseBookingController extends Controller
             $booking->status = 'cancelled';
             $booking->notes = ($booking->notes ?? '') . "\nRejection reason: " . $request->rejection_reason;
             $booking->save();
+            
+            // Create notification for the user who made the booking
+            Notification::create([
+                'user_id' => $booking->user_id,
+                'type' => 'warehouse_rejection',
+                'data' => [
+                    'title' => 'Warehouse Booking Rejected',
+                    'message' => "Your warehouse booking (Ref: {$booking->booking_reference}) has been rejected. Reason: {$request->rejection_reason}",
+                    'unit_name' => $booking->warehouseUnit->name ?? 'N/A',
+                    'booking_id' => $booking->booking_reference,
+                    'rejection_reason' => $request->rejection_reason,
+                ],
+                'booking_id' => $booking->id,
+            ]);
             
             // Log the action
             Log::info('Booking rejected', [

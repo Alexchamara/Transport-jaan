@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Models\Warehouse\WarehouseUnit;
 use App\Models\Warehouse\WarehouseBooking;
+use App\Models\Notification;
 use App\Models\Warehouse\WarehouseReview;
 use App\Models\Warehouse\WarehouseLike;
 use App\Models\Warehouse\WarehouseAmenity;
@@ -656,6 +657,20 @@ class WarehouseBookingController extends Controller
                 'terms_accepted' => true,
                 'insurance_required' => $validated['insurance_required'] ?? false,
                 'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Create notification for the warehouse owner/vendor
+            Notification::create([
+                'user_id' => $warehouse->user_id,
+                'type' => 'warehouse_new_booking',
+                'data' => [
+                    'title' => 'New Warehouse Booking',
+                    'message' => "You have received a new warehouse booking request (Ref: {$bookingReference}) from {$validated['contact_person']}.",
+                    'unit_name' => $warehouse->name ?? 'N/A',
+                    'booking_id' => $bookingReference,
+                    'client_name' => $validated['contact_person'],
+                ],
+                'booking_id' => $booking->id,
             ]);
 
             // Commit the transaction

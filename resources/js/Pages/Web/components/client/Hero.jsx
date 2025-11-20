@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { Link } from "@inertiajs/react";
 import {
     Car,
     Plane,
@@ -28,130 +29,6 @@ import {
     Cell,
 } from "recharts";
 
-// ---------- Mock Data ----------
-const monthly = [
-    { month: "Jan", land: 22, air: 8, sea: 12 },
-    { month: "Feb", land: 25, air: 7, sea: 14 },
-    { month: "Mar", land: 28, air: 10, sea: 16 },
-    { month: "Apr", land: 30, air: 12, sea: 18 },
-    { month: "May", land: 33, air: 11, sea: 20 },
-    { month: "Jun", land: 31, air: 13, sea: 21 },
-    { month: "Jul", land: 35, air: 15, sea: 22 },
-    { month: "Aug", land: 36, air: 16, sea: 23 },
-    { month: "Sep", land: 34, air: 14, sea: 21 },
-    { month: "Oct", land: 32, air: 13, sea: 19 },
-    { month: "Nov", land: 29, air: 12, sea: 18 },
-    { month: "Dec", land: 27, air: 9, sea: 16 },
-];
-
-const fleets = {
-    land: [
-        {
-            id: "L-001",
-            name: "SUV – Ranger X",
-            rating: 4.7,
-            location: "Colombo",
-            price: 68,
-            unit: "day",
-        },
-        {
-            id: "L-002",
-            name: "Sedan – Swift S",
-            rating: 4.5,
-            location: "Kandy",
-            price: 45,
-            unit: "day",
-        },
-        {
-            id: "L-003",
-            name: "Van – Comfort Pro",
-            rating: 4.8,
-            location: "Galle",
-            price: 80,
-            unit: "day",
-        },
-    ],
-    air: [
-        {
-            id: "A-101",
-            name: "Cessna 172",
-            rating: 4.9,
-            location: "Ratmalana",
-            price: 350,
-            unit: "hr",
-        },
-        {
-            id: "A-102",
-            name: "Helicopter – H125",
-            rating: 4.6,
-            location: "Katunayake",
-            price: 1200,
-            unit: "hr",
-        },
-    ],
-    sea: [
-        {
-            id: "S-501",
-            name: "Speedboat – Wave 24",
-            rating: 4.4,
-            location: "Trincomalee",
-            price: 180,
-            unit: "hr",
-        },
-        {
-            id: "S-502",
-            name: "Yacht – Oceanis 38",
-            rating: 4.9,
-            location: "Bentota",
-            price: 950,
-            unit: "day",
-        },
-    ],
-};
-
-const reservations = [
-    {
-        code: "BK-202508-001",
-        mode: "land",
-        item: "SUV – Ranger X",
-        from: "2025-09-01 09:00",
-        to: "2025-09-05 18:00",
-        pickup: "Colombo",
-        status: "confirmed",
-        amount: 272,
-    },
-    {
-        code: "BK-202508-002",
-        mode: "air",
-        item: "Cessna 172",
-        from: "2025-09-10 07:00",
-        to: "2025-09-10 11:00",
-        pickup: "Ratmalana",
-        status: "pending",
-        amount: 1400,
-    },
-    {
-        code: "BK-202508-003",
-        mode: "sea",
-        item: "Yacht – Oceanis 38",
-        from: "2025-10-02 12:00",
-        to: "2025-10-04 12:00",
-        pickup: "Bentota",
-        status: "paid",
-        amount: 1900,
-    },
-    {
-        code: "BK-202508-004",
-        mode: "land",
-        item: "Van – Comfort Pro",
-        from: "2025-08-28 08:00",
-        to: "2025-08-29 20:00",
-        pickup: "Galle",
-        status: "cancelled",
-        amount: 80,
-    },
-];
-
 // ---------- Helpers ----------
 const ModeIcon = ({ mode, className }) => {
     if (mode === "air") return <Plane className={className} />;
@@ -175,17 +52,102 @@ const statusMap = {
     },
 };
 
-const pieData = [
-    { name: "Land", value: monthly.reduce((a, b) => a + b.land, 0) },
-    { name: "Air", value: monthly.reduce((a, b) => a + b.air, 0) },
-    { name: "Sea", value: monthly.reduce((a, b) => a + b.sea, 0) },
-];
-
-const Hero = () => {
+const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     const [mode, setMode] = useState("all");
     const [q, setQ] = useState("");
     const [location, setLocation] = useState("all");
     const [sort, setSort] = useState("popular");
+
+    // Group vehicles by type
+    const fleets = useMemo(() => {
+        const grouped = {
+            land: [],
+            air: [],
+            sea: []
+        };
+        
+        vehicles.forEach(vehicle => {
+            const type = vehicle.vehicle_category?.toLowerCase() || 'land';
+            if (type.includes('land') || type.includes('car') || type.includes('bus') || type.includes('train')) {
+                grouped.land.push({
+                    id: vehicle.id,
+                    name: vehicle.name || vehicle.model || 'Vehicle',
+                    rating: vehicle.rating || 0,
+                    location: vehicle.location || 'N/A',
+                    price: vehicle.price_per_day || vehicle.price || 0,
+                    unit: 'day',
+                    vehicle: vehicle
+                });
+            } else if (type.includes('air') || type.includes('plane') || type.includes('flight')) {
+                grouped.air.push({
+                    id: vehicle.id,
+                    name: vehicle.name || vehicle.model || 'Aircraft',
+                    rating: vehicle.rating || 0,
+                    location: vehicle.location || 'N/A',
+                    price: vehicle.price_per_hour || vehicle.price || 0,
+                    unit: 'hr',
+                    vehicle: vehicle
+                });
+            } else if (type.includes('sea') || type.includes('boat') || type.includes('ship')) {
+                grouped.sea.push({
+                    id: vehicle.id,
+                    name: vehicle.name || vehicle.model || 'Vessel',
+                    rating: vehicle.rating || 0,
+                    location: vehicle.location || 'N/A',
+                    price: vehicle.price_per_day || vehicle.price || 0,
+                    unit: 'day',
+                    vehicle: vehicle
+                });
+            }
+        });
+        
+        return grouped;
+    }, [vehicles]);
+
+    // Calculate KPI metrics from bookings
+    const kpiMetrics = useMemo(() => {
+        const activeLand = bookings.filter(b => 
+            ['confirmed', 'paid', 'pending'].includes(b.status?.toLowerCase()) &&
+            (b.vehicle_category?.toLowerCase().includes('land') || 
+             b.vehicle_category?.toLowerCase().includes('car'))
+        ).length;
+
+        const flightHours = bookings.filter(b => 
+            ['confirmed', 'paid', 'pending'].includes(b.status?.toLowerCase()) &&
+            b.vehicle_category?.toLowerCase().includes('air')
+        ).reduce((total, b) => total + (b.hours || 0), 0);
+
+        const seaTrips = bookings.filter(b => 
+            b.vehicle_category?.toLowerCase().includes('sea') &&
+            new Date(b.created_at).getMonth() === new Date().getMonth()
+        ).length;
+
+        return {
+            activeLand,
+            flightHours,
+            seaTrips
+        };
+    }, [bookings]);
+
+    // Process monthly data for charts
+    const chartData = useMemo(() => {
+        if (monthlyData && monthlyData.length > 0) {
+            return monthlyData;
+        }
+        // Return empty data structure if no data
+        return Array.from({ length: 12 }, (_, i) => ({
+            month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
+            land: 0,
+            air: 0,
+            sea: 0
+        }));
+    }, [monthlyData]);
+
+    const pieData = useMemo(() => [
+        { name: "Land", value: chartData.reduce((a, b) => a + (b.land || 0), 0) },
+        { name: "Air", value: chartData.reduce((a, b) => a + (b.air || 0), 0) },
+        { name: "Sea", value: chartData.reduce((a, b) => a + (b.sea || 0), 0) },
+    ], [chartData]);
 
     const filteredFleets = useMemo(() => {
         const pool =
@@ -205,24 +167,32 @@ const Hero = () => {
                 if (sort === "rating") return b.rating - a.rating;
                 return b.rating - a.rating; // popular ~ rating
             });
-    }, [mode, q, location, sort]);
+    }, [mode, q, location, sort, fleets]);
 
     const locations = useMemo(() => {
-        const set = new Set([
-            "Colombo",
-            "Kandy",
-            "Galle",
-            "Ratmalana",
-            "Katunayake",
-            "Trincomalee",
-            "Bentota",
-        ]);
-        return ["all", ...Array.from(set)];
-    }, []);
+        const locationSet = new Set();
+        vehicles.forEach(v => {
+            if (v.location) locationSet.add(v.location);
+        });
+        return ["all", ...Array.from(locationSet)];
+    }, [vehicles]);
 
-    const upcoming = reservations.filter((r) =>
-        ["confirmed", "paid", "pending"].includes(r.status)
+    const upcoming = bookings.filter((r) =>
+        ["confirmed", "paid", "pending"].includes(r.status?.toLowerCase())
     );
+
+    const handleBookVehicle = (vehicle) => {
+        // Navigate to booking page with vehicle ID
+        window.location.href = `/clientRent?vehicle=${vehicle.id}`;
+    };
+
+    const handleNewBooking = () => {
+        window.location.href = '/clientRent';
+    };
+
+    // const handleExport = () => {
+    //     alert('Export functionality will be implemented');
+    // };
 
     return (
         <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
@@ -240,10 +210,16 @@ const Hero = () => {
                         </p>
                     </div>
                     <div className="flex gap-2 justify-center items-center">
-                        <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium">
+                        {/* <button 
+                            onClick={handleExport}
+                            className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium hover:bg-slate-50"
+                        >
                             <Download className="mr-2 h-7 w-7" /> Export
-                        </button>
-                        <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
+                        </button> */}
+                        <button 
+                            onClick={handleNewBooking}
+                            className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium hover:bg-[#0744a0]"
+                        >
                             <Plus className="mr-2 h-6 w-6" /> New Booking
                         </button>
                     </div>
@@ -258,11 +234,11 @@ const Hero = () => {
                                 <Car className="h-8 w-8" /> Active Land Rentals
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                12
+                                {kpiMetrics.activeLand}
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            +3 this week
+                            Currently active
                         </div>
                     </div>
 
@@ -273,11 +249,11 @@ const Hero = () => {
                                 Hours
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                47h
+                                {kpiMetrics.flightHours}h
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            2 upcoming missions
+                            Total scheduled
                         </div>
                     </div>
 
@@ -288,11 +264,11 @@ const Hero = () => {
                                 Month
                             </p>
                             <h3 className="text-[26px] font-[700] text-[#0955AC]">
-                                9
+                                {kpiMetrics.seaTrips}
                             </h3>
                         </div>
                         <div className="px-5 pb-5 text-[12px] text-[#7B7B7A]">
-                            +2 vs last month
+                            This month
                         </div>
                     </div>
                 </div>
@@ -337,7 +313,7 @@ const Hero = () => {
                                     }}
                                 >
                                     <AreaChart
-                                        data={monthly}
+                                        data={chartData}
                                         margin={{ left: 8, right: 8, top: 10 }}
                                     >
                                         <defs>
@@ -683,7 +659,10 @@ const Hero = () => {
                                                     Instant confirm
                                                 </div>
                                             </div>
-                                            <button className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0955AC]">
+                                            <button 
+                                                onClick={() => handleBookVehicle(f.vehicle)}
+                                                className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0744a0]"
+                                            >
                                                 Book{" "}
                                                 <ChevronRight className="ml-1 h-4 w-4 inline-block" />
                                             </button>
@@ -715,48 +694,57 @@ const Hero = () => {
                                 </p>
                             </div>
                             <div className="px-10 pb-10 space-y-6 text-[14px]">
-                                {upcoming.map((r) => (
-                                    <div
-                                        key={r.code}
-                                        className="rounded-2xl border p-5"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 text-slate-700">
-                                                <ModeIcon
-                                                    mode={r.mode}
-                                                    className="h-7 w-7"
-                                                />
-                                                <span className="font-medium">
-                                                    {r.item}
+                                {upcoming.length > 0 ? (
+                                    upcoming.map((r) => (
+                                        <div
+                                            key={r.id || r.code}
+                                            className="rounded-2xl border p-5"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 text-slate-700">
+                                                    <ModeIcon
+                                                        mode={r.vehicle_category?.toLowerCase().includes('air') ? 'air' : r.vehicle_category?.toLowerCase().includes('sea') ? 'sea' : 'land'}
+                                                        className="h-7 w-7"
+                                                    />
+                                                    <span className="font-medium">
+                                                        {r.vehicle_name || r.item || 'Vehicle'}
+                                                    </span>
+                                                </div>
+                                                <span
+                                                    className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                                                        statusMap[r.status?.toLowerCase()]?.tone || statusMap.pending.tone
+                                                    }`}
+                                                >
+                                                    {statusMap[r.status?.toLowerCase()]?.label || r.status || 'Pending'}
                                                 </span>
                                             </div>
-                                            <span
-                                                className={`rounded-full border px-2 py-0.5 text-[10px] ${
-                                                    statusMap[r.status].tone
-                                                }`}
-                                            >
-                                                {statusMap[r.status].label}
-                                            </span>
+                                            <div className="mt-2 flex items-center gap-2 text-[12px] text-slate-600">
+                                                <Calendar className="h-4 w-4" />
+                                                <span>
+                                                    {r.start_date || r.from} → {r.end_date || r.to}
+                                                </span>
+                                            </div>
+                                            <div className="mt-1 text-sm text-slate-500">
+                                                Pickup: {r.pickup_location || r.pickup || 'N/A'}
+                                            </div>
+                                            <div className="mt-2 flex items-center justify-between text-[12px]">
+                                                <span className="text-slate-500">
+                                                    Ref: {r.booking_code || r.code || `BK-${r.id}`}
+                                                </span>
+                                                <Link
+                                                    href={`/booking/${r.id}`}
+                                                    className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm inline-flex items-center"
+                                                >
+                                                    Manage
+                                                </Link>
+                                            </div>
                                         </div>
-                                        <div className="mt-2 flex items-center gap-2 text-[12px] text-slate-600">
-                                            <Calendar className="h-4 w-4" />
-                                            <span>
-                                                {r.from} → {r.to}
-                                            </span>
-                                        </div>
-                                        <div className="mt-1 text-sm text-slate-500">
-                                            Pickup: {r.pickup}
-                                        </div>
-                                        <div className="mt-2 flex items-center justify-between text-[12px]">
-                                            <span className="text-slate-500">
-                                                Ref: {r.code}
-                                            </span>
-                                            <button className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm">
-                                                Manage
-                                            </button>
-                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-slate-500">
+                                        No upcoming reservations
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </div>
 
@@ -771,20 +759,31 @@ const Hero = () => {
                                 </p>
                             </div>
                             <div className="px-10 pb-10 grid grid-cols-2 gap-2 font-[500]">
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Car className="mr-2 h-7 w-7" /> Extend Land
-                                </button>
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
+                                <Link
+                                    href="/clientRent?type=land"
+                                    className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center"
+                                >
+                                    <Car className="mr-2 h-7 w-7" /> Rent Land Vehicle
+                                </Link>
+                                <Link
+                                    href="/clientRent?type=air"
+                                    className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center"
+                                >
                                     <Plane className="mr-2 h-7 w-7" /> Charter
                                     Flight
-                                </button>
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
+                                </Link>
+                                <Link
+                                    href="/clientRent?type=sea"
+                                    className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center"
+                                >
                                     <Ship className="mr-2 h-7 w-7" /> Book Yacht
-                                </button>
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Calendar className="mr-2 h-7 w-7" /> Change
-                                    Dates
-                                </button>
+                                </Link>
+                                <Link
+                                    href="/dashboard/view"
+                                    className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center"
+                                >
+                                    <Calendar className="mr-2 h-7 w-7" /> View Bookings
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -817,46 +816,54 @@ const Hero = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {reservations.map((r) => (
-                                        <tr
-                                            key={r.code}
-                                            className="rounded-xl bg-white shadow-sm"
-                                        >
-                                            <td className="px-3 py-3">
-                                                <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2 py-1 text-slate-700">
-                                                    <ModeIcon
-                                                        mode={r.mode}
-                                                        className="h-4 w-4"
-                                                    />
-                                                    {r.mode.toUpperCase()}
-                                                </div>
-                                            </td>
-                                            <td className="px-3 py-3 font-medium">
-                                                {r.item}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600">
-                                                {r.from}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600">
-                                                {r.to}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600">
-                                                {r.pickup}
-                                            </td>
-                                            <td className="px-3 py-3">
-                                                <span
-                                                    className={`rounded-full border px-2 py-0.5 text-xs ${
-                                                        statusMap[r.status].tone
-                                                    }`}
-                                                >
-                                                    {statusMap[r.status].label}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 py-3 text-right font-medium">
-                                                ${r.amount.toFixed(2)}
+                                    {bookings.length > 0 ? (
+                                        bookings.map((r) => (
+                                            <tr
+                                                key={r.id || r.code}
+                                                className="rounded-xl bg-white shadow-sm"
+                                            >
+                                                <td className="px-3 py-3">
+                                                    <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2 py-1 text-slate-700">
+                                                        <ModeIcon
+                                                            mode={r.vehicle_category?.toLowerCase().includes('air') ? 'air' : r.vehicle_category?.toLowerCase().includes('sea') ? 'sea' : 'land'}
+                                                            className="h-4 w-4"
+                                                        />
+                                                        {r.vehicle_category?.toUpperCase() || 'LAND'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-3 font-medium">
+                                                    {r.vehicle_name || r.item || 'Vehicle'}
+                                                </td>
+                                                <td className="px-3 py-3 text-slate-600">
+                                                    {r.start_date || r.from || 'N/A'}
+                                                </td>
+                                                <td className="px-3 py-3 text-slate-600">
+                                                    {r.end_date || r.to || 'N/A'}
+                                                </td>
+                                                <td className="px-3 py-3 text-slate-600">
+                                                    {r.pickup_location || r.pickup || 'N/A'}
+                                                </td>
+                                                <td className="px-3 py-3">
+                                                    <span
+                                                        className={`rounded-full border px-2 py-0.5 text-xs ${
+                                                            statusMap[r.status?.toLowerCase()]?.tone || statusMap.pending.tone
+                                                        }`}
+                                                    >
+                                                        {statusMap[r.status?.toLowerCase()]?.label || r.status || 'Pending'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 py-3 text-right font-medium">
+                                                    ${(r.total_amount || r.amount || 0).toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="7" className="px-3 py-8 text-center text-slate-500">
+                                                No bookings found
                                             </td>
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
                             </table>
                         </div>
