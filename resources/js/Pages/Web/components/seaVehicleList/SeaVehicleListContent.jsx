@@ -65,7 +65,10 @@ const SeaVehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehic
 };
 
 
-  const view = (id) => router.visit(`/seaVehicleDetails/${id}`);
+  const view = (id) => {
+    const search = window.location.search || "";
+    router.visit(`/seaVehicleDetails/${id}${search}`);
+  };
 
   return (
     <div className="w-full py-6 md:py-12 px-4 md:px-40">

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { router, usePage } from "@inertiajs/react";
 import { route } from "ziggy-js";
-import car from "../../assets/vehicleCheckout/car.svg";
+import seaVehicle from "../../assets/seaVehicle/seaVehicle.jpg";
 import icon1 from "../../assets/vehicleCheckout/icon1.svg";
 import icon2 from "../../assets/vehicleCheckout/icon2.svg";
 import icon3 from "../../assets/vehicleCheckout/icon3.svg";
@@ -445,7 +445,7 @@ const Payments = () => {
           {/* Vehicle + schedule + editable extras */}
           <div className="md:w-[459px] h-auto bg-[#F4F3F3] rounded-[10px] px-5" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
             <div className="flex flex-col md:flex-row gap-3 items-center border-b-[1px] pb-5 border-[#00000026]">
-              <img src={car} alt="" />
+              <img src={seaVehicle} alt="" className="w-20 h-20 object-cover rounded-full" />
               <div className="flex flex-col gap-3">
                 <h1 className="figtree text-[20px] font-[700] ">
                   {vehicle?.manufacturer || ""} {vehicle?.model || ""}{" "}
