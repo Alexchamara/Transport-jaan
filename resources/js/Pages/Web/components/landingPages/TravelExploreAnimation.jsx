@@ -9,6 +9,7 @@ import img4 from "../../assets/landingPages/hero/warehouse.jpg";
 import img5 from "../../assets/landingPages/hero/freight.jpg";
 import img6 from "../../assets/landingPages/hero/multimodel.jpg";
 import img7 from "../../assets/landingPages/hero/ticketbooking.jpg";
+import img8 from "../../assets/courierService/courier.jpg";
 
 import burgerIcon from "../../assets/landingPages/burgerIcon.svg";
 import { Link } from "@inertiajs/react";
@@ -32,7 +33,7 @@ const IMAGES = [
         ctaLabel: "Explore Sea Options",
         href: "/clientRent",
         url: img2,
-        tags: ["Passenger Ships", "Boat", "Ferry", "Yacht", "Cruise", "Canoe"],
+        tags: ["Passenger Ships", "Boat", "Yacht", "Cruise", "Canoe"],
     },
     {
         title: "Air Vehicles",
@@ -104,6 +105,16 @@ const IMAGES = [
         href: "/ticketBooking",
         url: img7,
         tags: ["Bus", "Train", "Flight",],
+    },
+    {
+        title: "Courier Booking",
+        subtitle: "Fast & Reliable Delivery",
+        description:
+            "Send packages, documents, and parcels locally or internationally with our trusted courier network. Real-time tracking and secure delivery options.",
+        ctaLabel: "Book Courier",
+        href: "/courier-service",
+        url: img8,
+        tags: ["Express", "Same Day", "International", "Tracking", "Secure", "Door-to-Door"],
     },
 ];
 
