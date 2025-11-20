@@ -163,12 +163,20 @@ const ClientHeader = () => {
                             alt="Notifications"
                         />
                     </div>
-                    <div className="size-[27px] md:size-[55px] flex justify-center items-center">
-                        <img
-                            src={proPic}
-                            className="size-[18px] md:size-[55px]"
-                            alt="Profile"
-                        />
+                    <div className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center">
+                        {auth?.user?.image ? (
+                            <img
+                                src={auth.user.image}
+                                className="size-[18px] md:size-[55px] object-cover"
+                                alt="Profile"
+                            />
+                        ) : (
+                            <img
+                                src={proPic}
+                                className="size-[18px] md:size-[55px]"
+                                alt="Profile"
+                            />
+                        )}
                     </div>
                 </div>
             </div>
@@ -445,10 +453,20 @@ const ClientHeader = () => {
                                     )}
 
                                     <div className="flex items-center gap-2 mt-2">
-                                        <div className="h-7 w-7 border border-black rounded-full flex justify-center items-center text-[14px]">
-                                            {auth.user.name
-                                                .charAt(0)
-                                                .toUpperCase()}
+                                        <div className="h-7 w-7 border border-black rounded-full overflow-hidden flex justify-center items-center text-[14px]">
+                                            {auth.user.image ? (
+                                                <img
+                                                    src={auth.user.image}
+                                                    className="h-full w-full object-cover"
+                                                    alt="Profile"
+                                                />
+                                            ) : (
+                                                <span>
+                                                    {auth.user.name
+                                                        .charAt(0)
+                                                        .toUpperCase()}
+                                                </span>
+                                            )}
                                         </div>
                                         <img
                                             src={downArrow}
