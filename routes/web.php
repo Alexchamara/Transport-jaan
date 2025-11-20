@@ -1100,7 +1100,65 @@ Route::get('/clientVehicleDashboard', function () {
 })->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientVehicleDashboard');
 
 Route::get('/clientAllBookings', function () {
-    return Inertia::render('Web/home/client/ClientAllBookings');
+    $clientId = Auth::id();
+    
+    // Fetch all booking types
+    $vehicleBookings = \App\Models\Booking::where('client_id', $clientId)
+        ->with('vehicle')
+        ->get()
+        ->map(function($booking) {
+            return [
+                'id' => $booking->id,
+                'booking_type' => 'vehicle',
+                'service_name' => $booking->vehicle->name ?? 'Vehicle Rental',
+                'vehicle_name' => $booking->vehicle->name ?? null,
+                'vehicle_category' => $booking->vehicle->category ?? null,
+                'status' => $booking->status,
+                'total_amount' => $booking->total_amount,
+                'amount' => $booking->total_amount,
+                'booking_date' => $booking->booking_date,
+                'start_date' => $booking->start_date,
+                'end_date' => $booking->end_date,
+                'pickup_location' => $booking->pickup_location,
+                'booking_code' => $booking->booking_code,
+                'created_at' => $booking->created_at,
+            ];
+        });
+
+    // Combine all bookings
+    $allBookings = collect($vehicleBookings);
+
+    // Calculate statistics
+    $statistics = [
+        'total_bookings' => $allBookings->count(),
+        'active_bookings' => $allBookings->whereIn('status', ['confirmed', 'paid', 'active'])->count(),
+        'total_spent' => $allBookings->sum('total_amount'),
+        'this_month' => $allBookings->filter(function($b) {
+            return \Carbon\Carbon::parse($b['created_at'])->isCurrentMonth();
+        })->count(),
+    ];
+
+    // Monthly data for charts
+    $monthlyData = [];
+    for ($i = 5; $i >= 0; $i--) {
+        $month = now()->subMonths($i);
+        $monthBookings = $allBookings->filter(function($b) use ($month) {
+            return \Carbon\Carbon::parse($b['created_at'])->isSameMonth($month);
+        });
+        
+        $monthlyData[] = [
+            'month' => $month->format('M'),
+            'vehicle' => $monthBookings->where('booking_type', 'vehicle')->count(),
+            'tickets' => $monthBookings->whereIn('booking_type', ['train', 'bus', 'flight'])->count(),
+            'logistics' => $monthBookings->whereIn('booking_type', ['warehouse', 'courier', 'freight'])->count(),
+        ];
+    }
+
+    return Inertia::render('Web/home/client/ClientAllBookings', [
+        'allBookings' => $allBookings,
+        'statistics' => $statistics,
+        'monthlyData' => $monthlyData,
+    ]);
 })->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientAllBookings');
 
 // Courier booking dashboard moved to protected routes with controller

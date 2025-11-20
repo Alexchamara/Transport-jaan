@@ -3,7 +3,7 @@ import { Link } from "@inertiajs/react";
 import ClientHeader from "./ClientHeader";
 import Hero from "../../components/client/allBooking/Hero";
 
-const ClientAllBookings = () => {
+const ClientAllBookings = ({ allBookings = [], statistics = {}, monthlyData = [] }) => {
     return (
         <div className="bg-[#E5E5E5] min-h-screen">
             <ClientHeader />
@@ -21,7 +21,11 @@ const ClientAllBookings = () => {
                 </Link>
             </div>
 
-            <Hero />
+            <Hero 
+                allBookings={allBookings} 
+                statistics={statistics} 
+                monthlyData={monthlyData} 
+            />
         </div>
     );
 };
