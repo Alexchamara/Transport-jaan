@@ -23,7 +23,7 @@ import BookingBarChart from "./BookingBarChart";
 
 import { ChevronDown, Settings as SettingsIcon } from "lucide-react";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const BookingContent = () => {
     const { auth } = usePage().props;

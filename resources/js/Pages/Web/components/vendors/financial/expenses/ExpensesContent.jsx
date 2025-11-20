@@ -23,7 +23,7 @@ import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; //
 import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const ExpensesContent = () => {
     const { auth, unreadNotifications = 0 } = usePage().props;

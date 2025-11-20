@@ -21,7 +21,7 @@ import {
 import proPic from "../../../../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../../../../assets/vendors/dashboard/logOutLogo.svg";
 
-import UserDropdown from "../../../Userdropdown";
+import UserDropdown from "../../../UserDropdown";
 
 const PaymentContent = () => {
     const { auth } = usePage().props;

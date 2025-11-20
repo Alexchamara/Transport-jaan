@@ -527,24 +527,6 @@ const AddUnit = () => {
           </h1>
         </div>
       </div>
-      
-      {/* Action buttons */}
-      <div className="flex justify-end gap-3 pt-6 pb-4">
-        <button 
-          type="button" 
-          className="w-[100px] h-[40px] border border-[#7B7B7A] text-[#7B7B7A] font-[600] rounded-[6px] text-[14px] hover:bg-gray-50"
-          onClick={() => (window.location.href = '/vendors/warehouse/units')}
-        >
-          Cancel
-        </button>
-        <button 
-          type="submit" 
-          form="warehouse-form"
-          className="w-[120px] h-[40px] bg-[#0955AC] text-[#FFFFFF] font-[600] rounded-[6px] text-[14px] hover:bg-[#0844A0]"
-        >
-          Save Warehouse
-        </button>
-      </div>
 
       <div>
         <form id="warehouse-form" onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-6 font-[400]">
@@ -985,9 +967,24 @@ const AddUnit = () => {
 
           {/* Form Actions */}
           <div className="pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-600 text-center">
+            <p className="text-sm text-gray-600 text-center mb-6">
               Please review all information before submitting your warehouse for approval.
             </p>
+            <div className="flex justify-end gap-3">
+              <button 
+                type="button" 
+                className="w-[100px] h-[40px] border border-[#7B7B7A] text-[#7B7B7A] font-[600] rounded-[6px] text-[14px] hover:bg-gray-50"
+                onClick={() => (window.location.href = '/vendors/warehouse/units')}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="w-[120px] h-[40px] bg-[#0955AC] text-[#FFFFFF] font-[600] rounded-[6px] text-[14px] hover:bg-[#0844A0]"
+              >
+                Save Warehouse
+              </button>
+            </div>
           </div>
         </form>
       </div>

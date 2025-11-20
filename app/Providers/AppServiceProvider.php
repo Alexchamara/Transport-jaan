@@ -30,8 +30,9 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app['router']->aliasMiddleware('role', \App\Http\Middleware\CheckRole::class);
 
-        // Register observers
-        \App\Models\Booking::observe(\App\Observers\BookingObserver::class);
+        Inertia::share([
+        'authUser' => fn () => auth()->user(),
+    ]);
     }
 
     

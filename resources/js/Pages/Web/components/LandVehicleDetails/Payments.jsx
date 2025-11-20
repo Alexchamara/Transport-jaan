@@ -58,11 +58,20 @@ const Payments = () => {
   const [slipNumber, setSlipNumber] = useState("");
   const [slipPdf, setSlipPdf] = useState(null);
   const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState({ slipNumber: "" });
+  const [error, setError] = useState({ slipNumber: "", slipPdf: "" });
   const slipNumberRegex = /^(\d+|[a-zA-Z]+\d+|[a-zA-Z]+-\d+)$/;
 
   // NEW: in-window popup instead of alert for T&C message
   const [showTermsPopup, setShowTermsPopup] = useState(false);
+
+  // Clear bank-slip fields when user selects a non-bank payment method
+  useEffect(() => {
+    if (selectedPayment !== "Bank Transfer") {
+      setSlipNumber("");
+      setSlipPdf(null);
+      setError((prev) => ({ ...prev, slipNumber: "", slipPdf: "" }));
+    }
+  }, [selectedPayment]);
 
   const handleConfirmBooking = () => {
     if (!booking?.id) {
@@ -70,26 +79,30 @@ const Payments = () => {
       return;
     }
 
-    if (!slipNumber || !slipNumberRegex.test(slipNumber)) {
-      setError((prev) => ({
-        ...prev,
-        slipNumber: "Please enter a valid slip number",
-      }));
-      return;
-    }
-    else {
-      setError((prev) => ({ ...prev, slipNumber: "" }));
-    }
+    // Only require slip number & PDF when user chooses Bank Transfer
+    if (selectedPayment === "Bank Transfer") {
+      if (!slipNumber || !slipNumberRegex.test(slipNumber)) {
+        setError((prev) => ({
+          ...prev,
+          slipNumber: "Please enter a valid slip number",
+        }));
+        return;
+      } else {
+        setError((prev) => ({ ...prev, slipNumber: "" }));
+      }
 
-    if (!slipPdf) {
-      setError((prev) => ({
-        ...prev,
-        slipPdf: "Please upload the bank slip PDF",
-      }));
-      return;
-    }
-    else {
-      setError((prev) => ({ ...prev, slipPdf: "" }));
+      if (!slipPdf) {
+        setError((prev) => ({
+          ...prev,
+          slipPdf: "Please upload the bank slip PDF",
+        }));
+        return;
+      } else {
+        setError((prev) => ({ ...prev, slipPdf: "" }));
+      }
+    } else {
+      // clear any stale slip errors when not using bank transfer
+      setError((prev) => ({ ...prev, slipNumber: "", slipPdf: "" }));
     }
 
     if (!agreed) {
@@ -100,8 +113,10 @@ const Payments = () => {
     const formData = new FormData();
     formData.append("payment_method", selectedPayment);
     formData.append("payment_option", paymentOption);
-    if (slipNumber) formData.append("slip_number", slipNumber);
-    if (slipPdf && selectedPayment === "Bank Transfer") formData.append("slip_pdf", slipPdf);
+    if (selectedPayment === "Bank Transfer") {
+      if (slipNumber) formData.append("slip_number", slipNumber);
+      if (slipPdf) formData.append("slip_pdf", slipPdf);
+    }
     router.post(route("client.bookings.confirm", booking.id), formData, {
       forceFormData: true,
       preserveScroll: true,

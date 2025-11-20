@@ -9,7 +9,7 @@ import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg"; // â†
 import NotificationDropdown from "../NotificationDropdown";
 import ClientTable from "./ClientTable";
 
-import UserDropdown from "../../../components/vendors/Userdropdown.jsx";
+import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
 
 const ClientContent = () => {
     const { auth, unreadNotifications = 0 } = usePage().props;

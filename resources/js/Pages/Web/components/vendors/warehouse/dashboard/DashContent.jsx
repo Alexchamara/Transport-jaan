@@ -23,7 +23,8 @@ import EarningSummaryChart from "./EarningSummaryChart";
 import RealStatusPieChart from "./RealStatusPieChart";
 import CarBookingTable from "./CarBookingTable";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
+import NotificationDropdown from "../NotificationDropdown";
 
 const DashContent = () => {
     const { auth } = usePage().props;
@@ -45,6 +46,9 @@ const DashContent = () => {
         occupiedChange: "+0%",
         unitsChange: "+0%",
     });
+
+    const [warehouseNotifications, setWarehouseNotifications] = useState([]);
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
     const [chartData, setChartData] = useState({
         bookingOverview: [],
@@ -600,6 +604,28 @@ const DashContent = () => {
         [allBookings, searchQuery]
     );
 
+    // Fetch notifications
+    const fetchNotifications = useCallback(async () => {
+        if (!auth?.user) return;
+        
+        try {
+            console.log('DashContent: Fetching warehouse notifications...');
+            const response = await fetch('/vendors/warehouse/notifications/data');
+            console.log('DashContent: Response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('DashContent: Notifications data:', data);
+                setWarehouseNotifications(data.notifications || []);
+                setNotificationUnreadCount(data.unreadCount || 0);
+            } else {
+                console.error('DashContent: Failed to fetch notifications:', response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error('DashContent: Failed to fetch notifications:', error);
+        }
+    }, [auth?.user]);
+
     // Generate mock recent activities based on real data context
     const generateRecentActivities = useCallback(() => {
         const activities = [
@@ -657,6 +683,16 @@ const DashContent = () => {
             setRefreshing(false);
         }
     }, [fetchDashboardStats, fetchChartData, fetchBookings, fetchUnits]);
+
+    // Fetch notifications on mount and set interval
+    useEffect(() => {
+        if (auth?.user) {
+            fetchNotifications();
+            // Refresh notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [auth?.user, fetchNotifications]);
 
     // Initial data loading
     useEffect(() => {
@@ -802,12 +838,12 @@ const DashContent = () => {
     }, [realtimeStats, allBookings]);
 
     const settingsRoute = (() => {
-    try {
-        return route("warehouse.settingsPage");
-    } catch {
-        return "/warehouse/settings";
-    }
-})();
+        try {
+            return route("warehouse.settingsPage");
+        } catch {
+            return "/warehouse/settings";
+        }
+    })();
 
     // Helper function to check if date is today
     const isToday = (date) => {
@@ -1015,50 +1051,6 @@ const DashContent = () => {
                     <h1 className="figtree text-[35px] font-[700]">
                         Warehouse Dashboard
                     </h1>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={refreshAllData}
-                            disabled={refreshing}
-                            className="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors disabled:opacity-50"
-                            title="Refresh dashboard data"
-                        >
-                            <RefreshCw
-                                size={20}
-                                className={`text-blue-600 ${
-                                    refreshing ? "animate-spin" : ""
-                                }`}
-                            />
-                        </button>
-                        <button
-                            onClick={toggleLiveMode}
-                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                                liveMode
-                                    ? "bg-green-100 text-green-800 border border-green-200"
-                                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            }`}
-                            title={
-                                liveMode
-                                    ? "Disable live updates"
-                                    : "Enable live updates"
-                            }
-                        >
-                            <div className="flex items-center gap-1">
-                                <div
-                                    className={`w-2 h-2 rounded-full ${
-                                        liveMode
-                                            ? "bg-green-500 animate-pulse"
-                                            : "bg-gray-400"
-                                    }`}
-                                ></div>
-                                {liveMode ? "LIVE" : "OFFLINE"}
-                            </div>
-                        </button>
-                        {liveMode && (
-                            <span className="text-xs text-gray-500">
-                                Updated: {lastUpdated.toLocaleTimeString()}
-                            </span>
-                        )}
-                    </div>
                 </div>
                 {/* <div className="flex flex-row gap-5">
                     <div 
@@ -1073,13 +1065,9 @@ const DashContent = () => {
                         title="Settings"
                     >
                         <Settings size={24} />
-                    </div>
-                    <div 
-                        className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center cursor-pointer hover:bg-[#D8E4F2] transition-colors"
-                        title="Notifications"
-                    >
-                        <Bell size={24} />
-                    </div>
+                    </div>  */}
+
+                {/* 
                     <div 
                         className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center cursor-pointer hover:bg-[#D8E4F2] transition-colors"
                         title="Warehouses"
@@ -1094,9 +1082,14 @@ const DashContent = () => {
                         </h1>
                     </div>
                 </div> */}
-
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
+                    <NotificationDropdown 
+                        notifications={warehouseNotifications}
+                        unreadCount={notificationUnreadCount}
+                    />
+                    <UserDropdown
+                        settingsRoute={route("warehouse.settingsPage")}
+                    />
                 </div>
             </div>
             {/* end of header section */}

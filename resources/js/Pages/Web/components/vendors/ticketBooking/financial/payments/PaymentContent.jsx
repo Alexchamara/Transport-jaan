@@ -22,7 +22,7 @@ import calendar from "../../../../../assets/financial/expenses/cal.svg";
 import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
-import UserDropdown from "../../../Userdropdown";
+import UserDropdown from "../../../UserDropdown";
 
 const PaymentContent = () => {
     const { auth } = usePage().props;

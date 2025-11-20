@@ -14,6 +14,8 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const { props } = usePage();
   const vehicle = vehicleProp || props.vehicle || null;
   const vehicleId = vehicleIdProp || vehicle?.id;
+  const provider = vehicle?.provider || null;
+  const authUser = props?.authUser;
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quote, setQuote] = useState(null);
@@ -25,6 +27,31 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
   const [pickupTime, setPickupTime] = useState("0:00");
   const [dropoffDate, setDropoffDate] = useState("");
   const [dropoffTime, setDropoffTime] = useState("0:00");
+  const [dateError, setDateError] = useState("");
+
+  // Initialize form values from URL query params (if present)
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search || "");
+      const pLoc = sp.get("pickupLocation") || sp.get("pickup_location");
+      const dLoc = sp.get("dropoffLocation") || sp.get("dropoff_location");
+      const pDate = sp.get("pickupDate") || sp.get("pickup_date");
+      const dDate = sp.get("dropoffDate") || sp.get("dropoff_date");
+      const pTime = sp.get("pickupTime") || sp.get("pickup_time");
+      const dTime = sp.get("dropoffTime") || sp.get("dropoff_time");
+
+      if (pLoc && !pickupLocation) setPickupLocation(pLoc);
+      if (dLoc && !dropoffLocation) setDropoffLocation(dLoc);
+      if (pDate && !pickupDate) setPickupDate(pDate);
+      if (dDate && !dropoffDate) setDropoffDate(dDate);
+      if (pTime && (pickupTime === "0:00" || !pickupTime)) setPickupTime(pTime);
+      if (dTime && (dropoffTime === "0:00" || !dropoffTime)) setDropoffTime(dTime);
+    } catch (e) {
+      // ignore
+    }
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [serverExtras, setServerExtras] = useState(
     Array.isArray(props?.extras) ? props.extras : []
@@ -227,10 +254,10 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
         <div ref={quoteRef}>
           <div className="flex flex-row justify-between items-center">
             <div className="figtree text-[16px] font-[600]">
-              <h1>Vendor name</h1>
-              <h1>Vendor Address </h1>
-              <h1>Vendor Contact Number</h1>
-              <h1>Vendor Email</h1>
+              <h1>Vendor name: {provider?.name}</h1>
+              <h1>Vendor Address: {provider?.address}</h1>
+              <h1>Vendor Contact Number: {provider?.phone}</h1>
+              <h1>Vendor Email: {provider?.email}</h1>
             </div>
 
             <div className="text-center poppins text-[25px] font-[700] uppercase">
@@ -247,9 +274,9 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
           <div className="flex flex-row justify-between items-end">
             <div className="text-[16px] font-[600]">
               <h1 className="text-[#0955AC]">Bill To</h1>
-              <h1>Client Name</h1>
-              <h1>Client Adress </h1>
-              <h1>Client contact number</h1>
+              <h1>Client Name: {authUser?.name}</h1>
+              <h1>Client Address: {authUser?.address}</h1>
+              <h1>Client Contact Number: {authUser?.phone}</h1>
             </div>
 
             <div className="text-right text-[16px] font-[600]">

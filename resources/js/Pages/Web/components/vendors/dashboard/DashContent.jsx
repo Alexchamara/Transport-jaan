@@ -23,7 +23,7 @@ import car1 from "../../../assets/vendors/dashboard/icons/car1.svg";
 import car3 from "../../../assets/vendors/dashboard/icons/car3.svg";
 
 import { Link } from "@inertiajs/react";
-import UserDropdown from "../../../components/vendors/Userdropdown";
+import UserDropdown from "../../../components/vendors/UserDropdown";
 
 const DashContent = ({
     cards,

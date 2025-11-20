@@ -31,7 +31,7 @@ import car3 from "../../../../assets/vendors/dashboard/icons/car3.svg";
 
 import cal from "../../../../assets/vendors/dashboard/icons/cal.svg";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const carTypes = [
     { name: "Hatchback", percent: 45, img: car1 },

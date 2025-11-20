@@ -60,7 +60,7 @@ const BusCard = () => {
                         <select
                             value={busFrom}
                             onChange={(e) => setBusFrom(e.target.value)}
-                            className="w-full border rounded-[10px] p-3"
+                            className="w-full border rounded-[10px] p-3 truncate"
                             required
                         >
                             <option value="" disabled>
@@ -81,7 +81,7 @@ const BusCard = () => {
                         <select
                             value={busTo}
                             onChange={(e) => setBusTo(e.target.value)}
-                            className="w-full border rounded-[10px] p-3"
+                            className="w-full border rounded-[10px] p-3 truncate"
                             required
                         >
                             <option value="" disabled>

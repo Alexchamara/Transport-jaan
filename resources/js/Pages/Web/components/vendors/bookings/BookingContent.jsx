@@ -13,7 +13,7 @@ import icon4 from "../../../assets/vendors/booking/icons/icon4.svg";
 import BookingBarChart from "./BookingBarChart";
 import CarBookingTableTwo from "./CarBookingTableTwo";
 
-import UserDropdown from "../../../components/vendors/Userdropdown";
+import UserDropdown from "../UserDropdown";
 
 // ----- color lookups -----
 const paymentStatusColors = {

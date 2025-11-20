@@ -16,7 +16,6 @@ import placeholderImg from "@/assets/placeholder.jpg";
 const VehicleCollection = ({vehicles, selectedType}) => {
   const { likedVehicleIds, authUser } = usePage().props;
   
-  console.log("authUser:", authUser);
 
   // const [likedVehicles, setLikedVehicles] = useState({});
     // liked map for O(1) checks
@@ -64,10 +63,54 @@ const VehicleCollection = ({vehicles, selectedType}) => {
 
   const handleViewDetails = (vehicleId) => {
     if (!vehicleId) return;
-router.visit(route('vehicle.details', vehicleId));
+    // prefer the explicit prop, fall back to the `type` query param
+    const typeFromProp = (selectedType || "").toString().toLowerCase();
+    const qs = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const typeFromQuery = qs ? (qs.get('type') || '').toString().toLowerCase() : '';
+    const type = typeFromProp || typeFromQuery;
+
+    try {
+      if (type === 'air') {
+        router.visit(route('airVehicle.details', vehicleId));
+        return;
+      }
+
+      if (type === 'sea') {
+        router.visit(route('seaVehicle.details', vehicleId));
+        return;
+      }
+
+      // default / land / car -> use generic vehicle details route
+      router.visit(route('vehicle.details', vehicleId));
+    } catch (e) {
+      // fallback to constructed path if named route helper isn't available
+      if (type === 'air') {
+        router.visit(`/airVehicleDetails/${vehicleId}`);
+        return;
+      }
+      if (type === 'sea') {
+        router.visit(`/seaVehicleDetails/${vehicleId}`);
+        return;
+      }
+      router.visit(`/vehicleDetails/${vehicleId}`);
+    }
   };
 
-  const handleViewMore = () => router.get("/vehicleList", { type: selectedType });
+const handleViewMore = () => {
+  switch (selectedType) {
+    case "car":
+      router.get("/vehicleList", { type: "land" });
+      break;
+    case "sea":
+      router.get("/seaVehicleList", { type: "sea" });
+      break;
+    case "air":
+      router.get("/airVehicleList", { type: "air" });
+      break;
+    default:
+      router.get("/vehicleList", { type: selectedType });
+  }
+};
 
   // choose the best available image URL
   const getVehicleImageSrc = (v) => {
@@ -81,7 +124,18 @@ router.visit(route('vehicle.details', vehicleId));
 
     if (v?.primaryImage?.path) return `/storage/${v.primaryImage.path}`;
 
-    // bundled fallback (no 404)
+    // choose a sensible default by vehicle type:
+    // prefer the explicit prop, fall back to the `type` query param
+    const typeFromProp = (selectedType || "").toString().toLowerCase();
+    const qs = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const typeFromQuery = qs ? (qs.get('type') || '').toString().toLowerCase() : '';
+    const type = typeFromProp || typeFromQuery;
+
+    if (type === 'air') return airPlaceholder;
+    if (type === 'sea') return seaPlaceholder;
+    if (type === 'land' || type === 'car') return landPlaceholder;
+
+    // final fallback
     return placeholderImg;
   };
 

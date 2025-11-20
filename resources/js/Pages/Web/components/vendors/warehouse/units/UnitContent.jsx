@@ -11,7 +11,7 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 
 import AddUnit from "../../../../home/vendors/warehouse/AddUnit";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const UnitContent = () => {
     const { auth } = usePage().props;
@@ -395,75 +395,77 @@ const UnitContent = () => {
                 </div>
             </div>
 
-            {/* Search, Filter section */}
-            <div className="flex flex-row justify-between mt-10 mb-5">
-                <div className="flex flex-row items-center justify-between w-full">
-                    <div className="flex flex-row gap-5 justify-center items-center">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                            <img src={miniSearchIcon} alt="Search" />
-                            <input
-                                type="text"
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="Search warehouse name, address..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+            {/* Search, Filter section - Only show when not in Add Unit mode */}
+            {!showAddUnit && (
+                <div className="flex flex-row justify-between mt-10 mb-5">
+                    <div className="flex flex-row items-center justify-between w-full">
+                        <div className="flex flex-row gap-5 justify-center items-center">
+                            <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                                <img src={miniSearchIcon} alt="Search" />
+                                <input
+                                    type="text"
+                                    className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                                    placeholder="Search warehouse name, address..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                                <img
+                                    src={filterIcon}
+                                    className="size-[12px]"
+                                    alt="Filter"
+                                />
+                                <select
+                                    className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
+                                    value={typeFilter}
+                                    onChange={(e) => setTypeFilter(e.target.value)}
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="Cold Storage">
+                                        Cold Storage
+                                    </option>
+                                    <option value="Dry Storage">Dry Storage</option>
+                                    <option value="Climate Controlled">
+                                        Climate Controlled
+                                    </option>
+                                    <option value="General Storage">
+                                        General Storage
+                                    </option>
+                                </select>
+                                <img src={miniDownArrow} alt="Dropdown" />
+                            </div>
+                            <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                                <img
+                                    src={filterIcon}
+                                    className="size-[12px]"
+                                    alt="Filter"
+                                />
+                                <select
+                                    className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
+                                    value={statusFilter}
+                                    onChange={(e) =>
+                                        setStatusFilter(e.target.value)
+                                    }
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="Available">Available</option>
+                                    <option value="Occupied">Occupied</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                                <img src={miniDownArrow} alt="Dropdown" />
+                            </div>
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img
-                                src={filterIcon}
-                                className="size-[12px]"
-                                alt="Filter"
-                            />
-                            <select
-                                className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
-                                value={typeFilter}
-                                onChange={(e) => setTypeFilter(e.target.value)}
-                            >
-                                <option value="">All Types</option>
-                                <option value="Cold Storage">
-                                    Cold Storage
-                                </option>
-                                <option value="Dry Storage">Dry Storage</option>
-                                <option value="Climate Controlled">
-                                    Climate Controlled
-                                </option>
-                                <option value="General Storage">
-                                    General Storage
-                                </option>
-                            </select>
-                            <img src={miniDownArrow} alt="Dropdown" />
-                        </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img
-                                src={filterIcon}
-                                className="size-[12px]"
-                                alt="Filter"
-                            />
-                            <select
-                                className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
-                                value={statusFilter}
-                                onChange={(e) =>
-                                    setStatusFilter(e.target.value)
-                                }
-                            >
-                                <option value="">All Status</option>
-                                <option value="Available">Available</option>
-                                <option value="Occupied">Occupied</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Inactive">Inactive</option>
-                            </select>
-                            <img src={miniDownArrow} alt="Dropdown" />
-                        </div>
+                        <button
+                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+                            onClick={handleAddUnitClick}
+                        >
+                            Add Warehouse
+                        </button>
                     </div>
-                    <button
-                        className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
-                        onClick={handleAddUnitClick}
-                    >
-                        Add Warehouse
-                    </button>
                 </div>
-            </div>
+            )}
 
             {/* Conditionally render AddUnit or Units list */}
             {showAddUnit ? (

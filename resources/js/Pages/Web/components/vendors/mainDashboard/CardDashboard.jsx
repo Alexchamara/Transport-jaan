@@ -6,7 +6,7 @@ const CardDashboard = () => {
     { 
       title: 'Vehicle Rental', 
       description: 'Rent vehicles for your transportation needs.',
-      subOptions: ['Land', 'Air', 'Sea']   //  Added sub options
+      // subOptions: ['Land', 'Air', 'Sea']   //  Added sub options
     },
     { title: 'Ticket Booking', description: 'Book tickets for travel and events.' },
     // { title: 'Courier Service', description: 'Send and track packages efficiently.' },

@@ -316,7 +316,6 @@ const AllUsers = ({ users = [] }) => {
                                         {user.email}
                                     </h1>
                                 </div>
-<<<<<<< Updated upstream
                                 <div>
                                     <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[150px]">
                                         {user.phone}
@@ -351,75 +350,16 @@ const AllUsers = ({ users = [] }) => {
                                         <img src={Eye} alt="View" className="w-4 h-4" />
                                     </button>
                                 </div>
-=======
->>>>>>> Stashed changes
                             </div>
                         </div>
+                    );
+                })
+            )}
 
-<<<<<<< Updated upstream
             {/* User Details Modal */}
             {showDetailsModal && selectedUser && (
                 <UserDetailsModal user={selectedUser} onClose={closeModals} />
             )}
-=======
-                        {/* 2nd Col */}
-                        <div>
-                            <h1 className="text-[#AEB9E1] text-[10px] font-500 flex flex-row justify-start items-center w-[150px]">
-                                {user.phone}
-                            </h1>
-                        </div>
-
-                        {/* 3rd Col */}
-                        <div>
-                            <h1 className="text-[#AEB9E1] text-[10px] font-500 flex flex-row justify-start items-center w-[200px]">
-                                {user.location}
-                            </h1>
-                        </div>
-
-                        {/* 4th Col */}
-                        <div className="flex flex-row justify-start items-center w-[200px]">
-                            <img
-                                src={user.companyLogo}
-                                className="size-[30px]"
-                            />
-                            <h1 className="text-[#AEB9E1] text-[10px] font-500 flex flex-row items-center">
-                                {user.company}
-                            </h1>
-                        </div>
-
-                        {/* 5th Col */}
-                        <div className="w-[150px]">
-                            <div
-                                className="flex flex-row justify-center items-center gap-1 border border-[${user.statusBg}] bg-[${user.statusBg}] px-[6px] py-[2px] rounded-[5px] w-[70px]"
-                                style={{
-                                    borderColor: user.statusBg,
-                                    backgroundColor: user.statusBg,
-                                }}
-                            >
-                                <div
-                                    className="w-1 h-1 rounded-full"
-                                    style={{
-                                        backgroundColor: user.statusColor,
-                                    }}
-                                />
-                                <h1
-                                    className="text-[${user.statusColor}] text-[10px] font-500 flex flex-row justify-center items-center"
-                                    style={{ color: user.statusColor }}
-                                >
-                                    {user.status}
-                                </h1>
-                            </div>
-                        </div>
-
-                        {/* 6th Col */}
-                        <div className="flex flex-row gap-2 w-[60px]">
-                            <img src={Edit} className="size-[12px]" />
-                            <img src={Bin} className="size-[12px]" />
-                        </div>
-                    </div>
-                </div>
-            ))}
->>>>>>> Stashed changes
         </div>
     );
 };

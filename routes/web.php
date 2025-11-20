@@ -164,7 +164,11 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
 */
 Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('client.home');
 Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
+Route::get('/seaVehicleList', [ClientVehicleController::class, 'seaVehicleList'])->name('seaVehicle.list');
+Route::get('/airVehicleList', [ClientVehicleController::class, 'airVehicleList'])->name('airVehicle.list');
 Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
+Route::get('/airVehicleDetails/{vehicle}', [ClientVehicleController::class, 'airVehicleDetails'])->name('airVehicle.details');
+Route::get('/seaVehicleDetails/{vehicle}', [ClientVehicleController::class, 'seaVehicleDetails'])->name('seaVehicle.details');
 // API Routes for frontend functionality
 Route::prefix('api')->name('api.')->group(function () {
     // Public warehouse units list
@@ -194,7 +198,12 @@ Route::prefix('client')->as('client.')->group(function () {
     Route::get('/bookings/quote', [ClientBookingController::class, 'quote'])->name('bookings.quote');
     Route::get('/vehicles/{vehicle}/extras', [ClientBookingController::class, 'extras'])->name('vehicles.extras');
     Route::patch('/bookings/{booking}/addons', [ClientBookingController::class, 'updateAddons'])->name('bookings.updateAddons');
+    Route::patch('/bookings/{airVehicleBooking}/addons', [ClientBookingController::class, 'updateAirVehicleAddons'])->name('bookings.updateAirVehicleAddons');
 
+    // Authenticated client routes (must be client role)
+    // NOTE: this route group is for client users. It previously used `role:vendor` which
+    // prevented client accounts from accessing these pages (air/land booking checkout/payments).
+    // Change to `role:client` so authenticated clients can reach the booking flows.
     Route::middleware(['auth', 'role:client'])->group(function () {
         Route::get('/bookings/checkout', [ClientBookingController::class, 'showCheckout'])->name('bookings.checkout');
         Route::post('/bookings', [ClientBookingController::class, 'store'])->name('bookings.store');
@@ -202,6 +211,29 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::post('/bookings/{booking}/confirm', [ClientBookingController::class, 'confirm'])->name('bookings.confirm');
         Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])->name('bookings.summary');
         Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])->name('bookings.cancel');
+
+        Route::get('/airBookings/quote', [ClientBookingController::class, 'airVehicleQuote'])->name('airBookings.quote');
+        Route::get('/airBookings/checkout', [ClientBookingController::class, 'showAirVehicleCheckout'])->name('airBookings.checkout');
+        Route::post('/airBookings', [ClientBookingController::class, 'airVehicleStore'])->name('airBookings.store');
+    // Use a consistent route parameter name so Laravel's route-model binding
+    // can inject the AirVehicleBookings model into controller methods.
+    Route::get('/airBookings/{airVehicleBooking}/payments', [ClientBookingController::class, 'airVehiclePayments'])->name('airBookings.payments');
+    Route::post('/airBookings/{airVehicleBooking}/confirm', [ClientBookingController::class, 'airVehicleConfirm'])->name('airBookings.confirm');
+    Route::get('/airBookings/{airVehicleBooking}/summary', [ClientBookingController::class, 'airVehicleSummary'])->name('airBookings.summary');
+    Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
+
+    // Sea Vehicle Booking Routes
+    Route::get('/seaBookings/quote', [ClientBookingController::class, 'seaVehicleQuote'])->name('seaBookings.quote');
+    Route::get('/seaBookings/checkout', [ClientBookingController::class, 'showSeaVehicleCheckout'])->name('seaBookings.checkout');
+    Route::post('/seaBookings', [ClientBookingController::class, 'seaVehicleStore'])->name('seaBookings.store');
+    // Use a consistent route parameter name so Laravel's route-model binding
+    // can inject the SeaVehicleBookings model into controller methods.
+    Route::get('/seaBookings/{seaVehicleBooking}/payments', [ClientBookingController::class, 'seaVehiclePayments'])->name('seaBookings.payments');
+    Route::post('/seaBookings/{seaVehicleBooking}/confirm', [ClientBookingController::class, 'seaVehicleConfirm'])->name('seaBookings.confirm');
+    Route::get('/seaBookings/{seaVehicleBooking}/summary', [ClientBookingController::class, 'seaVehicleSummary'])->name('seaBookings.summary');
+    Route::post('/seaBookings/{seaVehicleBooking}/cancel', [ClientBookingController::class, 'seaVehicleCancel'])->name('seaBookings.cancel');
+
+
 
         Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');
         Route::get('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'index'])->name('vehicles.reviews.index');
@@ -300,11 +332,19 @@ Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->nam
     Route::get('/editUnit/{id}', fn($id) => Inertia::render('Web/home/vendors/warehouse/EditUnit', ['unitId' => $id]))->name('editUnit');
     Route::get('/unitDetails/{id}', fn($id) => Inertia::render('Web/home/vendors/warehouse/UnitDetails', ['unitId' => $id]))->name('unitDetails');
     Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Booking'))->name('bookings');
-    Route::get('/clients', fn() => Inertia::render('Web/home/vendors/warehouse/Client'))->name('clients');
+    Route::get('/clients', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseClientController::class, 'index'])->name('clients');
     Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/warehouse/Expenses'))->name('expenses');
     Route::get('/payment', fn() => Inertia::render('Web/home/vendors/warehouse/Payment'))->name('payment');
     Route::get('/tracking', fn() => Inertia::render('Web/home/vendors/warehouse/Tracking'))->name('tracking');
-    Route::get('/calendar', fn() => Inertia::render('Web/home/vendors/warehouse/Calendar'))->name('calendar');
+    Route::get('/calendar', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseCalendarController::class, 'index'])->name('calendar');
+
+    // Notification routes
+    Route::get('/notifications', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'index'])->name('notifications');
+    Route::get('/notifications/data', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'getData'])->name('notifications.data');
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::delete('/notifications/{id}', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseNotificationController::class, 'destroy'])->name('notifications.destroy');
 
     // API routes for warehouse units
     Route::get('/api/units', [WarehouseUnitController::class, 'index'])->name('api.units.index');
@@ -762,9 +802,7 @@ Route::get('/warehouse/tracking', function () {
     return Inertia::render('Web/home/vendors/warehouse/Tracking');
 })->name('warehouse.tracking');
 
-Route::get('/warehouse/calendar', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Calendar');
-})->name('warehouse.calendar');
+Route::get('/warehouse/calendar', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseCalendarController::class, 'index'])->name('warehouse.calendar');
 
 Route::get('/warehouse/addUnit', function () {
     return Inertia::render('Web/home/vendors/warehouse/AddUnit');
@@ -983,7 +1021,7 @@ Route::get('/clientDashboardSettings', function () {
 
 Route::get('/clientTicketBookingDashboard', function () {
     return Inertia::render('Web/home/client/ClientTicketBookingDashboard');
-})->name('clientTicketBookingDashboard');
+})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
 
 Route::get('/clientVehicleDashboard', function () {
     return Inertia::render('Web/home/client/ClientVehicleDashboard');
@@ -1071,7 +1109,6 @@ foreach ($sections as $slug => $baseView) {
 */
 Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
 Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
-Route::get('/clientTicketBookingDashboard', $render('Web/home/client/ClientTicketBookingDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
 // Courier booking dashboard moved to protected routes with controller above
 Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
 Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');

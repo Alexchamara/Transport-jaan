@@ -10,7 +10,7 @@ import { ChevronDown } from "lucide-react";
 
 import ClientTable from "./ClientTable";
 
-import UserDropdown from "../../Userdropdown";
+import UserDropdown from "../../UserDropdown";
 
 const ClientContent = () => {
     const { auth } = usePage().props;
