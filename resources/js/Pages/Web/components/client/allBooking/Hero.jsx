@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@inertiajs/react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import {
     Car,
     Plane,
@@ -115,6 +117,9 @@ const Hero = ({
     const [showFilters, setShowFilters] = useState(false);
     const [viewMode, setViewMode] = useState("card"); // card or table
     const [showExportModal, setShowExportModal] = useState(false);
+    const [selectedBookingDetails, setSelectedBookingDetails] = useState(null);
+    const [showReceiptModal, setShowReceiptModal] = useState(false);
+    const receiptRef = useRef(null);
 
     // Calculate comprehensive KPI metrics
     const kpiMetrics = useMemo(() => {
@@ -262,12 +267,15 @@ const Hero = ({
 
     // Advanced analytics
     const analytics = useMemo(() => {
-        const totalRevenue = filteredBookings.reduce((sum, b) => sum + (b.total_amount || b.amount || 0), 0);
-        const avgBookingValue = totalRevenue / (filteredBookings.length || 1);
+        const totalRevenue = filteredBookings.reduce((sum, b) => {
+            const amount = parseFloat(b.total_amount || b.amount || 0);
+            return sum + (isNaN(amount) ? 0 : amount);
+        }, 0);
+        const avgBookingValue = filteredBookings.length > 0 ? totalRevenue / filteredBookings.length : 0;
         const cancelledBookings = filteredBookings.filter(b => b.status?.toLowerCase() === 'cancelled').length;
         const completedBookings = filteredBookings.filter(b => ['completed', 'delivered'].includes(b.status?.toLowerCase())).length;
-        const cancellationRate = (cancelledBookings / (filteredBookings.length || 1)) * 100;
-        const completionRate = (completedBookings / (filteredBookings.length || 1)) * 100;
+        const cancellationRate = filteredBookings.length > 0 ? (cancelledBookings / filteredBookings.length) * 100 : 0;
+        const completionRate = filteredBookings.length > 0 ? (completedBookings / filteredBookings.length) * 100 : 0;
         
         return {
             totalRevenue,
@@ -321,17 +329,53 @@ const Hero = ({
     };
 
     const handleViewDetails = (booking) => {
-        // Navigate to appropriate details page based on booking type
-        const routes = {
-            vehicle: `/booking/${booking.id}`,
-            warehouse: `/warehouse-booking/${booking.id}`,
-            courier: `/courier-shipment/${booking.id}`,
-            train: `/train-booking/${booking.id}`,
-            bus: `/bus-booking/${booking.id}`,
-            flight: `/flight-booking/${booking.id}`,
-            freight: `/freight-booking/${booking.id}`,
-        };
-        window.location.href = routes[booking.booking_type] || `/booking/${booking.id}`;
+        setSelectedBookingDetails(booking);
+    };
+
+    const downloadReceipt = async () => {
+        if (!receiptRef.current || !selectedBookingDetails) return;
+
+        try {
+            const canvas = await html2canvas(receiptRef.current, {
+                scale: Math.min(3, window.devicePixelRatio || 2),
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 12;
+            const imgWidth = pageWidth - (2 * margin);
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            let heightLeft = imgHeight;
+            let position = margin;
+
+            pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+            heightLeft -= (pageHeight - 2 * margin);
+
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight + margin;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+                heightLeft -= (pageHeight - 2 * margin);
+            }
+
+            const bookingType = selectedBookingDetails.booking_type || 'booking';
+            const reference = selectedBookingDetails.reference_number || selectedBookingDetails.id || 'receipt';
+            const date = new Date().toISOString().split('T')[0];
+            const fileName = `receipt_${bookingType}_${reference}_${date}.pdf`;
+            
+            pdf.save(fileName);
+            setShowReceiptModal(false);
+        } catch (error) {
+            console.error('Error generating receipt:', error);
+            alert('Failed to generate receipt. Please try again.');
+        }
     };
 
     return (
@@ -849,10 +893,10 @@ const Hero = ({
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="text-[20px] font-bold text-[#0955AC]">
-                                                                ${(booking.total_amount || booking.amount || 0).toFixed(2)}
+                                                                ${(parseFloat(booking.total_amount || booking.amount || 0) || 0).toFixed(2)}
                                                             </div>
                                                             <div className="text-[11px] text-slate-500 mt-1">
-                                                                {booking.currency || 'USD'}
+                                                                {booking.currency || 'LKR'}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -874,7 +918,13 @@ const Hero = ({
                                                             <span className="hidden sm:inline">Manage</span>
                                                         </button>
                                                     )}
-                                                    <button className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-slate-200 text-slate-700 text-[12px] sm:text-[13px] font-medium hover:bg-slate-50 touch-manipulation">
+                                                    <button 
+                                                        onClick={() => {
+                                                            handleViewDetails(booking);
+                                                            setTimeout(() => setShowReceiptModal(true), 300);
+                                                        }}
+                                                        className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-slate-200 text-slate-700 text-[12px] sm:text-[13px] font-medium hover:bg-slate-50 touch-manipulation"
+                                                    >
                                                         <Download className="h-4 w-4" />
                                                     </button>
                                                 </div>
@@ -996,7 +1046,7 @@ const Hero = ({
                                             </div>
                                             <div className="flex items-center justify-between">
                                                 <span className="text-[13px] font-bold text-[#0955AC]">
-                                                    ${(booking.total_amount || booking.amount || 0).toFixed(2)}
+                                                    ${(parseFloat(booking.total_amount || booking.amount || 0) || 0).toFixed(2)}
                                                 </span>
                                                 <button
                                                     onClick={() => handleViewDetails(booking)}
@@ -1151,6 +1201,1298 @@ const Hero = ({
                                             </div>
                                         </div>
                                         <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600" />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Booking Details Modal - Type-Specific */}
+                <AnimatePresence>
+                    {selectedBookingDetails && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+                            onClick={() => setSelectedBookingDetails(null)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white rounded-2xl max-w-4xl w-full my-8 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                            >
+                                {/* Modal Header */}
+                                <div className="bg-gradient-to-r from-[#0955AC] to-[#0744a0] text-white px-4 sm:px-8 py-4 sm:py-6">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex items-start gap-3 sm:gap-4">
+                                            <div className="p-2 sm:p-3 bg-white/20 rounded-xl backdrop-blur-sm flex-shrink-0">
+                                                <BookingTypeIcon 
+                                                    type={selectedBookingDetails.booking_type} 
+                                                    className="h-6 w-6 sm:h-7 sm:w-7 text-white" 
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h2 className="text-[20px] sm:text-[26px] font-bold mb-2 break-words">
+                                                    {selectedBookingDetails.service_name || selectedBookingDetails.vehicle_name || selectedBookingDetails.title || 'Booking Details'}
+                                                </h2>
+                                                <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[12px] sm:text-[13px]">
+                                                    <span className="bg-white/20 backdrop-blur-sm px-2 sm:px-3 py-1 rounded-full font-medium">
+                                                        {selectedBookingDetails.booking_type?.toUpperCase() || 'BOOKING'}
+                                                    </span>
+                                                    <span
+                                                        className={`px-2 sm:px-3 py-1 rounded-full font-medium border ${
+                                                            statusMap[selectedBookingDetails.status?.toLowerCase()]?.tone || statusMap.pending.tone
+                                                        } bg-white`}
+                                                    >
+                                                        {statusMap[selectedBookingDetails.status?.toLowerCase()]?.label || selectedBookingDetails.status || 'Pending'}
+                                                    </span>
+                                                    {(selectedBookingDetails.booking_code || selectedBookingDetails.reference_number) && (
+                                                        <span className="bg-white/20 backdrop-blur-sm px-2 sm:px-3 py-1 rounded-full font-mono text-[11px] sm:text-[12px]">
+                                                            #{selectedBookingDetails.booking_code || selectedBookingDetails.reference_number}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setSelectedBookingDetails(null)}
+                                            className="p-2 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
+                                        >
+                                            <X className="h-5 w-5 sm:h-6 sm:w-6" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Modal Content - Type-Specific Scrollable */}
+                                <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6">
+                                    {/* Payment Summary Card - Universal */}
+                                    <div className="mb-4 sm:mb-6 p-4 sm:p-6 bg-gradient-to-br from-[#0955AC]/5 to-transparent rounded-xl border-2 border-[#0955AC]/20">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                            <div>
+                                                <p className="text-[12px] sm:text-[13px] text-slate-600 mb-1">Total Amount</p>
+                                                <p className="text-[28px] sm:text-[36px] font-bold text-[#0955AC]">
+                                                    ${(parseFloat(selectedBookingDetails.total_amount || selectedBookingDetails.amount || 0) || 0).toFixed(2)}
+                                                </p>
+                                                <p className="text-[11px] sm:text-[12px] text-slate-500 mt-1">
+                                                    {selectedBookingDetails.currency || 'LKR'} • {selectedBookingDetails.payment_method || 'Payment Method Not Specified'}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col gap-2 w-full sm:w-auto">
+                                                <button 
+                                                    onClick={() => setShowReceiptModal(true)}
+                                                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-[#0955AC] text-white rounded-xl text-[13px] font-medium hover:bg-[0744a0] transition-colors inline-flex items-center justify-center gap-2"
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                    Download Receipt
+                                                </button>
+                                                {['confirmed', 'paid', 'active'].includes(selectedBookingDetails.status?.toLowerCase()) && (
+                                                    <button className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 border-2 border-slate-200 text-slate-700 rounded-xl text-[13px] font-medium hover:bg-slate-50 transition-colors">
+                                                        Modify Booking
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Type-Specific Content Sections */}
+                                    {selectedBookingDetails.booking_type === 'vehicle' ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                                            {/* Vehicle Details */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Car className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Vehicle Information
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Vehicle:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.vehicle_name || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Category:</span>
+                                                        <span className="font-semibold text-slate-900 capitalize">{selectedBookingDetails.vehicle_category?.name || selectedBookingDetails.vehicle_category || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Booking ID:</span>
+                                                        <span className="font-semibold text-slate-900">#{selectedBookingDetails.id}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Reference:</span>
+                                                        <span className="font-semibold text-slate-900 font-mono text-[12px]">{selectedBookingDetails.booking_code || 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Rental Period */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Rental Period
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    {selectedBookingDetails.start_date && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Start Date:</span>
+                                                            <span className="font-semibold text-slate-900">{new Date(selectedBookingDetails.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.end_date && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">End Date:</span>
+                                                            <span className="font-semibold text-slate-900">{new Date(selectedBookingDetails.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.rental_days && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Duration:</span>
+                                                            <span className="font-semibold text-slate-900">{selectedBookingDetails.rental_days} {selectedBookingDetails.rental_days === 1 ? 'day' : 'days'}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.price_per_day && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Daily Rate:</span>
+                                                            <span className="font-semibold text-slate-900">${(parseFloat(selectedBookingDetails.price_per_day) || 0).toFixed(2)}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Pickup/Dropoff Locations */}
+                                            {(selectedBookingDetails.pickup_location || selectedBookingDetails.dropoff_location) && (
+                                                <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                    <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                        <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                        Locations
+                                                    </h3>
+                                                    <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                        {selectedBookingDetails.pickup_location && (
+                                                            <div>
+                                                                <span className="text-slate-600 block mb-1">Pickup:</span>
+                                                                <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.pickup_location}</span>
+                                                            </div>
+                                                        )}
+                                                        {selectedBookingDetails.dropoff_location && (
+                                                            <div>
+                                                                <span className="text-slate-600 block mb-1">Dropoff:</span>
+                                                                <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.dropoff_location}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Customer Info */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Customer Details
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Name:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_name || selectedBookingDetails.user?.name || 'Not provided'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Email:</span>
+                                                        <span className="font-semibold text-slate-900 text-[12px] break-all">{selectedBookingDetails.customer_email || selectedBookingDetails.user?.email || 'Not provided'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Phone:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_phone || selectedBookingDetails.user?.phone || 'Not provided'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Provider Info */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Package className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Vehicle Provider
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Company:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.vendor_name || selectedBookingDetails.provider_name || 'Not specified'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Email:</span>
+                                                        <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.vendor_email || selectedBookingDetails.provider_email || 'Not provided'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Phone:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.vendor_phone || selectedBookingDetails.provider_phone || 'Not provided'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Description/Notes */}
+                                            {selectedBookingDetails.description && (
+                                                <div className="md:col-span-2 bg-blue-50 rounded-xl p-4 sm:p-5 border border-blue-200">
+                                                    <h3 className="font-bold text-[15px] sm:text-[16px] mb-2 flex items-center gap-2 text-slate-800">
+                                                        <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                                                        Booking Notes
+                                                    </h3>
+                                                    <p className="text-[13px] sm:text-[14px] text-slate-700 leading-relaxed">{selectedBookingDetails.description}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : selectedBookingDetails.booking_type === 'train' || selectedBookingDetails.booking_type === 'bus' ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                                        {/* Ticket Details */}
+                                        <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                            <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                {selectedBookingDetails.booking_type === 'train' ? (
+                                                    <Train className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                ) : (
+                                                    <Bus className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                )}
+                                                {selectedBookingDetails.booking_type === 'train' ? 'Train' : 'Bus'} Journey Details
+                                            </h3>
+                                            <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Booking Ref:</span>
+                                                    <span className="font-semibold text-slate-900 font-mono text-[12px]">{selectedBookingDetails.booking_code || selectedBookingDetails.reference_number || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Journey Date:</span>
+                                                    <span className="font-semibold text-slate-900">{selectedBookingDetails.start_date ? new Date(selectedBookingDetails.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
+                                                </div>
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Service:</span>
+                                                    <span className="font-semibold text-slate-900">{selectedBookingDetails.service_name || 'N/A'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Passenger Information */}
+                                        <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                            <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                Passenger Details
+                                            </h3>
+                                            <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Name:</span>
+                                                    <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_name || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Email:</span>
+                                                    <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.customer_email || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Phone:</span>
+                                                    <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_phone || 'N/A'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Booking Info */}
+                                        {selectedBookingDetails.notes && (
+                                            <div className="md:col-span-2 bg-blue-50 rounded-xl p-4 sm:p-5 border border-blue-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-2 flex items-center gap-2 text-slate-800">
+                                                    <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                                                    Booking Information
+                                                </h3>
+                                                <p className="text-[13px] sm:text-[14px] text-slate-700">{selectedBookingDetails.notes}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    ) : selectedBookingDetails.booking_type === 'flight' ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                                            {/* Flight Details */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Plane className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Flight Information
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Booking Ref:</span>
+                                                        <span className="font-semibold text-slate-900 font-mono text-[12px]">{selectedBookingDetails.booking_code || selectedBookingDetails.reference_number || 'N/A'}</span>
+                                                    </div>
+                                                    {selectedBookingDetails.departure_date && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Departure:</span>
+                                                            <span className="font-semibold text-slate-900">{new Date(selectedBookingDetails.departure_date || selectedBookingDetails.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.return_date && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Return:</span>
+                                                            <span className="font-semibold text-slate-900">{new Date(selectedBookingDetails.return_date || selectedBookingDetails.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Route Information */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Route
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    {selectedBookingDetails.pickup_location && (
+                                                        <div>
+                                                            <span className="text-slate-600 block mb-1">From:</span>
+                                                            <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.pickup_location}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.dropoff_location && (
+                                                        <div>
+                                                            <span className="text-slate-600 block mb-1">To:</span>
+                                                            <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.dropoff_location}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Passenger Details */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Passenger Details
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Name:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_name || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Email:</span>
+                                                        <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.customer_email || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Phone:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_phone || 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Special Requests */}
+                                            {selectedBookingDetails.notes && (
+                                                <div className="md:col-span-2 bg-blue-50 rounded-xl p-4 sm:p-5 border border-blue-200">
+                                                    <h3 className="font-bold text-[15px] sm:text-[16px] mb-2 flex items-center gap-2 text-slate-800">
+                                                        <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                                                        Special Requests
+                                                    </h3>
+                                                    <p className="text-[13px] sm:text-[14px] text-slate-700">{selectedBookingDetails.notes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : selectedBookingDetails.booking_type === 'courier' ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                                            {/* Shipment Details */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Package className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Shipment Details
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Tracking Ref:</span>
+                                                        <span className="font-semibold text-slate-900 font-mono text-[12px]">{selectedBookingDetails.reference_number || selectedBookingDetails.tracking_reference || 'N/A'}</span>
+                                                    </div>
+                                                    {selectedBookingDetails.service_level && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Service Level:</span>
+                                                            <span className="font-semibold text-slate-900 capitalize">{selectedBookingDetails.service_level}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.pickup_date && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Pickup Date:</span>
+                                                            <span className="font-semibold text-slate-900">{new Date(selectedBookingDetails.pickup_date || selectedBookingDetails.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.package_count && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Packages:</span>
+                                                            <span className="font-semibold text-slate-900">{selectedBookingDetails.package_count} {selectedBookingDetails.package_count === 1 ? 'package' : 'packages'}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Sender Information */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Sender Details
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Name:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_name || selectedBookingDetails.user?.name || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Email:</span>
+                                                        <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.customer_email || selectedBookingDetails.user?.email || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Phone:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_phone || selectedBookingDetails.user?.phone || 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Pickup Location */}
+                                            {selectedBookingDetails.pickup_location && (
+                                                <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                    <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                        <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                        Pickup Location
+                                                    </h3>
+                                                    <p className="text-[13px] sm:text-[14px] text-slate-700 font-semibold leading-relaxed">{selectedBookingDetails.pickup_location}</p>
+                                                </div>
+                                            )}
+
+                                            {/* Delivery Location */}
+                                            {selectedBookingDetails.dropoff_location && (
+                                                <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                    <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                        <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
+                                                        Delivery Location
+                                                    </h3>
+                                                    <p className="text-[13px] sm:text-[14px] text-slate-700 font-semibold leading-relaxed">{selectedBookingDetails.dropoff_location}</p>
+                                                </div>
+                                            )}
+
+                                            {/* Delivery Instructions */}
+                                            {selectedBookingDetails.notes && (
+                                                <div className="md:col-span-2 bg-blue-50 rounded-xl p-4 sm:p-5 border border-blue-200">
+                                                    <h3 className="font-bold text-[15px] sm:text-[16px] mb-2 flex items-center gap-2 text-slate-800">
+                                                        <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                                                        Delivery Instructions
+                                                    </h3>
+                                                    <p className="text-[13px] sm:text-[14px] text-slate-700">{selectedBookingDetails.notes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : selectedBookingDetails.booking_type === 'warehouse' ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                                            {/* Warehouse Details */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Warehouse className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Storage Details
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Booking Ref:</span>
+                                                        <span className="font-semibold text-slate-900 font-mono text-[12px]">{selectedBookingDetails.booking_code || selectedBookingDetails.reference_number || 'N/A'}</span>
+                                                    </div>
+                                                    {selectedBookingDetails.start_date && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Start Date:</span>
+                                                            <span className="font-semibold text-slate-900">{new Date(selectedBookingDetails.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.end_date && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">End Date:</span>
+                                                            <span className="font-semibold text-slate-900">{new Date(selectedBookingDetails.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.duration && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Duration:</span>
+                                                            <span className="font-semibold text-slate-900">{selectedBookingDetails.duration}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Company Information */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Company Details
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Company:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.company_name || selectedBookingDetails.customer_name || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Contact:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_name || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Email:</span>
+                                                        <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.customer_email || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Phone:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_phone || 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Warehouse Provider */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Package className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Warehouse Provider
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Provider:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.vendor_name || 'Not specified'}</span>
+                                                    </div>
+                                                    {selectedBookingDetails.vendor_email && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Email:</span>
+                                                            <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.vendor_email}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedBookingDetails.vendor_phone && (
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="text-slate-600">Phone:</span>
+                                                            <span className="font-semibold text-slate-900">{selectedBookingDetails.vendor_phone}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Storage Notes */}
+                                            {selectedBookingDetails.notes && (
+                                                <div className="md:col-span-2 bg-blue-50 rounded-xl p-4 sm:p-5 border border-blue-200">
+                                                    <h3 className="font-bold text-[15px] sm:text-[16px] mb-2 flex items-center gap-2 text-slate-800">
+                                                        <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                                                        Storage Requirements & Notes
+                                                    </h3>
+                                                    <p className="text-[13px] sm:text-[14px] text-slate-700">{selectedBookingDetails.notes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                                            {/* Generic fallback - existing sections continue below */}
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Booking Information
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Booking ID:</span>
+                                                        <span className="font-semibold text-slate-900">#{selectedBookingDetails.id}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Reference:</span>
+                                                        <span className="font-semibold text-slate-900 font-mono text-[12px] break-all">{selectedBookingDetails.booking_code || selectedBookingDetails.reference_number || 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                                <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                    Customer Details
+                                                </h3>
+                                                <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Name:</span>
+                                                        <span className="font-semibold text-slate-900">{selectedBookingDetails.customer_name || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Email:</span>
+                                                        <span className="font-semibold text-slate-900 text-[12px]">{selectedBookingDetails.customer_email || 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Payment Breakdown - Common for all types */}
+                                    <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                        <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                            Payment Summary
+                                        </h3>
+                                        <div className="space-y-2 text-[13px] sm:text-[14px]">
+                                            {selectedBookingDetails.base_price && (
+                                                <div className="flex justify-between py-2">
+                                                    <span className="text-slate-600">Base Price:</span>
+                                                    <span className="font-semibold text-slate-900">${(parseFloat(selectedBookingDetails.base_price) || 0).toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                            {selectedBookingDetails.tax_amount && (
+                                                <div className="flex justify-between py-2">
+                                                    <span className="text-slate-600">Tax:</span>
+                                                    <span className="font-semibold text-slate-900">${(parseFloat(selectedBookingDetails.tax_amount) || 0).toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                            {selectedBookingDetails.discount && (
+                                                <div className="flex justify-between py-2 text-green-600">
+                                                    <span>Discount:</span>
+                                                    <span className="font-semibold">-${(parseFloat(selectedBookingDetails.discount) || 0).toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                            <div className="border-t-2 border-slate-300 pt-3 mt-2">
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-800 font-bold text-[15px] sm:text-[16px]">Total Amount:</span>
+                                                    <span className="font-bold text-[17px] sm:text-[18px] text-[#0955AC]">
+                                                        ${(parseFloat(selectedBookingDetails.total_amount || selectedBookingDetails.amount || 0) || 0).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Generic Description - shown if not shown in type-specific section */}
+                                    {selectedBookingDetails.description && !selectedBookingDetails.notes && (
+                                        <div className="mt-4 sm:mt-6 bg-blue-50 rounded-xl p-4 sm:p-5 border border-blue-200">
+                                            <h3 className="font-bold text-[15px] sm:text-[16px] mb-2 flex items-center gap-2 text-slate-800">
+                                                <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
+                                                Description / Notes
+                                            </h3>
+                                            <p className="text-[13px] sm:text-[14px] text-slate-700 leading-relaxed">{selectedBookingDetails.description}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Keep existing vendor/customer sections hidden here since shown in type-specific sections */}
+                                    {false && (
+                                        <div className="hidden">
+                                            {/* Customer/User Information - Always visible */}
+                                        <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                            <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                Customer Information
+                                            </h3>
+                                            <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Name:</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {selectedBookingDetails.customer_name || 
+                                                         selectedBookingDetails.user?.name || 
+                                                         selectedBookingDetails.user_name ||
+                                                         'Not provided'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Email:</span>
+                                                    <span className="font-semibold text-slate-900 text-[12px] break-all">
+                                                        {selectedBookingDetails.customer_email || 
+                                                         selectedBookingDetails.user?.email || 
+                                                         selectedBookingDetails.user_email ||
+                                                         'Not provided'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Phone:</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {selectedBookingDetails.customer_phone || 
+                                                         selectedBookingDetails.user?.phone || 
+                                                         selectedBookingDetails.user_phone ||
+                                                         selectedBookingDetails.phone ||
+                                                         'Not provided'}
+                                                    </span>
+                                                </div>
+                                                {(selectedBookingDetails.user?.address || selectedBookingDetails.customer_address) && (
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Address:</span>
+                                                        <span className="font-semibold text-slate-900 text-right text-[12px]">
+                                                            {selectedBookingDetails.user?.address || selectedBookingDetails.customer_address}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Vendor Information - Always visible */}
+                                        <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
+                                            <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
+                                                <Package className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
+                                                Vendor / Provider Information
+                                            </h3>
+                                            <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Company:</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {selectedBookingDetails.vendor?.name || 
+                                                         selectedBookingDetails.provider?.name || 
+                                                         selectedBookingDetails.vendor_name ||
+                                                         selectedBookingDetails.provider_name ||
+                                                         selectedBookingDetails.company_name ||
+                                                         'Not specified'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Contact Email:</span>
+                                                    <span className="font-semibold text-slate-900 text-[12px] break-all">
+                                                        {selectedBookingDetails.vendor?.email || 
+                                                         selectedBookingDetails.provider?.email ||
+                                                         selectedBookingDetails.vendor_email ||
+                                                         selectedBookingDetails.provider_email ||
+                                                         'Not provided'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between gap-2">
+                                                    <span className="text-slate-600">Contact Phone:</span>
+                                                    <span className="font-semibold text-slate-900">
+                                                        {selectedBookingDetails.vendor?.phone || 
+                                                         selectedBookingDetails.provider?.phone || 
+                                                         selectedBookingDetails.vendor_phone ||
+                                                         selectedBookingDetails.provider_phone ||
+                                                         selectedBookingDetails.contact_number ||
+                                                         'Not provided'}
+                                                    </span>
+                                                </div>
+                                                {(selectedBookingDetails.vendor?.address || 
+                                                  selectedBookingDetails.provider?.address ||
+                                                  selectedBookingDetails.vendor_address ||
+                                                  selectedBookingDetails.provider_address) && (
+                                                    <div className="flex justify-between gap-2">
+                                                        <span className="text-slate-600">Address:</span>
+                                                        <span className="font-semibold text-slate-900 text-right text-[12px]">
+                                                            {selectedBookingDetails.vendor?.address || 
+                                                             selectedBookingDetails.provider?.address ||
+                                                             selectedBookingDetails.vendor_address ||
+                                                             selectedBookingDetails.provider_address}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Modal Footer */}
+                                <div className="bg-slate-50 px-4 sm:px-8 py-4 sm:py-5 border-t border-slate-200">
+                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                                        <div className="text-[12px] sm:text-[13px] text-slate-600 text-center sm:text-left">
+                                            <p>Need help? <a href="mailto:support@transportjaan.com" className="text-[#0955AC] font-medium hover:underline">Contact support</a></p>
+                                        </div>
+                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                            <button 
+                                                onClick={() => setSelectedBookingDetails(null)}
+                                                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 border-2 border-slate-300 text-slate-700 rounded-xl text-[13px] font-medium hover:bg-white transition-colors"
+                                            >
+                                                Close
+                                            </button>
+                                            <button 
+                                                onClick={() => setShowReceiptModal(true)}
+                                                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 bg-[#0955AC] text-white rounded-xl text-[13px] font-medium hover:bg-[#0744a0] transition-colors inline-flex items-center justify-center gap-2"
+                                            >
+                                                <Download className="h-4 w-4" />
+                                                <span className="hidden sm:inline">Download PDF</span>
+                                                <span className="sm:hidden">PDF</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Receipt Modal */}
+                <AnimatePresence>
+                    {showReceiptModal && selectedBookingDetails && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60"
+                            onClick={() => setShowReceiptModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                transition={{ type: "spring", duration: 0.3 }}
+                                className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Receipt Content */}
+                                <div ref={receiptRef} className="bg-white p-8 sm:p-12">
+                                    {/* Receipt Header */}
+                                    <div className="border-b-2 border-slate-200 pb-6 mb-6">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                            <div>
+                                                <h1 className="text-3xl font-bold text-[#0955AC]">Leo Transport</h1>
+                                                <p className="text-sm text-slate-600 mt-1">Your Trusted Transport Partner</p>
+                                            </div>
+                                            <div className="text-left sm:text-right">
+                                                <h2 className="text-2xl font-bold text-slate-900">RECEIPT</h2>
+                                                <p className="text-sm text-slate-600 mt-1">
+                                                    {selectedBookingDetails.reference_number || `#${selectedBookingDetails.id}`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <p className="font-semibold text-slate-900">Leo Transport</p>
+                                                <p className="text-slate-600">123 Transport Street</p>
+                                                <p className="text-slate-600">Colombo, Sri Lanka</p>
+                                                <p className="text-slate-600">info@leotransport.com</p>
+                                                <p className="text-slate-600">+94 11 234 5678</p>
+                                            </div>
+                                            <div className="text-left sm:text-right">
+                                                <p className="text-slate-600">
+                                                    <span className="font-semibold text-slate-900">Date:</span>{" "}
+                                                    {new Date(selectedBookingDetails.created_at || selectedBookingDetails.booking_date).toLocaleDateString('en-US', { 
+                                                        year: 'numeric', 
+                                                        month: 'long', 
+                                                        day: 'numeric' 
+                                                    })}
+                                                </p>
+                                                <p className="text-slate-600">
+                                                    <span className="font-semibold text-slate-900">Type:</span>{" "}
+                                                    {selectedBookingDetails.booking_type?.charAt(0).toUpperCase() + selectedBookingDetails.booking_type?.slice(1) || 'Booking'}
+                                                </p>
+                                                <p className="text-slate-600">
+                                                    <span className="font-semibold text-slate-900">Status:</span>{" "}
+                                                    <span className={`font-medium ${
+                                                        ['paid', 'completed', 'delivered'].includes(selectedBookingDetails.status?.toLowerCase()) ? 'text-green-600' :
+                                                        ['confirmed', 'active', 'in_transit'].includes(selectedBookingDetails.status?.toLowerCase()) ? 'text-blue-600' :
+                                                        ['pending'].includes(selectedBookingDetails.status?.toLowerCase()) ? 'text-yellow-600' :
+                                                        'text-slate-600'
+                                                    }`}>
+                                                        {selectedBookingDetails.status?.toUpperCase() || 'N/A'}
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Bill To Section */}
+                                    <div className="mb-6">
+                                        <h3 className="text-lg font-bold text-slate-900 mb-3">Bill To:</h3>
+                                        <div className="bg-slate-50 p-4 rounded-lg">
+                                            <p className="font-semibold text-slate-900">
+                                                {selectedBookingDetails.customer?.name || 
+                                                 selectedBookingDetails.client?.name ||
+                                                 selectedBookingDetails.passenger_name ||
+                                                 selectedBookingDetails.sender_name ||
+                                                 selectedBookingDetails.company_name ||
+                                                 'Customer'}
+                                            </p>
+                                            <p className="text-sm text-slate-600 mt-1">
+                                                {selectedBookingDetails.customer?.email || 
+                                                 selectedBookingDetails.client?.email ||
+                                                 selectedBookingDetails.passenger_email ||
+                                                 selectedBookingDetails.sender_email ||
+                                                 selectedBookingDetails.company_email ||
+                                                 'N/A'}
+                                            </p>
+                                            <p className="text-sm text-slate-600">
+                                                {selectedBookingDetails.customer?.phone || 
+                                                 selectedBookingDetails.client?.phone ||
+                                                 selectedBookingDetails.passenger_phone ||
+                                                 selectedBookingDetails.sender_phone ||
+                                                 selectedBookingDetails.company_phone ||
+                                                 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Booking Details - Type Specific */}
+                                    {selectedBookingDetails.booking_type === 'vehicle' && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-bold text-slate-900 mb-3">Vehicle Rental Details:</h3>
+                                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-slate-100">
+                                                        <tr>
+                                                            <th className="text-left p-3 font-semibold text-slate-700">Description</th>
+                                                            <th className="text-right p-3 font-semibold text-slate-700">Details</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-200">
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Vehicle</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.vehicle_name || 
+                                                                 selectedBookingDetails.vehicle?.name ||
+                                                                 'Vehicle Rental'}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Category</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.vehicle_category?.name || 
+                                                                 selectedBookingDetails.category ||
+                                                                 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Rental Period</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {new Date(selectedBookingDetails.start_date).toLocaleDateString()} - {new Date(selectedBookingDetails.end_date).toLocaleDateString()}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Duration</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.rental_days || 
+                                                                 Math.ceil((new Date(selectedBookingDetails.end_date) - new Date(selectedBookingDetails.start_date)) / (1000 * 60 * 60 * 24)) || 
+                                                                 'N/A'} days
+                                                            </td>
+                                                        </tr>
+                                                        {selectedBookingDetails.pickup_location && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Pickup Location</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {selectedBookingDetails.pickup_location}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        {selectedBookingDetails.dropoff_location && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Dropoff Location</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {selectedBookingDetails.dropoff_location}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {(selectedBookingDetails.booking_type === 'train' || selectedBookingDetails.booking_type === 'bus') && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-bold text-slate-900 mb-3">Journey Details:</h3>
+                                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-slate-100">
+                                                        <tr>
+                                                            <th className="text-left p-3 font-semibold text-slate-700">Description</th>
+                                                            <th className="text-right p-3 font-semibold text-slate-700">Details</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-200">
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Route</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.from_station || selectedBookingDetails.departure_station || 'N/A'} → {selectedBookingDetails.to_station || selectedBookingDetails.arrival_station || 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Date & Time</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {new Date(selectedBookingDetails.departure_date || selectedBookingDetails.travel_date).toLocaleString()}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Passenger</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.passenger_name || 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        {selectedBookingDetails.seat_numbers && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Seat(s)</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {selectedBookingDetails.seat_numbers}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        {selectedBookingDetails.ticket_class && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Class</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {selectedBookingDetails.ticket_class}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {selectedBookingDetails.booking_type === 'flight' && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-bold text-slate-900 mb-3">Flight Details:</h3>
+                                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-slate-100">
+                                                        <tr>
+                                                            <th className="text-left p-3 font-semibold text-slate-700">Description</th>
+                                                            <th className="text-right p-3 font-semibold text-slate-700">Details</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-200">
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Flight Number</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.flight_number || 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Route</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.departure_airport || 'N/A'} → {selectedBookingDetails.arrival_airport || 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Departure</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {new Date(selectedBookingDetails.departure_date).toLocaleString()}
+                                                            </td>
+                                                        </tr>
+                                                        {selectedBookingDetails.arrival_date && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Arrival</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {new Date(selectedBookingDetails.arrival_date).toLocaleString()}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Passenger</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.passenger_name || 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        {selectedBookingDetails.seat_number && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Seat</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {selectedBookingDetails.seat_number}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        {selectedBookingDetails.booking_class && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Class</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {selectedBookingDetails.booking_class}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {selectedBookingDetails.booking_type === 'courier' && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-bold text-slate-900 mb-3">Shipment Details:</h3>
+                                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-slate-100">
+                                                        <tr>
+                                                            <th className="text-left p-3 font-semibold text-slate-700">Description</th>
+                                                            <th className="text-right p-3 font-semibold text-slate-700">Details</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-200">
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Tracking Number</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.tracking_number || selectedBookingDetails.reference_number || 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Package Type</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.package_type || 'Standard Package'}
+                                                            </td>
+                                                        </tr>
+                                                        {selectedBookingDetails.weight && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Weight</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {selectedBookingDetails.weight} kg
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Pickup Address</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900 text-xs">
+                                                                {selectedBookingDetails.pickup_address || 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Delivery Address</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900 text-xs">
+                                                                {selectedBookingDetails.delivery_address || 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        {selectedBookingDetails.pickup_date && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Pickup Date</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {new Date(selectedBookingDetails.pickup_date).toLocaleDateString()}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        {selectedBookingDetails.delivery_date && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Expected Delivery</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {new Date(selectedBookingDetails.delivery_date).toLocaleDateString()}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {selectedBookingDetails.booking_type === 'warehouse' && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-bold text-slate-900 mb-3">Warehouse Storage Details:</h3>
+                                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-slate-100">
+                                                        <tr>
+                                                            <th className="text-left p-3 font-semibold text-slate-700">Description</th>
+                                                            <th className="text-right p-3 font-semibold text-slate-700">Details</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-200">
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Unit Number</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.unit_number || 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Storage Type</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.storage_type || 'Standard Storage'}
+                                                            </td>
+                                                        </tr>
+                                                        {selectedBookingDetails.size && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Size</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {selectedBookingDetails.size}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Storage Period</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {new Date(selectedBookingDetails.start_date).toLocaleDateString()} - {new Date(selectedBookingDetails.end_date).toLocaleDateString()}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Duration</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                {selectedBookingDetails.duration_months || 
+                                                                 Math.ceil((new Date(selectedBookingDetails.end_date) - new Date(selectedBookingDetails.start_date)) / (1000 * 60 * 60 * 24 * 30)) || 
+                                                                 'N/A'} months
+                                                            </td>
+                                                        </tr>
+                                                        {selectedBookingDetails.warehouse_location && (
+                                                            <tr>
+                                                                <td className="p-3 text-slate-600">Location</td>
+                                                                <td className="p-3 text-right font-medium text-slate-900">
+                                                                    {selectedBookingDetails.warehouse_location}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Payment Summary */}
+                                    <div className="mb-6">
+                                        <h3 className="text-lg font-bold text-slate-900 mb-3">Payment Summary:</h3>
+                                        <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                            <table className="w-full text-sm">
+                                                <tbody className="divide-y divide-slate-200">
+                                                    <tr>
+                                                        <td className="p-3 text-slate-600">Base Price</td>
+                                                        <td className="p-3 text-right font-medium text-slate-900">
+                                                            LKR {(parseFloat(selectedBookingDetails.base_price || selectedBookingDetails.subtotal || selectedBookingDetails.amount || 0) || 0).toFixed(2)}
+                                                        </td>
+                                                    </tr>
+                                                    {selectedBookingDetails.tax_amount && parseFloat(selectedBookingDetails.tax_amount) > 0 && (
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Tax</td>
+                                                            <td className="p-3 text-right font-medium text-slate-900">
+                                                                LKR {(parseFloat(selectedBookingDetails.tax_amount) || 0).toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    {selectedBookingDetails.discount_amount && parseFloat(selectedBookingDetails.discount_amount) > 0 && (
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Discount</td>
+                                                            <td className="p-3 text-right font-medium text-green-600">
+                                                                - LKR {(parseFloat(selectedBookingDetails.discount_amount) || 0).toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    <tr className="bg-slate-50">
+                                                        <td className="p-3 font-bold text-slate-900">Total Amount</td>
+                                                        <td className="p-3 text-right font-bold text-[#0955AC] text-lg">
+                                                            LKR {(parseFloat(selectedBookingDetails.total_amount || selectedBookingDetails.amount || 0) || 0).toFixed(2)}
+                                                        </td>
+                                                    </tr>
+                                                    {selectedBookingDetails.amount_paid && parseFloat(selectedBookingDetails.amount_paid) > 0 && (
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Amount Paid</td>
+                                                            <td className="p-3 text-right font-medium text-green-600">
+                                                                LKR {(parseFloat(selectedBookingDetails.amount_paid) || 0).toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    {selectedBookingDetails.amount_due && parseFloat(selectedBookingDetails.amount_due) > 0 && (
+                                                        <tr>
+                                                            <td className="p-3 text-slate-600">Amount Due</td>
+                                                            <td className="p-3 text-right font-medium text-red-600">
+                                                                LKR {(parseFloat(selectedBookingDetails.amount_due) || 0).toFixed(2)}
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Terms and Conditions */}
+                                    <div className="border-t-2 border-slate-200 pt-6 mt-6">
+                                        <h3 className="text-sm font-bold text-slate-900 mb-2">Terms & Conditions:</h3>
+                                        <ul className="text-xs text-slate-600 space-y-1">
+                                            <li>• Payment is due upon booking confirmation unless otherwise specified.</li>
+                                            <li>• Cancellation policy applies as per the booking type and terms agreed upon.</li>
+                                            <li>• This receipt is valid for the service(s) mentioned above only.</li>
+                                            <li>• For any queries or concerns, please contact our customer support.</li>
+                                        </ul>
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div className="text-center mt-8 pt-6 border-t border-slate-200">
+                                        <p className="text-xs text-slate-500">
+                                            Thank you for choosing Leo Transport!
+                                        </p>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            This is a computer-generated receipt and does not require a signature.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Modal Actions */}
+                                <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setShowReceiptModal(false)}
+                                        className="px-6 py-2.5 border-2 border-slate-300 text-slate-700 rounded-xl text-sm font-medium hover:bg-white transition-colors"
+                                    >
+                                        Close
+                                    </button>
+                                    <button
+                                        onClick={downloadReceipt}
+                                        className="px-6 py-2.5 bg-[#0955AC] text-white rounded-xl text-sm font-medium hover:bg-[#0744a0] transition-colors inline-flex items-center gap-2"
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        Download PDF
                                     </button>
                                 </div>
                             </motion.div>

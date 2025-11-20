@@ -1102,31 +1102,267 @@ Route::get('/clientVehicleDashboard', function () {
 Route::get('/clientAllBookings', function () {
     $clientId = Auth::id();
     
-    // Fetch all booking types
+    // Fetch all booking types with relationships
     $vehicleBookings = \App\Models\Booking::where('client_id', $clientId)
-        ->with('vehicle')
+        ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
+        ->get()
+        ->map(function($booking) {
+            $vehicle = $booking->vehicle;
+            $provider = $vehicle?->provider;
+            $client = $booking->client;
+            $customer = $booking->customer;
+            $schedule = $booking->schedule;
+            
+            return [
+                'id' => $booking->id,
+                'booking_type' => 'vehicle',
+                'service_name' => $vehicle->name ?? 'Vehicle Rental',
+                'vehicle_name' => $vehicle->name ?? null,
+                'vehicle_category' => $vehicle->category ?? null,
+                'status' => $booking->status,
+                'total_amount' => $booking->total_amount,
+                'amount' => $booking->total_amount,
+                'booking_date' => $booking->created_at->format('Y-m-d'),
+                'start_date' => $booking->start_date,
+                'end_date' => $booking->end_date,
+                'pickup_location' => $schedule->pickup_location ?? null,
+                'dropoff_location' => $schedule->dropoff_location ?? null,
+                'booking_code' => $booking->booking_code ?? 'BK-' . $booking->id,
+                'reference_number' => $booking->booking_code ?? 'REF-' . $booking->id,
+                'currency' => $booking->currency ?? 'LKR',
+                'created_at' => $booking->created_at,
+                
+                // User/Client Information
+                'user' => $client ? [
+                    'name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                    'address' => $client->address,
+                ] : null,
+                'customer_name' => $customer->name ?? $client->name ?? null,
+                'customer_email' => $customer->email ?? $client->email ?? null,
+                'customer_phone' => $customer->phone ?? $client->phone ?? null,
+                'customer_address' => $customer->address ?? $client->address ?? null,
+                
+                // Vendor/Provider Information
+                'vendor' => $provider ? [
+                    'name' => $provider->name,
+                    'email' => $provider->email,
+                    'phone' => $provider->phone,
+                    'address' => $provider->address,
+                ] : null,
+                'vendor_name' => $provider->name ?? null,
+                'vendor_email' => $provider->email ?? null,
+                'vendor_phone' => $provider->phone ?? null,
+                'vendor_address' => $provider->address ?? null,
+                'company_name' => $provider->company_name ?? $provider->name ?? null,
+                
+                // Payment Information
+                'payment_method' => $booking->payments->first()->payment_method ?? 'Not specified',
+                'payment_status' => $booking->payments->first()->status ?? $booking->status,
+                
+                // Additional Details
+                'notes' => $booking->notes,
+                'subtotal' => $booking->subtotal,
+                'deposit_amount' => $booking->deposit_amount,
+                'price_per_day' => $booking->price_per_day,
+                'rental_days' => $booking->rental_days,
+            ];
+        });
+
+    // Fetch train bookings
+    $trainBookings = \App\Models\TrainBooking::where('user_id', $clientId)
+        ->with(['user', 'trainSchedule.train'])
         ->get()
         ->map(function($booking) {
             return [
                 'id' => $booking->id,
-                'booking_type' => 'vehicle',
-                'service_name' => $booking->vehicle->name ?? 'Vehicle Rental',
-                'vehicle_name' => $booking->vehicle->name ?? null,
-                'vehicle_category' => $booking->vehicle->category ?? null,
+                'booking_type' => 'train',
+                'service_name' => 'Train Ticket - ' . ($booking->trainSchedule?->train?->name ?? 'Train'),
                 'status' => $booking->status,
                 'total_amount' => $booking->total_amount,
                 'amount' => $booking->total_amount,
-                'booking_date' => $booking->booking_date,
+                'booking_date' => $booking->created_at->format('Y-m-d'),
+                'reference_number' => $booking->booking_reference,
+                'booking_code' => $booking->booking_reference,
+                'currency' => 'LKR',
+                'created_at' => $booking->created_at,
+                'user' => $booking->user ? [
+                    'name' => $booking->user->name,
+                    'email' => $booking->user->email,
+                    'phone' => $booking->user->phone,
+                    'address' => $booking->user->address,
+                ] : null,
+                'customer_name' => $booking->passenger_name,
+                'customer_email' => $booking->passenger_email,
+                'customer_phone' => $booking->passenger_phone,
+                'payment_status' => $booking->payment_status,
+                'notes' => "Adults: {$booking->adults}, Children: {$booking->children}, Infants: {$booking->infants}",
+            ];
+        });
+
+    // Fetch bus bookings
+    $busBookings = \App\Models\BusBooking::where('user_id', $clientId)
+        ->with(['user', 'busSchedule'])
+        ->get()
+        ->map(function($booking) {
+            return [
+                'id' => $booking->id,
+                'booking_type' => 'bus',
+                'service_name' => 'Bus Ticket',
+                'status' => $booking->status,
+                'total_amount' => $booking->total_price,
+                'amount' => $booking->total_price,
+                'booking_date' => $booking->booking_date?->format('Y-m-d') ?? $booking->created_at->format('Y-m-d'),
+                'reference_number' => $booking->booking_reference,
+                'booking_code' => $booking->booking_reference,
+                'currency' => 'LKR',
+                'created_at' => $booking->created_at,
+                'user' => $booking->user ? [
+                    'name' => $booking->user->name,
+                    'email' => $booking->user->email,
+                    'phone' => $booking->user->phone,
+                    'address' => $booking->user->address,
+                ] : null,
+                'customer_name' => $booking->passenger_name,
+                'customer_email' => $booking->passenger_email,
+                'customer_phone' => $booking->passenger_phone,
+                'notes' => "Passengers: {$booking->passenger_count}, Seats: " . implode(', ', $booking->seat_numbers ?? []),
+            ];
+        });
+
+    // Fetch flight bookings
+    $flightBookings = \App\Models\FlightBooking::when(
+        \Schema::hasColumn('flight_bookings', 'user_id'),
+        fn($q) => $q->where('user_id', $clientId),
+        fn($q) => $q->where('email', Auth::user()->email)
+    )
+        ->with(['user'])
+        ->get()
+        ->map(function($booking) {
+            return [
+                'id' => $booking->id,
+                'booking_type' => 'flight',
+                'service_name' => 'Flight Booking',
+                'status' => $booking->status,
+                'booking_date' => $booking->created_at->format('Y-m-d'),
+                'start_date' => $booking->departure_date,
+                'end_date' => $booking->return_date,
+                'pickup_location' => $booking->departure_airport,
+                'dropoff_location' => $booking->arriving_airport,
+                'reference_number' => 'FL-' . $booking->id,
+                'booking_code' => 'FL-' . $booking->id,
+                'currency' => 'LKR',
+                'created_at' => $booking->created_at,
+                'user' => $booking->user ? [
+                    'name' => $booking->user->name,
+                    'email' => $booking->user->email,
+                    'phone' => $booking->user->phone,
+                    'address' => $booking->user->address,
+                ] : null,
+                'customer_name' => $booking->name,
+                'customer_email' => $booking->email,
+                'customer_phone' => $booking->phone,
+                'notes' => "Trip: {$booking->trip_type}. " . ($booking->special_requests ? "Requests: {$booking->special_requests}" : ''),
+            ];
+        });
+
+    // Fetch courier shipments
+    $courierShipments = \App\Models\Courier\CourierShipment::where('requested_by_user_id', $clientId)
+        ->with(['requestedBy', 'sender', 'recipient', 'senderAddress', 'recipientAddress', 'packages'])
+        ->get()
+        ->map(function($shipment) {
+            $senderAddr = $shipment->senderAddress;
+            $recipientAddr = $shipment->recipientAddress;
+            
+            return [
+                'id' => $shipment->id,
+                'booking_type' => 'courier',
+                'service_name' => 'Courier Service - ' . ucfirst($shipment->service_level ?? 'Standard'),
+                'status' => $shipment->status,
+                'total_amount' => $shipment->actual_cost ?? $shipment->estimated_cost ?? 0,
+                'amount' => $shipment->actual_cost ?? $shipment->estimated_cost ?? 0,
+                'booking_date' => $shipment->created_at->format('Y-m-d'),
+                'start_date' => $shipment->pickup_date ? $shipment->pickup_date->format('Y-m-d') : null,
+                'pickup_date' => $shipment->pickup_date ? $shipment->pickup_date->format('Y-m-d') : null,
+                'pickup_location' => $senderAddr ? trim(($senderAddr->address_line_1 ?? '') . ' ' . ($senderAddr->address_line_2 ?? '') . ', ' . ($senderAddr->city ?? '') . ', ' . ($senderAddr->state ?? '')) : 'Not specified',
+                'dropoff_location' => $recipientAddr ? trim(($recipientAddr->address_line_1 ?? '') . ' ' . ($recipientAddr->address_line_2 ?? '') . ', ' . ($recipientAddr->city ?? '') . ', ' . ($recipientAddr->state ?? '')) : 'Not specified',
+                'reference_number' => $shipment->reference,
+                'booking_code' => $shipment->reference,
+                'currency' => $shipment->currency_code ?? 'LKR',
+                'created_at' => $shipment->created_at,
+                'user' => $shipment->requestedBy ? [
+                    'name' => $shipment->requestedBy->name,
+                    'email' => $shipment->requestedBy->email,
+                    'phone' => $shipment->requestedBy->phone,
+                    'address' => $shipment->requestedBy->address,
+                ] : null,
+                'customer_name' => $shipment->sender?->name ?? $shipment->requestedBy?->name,
+                'customer_email' => $shipment->sender?->email ?? $shipment->requestedBy?->email,
+                'customer_phone' => $shipment->sender?->phone ?? $shipment->requestedBy?->phone,
+                'vendor_name' => 'Courier Service Provider',
+                'notes' => $shipment->delivery_notes,
+                'payment_method' => 'Courier Payment',
+                
+                // Additional courier-specific fields
+                'service_level' => ucfirst($shipment->service_level ?? 'Standard'),
+                'insurance_required' => $shipment->insurance_required ? 'Yes' : 'No',
+                'declared_value' => $shipment->declared_value,
+                'package_count' => $shipment->packages->count(),
+                'tracking_reference' => $shipment->reference,
+            ];
+        });
+
+    // Fetch warehouse bookings
+    $warehouseBookings = \App\Models\Warehouse\WarehouseBooking::where('user_id', $clientId)
+        ->with(['user', 'warehouseUnit.owner'])
+        ->get()
+        ->map(function($booking) {
+            $unit = $booking->warehouseUnit;
+            return [
+                'id' => $booking->id,
+                'booking_type' => 'warehouse',
+                'service_name' => 'Warehouse Storage',
+                'status' => $booking->status,
+                'total_amount' => $booking->final_amount,
+                'amount' => $booking->final_amount,
+                'booking_date' => $booking->created_at->format('Y-m-d'),
                 'start_date' => $booking->start_date,
                 'end_date' => $booking->end_date,
-                'pickup_location' => $booking->pickup_location,
-                'booking_code' => $booking->booking_code,
+                'reference_number' => $booking->booking_reference,
+                'booking_code' => $booking->booking_reference,
+                'currency' => 'LKR',
                 'created_at' => $booking->created_at,
+                'user' => $booking->user ? [
+                    'name' => $booking->user->name,
+                    'email' => $booking->user->email,
+                    'phone' => $booking->user->phone,
+                    'address' => $booking->user->address,
+                ] : null,
+                'customer_name' => $booking->contact_person ?? $booking->company_name,
+                'customer_email' => $booking->email,
+                'customer_phone' => $booking->phone,
+                'company_name' => $booking->company_name,
+                'vendor_name' => $unit?->owner?->name ?? 'Warehouse Provider',
+                'vendor_email' => $unit?->owner?->email,
+                'vendor_phone' => $unit?->owner?->phone,
+                'payment_method' => $booking->payment_method,
+                'payment_status' => $booking->payment_status,
+                'notes' => "Storage: {$booking->storage_type}, Space: {$booking->required_space} sq ft. " . ($booking->notes ?? ''),
+                'subtotal' => $booking->total_amount,
+                'deposit_amount' => $booking->security_deposit,
             ];
         });
 
     // Combine all bookings
-    $allBookings = collect($vehicleBookings);
+    $allBookings = collect($vehicleBookings)
+        ->merge($trainBookings)
+        ->merge($busBookings)
+        ->merge($flightBookings)
+        ->merge($courierShipments)
+        ->merge($warehouseBookings)
+        ->sortByDesc('created_at')
+        ->values();
 
     // Calculate statistics
     $statistics = [
