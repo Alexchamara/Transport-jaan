@@ -56,21 +56,21 @@ const DashContent = ({
             : n;
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+          <div className="w-full h-auto px-4 py-10">
             {/* Header */}
-            <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Dashboard</h1>
-                <div className="flex flex-row gap-5 relative items-center">
-                    <div className="flex flex-row gap-5 relative items-center">
+            <div className="flex flex-col sm:flex-row gap-5 justify-between items-start sm:items-center">
+                <h1 className="figtree text-[28px] sm:text-[35px] font-[700]">
+                    Vehicle Rental Dashboard
+                </h1>
+                <div className="flex gap-5 mt-3 sm:mt-0">
                     <UserDropdown settingsRoute={route("settingsPage")} />
-                </div>
                 </div>
             </div>
 
             <div className="flex flex-col gap-5 py-10">
                 <div className="flex flex-col xl:flex-row gap-5">
                     {/* Left */}
-                    <div className="flex flex-col gap-5 w-full">
+                    <div className="flex flex-col gap-5 w-full justify-between items-start sm:items-center">
                         {/* Cards */}
                         <div className="flex flex-col gap-5">
                             <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
@@ -218,10 +218,10 @@ const DashContent = ({
 
                         {/* Booking Overview */}
                         <div
-                            className="min-w-auto h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
+                            className="w-full bg-white flex flex-col items-center rounded-[10px] p-5 sm:p-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <div className="flex flex-row items-center justify-between mb-16 w-full">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full mb-10 gap-4">
                                 <h1 className="text-[24px] font-[700]">
                                     Booking Overview
                                 </h1>
