@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\VendorSettingsController;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\FlightBookingController;
 use App\Http\Controllers\TrainController;
@@ -644,9 +645,11 @@ Route::get('/unitDetails', function () {
     return Inertia::render('Web/home/vendors/UnitDetails');
 })->name('unitDetails');
 
-Route::get('/settingsPage', function () {
-    return Inertia::render('Web/home/vendors/SettingsPage');
-})->name('settingsPage');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/settingsPage', [VendorSettingsController::class, 'show'])->name('settingsPage');
+    Route::post('/settingsPage', [VendorSettingsController::class, 'update'])->name('vendor.settings.update');
+    Route::delete('/settingsPage/image', [VendorSettingsController::class, 'removeImage'])->name('vendor.settings.removeImage');
+});
 
 // end
 

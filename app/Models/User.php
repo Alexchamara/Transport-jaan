@@ -28,6 +28,7 @@ class User extends Authenticatable
         'address',
         'country',
         'date_of_birth',
+        'image',
     ];
 
     /**
@@ -62,5 +63,13 @@ class User extends Authenticatable
 {
        return $this->hasMany(VehicleReview::class);
 }
+
+    /**
+     * Get the user's profile image URL.
+     */
+    public function getImageUrlAttribute()
+    {
+        return $this->image ? asset('storage/' . $this->image) : null;
+    }
 
 }
