@@ -1,7 +1,7 @@
 import React from "react";
 import { Head } from "@inertiajs/react";
-import Sidebar from "../../components/vendors/warehouse/Sidebar";
-import NotificationDropdown from "../../components/vendors/warehouse/NotificationDropdown";
+import SideMenu from "../../../components/vendors/warehouse/SideMenu";
+import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
 import { Bell, CheckCircle, AlertCircle, Info, Package, Clock } from "lucide-react";
 
 const Notifications = ({ notifications, unreadCount }) => {
@@ -61,7 +61,7 @@ const Notifications = ({ notifications, unreadCount }) => {
             <Head title="Notifications - Warehouse" />
             
             <div className="flex min-h-screen bg-gray-50">
-                <Sidebar />
+                <SideMenu />
                 
                 <div className="flex-1 p-8 ml-[280px]">
                     {/* Header */}
