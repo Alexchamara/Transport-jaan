@@ -29,6 +29,24 @@ class User extends Authenticatable
         'country',
         'date_of_birth',
         'image',
+        // Extended profile fields
+        'first_name',
+        'last_name',
+        'address_line1',
+        'address_line2',
+        'city',
+        'state',
+        'postal_code',
+        // Notification preferences
+        'notify_email',
+        'notify_sms',
+        'notify_push',
+        // Payment info (tokenized)
+        'cardholder_name',
+        'card_last4',
+        'card_brand',
+        'expiry_month',
+        'expiry_year',
     ];
 
     /**
