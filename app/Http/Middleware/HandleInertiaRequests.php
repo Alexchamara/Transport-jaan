@@ -21,9 +21,23 @@ class HandleInertiaRequests extends Middleware
      */
    public function share(Request $request): array
     {
+        $user = $request->user();
+
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'vendor_type' => $user->vendor_type,
+                    'status' => $user->status,
+                    'phone' => $user->phone,
+                    'address' => $user->address,
+                    'country' => $user->country,
+                    'date_of_birth' => $user->date_of_birth,
+                    'image' => $user->image ? asset('storage/' . $user->image) : null,
+                ] : null,
             ],
             // expose Laravel flash messages to the front end
             'flash' => [
