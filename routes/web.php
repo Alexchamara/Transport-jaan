@@ -1024,7 +1024,79 @@ Route::get('/clientTicketBookingDashboard', function () {
 })->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
 
 Route::get('/clientVehicleDashboard', function () {
-    return Inertia::render('Web/home/client/ClientVehicleDashboard');
+    $user = auth()->user();
+    
+    // Get user's vehicle bookings
+    $bookings = \App\Models\Booking::with(['vehicle', 'client'])
+        ->where('client_id', $user->id)
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($booking) {
+            return [
+                'id' => $booking->id,
+                'vehicle_name' => $booking->vehicle->name ?? $booking->vehicle->model ?? 'Vehicle',
+                'vehicle_category' => $booking->vehicle->vehicle_category ?? 'land',
+                'start_date' => $booking->created_at->format('Y-m-d H:i'),
+                'end_date' => $booking->created_at->addDays($booking->rental_days ?? 1)->format('Y-m-d H:i'),
+                'pickup_location' => $booking->vehicle->location ?? 'N/A',
+                'status' => $booking->status,
+                'total_amount' => $booking->total_amount,
+                'hours' => 0,
+                'created_at' => $booking->created_at,
+            ];
+        });
+    
+    // Get available vehicles
+    $vehicles = \App\Models\Vehicle::with(['provider'])
+        ->where('status', 'active')
+        ->get()
+        ->map(function($vehicle) {
+            return [
+                'id' => $vehicle->id,
+                'name' => $vehicle->name ?? $vehicle->model,
+                'model' => $vehicle->model,
+                'vehicle_category' => $vehicle->vehicle_category,
+                'location' => $vehicle->location ?? 'N/A',
+                'price' => $vehicle->price_per_day ?? 0,
+                'price_per_day' => $vehicle->price_per_day ?? 0,
+                'price_per_hour' => 0,
+                'rating' => 0,
+                'status' => $vehicle->status,
+            ];
+        });
+    
+    // Calculate monthly booking data
+    $monthlyData = [];
+    for ($i = 0; $i < 12; $i++) {
+        $month = now()->subMonths(11 - $i);
+        $monthBookings = \App\Models\Booking::with('vehicle')
+            ->where('client_id', $user->id)
+            ->whereYear('created_at', $month->year)
+            ->whereMonth('created_at', $month->month)
+            ->get();
+        
+        $monthlyData[] = [
+            'month' => $month->format('M'),
+            'land' => $monthBookings->filter(function($b) {
+                $category = $b->vehicle->vehicle_category ?? 'land';
+                return !in_array(strtolower($category), ['air', 'sea']);
+            })->count(),
+            'air' => $monthBookings->filter(function($b) {
+                $category = $b->vehicle->vehicle_category ?? '';
+                return strtolower($category) === 'air';
+            })->count(),
+            'sea' => $monthBookings->filter(function($b) {
+                $category = $b->vehicle->vehicle_category ?? '';
+                return strtolower($category) === 'sea';
+            })->count(),
+        ];
+    }
+    
+    return Inertia::render('Web/home/client/ClientVehicleDashboard', [
+        'bookings' => $bookings,
+        'vehicles' => $vehicles,
+        'monthlyData' => $monthlyData,
+    ]);
 })->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientVehicleDashboard');
 
 // Courier booking dashboard moved to protected routes with controller
