@@ -95,7 +95,7 @@ const HeroSection = ({ formData, onFormChange, onVehicleTypeChange }) => {
         // Map our internal type to a list path. Adjust paths if your routes differ.
         const listPathMap = {
             air: "/airVehicleList",
-            land: "/landVehicleList",
+            land: "/vehicleList",
             sea: "/seaVehicleList",
         };
 
