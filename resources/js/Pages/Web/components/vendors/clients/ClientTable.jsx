@@ -5,6 +5,7 @@ import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 import file from "../../../assets/vendors/clients/file.svg";
 import proPic from "../../../assets/vendors/clients/proPic.svg";
+import { image } from "html2canvas/dist/types/css/types/image";
 
 const ClientTable = () => {
     const { clients: clientsData, currentFilter, stats } = usePage().props;
@@ -205,7 +206,7 @@ const ClientTable = () => {
                                 className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
                             />
                             <div className="flex flex-row gap-3 justify-center items-center">
-                                <img src={proPic} className="size-[50px]" />
+                                <img src={client.image || proPic} className="size-[50px]" />
                                 <div>
                                     <h1 className="text-[15px] font-semibold">{client.name}</h1>
                                     <h1 className="text-[#616161] text-[12px]">

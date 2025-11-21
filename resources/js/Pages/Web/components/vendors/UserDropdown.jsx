@@ -9,6 +9,10 @@ const UserDropdown = ({ settingsRoute }) => {
     const { auth } = usePage().props;
     const user = auth?.user;
 
+    // Debug logging
+    console.log('UserDropdown - user object:', user);
+    console.log('UserDropdown - user.image:', user?.image);
+
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -50,12 +54,25 @@ const UserDropdown = ({ settingsRoute }) => {
                 className="flex flex-row gap-5 items-center cursor-pointer px-4 py-2 rounded-lg transition-all duration-200 group"
                 onClick={() => setIsOpen((p) => !p)}
             >
-                <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                    <img
-                        src={proPic}
-                        alt="Profile"
-                        className="w-full h-full object-cover rounded-[10px]"
-                    />
+                <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center overflow-hidden">
+                    {user?.image ? (
+                        <img
+                            src={user.image}
+                            alt="Profile"
+                            className="w-full h-full object-cover rounded-[10px]"
+                            onError={(e) => {
+                                console.log('Image failed to load:', user.image);
+                                e.target.style.display = 'none';
+                                e.target.nextElementSibling.style.display = 'flex';
+                            }}
+                        />
+                    ) : null}
+                    <div
+                        className="w-full h-full flex items-center justify-center text-[#7B7B7A] text-sm font-medium"
+                        style={{ display: user?.image ? 'none' : 'flex' }}
+                    >
+                        {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
                 </div>
 
                 <div className="figtree flex flex-col justify-center items-start">
