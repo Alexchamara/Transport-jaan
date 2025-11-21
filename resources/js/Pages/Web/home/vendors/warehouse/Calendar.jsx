@@ -1,12 +1,30 @@
-import React from 'react'
+import React, { useState } from 'react'
 import SideMenu from '../../../components/vendors/warehouse/SideMenu';
 import CalendarContent from '../../../components/vendors/warehouse/calendar/CalendarContent';
+import { Menu } from "lucide-react";
 
-const Calendar = ({ events, clients, currentMonth, currentYear, selectedUserId }) => {
+const Calendar = () => {
+   const [isOpen, setIsOpen] = useState(false); 
   return (
-    <div className="bg-[#E5E5E5] h-auto">
-            <div className="flex flex-row gap-10 h-auto">
+    <div className="bg-[#E5E5E5] min-h-screen">
+          <div className="flex flex-row gap-10 h-auto">
+            
+            {/* Toggle Button for mobile */}
+            <button
+              className="lg:hidden p-2 m-2 fixed left-2 top-2 z-50 bg-white rounded-full shadow"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              <Menu size={22} />
+            </button>
+    
+            {/* Side Menu */}
+            <div
+              className={`fixed lg:static top-0 left-0 h-full z-40 transition-transform duration-300 
+              ${isOpen ? "translate-x-0" : "-translate-x-full"} 
+              lg:translate-x-0 bg-white shadow lg:shadow-none`}
+            >
                 <SideMenu />
+<<<<<<< HEAD
                 <CalendarContent 
                     events={events}
                     clients={clients}
@@ -14,6 +32,10 @@ const Calendar = ({ events, clients, currentMonth, currentYear, selectedUserId }
                     currentYear={currentYear}
                     selectedUserId={selectedUserId}
                 />
+=======
+                </div>
+                <CalendarContent />
+>>>>>>> c08486142248cae9829c824742275b8a5c7ffcdd
             </div>
         </div>
   )
