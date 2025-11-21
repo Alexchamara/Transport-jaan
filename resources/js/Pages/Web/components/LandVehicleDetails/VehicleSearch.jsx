@@ -368,7 +368,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
       </QuoteModal>
 
       {/* ==== Sidebar card (unchanged) ==== */}
-      <div className="poppins w-auto h-auto xl:w-[440px] xl:h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-10 py-10 xl:px-20 px-10">
+      <div className="poppins w-full xl:w-[440px] h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-10 py-10 xl:px-20 px-6 sm:px-10">
         <div className="text-[25px] font-[700]">
           <h1>
             ${vehicle?.rental_price_per_day ?? 620}{" "}
@@ -392,11 +392,11 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
                 value={pickupLocation}
                 onChange={(e) => setPickupLocation(e.target.value)}
                 placeholder="Hudson Rd, Colombo 03"
-                className="appearance-none w-[333px] h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
+                className="appearance-none w-full h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-2 leading-tight focus:outline-none focus:shadow-outline placeholder:text-gray-400 placeholder:text-[12px] placeholder:font-[600]"
               />
             </div>
 
-            <div className="flex flex-row gap-5">
+            <div className="flex flex-col sm:flex-row gap-5">
               <div>
                 <label htmlFor="pickupDate" className="block mb-3 text-black text-sm font-semibold">Pick-up Date</label>
                 <input
@@ -418,7 +418,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
                   value={pickupTime}
                   onChange={(e) => setPickupTime(e.target.value)}
                   placeholder="00:00"
-                  className="w-[135px] h-[35px] relative border-[1px] border-[#00000042] bg-transparent rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
+                  className="w-full sm:w-[135px] h-[35px] relative border-[1px] border-[#00000042] bg-transparent rounded-[5px] mb-3 py-2 leading-tight focus:outline-none focus:shadow-outline placeholder:text-gray-400 placeholder:text-[12px] placeholder:font-[600]"
                 />
               </div>
             </div>
@@ -433,11 +433,11 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
                 value={dropoffLocation}
                 onChange={(e) => setDropoffLocation(e.target.value)}
                 placeholder="Hudson Rd, Colombo 03"
-                className="w-[333px] h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
+                className="w-full h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-2 leading-tight focus:outline-none focus:shadow-outline placeholder:text-gray-400 placeholder:text-[12px] placeholder:font-[600]"
               />
             </div>
 
-            <div className="flex flex-row gap-5">
+            <div className="flex flex-col sm:flex-row gap-5">
               <div>
                 <label htmlFor="dropoffDate" className="block mb-3 text-black text-sm font-semibold">Drop-off Date</label>
                 <input
@@ -459,7 +459,7 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
                   value={dropoffTime}
                   onChange={(e) => setDropoffTime(e.target.value)}
                   placeholder="00:00"
-                  className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[gray placeholder:text-[12px] placeholder:font-[600]"
+                  className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-2 leading-tight focus:outline-none focus:shadow-outline placeholder:text-gray-400 placeholder:text-[12px] placeholder:font-[600]"
                 />
               </div>
             </div>
@@ -494,18 +494,16 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
 
           <div className="w-full h-[1px] bg-[#CDD0D4] mt-5" />
 
-          <div className="flex justify-center items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
             <div
-              className=" w-auto xl:w-[261px] xl:h-[29px] px-4 py-2 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer"
+              className="w-full sm:w-auto xl:w-[261px] xl:h-[29px] px-4 py-2 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-6 sm:mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer"
               onClick={getQuote}
             >
               GET A QUOTE
             </div>
-          </div>
 
-          <div className="flex justify-center items-center">
             <div
-              className="w-auto xl:w-[261px] xl:h-[29px] bg-[#0955AC] px-4 py-2 rounded-[5px] mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer"
+              className="w-full sm:w-auto xl:w-[261px] xl:h-[29px] bg-[#0955AC] px-4 py-2 rounded-[5px] mt-0 sm:mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer"
               onClick={continueToCheckout}
             >
               CONTINUE TO CHECKOUT

@@ -33,30 +33,28 @@ const Review = () => {
                         our success stories from our customers
                     </h1>
 
-                    <div className="absolute bottom-20 flex flex-col md:flex-row">
-                        <div className="md:size-[58px] rounded-full border-[1.5px] border-[#FFFFFF] -mr-5">
-                            <img src={proPic1} />
+                    <div className="absolute left-4 bottom-4 sm:bottom-6 md:bottom-20 flex flex-row items-center gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-[58px] md:h-[58px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white">
+                            <img src={proPic1} alt="pro1" className="w-full h-full object-cover" />
                         </div>
-                        <div className="md:size-[58px] rounded-full border-[1.5px] border-[#FFFFFF] -mr-5">
-                            <img src={proPic2} />
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-[58px] md:h-[58px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white -ml-2 md:ml-0">
+                            <img src={proPic2} alt="pro2" className="w-full h-full object-cover" />
                         </div>
-                        <div className="md:size-[58px] rounded-full border-[1.5px] border-[#FFFFFF] -mr-5">
-                            <img src={proPic3} />
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-[58px] md:h-[58px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white -ml-2 md:ml-0">
+                            <img src={proPic3} alt="pro3" className="w-full h-full object-cover" />
                         </div>
-                        <div className="relative md:size-[58px] rounded-full border-[1.5px] border-[#FFFFFF] -mr-5">
-                            <img src={proPic4} />
-                            <h1 className="absolute top-[20%] left-[20%] figtree text-[22px] font-[900]">
-                                10+
-                            </h1>
+                        <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-[58px] md:h-[58px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white -ml-2 md:ml-0 flex items-center justify-center">
+                            <img src={proPic4} alt="pro4" className="absolute inset-0 w-full h-full object-cover" />
+                            <span className="relative z-10 figtree text-[10px] sm:text-[12px] md:text-[16px] font-[900] text-white">10+</span>
                         </div>
                     </div>
                     <div className="absolute bottom-20 right-10 flex flex-row gap-3">
-                        <div className="md:size-[65px] rounded-full bg-[#FFFFFF] flex justify-center items-center cursor-pointer">
+                        <button className="w-8 h-8 sm:w-10 sm:h-10 md:w-[65px] md:h-[65px] rounded-full bg-[#FFFFFF] flex justify-center items-center cursor-pointer">
                             <img src={leftBlue} />
-                        </div>
-                        <div className="md:size-[65px] rounded-full bg-[#FFFFFF] flex justify-center items-center cursor-pointer">
+                        </button>
+                        <button className="w-8 h-8 sm:w-10 sm:h-10 md:w-[65px] md:h-[65px] rounded-full bg-[#FFFFFF] flex justify-center items-center cursor-pointer">
                             <img src={leftBlue} className="rotate-180" />
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>
