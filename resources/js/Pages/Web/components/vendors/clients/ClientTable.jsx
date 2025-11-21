@@ -5,7 +5,6 @@ import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 import file from "../../../assets/vendors/clients/file.svg";
 import proPic from "../../../assets/vendors/clients/proPic.svg";
-import { image } from "html2canvas/dist/types/css/types/image";
 
 const ClientTable = () => {
     const { clients: clientsData, currentFilter, stats } = usePage().props;
