@@ -58,7 +58,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     const [location, setLocation] = useState("all");
     const [sort, setSort] = useState("popular");
 
-    // Group vehicles by type
+    // Group booked vehicles by type
     const fleets = useMemo(() => {
         const grouped = {
             land: [],
@@ -66,43 +66,33 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
             sea: []
         };
         
-        vehicles.forEach(vehicle => {
-            const type = vehicle.vehicle_category?.toLowerCase() || 'land';
+        bookings.forEach(booking => {
+            const type = booking.vehicle_category?.toLowerCase() || 'land';
+            const bookingData = {
+                id: booking.id,
+                name: booking.vehicle_name || booking.item || 'Vehicle',
+                rating: booking.rating || 4.5,
+                location: booking.pickup_location || booking.pickup || 'N/A',
+                price: booking.total_amount || booking.amount || 0,
+                unit: 'booking',
+                vehicle: booking,
+                status: booking.status,
+                startDate: booking.start_date || booking.from,
+                endDate: booking.end_date || booking.to,
+                bookingCode: booking.booking_code || booking.code || `BK-${booking.id}`
+            };
+
             if (type.includes('land') || type.includes('car') || type.includes('bus') || type.includes('train')) {
-                grouped.land.push({
-                    id: vehicle.id,
-                    name: vehicle.name || vehicle.model || 'Vehicle',
-                    rating: vehicle.rating || 0,
-                    location: vehicle.location || 'N/A',
-                    price: vehicle.price_per_day || vehicle.price || 0,
-                    unit: 'day',
-                    vehicle: vehicle
-                });
+                grouped.land.push(bookingData);
             } else if (type.includes('air') || type.includes('plane') || type.includes('flight')) {
-                grouped.air.push({
-                    id: vehicle.id,
-                    name: vehicle.name || vehicle.model || 'Aircraft',
-                    rating: vehicle.rating || 0,
-                    location: vehicle.location || 'N/A',
-                    price: vehicle.price_per_hour || vehicle.price || 0,
-                    unit: 'hr',
-                    vehicle: vehicle
-                });
+                grouped.air.push(bookingData);
             } else if (type.includes('sea') || type.includes('boat') || type.includes('ship')) {
-                grouped.sea.push({
-                    id: vehicle.id,
-                    name: vehicle.name || vehicle.model || 'Vessel',
-                    rating: vehicle.rating || 0,
-                    location: vehicle.location || 'N/A',
-                    price: vehicle.price_per_day || vehicle.price || 0,
-                    unit: 'day',
-                    vehicle: vehicle
-                });
+                grouped.sea.push(bookingData);
             }
         });
         
         return grouped;
-    }, [vehicles]);
+    }, [bookings]);
 
     // Calculate KPI metrics from bookings
     const kpiMetrics = useMemo(() => {
@@ -171,20 +161,16 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
 
     const locations = useMemo(() => {
         const locationSet = new Set();
-        vehicles.forEach(v => {
-            if (v.location) locationSet.add(v.location);
+        bookings.forEach(b => {
+            const loc = b.pickup_location || b.pickup;
+            if (loc) locationSet.add(loc);
         });
         return ["all", ...Array.from(locationSet)];
-    }, [vehicles]);
+    }, [bookings]);
 
     const upcoming = bookings.filter((r) =>
         ["confirmed", "paid", "pending"].includes(r.status?.toLowerCase())
     );
-
-    const handleBookVehicle = (vehicle) => {
-        // Navigate to booking page with vehicle ID
-        window.location.href = `/clientRent?vehicle=${vehicle.id}`;
-    };
 
     const handleNewBooking = () => {
         window.location.href = '/clientRent';
@@ -562,7 +548,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                     <div className="lg:col-span-2">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-[20px] font-[600]">
-                                Available Fleet
+                                My Booked Vehicles
                             </h2>
 
                             {/* Tabs → simple buttons */}
@@ -636,11 +622,16 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                                         <MapPin className="h-3.5 w-3.5" />
                                                         {f.location}
                                                     </p>
+                                                    <p className="mt-1 flex items-center gap-2 text-[12px] text-slate-600">
+                                                        <Calendar className="h-3.5 w-3.5" />
+                                                        {f.startDate} → {f.endDate}
+                                                    </p>
                                                 </div>
-                                                {/* Rating badge (static) */}
-                                                <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-semibold bg-slate-50 text-slate-700">
-                                                    <Star className="mr-1 h-4 w-4" />
-                                                    {f.rating}
+                                                {/* Status badge */}
+                                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-semibold ${
+                                                    statusMap[f.status?.toLowerCase()]?.tone || statusMap.pending.tone
+                                                }`}>
+                                                    {statusMap[f.status?.toLowerCase()]?.label || f.status || 'Pending'}
                                                 </span>
                                             </div>
                                         </div>
@@ -650,22 +641,21 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                                 <div className="flex items-center gap-2 text-slate-700">
                                                     <CreditCard className="h-4 w-4" />
                                                     <span className="font-medium">
-                                                        ${f.price}
+                                                        ${f.price.toFixed(2)}
                                                     </span>{" "}
-                                                    / {f.unit}
+                                                    total
                                                 </div>
-                                                <div className="mt-1 flex items-center gap-2 text-slate-500">
-                                                    <Clock className="h-4 w-4" />{" "}
-                                                    Instant confirm
+                                                <div className="mt-1 flex items-center gap-2 text-slate-500 text-[12px]">
+                                                    Ref: {f.bookingCode}
                                                 </div>
                                             </div>
-                                            <button 
-                                                onClick={() => handleBookVehicle(f.vehicle)}
+                                            <Link
+                                                href={`/client/bookings/${f.id}/summary`}
                                                 className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0744a0]"
                                             >
-                                                Book{" "}
+                                                View Details{" "}
                                                 <ChevronRight className="ml-1 h-4 w-4 inline-block" />
-                                            </button>
+                                            </Link>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -674,7 +664,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                             {filteredFleets.length === 0 && (
                                 <div className="rounded-2xl border-dashed border border-slate-200 bg-white">
                                     <div className="px-4 py-10 text-center text-slate-500">
-                                        No results. Try changing filters.
+                                        No bookings found. Try changing filters or book a new vehicle.
                                     </div>
                                 </div>
                             )}
@@ -732,7 +722,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                                     Ref: {r.booking_code || r.code || `BK-${r.id}`}
                                                 </span>
                                                 <Link
-                                                    href={`/booking/${r.id}`}
+                                                    href={`/client/bookings/${r.id}/summary`}
                                                     className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm inline-flex items-center"
                                                 >
                                                     Manage
