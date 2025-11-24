@@ -115,48 +115,53 @@ const Footer = () => {
                         </div>
                     </div>
 
-                    {/* Subscribe and Description Section */}
-                    <div className="md:col-span-4 bg-blue-950 p-6 sm:p-10 h-auto">
-                        {/* Subscribe Section */}
-                        <div>
-                            <h4 className="text-[16px] font-[700] mb-2">
-                                Subscribe
-                            </h4>
-                            <div className="flex mt-5 justify-items-center">
-                                <input
-                                    type="email"
-                                    placeholder="Email address"
-                                    className="flex-1 px-3 sm:px-4 py-2 text-[#7A7E92] bg-[#FFFFFF] h-[45px] sm:h-[50px] w-auto rounded-l-[6px] text-sm sm:text-base"
-                                />
-                                <button className="px-3 sm:px-4 py-5 bg-[#0955AC] rounded-r-[6px] cursor-pointer h-[45px] sm:h-[50px] hover:bg-[#074a94] transition-colors duration-200">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        className="h-5 w-5 sm:h-6 sm:w-6"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M14 5l7 7m0 0l-7 7m7-7H3"
-                                        />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
+                   {/* Subscribe and Description Section - Using md:col-span-4 or md:col-span-5 is fine, but we'll use 4 for this example. */}
+    <div className="md:col-span-4 bg-blue-950 p-6 sm:p-10 h-auto">
+        {/* Subscribe Section */}
+        <div>
+            <h4 className="text-[16px] font-[700] mb-2">
+                Subscribe
+            </h4>
+            
+            {/* FIX 1: Added flex-nowrap to prevent button/input separation, and items-center for vertical alignment */}
+            <div className="flex flex-nowrap mt-5 items-center">
+                <input
+                    type="email"
+                    placeholder="Email address"
+                    // FIX: Added min-w-0 to allow flex-1 to shrink appropriately in narrow columns
+                    className="flex-1 min-w-0 px-3 sm:px-4 py-2 text-[#7A7E92] bg-[#FFFFFF] h-[45px] sm:h-[50px] w-auto rounded-l-[6px] text-sm sm:text-base"
+                />
+                
+                {/* FIX 2: Removed py-5 and added flex items-center justify-center */}
+                <button className="px-3 sm:px-4 bg-[#0955AC] rounded-r-[6px] cursor-pointer h-[45px] sm:h-[50px] hover:bg-[#074a94] transition-colors duration-200 flex items-center justify-center">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 sm:h-6 sm:w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        />
+                    </svg>
+                </button>
+            </div>
+        </div>
 
-                        {/* Company Description */}
-                        <div className="mt-6 sm:mt-10">
-                            <p className="text-[#F8F8F8B5] text-justify text-sm sm:text-base">
-                                Hello. we are "Company Name". Our goal is to
-                                translate the positive effects from
-                                revolutionizing how companies engage with their
-                                clients & their team.
-                            </p>
-                        </div>
-                    </div>
+        {/* Company Description */}
+        <div className="mt-6 sm:mt-10">
+            <p className="text-[#F8F8F8B5] text-justify text-sm sm:text-base">
+                Hello. we are "Company Name". Our goal is to
+                translate the positive effects from
+                revolutionizing how companies engage with their
+                clients & their team.
+            </p>
+        </div>
+    </div>
                 </div>
 
                 {/* Copyright, Logo, and Social Icons */}
