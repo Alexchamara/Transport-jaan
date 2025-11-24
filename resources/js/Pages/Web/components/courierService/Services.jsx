@@ -7,7 +7,7 @@ const Services = () => {
     return (
         <div className="bg-[#E7E7E7] py-10 px-20">
             <div className="flex flex-col justify-center items-center">
-                <h1 className="bebas-neue text-[40px]/[130%] font-[400]">
+                <h1 className="bebas-neue text-center text-[40px]/[130%] font-[400]">
                     OUR <span className="text-[#0955AC]"> Services</span>
                 </h1>
                 <p className="tmt-4 text-center text-[14px] leading-[20px] xl:text-[16px] xl:leading-[24px]">
