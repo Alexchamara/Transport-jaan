@@ -10,7 +10,7 @@ const Services = () => {
                 <h1 className="bebas-neue text-[40px]/[130%] font-[400]">
                     OUR <span className="text-[#0955AC]"> Services</span>
                 </h1>
-                <p className="text-center text-[14px]/[33px] pb-20 md:pb-0 px-10 md:px-0">
+                <p className="tmt-4 text-center text-[14px] leading-[20px] xl:text-[16px] xl:leading-[24px]">
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit.
                     Donec semper eu risus ut ornare. In bibendum ,
                     <br /> tempus sapien, tristique consectetur purus

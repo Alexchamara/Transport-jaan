@@ -14,88 +14,83 @@ const WhyOurService = () => {
                     <span className="text-[#0955AC]">choose </span> our{" "}
                     <span className="text-[#0955AC]">service</span>
                 </h1>
-                {/* All three cards */}
-                <div className="flex flex-col md:flex-row gap-20 justify-center items-center poppins text-[10px]/[28px] xl:text-[12px]/[33px]">
-                    {/* card one */}
-                    <div className="xl:w-[362px] h-auto min-h-[468px] border-[1px] rounded-[8px] bg-[#F5F5F5] border-[#0955AC] py-10 px-5 text-justify flex flex-col items-center">
-                        <div className="flex flex-row justify-center items-center gap-5">
-                            <div className="size-[50px] xl:size-[60px] rounded-full bg-[#0955AC] flex justify-center items-center">
-                                <img
-                                    src={truckIcon}
-                                    className="w-[30px] h-[30px]"
-                                />
-                            </div>
-                            <h1 className="bebas-neue text-[20px]/[45px] xl:text-[31px]/[58px] font-[400]">
-                                Transport pricing
-                            </h1>
-                        </div>
-                        <p className="py-5 px-5">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                            elit. Donec semper eu risus ut ornare. In bibendum
-                            tempus sapien, tristique consectetur purus
-                            pellentesque ac. Quisque facilisis laoreet feugiat.
-                            Sed dapibus volutpat ex, eget iaculis nunc tincidunt
-                            sit amet. Quisque congue sapien nec aliquet
-                            faucibus. Morbi lectus eros, accumsan eget malesuada
-                            et, fermentum eget nisl. Fusce vel placerat libero.
-                            Integer convallis sodales libero, vitae tristique
-                            massa hendrerit in.
-                        </p>
-                    </div>
-                    {/* card two */}
-                    <div className="xl:w-[362px] h-auto min-h-[468px] border-[1px] rounded-[8px] bg-[#FFFFFF] border-[#0955AC] py-10 px-5 text-justify flex flex-col items-center">
-                        <div className="flex flex-row justify-center items-center gap-5">
-                            <div className="size-[50px] xl:size-[60px] rounded-full bg-[#0955AC] flex justify-center items-center">
-                                <img
-                                    src={secIcon}
-                                    className="w-[30px] h-[30px]"
-                                />
-                            </div>
-                            <h1 className="bebas-neue text-[20px]/[45px] xl:text-[31px]/[58px] font-[400]">
-                                Security for Package
-                            </h1>
-                        </div>
-                        <p className="py-5 px-5">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                            elit. Donec semper eu risus ut ornare. In bibendum
-                            tempus sapien, tristique consectetur purus
-                            pellentesque ac. Quisque facilisis laoreet feugiat.
-                            Sed dapibus volutpat ex, eget iaculis nunc tincidunt
-                            sit amet. Quisque congue sapien nec aliquet
-                            faucibus. Morbi lectus eros, accumsan eget malesuada
-                            et, fermentum eget nisl. Fusce vel placerat libero.
-                            Integer convallis sodales libero, vitae tristique
-                            massa hendrerit in.
-                        </p>
-                    </div>
-                    {/* card three */}
-                    <div className="xl:w-[362px] h-auto min-h-[468px] border-[1px] rounded-[8px] bg-[#FFFFFF] border-[#0955AC] py-10 px-5 text-justify flex flex-col items-center">
-                        <div className="flex flex-row justify-center items-center gap-5">
-                            <div className="size-[50px] xl:size-[60px] rounded-full bg-[#0955AC] flex justify-center items-center">
-                                <img
-                                    src={headphoneIcon}
-                                    className="w-[30px] h-[30px]"
-                                />
-                            </div>
-                            <h1 className="bebas-neue text-[20px]/[45px] xl:text-[31px]/[58px] font-[400]">
-                                Customer Service 24/7
-                            </h1>
-                        </div>
-                        <p className="py-5 px-5">
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                            elit. Donec semper eu risus ut ornare. In bibendum
-                            tempus sapien, tristique consectetur purus
-                            pellentesque ac. Quisque facilisis laoreet feugiat.
-                            Sed dapibus volutpat ex, eget iaculis nunc tincidunt
-                            sit amet. Quisque congue sapien nec aliquet
-                            faucibus. Morbi lectus eros, accumsan eget malesuada
-                            et, fermentum eget nisl. Fusce vel placerat libero.
-                            Integer convallis sodales libero, vitae tristique
-                            massa hendrerit in.
-                        </p>
-                    </div>
-                </div>
-                {/* end of three cards */}
+{/* All three cards - Responsive Layout */}
+{/* Removed global px-4 for full mobile screen width */}
+<div className="w-full flex flex-col md:flex-row md:gap-10 gap-8 justify-center items-center poppins mt-10">
+
+  {/* Card 1 */}
+  {/* Added back px-4 for internal padding on mobile */}
+  <div className="w-full md:w-[360px] min-h-[430px] border border-[#0955AC] bg-[#F5F5F5] rounded-[8px] py-8 px-6 md:px-6 flex flex-col items-center">
+    <div className="flex items-center gap-4">
+      <div className="size-[50px] xl:size-[60px] bg-[#0955AC] rounded-full flex justify-center items-center">
+        <img src={truckIcon} className="w-[26px] h-[26px]" />
+      </div>
+      <h1 className="bebas-neue text-[20px] leading-[28px] md:text-[26px] md:leading-[36px] xl:text-[31px] xl:leading-[40px] font-[400]">
+        Transport Pricing
+      </h1>
+    </div>
+
+    {/* MODIFIED: Set text alignment to text-justify */}
+    <p className="mt-4 text-justify text-[12px] leading-[20px] xl:text-[14px] xl:leading-[24px]">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper
+      eu risus ut ornare. In bibendum tempus sapien, tristique consectetur
+      purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus
+      volutpat ex, eget iaculis nunc tincidunt sit amet. Quisque congue
+      sapien nec aliquet faucibus. Morbi lectus eros, accumsan eget malesuada
+      et, fermentum eget nisl. Fusce vel placerat libero. Integer convallis
+      sodales libero, vitae tristique massa hendrerit in.
+    </p>
+  </div>
+
+  {/* Card 2 */}
+  {/* Added back px-4 for internal padding on mobile */}
+  <div className="w-full md:w-[360px] min-h-[430px] border border-[#0955AC] bg-white rounded-[8px] py-8 px-6 md:px-6 flex flex-col items-center">
+    <div className="flex items-center gap-4">
+      <div className="size-[50px] xl:size-[60px] bg-[#0955AC] rounded-full flex justify-center items-center">
+        <img src={secIcon} className="w-[26px] h-[26px]" />
+      </div>
+      <h1 className="bebas-neue text-[20px] leading-[28px] md:text-[26px] md:leading-[36px] xl:text-[31px] xl:leading-[40px] font-[400]">
+        Security for Package
+      </h1>
+    </div>
+
+    {/* MODIFIED: Set text alignment to text-justify */}
+    <p className="mt-4 text-justify text-[12px] leading-[20px] xl:text-[14px] xl:leading-[24px]">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper
+      eu risus ut ornare. In bibendum tempus sapien, tristique consectetur
+      purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus
+      volutpat ex, eget iaculis nunc tincidunt sit amet. Quisque congue
+      sapien nec aliquet faucibus. Morbi lectus eros, accumsan eget malesuada
+      et, fermentum eget nisl. Fusce vel placerat libero. Integer convallis
+      sodales libero, vitae tristique massa hendrerit in.
+    </p>
+  </div>
+
+  {/* Card 3 */}
+  {/* Added back px-4 for internal padding on mobile */}
+  <div className="w-full md:w-[360px] min-h-[430px] border border-[#0955AC] bg-white rounded-[8px] py-8 px-6 md:px-6 flex flex-col items-center">
+    <div className="flex items-center gap-4">
+      <div className="size-[50px] xl:size-[60px] bg-[#0955AC] rounded-full flex justify-center items-center">
+        <img src={headphoneIcon} className="w-[26px] h-[26px]" />
+      </div>
+      <h1 className="bebas-neue text-[20px] leading-[28px] md:text-[26px] md:leading-[36px] xl:text-[30px] xl:leading-[40px] font-[400]">
+        Customer Service 24/7
+      </h1>
+    </div>
+
+    {/* MODIFIED: Set text alignment to text-justify */}
+    <p className="mt-4 text-justify text-[12px] leading-[20px] xl:text-[14px] xl:leading-[24px]">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper
+      eu risus ut ornare. In bibendum tempus sapien, tristique consectetur
+      purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus
+      volutpat ex, eget iaculis nunc tincidunt sit amet. Quisque congue
+      sapien nec aliquet faucibus. Morbi lectus eros, accumsan eget malesuada
+      et, fermentum eget nisl. Fusce vel placerat libero. Integer convallis
+      sodales libero, vitae tristique massa hendrerit in.
+    </p>
+  </div>
+
+</div>
 
                 <div className="flex flex-row justify-center items-center py-20 gap-12 xl:gap-28">
                     <img className="hidden md:block" src={dDoor} />
