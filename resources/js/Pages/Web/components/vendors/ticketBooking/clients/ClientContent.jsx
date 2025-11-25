@@ -15,9 +15,9 @@ const ClientContent = () => {
     const user = auth?.user;
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-5 py-10 mt-5 xl:mt-0">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
+            <div className="flex flex-col lg:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">
                     Ticket Booking Clients
                 </h1>
@@ -40,7 +40,7 @@ const ClientContent = () => {
             {/* end of header section */}
 
             <div
-                className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-10 py-10"
+                className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-5 lg:px-10 py-10"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}

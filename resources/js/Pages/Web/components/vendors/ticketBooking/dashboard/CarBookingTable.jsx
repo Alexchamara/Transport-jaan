@@ -96,9 +96,9 @@ const tableData = [
 
 const CarBookingTable = () => {
     return (
-        <div className="py-10">
+        <div className="overflow-auto py-10 w-full">
             {/* table headings */}
-            <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[14px] font-[600] px-12 py-3 gap-x-6">
+            <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[14px] font-[600] px-12 py-3 gap-x-6 min-w-[1200px]">
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Booking ID</h1>
                     <div className="flex flex-col justify-center items-center">
@@ -161,7 +161,7 @@ const CarBookingTable = () => {
                 {tableData.map((row, index) => (
                     <div
                         key={index}
-                        className={`grid grid-cols-8 border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[15px] font-[500] px-12 py-4 gap-x-6`}
+                        className={`grid grid-cols-8 border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[15px] font-[500] px-12 py-4 gap-x-6 min-w-[1200px]`}
                     >
                         <div>{row.id}</div>
                         <div>{row.date}</div>

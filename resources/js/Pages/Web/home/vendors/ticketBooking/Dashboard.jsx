@@ -7,8 +7,8 @@ const Dashboard = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="bg-[#E5E5E5] h-auto min-h-screen">
-      <div className="flex flex-row gap-10 h-auto">
+    <div className="bg-[#E5E5E5] h-auto min-h-screen w-full">
+      <div className="flex flex-row h-auto">
         {/* Toggle Button (only visible on mobile) */}
         <button
           className="lg:hidden p-2 m-2 fixed left-2 top-2 z-50 bg-white rounded-full shadow"
@@ -27,7 +27,7 @@ const Dashboard = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 overflow-x-hidden">
           <DashContent />
         </div>
       </div>

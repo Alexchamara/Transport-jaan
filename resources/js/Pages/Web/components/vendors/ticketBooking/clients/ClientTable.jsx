@@ -256,9 +256,9 @@ const ClientTable = () => {
 
     return (
         <div className="relative">
-            <div className="flex flex-row items-center justify-between w-full">
+            <div className="flex flex-col lg:flex-row items-center justify-between w-full gap-5">
                 <div className="flex flex-row gap-5 justify-center items-center">
-                    <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                    <div className="w-full lg:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                         <img src={miniSearchIcon} />
                         <input
                             type="text"
@@ -268,7 +268,7 @@ const ClientTable = () => {
                     </div>
                 </div>
                 <button
-                    className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+                    className="w-full lg:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
                     onClick={() => {
                         setIsEditing(false);
                         setNewClient({
@@ -415,72 +415,72 @@ const ClientTable = () => {
             )}
 
             {/* table headings */}
-            <div className="figtree grid grid-cols-7 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
-                <div className="flex flex-row gap-5 items-center col-span-2">
-                    <input
-                        type="checkbox"
-                        className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                    />
-                    <h1>Client Name</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
+            <div className="overflow-x-auto">
+                <div className="figtree grid grid-cols-7 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-5 lg:px-10 mt-10 min-w-[800px]">
+                    <div className="flex flex-row gap-5 items-center col-span-2">
+                        <input
+                            type="checkbox"
+                            className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                        />
+                        <h1>Client Name</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center pl-5 lg:pl-10">
+                        <h1>Contact No</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center col-span-2 pl-10 lg:pl-20">
+                        <h1>Address</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Documents</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Action</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                        </div>
                     </div>
                 </div>
-                <div className="flex flex-row gap-2 items-center pl-10">
-                    <h1>Contact No</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center col-span-2 pl-20">
-                    <h1>Address</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Documents</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Action</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" />
-                    </div>
-                </div>
-            </div>
-            {/* end */}
 
-            {/* table rows */}
+                {/* table rows */}
             {currentClients.map((client, idx) => (
                 <div
                     key={client.id}
-                    className="figtree grid grid-cols-7 h-[100px] border-b-[1.5px] border-[#00000033] px-10 items-center text-[14px] font-[500]"
+                    className="figtree grid grid-cols-7 h-[100px] border-b-[1.5px] border-[#00000033] px-5 lg:px-10 items-center text-[14px] font-[500] min-w-[800px]"
                 >
-                    <div className="flex flex-row col-span-2 items-center gap-7">
+                    <div className="flex flex-row col-span-2 items-center gap-7 truncate">
                         <input
                             type="checkbox"
                             className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
                         />
                         <div className="flex flex-row gap-3 justify-center items-center">
                             <img src={proPic} className="size-[50px]" />
-                            <div>
+                            <div className="flex flex-col gap-1">
                                 <h1 className="text-[15px]">{client.name}</h1>
-                                <h1 className="text-[#616161] text-[14px]">
+                                <h1 className="text-[#616161] text-[12px]">
                                     {client.email}
                                 </h1>
                             </div>
                         </div>
                     </div>
-                    <div className="pl-10">{client.phone}</div>
-                    <div className="col-span-2 pl-20">{client.address}</div>
+                    <div className="pl-5 lg:pl-10">{client.phone}</div>
+                    <div className="col-span-2 pl-10 lg:pl-20">{client.address}</div>
                     <div className="text-[12px]">
                         {client.documents.map((doc, docIdx) => (
                             <div className="flex flex-row gap-2" key={docIdx}>
@@ -505,10 +505,11 @@ const ClientTable = () => {
                     </div>
                 </div>
             ))}
+            </div>
             {/* end */}
 
             {/* Pagination Controls and Results per page */}
-            <div className="flex justify-between items-center gap-2 mt-20">
+            <div className="flex flex-col lg:flex-row justify-between items-center gap-2 mt-20">
                 {/* Left: Results per page */}
                 <div className="flex items-center">
                     <span className="mr-3 text-[#00000080] text-[15px]">

@@ -220,10 +220,10 @@ function BookingBarChart() {
   }, []);
 
   return (
-    <div className="w-full h-full flex flex-col items-stretch relative px-8 pt-8 pb-4">
+    <div className="w-full h-full flex flex-col xl:w-[500px] relative px-8 pt-8 pb-4">
       {/* Header */}
-      <div className="flex flex-row justify-between items-center mb-6">
-        <div className="flex flex-col gap-2">
+      <div className="flex xl:flex-row flex-col justify-between items-center mb-6">
+        <div className="flex flex-col items-center gap-2">
           <h2 className="text-[28px] font-[700]">Booking Overview</h2>
           <div className="flex flex-row items-center gap-6 mt-1">
             <div className="flex flex-row items-center gap-2">
@@ -236,7 +236,7 @@ function BookingBarChart() {
             </div>
           </div>
         </div>
-        <div className="ml-8">
+        <div className="ml-8 mt-5 xl:mt-0">
           <button className="bg-[#F3F3F3] rounded-lg px-4 py-2 flex flex-row items-center gap-2 text-[16px] font-[500] text-[#7B7B7A] shadow-none border-none outline-none">
             Last 8 months
             <img src={miniDownArrow} alt="dropdown" />
@@ -244,14 +244,16 @@ function BookingBarChart() {
         </div>
       </div>
       {/* Chart */}
-      <div className="relative w-full" style={{ height: `300px` }}>
-        <Bar
-          ref={chartRef}
-          data={data}
-          options={options}
-        />
-        {/* Custom Tooltip Render */}
-        {tooltipModel && <CustomTooltip chart={tooltipModel.chart} tooltip={tooltipModel} />}
+      <div className="overflow-x-auto">
+        <div className="relative w-full min-w-[800px]" style={{ height: `300px` }}>
+          <Bar
+            ref={chartRef}
+            data={data}
+            options={options}
+          />
+          {/* Custom Tooltip Render */}
+          {tooltipModel && <CustomTooltip chart={tooltipModel.chart} tooltip={tooltipModel} />}
+        </div>
       </div>
     </div>
   );
