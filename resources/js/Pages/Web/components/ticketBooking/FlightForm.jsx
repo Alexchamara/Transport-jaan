@@ -31,7 +31,7 @@ const FlightForm = () => {
     };
 
     return (
-        <div className="p-20">
+        <div className="px-4 sm:px-6 md:px-20 py-6">
             <form
                 onSubmit={handleSubmit}
                 className="figtree flex flex-col justify-center items-center bg-white p-4 sm:p-6 rounded-[15px] w-full h-auto text-[#286BB6] text-[13px] font-[400]"
@@ -46,7 +46,7 @@ const FlightForm = () => {
                             value={data.name}
                             onChange={handleInputChange}
                             placeholder="Enter your name"
-                            className={`w-full border rounded-[8px] p-[16px] ${
+                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                                 errors.name ? 'border-red-500' : 'border-gray-300'
                             }`}
                             required
@@ -63,7 +63,7 @@ const FlightForm = () => {
                             value={data.email}
                             onChange={handleInputChange}
                             placeholder="Enter your email"
-                            className={`w-full border rounded-[8px] p-[16px] ${
+                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                                 errors.email ? 'border-red-500' : 'border-gray-300'
                             }`}
                             required
@@ -83,7 +83,7 @@ const FlightForm = () => {
                             value={data.phone}
                             onChange={handleInputChange}
                             placeholder="Enter your phone number"
-                            className={`w-full border rounded-[8px] p-[16px] ${
+                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                                 errors.phone ? 'border-red-500' : 'border-gray-300'
                             }`}
                             required
@@ -100,7 +100,7 @@ const FlightForm = () => {
                             value={data.subject}
                             onChange={handleInputChange}
                             placeholder="Enter subject"
-                            className={`w-full border rounded-[8px] p-[16px] ${
+                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                                 errors.subject ? 'border-red-500' : 'border-gray-300'
                             }`}
                             required
@@ -118,7 +118,7 @@ const FlightForm = () => {
                         value={data.special_requests}
                         onChange={handleInputChange}
                         placeholder="Any special requests"
-                        className={`w-full border rounded-[8px] p-[16px] ${
+                        className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                             errors.special_requests ? 'border-red-500' : 'border-gray-300'
                         }`}
                         rows="3"
@@ -135,7 +135,7 @@ const FlightForm = () => {
                             name="trip_type"
                             value={data.trip_type}
                             onChange={handleInputChange}
-                            className={`w-full border rounded-[8px] p-[16px] ${
+                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                                 errors.trip_type ? 'border-red-500' : 'border-gray-300'
                             }`}
                             required
@@ -155,7 +155,7 @@ const FlightForm = () => {
                             name="departure_date"
                             value={data.departure_date}
                             onChange={handleInputChange}
-                            className={`w-full border rounded-[8px] p-[16px] ${
+                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                                 errors.departure_date ? 'border-red-500' : 'border-gray-300'
                             }`}
                             required
@@ -177,7 +177,7 @@ const FlightForm = () => {
                             value={data.departure_airport}
                             onChange={handleInputChange}
                             placeholder="Enter departure airport"
-                            className={`w-full border rounded-[8px] p-[16px] ${
+                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                                 errors.departure_airport ? 'border-red-500' : 'border-gray-300'
                             }`}
                             required
@@ -194,7 +194,7 @@ const FlightForm = () => {
                             value={data.arriving_airport}
                             onChange={handleInputChange}
                             placeholder="Enter arriving airport"
-                            className={`w-full border rounded-[8px] p-[16px] ${
+                            className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                                 errors.arriving_airport ? 'border-red-500' : 'border-gray-300'
                             }`}
                             required
@@ -214,7 +214,7 @@ const FlightForm = () => {
                         name="return_date"
                         value={data.return_date}
                         onChange={handleInputChange}
-                        className={`w-full border rounded-[8px] p-[16px] ${
+                        className={`w-full border rounded-[8px] p-3 sm:p-4 ${
                             errors.return_date ? 'border-red-500' : 'border-gray-300'
                         }`}
                         required={data.trip_type === 'return'}

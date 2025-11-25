@@ -39,31 +39,31 @@ const VehicleImages = ({ images: imagesProp, primaryImageUrl: primaryProp }) => 
   const main = urls[0];
   const thumbs = urls.slice(1, 5); // 0..4 total, but don't pad with placeholders
 
-  // Adjust columns to exactly fit how many thumbs we have
-  let xlCols = "xl:grid-cols-[2fr,1fr,1fr]";
-  if (thumbs.length === 0) xlCols = "xl:grid-cols-1";
-  else if (thumbs.length <= 2) xlCols = "xl:grid-cols-[2fr,1fr]";
+  // Adjust columns to exactly fit how many thumbs we have (show thumbnails at `lg` breakpoint)
+  let colsClass = "lg:grid-cols-[2fr,1fr,1fr]";
+  if (thumbs.length === 0) colsClass = "lg:grid-cols-1";
+  else if (thumbs.length <= 2) colsClass = "lg:grid-cols-[2fr,1fr]";
 
   return (
-    <div className="xl:w-[844px]">
+    <div className="w-full lg:w-[844px]">
       {/* EXACT layout feel: big left tile, then up to two stacked columns, 14px gutters */}
-      <div className={`grid grid-cols-1 ${xlCols} gap-[14px] items-stretch`}>
-        {/* Left big image: 435px tall on xl */}
-        <Tile src={main} className="h-[280px] xl:h-[435px]" />
+      <div className={`grid grid-cols-1 ${colsClass} gap-[14px] items-stretch`}>
+        {/* Left big image: 435px tall on lg+ */}
+        <Tile src={main} className="h-[280px] lg:h-[435px]" />
 
         {/* Middle column (up to two tiles) */}
         {thumbs.length > 0 && (
-          <div className="hidden xl:grid grid-rows-2 gap-[14px]">
-            {thumbs[0] && <Tile src={thumbs[0]} className="h-[210px]" />}
-            {thumbs[1] && <Tile src={thumbs[1]} className="h-[210px]" />}
+          <div className="hidden lg:grid grid-rows-2 gap-[14px]">
+            {thumbs[0] && <Tile src={thumbs[0]} className="h-[160px] lg:h-[210px]" />}
+            {thumbs[1] && <Tile src={thumbs[1]} className="h-[160px] lg:h-[210px]" />}
           </div>
         )}
 
         {/* Right column (up to two tiles) */}
         {thumbs.length > 2 && (
-          <div className="hidden xl:grid grid-rows-2 gap-[14px]">
-            {thumbs[2] && <Tile src={thumbs[2]} className="h-[210px]" />}
-            {thumbs[3] && <Tile src={thumbs[3]} className="h-[210px]" />}
+          <div className="hidden lg:grid grid-rows-2 gap-[14px]">
+            {thumbs[2] && <Tile src={thumbs[2]} className="h-[160px] lg:h-[210px]" />}
+            {thumbs[3] && <Tile src={thumbs[3]} className="h-[160px] lg:h-[210px]" />}
           </div>
         )}
       </div>

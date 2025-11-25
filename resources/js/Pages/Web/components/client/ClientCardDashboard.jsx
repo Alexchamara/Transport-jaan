@@ -82,7 +82,7 @@ const ClientCardDashboard = () => {
       <div className='w-full rounded-[10px] mb-20 text-[44px] font-[700] pl-10 poppins mt-4'>
         Hello, {auth?.user?.name || 'Guest'} 👋
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
         {services.map((service, index) => (
           <ClientCard
             key={index}
