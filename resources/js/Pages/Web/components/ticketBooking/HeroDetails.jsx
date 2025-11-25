@@ -43,7 +43,7 @@ export default function HeroDetails() {
             {/* Back */}
             <div className="mb-4">
                 <Link
-                    href="/flight-booking"
+                    href="/ticketBooking?type=train"
                     className="inline-flex items-center gap-2 text-[#0955AC] text-base font-semibold"
                 >
                     <span className="inline-block rounded-full border border-[#0955AC]/20 p-1 leading-none">

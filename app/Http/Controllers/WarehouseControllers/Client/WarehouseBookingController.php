@@ -667,10 +667,12 @@ class WarehouseBookingController extends Controller
                     'title' => 'New Warehouse Booking',
                     'message' => "You have received a new warehouse booking request (Ref: {$bookingReference}) from {$validated['contact_person']}.",
                     'unit_name' => $warehouse->name ?? 'N/A',
-                    'booking_id' => $bookingReference,
+                    'warehouse_booking_id' => $booking->id,
+                    'booking_reference' => $bookingReference,
                     'client_name' => $validated['contact_person'],
                 ],
-                'booking_id' => $booking->id,
+                // Don't set booking_id for warehouse bookings as they use a different table
+                'booking_id' => null,
             ]);
 
             // Commit the transaction

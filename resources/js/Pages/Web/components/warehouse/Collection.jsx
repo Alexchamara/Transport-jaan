@@ -16,7 +16,7 @@ const Collection = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [displayCount, setDisplayCount] = useState(8);
-    const [liked, setLiked] = useState(new Set());
+    const [liked, setLiked] = new useState(new Set());
 
     useEffect(() => {
         fetchWarehouses();
@@ -187,15 +187,18 @@ const Collection = () => {
     }
 
     return (
-        <div className="flex flex-col justify-center items-center px-20 py-10">
-            <h1 className="text-[40px] font-[400] bebas-neue">
+        
+        <div className="flex flex-col justify-center items-center px-4 sm:px-10 lg:px-20 py-10">
+            
+            <h1 className="text-3xl sm:text-4xl lg:text-[40px] font-[400] bebas-neue text-center">
                 Our{" "}
                 <span className="text-[#0955AC]">Impressive Collection</span> of
                 Warehouses
             </h1>
-            <p className="poppins text-[#0F0F0F94] text-[15px] text-center">
+            {/* Added max-w-xl to the paragraph for contained look */}
+            <p className="poppins text-[#0F0F0F94] text-[15px] text-center max-w-xl">
                 Ranging from elegant sedans to powerful vehicles, all carefully
-                selected to provide our customers <br /> with the ultimate
+                selected to provide our customers with the ultimate
                 driving experience.
             </p>
             <div className="flex flex-col gap-10 py-10 w-full">
@@ -295,11 +298,11 @@ const Collection = () => {
             {warehouses.length > displayCount && (
                 <div>
                    <button 
-                       onClick={handleViewMore}
-                       className="w-[150px] h-[45px] p-4 text-[#FFFFFF] text-[16px] font-[700] figtree bg-[#0955AC] flex justify-center items-center rounded-[9px] cursor-pointer uppercase hover:bg-[#084a97] transition-colors"
-                   >
+                        onClick={handleViewMore}
+                        className="w-[150px] h-[45px] p-4 text-[#FFFFFF] text-[16px] font-[700] figtree bg-[#0955AC] flex justify-center items-center rounded-[9px] cursor-pointer uppercase hover:bg-[#084a97] transition-colors"
+                    >
                         View All ({warehouses.length})
-                   </button>
+                    </button>
                 </div>
             )}
         </div>

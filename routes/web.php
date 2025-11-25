@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\VendorSettingsController;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\FlightBookingController;
 use App\Http\Controllers\TrainController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\VehicleControllers\Client\VehicleLikeController;
 use App\Http\Controllers\VehicleControllers\Client\VehicleReviewController;
 use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\Client\ClientSettingsController;
 use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
 
 /*
@@ -644,9 +646,11 @@ Route::get('/unitDetails', function () {
     return Inertia::render('Web/home/vendors/UnitDetails');
 })->name('unitDetails');
 
-Route::get('/settingsPage', function () {
-    return Inertia::render('Web/home/vendors/SettingsPage');
-})->name('settingsPage');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/settingsPage', [VendorSettingsController::class, 'show'])->name('settingsPage');
+    Route::post('/settingsPage', [VendorSettingsController::class, 'update'])->name('vendor.settings.update');
+    Route::delete('/settingsPage/image', [VendorSettingsController::class, 'removeImage'])->name('vendor.settings.removeImage');
+});
 
 // end
 
@@ -1015,9 +1019,11 @@ Route::get('/clientDashboard', function () {
     return redirect()->route('client.dashboard');
 });
 
-Route::get('/clientDashboardSettings', function () {
-    return Inertia::render('Web/home/client/ClientDashboardSettings');
-})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/clientDashboardSettings', [ClientSettingsController::class, 'show'])->name('clientDashboardSettings');
+    Route::post('/clientDashboardSettings', [ClientSettingsController::class, 'update'])->name('client.settings.update');
+    Route::delete('/clientDashboardSettings/image', [ClientSettingsController::class, 'removeImage'])->name('client.settings.removeImage');
+});
 
 Route::get('/clientTicketBookingDashboard', function () {
     return Inertia::render('Web/home/client/ClientTicketBookingDashboard');
@@ -1478,7 +1484,6 @@ foreach ($sections as $slug => $baseView) {
 |--------------------------------------------------------------------------
 */
 Route::get('/clientDashboard', function() { return redirect()->route('client.dashboard'); });
-Route::get('/clientDashboardSettings',   $render('Web/home/client/ClientDashboardSettings'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientDashboardSettings');
 // Courier booking dashboard moved to protected routes with controller above
 Route::get('/warehouseBookingDashboard', $render('Web/home/client/WarehouseBookingDashboard'))->name('warehouseBookingDashboard');
 Route::get('/freightBookingDashboard',   $render('Web/home/client/FreightBookingDashboard'))->name('freightBookingDashboard');

@@ -43,7 +43,7 @@ const Header = () => {
             console.log('Fetching warehouse notifications...');
             const response = await fetch('/vendors/warehouse/notifications/data');
             console.log('Response status:', response.status);
-            
+
             if (response.ok) {
                 const data = await response.json();
                 console.log('Notifications data:', data);
@@ -190,18 +190,24 @@ const Header = () => {
 
                 {/* Desktop icons */}
                 <div className="md:flex hidden flex-row gap-5 justify-center items-center">
-                    <NotificationDropdown 
+                    <NotificationDropdown
                         notifications={notifications}
                         unreadCount={unreadCount}
                     />
-                    <div
-                        className="size-[27px] md:size-[55px] flex justify-center items-center cursor-pointer"
-                        onClick={() => router.visit("/settingsPage")}
-                    >
-                        <img
-                            src={proPic}
-                            className="size-[18px] md:size-[55px]"
-                        />
+                     <div className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center" onClick={() => router.visit("/settingsPage")}>
+                        {auth?.user?.image ? (
+                            <img
+                                src={auth.user.image}
+                                className="size-[18px] md:size-[55px] object-cover"
+                                alt="Profile"
+                            />
+                        ) : (
+                            <img
+                                src={proPic}
+                                className="size-[18px] md:size-[55px]"
+                                alt="Profile"
+                            />
+                        )}
                     </div>
                 </div>
             </div>
