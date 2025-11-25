@@ -166,7 +166,7 @@ const CalendarContent = ({
                             <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
                                 <img
                                     src={
-                                        selectedBooking.personImage || proPicTwo
+                                        user?.image || selectedBooking.personImage
                                     }
                                     className="size-[90px] rounded-full object-cover"
                                     alt="client"

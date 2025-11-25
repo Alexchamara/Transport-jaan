@@ -22,6 +22,7 @@ import {
     Snowflake,
     Star,
     TrendingUp,
+    X,
 } from "lucide-react";
 
 const statusStyles = {
@@ -91,12 +92,12 @@ const Hero = () => {
     const [dashboard, setDashboard] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [selectedBooking, setSelectedBooking] = useState(null);
     const [filters, setFilters] = useState({
         search: "",
-        type: "all",
+        status: "all",
         location: "all",
-        amenity: "all",
-        sort: "ratingDesc",
+        sort: "dateDesc",
     });
     const [liked, setLiked] = useState(new Set());
 
@@ -131,7 +132,7 @@ const Hero = () => {
 
     const stats = dashboard?.stats ?? {};
     const recentActivity = dashboard?.recentActivity ?? [];
-    const recommended = dashboard?.recommended ?? [];
+    const myBookings = dashboard?.recentActivity ?? []; // Use recent activity as bookings
     const wishlist = dashboard?.wishlist ?? [];
     const upcoming = dashboard?.upcoming ?? [];
     const billing = dashboard?.billing ?? {};
@@ -157,41 +158,36 @@ const Hero = () => {
         return "/api/warehouse/like-toggle";
     };
 
-    const filteredWarehouses = useMemo(() => {
-        return recommended
-            .filter((warehouse) => {
-                if (filters.type === "all") return true;
-                return (warehouse.type || "").toLowerCase() === filters.type.toLowerCase();
+    const filteredBookings = useMemo(() => {
+        return myBookings
+            .filter((booking) => {
+                if (filters.status === "all") return true;
+                return (booking.status || "").toLowerCase() === filters.status.toLowerCase();
             })
-            .filter((warehouse) => {
+            .filter((booking) => {
                 if (filters.location === "all") return true;
-                return (warehouse.city || "").toLowerCase() === filters.location.toLowerCase();
+                const warehouseCity = (booking.warehouse?.city || "").toLowerCase();
+                return warehouseCity === filters.location.toLowerCase();
             })
-            .filter((warehouse) => {
-                if (filters.amenity === "all") return true;
-                return (warehouse.amenities || [])
-                    .map((a) => a.toLowerCase())
-                    .includes(filters.amenity.toLowerCase());
-            })
-            .filter((warehouse) => {
+            .filter((booking) => {
                 if (!filters.search) return true;
-                const haystack = `${warehouse.name} ${warehouse.address} ${warehouse.type}`.toLowerCase();
+                const haystack = `${booking.warehouse?.name || ""} ${booking.warehouse?.address || ""} ${booking.reference || ""}`.toLowerCase();
                 return haystack.includes(filters.search.toLowerCase());
             })
             .sort((a, b) => {
                 switch (filters.sort) {
                     case "priceAsc":
-                        return priceOf(a) - priceOf(b);
+                        return (a.amount || 0) - (b.amount || 0);
                     case "priceDesc":
-                        return priceOf(b) - priceOf(a);
-                    case "ratingAsc":
-                        return (a.avg_rating ?? 0) - (b.avg_rating ?? 0);
-                    case "ratingDesc":
+                        return (b.amount || 0) - (a.amount || 0);
+                    case "dateAsc":
+                        return new Date(a.start_date || 0) - new Date(b.start_date || 0);
+                    case "dateDesc":
                     default:
-                        return (b.avg_rating ?? 0) - (a.avg_rating ?? 0);
+                        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
                 }
             });
-    }, [filters, recommended]);
+    }, [filters, myBookings]);
 
     const handleLikeToggle = async (warehouseId) => {
         try {
@@ -320,6 +316,92 @@ const Hero = () => {
             icon: Calendar,
         },
     ];
+
+    const renderBookingCard = (booking) => {
+        const warehouse = booking.warehouse || {};
+        const Icon = iconForType(warehouse.type);
+        const tone = statusStyles[booking.status] || "bg-slate-100 text-slate-700 border-slate-200";
+        
+        return (
+            <motion.div
+                key={booking.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+            >
+                <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="relative h-[200px] w-full overflow-hidden bg-slate-100">
+                        <img
+                            src={warehouse.main_image || fallbackImage}
+                            alt={warehouse.name || "Warehouse"}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            onError={(event) => {
+                                event.currentTarget.src = fallbackImage;
+                            }}
+                        />
+                        <div className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">
+                            <Icon className="h-4 w-4" />
+                            {normalizeStatus(warehouse.type)}
+                        </div>
+                        <div className={`absolute right-4 top-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${tone}`}>
+                            {normalizeStatus(booking.status)}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-1 flex-col gap-4 p-6">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-slate-900">
+                                    {warehouse.name || "Warehouse"}
+                                </h3>
+                                <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                                    <MapPin className="h-4 w-4" />
+                                    {warehouse.city || warehouse.address || "N/A"}
+                                </div>
+                                <div className="mt-1 text-xs text-slate-400">
+                                    Ref: #{booking.reference}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                            <span className="font-semibold text-slate-800">
+                                {formatCurrency(booking.amount || 0)}
+                            </span>
+                            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {formatDateRange(booking.start_date, booking.end_date)}
+                            </span>
+                        </div>
+
+                        <div className="text-xs text-slate-500">
+                            <div>Booked: {formatDateTime(booking.created_at)}</div>
+                            {booking.company_name && (
+                                <div className="mt-1">Company: {booking.company_name}</div>
+                            )}
+                        </div>
+
+                        <div className="mt-auto flex items-center justify-between gap-3">
+                            <button
+                                onClick={() => setSelectedBooking(booking)}
+                                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                            >
+                                View details
+                            </button>
+                            <button
+                                onClick={() => router.visit(route("warehouse-bookings.summary", { bookingId: booking.id }))}
+                                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#0955AC] text-sm font-semibold text-white transition hover:bg-[#084a97]"
+                            >
+                                Manage
+                                <ChevronRight className="ml-2 h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+        );
+    };
 
     const renderWarehouseCard = (warehouse) => {
         const Icon = iconForType(warehouse.type);
@@ -574,21 +656,22 @@ const Hero = () => {
                                 />
                             </div>
                             <select
-                                value={filters.type}
+                                value={filters.status}
                                 onChange={(event) =>
                                     setFilters((prev) => ({
                                         ...prev,
-                                        type: event.target.value,
+                                        status: event.target.value,
                                     }))
                                 }
-                                className="h-11 w-[100px] rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
+                                className="h-11 w-[120px] rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
                             >
-                                <option value="all">All types</option>
-                                {filtersData.types.map((type) => (
-                                    <option key={type} value={type.toLowerCase()}>
-                                        {normalizeStatus(type)}
-                                    </option>
-                                ))}
+                                <option value="all">All status</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="active">Active</option>
+                                <option value="paid">Paid</option>
+                                <option value="pending">Pending</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="completed">Completed</option>
                             </select>
                             <select
                                 value={filters.location}
@@ -608,23 +691,6 @@ const Hero = () => {
                                 ))}
                             </select>
                             <select
-                                value={filters.amenity}
-                                onChange={(event) =>
-                                    setFilters((prev) => ({
-                                        ...prev,
-                                        amenity: event.target.value,
-                                    }))
-                                }
-                                className="h-11 w-[130px] rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
-                            >
-                                <option value="all">Any amenity</option>
-                                {filtersData.amenities.map((amenity) => (
-                                    <option key={amenity} value={amenity.toLowerCase()}>
-                                        {amenity}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
                                 value={filters.sort}
                                 onChange={(event) =>
                                     setFilters((prev) => ({
@@ -632,10 +698,10 @@ const Hero = () => {
                                         sort: event.target.value,
                                     }))
                                 }
-                                className="h-11 w-[110px] rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
+                                className="h-11 w-[140px] rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
                             >
-                                <option value="ratingDesc">Top rated</option>
-                                <option value="ratingAsc">Rating (low → high)</option>
+                                <option value="dateDesc">Latest first</option>
+                                <option value="dateAsc">Oldest first</option>
                                 <option value="priceAsc">Price (low → high)</option>
                                 <option value="priceDesc">Price (high → low)</option>
                             </select>
@@ -643,21 +709,21 @@ const Hero = () => {
 
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-xl font-semibold text-slate-900">
-                                Recommended warehouses
+                                My Booked Warehouses
                             </h2>
                             <span className="text-sm text-slate-500">
-                                {filteredWarehouses.length} match(es)
+                                {filteredBookings.length} booking(s)
                             </span>
                         </div>
 
-                        {filteredWarehouses.length === 0 ? (
+                        {filteredBookings.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-sm text-slate-500">
-                                No warehouses match your filters. Adjust filters or explore all listings.
+                                No bookings match your filters. Adjust filters or make a new booking.
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                                {filteredWarehouses.slice(0, 6).map((warehouse) =>
-                                    renderWarehouseCard(warehouse)
+                                {filteredBookings.slice(0, 6).map((booking) =>
+                                    renderBookingCard(booking)
                                 )}
                             </div>
                         )}
@@ -987,6 +1053,227 @@ const Hero = () => {
                     © {new Date().getFullYear()} Transport Jaan · Client Warehouse Management Suite
                 </div>
             </div>
+
+            {/* Booking Details Popup */}
+            {selectedBooking && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                    onClick={() => setSelectedBooking(null)}
+                >
+                    <div 
+                        className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-8 py-6">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-900">
+                                    Booking Details
+                                </h2>
+                                <p className="text-sm text-slate-500">
+                                    Reference: #{selectedBooking.reference}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedBooking(null)}
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-700 transition hover:bg-slate-100"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-6">
+                            {/* Status Badge */}
+                            <div className="flex items-center justify-between">
+                                <span className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold ${
+                                    statusStyles[selectedBooking.status] || "bg-slate-100 text-slate-700 border-slate-200"
+                                }`}>
+                                    {normalizeStatus(selectedBooking.status)}
+                                </span>
+                                <div className="text-right">
+                                    <div className="text-2xl font-bold text-slate-900">
+                                        {formatCurrency(selectedBooking.amount || 0)}
+                                    </div>
+                                    <div className="text-xs text-slate-500">Total amount</div>
+                                </div>
+                            </div>
+
+                            {/* Warehouse Info */}
+                            <div className="rounded-xl border border-slate-200 p-6">
+                                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+                                    <Building2 className="h-5 w-5 text-[#0955AC]" />
+                                    Warehouse Information
+                                </h3>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <div className="text-xs font-semibold text-slate-500 uppercase">Name</div>
+                                        <div className="mt-1 text-sm text-slate-900">
+                                            {selectedBooking.warehouse?.name || "N/A"}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold text-slate-500 uppercase">Location</div>
+                                        <div className="mt-1 text-sm text-slate-900">
+                                            {selectedBooking.warehouse?.address || selectedBooking.warehouse?.city || "N/A"}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold text-slate-500 uppercase">Type</div>
+                                        <div className="mt-1 text-sm text-slate-900">
+                                            {normalizeStatus(selectedBooking.warehouse?.type || "N/A")}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold text-slate-500 uppercase">Capacity</div>
+                                        <div className="mt-1 text-sm text-slate-900">
+                                            {selectedBooking.warehouse?.capacity ? 
+                                                `${Number(selectedBooking.warehouse.capacity).toLocaleString()} ${selectedBooking.warehouse.capacity_unit || "units"}` 
+                                                : "N/A"}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Booking Details */}
+                            <div className="rounded-xl border border-slate-200 p-6">
+                                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+                                    <Calendar className="h-5 w-5 text-[#0955AC]" />
+                                    Booking Details
+                                </h3>
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <div className="text-xs font-semibold text-slate-500 uppercase">Start Date</div>
+                                        <div className="mt-1 text-sm text-slate-900">
+                                            {formatDate(selectedBooking.start_date)}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold text-slate-500 uppercase">End Date</div>
+                                        <div className="mt-1 text-sm text-slate-900">
+                                            {formatDate(selectedBooking.end_date)}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold text-slate-500 uppercase">Booked On</div>
+                                        <div className="mt-1 text-sm text-slate-900">
+                                            {formatDateTime(selectedBooking.created_at)}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-semibold text-slate-500 uppercase">Duration</div>
+                                        <div className="mt-1 text-sm text-slate-900">
+                                            {selectedBooking.duration_months ? `${selectedBooking.duration_months} month(s)` : "N/A"}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Company Details */}
+                            {selectedBooking.company_name && (
+                                <div className="rounded-xl border border-slate-200 p-6">
+                                    <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+                                        <Building2 className="h-5 w-5 text-[#0955AC]" />
+                                        Company Details
+                                    </h3>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <div className="text-xs font-semibold text-slate-500 uppercase">Company Name</div>
+                                            <div className="mt-1 text-sm text-slate-900">
+                                                {selectedBooking.company_name}
+                                            </div>
+                                        </div>
+                                        {selectedBooking.contact_person && (
+                                            <div>
+                                                <div className="text-xs font-semibold text-slate-500 uppercase">Contact Person</div>
+                                                <div className="mt-1 text-sm text-slate-900">
+                                                    {selectedBooking.contact_person}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {selectedBooking.email && (
+                                            <div>
+                                                <div className="text-xs font-semibold text-slate-500 uppercase">Email</div>
+                                                <div className="mt-1 text-sm text-slate-900">
+                                                    {selectedBooking.email}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {selectedBooking.phone && (
+                                            <div>
+                                                <div className="text-xs font-semibold text-slate-500 uppercase">Phone</div>
+                                                <div className="mt-1 text-sm text-slate-900">
+                                                    {selectedBooking.phone}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Storage Details */}
+                            {selectedBooking.storage_type && (
+                                <div className="rounded-xl border border-slate-200 p-6">
+                                    <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+                                        <ShieldCheck className="h-5 w-5 text-[#0955AC]" />
+                                        Storage Details
+                                    </h3>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div>
+                                            <div className="text-xs font-semibold text-slate-500 uppercase">Storage Type</div>
+                                            <div className="mt-1 text-sm text-slate-900">
+                                                {normalizeStatus(selectedBooking.storage_type)}
+                                            </div>
+                                        </div>
+                                        {selectedBooking.required_space && (
+                                            <div>
+                                                <div className="text-xs font-semibold text-slate-500 uppercase">Required Space</div>
+                                                <div className="mt-1 text-sm text-slate-900">
+                                                    {selectedBooking.required_space} units
+                                                </div>
+                                            </div>
+                                        )}
+                                        {selectedBooking.goods_type && (
+                                            <div>
+                                                <div className="text-xs font-semibold text-slate-500 uppercase">Goods Type</div>
+                                                <div className="mt-1 text-sm text-slate-900">
+                                                    {selectedBooking.goods_type}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {selectedBooking.goods_description && (
+                                            <div className="md:col-span-2">
+                                                <div className="text-xs font-semibold text-slate-500 uppercase">Goods Description</div>
+                                                <div className="mt-1 text-sm text-slate-900">
+                                                    {selectedBooking.goods_description}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setSelectedBooking(null)}
+                                    className="flex-1 inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setSelectedBooking(null);
+                                        router.visit(route("warehouse-bookings.summary", { bookingId: selectedBooking.id }));
+                                    }}
+                                    className="flex-1 inline-flex h-12 items-center justify-center rounded-xl bg-[#0955AC] text-sm font-semibold text-white transition hover:bg-[#084a97]"
+                                >
+                                    Manage Booking
+                                    <ChevronRight className="ml-2 h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

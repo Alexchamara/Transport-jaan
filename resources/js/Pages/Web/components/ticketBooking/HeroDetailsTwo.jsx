@@ -4,7 +4,7 @@ import BusCard from "./BusCard";
 
 const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) => {
     const [sortBy, setSortBy] = useState('');
-    
+
     // Use dynamic data if available, otherwise fall back to static data
     let trips = schedules && schedules.length > 0 ? schedules : [
         {
@@ -115,7 +115,7 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
             {/* Back */}
             <div className="mb-4">
                 <Link
-                    href="/flight-booking"
+                    href="/ticketBooking?type=bus"
                     className="inline-flex items-center gap-2 text-[#0955AC] text-base font-semibold"
                 >
                     <span className="inline-block rounded-full border border-[#0955AC]/20 p-1 leading-none">
@@ -146,8 +146,8 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                                 key={f}
                                 onClick={() => handleSort(f)}
                                 className={`rounded border px-5 py-2 text-lg font-semibold transition hover:bg-gray-50 ${
-                                    sortBy === f 
-                                        ? 'border-[#0955AC] text-[#0955AC] bg-[#0955AC]/10' 
+                                    sortBy === f
+                                        ? 'border-[#0955AC] text-[#0955AC] bg-[#0955AC]/10'
                                         : 'border-gray-300 text-gray-800'
                                 }`}
                             >
@@ -157,13 +157,13 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                     </div>
                     <div className="ml-auto flex items-center gap-4 text-lg text-gray-600">
                         <span>
-                            {searchParams.from && searchParams.to 
-                                ? `${searchParams.from} → ${searchParams.to}` 
+                            {searchParams.from && searchParams.to
+                                ? `${searchParams.from} → ${searchParams.to}`
                                 : "Colombo → Negombo"}
                         </span>
                         <span>•</span>
                         <span>
-                            {searchParams.date 
+                            {searchParams.date
                                 ? new Date(searchParams.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                                 : "03/09/2025"}
                         </span>
