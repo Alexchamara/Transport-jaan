@@ -1,4 +1,5 @@
 import React from "react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
 const bookingData = [
@@ -17,61 +18,67 @@ const bookingData = [
 ];
 const maxBookings = 1000;
 
-function BookingOverviewBarChart() {
-  const [hovered, setHovered] = React.useState(null);
-  const chartHeight = 217; // px
-  // Find the index of the highest bookings
-  const maxIndex = bookingData.reduce((maxIdx, d, idx, arr) => d.bookings > arr[maxIdx].bookings ? idx : maxIdx, 0);
-  return (
-    <div className="w-[600px] h-auto flex flex-col items-stretch relative">
-      {/* Chart area: grid lines and bars, fixed height */}
-      <div className="relative w-full" style={{ height: `${chartHeight}px` }}>
-        {/* Y-axis grid lines and labels */}
-        <div className="absolute left-0 w-full h-full z-0 pointer-events-none" style={{ height: `${chartHeight}px` }}>
-          {[1000, 750, 500, 250, 0].map((v) => {
-            const percentFromBottom = (v / maxBookings) * 100;
-            return (
-              <div
-                key={v}
-                className="w-full absolute flex items-center"
-                style={{ bottom: `${percentFromBottom}%` }}
-              >
-                <span className="text-[14px] text-gray-400 absolute -left-12 -top-7 w-8 text-left" style={{transform: 'translateY(50%)'}}>{v === 1000 ? '1K' : v}</span>
-
-                <div className={`w-full border-t`}></div>
-              </div>
-            );
-          })}
-        </div>
-        {/* Bars */}
-        <div className="flex flex-row items-end w-full h-full z-10 relative" style={{ height: `${chartHeight}px`, marginBottom: 0 }}>
-          {bookingData.map((d, i) => (
-            <div key={d.name} className="flex flex-col items-center flex-1 relative group">
-              {/* Bar */}
-              <div
-                className={`w-[25px] rounded-md transition-all duration-200 cursor-pointer ${i === 7 ? 'bg-[#39CEF3]' : 'bg-[#0955AC]'}`}
-                style={{ height: `${(d.bookings / maxBookings) * chartHeight}px` }}
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
-              ></div>
-              {/* Tooltip */}
-              {(hovered === i || (hovered === null && i === maxIndex)) && (
-                <div className="absolute -top-20 left-1/2 -translate-x-1/2 bg-[#D8E4F2] text-black px-6 py-2 rounded-lg shadow text-center z-20">
-                  <div className="font-[600] text-[14px] flex flex-row items-center justify-center gap-1">{d.name} <span className="">2025</span></div>
-                  <div className="text-[16px] font-[700]">{d.bookings}</div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-[#D8E4F2] text-black px-6 py-2 rounded-lg shadow text-center">
+        <div className="font-[600] text-[14px] flex flex-row items-center justify-center gap-1">{label} <span>2025</span></div>
+        <div className="text-[16px] font-[700]">{payload[0].value}</div>
       </div>
-      {/* Month labels below chart area */}
-      <div className="flex flex-row items-end w-full z-10 relative" style={{ marginTop: '8px' }}>
-        {bookingData.map((d) => (
-          <div key={d.name} className="flex-1 flex justify-center" style={{minWidth: '36px'}}>
-            <div className="text-[14px] font-[500] text-[#7B7B7A]">{d.name}</div>
-          </div>
-        ))}
+    );
+  }
+  return null;
+};
+
+function BookingOverviewBarChart() {
+  const colors = bookingData.map((d, i) => i === 7 ? '#39CEF3' : '#2957C6');
+  return (
+    <div className="w-full flex flex-col items-start xl:items-center">
+        <div className="w-[600px] h-auto flex flex-col items-stretch relative">
+        <div className="figtree text-[32px] font-[700] mb-2 ml-2"> Flight Booking Overview</div>
+        <div className="absolute right-0 top-0">
+          <button className="bg-[#F6F8FA] rounded-[8px] px-5 py-2 text-[16px] font-[600] text-[#00000080] flex items-center gap-2">
+            This Year <span className="ml-2">▼</span>
+          </button>
+        </div>
+          <BarChart width={600} height={300} data={bookingData} margin={{ top: 40, right: 20, left: 0, bottom: 0 }} barCategoryGap={30}>
+          <CartesianGrid stroke="#BDBDBD" strokeWidth={1} vertical={false} />
+          <XAxis
+            dataKey="name"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 18, fill: '#7B7B7A', fontWeight: 500, dy: 8, fontFamily: 'Figtree' }}
+            height={40}
+          />
+          <YAxis
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 18, fill: '#7B7B7A', fontWeight: 600, dx: -8, fontFamily: 'Figtree' }}
+            tickFormatter={(value) => value === 1000 ? '1K' : value}
+            domain={[0, 1000]}
+            width={50}
+          />
+          <Tooltip
+            cursor={{ fill: 'rgba(41, 87, 198, 0.08)' }}
+            content={({ active, payload, label }) => {
+              if (active && payload && payload.length) {
+                return (
+                  <div className="bg-[#E6EEF7] text-black px-8 py-4 rounded-xl shadow text-center" style={{fontWeight:700, fontSize:18}}>
+                    <div className="font-[700] text-[20px] mb-1">{label} 2025</div>
+                    <div className="text-[22px] font-[700]">{payload[0].value}</div>
+                  </div>
+                );
+              }
+              return null;
+            }}
+            position={{ y: 30 }}
+          />
+          <Bar dataKey="bookings" radius={[8, 8, 8, 8]} barSize={32} >
+            {bookingData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={colors[index]} />
+            ))}
+          </Bar>
+        </BarChart>
       </div>
     </div>
   );

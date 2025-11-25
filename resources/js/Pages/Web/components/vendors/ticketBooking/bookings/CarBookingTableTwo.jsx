@@ -79,9 +79,9 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
     }, [itemsPerPage]);
 
     return (
-        <div className="py-10">
+        <div className="overflow-x-auto py-10">
             {/* table headings */}
-            <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
+            <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 min-w-[1200px]">
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Book id</h1>
                     <div className="flex flex-col justify-center items-center">
@@ -144,7 +144,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
             {currentBookings.map((booking, idx) => (
                 <div
                     key={startIdx + idx}
-                    className={`grid grid-cols-8 ${(startIdx + idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} h-[100px] justify-center items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100`}
+                    className={`grid grid-cols-8 ${(startIdx + idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} h-[100px] justify-center items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100 min-w-[1200px]`}
                     onClick={() => handleRowClick(booking, idx)}
                 >
                     <div>{booking.id}</div>

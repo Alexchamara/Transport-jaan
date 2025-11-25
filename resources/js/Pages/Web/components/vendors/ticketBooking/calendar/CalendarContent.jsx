@@ -213,9 +213,9 @@ const CalendarContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className=" w-full h-auto px-5 mt-10 xl:mt-0 py-10">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
+            <div className="flex flex-col xl:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">
                     Ticket Booking Calendar
                 </h1>
@@ -237,14 +237,14 @@ const CalendarContent = () => {
             </div>
             {/* end of header section */}
 
-            <div className="mt-10 flex flex-row gap-5 w-full justify-between">
+            <div className="mt-10 flex flex-col lg:flex-row gap-5 w-full justify-between">
                 <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-5 lg:px-8 py-10"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                    <div className="flex flex-col xl:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
                         <img
                             src={proPicTwo}
                             className="size-[90px]"
@@ -270,7 +270,7 @@ const CalendarContent = () => {
                         </div>
                     </div>
 
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                    <div className="flex flex-col xl:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
                         <img src={car1} className="size-[90px]" alt="Car" />
                         <div className="flex flex-col gap-2">
                             <h1 className="text-[18px] font-[700]">BMW LX3</h1>
@@ -293,7 +293,7 @@ const CalendarContent = () => {
                     </div>
                 </div>
                 <div
-                    className="min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="min-w-0 lg:min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -306,7 +306,7 @@ const CalendarContent = () => {
                         </div>
                     </div>
                     <div className="py-5 flex flex-col justify-center items-center gap-5">
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="md:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
@@ -315,7 +315,7 @@ const CalendarContent = () => {
                                 sessions.
                             </h1>
                         </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="md:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
@@ -324,7 +324,7 @@ const CalendarContent = () => {
                                 sessions.
                             </h1>
                         </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="md:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
@@ -333,7 +333,7 @@ const CalendarContent = () => {
                                 sessions.
                             </h1>
                         </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="md:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
@@ -346,7 +346,7 @@ const CalendarContent = () => {
                     {/* end */}
                 </div>
                 <div
-                    className="min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
+                    className="min-w-0 lg:min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -361,7 +361,7 @@ const CalendarContent = () => {
                     boxShadow: "4px 4px 4px #0000001A",
                 }}
             >
-                <div className="px-20 flex flex-row items-center justify-between">
+                <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">
                     <div className="flex flex-row justify-center items-center gap-6">
                         <div className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center">
                             Today
@@ -388,7 +388,7 @@ const CalendarContent = () => {
                             {monthNames[currentMonth]} {currentYear}
                         </h1>
                     </div>
-                    <div className="flex flex-row justify-center items-center gap-5">
+                    <div className="flex flex-col md:flex-row justify-center items-center gap-5 mt-5 xl:mt-0">
                         <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
                             <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
                                 All
@@ -407,7 +407,7 @@ const CalendarContent = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-row gap-10 justify-start items-center px-20 py-5">
+                <div className="flex flex-row gap-10 justify-start items-center px-5 lg:px-20 py-5">
                     <div className="flex flex-row justify-start items-center gap-5 ">
                         <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
                         <h1 className=" text-[#00000080] font-[600] text-[16px]">
@@ -422,15 +422,17 @@ const CalendarContent = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-8 border-t border-l border-[#00000026]">
-                    <CalendarGrid
-                        days={days}
-                        times={times}
-                        events={events}
-                        proPicTwo={proPicTwo}
-                        currentMonth={currentMonth}
-                        currentYear={currentYear}
-                    />
+                <div className="overflow-x-auto">
+                    <div className="grid grid-cols-8 border-t border-l border-[#00000026] min-w-[800px]">
+                        <CalendarGrid
+                            days={days}
+                            times={times}
+                            events={events}
+                            proPicTwo={proPicTwo}
+                            currentMonth={currentMonth}
+                            currentYear={currentYear}
+                        />
+                    </div>
                 </div>
             </div>
         </div>

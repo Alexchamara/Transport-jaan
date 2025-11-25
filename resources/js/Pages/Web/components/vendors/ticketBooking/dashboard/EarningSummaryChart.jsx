@@ -68,7 +68,7 @@ const EarningSummaryChart = () => {
   ].join(" ");
 
   return (
-    <div className="w-full h-auto ml-10">
+    <div className="w-full overflow-auto ml-10">
       <svg width={chartWidth} height={chartHeight} className="block mx-auto">
         {/* Define linear gradient */}
         <defs>

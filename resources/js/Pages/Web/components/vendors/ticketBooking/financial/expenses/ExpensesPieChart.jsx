@@ -14,13 +14,13 @@ const total = data.reduce((sum, item) => sum + item.value, 0);
 const ExpensesPieChart = () => (
     <div className="flex flex-col items-center justify-center w-full h-full">
         <div className="flex flex-row items-center justify-center w-full mb-2">
-            <PieChart width={140} height={140}>
+            <PieChart width={100} height={100}>
                 <Pie
                     data={data}
                     cx="50%"
                     cy="50%"
-                    innerRadius={45}
-                    outerRadius={65}
+                    innerRadius={30}
+                    outerRadius={45}
                     paddingAngle={0}
                     dataKey="value"
                     stroke="none"

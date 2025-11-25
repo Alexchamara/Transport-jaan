@@ -302,9 +302,9 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-5 py-10 mt-5 xl:mt-0">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
+            <div className="flex flex-col lg:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">
                     Ticket Booking Expenses
                 </h1>
@@ -327,10 +327,10 @@ const ExpensesContent = () => {
             {/* end of header section */}
 
             {/* mini 4 cards */}
-            <div className="flex flex-row gap-5 w-full">
+            <div className="flex flex-col xl:flex-row gap-5 w-full">
                 {/* card 1 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -360,7 +360,7 @@ const ExpensesContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -388,10 +388,10 @@ const ExpensesContent = () => {
                 </div>
                 {/* end of card 2 */}
 
-                <div className="flex flex-row gap-5 w-full">
+                <div className="flex flex-col lg:flex-row gap-5 w-full">
                     {/* card 3 */}
                     <div
-                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-5 justify-center items-center">
@@ -424,15 +424,15 @@ const ExpensesContent = () => {
             </div>
 
             {/* bar chart and pie chart section */}
-            <div className="flex flex-row w-full gap-8">
+            <div className="flex flex-col xl:flex-row gap-8">
                 <div
-                    className="min-w-[730px] min-h-[426px] bg-[#FFFFFF] rounded-[10px]"
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px]"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <CashflowChart />
                 </div>
                 <div
-                    className="min-w-[339px] w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
+                    className="w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-5 lg:px-10 py-5"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="w-full flex flex-row justify-between items-center">
@@ -447,16 +447,16 @@ const ExpensesContent = () => {
 
             {/* Transaction table */}
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
                 {/* card header */}
-                <div className="flex flex-row justify-between">
+                <div className="flex flex-col lg:flex-row justify-between gap-5">
                     <h1 className="text-[24px] font-[700]">
                         Recent Transactions
                     </h1>
-                    <div className="flex flex-row gap-5">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                    <div className="flex flex-col lg:flex-row gap-5">
+                        <div className="w-full lg:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} alt="Search" />
                             <input
                                 type="text"
@@ -464,7 +464,7 @@ const ExpensesContent = () => {
                                 placeholder="Search client name, car, etc."
                             />
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full lg:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"
@@ -477,7 +477,7 @@ const ExpensesContent = () => {
                             />
                             <img src={miniDownArrow} alt="Dropdown" />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full lg:w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={calendar}
                                 className="size-[17px]"
@@ -492,7 +492,7 @@ const ExpensesContent = () => {
                         </div>
                         <button
                             onClick={downloadTableAsPDF}
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+                            className="w-full lg:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
                         >
                             <img src={downloadLogo} alt="Download" />
                             <h1>Download</h1>
@@ -502,7 +502,8 @@ const ExpensesContent = () => {
                 {/* end */}
 
                 {/* expenses table */}
-                <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
+                <div className="overflow-x-auto">
+                    <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-5 lg:px-10 mt-10 min-w-[1000px]">
                     <div className="flex flex-row gap-5 items-center col-span-2">
                         <input
                             type="checkbox"
@@ -617,7 +618,7 @@ const ExpensesContent = () => {
                 {currentExpenses.map((expense, idx) => (
                     <div
                         key={expense.name + startIdx + idx}
-                        className="grid grid-cols-9 text-[15px] font-[500] px-10 h-[100px] border-b-[1.5px] border-[#00000033] items-center"
+                        className="grid grid-cols-9 text-[15px] font-[500] px-5 lg:px-10 h-[100px] border-b-[1.5px] border-[#00000033] items-center min-w-[1000px]"
                     >
                         <div className="flex flex-row gap-5 col-span-2">
                             <input
@@ -665,8 +666,9 @@ const ExpensesContent = () => {
                     </div>
                 ))}
 
+                </div>
                 {/* Pagination Controls */}
-                <div className="flex justify-between items-center gap-2 mt-20">
+                <div className="flex flex-col lg:flex-row justify-between items-center gap-2 mt-20">
                     <div className="flex items-center">
                         <span className="mr-3 text-[#00000080] text-[15px]">
                             Results per page
