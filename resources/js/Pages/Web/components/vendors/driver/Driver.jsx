@@ -25,6 +25,7 @@ const selectClasses = inputClasses;
 export default function Driver() {
   const { auth } = usePage().props;
   const user = auth?.user;
+   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
@@ -447,11 +448,41 @@ export default function Driver() {
 
   return (
     <div className="flex bg-gray-100 min-h-screen">
-      <SideMenu />
+    <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <SideMenu />
+      </div>
+
+            {/* Overlay for mobile when sidebar is open */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
 
       <main className="flex-1 w-full py-8">
         {/* ==================== HEADER WITH DROPDOWN ==================== */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+           {/* Hamburger button for mobile */}
+          <button
+            className="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-200"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 6h16M4 12h16M4 18h16"
+              ></path>
+            </svg>
+          </button>
           <div className="flex flex-row gap-5 justify-between items-center">
             <h1 className="figtree text-[28px] font-[700]">Vehicle Rental Drivers</h1>
 
