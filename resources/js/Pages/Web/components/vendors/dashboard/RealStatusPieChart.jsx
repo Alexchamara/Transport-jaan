@@ -42,7 +42,21 @@ const RealStatusPieChart = ({ data = [], rangeLabel = "This Week", showHeader = 
 
   const total = normalized.reduce((s, n) => s + (Number.isFinite(n.value) ? n.value : 0), 0);
 
-  const size = 180, cx = size / 2, cy = size / 2, rOuter = 70, rInner = 48, gapDeg = 1.5;
+  const [isMobile, setIsMobile] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const size = isMobile ? 140 : 180;
+  const cx = size / 2;
+  const cy = size / 2;
+  const rOuter = isMobile ? 55 : 70;
+  const rInner = isMobile ? 38 : 48;
+  const gapDeg = 1.5;
   const startAngle = -90;
   let cumAngle = startAngle;
 
@@ -50,9 +64,9 @@ const RealStatusPieChart = ({ data = [], rangeLabel = "This Week", showHeader = 
     <div className="flex flex-col items-center justify-center w-full h-full">
       {showHeader && (
         <div className="flex items-center justify-between w-full mb-4">
-          <h1 className="text-[24px] font-[700]">Real Status</h1>
+          <h1 className="text-[20px] md:text-[24px] font-[700]">Real Status</h1>
           <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
-            <h1 className="text-[#00000080] font-[600] text-[14px]">{rangeLabel}</h1>
+            <h1 className="text-[#00000080] font-[600] text-[12px] md:text-[14px]">{rangeLabel}</h1>
             <span className="text-xs">▼</span>
           </div>
         </div>
@@ -62,7 +76,7 @@ const RealStatusPieChart = ({ data = [], rangeLabel = "This Week", showHeader = 
         <div className="text-sm text-gray-500 py-10">No status data yet.</div>
       ) : (
         <>
-          <svg width={size} height={size} role="img" aria-label="Real status">
+          <svg width={size} height={size} role="img" aria-label="Real status" className="max-w-full h-auto">
             {normalized.map((seg, i) => {
               const portion = seg.value / total;
               const sweep = portion * 360 - gapDeg;
@@ -74,19 +88,19 @@ const RealStatusPieChart = ({ data = [], rangeLabel = "This Week", showHeader = 
             })}
           </svg>
 
-          <div className="flex flex-col gap-2 mt-6 w-full">
+          <div className="flex flex-col gap-2 mt-4 md:mt-6 w-full">
             {normalized.map((entry, idx) => {
               const percent = Math.round((entry.value / Math.max(total, 1)) * 100);
               return (
                 <div key={idx} className="flex flex-row items-center justify-between w-full mb-1">
                   <div className="flex flex-row items-center gap-2">
-                    <span className="w-5 h-5 rounded" style={{ backgroundColor: entry.color }} />
-                    <span className="text-[20px] font-[600] text-[#00000080]">{entry.name}</span>
+                    <span className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} rounded`} style={{ backgroundColor: entry.color }} />
+                    <span className={`${isMobile ? 'text-[14px]' : 'text-[20px]'} font-[600] text-[#00000080]`}>{entry.name}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <span className="text-[20px] font-[600] text-[#000000]">{percent}%</span>
-                    {entry.change === "up" && <span className="text-green-600 text-sm">▲</span>}
-                    {entry.change === "down" && <span className="text-red-600 text-sm">▼</span>}
+                    <span className={`${isMobile ? 'text-[14px]' : 'text-[20px]'} font-[600] text-[#000000]`}>{percent}%</span>
+                    {entry.change === "up" && <span className={`text-green-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>▲</span>}
+                    {entry.change === "down" && <span className={`text-red-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>▼</span>}
                   </div>
                 </div>
               );

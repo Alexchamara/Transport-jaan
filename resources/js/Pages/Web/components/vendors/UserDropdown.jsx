@@ -47,10 +47,10 @@ const UserDropdown = ({ settingsRoute }) => {
         <div ref={dropdownRef} className="relative">
             {/* Trigger */}
             <div
-                className="flex flex-row gap-5 items-center cursor-pointer px-4 py-2 rounded-lg transition-all duration-200 group"
+                className="flex flex-row gap-2 sm:gap-3 md:gap-5 items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg transition-all duration-200 group cursor-pointer max-w-full"
                 onClick={() => setIsOpen((p) => !p)}
             >
-                <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
+                <div className="size-[40px] sm:size-[50px] md:size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center shrink-0">
                     <img
                         src={proPic}
                         alt="Profile"
@@ -58,17 +58,17 @@ const UserDropdown = ({ settingsRoute }) => {
                     />
                 </div>
 
-                <div className="figtree flex flex-col justify-center items-start">
-                    <h1 className="text-[20px] font-[700]">
+                <div className="figtree flex flex-col justify-center items-start min-w-0 flex-1">
+                    <h1 className="text-[14px] sm:text-[16px] md:text-[20px] font-[700] truncate w-full">
                         {user?.name || "User"}
                     </h1>
-                    <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
+                    <h1 className="text-[12px] sm:text-[14px] md:text-[16px] font-[600] text-[#7B7B7A] truncate w-full">
                         {user?.role || "User"}
                     </h1>
                 </div>
 
                 <ChevronDown
-                    className={`w-5 h-5 text-[#7B7B7A] transition-transform duration-200 ${
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-[#7B7B7A] transition-transform duration-200 shrink-0 ${
                         isOpen ? "rotate-180" : ""
                     }`}
                 />
