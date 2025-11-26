@@ -56,53 +56,55 @@ const DashContent = ({
             : n;
 
     return (
-        <div className="w-full max-w-full h-auto px-4 md:pr-5 py-6 md:py-10 overflow-x-hidden">
+        <div className="w-full h-auto pr-5 py-10">
             {/* Header */}
-            <div className="flex flex-col md:flex-row gap-4 md:gap-5 justify-between items-start md:items-center w-full max-w-full">
-                <h1 className="figtree text-[24px] sm:text-[28px] md:text-[35px] font-[700] w-full md:w-auto">Vehicle Rental Dashboard</h1>
-                <div className="w-full md:w-auto flex justify-center md:justify-end">
+            <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
+                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Dashboard</h1>
+                <div className="flex flex-row gap-5 relative items-center">
+                    <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
+                </div>
                 </div>
             </div>
 
-            <div className="flex flex-col gap-5 py-6 md:py-10 w-full min-w-0">
-                <div className="flex flex-col xl:flex-row gap-5 w-full min-w-0">
+            <div className="flex flex-col gap-5 py-10">
+                <div className="flex flex-col xl:flex-row gap-5">
                     {/* Left */}
-                    <div className="flex flex-col gap-5 w-full min-w-0">
+                    <div className="flex flex-col gap-5 w-full">
                         {/* Cards */}
                         <div className="flex flex-col gap-5">
                             <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
                                 {/* Total Revenue */}
                                 <div
-                                    className="w-full max-w-[320px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="min-w-[300px] w-full min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
                                 >
-                                    <div className="flex flex-row gap-2 md:gap-5 items-center min-w-0 flex-1">
-                                        <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
-                                            <img src={dollarIcon} className="w-5 md:w-6" />
+                                    <div className="flex flex-row gap-5 items-center">
+                                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                            <img src={dollarIcon} />
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
+                                        <div>
+                                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                                 Total Revenue
                                             </h1>
-                                            <h1 className="text-[18px] md:text-[24px] font-[700] truncate">
+                                            <h1 className="text-[24px] font-[700]">
                                                 {fmtMoney(
                                                     cards?.totalRevenue ?? 0
                                                 )}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-1 md:gap-2 items-end text-[10px] md:text-[14px] font-[500] shrink-0">
-                                        <div className="w-[60px] md:w-[81px] h-[22px] md:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                        <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
-                                                className="size-[14px] md:size-[19px]"
+                                                className="size-[19px]"
                                             />
-                                            <h1 className="text-[10px] md:text-sm">—</h1>
+                                            <h1>—</h1>
                                         </div>
-                                        <h1 className="text-[10px] md:text-sm text-[#7B7B7A] hidden md:block">
+                                        <h1 className="text-[#7B7B7A]">
                                             from last period
                                         </h1>
                                     </div>
@@ -110,33 +112,33 @@ const DashContent = ({
 
                                 {/* New Bookings */}
                                 <div
-                                    className="w-full max-w-[320px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="min-w-[300px] w-full min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
                                 >
-                                    <div className="flex flex-row gap-2 md:gap-5 items-center min-w-0 flex-1">
-                                        <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
-                                            <img src={bookingIcon} className="w-5 md:w-6" />
+                                    <div className="flex flex-row gap-5 items-center">
+                                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                            <img src={bookingIcon} />
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
+                                        <div>
+                                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                                 New Bookings
                                             </h1>
-                                            <h1 className="text-[18px] md:text-[24px] font-[700]">
+                                            <h1 className="text-[24px] font-[700]">
                                                 {cards?.newBookings ?? 0}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-1 md:gap-2 items-end text-[10px] md:text-[14px] font-[500] shrink-0">
-                                        <div className="w-[60px] md:w-[81px] h-[22px] md:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                        <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
-                                                className="size-[14px] md:size-[19px]"
+                                                className="size-[19px]"
                                             />
-                                            <h1 className="text-[10px] md:text-sm">—</h1>
+                                            <h1>—</h1>
                                         </div>
-                                        <h1 className="text-[10px] md:text-sm text-[#7B7B7A] hidden md:block">
+                                        <h1 className="text-[#7B7B7A]">
                                             from last week
                                         </h1>
                                     </div>
@@ -146,33 +148,33 @@ const DashContent = ({
                             <div className="flex xl:flex-row flex-col gap-5 w-full">
                                 {/* Rented Cars */}
                                 <div
-                                    className="w-full max-w-[320px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="min-w-[300px] w-full min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
                                 >
-                                    <div className="flex flex-row gap-2 md:gap-5 items-center min-w-0 flex-1">
-                                        <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
-                                            <img src={wheelIcon} className="w-5 md:w-6" />
+                                    <div className="flex flex-row gap-5 items-center">
+                                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                            <img src={wheelIcon} />
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
+                                        <div>
+                                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                                 Rented Cars
                                             </h1>
-                                            <h1 className="text-[18px] md:text-[24px] font-[700]">
+                                            <h1 className="text-[24px] font-[700]">
                                                 {cards?.rentedCars ?? 0} Units
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-1 md:gap-2 items-end text-[10px] md:text-[14px] font-[500] shrink-0">
-                                        <div className="w-[60px] md:w-[81px] h-[22px] md:h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
+                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                        <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
-                                                className="size-[14px] md:size-[19px] rotate-180"
+                                                className="size-[19px] rotate-180"
                                             />
-                                            <h1 className="text-[10px] md:text-sm">—</h1>
+                                            <h1>—</h1>
                                         </div>
-                                        <h1 className="text-[10px] md:text-sm text-[#7B7B7A] hidden md:block">
+                                        <h1 className="text-[#7B7B7A]">
                                             from last week
                                         </h1>
                                     </div>
@@ -180,33 +182,33 @@ const DashContent = ({
 
                                 {/* Total Cars */}
                                 <div
-                                    className="w-full max-w-[320px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="min-w-[300px] min-h-[91px] w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
                                 >
-                                    <div className="flex flex-row gap-2 md:gap-5 items-center min-w-0 flex-1">
-                                        <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
-                                            <img src={carIcon} className="w-5 md:w-6" />
+                                    <div className="flex flex-row gap-5 items-center">
+                                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                            <img src={carIcon} />
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
+                                        <div>
+                                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                                 Total Cars
                                             </h1>
-                                            <h1 className="text-[18px] md:text-[24px] font-[700]">
+                                            <h1 className="text-[24px] font-[700]">
                                                 {cards?.totalCars ?? 0} Units
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-1 md:gap-2 items-end text-[10px] md:text-[14px] font-[500] shrink-0">
-                                        <div className="w-[60px] md:w-[81px] h-[22px] md:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                        <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
-                                                className="size-[14px] md:size-[19px]"
+                                                className="size-[19px]"
                                             />
-                                            <h1 className="text-[10px] md:text-sm">—</h1>
+                                            <h1>—</h1>
                                         </div>
-                                        <h1 className="text-[10px] md:text-sm text-[#7B7B7A] hidden md:block">
+                                        <h1 className="text-[#7B7B7A]">
                                             from last week
                                         </h1>
                                     </div>
@@ -216,11 +218,11 @@ const DashContent = ({
 
                         {/* Booking Overview */}
                         <div
-                            className="w-full max-w-[320px] md:max-w-none h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-10 px-3 md:px-10 overflow-x-auto"
+                            className="min-w-auto h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-16 w-full gap-4">
-                                <h1 className="text-[20px] md:text-[24px] font-[700]">
+                            <div className="flex flex-row items-center justify-between mb-16 w-full">
+                                <h1 className="text-[24px] font-[700]">
                                     Booking Overview
                                 </h1>
                                 <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
@@ -232,20 +234,18 @@ const DashContent = ({
                                     <img src={miniDownArrow} />
                                 </div>
                             </div>
-                            <div className="w-full min-w-0">
-                                <BookingOverviewBarChart
-                                    data={bookingOverview ?? []}
-                                />
-                            </div>
+                            <BookingOverviewBarChart
+                                data={bookingOverview ?? []}
+                            />
                         </div>
 
                         {/* Earning Summary */}
                         <div
-                            className="w-full max-w-[320px] md:max-w-none min-h-[381px] bg-white rounded-[10px] py-6 md:py-10 px-3 md:px-10 overflow-x-auto"
+                            className="min-w-auto min-h-[381px] bg-white rounded-[10px] py-10 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-12 w-full gap-4">
-                                <h1 className="text-[20px] md:text-[24px] font-[700]">
+                            <div className="flex flex-row items-center justify-between mb-12 w-full">
+                                <h1 className="text-[24px] font-[700]">
                                     Earning Summary
                                 </h1>
                                 <div className="w-[132px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
@@ -257,109 +257,22 @@ const DashContent = ({
                                     <img src={miniDownArrow} />
                                 </div>
                             </div>
-                            <div className="w-full min-w-0">
-                                <EarningSummaryChart data={earningSummary ?? []} />
-                            </div>
-                        </div>
-
-                        {/* Real Status - Moved to left on mobile */}
-                        <div
-                            className="w-full max-w-[320px] md:max-w-none xl:hidden min-h-[427px] bg-white rounded-[10px] py-5 px-3 md:px-10 overflow-x-auto"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
-                                <h1 className="text-[20px] md:text-[24px] font-[700]">
-                                    Real Status
-                                </h1>
-                                <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
-                                    <h1 className="text-[#00000080] font-[600] text-[14px]">
-                                        {filters?.rs_period === "month"
-                                            ? "This Month"
-                                            : "This Week"}
-                                    </h1>
-                                    <img src={miniDownArrow} />
-                                </div>
-                            </div>
-                            <div className="w-full min-w-0">
-                                <RealStatusPieChart data={realStatus ?? []} />
-                            </div>
-                        </div>
-
-                        {/* Car Availability - Moved to left on mobile */}
-                        <div
-                            className="w-full max-w-[320px] md:max-w-none xl:hidden xl:min-h-[206px] bg-[#D8E4F2] flex flex-col px-4 md:px-10 py-5 justify-center items-center rounded-[10px]"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <h1 className="text-[20px] md:text-[24px] font-[700] mb-3">
-                                Car Availability
-                            </h1>
-                            <div className="flex flex-col gap-3 w-full max-w-[283px] items-center">
-                                <div className="w-full xl:w-[283px] xl:h-[35px] flex flex-row items-center gap-2 rounded-[6px] px-3 py-2 bg-white">
-                                    <img src={car} className="size-[20px]" />
-                                    <input
-                                        className="w-full outline-none bg-transparent border-0 focus:ring-0"
-                                        placeholder="Car Type"
-                                    />
-                                    <img src={miniDownArrow} />
-                                </div>
-
-                                <div className="flex flex-row gap-3 w-full">
-                                    <div className="flex-1 xl:w-[137px] xl:h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
-                                        <img
-                                            src={date}
-                                            className="size-[20px] shrink-0"
-                                        />
-                                        <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
-                                            placeholder="Start date"
-                                        />
-                                    </div>
-                                    <div className="flex-1 xl:w-[137px] h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
-                                        <img
-                                            src={clock}
-                                            className="size-[16px] shrink-0"
-                                        />
-                                        <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
-                                            placeholder="Start time"
-                                        />
-                                    </div>
-                                </div>
-
-                                <button className="w-full xl:w-[283px] xl:h-[40px] bg-[#0955AC] rounded-[6px] text-[14px] md:text-[16px] font-[700] text-white border-0 focus:ring-0 py-2">
-                                    Check Availability
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Reminders - Moved to left on mobile */}
-                        <div
-                            className="w-full max-w-[320px] md:max-w-none xl:hidden min-h-[335px] bg-white rounded-[10px] py-5 px-3 md:px-10"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-row items-center justify-between w-full">
-                                <h1 className="text-[20px] md:text-[24px] font-[700]">
-                                    Reminders
-                                </h1>
-                                <button className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center text-[#00000080] font-[600] text-[30px] border-0 focus:ring-0">
-                                    +
-                                </button>
-                            </div>
+                            <EarningSummaryChart data={earningSummary ?? []} />
                         </div>
                     </div>
 
                     {/* Right */}
-                    <div className="flex flex-col items-center gap-5 w-full min-w-0">
-                        {/* Car Availability - Desktop only */}
+                    <div className="flex flex-col items-center gap-5 w-full">
+                        {/* Car Availability */}
                         <div
-                            className="hidden xl:flex w-full max-w-[320px] md:max-w-none xl:min-h-[206px] bg-[#D8E4F2] flex-col px-4 md:px-10 py-5 justify-center items-center rounded-[10px]"
+                            className="min-w-auto w-full xl:min-h-[206px] bg-[#D8E4F2] flex flex-col px-10 py-5 justify-center items-center rounded-[10px]"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <h1 className="text-[20px] md:text-[24px] font-[700] mb-3">
+                            <h1 className="text-[24px] font-[700] mb-3">
                                 Car Availability
                             </h1>
-                            <div className="flex flex-col gap-3 w-full max-w-[283px] items-center">
-                                <div className="w-full xl:w-[283px] xl:h-[35px] flex flex-row items-center gap-2 rounded-[6px] px-3 py-2 bg-white">
+                            <div className="flex flex-col gap-3 w-full items-center">
+                                <div className="xl:w-[283px] xl:h-[35px] flex flex-row items-center gap-2 rounded-[6px] px-3 py-2 bg-white">
                                     <img src={car} className="size-[20px]" />
                                     <input
                                         className="w-full outline-none bg-transparent border-0 focus:ring-0"
@@ -368,42 +281,42 @@ const DashContent = ({
                                     <img src={miniDownArrow} />
                                 </div>
 
-                                <div className="flex flex-row gap-3 w-full">
-                                    <div className="flex-1 xl:w-[137px] xl:h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
+                                <div className="flex flex-row gap-3">
+                                    <div className="xl:w-[137px] xl:h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
                                         <img
                                             src={date}
-                                            className="size-[20px] shrink-0"
+                                            className="size-[20px]"
                                         />
                                         <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
+                                            className="w-full outline-none bg-transparent border-0 focus:ring-0"
                                             placeholder="Start date"
                                         />
                                     </div>
-                                    <div className="flex-1 xl:w-[137px] h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
+                                    <div className="w-[137px] h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
                                         <img
                                             src={clock}
-                                            className="size-[16px] shrink-0"
+                                            className="size-[16px]"
                                         />
                                         <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
+                                            className="w-full outline-none bg-transparent border-0 focus:ring-0"
                                             placeholder="Start time"
                                         />
                                     </div>
                                 </div>
 
-                                <button className="w-full xl:w-[283px] xl:h-[40px] bg-[#0955AC] rounded-[6px] text-[14px] md:text-[16px] font-[700] text-white border-0 focus:ring-0 py-2">
+                                <button className="xl:w-[283px] xl:h-[40px] bg-[#0955AC] rounded-[6px] text-[16px] font-[700] text-white border-0 focus:ring-0">
                                     Check Availability
                                 </button>
                             </div>
                         </div>
 
-                        {/* Real Status - Desktop only */}
+                        {/* Real Status */}
                         <div
-                            className="hidden xl:block w-full max-w-[320px] md:max-w-none min-h-[427px] bg-white rounded-[10px] py-5 px-3 md:px-10 overflow-x-auto"
+                            className="min-w-auto w-full min-h-[427px] bg-white rounded-[10px] py-5 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
-                                <h1 className="text-[20px] md:text-[24px] font-[700]">
+                            <div className="flex flex-row items-center justify-between w-full">
+                                <h1 className="text-[24px] font-[700]">
                                     Real Status
                                 </h1>
                                 <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
@@ -415,18 +328,16 @@ const DashContent = ({
                                     <img src={miniDownArrow} />
                                 </div>
                             </div>
-                            <div className="w-full min-w-0">
-                                <RealStatusPieChart data={realStatus ?? []} />
-                            </div>
+                            <RealStatusPieChart data={realStatus ?? []} />
                         </div>
 
-                        {/* Reminders - Desktop only */}
+                        {/* Reminders */}
                         <div
-                            className="hidden xl:block w-full max-w-[320px] md:max-w-none min-h-[335px] bg-white rounded-[10px] py-5 px-3 md:px-10"
+                            className="min-w-auto w-full min-h-[335px] bg-white rounded-[10px] py-5 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between w-full">
-                                <h1 className="text-[20px] md:text-[24px] font-[700]">
+                                <h1 className="text-[24px] font-[700]">
                                     Reminders
                                 </h1>
                                 <button className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center text-[#00000080] font-[600] text-[30px] border-0 focus:ring-0">
@@ -437,105 +348,94 @@ const DashContent = ({
                     </div>
                 </div>
 
-               {/* Bookings table */}
-<div
-    className="w-full max-w-[320px] md:max-w-none h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-10 px-3 md:px-10"
-    style={{ boxShadow: "4px 4px 4px #0000001A" }}
->
-    <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
-        <h1 className="text-[20px] md:text-[24px] font-[700]">Car Booking</h1>
-
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
-                <img src={miniSearchIcon} className="shrink-0" />
-                <input
-                    type="text"
-                    className="w-full outline-none bg-transparent placeholder:text-[#7B7B7ACC] border-0 focus:ring-0 text-sm"
-                    placeholder="Search client name, car, etc."
-                />
-            </div>
-
-            <button className="w-full sm:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-4 border-0 focus:ring-0">
-                <img src={filterIcon} className="size-[12px] shrink-0" />
-                <span className="text-[12px] sm:text-[14px] font-[500] text-[#7B7B7ACC]">Filter</span>
-                <img src={miniDownArrow} className="shrink-0" />
-            </button>
-        </div>
-    </div>
-
-    {/* ✅ Only the table scrolls in mobile */}
-    <div className="w-full overflow-x-auto">
-        <CarBookingTable rows={bookings ?? []} />
-    </div>
-</div>
-
-               {/* Car types + Recent activities - Compact Layout */}
-<div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full">
-    {/* Car Types - Full width on mobile */}
-    <div className="w-full">
-        <div
-            className="w-full bg-white rounded-[10px] py-6 px-4 md:px-8"
-            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-        >
-            <div className="flex justify-between items-center mb-5">
-                <h2 className="text-[20px] md:text-[24px] font-bold">Car Types</h2>
-                <span className="text-2xl font-bold text-gray-400">...</span>
-            </div>
-            <div className="space-y-4">
-                {computedCarTypes.length > 0 ? (
-                    computedCarTypes.slice(0, 4).map((type, idx) => (  // Show only top 4
-                        <div
-                            key={idx}
-                            className="flex items-center gap-3 border border-gray-300 rounded-lg overflow-hidden"
-                        >
-                            <img
-                                src={type.img}
-                                alt={type.name}
-                                className="w-24 h-20 object-cover"
-                            />
-                            <div className="flex-1 pr-3">
-                                <div className="flex justify-between text-sm font-medium mb-1">
-                                    <span className="text-gray-600 truncate">{type.name}</span>
-                                    <span>{type.percent}%</span>
-                                </div>
-                                <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full transition-all duration-700"
-                                        style={{
-                                            width: `${type.percent}%`,
-                                            backgroundColor: type.percent <= 30 ? "#ef4444" : "#0955AC",
-                                        }}
-                                    />
-                                </div>
+                {/* Bookings table */}
+                <div
+                    className="w-full h-auto bg-white rounded-[10px] py-10 px-10"
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                >
+                    <div className="flex flex-row justify-between">
+                        <h1 className="text-[24px] font-[700]">Car Booking</h1>
+                        <div className="flex flex-row gap-5">
+                            <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-5">
+                                <img src={miniSearchIcon} />
+                                <input
+                                    type="text"
+                                    className="w-full outline-none bg-transparent placeholder:text-[#7B7B7ACC] border-0 focus:ring-0"
+                                    placeholder="Search client name, car, etc."
+                                />
                             </div>
+                            <button className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5 border-0 focus:ring-0">
+                                <img src={filterIcon} className="size-[12px]" />
+                                <span className="text-[14px] font-[500] text-[#7B7B7ACC]">
+                                    Filter
+                                </span>
+                                <img src={miniDownArrow} />
+                            </button>
                         </div>
-                    ))
-                ) : (
-                    <p className="text-center text-gray-500 py-8">No car type data yet.</p>
-                )}
-            </div>
-        </div>
-    </div>
+                    </div>
 
-    {/* Recent Activities - Compact & Reduced Size */}
-    <div className="w-full xl:max-w-md mx-auto"> {/* Controls max width on large screens */}
-        <div
-            className="w-full bg-white rounded-[10px] py-5 px-4 md:px-6 h-96 md:h-[380px] overflow-y-auto"
-            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-        >
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-[20px] md:text-[22px] font-bold">Recent Activities</h2>
-                {unreadNotifications > 0 && (
-                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        {unreadNotifications}
-                    </span>
-                )}
-            </div>
+                    <CarBookingTable rows={bookings ?? []} />
+                </div>
 
-            <RecentActivities activities={recentActivities} />
-        </div>
-    </div>
-</div>
+                {/* Car types + Recent activities */}
+                <div className="flex flex-col xl:flex-row gap-5 justify-between">
+                    <div
+                        className="min-w-auto w-full min-h-[858px] bg-white rounded-[10px] px-10 py-10"
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    >
+                        <div className="flex flex-row justify-between items-center">
+                            <h1 className="text-[24px] font-[700]">
+                                Car types
+                            </h1>
+                            <h1 className="text-[24px] font-[700]">...</h1>
+                        </div>
+
+                        <div className="mt-10 flex flex-col gap-5">
+                            {computedCarTypes.map((type, idx) => (
+                                <div
+                                    key={`${type.name}-${idx}`}
+                                    className="w-full h-[107px] border border-[#00000080] rounded-[9px] flex flex-row"
+                                >
+                                    <img
+                                        src={type.img}
+                                        className="h-[107px] w-[172px]"
+                                    />
+                                    <div className="flex flex-col justify-center gap-3 w-full px-5">
+                                        <div className="flex flex-row justify-between items-center text-[15px] font-[500]">
+                                            <h1 className="text-[#00000080]">
+                                                {type.name}
+                                            </h1>
+                                            <h1 className="pr-5">
+                                                {type.percent}%
+                                            </h1>
+                                        </div>
+                                        <div className="w-full h-[20px] rounded-[4px] bg-[#D8E4F2] relative overflow-hidden">
+                                            <div
+                                                className="h-full rounded-[4px] absolute top-0 left-0"
+                                                style={{
+                                                    width: `${type.percent}%`,
+                                                    backgroundColor:
+                                                        type.percent <= 20
+                                                            ? "#F51D1D"
+                                                            : "#0955AC",
+                                                    transition: "width 0.5s",
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {computedCarTypes.length === 0 && (
+                                <div className="text-sm text-gray-500">
+                                    No car type data yet.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Recent Activities from DB */}
+                    <RecentActivities activities={recentActivities} />
+                </div>
             </div>
         </div>
     );
