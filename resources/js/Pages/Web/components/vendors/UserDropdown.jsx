@@ -54,7 +54,6 @@ const UserDropdown = ({ settingsRoute }) => {
                 className="flex flex-row gap-2 sm:gap-3 md:gap-5 items-center px-2 sm:px-3 md:px-4 py-2 rounded-lg transition-all duration-200 group cursor-pointer max-w-full"
                 onClick={() => setIsOpen((p) => !p)}
             >
-<<<<<<< HEAD
                 <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center overflow-hidden">
                     {user?.image ? (
                         <img
@@ -74,14 +73,6 @@ const UserDropdown = ({ settingsRoute }) => {
                     >
                         {user?.name?.charAt(0)?.toUpperCase() || "U"}
                     </div>
-=======
-                <div className="size-[40px] sm:size-[50px] md:size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center shrink-0">
-                    <img
-                        src={proPic}
-                        alt="Profile"
-                        className="w-full h-full object-cover rounded-[10px]"
-                    />
->>>>>>> menalin_dev
                 </div>
 
                 <div className="figtree flex flex-col justify-center items-start min-w-0 flex-1">
