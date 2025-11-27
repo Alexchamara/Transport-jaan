@@ -357,9 +357,9 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
         </div>
 
         {/* Download button (not included in the PDF capture) */}
-        <div className="flex justify-center items-center">
+        <div className="flex justify-center items-center mt-4">
           <div
-            className="w-[231px] h-[41px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[600] text-[12px] poppins flex justify-center items-center cursor-pointer"
+            className="w-auto min-w-[231px] h-auto px-6 py-3 bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[600] text-[12px] poppins flex justify-center items-center cursor-pointer hover:bg-[#074489] transition-colors"
             onClick={downloadQuote}
           >
             Download quotation
@@ -496,14 +496,14 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
 
           <div className="flex flex-col sm:flex-row sm:justify-center sm:items-center gap-3">
             <div
-              className="w-full sm:w-auto xl:w-[261px] xl:h-[29px] px-4 py-2 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-6 sm:mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer"
+              className="w-full sm:w-auto xl:w-[261px] h-auto xl:h-auto px-4 py-2.5 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-6 sm:mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer hover:bg-[#0955AC] hover:text-white transition-colors"
               onClick={getQuote}
             >
               GET A QUOTE
             </div>
 
             <div
-              className="w-full sm:w-auto xl:w-[261px] xl:h-[29px] bg-[#0955AC] px-4 py-2 rounded-[5px] mt-0 sm:mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer"
+              className="w-full sm:w-auto xl:w-[261px] h-auto xl:h-auto bg-[#0955AC] px-4 py-2.5 rounded-[5px] mt-0 sm:mt-10 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer hover:bg-[#074489] transition-colors"
               onClick={continueToCheckout}
             >
               CONTINUE TO CHECKOUT
