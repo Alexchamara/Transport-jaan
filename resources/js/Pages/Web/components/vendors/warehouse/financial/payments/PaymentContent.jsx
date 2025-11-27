@@ -242,10 +242,10 @@ const PaymentContent = () => {
     };
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10 md:pr-3 md:py-6 md:gap-6">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Warehouse Payment</h1>
+            <div className="flex flex-row gap-5 justify-between items-center md:gap-3">
+                <h1 className="figtree text-[35px] font-[700] md:text-[24px]">Warehouse Payment</h1>
                 {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
@@ -273,26 +273,26 @@ const PaymentContent = () => {
             {/* end of header section */}
 
             {/* mini 4 cards */}
-            <div className="flex flex-row gap-5 w-full">
+            <div className="flex flex-row gap-5 w-full md:flex-col md:gap-3">
                 {/* card 1 - Balance */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2 md:min-w-full md:px-3"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-5 justify-center items-center">
-                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                            <img src={wallet} />
+                    <div className="flex flex-row gap-5 justify-center items-center md:gap-3">
+                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center md:size-[40px]">
+                            <img src={wallet} className="md:w-6 md:h-6" />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[16px] font-[500] text-[#7B7B7A] md:text-[14px]">
                                 Balance
                             </h1>
-                            <h1 className="text-[26px] font-[700]">LKR {stats.balance.amount}</h1>
+                            <h1 className="text-[26px] font-[700] md:text-[20px]">LKR {stats.balance.amount}</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500] md:text-[12px]">
                         <div 
                             className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${
                                 stats.balance.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
@@ -311,23 +311,23 @@ const PaymentContent = () => {
 
                 {/* card 2 - Income */}
                 <div
-                    className="min-w=[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="min-w=[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2 md:min-w-full md:px-3"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-5 justify-center items-center">
-                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                            <img src={income} />
+                    <div className="flex flex-row gap-5 justify-center items-center md:gap-3">
+                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center md:size-[40px]">
+                            <img src={income} className="md:w-6 md:h-6" />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[16px] font-[500] text-[#7B7B7A] md:text-[14px]">
                                 Income
                             </h1>
-                            <h1 className="text-[26px] font-[700]">LKR {stats.income.amount}</h1>
+                            <h1 className="text-[26px] font-[700] md:text-[20px]">LKR {stats.income.amount}</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500] md:text-[12px]">
                         <div 
                             className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${
                                 stats.income.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
@@ -344,28 +344,28 @@ const PaymentContent = () => {
                 </div>
                 {/* end of card 2 */}
 
-                <div className="flex flex-row gap-5 w-full">
+                <div className="flex flex-row gap-5 w-full md:hidden">
                     {/* card 3 - Expenses */}
                     <div
-                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2 md:min-w-full md:px-3"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={expenses} />
+                        <div className="flex flex-row gap-5 justify-center items-center md:gap-3">
+                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center md:size-[40px]">
+                                <img src={expenses} className="md:w-6 md:h-6" />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] md:text-[14px]">
                                     Expenses
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">
+                                <h1 className="text-[26px] font-[700] md:text-[20px]">
                                     LKR {stats.expenses.amount}
                                 </h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500] md:text-[12px]">
                             <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
@@ -378,36 +378,69 @@ const PaymentContent = () => {
                     </div>
                     {/* end of card 3 */}
                 </div>
+                {/* Standalone card 3 for tablet view */}
+                <div className="hidden md:block">
+                    <div
+                        className="min-w-full w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-3 py-2"
+                        style={{
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
+                    >
+                        <div className="flex flex-row gap-3 justify-center items-center">
+                            <div className="size-[40px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                <img src={expenses} className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
+                                    Expenses
+                                </h1>
+                                <h1 className="text-[20px] font-[700]">
+                                    LKR {stats.expenses.amount}
+                                </h1>
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+                            <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
+                                <img
+                                    src={upArrow}
+                                    className="size-[19px] rotate-180"
+                                />
+                                <h1>+{stats.expenses.growth}%</h1>
+                            </div>
+                            <h1 className="text-[#7B7B7A]">from last week</h1>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10 md:px-4 md:py-6"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}
             >
                 {/* card header */}
-                <div className="flex flex-row justify-between">
-                    <h1 className="text-[24px] font-[700]">
+                <div className="flex flex-row justify-between md:flex-col md:gap-4">
+                    <h1 className="text-[24px] font-[700] md:text-[18px]">
                         Recent Transactions
                     </h1>
-                    <div className="flex flex-row gap-5">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                            <img src={miniSearchIcon} />
+                    <div className="flex flex-row gap-5 md:flex-wrap md:gap-2">
+                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5 md:w-full md:h-[32px] md:px-3">
+                            <img src={miniSearchIcon} className="md:w-4 md:h-4" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={handleSearchChange}
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] md:text-[12px] md:placeholder:text-[12px]"
                                 placeholder="Search client, warehouse, etc."
                             />
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={filterIcon} className="size-[12px]" />
+                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5 md:flex-1 md:h-[32px] md:px-3">
+                            <img src={filterIcon} className="size-[12px] md:w-3 md:h-3" />
                             <select
                                 value={statusFilter}
                                 onChange={handleStatusChange}
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-[14px]"
+                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-[14px] md:text-[12px]"
                             >
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
@@ -415,23 +448,23 @@ const PaymentContent = () => {
                                 <option value="completed">Completed</option>
                                 <option value="cancelled">Cancelled</option>
                             </select>
-                            <img src={miniDownArrow} />
+                            <img src={miniDownArrow} className="md:w-3 md:h-3" />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img src={calendar} className="size-[17px]" />
+                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5 md:flex-1 md:h-[32px] md:px-3">
+                            <img src={calendar} className="size-[17px] md:w-4 md:h-4" />
                             <input
                                 type="date"
                                 value={dateFilter}
                                 onChange={handleDateChange}
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-[12px]"
+                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-[12px] md:text-[11px]"
                             />
                         </div>
                         <button
                             onClick={downloadTableAsPDF}
                             disabled={loading || transactions.length === 0}
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed md:flex-1 md:h-[32px] md:text-[12px] md:gap-2"
                         >
-                            <img src={downloadLogo} />
+                            <img src={downloadLogo} className="md:w-4 md:h-4" />
                             <h1>Download</h1>
                         </button>
                     </div>
@@ -440,7 +473,7 @@ const PaymentContent = () => {
 
                 {/* expenses table */}
                 {/* table headings */}
-                <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
+                <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10 md:hidden">
                     <div className="flex flex-row gap-3 items-center">
                         <input
                             type="checkbox"
@@ -533,6 +566,8 @@ const PaymentContent = () => {
                     </div>
                 ) : (
                     <>
+                        {/* Desktop table view */}
+                        <div className="md:hidden">
                         {currentTransactions.map((txn, idx) => (
                     <div
                         key={startIdx + idx}
@@ -580,15 +615,86 @@ const PaymentContent = () => {
                         </div>
                     </div>
                 ))}
+                        </div>
+                        {/* Mobile/Tablet card view */}
+                        <div className="hidden md:block mt-4">
+                            {currentTransactions.map((txn, idx) => (
+                                <div
+                                    key={startIdx + idx}
+                                    className="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm"
+                                    style={{
+                                        backgroundColor: selectedRows.has(startIdx + idx)
+                                            ? "#CCCCCC4F"
+                                            : "white",
+                                    }}
+                                >
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                className="size-[16px] rounded-[4px] bg-[#CCCCCC73]"
+                                                checked={selectedRows.has(startIdx + idx)}
+                                                onChange={() => handleRowSelection(idx)}
+                                            />
+                                            <span className="text-[12px] font-[600] text-[#7B7B7A]">Invoice: {txn.id}</span>
+                                        </div>
+                                        <div
+                                            className="px-2 py-1 text-[9px] font-[700] rounded-[4px]"
+                                            style={{
+                                                border: `1px solid ${txn.statusColor}`,
+                                                background: txn.statusBg,
+                                                color: txn.statusColor,
+                                            }}
+                                        >
+                                            {txn.status}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 text-[12px]">
+                                        <div className="flex justify-between">
+                                            <span className="text-[#7B7B7A] font-[500]">Client:</span>
+                                            <span className="font-[600]">{txn.client}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#7B7B7A] font-[500]">Warehouse:</span>
+                                            <span className="font-[600]">{txn.warehouse}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#7B7B7A] font-[500]">Rate/Day:</span>
+                                            <span className="font-[600]">{txn.ratePerDay}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#7B7B7A] font-[500]">Days:</span>
+                                            <span className="font-[600]">{txn.days}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#7B7B7A] font-[500]">Amount:</span>
+                                            <span className="font-[700] text-[14px]">{txn.amount}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-[#7B7B7A] font-[500]">Due Date:</span>
+                                            <span className="font-[600]">{txn.dueDate}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 mt-3">
+                                        <button className="flex-1 h-[28px] border-[1px] border-[#0955AC] rounded-[4px] text-[11px] text-[#0955AC] font-[500]">
+                                            Edit
+                                        </button>
+                                        <button className="flex-1 h-[28px] border-[1px] border-[#FF0000] rounded-[4px] text-[11px] text-[#FF0000] font-[500]">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                 {/* Pagination Controls and Results per page inline */}
-                <div className="flex justify-between items-center gap-2 mt-20">
+                <div className="flex justify-between items-center gap-2 mt-20 md:mt-6 md:flex-col md:gap-4">
                     {/* Left: Results per page */}
-                    <div className="flex items-center">
-                        <span className="mr-3 text-[#00000080] text-[15px]">
+                    <div className="flex items-center md:w-full md:justify-between">
+                        <span className="mr-3 text-[#00000080] text-[15px] md:text-[12px]">
                             Results per page
                         </span>
                         <select
-                            className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+                            className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none md:w-[60px] md:h-[35px] md:text-[14px]"
                             value={itemsPerPage}
                             onChange={(e) =>
                                 setItemsPerPage(Number(e.target.value))
@@ -602,23 +708,23 @@ const PaymentContent = () => {
                         </select>
                     </div>
                     {/* Right: Pagination */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 md:w-full md:justify-center md:flex-wrap">
                         <button
-                            className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                            className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 md:size-[35px] md:text-[14px]"
                             onClick={() => goToPage(currentPage - 1)}
                             disabled={currentPage === 1}
                         >
-                            <span className="text-lg">&#60;</span>
+                            <span className="text-lg md:text-base">&#60;</span>
                         </button>
                         {getPageNumbers().map((num, idx) =>
                             num === "..." ? (
-                                <span key={idx} className="px-2">
+                                <span key={idx} className="px-2 md:px-1 md:text-[14px]">
                                     ...
                                 </span>
                             ) : (
                                 <button
                                     key={num}
-                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] md:size-[35px] md:text-[14px] ${
                                         currentPage === num
                                             ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
@@ -630,11 +736,11 @@ const PaymentContent = () => {
                             )
                         )}
                         <button
-                            className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                            className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 md:size-[35px] md:text-[14px]"
                             onClick={() => goToPage(currentPage + 1)}
                             disabled={currentPage === totalPages}
                         >
-                            <span className="text-lg">&#62;</span>
+                            <span className="text-lg md:text-base">&#62;</span>
                         </button>
                     </div>
                 </div>
