@@ -134,7 +134,9 @@ const Settings = () => {
   /* ---------- editing flags for each section ---------- */
   const [editing, setEditing] = useState({
     profile: false,
+    address: false,
     security: false,
+    payment: false,
   });
 
   const toggleSection = (section) =>
@@ -153,12 +155,24 @@ const Settings = () => {
     name: user?.name || "",
     email: user?.email || "",
     phone: user?.phone || "",
-    address: user?.address || "",
+    address_line1: user?.address_line1 || "",
+    address_line2: user?.address_line2 || "",
+    city: user?.city || "",
+    state: user?.state || "",
+    postal_code: user?.postal_code || "",
     country: user?.country || "",
     date_of_birth: user?.date_of_birth || "",
     current_password: "",
     new_password: "",
     new_password_confirmation: "",
+    cardholder_name: user?.cardholder_name || "",
+    card_last4: user?.card_last4 || "",
+    card_brand: user?.card_brand || "",
+    expiry_month: user?.expiry_month || "",
+    expiry_year: user?.expiry_year || "",
+    notify_email: user?.notify_email ?? true,
+    notify_sms: user?.notify_sms ?? false,
+    notify_push: user?.notify_push ?? true,
     image: null,
   });
 
@@ -224,7 +238,7 @@ const Settings = () => {
       preserveScroll: true,
       forceFormData: true,
       onSuccess: () => {
-        setEditing({ profile: false, security: false });
+        setEditing({ profile: false, address: false, security: false, payment: false });
         clearErrors();
         setClientErrors({});
       }
@@ -238,17 +252,19 @@ const Settings = () => {
 
   /* ------------------------------------------------------------------ */
   return (
-    <div className="bg-[#E5E5E5] poppins w-full">
-        <div className="w-full h-auto pr-5 py-10">
+    <div className="bg-[#E5E5E5] poppins w-full min-h-screen">
+      <div className="w-full h-auto px-5 py-10">
         {/* Header */}
-        <div className="flex flex-row gap-5 justify-between items-center">
-          <h1 className="figtree text-[35px] font-[700]">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-between items-start sm:items-center">
+          <h1 className="figtree text-[28px] sm:text-[35px] font-[700]">
             Vendor Profile Settings
           </h1>
-          <div className="flex flex-row gap-5 relative items-center">
+          <div className="flex flex-row gap-3 sm:gap-5 relative items-center w-full sm:w-auto justify-center xl:justify-end">
             <UserDropdown settingsRoute={route("settingsPage")} />
           </div>
-        </div>        <form onSubmit={submitAll} className="space-y-8 mt-10" noValidate>
+        </div>
+
+        <form onSubmit={submitAll} className="space-y-8 mt-8 sm:mt-10" noValidate>
           {/* ====================== PROFILE ====================== */}
           <EditableSection
             title="Profile"
@@ -313,7 +329,7 @@ const Settings = () => {
                 </div>
               </div>
 
-              {/* Name / Email / Phone */}
+              {/* Name / Email / Phone / DOB */}
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <Field label="Full Name" htmlFor="name" required>
                   {editing.profile ? (
@@ -380,39 +396,43 @@ const Settings = () => {
                   )}
                   <ErrorText>{errors.date_of_birth}</ErrorText>
                 </Field>
+              </div>
+            </div>
+          </EditableSection>
 
-                <div className="sm:col-span-2">
-                  <Field label="Address" htmlFor="address">
-                    {editing.profile ? (
-                      <textarea
-                        id="address"
-                        value={data.address}
-                        onChange={(e) => setData("address", e.target.value)}
-                        rows={3}
-                        className="w-full rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                      />
-                    ) : (
-                      <ReadOnly value={data.address} />
-                    )}
-                    <ErrorText>{errors.address}</ErrorText>
-                  </Field>
-                </div>
-
-                <Field label="Country" htmlFor="country">
-                  {editing.profile ? (
+          {/* ====================== ADDRESS ====================== */}
+          <EditableSection
+            title="Address"
+            description="Your primary address will be used for billing and receipts."
+            isEditing={editing.address}
+            toggleEdit={() => toggleSection("address")}
+            onSave={() => toggleSection("address")}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {[
+                { id: "address_line1", label: "Address line 1", required: true },
+                { id: "address_line2", label: "Address line 2" },
+                { id: "city", label: "City", required: true },
+                { id: "state", label: "State/Province" },
+                { id: "postal_code", label: "Postal code", required: true },
+                { id: "country", label: "Country", required: true },
+              ].map((f) => (
+                <Field key={f.id} label={f.label} htmlFor={f.id} required={f.required}>
+                  {editing.address ? (
                     <input
-                      id="country"
+                      id={f.id}
                       type="text"
-                      value={data.country}
-                      onChange={(e) => setData("country", e.target.value)}
+                      value={data[f.id]}
+                      onChange={(e) => setData(f.id, e.target.value)}
                       className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                      required={f.required}
                     />
                   ) : (
-                    <ReadOnly value={data.country} />
+                    <ReadOnly value={data[f.id]} />
                   )}
-                  <ErrorText>{errors.country}</ErrorText>
+                  <ErrorText>{errors[f.id]}</ErrorText>
                 </Field>
-              </div>
+              ))}
             </div>
           </EditableSection>
 
@@ -430,7 +450,7 @@ const Settings = () => {
               if (Object.keys(pwdErr).length === 0) toggleSection("security");
             }}
           >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {[
                 { id: "current_password", label: "Current password" },
                 { id: "new_password", label: "New password" },
@@ -461,10 +481,138 @@ const Settings = () => {
             </p>
           </EditableSection>
 
+          {/* ====================== PAYMENT ====================== */}
+          <EditableSection
+            title="Payment details"
+            description="Update your saved card details. We recommend using tokenized gateways."
+            isEditing={editing.payment}
+            toggleEdit={() => toggleSection("payment")}
+            onSave={() => toggleSection("payment")}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Field label="Cardholder name" htmlFor="cardholder_name" required>
+                {editing.payment ? (
+                  <input
+                    id="cardholder_name"
+                    type="text"
+                    value={data.cardholder_name}
+                    onChange={(e) => setData("cardholder_name", e.target.value)}
+                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                    required
+                  />
+                ) : (
+                  <ReadOnly value={data.cardholder_name} />
+                )}
+                <ErrorText>{errors.cardholder_name}</ErrorText>
+              </Field>
+
+              <Field label="Card brand" htmlFor="card_brand" help="e.g., Visa / Mastercard">
+                {editing.payment ? (
+                  <input
+                    id="card_brand"
+                    type="text"
+                    value={data.card_brand}
+                    onChange={(e) => setData("card_brand", e.target.value)}
+                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                  />
+                ) : (
+                  <ReadOnly value={data.card_brand} />
+                )}
+                <ErrorText>{errors.card_brand}</ErrorText>
+              </Field>
+
+              <Field label="Last 4 digits" htmlFor="card_last4">
+                {editing.payment ? (
+                  <input
+                    id="card_last4"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={data.card_last4}
+                    onChange={(e) =>
+                      setData("card_last4", e.target.value.replace(/\D/g, "").slice(0, 4))
+                    }
+                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                  />
+                ) : (
+                  <ReadOnly value={data.card_last4} />
+                )}
+                <ErrorText>{errors.card_last4}</ErrorText>
+              </Field>
+
+              <div className="grid grid-cols-2 gap-6">
+                <Field label="Expiry month" htmlFor="expiry_month">
+                  {editing.payment ? (
+                    <input
+                      id="expiry_month"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={2}
+                      value={data.expiry_month}
+                      onChange={(e) =>
+                        setData("expiry_month", e.target.value.replace(/\D/g, "").slice(0, 2))
+                      }
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                    />
+                  ) : (
+                    <ReadOnly value={data.expiry_month} />
+                  )}
+                  <ErrorText>{errors.expiry_month}</ErrorText>
+                </Field>
+
+                <Field label="Expiry year" htmlFor="expiry_year">
+                  {editing.payment ? (
+                    <input
+                      id="expiry_year"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={4}
+                      value={data.expiry_year}
+                      onChange={(e) =>
+                        setData("expiry_year", e.target.value.replace(/\D/g, "").slice(0, 4))
+                      }
+                      className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
+                    />
+                  ) : (
+                    <ReadOnly value={data.expiry_year} />
+                  )}
+                  <ErrorText>{errors.expiry_year}</ErrorText>
+                </Field>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Tip: Integrate Stripe/PayHere and collect a payment method token on the frontend.
+            </p>
+          </EditableSection>
+
+          {/* ====================== NOTIFICATIONS ====================== */}
+          <Section title="Notifications" description="Choose how you want to be notified.">
+            <div className="divide-y divide-gray-200">
+              <Toggle
+                label="Email notifications"
+                description="Get updates and receipts in your inbox."
+                checked={data.notify_email}
+                onChange={(v) => setData("notify_email", v)}
+              />
+              <Toggle
+                label="SMS notifications"
+                description="Receive updates via text messages."
+                checked={data.notify_sms}
+                onChange={(v) => setData("notify_sms", v)}
+              />
+              <Toggle
+                label="Push notifications"
+                description="Allow push notifications on this device."
+                checked={data.notify_push}
+                onChange={(v) => setData("notify_push", v)}
+              />
+            </div>
+          </Section>
+
 
 
           {/* ====================== GLOBAL ACTIONS ====================== */}
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-3 w-full">
             <button
               type="button"
               onClick={() => {
@@ -474,17 +622,19 @@ const Settings = () => {
                 setClientErrors({});
                 setEditing({
                   profile: false,
+                  address: false,
                   security: false,
+                  payment: false,
                 });
               }}
-              className="px-4 py-2 rounded-[10px] text-[14px] font-[700] text-[#0955AC] border border-[#0955AC] disabled:opacity-60"
+              className="px-4 py-2 rounded-[10px] text-[14px] font-[700] text-[#0955AC] border border-[#0955AC] disabled:opacity-60 w-full sm:w-auto"
               disabled={processing}
             >
               Reset
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-[10px] text-[14px] font-[700] bg-[#0955AC] text-[#FFFFFF] disabled:opacity-60"
+              className="px-4 py-2 rounded-[10px] text-[14px] font-[700] bg-[#0955AC] text-[#FFFFFF] disabled:opacity-60 w-full sm:w-auto"
               disabled={processing}
             >
               {processing ? "Saving…" : "Save changes"}
