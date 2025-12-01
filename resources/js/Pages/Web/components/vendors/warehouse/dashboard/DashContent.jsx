@@ -204,11 +204,10 @@ const DashContent = () => {
                         activeBookings:
                             stats.pending_bookings + stats.upcoming_bookings,
                         occupiedUnits: `${stats.upcoming_bookings} Units`,
-                        totalUnits: `${
-                            stats.upcoming_bookings +
+                        totalUnits: `${stats.upcoming_bookings +
                             stats.completed_bookings +
                             20
-                        } Units`,
+                            } Units`,
                         revenueChange: calculateChange(
                             dashboardStats.activeBookings,
                             stats.pending_bookings + stats.upcoming_bookings
@@ -221,7 +220,7 @@ const DashContent = () => {
                     if (
                         silent &&
                         JSON.stringify(newStats) !==
-                            JSON.stringify(dashboardStats)
+                        JSON.stringify(dashboardStats)
                     ) {
                         showNotification("Dashboard stats updated", "success");
                     }
@@ -607,12 +606,12 @@ const DashContent = () => {
     // Fetch notifications
     const fetchNotifications = useCallback(async () => {
         if (!auth?.user) return;
-        
+
         try {
             console.log('DashContent: Fetching warehouse notifications...');
             const response = await fetch('/vendors/warehouse/notifications/data');
             console.log('DashContent: Response status:', response.status);
-            
+
             if (response.ok) {
                 const data = await response.json();
                 console.log('DashContent: Notifications data:', data);
@@ -632,9 +631,8 @@ const DashContent = () => {
             {
                 id: 1,
                 type: "booking",
-                title: `${
-                    user?.name || "Vendor"
-                } confirmed new warehouse booking`,
+                title: `${user?.name || "Vendor"
+                    } confirmed new warehouse booking`,
                 time: "10:45 AM",
                 date: "Today",
                 icon: "calendar",
@@ -1018,23 +1016,21 @@ const DashContent = () => {
                     {notifications.map((notification) => (
                         <div
                             key={notification.id}
-                            className={`p-3 rounded-lg shadow-lg border-l-4 bg-white transform transition-all duration-300 ${
-                                notification.type === "success"
+                            className={`p-3 rounded-lg shadow-lg border-l-4 bg-white transform transition-all duration-300 ${notification.type === "success"
                                     ? "border-green-500"
                                     : notification.type === "error"
-                                    ? "border-red-500"
-                                    : "border-blue-500"
-                            } animate-slide-in`}
+                                        ? "border-red-500"
+                                        : "border-blue-500"
+                                } animate-slide-in`}
                         >
                             <div className="flex items-center gap-2">
                                 <div
-                                    className={`w-2 h-2 rounded-full ${
-                                        notification.type === "success"
+                                    className={`w-2 h-2 rounded-full ${notification.type === "success"
                                             ? "bg-green-500"
                                             : notification.type === "error"
-                                            ? "bg-red-500"
-                                            : "bg-blue-500"
-                                    }`}
+                                                ? "bg-red-500"
+                                                : "bg-blue-500"
+                                        }`}
                                 ></div>
                                 <span className="text-sm font-medium text-gray-800">
                                     {notification.message}
@@ -1082,8 +1078,8 @@ const DashContent = () => {
                         </h1>
                     </div>
                 </div> */}
-                <div className="flex flex-row gap-5 relative items-center">
-                    <NotificationDropdown 
+                <div className="flex flex-col xl:flex-row gap-5 relative items-center">
+                    <NotificationDropdown
                         notifications={warehouseNotifications}
                         unreadCount={notificationUnreadCount}
                     />
@@ -1100,10 +1096,10 @@ const DashContent = () => {
                     <div className="flex flex-col gap-5 w-full">
                         {/* mini 4 cards */}
                         <div className="flex flex-col gap-5">
-                            <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
+                            <div className="flex xl:flex-row flex-col gap-5 w-full">
                                 {/* card 1 */}
                                 <div
-                                    className="min-w-[360px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1113,31 +1109,27 @@ const DashContent = () => {
                                             <DollarSign size={24} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
                                                 Total Revenue
                                             </h1>
-                                            <h1 className="text-[26px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 {dashboardStats.totalRevenue}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <ArrowUp size={19} />
-                                            <h1>
-                                                {dashboardStats.revenueChange}
-                                            </h1>
+                                            <h1>{dashboardStats.revenueChange}</h1>
                                         </div>
-                                        <h1 className="text-[#7B7B7A]">
-                                            from last week
-                                        </h1>
+                                        <h1 className="text-[#7B7B7A]">from last week</h1>
                                     </div>
                                 </div>
                                 {/* end of card 1 */}
 
                                 {/* card 2 */}
                                 <div
-                                    className="min-w-[360px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1147,32 +1139,29 @@ const DashContent = () => {
                                             <CalendarDays size={24} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
                                                 Active Bookings
                                             </h1>
-                                            <h1 className="text-[26px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 {dashboardStats.activeBookings}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <ArrowUp size={19} />
-                                            <h1>
-                                                {dashboardStats.bookingsChange}
-                                            </h1>
+                                            <h1>{dashboardStats.bookingsChange}</h1>
                                         </div>
-                                        <h1 className="text-[#7B7B7A]">
-                                            from last week
-                                        </h1>
+                                        <h1 className="text-[#7B7B7A]">from last week</h1>
                                     </div>
                                 </div>
                                 {/* end of card 2 */}
                             </div>
+
                             <div className="flex xl:flex-row flex-col gap-5 w-full">
                                 {/* card 3 */}
                                 <div
-                                    className="min-w-[360px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1182,30 +1171,27 @@ const DashContent = () => {
                                             <Package size={24} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
                                                 Occupied Units
                                             </h1>
-                                            <h1 className="text-[26px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 {dashboardStats.occupiedUnits}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <ArrowUp size={19} />
-                                            <h1>
-                                                {dashboardStats.occupiedChange}
-                                            </h1>
+                                            <h1>{dashboardStats.occupiedChange}</h1>
                                         </div>
-                                        <h1 className="text-[#7B7B7A]">
-                                            from last week
-                                        </h1>
+                                        <h1 className="text-[#7B7B7A]">from last week</h1>
                                     </div>
                                 </div>
                                 {/* end of card 3 */}
+
                                 {/* card 4 */}
                                 <div
-                                    className="min-w-[360px] min-h-[91px] w-full bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1215,29 +1201,26 @@ const DashContent = () => {
                                             <Boxes size={24} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
                                                 Total Units
                                             </h1>
-                                            <h1 className="text-[26px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 {dashboardStats.totalUnits}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <ArrowUp size={19} />
-                                            <h1>
-                                                {dashboardStats.unitsChange}
-                                            </h1>
+                                            <h1>{dashboardStats.unitsChange}</h1>
                                         </div>
-                                        <h1 className="text-[#7B7B7A]">
-                                            from last week
-                                        </h1>
+                                        <h1 className="text-[#7B7B7A]">from last week</h1>
                                     </div>
                                 </div>
                                 {/* end of card 4 */}
                             </div>
                         </div>
+
                         {/* end of 4 mini cards */}
 
                         {/* booking chart */}
@@ -1276,10 +1259,10 @@ const DashContent = () => {
                                             This Year
                                         </option>
                                     </select>
-                                    <ChevronDown
+                                    {/* <ChevronDown
                                         size={16}
                                         className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[#00000080]"
-                                    />
+                                    /> */}
                                     {isSearching && (
                                         <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
                                             <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1289,7 +1272,7 @@ const DashContent = () => {
                             </div>
                             {/* Booking Overview Bar Chart */}
                             {isSearching &&
-                            chartData.bookingOverview.length === 0 ? (
+                                chartData.bookingOverview.length === 0 ? (
                                 <div className="w-[600px] h-[217px] flex items-center justify-center text-gray-500">
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1336,10 +1319,6 @@ const DashContent = () => {
                                             This Year
                                         </option>
                                     </select>
-                                    <ChevronDown
-                                        size={16}
-                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[#00000080]"
-                                    />
                                     {isSearching && (
                                         <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
                                             <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1353,191 +1332,7 @@ const DashContent = () => {
                         </div>
                     </div>
                     {/* mini right section */}
-                    <div className="flex flex-col items-center gap-5 w-full">
-                        <div
-                            className="min-w-[349px] w-full min-h-[206px] bg-[#D8E4F2] flex flex-col px-10 py-5 justify-center items-center rounded-[10px]"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <h1 className="text-[24px] font-[700] mb-3">
-                                Unit Availability
-                            </h1>
 
-                            <div className="flex flex-col gap-3">
-                                <div className="relative">
-                                    <select
-                                        value={availabilityForm.unitType}
-                                        onChange={(e) =>
-                                            setAvailabilityForm((prev) => ({
-                                                ...prev,
-                                                unitType: e.target.value,
-                                            }))
-                                        }
-                                        className="w-[283px] h-[35px] flex flex-row justify-center items-center gap-2 rounded-[6px] px-3 py-2 bg-[#FFFFFF] text-[14px] border-none outline-none cursor-pointer appearance-none pr-8"
-                                    >
-                                        <option value="">
-                                            Select Unit Type
-                                        </option>
-                                        <option value="cold_storage">
-                                            Cold Storage
-                                        </option>
-                                        <option value="dry">Dry Storage</option>
-                                        <option value="bonded">
-                                            Bonded Warehouse
-                                        </option>
-                                        <option value="open_yard">
-                                            Open Yard
-                                        </option>
-                                        <option value="climate_controlled">
-                                            Climate Controlled
-                                        </option>
-                                    </select>
-                                    <Building2
-                                        size={20}
-                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
-                                    />
-                                    <ChevronDown
-                                        size={16}
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
-                                    />
-                                </div>
-
-                                <div className="flex flex-row gap-3">
-                                    <div className="w-[137px] h-[35px] bg-[#FFFFFF] rounded-[6px] flex flex-row justify-center items-center gap-2 py-2 px-3 relative">
-                                        <CalendarDays
-                                            size={20}
-                                            className="text-gray-400"
-                                        />
-                                        <input
-                                            type="date"
-                                            value={availabilityForm.date}
-                                            onChange={(e) =>
-                                                setAvailabilityForm((prev) => ({
-                                                    ...prev,
-                                                    date: e.target.value,
-                                                }))
-                                            }
-                                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none text-[14px]"
-                                            min={
-                                                new Date()
-                                                    .toISOString()
-                                                    .split("T")[0]
-                                            }
-                                        />
-                                    </div>
-                                    <div className="w-[137px] h-[35px] bg-[#FFFFFF] rounded-[6px] flex flex-row justify-center gap-2 items-center py-2 px-3 relative">
-                                        <Clock
-                                            size={16}
-                                            className="text-gray-400"
-                                        />
-                                        <input
-                                            type="time"
-                                            value={availabilityForm.time}
-                                            onChange={(e) =>
-                                                setAvailabilityForm((prev) => ({
-                                                    ...prev,
-                                                    time: e.target.value,
-                                                }))
-                                            }
-                                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none text-[14px]"
-                                        />
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={handleAvailabilityCheck}
-                                    className="w-[283px] h-[40px] bg-[#0955AC] rounded-[6px] flex justify-center items-center text-[16px] font-[700] text-[#FFFFFF] cursor-pointer hover:bg-[#083d7a] transition-colors disabled:opacity-50"
-                                    disabled={!availabilityForm.date}
-                                >
-                                    Check Availability
-                                </button>
-                            </div>
-                        </div>
-                        <div
-                            className="min-w-[349px] w-full min-h-[427px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-row items-center justify-between w-full">
-                                <h1 className="text-[24px] font-[700]">
-                                    Warehouse Status
-                                </h1>
-                                <div className="relative">
-                                    <select
-                                        value={statusFilter}
-                                        onChange={(e) =>
-                                            handleStatusFilterChange(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] text-[#00000080] font-[600] text-[14px] border-none outline-none cursor-pointer appearance-none px-3 pr-8"
-                                        disabled={isSearching}
-                                    >
-                                        <option value="This Week">
-                                            This Week
-                                        </option>
-                                        <option value="This Month">
-                                            This Month
-                                        </option>
-                                        <option value="Last 30 Days">
-                                            Last 30 Days
-                                        </option>
-                                        <option value="All Time">
-                                            All Time
-                                        </option>
-                                    </select>
-                                    <ChevronDown
-                                        size={16}
-                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[#00000080]"
-                                    />
-                                </div>
-                            </div>
-                            <RealStatusPieChart
-                                data={chartData.warehouseStatus}
-                            />
-                        </div>
-
-                        {/* Reminder section  */}
-                        <div
-                            className="min-w-[349px] w-full min-h-[335px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-row items-center justify-between w-full">
-                                <h1 className="text-[24px] font-[700]">
-                                    Reminders
-                                </h1>
-                                <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[30px]">
-                                    +
-                                </div>
-                            </div>
-                            <div className="py-10 flex flex-col justify-center items-center gap-2">
-                                <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                                    <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                        !
-                                    </div>
-                                    <h1 className="text-[14px] font-[500] w-[199px]">
-                                        Complete vendor onboarding checklist for
-                                        new suppliers.
-                                    </h1>
-                                </div>
-                                <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                                    <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                        !
-                                    </div>
-                                    <h1 className="text-[14px] font-[500] w-[199px]">
-                                        Renew expiring storage contracts for
-                                        September.
-                                    </h1>
-                                </div>
-                                <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                                    <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                        !
-                                    </div>
-                                    <h1 className="text-[14px] font-[500] w-[199px]">
-                                        Reconcile August warehouse invoices.
-                                    </h1>
-                                </div>
-                            </div>
-                        </div>
-                        {/* end */}
-                    </div>
                 </div>
 
                 {/* vendors section */}
@@ -1546,7 +1341,7 @@ const DashContent = () => {
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <div className="flex flex-row justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                         <div className="flex flex-col">
                             <h1 className="text-[24px] font-[700]">
                                 Warehouse Clients
@@ -1560,11 +1355,10 @@ const DashContent = () => {
                                             activeFilter !== "all" &&
                                             " • "}
                                         {activeFilter !== "all" &&
-                                            `Filter: ${
-                                                activeFilter
-                                                    .charAt(0)
-                                                    .toUpperCase() +
-                                                activeFilter.slice(1)
+                                            `Filter: ${activeFilter
+                                                .charAt(0)
+                                                .toUpperCase() +
+                                            activeFilter.slice(1)
                                             }`}
                                     </span>
                                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
@@ -1582,22 +1376,20 @@ const DashContent = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="flex flex-row gap-5">
-                            <div className="relative">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-auto">
                                 <div
-                                    className={`w-[280px] h-[35px] rounded-[6px] flex flex-row items-center py-2 px-5 transition-all duration-200 ${
-                                        searchQuery
+                                    className={`w-full sm:w-[280px] h-[35px] rounded-[6px] flex flex-row items-center py-2 px-5 transition-all duration-200 ${searchQuery
                                             ? "bg-blue-50 border border-blue-200"
                                             : "bg-[#F3F3F3]"
-                                    }`}
+                                        }`}
                                 >
                                     <Search
                                         size={16}
-                                        className={`transition-colors ${
-                                            searchQuery
+                                        className={`transition-colors ${searchQuery
                                                 ? "text-blue-500"
                                                 : "text-gray-400"
-                                        }`}
+                                            }`}
                                     />
                                     <input
                                         id="globalSearch"
@@ -1631,7 +1423,7 @@ const DashContent = () => {
                                     )}
                                 </div>
                                 {searchQuery && (
-                                    <div className="absolute top-10 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-2">
+                                    <div className="static sm:absolute sm:top-10 sm:left-0 sm:right-0 bg-white border border-gray-200 rounded-lg shadow-lg sm:z-10 p-2">
                                         <div className="text-xs text-gray-600">
                                             {isSearching ? (
                                                 <div className="flex items-center gap-2">
@@ -1648,13 +1440,13 @@ const DashContent = () => {
                                     </div>
                                 )}
                             </div>
-                            <div className="relative">
+                            <div className="relative w-full sm:w-auto">
                                 <select
                                     value={activeFilter}
                                     onChange={(e) =>
                                         setActiveFilter(e.target.value)
                                     }
-                                    className="w-[140px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#7B7B7ACC] border-none outline-none cursor-pointer appearance-none px-3 pr-8"
+                                    className="w-full sm:w-[140px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#7B7B7ACC] border-none outline-none cursor-pointer appearance-none px-3 pr-8 mt-2 sm:mt-0"
                                 >
                                     <option value="all">All Bookings</option>
                                     <option value="active">Active</option>
@@ -1662,14 +1454,14 @@ const DashContent = () => {
                                     <option value="completed">Completed</option>
                                     <option value="cancelled">Cancelled</option>
                                 </select>
-                                <Filter
+                                {/* <Filter
                                     size={12}
                                     className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
                                 />
                                 <ChevronDown
                                     size={16}
                                     className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none"
-                                />
+                                /> */}
                             </div>
                         </div>
                     </div>
@@ -1716,9 +1508,9 @@ const DashContent = () => {
                                                             type.percent <= 20
                                                                 ? "#F51D1D"
                                                                 : type.percent <=
-                                                                  50
-                                                                ? "#FFCD29"
-                                                                : "#0955AC",
+                                                                    50
+                                                                    ? "#FFCD29"
+                                                                    : "#0955AC",
                                                     }}
                                                 ></div>
                                             </div>
@@ -1755,18 +1547,18 @@ const DashContent = () => {
                                             <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center shadow-sm border">
                                                 {activity.icon ===
                                                     "calendar" && (
-                                                    <CalendarDays
-                                                        size={24}
-                                                        className="text-blue-600"
-                                                    />
-                                                )}
+                                                        <CalendarDays
+                                                            size={24}
+                                                            className="text-blue-600"
+                                                        />
+                                                    )}
                                                 {activity.icon ===
                                                     "package" && (
-                                                    <Package
-                                                        size={24}
-                                                        className="text-green-600"
-                                                    />
-                                                )}
+                                                        <Package
+                                                            size={24}
+                                                            className="text-green-600"
+                                                        />
+                                                    )}
                                                 {activity.icon === "users" && (
                                                     <Users
                                                         size={24}
@@ -1784,9 +1576,9 @@ const DashContent = () => {
                                                 recentActivities.filter(
                                                     (a) => a.date === "Today"
                                                 ).length -
-                                                    1 && (
-                                                <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                            )}
+                                                1 && (
+                                                    <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
+                                                )}
                                         </React.Fragment>
                                     ))}
                             </div>
@@ -1818,18 +1610,18 @@ const DashContent = () => {
                                             <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center shadow-sm border">
                                                 {activity.icon ===
                                                     "calendar" && (
-                                                    <CalendarDays
-                                                        size={24}
-                                                        className="text-blue-600"
-                                                    />
-                                                )}
+                                                        <CalendarDays
+                                                            size={24}
+                                                            className="text-blue-600"
+                                                        />
+                                                    )}
                                                 {activity.icon ===
                                                     "package" && (
-                                                    <Package
-                                                        size={24}
-                                                        className="text-green-600"
-                                                    />
-                                                )}
+                                                        <Package
+                                                            size={24}
+                                                            className="text-green-600"
+                                                        />
+                                                    )}
                                                 {activity.icon === "users" && (
                                                     <Users
                                                         size={24}
@@ -1848,9 +1640,9 @@ const DashContent = () => {
                                                     (a) =>
                                                         a.date === "Yesterday"
                                                 ).length -
-                                                    1 && (
-                                                <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                            )}
+                                                1 && (
+                                                    <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
+                                                )}
                                         </React.Fragment>
                                     ))}
                             </div>

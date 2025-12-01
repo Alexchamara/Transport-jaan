@@ -191,25 +191,94 @@ const CalendarContent = () => {
     const today = new Date();
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
+    const [currentDay, setCurrentDay] = useState(today.getDate());
+    const [currentView, setCurrentView] = useState('day'); // 'day', 'week', 'month', 'year'
 
-    const handlePrevMonth = () => {
-        setCurrentMonth((prev) => {
-            if (prev === 0) {
+    const handlePrev = () => {
+        switch (currentView) {
+            case 'day':
+                const prevDay = new Date(currentYear, currentMonth, currentDay - 1);
+                setCurrentDay(prevDay.getDate());
+                setCurrentMonth(prevDay.getMonth());
+                setCurrentYear(prevDay.getFullYear());
+                break;
+            case 'week':
+                const prevWeek = new Date(currentYear, currentMonth, currentDay - 7);
+                setCurrentDay(prevWeek.getDate());
+                setCurrentMonth(prevWeek.getMonth());
+                setCurrentYear(prevWeek.getFullYear());
+                break;
+            case 'month':
+                setCurrentMonth((prev) => {
+                    if (prev === 0) {
+                        setCurrentYear((y) => y - 1);
+                        return 11;
+                    }
+                    return prev - 1;
+                });
+                break;
+            case 'year':
                 setCurrentYear((y) => y - 1);
-                return 11;
-            }
-            return prev - 1;
-        });
+                break;
+        }
     };
 
-    const handleNextMonth = () => {
-        setCurrentMonth((prev) => {
-            if (prev === 11) {
+    const handleNext = () => {
+        switch (currentView) {
+            case 'day':
+                const nextDay = new Date(currentYear, currentMonth, currentDay + 1);
+                setCurrentDay(nextDay.getDate());
+                setCurrentMonth(nextDay.getMonth());
+                setCurrentYear(nextDay.getFullYear());
+                break;
+            case 'week':
+                const nextWeek = new Date(currentYear, currentMonth, currentDay + 7);
+                setCurrentDay(nextWeek.getDate());
+                setCurrentMonth(nextWeek.getMonth());
+                setCurrentYear(nextWeek.getFullYear());
+                break;
+            case 'month':
+                setCurrentMonth((prev) => {
+                    if (prev === 11) {
+                        setCurrentYear((y) => y + 1);
+                        return 0;
+                    }
+                    return prev + 1;
+                });
+                break;
+            case 'year':
                 setCurrentYear((y) => y + 1);
-                return 0;
-            }
-            return prev + 1;
-        });
+                break;
+        }
+    };
+
+    const handleToday = () => {
+        const today = new Date();
+        setCurrentDay(today.getDate());
+        setCurrentMonth(today.getMonth());
+        setCurrentYear(today.getFullYear());
+    };
+
+    const getHeaderTitle = () => {
+        switch (currentView) {
+            case 'day':
+                const dayDate = new Date(currentYear, currentMonth, currentDay);
+                return `${monthNames[currentMonth]} ${currentDay}`;
+            case 'week':
+                const weekDate = new Date(currentYear, currentMonth, currentDay);
+                const dayOfWeek = weekDate.getDay();
+                const monday = new Date(weekDate);
+                monday.setDate(weekDate.getDate() - ((dayOfWeek + 6) % 7));
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                return `${monthNames[monday.getMonth()]} ${monday.getDate()} - ${sunday.getDate()}`;
+            case 'month':
+                return `${monthNames[currentMonth]} ${currentYear}`;
+            case 'year':
+                return `${currentYear}`;
+            default:
+                return `${monthNames[currentMonth]} ${currentYear}`;
+        }
     };
 
     return (
@@ -293,13 +362,13 @@ const CalendarContent = () => {
                     </div>
                 </div>
                 <div
-                    className="min-w-0 lg:min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
-                    style={{
-                        boxShadow: "4px 4px 4px #0000001A",
-                    }}
+                    // className="min-w-0 lg:min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
+                    // style={{
+                    //     boxShadow: "4px 4px 4px #0000001A",
+                    // }}
                 >
                     {/* Reminder section  */}
-                    <div className="flex flex-row items-center justify-between w-full">
+                    {/* <div className="flex flex-row items-center justify-between w-full">
                         <h1 className="text-[24px] font-[700]">Reminders</h1>
                         <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[30px]">
                             +
@@ -342,17 +411,17 @@ const CalendarContent = () => {
                                 sessions.
                             </h1>
                         </div>
-                    </div>
+                    </div> */}
                     {/* end */}
                 </div>
-                <div
+                {/* <div
                     className="min-w-0 lg:min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
                     <CalendarMonthPicker />
-                </div>
+                </div> */}
             </div>
 
             <div
@@ -362,20 +431,23 @@ const CalendarContent = () => {
                 }}
             >
                 <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">
-                    <div className="flex flex-row justify-center items-center gap-6">
-                        <div className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center">
+                    <div className="flex flex-row justify-center items-center gap-3">
+                        <div 
+                            className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                            onClick={handleToday}
+                        >
                             Today
                         </div>
                         <div className="flex flex-row justify-center items-center gap-2">
                             <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer"
-                                onClick={handlePrevMonth}
+                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                onClick={handlePrev}
                             >
                                 <img src={leftArrow} alt="Previous" />
                             </div>
                             <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer"
-                                onClick={handleNextMonth}
+                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                onClick={handleNext}
                             >
                                 <img
                                     src={leftArrow}
@@ -385,7 +457,7 @@ const CalendarContent = () => {
                             </div>
                         </div>
                         <h1 className="text-[18px] font-[700]">
-                            {monthNames[currentMonth]} {currentYear}
+                            {getHeaderTitle()}
                         </h1>
                     </div>
                     <div className="flex flex-col md:flex-row justify-center items-center gap-5 mt-5 xl:mt-0">
@@ -400,9 +472,39 @@ const CalendarContent = () => {
                                 Return
                             </div>
                         </div>
-                        <div className="w-[96px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center gap-3">
-                            <h1>Week</h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
+                        <div className="flex flex-row justify-center items-center text-[14px] font-[600]">
+                            <div 
+                                className={`w-[70px] h-[35px] rounded-l-[6px] flex justify-center items-center cursor-pointer transition-colors ${
+                                    currentView === 'day' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                }`}
+                                onClick={() => setCurrentView('day')}
+                            >
+                                Day
+                            </div>
+                            <div 
+                                className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${
+                                    currentView === 'week' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                }`}
+                                onClick={() => setCurrentView('week')}
+                            >
+                                Week
+                            </div>
+                            <div 
+                                className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${
+                                    currentView === 'month' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                }`}
+                                onClick={() => setCurrentView('month')}
+                            >
+                                Month
+                            </div>
+                            <div 
+                                className={`w-[70px] h-[35px] rounded-r-[6px] flex justify-center items-center cursor-pointer transition-colors ${
+                                    currentView === 'year' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                }`}
+                                onClick={() => setCurrentView('year')}
+                            >
+                                Year
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -423,7 +525,7 @@ const CalendarContent = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <div className="grid grid-cols-8 border-t border-l border-[#00000026] min-w-[800px]">
+                    <div className={`${currentView === 'year' || currentView === 'month' ? '' : currentView === 'day' ? '' : 'grid grid-cols-8 border-t border-l border-[#00000026] min-w-[800px]'}`}>
                         <CalendarGrid
                             days={days}
                             times={times}
@@ -431,6 +533,8 @@ const CalendarContent = () => {
                             proPicTwo={proPicTwo}
                             currentMonth={currentMonth}
                             currentYear={currentYear}
+                            currentDay={currentDay}
+                            currentView={currentView}
                         />
                     </div>
                 </div>
