@@ -192,7 +192,7 @@ const CalendarContent = () => {
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
     const [currentDay, setCurrentDay] = useState(today.getDate());
-    const [currentView, setCurrentView] = useState('week'); // 'day', 'week', 'month', 'year'
+    const [currentView, setCurrentView] = useState('day'); // 'day', 'week', 'month', 'year'
 
     const handlePrev = () => {
         switch (currentView) {
@@ -263,7 +263,7 @@ const CalendarContent = () => {
         switch (currentView) {
             case 'day':
                 const dayDate = new Date(currentYear, currentMonth, currentDay);
-                return `${monthNames[currentMonth]} ${currentDay}, ${currentYear}`;
+                return `${monthNames[currentMonth]} ${currentDay}`;
             case 'week':
                 const weekDate = new Date(currentYear, currentMonth, currentDay);
                 const dayOfWeek = weekDate.getDay();
@@ -271,7 +271,7 @@ const CalendarContent = () => {
                 monday.setDate(weekDate.getDate() - ((dayOfWeek + 6) % 7));
                 const sunday = new Date(monday);
                 sunday.setDate(monday.getDate() + 6);
-                return `${monthNames[monday.getMonth()]} ${monday.getDate()} - ${monthNames[sunday.getMonth()]} ${sunday.getDate()}, ${currentYear}`;
+                return `${monthNames[monday.getMonth()]} ${monday.getDate()} - ${sunday.getDate()}`;
             case 'month':
                 return `${monthNames[currentMonth]} ${currentYear}`;
             case 'year':
@@ -362,13 +362,13 @@ const CalendarContent = () => {
                     </div>
                 </div>
                 <div
-                    className="min-w-0 lg:min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
-                    style={{
-                        boxShadow: "4px 4px 4px #0000001A",
-                    }}
+                    // className="min-w-0 lg:min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
+                    // style={{
+                    //     boxShadow: "4px 4px 4px #0000001A",
+                    // }}
                 >
                     {/* Reminder section  */}
-                    <div className="flex flex-row items-center justify-between w-full">
+                    {/* <div className="flex flex-row items-center justify-between w-full">
                         <h1 className="text-[24px] font-[700]">Reminders</h1>
                         <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[30px]">
                             +
@@ -411,17 +411,17 @@ const CalendarContent = () => {
                                 sessions.
                             </h1>
                         </div>
-                    </div>
+                    </div> */}
                     {/* end */}
                 </div>
-                <div
+                {/* <div
                     className="min-w-0 lg:min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
                     <CalendarMonthPicker />
-                </div>
+                </div> */}
             </div>
 
             <div
@@ -431,7 +431,7 @@ const CalendarContent = () => {
                 }}
             >
                 <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">
-                    <div className="flex flex-row justify-center items-center gap-6">
+                    <div className="flex flex-row justify-center items-center gap-3">
                         <div 
                             className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
                             onClick={handleToday}
@@ -525,7 +525,7 @@ const CalendarContent = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <div className={`${currentView === 'year' || currentView === 'month' ? '' : 'grid grid-cols-8 border-t border-l border-[#00000026] min-w-[800px]'}`}>
+                    <div className={`${currentView === 'year' || currentView === 'month' ? '' : currentView === 'day' ? '' : 'grid grid-cols-8 border-t border-l border-[#00000026] min-w-[800px]'}`}>
                         <CalendarGrid
                             days={days}
                             times={times}

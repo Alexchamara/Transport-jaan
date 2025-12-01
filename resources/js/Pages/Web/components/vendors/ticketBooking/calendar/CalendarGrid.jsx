@@ -250,7 +250,7 @@ const CalendarGrid = ({
         </div>
 
         {/* MOBILE DAY VIEW */}
-        <div className="md:hidden w-full px-5">
+        <div className="md:hidden w-full px-3">
           <div className="mb-4 rounded-[12px] border border-[#00000026] bg-white p-3">
             <div className="flex items-baseline justify-between mb-2">
               <div className="flex items-baseline gap-2">
@@ -297,7 +297,7 @@ const CalendarGrid = ({
                         ))}
                       </div>
                     ) : (
-                      <div className="w-full rounded-[8px] border border-dashed border-[#00000026] px-2 py-2 text-[11px] text-[#999999]">
+                      <div className="w-full rounded-[8px] border border-dashed border-[#00000026] px-2 py-2 text-[11px] text-center text-[#999999]">
                         No events
                       </div>
                     )}
@@ -316,67 +316,132 @@ const CalendarGrid = ({
     const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     
     return (
-      <div className="w-full px-5 md:px-10 py-5">
-        <div className="bg-white rounded-[12px] border border-[#00000026] overflow-hidden shadow-sm">
-          {/* Month grid header */}
-          <div className="grid grid-cols-7">
-            {daysOfWeek.map((day) => (
-              <div key={day} className="text-center py-4 text-[16px] font-[700] text-[#000000B2] bg-[#F8F9FA] border-r border-b border-[#00000026] last:border-r-0">
-                {day}
+      <>
+        {/* DESKTOP/TABLET MONTH VIEW */}
+        <div className="hidden md:block w-full px-5 md:px-10 py-5">
+          <div className="bg-white rounded-[12px] border border-[#00000026] overflow-hidden shadow-sm">
+            {/* Month grid header */}
+            <div className="grid grid-cols-7">
+              {daysOfWeek.map((day) => (
+                <div key={day} className="text-center py-4 text-[16px] font-[700] text-[#000000B2] bg-[#F8F9FA] border-r border-b border-[#00000026] last:border-r-0">
+                  {day}
+                </div>
+              ))}
+            </div>
+            
+            {/* Month grid body */}
+            {monthGrid.map((week, weekIdx) => (
+              <div key={weekIdx} className="grid grid-cols-7">
+                {week.map((day, dayIdx) => {
+                  const dayEvents = getEventsForDate(day.year, day.month, day.date);
+                  return (
+                    <div
+                      key={dayIdx}
+                      className={`min-h-[120px] md:min-h-[140px] p-2 border-r border-b border-[#00000026] last:border-r-0 transition-colors hover:bg-[#F8F9FA] cursor-pointer overflow-hidden ${
+                        !day.isCurrentMonth ? 'bg-[#FAFAFA] text-[#00000040]' : 'bg-white'
+                      } ${
+                        day.date === currentDay && day.month === currentMonth && day.isCurrentMonth
+                          ? 'bg-[#E3F2FD] ring-2 ring-inset ring-[#0955AC]'
+                          : ''
+                      }`}
+                    >
+                      <div className={`text-[14px] font-[600] mb-1 ${
+                        day.date === currentDay && day.month === currentMonth && day.isCurrentMonth
+                          ? 'text-[#0955AC]'
+                          : ''
+                      }`}>
+                        {day.date}
+                      </div>
+                      <div className="space-y-1">
+                        {dayEvents.slice(0, 3).map((event, idx) => (
+                          <div
+                            key={idx}
+                            className={`w-full rounded-[4px] px-2 py-1 text-[10px] font-[500] truncate ${
+                              event.status === "done"
+                                ? "bg-[#C5E6F9] text-[#000000B2]"
+                                : "bg-[#FFDBDF] text-[#000000B2]"
+                            }`}
+                            title={`${event.time} - ${event.title} (${event.person})`}
+                          >
+                            {event.time} {event.title}
+                          </div>
+                        ))}
+                        {dayEvents.length > 3 && (
+                          <div className="text-[9px] text-[#0955AC] font-[600] pl-1">
+                            +{dayEvents.length - 3} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
-          
-          {/* Month grid body */}
-          {monthGrid.map((week, weekIdx) => (
-            <div key={weekIdx} className="grid grid-cols-7">
-              {week.map((day, dayIdx) => {
-                const dayEvents = getEventsForDate(day.year, day.month, day.date);
-                return (
-                  <div
-                    key={dayIdx}
-                    className={`min-h-[120px] md:min-h-[140px] p-2 border-r border-b border-[#00000026] last:border-r-0 transition-colors hover:bg-[#F8F9FA] cursor-pointer overflow-hidden ${
-                      !day.isCurrentMonth ? 'bg-[#FAFAFA] text-[#00000040]' : 'bg-white'
-                    } ${
-                      day.date === currentDay && day.month === currentMonth && day.isCurrentMonth
-                        ? 'bg-[#E3F2FD] ring-2 ring-inset ring-[#0955AC]'
-                        : ''
-                    }`}
-                  >
-                    <div className={`text-[14px] font-[600] mb-1 ${
-                      day.date === currentDay && day.month === currentMonth && day.isCurrentMonth
-                        ? 'text-[#0955AC]'
-                        : ''
-                    }`}>
-                      {day.date}
-                    </div>
-                    <div className="space-y-1">
-                      {dayEvents.slice(0, 3).map((event, idx) => (
-                        <div
-                          key={idx}
-                          className={`w-full rounded-[4px] px-2 py-1 text-[10px] font-[500] truncate ${
-                            event.status === "done"
-                              ? "bg-[#C5E6F9] text-[#000000B2]"
-                              : "bg-[#FFDBDF] text-[#000000B2]"
-                          }`}
-                          title={`${event.time} - ${event.title} (${event.person})`}
-                        >
-                          {event.time} {event.title}
-                        </div>
-                      ))}
-                      {dayEvents.length > 3 && (
-                        <div className="text-[9px] text-[#0955AC] font-[600] pl-1">
-                          +{dayEvents.length - 3} more
+        </div>
+
+        {/* MOBILE MONTH VIEW */}
+        <div className="md:hidden w-full px-3 py-3">
+          <div className="bg-white rounded-[12px] border border-[#00000026] overflow-x-auto">
+            {/* Month grid header */}
+            <div className="grid grid-cols-7 min-w-[320px]">
+              {["M", "T", "W", "T", "F", "S", "S"].map((day, idx) => (
+                <div key={idx} className="text-center py-2 text-[11px] font-[700] text-[#000000B2] bg-[#F8F9FA] border-r border-b border-[#00000026] last:border-r-0">
+                  {day}
+                </div>
+              ))}
+            </div>
+            
+            {/* Month grid body */}
+            {monthGrid.map((week, weekIdx) => (
+              <div key={weekIdx} className="grid grid-cols-7 min-w-[320px]">
+                {week.map((day, dayIdx) => {
+                  const dayEvents = getEventsForDate(day.year, day.month, day.date);
+                  return (
+                    <div
+                      key={dayIdx}
+                      className={`min-h-[60px] p-1 border-r border-b border-[#00000026] last:border-r-0 ${
+                        !day.isCurrentMonth ? 'bg-[#FAFAFA] text-[#00000040]' : 'bg-white'
+                      } ${
+                        day.date === currentDay && day.month === currentMonth && day.isCurrentMonth
+                          ? 'bg-[#E3F2FD] ring-1 ring-inset ring-[#0955AC]'
+                          : ''
+                      }`}
+                    >
+                      <div className={`text-[10px] font-[600] mb-0.5 ${
+                        day.date === currentDay && day.month === currentMonth && day.isCurrentMonth
+                          ? 'text-[#0955AC]'
+                          : ''
+                      }`}>
+                        {day.date}
+                      </div>
+                      {dayEvents.length > 0 && (
+                        <div className="flex flex-col gap-0.5">
+                          {dayEvents.slice(0, 1).map((event, idx) => (
+                            <div
+                              key={idx}
+                              className={`w-full h-1.5 rounded-[2px] ${
+                                event.status === "done"
+                                  ? "bg-[#C5E6F9]"
+                                  : "bg-[#FFDBDF]"
+                              }`}
+                            />
+                          ))}
+                          {dayEvents.length > 1 && (
+                            <div className="text-[7px] text-[#0955AC] font-[600]">
+                              +{dayEvents.length - 1}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -406,8 +471,8 @@ const CalendarGrid = ({
     };
     
     return (
-      <div className="w-full px-5 md:px-10 py-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="w-full px-3 md:px-5 lg:px-10 py-3 md:py-5">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
           {months.map((month) => {
             const miniGrid = getMiniMonthGrid(month);
             const isCurrentMonth = month === currentMonth;
@@ -415,19 +480,19 @@ const CalendarGrid = ({
             return (
               <div
                 key={month}
-                className={`bg-white rounded-[12px] border p-4 ${
+                className={`bg-white rounded-[8px] md:rounded-[12px] border p-2 md:p-4 ${
                   isCurrentMonth ? 'border-[#0955AC] shadow-lg' : 'border-[#00000026]'
                 }`}
               >
-                <h3 className={`text-center text-[16px] font-[700] mb-3 ${
+                <h3 className={`text-center text-[12px] md:text-[16px] font-[700] mb-2 md:mb-3 ${
                   isCurrentMonth ? 'text-[#0955AC]' : 'text-[#000000]'
                 }`}>
                   {monthNames[month]}
                 </h3>
                 
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-0.5 md:gap-1">
                   {["M", "T", "W", "T", "F", "S", "S"].map((day, idx) => (
-                    <div key={idx} className="text-center text-[10px] font-[600] text-[#00000080] pb-1">
+                    <div key={idx} className="text-center text-[8px] md:text-[10px] font-[600] text-[#00000080] pb-0.5 md:pb-1">
                       {day}
                     </div>
                   ))}
@@ -439,7 +504,7 @@ const CalendarGrid = ({
                         return (
                           <div
                             key={dateIdx}
-                            className={`text-center text-[12px] py-1 rounded relative ${
+                            className={`text-center text-[9px] md:text-[12px] py-0.5 md:py-1 rounded relative ${
                               date === null
                                 ? ''
                                 : date === currentDay && month === currentMonth
@@ -449,7 +514,7 @@ const CalendarGrid = ({
                           >
                             {date || ''}
                             {hasEvents && date && (
-                              <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 rounded-full ${
+                              <div className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0.5 h-0.5 md:w-1 md:h-1 rounded-full ${
                                 date === currentDay && month === currentMonth
                                   ? 'bg-white'
                                   : 'bg-[#0955AC]'
@@ -569,8 +634,8 @@ const CalendarGrid = ({
         ))}
       </div>
 
-      {/* MOBILE VIEW (unchanged) */}
-      <div className="md:hidden w-[275px]">
+      {/* MOBILE VIEW */}
+      <div className="md:hidden w-[275px] px-3">
         <div className="mb-2 text-[14px] font-[500] text-[#00000080]">
           UTC +1
         </div>
@@ -581,10 +646,10 @@ const CalendarGrid = ({
           .map((day) => (
             <div
               key={`${day.label}-${day.date}`}
-              className="mb-4 rounded-[12px] border border-[#00000026] bg-white p-3"
+              className="mb-3 rounded-[12px] border border-[#00000026] bg-white p-3"
             >
               {/* Day header */}
-              <div className="flex items-baseline justify-between mb-2">
+              <div className="flex items-baseline justify-between mb-3">
                 <div className="flex items-baseline gap-2">
                   <span className="font-[700] text-[22px]">{day.date}</span>
                   <span className="text-[14px] font-[500] text-[#00000080]">
@@ -608,7 +673,7 @@ const CalendarGrid = ({
                         </span>
                         {cellEvents.length === 0 && (
                           <button
-                            className="text-[11px] font-[500] text-[#3B82F6]"
+                            className="text-[11px] font-[500] text-[#3B82F6] px-2 py-0.5"
                             onClick={() => handleAddEvent(day.dayIdx, time)}
                           >
                             + Add
@@ -660,7 +725,7 @@ const CalendarGrid = ({
                         })
                       ) : (
                         <div
-                          className="w-full rounded-[8px] border border-dashed border-[#00000026] px-2 py-2 text-[11px] text-[#999999] cursor-pointer"
+                          className="w-full rounded-[8px] border border-dashed border-[#00000026] px-2 py-2 text-[11px] text-center text-[#999999] cursor-pointer"
                           onClick={() => handleAddEvent(day.dayIdx, time)}
                         >
                           Tap to add event
