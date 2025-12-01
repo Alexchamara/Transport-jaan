@@ -183,125 +183,202 @@ const CarBookingTable = ({ data = [], loading = false }) => {
     }
 
     return (
-        <div className="py-10">
-            {/* table headings */}
-            <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Booking ID</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <ChevronUp className="w-[10px] h-[10px]" />
-                        <ChevronDown className="w-[10px] h-[10px]" />
+        <div className="py-10 w-full">
+            {/* DESKTOP/TABLET TABLE */}
+            <div className="hidden md:block overflow-auto">
+                {/* table headings */}
+                <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[14px] font-[600] px-12 py-3 gap-x-6 min-w-[1200px]">
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Booking ID</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <ChevronUp className="w-[6px] h-[10px]" />
+                            <ChevronDown className="w-[6px] h-[10px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Booking Date</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <ChevronUp className="w-[6px] h-[10px]" />
+                            <ChevronDown className="w-[6px] h-[10px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Client Name</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <ChevronUp className="w-[6px] h-[10px]" />
+                            <ChevronDown className="w-[6px] h-[10px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Company / Unit</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <ChevronUp className="w-[6px] h-[10px]" />
+                            <ChevronDown className="w-[6px] h-[10px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Term</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <ChevronUp className="w-[6px] h-[10px]" />
+                            <ChevronDown className="w-[6px] h-[10px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Dates</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <ChevronUp className="w-[6px] h-[10px]" />
+                            <ChevronDown className="w-[6px] h-[10px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center ml-10">
+                        <h1>Payment</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <ChevronUp className="w-[6px] h-[10px]" />
+                            <ChevronDown className="w-[6px] h-[10px]" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Status</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <ChevronUp className="w-[6px] h-[10px]" />
+                            <ChevronDown className="w-[6px] h-[10px]" />
+                        </div>
                     </div>
                 </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Booking Date</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <ChevronUp className="w-[10px] h-[10px]" />
-                        <ChevronDown className="w-[10px] h-[10px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Client Name</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <ChevronUp className="w-[10px] h-[10px]" />
-                        <ChevronDown className="w-[10px] h-[10px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Company / Unit</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <ChevronUp className="w-[10px] h-[10px]" />
-                        <ChevronDown className="w-[10px] h-[10px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Term</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <ChevronUp className="w-[10px] h-[10px]" />
-                        <ChevronDown className="w-[10px] h-[10px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Dates</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <ChevronUp className="w-[10px] h-[10px]" />
-                        <ChevronDown className="w-[10px] h-[10px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center ml-10">
-                    <h1>Payment</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <ChevronUp className="w-[10px] h-[10px]" />
-                        <ChevronDown className="w-[10px] h-[10px]" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Status</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <ChevronUp className="w-[10px] h-[10px]" />
-                        <ChevronDown className="w-[10px] h-[10px]" />
-                    </div>
+
+                <div>
+                    {displayData.map((row, index) => (
+                        <div
+                            key={row.id || index}
+                            className="grid grid-cols-8 border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[15px] font-[500] px-12 py-4 gap-x-6 min-w-[1200px]"
+                        >
+                            <div>{row.id}</div>
+                            <div>{row.createdAt}</div>
+                            <div>{row.vendor}</div>
+                            <div className="flex flex-col gap-2">
+                                <h1>{row.company}</h1>
+                                <div className="w-[120px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                    {row.unit}
+                                </div>
+                            </div>
+                            <div>{row.term}</div>
+                            <div className="text-[14px] font-[500] text-[#939392] space-y-2">
+                                <div className="flex flex-row gap-2 justify-start items-center">
+                                    <h1>Start</h1>
+                                    <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                        {row.startDate}
+                                    </div>
+                                </div>
+                                <div className="flex flex-row gap-4 justify-start items-center">
+                                    <h1>End</h1>
+                                    <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                        {row.endDate}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col justify-center items-center gap-2">
+                                <h1>{row.rate}</h1>
+                                <div
+                                    className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                    style={{
+                                        border: `0.5px solid ${row.paymentColor}`,
+                                        backgroundColor: row.paymentBg,
+                                    }}
+                                >
+                                    {row.paymentStatus}
+                                </div>
+                            </div>
+                            <div
+                                className="w-[75px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                                style={{
+                                    backgroundColor: row.statusBg,
+                                    border: `1px solid ${row.statusBorder}`,
+                                    color: row.statusText,
+                                }}
+                            >
+                                {row.status}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            <div>
-                {displayData.length > 0 ? displayData.map((row, index) => (
+            {/* MOBILE VIEW: stacked cards */}
+            <div className="md:hidden space-y-4">
+                {displayData.map((row, index) => (
                     <div
-                        key={row.id || index}
-                        className={`grid grid-cols-8 border-b-[1.5px] border-[#00000033] h-[100px] justify-center items-center text-[15px] font-[500] px-10 hover:bg-gray-50 transition-colors`}
+                        key={index}
+                        className="border border-[#00000033] rounded-[8px] p-4 text-[14px] font-[500] space-y-2 bg-white"
                     >
-                        <div>{row.id}</div>
-                        <div>{row.createdAt}</div>
-                        <div>{row.vendor}</div>
-                        <div>
-                            <h1>{row.company}</h1>
-                            <div className="w-[77px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
-                                {row.unit}
+                        <div className="flex justify-between">
+                            <span className="font-[600]">Booking ID</span>
+                            <span className="text-gray-600">{row.id}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-[600]">Booking Date</span>
+                            <span className="text-gray-600">{row.createdAt}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-[600]">Client</span>
+                            <span className="text-gray-600">{row.vendor}</span>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="font-[600]">Company / Unit</span>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-gray-600">{row.company}</span>
+                                <div className="w-[120px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                    {row.unit}
+                                </div>
                             </div>
                         </div>
-                        <div>{row.term}</div>
-                        <div className="text-[14px] font-[500] text-[#939392]">
-                            <div className="flex flex-row gap-2 justify-start items-center">
-                                <h1>Start</h1>
-                                <div className="w-[62px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                        <div className="flex justify-between">
+                            <span className="font-[600]">Term</span>
+                            <span className="text-gray-600">{row.term}</span>
+                        </div>
+                        <div className="space-y-1 text-[#939392]">
+                            <div className="flex justify-between items-center">
+                                <span className="font-[600] text-black">Start</span>
+                                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
                                     {row.startDate}
                                 </div>
                             </div>
-                            <div className="flex flex-row gap-4 justify-start items-center">
-                                <h1>End</h1>
-                                <div className="w-[62px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                            <div className="flex justify-between items-center">
+                                <span className="font-[600] text-black">End</span>
+                                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
                                     {row.endDate}
                                 </div>
                             </div>
                         </div>
-                        <div className="flex flex-col justify-center items-center">
-                            <h1>{row.rate}</h1>
-                            <div
-                                className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
-                                style={{
-                                    border: `0.5px solid ${row.paymentColor}`,
-                                    backgroundColor: row.paymentBg,
-                                }}
-                            >
-                                {row.paymentStatus}
+                        <div className="flex justify-between items-center">
+                            <span className="font-[600]">Price</span>
+                            <div className="flex flex-col items-end gap-1">
+                                <span className="text-gray-600">{row.rate}</span>
+                                <div
+                                    className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                    style={{
+                                        border: `0.5px solid ${row.paymentColor}`,
+                                        backgroundColor: row.paymentBg,
+                                    }}
+                                >
+                                    {row.paymentStatus}
+                                </div>
                             </div>
                         </div>
-                        <div
-                            className="w-[52px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
-                            style={{
-                                backgroundColor: row.statusBg,
-                                border: `1px solid ${row.statusBorder}`,
-                                color: row.statusText,
-                            }}
-                        >
-                            {row.status}
+                        <div className="flex justify-between items-center">
+                            <span className="font-[600]">Status</span>
+                            <div
+                                className="w-[75px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                                style={{
+                                    backgroundColor: row.statusBg,
+                                    border: `1px solid ${row.statusBorder}`,
+                                    color: row.statusText,
+                                }}
+                            >
+                                {row.status}
+                            </div>
                         </div>
                     </div>
-                )) : (
-                    <div className="flex items-center justify-center h-32 text-gray-500 border-b border-gray-200">
-                        <span>No booking data available</span>
-                    </div>
-                )}
+                ))}
             </div>
         </div>
     );
