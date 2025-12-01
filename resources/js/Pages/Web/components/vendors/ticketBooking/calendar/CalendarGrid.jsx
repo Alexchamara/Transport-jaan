@@ -21,7 +21,13 @@ function getDaysArray(year, month) {
 }
 
 // Accept currentMonth and currentYear as props
-const CalendarGrid = ({ times, events: initialEvents, proPicTwo, currentMonth, currentYear }) => {
+const CalendarGrid = ({
+  times,
+  events: initialEvents,
+  proPicTwo,
+  currentMonth,
+  currentYear,
+}) => {
   const [events, setEvents] = useState(initialEvents);
   const days = getDaysArray(currentYear, currentMonth);
 
@@ -65,86 +71,215 @@ const CalendarGrid = ({ times, events: initialEvents, proPicTwo, currentMonth, c
         person,
         status: status === "done" ? "done" : "pending",
       };
-      setEvents(
-        events.map((e, idx) => (idx === eventIdx ? updatedEvent : e))
-      );
+      setEvents(events.map((e, idx) => (idx === eventIdx ? updatedEvent : e)));
     }
   };
 
   return (
     <>
-      {/* Header Row */}
-      <div className="border-b border-r border-[#00000026] bg-white flex justify-center items-center text-[#00000080] text-[14px] font-[500]">UTC +1</div>
-      {days.map((day) => (
-        <div key={day.date} className="border-b border-r border-[#00000026] flex flex-col items-center py-2">
-          <span className="font-[700] text-[24px]">{day.date}</span>
-          <span className="text-[14px] font-[500] text-[#00000080]">{day.label}</span>
+      {/* DESKTOP/TABLET GRID */}
+      <div className="hidden md:contents">
+        {/* Header Row */}
+        <div className="border-b border-r border-[#00000026] bg-white flex justify-center items-center text-[#00000080] text-[14px] font-[500]">
+          UTC +1
         </div>
-      ))}
+        {days.map((day) => (
+          <div
+            key={`${day.label}-${day.date}`}
+            className="border-b border-r border-[#00000026] flex flex-col items-center py-2"
+          >
+            <span className="font-[700] text-[24px]">
+              {day.date !== null ? day.date : ""}
+            </span>
+            <span className="text-[14px] font-[500] text-[#00000080]">
+              {day.label}
+            </span>
+          </div>
+        ))}
 
-      {/* Time Rows */}
-      {times.map((time, rowIdx) => (
-        <React.Fragment key={time}>
-          {/* Time column */}
-          <div className="relative border-[#00000026] bg-[#FFFFFF] h-[80px] text-[14px] text-[#7B7B7A] font-[500]">
-            <div className="absolute bottom-[0px] left-1/2 -translate-x-1/2 mb-1">
+        {/* Time Rows */}
+        {times.map((time) => (
+          <React.Fragment key={time}>
+            {/* Time column – fixed row height */}
+            <div className="border-[#00000026] bg-[#FFFFFF] h-[120px] text-[14px] text-[#7B7B7A] font-[500] flex items-center justify-center">
               {time}
             </div>
-          </div>
-          {/* Day columns */}
-          {days.map((day, colIdx) => {
-            // Find all events for this cell
-            const cellEvents = events.filter(
-              (e) => e.day === colIdx && e.time === time
-            );
-            return (
-              <div
-                key={colIdx}
-                className="border-b border-r border-l border-[#00000026] relative h-[100px] flex flex-col items-center justify-center gap-1 cursor-pointer"
-                onClick={cellEvents.length === 0 ? () => handleAddEvent(colIdx, time) : undefined}
-                style={{ background: cellEvents.length === 0 ? '#f9f9f9' : undefined }}
-              >
-                {cellEvents.map((event, idx) => {
-                  // Find the index of this event in the events array
-                  const eventIdx = events.findIndex(
-                    (e) => e.day === colIdx && e.time === time && e.title === event.title && e.person === event.person && e.status === event.status
-                  );
-                  return (
-                    <div
-                      key={idx}
-                      className={`w-[122px] h-[90px] rounded-[12px] px-3 py-2 flex flex-col justify-center items-center ${event.status === "done" ? "bg-[#C5E6F9]" : "bg-[#FFDBDF]"} cursor-pointer`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditEvent(eventIdx);
-                      }}
-                    >
-                      {/* Time */}
-                      <span className="w-full text-start text-[12px] font-[500] text-[#000000B2] tracking-wide mb-1">
-                        {event.time.replace(":", " : ")}
-                      </span>
-                      {/* Car Name */}
-                      <span className="w-full text-left font-[500] text-[16px] text-[#000000B2]">
-                        {event.title}
-                      </span>
-                      {/* Avatar and Name */}
-                      <div className="flex flex-row items-start w-full mt-auto">
-                        <img
-                          src={proPicTwo}
-                          alt="avatar"
-                          className="w-7 h-7 rounded-full object-cover mr-2"
-                        />
-                        <span className="text-[12px] font-[500] text-[#000000B2]">{event.person}</span>
+
+            {/* Day columns – same fixed row height */}
+            {days.map((day, colIdx) => {
+              const cellEvents = events.filter(
+                (e) => e.day === colIdx && e.time === time
+              );
+              return (
+                <div
+                  key={colIdx}
+                  className="border-b border-r border-l border-[#00000026] relative h-[120px] flex items-center justify-center cursor-pointer"
+                  onClick={
+                    cellEvents.length === 0
+                      ? () => handleAddEvent(colIdx, time)
+                      : undefined
+                  }
+                  style={{
+                    background: cellEvents.length === 0 ? "#f9f9f9" : undefined,
+                  }}
+                >
+                  {cellEvents.map((event, idx) => {
+                    const eventIdx = events.findIndex(
+                      (e) =>
+                        e.day === colIdx &&
+                        e.time === time &&
+                        e.title === event.title &&
+                        e.person === event.person &&
+                        e.status === event.status
+                    );
+                    return (
+                      <div
+                        key={idx}
+                        className={`w-[122px] h-[88px] rounded-[12px] px-3 py-2 flex flex-col justify-between ${
+                          event.status === "done"
+                            ? "bg-[#C5E6F9]"
+                            : "bg-[#FFDBDF]"
+                        } cursor-pointer`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditEvent(eventIdx);
+                        }}
+                      >
+                        {/* Time */}
+                        <span className="w-full text-start text-[12px] font-[500] text-[#000000B2] tracking-wide">
+                          {event.time.replace(":", " : ")}
+                        </span>
+                        {/* Car Name */}
+                        <span className="w-full text-left font-[500] text-[16px] text-[#000000B2]">
+                          {event.title}
+                        </span>
+                        {/* Avatar and Name */}
+                        <div className="flex flex-row items-center w-full">
+                          <img
+                            src={proPicTwo}
+                            alt="avatar"
+                            className="w-7 h-7 rounded-full object-cover mr-2"
+                          />
+                          <span className="text-[12px] font-[500] text-[#000000B2]">
+                            {event.person}
+                          </span>
+                        </div>
                       </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* MOBILE VIEW (unchanged) */}
+      <div className="md:hidden w-[275px]">
+        <div className="mb-2 text-[14px] font-[500] text-[#00000080]">
+          UTC +1
+        </div>
+
+        {days
+          .map((day, dayIdx) => ({ ...day, dayIdx }))
+          .filter((d) => d.date !== null)
+          .map((day) => (
+            <div
+              key={`${day.label}-${day.date}`}
+              className="mb-4 rounded-[12px] border border-[#00000026] bg-white p-3"
+            >
+              {/* Day header */}
+              <div className="flex items-baseline justify-between mb-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-[700] text-[22px]">{day.date}</span>
+                  <span className="text-[14px] font-[500] text-[#00000080]">
+                    {day.label}
+                  </span>
+                </div>
+              </div>
+
+              {/* Time slots & events */}
+              <div className="space-y-2">
+                {times.map((time) => {
+                  const cellEvents = events.filter(
+                    (e) => e.day === day.dayIdx && e.time === time
+                  );
+
+                  return (
+                    <div key={time} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] font-[500] text-[#7B7B7A]">
+                          {time}
+                        </span>
+                        {cellEvents.length === 0 && (
+                          <button
+                            className="text-[11px] font-[500] text-[#3B82F6]"
+                            onClick={() => handleAddEvent(day.dayIdx, time)}
+                          >
+                            + Add
+                          </button>
+                        )}
+                      </div>
+
+                      {cellEvents.length > 0 ? (
+                        cellEvents.map((event, idx) => {
+                          const eventIdx = events.findIndex(
+                            (e) =>
+                              e.day === day.dayIdx &&
+                              e.time === time &&
+                              e.title === event.title &&
+                              e.person === event.person &&
+                              e.status === event.status
+                          );
+                          return (
+                            <div
+                              key={idx}
+                              className={`w-full rounded-[12px] px-3 py-2 flex flex-col justify-center ${
+                                event.status === "done"
+                                  ? "bg-[#C5E6F9]"
+                                  : "bg-[#FFDBDF]"
+                              } cursor-pointer`}
+                              onClick={() => handleEditEvent(eventIdx)}
+                            >
+                              {/* Time */}
+                              <span className="w-full text-start text-[11px] font-[500] text-[#000000B2] tracking-wide mb-1">
+                                {event.time.replace(":", " : ")}
+                              </span>
+                              {/* Title */}
+                              <span className="w-full text-left font-[500] text-[15px] text-[#000000B2]">
+                                {event.title}
+                              </span>
+                              {/* Avatar and Name */}
+                              <div className="flex flex-row items-center w-full mt-2">
+                                <img
+                                  src={proPicTwo}
+                                  alt="avatar"
+                                  className="w-6 h-6 rounded-full object-cover mr-2"
+                                />
+                                <span className="text-[12px] font-[500] text-[#000000B2]">
+                                  {event.person}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div
+                          className="w-full rounded-[8px] border border-dashed border-[#00000026] px-2 py-2 text-[11px] text-[#999999] cursor-pointer"
+                          onClick={() => handleAddEvent(day.dayIdx, time)}
+                        >
+                          Tap to add event
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
-            );
-          })}
-        </React.Fragment>
-      ))}
+            </div>
+          ))}
+      </div>
     </>
   );
 };
 
-export default CalendarGrid; 
+export default CalendarGrid;

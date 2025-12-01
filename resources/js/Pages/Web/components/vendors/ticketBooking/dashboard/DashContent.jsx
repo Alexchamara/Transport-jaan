@@ -44,7 +44,7 @@ const DashContent = () => {
     const user = auth?.user;
 
     return (
-        <div className="xl:max-w-[1055px] w-full h-auto p-5 sm:pr-5 py-20 xl:py-10">
+        <div className="w-full max-w-full px-4 sm:px-6 xl:max-w-[1055px] mx-auto h-auto py-12 xl:py-10">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] sm:text-[28px] font-[700]">
@@ -197,7 +197,7 @@ const DashContent = () => {
                         </div>
                         {/* end of 4 mini cards */}
 
-                        <div className="overflow-x-hidden w-full scroll-x-auto">
+                        <div className="overflow-x-auto w-full">
                             {/* booking chart */}
                             <div
                                 className="w-full mx-auto overflow-auto h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-8 px-3"
@@ -207,7 +207,7 @@ const DashContent = () => {
                             </div>
                         </div>
 
-                        <div className="overflow-x-hidden w-full mx-auto scroll-x-auto">
+                        <div className="overflow-x-auto w-full mx-auto">
                             <div
                                 className="w-full xl:h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-5 sm:px-10"
                                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
