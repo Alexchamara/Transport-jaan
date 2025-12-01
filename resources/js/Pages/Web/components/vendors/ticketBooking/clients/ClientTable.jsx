@@ -10,564 +10,585 @@ const ClientTable = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
 
-    const [clients, setClients] = useState([
-        {
-            id: 1,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 2,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 3,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 4,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 5,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 6,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-        {
-            id: 7,
-            name: "Steve Gibson",
-            email: "steve.gibson@example.com",
-            phone: "+94 78 390 1623",
-            address: "123, Maple Street, Colombo",
-            documents: [
-                { name: "NIC Copy" },
-                { name: "Driving Licence" },
-                { name: "Certification" },
-            ],
-        },
-    ]);
+  const [clients, setClients] = useState([
+    {
+      id: 1,
+      name: "Steve Gibson",
+      email: "steve.gibson@example.com",
+      phone: "+94 78 390 1623",
+      address: "123, Maple Street, Colombo",
+      documents: [{ name: "NIC Copy" }, { name: "Driving Licence" }, { name: "Certification" }],
+    },
+    {
+      id: 2,
+      name: "Steve Gibson",
+      email: "steve.gibson@example.com",
+      phone: "+94 78 390 1623",
+      address: "123, Maple Street, Colombo",
+      documents: [{ name: "NIC Copy" }, { name: "Driving Licence" }, { name: "Certification" }],
+    },
+    {
+      id: 3,
+      name: "Steve Gibson",
+      email: "steve.gibson@example.com",
+      phone: "+94 78 390 1623",
+      address: "123, Maple Street, Colombo",
+      documents: [{ name: "NIC Copy" }, { name: "Driving Licence" }, { name: "Certification" }],
+    },
+    {
+      id: 4,
+      name: "Steve Gibson",
+      email: "steve.gibson@example.com",
+      phone: "+94 78 390 1623",
+      address: "123, Maple Street, Colombo",
+      documents: [{ name: "NIC Copy" }, { name: "Driving Licence" }, { name: "Certification" }],
+    },
+    {
+      id: 5,
+      name: "Steve Gibson",
+      email: "steve.gibson@example.com",
+      phone: "+94 78 390 1623",
+      address: "123, Maple Street, Colombo",
+      documents: [{ name: "NIC Copy" }, { name: "Driving Licence" }, { name: "Certification" }],
+    },
+    {
+      id: 6,
+      name: "Steve Gibson",
+      email: "steve.gibson@example.com",
+      phone: "+94 78 390 1623",
+      address: "123, Maple Street, Colombo",
+      documents: [{ name: "NIC Copy" }, { name: "Driving Licence" }, { name: "Certification" }],
+    },
+    {
+      id: 7,
+      name: "Steve Gibson",
+      email: "steve.gibson@example.com",
+      phone: "+94 78 390 1623",
+      address: "123, Maple Street, Colombo",
+      documents: [{ name: "NIC Copy" }, { name: "Driving Licence" }, { name: "Certification" }],
+    },
+  ]);
 
-    // State for popup
-    const [isPopupOpen, setIsPopupOpen] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-    const [currentClientId, setCurrentClientId] = useState(null);
-    const [newClient, setNewClient] = useState({
-        name: "",
-        email: "",
-        phone: "",
-        address: "",
-        documents: [],
+  // State for popup
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentClientId, setCurrentClientId] = useState(null);
+  const [newClient, setNewClient] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    documents: [],
+  });
+  const [documentInput, setDocumentInput] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const perPageOptions = [5, 10, 20, 50];
+  const totalPages = Math.ceil(clients.length / itemsPerPage);
+  const startIdx = (currentPage - 1) * itemsPerPage;
+  const endIdx = startIdx + itemsPerPage;
+  const currentClients = clients.slice(startIdx, endIdx);
+
+  const goToPage = (page) => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
+  // Helper for pagination numbers with ellipsis
+  const getPageNumbers = () => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+
+    const pages = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 3) {
+        pages.push(1, 2, 3, "...", totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1, "...", totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(
+          1,
+          "...",
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          "...",
+          totalPages
+        );
+      }
+    }
+    return pages;
+  };
+
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+
+    const { name, value } = e.target;
+    setNewClient({ ...newClient, [name]: value });
+  };
+
+  // Handle file input
+  const handleFileChange = (e) => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  // Add file to documents
+  const addFileToDocuments = () => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+
+    if (selectedFile) {
+      setNewClient({
+        ...newClient,
+        documents: [...newClient.documents, { name: selectedFile.name }],
+      });
+      setSelectedFile(null);
+    }
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+
+    e.preventDefault();
+    if (isEditing) {
+      setClients(
+        clients.map((client) =>
+          client.id === currentClientId ? { ...newClient, id: currentClientId } : client
+        )
+      );
+    } else {
+      setClients([...clients, { ...newClient, id: clients.length + 1 }]);
+    }
+    setNewClient({
+      name: "",
+      email: "",
+      phone: "",
+      address: "",
+      documents: [],
     });
-    const [documentInput, setDocumentInput] = useState("");
-    const [selectedFile, setSelectedFile] = useState(null);
+    setDocumentInput("");
+    setSelectedFile(null);
+    setIsPopupOpen(false);
+    setIsEditing(false);
+    setCurrentClientId(null);
+  };
 
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
-    const perPageOptions = [5, 10, 20, 50];
-    const totalPages = Math.ceil(clients.length / itemsPerPage);
-    const startIdx = (currentPage - 1) * itemsPerPage;
-    const endIdx = startIdx + itemsPerPage;
-    const currentClients = clients.slice(startIdx, endIdx);
+  // Handle edit button click
+  const handleEdit = (client) => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
-    const goToPage = (page) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    setNewClient({ ...client });
+    setCurrentClientId(client.id);
+    setIsEditing(true);
+    setIsPopupOpen(true);
+  };
 
-        if (page < 1 || page > totalPages) return;
-        setCurrentPage(page);
-    };
+  // Handle delete button click
+  const handleDelete = (id) => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
-    // Helper for pagination numbers with ellipsis
-    const getPageNumbers = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    setClients(clients.filter((client) => client.id !== id));
+  };
 
-        const pages = [];
-        if (totalPages <= 5) {
-            for (let i = 1; i <= totalPages; i++) pages.push(i);
-        } else {
-            if (currentPage <= 3) {
-                pages.push(1, 2, 3, "...", totalPages);
-            } else if (currentPage >= totalPages - 2) {
-                pages.push(
-                    1,
-                    "...",
-                    totalPages - 2,
-                    totalPages - 1,
-                    totalPages
-                );
-            } else {
-                pages.push(
-                    1,
-                    "...",
-                    currentPage - 1,
-                    currentPage,
-                    currentPage + 1,
-                    "...",
-                    totalPages
-                );
-            }
-        }
-        return pages;
-    };
+  // Reset to first page when itemsPerPage changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [itemsPerPage]);
 
-    // Handle form input changes
-    const handleInputChange = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
-        const { name, value } = e.target;
-        setNewClient({ ...newClient, [name]: value });
-    };
-
-    // Handle file input
-    const handleFileChange = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
-        const file = e.target.files[0];
-        if (file) {
-            setSelectedFile(file);
-        }
-    };
-
-    // Add file to documents
-    const addFileToDocuments = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
-        if (selectedFile) {
-            setNewClient({
-                ...newClient,
-                documents: [
-                    ...newClient.documents,
-                    { name: selectedFile.name },
-                ],
-            });
-            setSelectedFile(null);
-        }
-    };
-
-    // Handle form submission
-    const handleSubmit = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
-        e.preventDefault();
-        if (isEditing) {
-            setClients(
-                clients.map((client) =>
-                    client.id === currentClientId
-                        ? { ...newClient, id: currentClientId }
-                        : client
-                )
-            );
-        } else {
-            setClients([...clients, { ...newClient, id: clients.length + 1 }]);
-        }
-        setNewClient({
-            name: "",
-            email: "",
-            phone: "",
-            address: "",
-            documents: [],
-        });
-        setDocumentInput("");
-        setSelectedFile(null);
-        setIsPopupOpen(false);
-        setIsEditing(false);
-        setCurrentClientId(null);
-    };
-
-    // Handle edit button click
-    const handleEdit = (client) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
-        setNewClient({ ...client });
-        setCurrentClientId(client.id);
-        setIsEditing(true);
-        setIsPopupOpen(true);
-    };
-
-    // Handle delete button click
-    const handleDelete = (id) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
-        setClients(clients.filter((client) => client.id !== id));
-    };
-
-    // Reset to first page when itemsPerPage changes
-    React.useEffect(() => {
-        setCurrentPage(1);
-    }, [itemsPerPage]);
-
-    return (
-        <div className="relative">
-            <div className="flex flex-col lg:flex-row items-center justify-between w-full gap-5">
-                <div className="flex flex-row gap-5 justify-center items-center">
-                    <div className="w-full lg:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                        <img src={miniSearchIcon} />
-                        <input
-                            type="text"
-                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                            placeholder="Search client name, car, etc."
-                        />
-                    </div>
-                </div>
-                <button
-                    className="w-full lg:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
-                    onClick={() => {
-                        setIsEditing(false);
-                        setNewClient({
-                            name: "",
-                            email: "",
-                            phone: "",
-                            address: "",
-                            documents: [],
-                        });
-                        setIsPopupOpen(true);
-                    }}
-                >
-                    Add Booking
-                </button>
-            </div>
-
-            {/* Popup for adding/editing client */}
-            {isPopupOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                    <div className="bg-white p-10 rounded-[10px] w-[500px] max-h-[100vh] overflow-y-auto">
-                        <h2 className="text-[18px] font-[700] mb-4">
-                            {isEditing ? "Edit Client" : "Add New Client"}
-                        </h2>
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Name
-                                </label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    value={newClient.name}
-                                    onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
-                                    placeholder="Enter name"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Email
-                                </label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value={newClient.email}
-                                    onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
-                                    placeholder="Enter email"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Phone
-                                </label>
-                                <input
-                                    type="text"
-                                    name="phone"
-                                    value={newClient.phone}
-                                    onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
-                                    placeholder="Enter phone number"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Address
-                                </label>
-                                <input
-                                    type="text"
-                                    name="address"
-                                    value={newClient.address}
-                                    onChange={handleInputChange}
-                                    className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
-                                    placeholder="Enter address"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[14px] font-[600]">
-                                    Documents
-                                </label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="file"
-                                        onChange={handleFileChange}
-                                        className="w-full p-5 border border-[#000000] border-dashed rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000] text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
-                                    />
-                                    <button
-                                        onClick={addFileToDocuments}
-                                        disabled={!selectedFile}
-                                        className={`px-4 py-5 font-[600] rounded-[5px] text-white ${
-                                            selectedFile
-                                                ? "bg-[#0955AC]"
-                                                : "bg-gray-400 cursor-not-allowed"
-                                        }`}
-                                    >
-                                        Add File
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="mt-2">
-                                {newClient.documents.map((doc, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="flex items-center gap-2"
-                                    >
-                                        <img src={file} alt="file icon" />
-                                        <span>{doc.name}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    onClick={() => {
-                                        setIsPopupOpen(false);
-                                        setIsEditing(false);
-                                        setNewClient({
-                                            name: "",
-                                            email: "",
-                                            phone: "",
-                                            address: "",
-                                            documents: [],
-                                        });
-                                        setDocumentInput("");
-                                        setSelectedFile(null);
-                                    }}
-                                    className="px-4 py-2 bg-gray-200 rounded-[5px] font-[700]"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSubmit}
-                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] font-[700]"
-                                >
-                                    {isEditing ? "Update" : "Save"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* table headings */}
-            <div className="overflow-x-auto">
-                <div className="figtree grid grid-cols-7 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-5 lg:px-10 mt-10 min-w-[800px]">
-                    <div className="flex flex-row gap-5 items-center col-span-2">
-                        <input
-                            type="checkbox"
-                            className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                        />
-                        <h1>Client Name</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center pl-5 lg:pl-10">
-                        <h1>Contact No</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center col-span-2 pl-10 lg:pl-20">
-                        <h1>Address</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Documents</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Action</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                </div>
-
-                {/* table rows */}
-            {currentClients.map((client, idx) => (
-                <div
-                    key={client.id}
-                    className="figtree grid grid-cols-7 h-[100px] border-b-[1.5px] border-[#00000033] px-5 lg:px-10 items-center text-[14px] font-[500] min-w-[800px]"
-                >
-                    <div className="flex flex-row col-span-2 items-center gap-7 truncate">
-                        <input
-                            type="checkbox"
-                            className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                        />
-                        <div className="flex flex-row gap-3 justify-center items-center">
-                            <img src={proPic} className="size-[50px]" />
-                            <div className="flex flex-col gap-1">
-                                <h1 className="text-[15px]">{client.name}</h1>
-                                <h1 className="text-[#616161] text-[12px]">
-                                    {client.email}
-                                </h1>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="pl-5 lg:pl-10">{client.phone}</div>
-                    <div className="col-span-2 pl-10 lg:pl-20">{client.address}</div>
-                    <div className="text-[12px]">
-                        {client.documents.map((doc, docIdx) => (
-                            <div className="flex flex-row gap-2" key={docIdx}>
-                                <img src={file} />
-                                <h1>{doc.name}</h1>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex flex-row justify-center items-center gap-3">
-                        <div
-                            className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer"
-                            onClick={() => handleEdit(client)}
-                        >
-                            Edit
-                        </div>
-                        <div
-                            className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer"
-                            onClick={() => handleDelete(client.id)}
-                        >
-                            Delete
-                        </div>
-                    </div>
-                </div>
-            ))}
-            </div>
-            {/* end */}
-
-            {/* Pagination Controls and Results per page */}
-            <div className="flex flex-col lg:flex-row justify-between items-center gap-2 mt-20">
-                {/* Left: Results per page */}
-                <div className="flex items-center">
-                    <span className="mr-3 text-[#00000080] text-[15px]">
-                        Results per page
-                    </span>
-                    <select
-                        className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
-                        value={itemsPerPage}
-                        onChange={(e) =>
-                            setItemsPerPage(Number(e.target.value))
-                        }
-                    >
-                        {perPageOptions.map((opt) => (
-                            <option key={opt} value={opt}>
-                                {opt}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                {/* Right: Pagination */}
-                <div className="flex items-center gap-2">
-                    <button
-                        className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
-                        <span className="text-lg">&#60;</span>
-                    </button>
-                    {getPageNumbers().map((num, idx) =>
-                        num === "..." ? (
-                            <span key={idx} className="px-2">
-                                ...
-                            </span>
-                        ) : (
-                            <button
-                                key={num}
-                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
-                                    currentPage === num
-                                        ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
-                                        : "bg-[#F4F3F3]"
-                                }`}
-                                onClick={() => goToPage(num)}
-                            >
-                                {num}
-                            </button>
-                        )
-                    )}
-                    <button
-                        className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                    >
-                        <span className="text-lg">&#62;</span>
-                    </button>
-                </div>
-            </div>
+  return (
+    <div className="relative">
+      <div className="flex flex-col lg:flex-row items-center justify-between w-full gap-5">
+        <div className="flex flex-row gap-5 justify-center items-center w-full lg:w-auto">
+          <div className="w-full lg:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+            <img src={miniSearchIcon} />
+            <input
+              type="text"
+              className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+              placeholder="Search client name, car, etc."
+            />
+          </div>
         </div>
-    );
+        <button
+          className="w-full lg:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+          onClick={() => {
+            setIsEditing(false);
+            setNewClient({
+              name: "",
+              email: "",
+              phone: "",
+              address: "",
+              documents: [],
+            });
+            setIsPopupOpen(true);
+          }}
+        >
+          Add Booking
+        </button>
+      </div>
+
+      {/* Popup for adding/editing client */}
+      {isPopupOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
+          <div className="bg-white p-10 rounded-[10px] w-[500px] max-h-[100vh] overflow-y-auto">
+            <h2 className="text-[18px] font-[700] mb-4">
+              {isEditing ? "Edit Client" : "Add New Client"}
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[14px] font-[600]">Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={newClient.name}
+                  onChange={handleInputChange}
+                  className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
+                  placeholder="Enter name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[14px] font-[600]">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={newClient.email}
+                  onChange={handleInputChange}
+                  className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
+                  placeholder="Enter email"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[14px] font-[600]">Phone</label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={newClient.phone}
+                  onChange={handleInputChange}
+                  className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
+                  placeholder="Enter phone number"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[14px] font-[600]">Address</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={newClient.address}
+                  onChange={handleInputChange}
+                  className="w-full p-5 border rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000]"
+                  placeholder="Enter address"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[14px] font-[600]">Documents</label>
+                <div className="flex gap-2">
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    className="w-full p-5 border border-[#000000] border-dashed rounded-[5px] focus:outline-none focus:ring-0 focus:border-[#000000] text-[12px] file:mr-3 file:rounded file:border-0 file:px-3 file:py-2 file:bg-[#F3F4F6] file:text-[12px] file:cursor-pointer"
+                  />
+                  <button
+                    onClick={addFileToDocuments}
+                    disabled={!selectedFile}
+                    className={`px-4 py-5 font-[600] rounded-[5px] text-white ${
+                      selectedFile ? "bg-[#0955AC]" : "bg-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    Add File
+                  </button>
+                </div>
+              </div>
+              <div className="mt-2">
+                {newClient.documents.map((doc, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <img src={file} alt="file icon" />
+                    <span>{doc.name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setIsPopupOpen(false);
+                    setIsEditing(false);
+                    setNewClient({
+                      name: "",
+                      email: "",
+                      phone: "",
+                      address: "",
+                      documents: [],
+                    });
+                    setDocumentInput("");
+                    setSelectedFile(null);
+                  }}
+                  className="px-4 py-2 bg-gray-200 rounded-[5px] font-[700]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] font-[700]"
+                >
+                  {isEditing ? "Update" : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DESKTOP/TABLET TABLE */}
+      <div className="hidden md:block overflow-x-auto">
+        {/* table headings */}
+        <div className="figtree grid grid-cols-7 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-5 lg:px-10 mt-10 min-w-[800px]">
+          <div className="flex flex-row gap-5 items-center col-span-2">
+            <input
+              type="checkbox"
+              className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+            />
+            <h1>Client Name</h1>
+            <div className="flex flex-col justify-center items-center">
+              <img src={miniUp} className="w-[6px] h-[4px]" />
+              <img src={miniDown} className="w-[6px] h-[4px]" />
+            </div>
+          </div>
+          <div className="flex flex-row gap-2 items-center pl-5 lg:pl-10">
+            <h1>Contact No</h1>
+            <div className="flex flex-col justify-center items-center">
+              <img src={miniUp} className="w-[6px] h-[4px]" />
+              <img src={miniDown} className="w-[6px] h-[4px]" />
+            </div>
+          </div>
+          <div className="flex flex-row gap-2 items-center col-span-2 pl-10 lg:pl-20">
+            <h1>Address</h1>
+            <div className="flex flex-col justify-center items-center">
+              <img src={miniUp} className="w-[6px] h-[4px]" />
+              <img src={miniDown} className="w-[6px] h-[4px]" />
+            </div>
+          </div>
+          <div className="flex flex-row gap-2 items-center">
+            <h1>Documents</h1>
+            <div className="flex flex-col justify-center items-center">
+              <img src={miniUp} className="w-[6px] h-[4px]" />
+              <img src={miniDown} className="w-[6px] h-[4px]" />
+            </div>
+          </div>
+          <div className="flex flex-row gap-2 items-center">
+            <h1>Action</h1>
+            <div className="flex flex-col justify-center items-center">
+              <img src={miniUp} className="w-[6px] h-[4px]" />
+              <img src={miniDown} className="w-[6px] h-[4px]" />
+            </div>
+          </div>
+        </div>
+
+        {/* table rows */}
+        {currentClients.map((client) => (
+          <div
+            key={client.id}
+            className="figtree grid grid-cols-7 h-[100px] border-b-[1.5px] border-[#00000033] px-5 lg:px-10 items-center text-[14px] font-[500] min-w-[800px]"
+          >
+            <div className="flex flex-row col-span-2 items-center gap-7 truncate">
+              <input
+                type="checkbox"
+                className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+              />
+              <div className="flex flex-row gap-3 justify-center items-center">
+                <img src={proPic} className="size-[50px]" />
+                <div className="flex flex-col gap-1">
+                  <h1 className="text-[15px]">{client.name}</h1>
+                  <h1 className="text-[#616161] text-[12px]">
+                    {client.email}
+                  </h1>
+                </div>
+              </div>
+            </div>
+            <div className="pl-5 lg:pl-10">{client.phone}</div>
+            <div className="col-span-2 pl-10 lg:pl-20">
+              {client.address}
+            </div>
+            <div className="text-[12px]">
+              {client.documents.map((doc, docIdx) => (
+                <div className="flex flex-row gap-2" key={docIdx}>
+                  <img src={file} />
+                  <h1>{doc.name}</h1>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-row justify-center items-center gap-3">
+              <div
+                className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer"
+                onClick={() => handleEdit(client)}
+              >
+                Edit
+              </div>
+              <div
+                className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer"
+                onClick={() => handleDelete(client.id)}
+              >
+                Delete
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* MOBILE VIEW – cards, no horizontal scroll */}
+      <div className="md:hidden mt-8 space-y-4">
+        {currentClients.map((client) => (
+          <div
+            key={client.id}
+            className="w-full rounded-[10px] border border-[#00000026] bg-white p-4 figtree"
+          >
+            {/* Top row: checkbox + avatar + name/email */}
+            <div className="flex items-center gap-3 mb-3">
+              <input
+                type="checkbox"
+                className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+              />
+              <img src={proPic} className="w-[48px] h-[48px]" />
+              <div className="flex flex-col">
+                <span className="text-[15px] font-[600]">{client.name}</span>
+                <span className="text-[12px] text-[#616161] w-[120px] truncate">
+                  {client.email}
+                </span>
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div className="mb-2">
+              <span className="block text-[12px] font-[600] text-[#00000080]">
+                Contact No
+              </span>
+              <span className="text-[13px]">{client.phone}</span>
+            </div>
+
+            {/* Address */}
+            <div className="mb-2">
+              <span className="block text-[12px] font-[600] text-[#00000080]">
+                Address
+              </span>
+              <span className="text-[13px]">{client.address}</span>
+            </div>
+
+            {/* Documents */}
+            <div className="mb-3">
+              <span className="block text-[12px] font-[600] text-[#00000080] mb-1">
+                Documents
+              </span>
+              <div className="space-y-1 text-[12px]">
+                {client.documents.map((doc, docIdx) => (
+                  <div
+                    key={docIdx}
+                    className="flex flex-row items-center gap-2"
+                  >
+                    <img src={file} />
+                    <span>{doc.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-center gap-3">
+              <button
+                className="px-3 py-1 border border-[#0955AC] rounded-[4px] text-[11px] text-[#0955AC] font-[600]"
+                onClick={() => handleEdit(client)}
+              >
+                Edit
+              </button>
+              <button
+                className="px-3 py-1 border border-[#FF0000] rounded-[4px] text-[11px] text-[#FF0000] font-[600]"
+                onClick={() => handleDelete(client.id)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination Controls and Results per page */}
+      <div className="flex flex-col lg:flex-row justify-between items-center gap-2 mt-20">
+        {/* Left: Results per page */}
+        <div className="flex items-center">
+          <span className="mr-3 text-[#00000080] text-[15px]">
+            Results per page
+          </span>
+          <select
+            className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+          >
+            {perPageOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
+        {/* Right: Pagination */}
+        <div className="flex items-center gap-2">
+          <button
+            className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <span className="text-lg">&#60;</span>
+          </button>
+          {getPageNumbers().map((num, idx) =>
+            num === "..." ? (
+              <span key={idx} className="px-2">
+                ...
+              </span>
+            ) : (
+              <button
+                key={num}
+                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                  currentPage === num
+                    ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
+                    : "bg-[#F4F3F3]"
+                }`}
+                onClick={() => goToPage(num)}
+              >
+                {num}
+              </button>
+            )
+          )}
+          <button
+            className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <span className="text-lg">&#62;</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default ClientTable;
