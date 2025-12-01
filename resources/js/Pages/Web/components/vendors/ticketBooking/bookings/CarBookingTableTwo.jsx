@@ -79,9 +79,11 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
     }, [itemsPerPage]);
 
     return (
-        <div className="overflow-x-auto py-10">
-            {/* table headings */}
-            <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 min-w-[1200px]">
+        <div className="py-10 w-full">
+            {/* DESKTOP/TABLET TABLE (md and up) */}
+            <div className="hidden md:block overflow-auto">
+                {/* table headings */}
+                <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 min-w-[1200px]">
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Book id</h1>
                     <div className="flex flex-col justify-center items-center">
@@ -164,13 +166,13 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                     <div className="text-[14px] font-[500] text-[#939392]">
                       <div className="flex flex-row gap-2 justify-start items-center">
                         <h1>Depart</h1>
-                        <div className="w-[72px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                        <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
                           {booking.startDate}
                         </div>
                       </div>
                       <div className="flex flex-row gap-4 justify-start items-center">
                         <h1>Arrive</h1>
-                        <div className="w-[72px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                        <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
                           {booking.endDate}
                         </div>
                       </div>
@@ -178,20 +180,93 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                     <div className="flex flex-col justify-center items-center">
                         <h1>{booking.payment}</h1>
                         <div
-                            className="w-[66px] h-[19px] border-[0.5px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                            className="w-[75px] h-[19px] border-[0.5px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
                             style={{ borderColor: booking.paymentStatusColor, background: booking.paymentStatusBg }}
                         >
                             {booking.paymentStatus}
                         </div>
                     </div>
                     <div
-                        className="w-[72px] h-[19px] border-[1px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                        className="w-[75px] h-[19px] border-[1px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
                         style={{ background: booking.statusBg, borderColor: '#0000004D', color: booking.statusText }}
                     >
                         {booking.status}
                     </div>
                 </div>
             ))}
+            </div>
+
+            {/* MOBILE VIEW: no side scroll, data stacked nicely */}
+            <div className="md:hidden space-y-4">
+                {currentBookings.map((booking, idx) => (
+                    <div
+                        key={startIdx + idx}
+                        className="border border-[#00000033] rounded-[8px] p-4 text-[14px] font-[500] space-y-2 bg-white cursor-pointer"
+                        onClick={() => handleRowClick(booking, idx)}
+                    >
+                        <div className="flex justify-between">
+                            <span className="font-[600]">Book ID</span>
+                            <span className="text-gray-600">{booking.id}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-[600]">Booking Date</span>
+                            <span className="text-gray-600">{booking.bookingDate}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-[600]">Client Name</span>
+                            <span className="text-gray-600">{booking.clientName}</span>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="font-[600]">Flight</span>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-gray-600">{booking.airline}</span>
+                                <div className="w-[87px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                    {booking.flightNo}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-[600]">Route</span>
+                            <span className="text-gray-600">{`${booking.from} → ${booking.to}`}</span>
+                        </div>
+                        <div className="space-y-1 text-[#939392]">
+                            <div className="flex justify-between items-center">
+                                <span className="font-[600] text-black">Depart</span>
+                                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                    {booking.startDate}
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="font-[600] text-black">Arrive</span>
+                                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                    {booking.endDate}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-[600]">Payment</span>
+                            <div className="flex flex-col items-end gap-1">
+                                <span className="text-gray-600">{booking.payment}</span>
+                                <div
+                                    className="w-[75px] h-[19px] border-[0.5px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                    style={{ borderColor: booking.paymentStatusColor, background: booking.paymentStatusBg }}
+                                >
+                                    {booking.paymentStatus}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="font-[600]">Status</span>
+                            <div
+                                className="w-[75px] h-[19px] border-[1px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                                style={{ background: booking.statusBg, borderColor: '#0000004D', color: booking.statusText }}
+                            >
+                                {booking.status}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
 
             {/* Popup Modal */}
             {isPopupOpen && (
