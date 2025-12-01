@@ -241,7 +241,7 @@ const DashContent = ({
 
                         {/* Earning Summary */}
                         <div
-                            className="w-full max-w-[320px] md:max-w-none min-h-[381px] bg-white rounded-[10px] py-6 md:py-10 px-3 md:px-10 overflow-x-auto"
+                            className="w-full max-w-[320px] md:max-w-full min-h-[381px] bg-white rounded-[10px] py-6 md:py-10 px-3 md:px-10 overflow-x-auto"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-12 w-full gap-4">
@@ -333,7 +333,7 @@ const DashContent = ({
                         </div>
 
                         {/* Reminders - Moved to left on mobile */}
-                        <div
+                        {/* <div
                             className="w-full max-w-[320px] md:max-w-none xl:hidden min-h-[335px] bg-white rounded-[10px] py-5 px-3 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
@@ -345,11 +345,11 @@ const DashContent = ({
                                     +
                                 </button>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Right */}
-                    <div className="flex flex-col items-center gap-5 w-full min-w-0">
+                    <div className="flex flex-col items-center gap-5 w-full min-w-0 h-full">
                         {/* Car Availability - Desktop only */}
                         <div
                             className="hidden xl:flex w-full max-w-[320px] md:max-w-none xl:min-h-[206px] bg-[#D8E4F2] flex-col px-4 md:px-10 py-5 justify-center items-center rounded-[10px]"
@@ -420,7 +420,7 @@ const DashContent = ({
                             </div>
                         </div>
 
-                        {/* Reminders - Desktop only */}
+                        {/* Reminders - Desktop only
                         <div
                             className="hidden xl:block w-full max-w-[320px] md:max-w-none min-h-[335px] bg-white rounded-[10px] py-5 px-3 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -433,7 +433,7 @@ const DashContent = ({
                                     +
                                 </button>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
 
