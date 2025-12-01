@@ -115,13 +115,13 @@ const events = [
         person: "Steve Gibson",
         status: "cancelled",
     },
-    {
-        day: 3,
-        time: "1:00 PM",
-        title: "Toyota Vezel",
-        person: "Steve Gibson",
-        status: "cancelled",
-    },
+    // {
+    //     day: 3,
+    //     time: "1:00 PM",
+    //     title: "Toyota Vezel",
+    //     person: "Steve Gibson",
+    //     status: "cancelled",
+    // },
     // Friday
     {
         day: 4,
