@@ -15,8 +15,8 @@ const defaultEarningData = [
   { name: "Dec", value: 21000 },
 ];
 
-const chartHeight = 250;
-const chartWidth = 650;
+const chartHeight = 300;
+const chartWidth = 1000;
 const padding = 40;
 
 function getX(index) {
@@ -94,7 +94,7 @@ const EarningSummaryChart = ({ data = [] }) => {
 
   return (
     <div className="w-full h-auto ml-10">
-      <svg width={chartWidth} height={chartHeight} className="block mx-auto">
+      <svg width={chartWidth} height={chartHeight} className="block mx-auto w-full">
         {/* Define linear gradient */}
         <defs>
           <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">

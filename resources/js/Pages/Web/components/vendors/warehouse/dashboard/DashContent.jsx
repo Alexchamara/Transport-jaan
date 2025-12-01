@@ -1276,10 +1276,10 @@ const DashContent = () => {
                                             This Year
                                         </option>
                                     </select>
-                                    <ChevronDown
+                                    {/* <ChevronDown
                                         size={16}
                                         className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[#00000080]"
-                                    />
+                                    /> */}
                                     {isSearching && (
                                         <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
                                             <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1336,10 +1336,6 @@ const DashContent = () => {
                                             This Year
                                         </option>
                                     </select>
-                                    <ChevronDown
-                                        size={16}
-                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[#00000080]"
-                                    />
                                     {isSearching && (
                                         <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
                                             <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1353,191 +1349,7 @@ const DashContent = () => {
                         </div>
                     </div>
                     {/* mini right section */}
-                    <div className="flex flex-col items-center gap-5 w-full">
-                        <div
-                            className="min-w-[349px] w-full min-h-[206px] bg-[#D8E4F2] flex flex-col px-10 py-5 justify-center items-center rounded-[10px]"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <h1 className="text-[24px] font-[700] mb-3">
-                                Unit Availability
-                            </h1>
-
-                            <div className="flex flex-col gap-3">
-                                <div className="relative">
-                                    <select
-                                        value={availabilityForm.unitType}
-                                        onChange={(e) =>
-                                            setAvailabilityForm((prev) => ({
-                                                ...prev,
-                                                unitType: e.target.value,
-                                            }))
-                                        }
-                                        className="w-[283px] h-[35px] flex flex-row justify-center items-center gap-2 rounded-[6px] px-3 py-2 bg-[#FFFFFF] text-[14px] border-none outline-none cursor-pointer appearance-none pr-8"
-                                    >
-                                        <option value="">
-                                            Select Unit Type
-                                        </option>
-                                        <option value="cold_storage">
-                                            Cold Storage
-                                        </option>
-                                        <option value="dry">Dry Storage</option>
-                                        <option value="bonded">
-                                            Bonded Warehouse
-                                        </option>
-                                        <option value="open_yard">
-                                            Open Yard
-                                        </option>
-                                        <option value="climate_controlled">
-                                            Climate Controlled
-                                        </option>
-                                    </select>
-                                    <Building2
-                                        size={20}
-                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
-                                    />
-                                    <ChevronDown
-                                        size={16}
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
-                                    />
-                                </div>
-
-                                <div className="flex flex-row gap-3">
-                                    <div className="w-[137px] h-[35px] bg-[#FFFFFF] rounded-[6px] flex flex-row justify-center items-center gap-2 py-2 px-3 relative">
-                                        <CalendarDays
-                                            size={20}
-                                            className="text-gray-400"
-                                        />
-                                        <input
-                                            type="date"
-                                            value={availabilityForm.date}
-                                            onChange={(e) =>
-                                                setAvailabilityForm((prev) => ({
-                                                    ...prev,
-                                                    date: e.target.value,
-                                                }))
-                                            }
-                                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none text-[14px]"
-                                            min={
-                                                new Date()
-                                                    .toISOString()
-                                                    .split("T")[0]
-                                            }
-                                        />
-                                    </div>
-                                    <div className="w-[137px] h-[35px] bg-[#FFFFFF] rounded-[6px] flex flex-row justify-center gap-2 items-center py-2 px-3 relative">
-                                        <Clock
-                                            size={16}
-                                            className="text-gray-400"
-                                        />
-                                        <input
-                                            type="time"
-                                            value={availabilityForm.time}
-                                            onChange={(e) =>
-                                                setAvailabilityForm((prev) => ({
-                                                    ...prev,
-                                                    time: e.target.value,
-                                                }))
-                                            }
-                                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none text-[14px]"
-                                        />
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={handleAvailabilityCheck}
-                                    className="w-[283px] h-[40px] bg-[#0955AC] rounded-[6px] flex justify-center items-center text-[16px] font-[700] text-[#FFFFFF] cursor-pointer hover:bg-[#083d7a] transition-colors disabled:opacity-50"
-                                    disabled={!availabilityForm.date}
-                                >
-                                    Check Availability
-                                </button>
-                            </div>
-                        </div>
-                        <div
-                            className="min-w-[349px] w-full min-h-[427px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-row items-center justify-between w-full">
-                                <h1 className="text-[24px] font-[700]">
-                                    Warehouse Status
-                                </h1>
-                                <div className="relative">
-                                    <select
-                                        value={statusFilter}
-                                        onChange={(e) =>
-                                            handleStatusFilterChange(
-                                                e.target.value
-                                            )
-                                        }
-                                        className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] text-[#00000080] font-[600] text-[14px] border-none outline-none cursor-pointer appearance-none px-3 pr-8"
-                                        disabled={isSearching}
-                                    >
-                                        <option value="This Week">
-                                            This Week
-                                        </option>
-                                        <option value="This Month">
-                                            This Month
-                                        </option>
-                                        <option value="Last 30 Days">
-                                            Last 30 Days
-                                        </option>
-                                        <option value="All Time">
-                                            All Time
-                                        </option>
-                                    </select>
-                                    <ChevronDown
-                                        size={16}
-                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[#00000080]"
-                                    />
-                                </div>
-                            </div>
-                            <RealStatusPieChart
-                                data={chartData.warehouseStatus}
-                            />
-                        </div>
-
-                        {/* Reminder section  */}
-                        <div
-                            className="min-w-[349px] w-full min-h-[335px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-row items-center justify-between w-full">
-                                <h1 className="text-[24px] font-[700]">
-                                    Reminders
-                                </h1>
-                                <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[30px]">
-                                    +
-                                </div>
-                            </div>
-                            <div className="py-10 flex flex-col justify-center items-center gap-2">
-                                <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                                    <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                        !
-                                    </div>
-                                    <h1 className="text-[14px] font-[500] w-[199px]">
-                                        Complete vendor onboarding checklist for
-                                        new suppliers.
-                                    </h1>
-                                </div>
-                                <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                                    <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                        !
-                                    </div>
-                                    <h1 className="text-[14px] font-[500] w-[199px]">
-                                        Renew expiring storage contracts for
-                                        September.
-                                    </h1>
-                                </div>
-                                <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                                    <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                        !
-                                    </div>
-                                    <h1 className="text-[14px] font-[500] w-[199px]">
-                                        Reconcile August warehouse invoices.
-                                    </h1>
-                                </div>
-                            </div>
-                        </div>
-                        {/* end */}
-                    </div>
+                    
                 </div>
 
                 {/* vendors section */}
@@ -1546,7 +1358,7 @@ const DashContent = () => {
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <div className="flex flex-row justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                         <div className="flex flex-col">
                             <h1 className="text-[24px] font-[700]">
                                 Warehouse Clients
@@ -1582,10 +1394,10 @@ const DashContent = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="flex flex-row gap-5">
-                            <div className="relative">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 w-full sm:w-auto">
+                            <div className="relative w-full sm:w-auto">
                                 <div
-                                    className={`w-[280px] h-[35px] rounded-[6px] flex flex-row items-center py-2 px-5 transition-all duration-200 ${
+                                    className={`w-full sm:w-[280px] h-[35px] rounded-[6px] flex flex-row items-center py-2 px-5 transition-all duration-200 ${
                                         searchQuery
                                             ? "bg-blue-50 border border-blue-200"
                                             : "bg-[#F3F3F3]"
@@ -1631,7 +1443,7 @@ const DashContent = () => {
                                     )}
                                 </div>
                                 {searchQuery && (
-                                    <div className="absolute top-10 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 p-2">
+                                    <div className="static sm:absolute sm:top-10 sm:left-0 sm:right-0 bg-white border border-gray-200 rounded-lg shadow-lg sm:z-10 p-2">
                                         <div className="text-xs text-gray-600">
                                             {isSearching ? (
                                                 <div className="flex items-center gap-2">
@@ -1648,13 +1460,13 @@ const DashContent = () => {
                                     </div>
                                 )}
                             </div>
-                            <div className="relative">
+                            <div className="relative w-full sm:w-auto">
                                 <select
                                     value={activeFilter}
                                     onChange={(e) =>
                                         setActiveFilter(e.target.value)
                                     }
-                                    className="w-[140px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#7B7B7ACC] border-none outline-none cursor-pointer appearance-none px-3 pr-8"
+                                    className="w-full sm:w-[140px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#7B7B7ACC] border-none outline-none cursor-pointer appearance-none px-3 pr-8 mt-2 sm:mt-0"
                                 >
                                     <option value="all">All Bookings</option>
                                     <option value="active">Active</option>
@@ -1662,14 +1474,14 @@ const DashContent = () => {
                                     <option value="completed">Completed</option>
                                     <option value="cancelled">Cancelled</option>
                                 </select>
-                                <Filter
+                                {/* <Filter
                                     size={12}
                                     className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
                                 />
                                 <ChevronDown
                                     size={16}
                                     className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none"
-                                />
+                                /> */}
                             </div>
                         </div>
                     </div>
