@@ -204,11 +204,10 @@ const DashContent = () => {
                         activeBookings:
                             stats.pending_bookings + stats.upcoming_bookings,
                         occupiedUnits: `${stats.upcoming_bookings} Units`,
-                        totalUnits: `${
-                            stats.upcoming_bookings +
+                        totalUnits: `${stats.upcoming_bookings +
                             stats.completed_bookings +
                             20
-                        } Units`,
+                            } Units`,
                         revenueChange: calculateChange(
                             dashboardStats.activeBookings,
                             stats.pending_bookings + stats.upcoming_bookings
@@ -221,7 +220,7 @@ const DashContent = () => {
                     if (
                         silent &&
                         JSON.stringify(newStats) !==
-                            JSON.stringify(dashboardStats)
+                        JSON.stringify(dashboardStats)
                     ) {
                         showNotification("Dashboard stats updated", "success");
                     }
@@ -607,12 +606,12 @@ const DashContent = () => {
     // Fetch notifications
     const fetchNotifications = useCallback(async () => {
         if (!auth?.user) return;
-        
+
         try {
             console.log('DashContent: Fetching warehouse notifications...');
             const response = await fetch('/vendors/warehouse/notifications/data');
             console.log('DashContent: Response status:', response.status);
-            
+
             if (response.ok) {
                 const data = await response.json();
                 console.log('DashContent: Notifications data:', data);
@@ -632,9 +631,8 @@ const DashContent = () => {
             {
                 id: 1,
                 type: "booking",
-                title: `${
-                    user?.name || "Vendor"
-                } confirmed new warehouse booking`,
+                title: `${user?.name || "Vendor"
+                    } confirmed new warehouse booking`,
                 time: "10:45 AM",
                 date: "Today",
                 icon: "calendar",
@@ -1018,23 +1016,21 @@ const DashContent = () => {
                     {notifications.map((notification) => (
                         <div
                             key={notification.id}
-                            className={`p-3 rounded-lg shadow-lg border-l-4 bg-white transform transition-all duration-300 ${
-                                notification.type === "success"
+                            className={`p-3 rounded-lg shadow-lg border-l-4 bg-white transform transition-all duration-300 ${notification.type === "success"
                                     ? "border-green-500"
                                     : notification.type === "error"
-                                    ? "border-red-500"
-                                    : "border-blue-500"
-                            } animate-slide-in`}
+                                        ? "border-red-500"
+                                        : "border-blue-500"
+                                } animate-slide-in`}
                         >
                             <div className="flex items-center gap-2">
                                 <div
-                                    className={`w-2 h-2 rounded-full ${
-                                        notification.type === "success"
+                                    className={`w-2 h-2 rounded-full ${notification.type === "success"
                                             ? "bg-green-500"
                                             : notification.type === "error"
-                                            ? "bg-red-500"
-                                            : "bg-blue-500"
-                                    }`}
+                                                ? "bg-red-500"
+                                                : "bg-blue-500"
+                                        }`}
                                 ></div>
                                 <span className="text-sm font-medium text-gray-800">
                                     {notification.message}
@@ -1082,8 +1078,8 @@ const DashContent = () => {
                         </h1>
                     </div>
                 </div> */}
-                <div className="flex flex-row gap-5 relative items-center">
-                    <NotificationDropdown 
+                <div className="flex flex-col xl:flex-row gap-5 relative items-center">
+                    <NotificationDropdown
                         notifications={warehouseNotifications}
                         unreadCount={notificationUnreadCount}
                     />
@@ -1100,10 +1096,10 @@ const DashContent = () => {
                     <div className="flex flex-col gap-5 w-full">
                         {/* mini 4 cards */}
                         <div className="flex flex-col gap-5">
-                            <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
+                            <div className="flex xl:flex-row flex-col gap-5 w-full">
                                 {/* card 1 */}
                                 <div
-                                    className="min-w-[360px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1113,31 +1109,27 @@ const DashContent = () => {
                                             <DollarSign size={24} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
                                                 Total Revenue
                                             </h1>
-                                            <h1 className="text-[26px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 {dashboardStats.totalRevenue}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <ArrowUp size={19} />
-                                            <h1>
-                                                {dashboardStats.revenueChange}
-                                            </h1>
+                                            <h1>{dashboardStats.revenueChange}</h1>
                                         </div>
-                                        <h1 className="text-[#7B7B7A]">
-                                            from last week
-                                        </h1>
+                                        <h1 className="text-[#7B7B7A]">from last week</h1>
                                     </div>
                                 </div>
                                 {/* end of card 1 */}
 
                                 {/* card 2 */}
                                 <div
-                                    className="min-w-[360px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1147,32 +1139,29 @@ const DashContent = () => {
                                             <CalendarDays size={24} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
                                                 Active Bookings
                                             </h1>
-                                            <h1 className="text-[26px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 {dashboardStats.activeBookings}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <ArrowUp size={19} />
-                                            <h1>
-                                                {dashboardStats.bookingsChange}
-                                            </h1>
+                                            <h1>{dashboardStats.bookingsChange}</h1>
                                         </div>
-                                        <h1 className="text-[#7B7B7A]">
-                                            from last week
-                                        </h1>
+                                        <h1 className="text-[#7B7B7A]">from last week</h1>
                                     </div>
                                 </div>
                                 {/* end of card 2 */}
                             </div>
+
                             <div className="flex xl:flex-row flex-col gap-5 w-full">
                                 {/* card 3 */}
                                 <div
-                                    className="min-w-[360px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1182,30 +1171,27 @@ const DashContent = () => {
                                             <Package size={24} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
                                                 Occupied Units
                                             </h1>
-                                            <h1 className="text-[26px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 {dashboardStats.occupiedUnits}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <ArrowUp size={19} />
-                                            <h1>
-                                                {dashboardStats.occupiedChange}
-                                            </h1>
+                                            <h1>{dashboardStats.occupiedChange}</h1>
                                         </div>
-                                        <h1 className="text-[#7B7B7A]">
-                                            from last week
-                                        </h1>
+                                        <h1 className="text-[#7B7B7A]">from last week</h1>
                                     </div>
                                 </div>
                                 {/* end of card 3 */}
+
                                 {/* card 4 */}
                                 <div
-                                    className="min-w-[360px] min-h-[91px] w-full bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1215,29 +1201,26 @@ const DashContent = () => {
                                             <Boxes size={24} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
                                                 Total Units
                                             </h1>
-                                            <h1 className="text-[26px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 {dashboardStats.totalUnits}
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <ArrowUp size={19} />
-                                            <h1>
-                                                {dashboardStats.unitsChange}
-                                            </h1>
+                                            <h1>{dashboardStats.unitsChange}</h1>
                                         </div>
-                                        <h1 className="text-[#7B7B7A]">
-                                            from last week
-                                        </h1>
+                                        <h1 className="text-[#7B7B7A]">from last week</h1>
                                     </div>
                                 </div>
                                 {/* end of card 4 */}
                             </div>
                         </div>
+
                         {/* end of 4 mini cards */}
 
                         {/* booking chart */}
@@ -1289,7 +1272,7 @@ const DashContent = () => {
                             </div>
                             {/* Booking Overview Bar Chart */}
                             {isSearching &&
-                            chartData.bookingOverview.length === 0 ? (
+                                chartData.bookingOverview.length === 0 ? (
                                 <div className="w-[600px] h-[217px] flex items-center justify-center text-gray-500">
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -1349,7 +1332,7 @@ const DashContent = () => {
                         </div>
                     </div>
                     {/* mini right section */}
-                    
+
                 </div>
 
                 {/* vendors section */}
@@ -1372,11 +1355,10 @@ const DashContent = () => {
                                             activeFilter !== "all" &&
                                             " • "}
                                         {activeFilter !== "all" &&
-                                            `Filter: ${
-                                                activeFilter
-                                                    .charAt(0)
-                                                    .toUpperCase() +
-                                                activeFilter.slice(1)
+                                            `Filter: ${activeFilter
+                                                .charAt(0)
+                                                .toUpperCase() +
+                                            activeFilter.slice(1)
                                             }`}
                                     </span>
                                     <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
@@ -1397,19 +1379,17 @@ const DashContent = () => {
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 w-full sm:w-auto">
                             <div className="relative w-full sm:w-auto">
                                 <div
-                                    className={`w-full sm:w-[280px] h-[35px] rounded-[6px] flex flex-row items-center py-2 px-5 transition-all duration-200 ${
-                                        searchQuery
+                                    className={`w-full sm:w-[280px] h-[35px] rounded-[6px] flex flex-row items-center py-2 px-5 transition-all duration-200 ${searchQuery
                                             ? "bg-blue-50 border border-blue-200"
                                             : "bg-[#F3F3F3]"
-                                    }`}
+                                        }`}
                                 >
                                     <Search
                                         size={16}
-                                        className={`transition-colors ${
-                                            searchQuery
+                                        className={`transition-colors ${searchQuery
                                                 ? "text-blue-500"
                                                 : "text-gray-400"
-                                        }`}
+                                            }`}
                                     />
                                     <input
                                         id="globalSearch"
@@ -1528,9 +1508,9 @@ const DashContent = () => {
                                                             type.percent <= 20
                                                                 ? "#F51D1D"
                                                                 : type.percent <=
-                                                                  50
-                                                                ? "#FFCD29"
-                                                                : "#0955AC",
+                                                                    50
+                                                                    ? "#FFCD29"
+                                                                    : "#0955AC",
                                                     }}
                                                 ></div>
                                             </div>
@@ -1567,18 +1547,18 @@ const DashContent = () => {
                                             <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center shadow-sm border">
                                                 {activity.icon ===
                                                     "calendar" && (
-                                                    <CalendarDays
-                                                        size={24}
-                                                        className="text-blue-600"
-                                                    />
-                                                )}
+                                                        <CalendarDays
+                                                            size={24}
+                                                            className="text-blue-600"
+                                                        />
+                                                    )}
                                                 {activity.icon ===
                                                     "package" && (
-                                                    <Package
-                                                        size={24}
-                                                        className="text-green-600"
-                                                    />
-                                                )}
+                                                        <Package
+                                                            size={24}
+                                                            className="text-green-600"
+                                                        />
+                                                    )}
                                                 {activity.icon === "users" && (
                                                     <Users
                                                         size={24}
@@ -1596,9 +1576,9 @@ const DashContent = () => {
                                                 recentActivities.filter(
                                                     (a) => a.date === "Today"
                                                 ).length -
-                                                    1 && (
-                                                <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                            )}
+                                                1 && (
+                                                    <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
+                                                )}
                                         </React.Fragment>
                                     ))}
                             </div>
@@ -1630,18 +1610,18 @@ const DashContent = () => {
                                             <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center shadow-sm border">
                                                 {activity.icon ===
                                                     "calendar" && (
-                                                    <CalendarDays
-                                                        size={24}
-                                                        className="text-blue-600"
-                                                    />
-                                                )}
+                                                        <CalendarDays
+                                                            size={24}
+                                                            className="text-blue-600"
+                                                        />
+                                                    )}
                                                 {activity.icon ===
                                                     "package" && (
-                                                    <Package
-                                                        size={24}
-                                                        className="text-green-600"
-                                                    />
-                                                )}
+                                                        <Package
+                                                            size={24}
+                                                            className="text-green-600"
+                                                        />
+                                                    )}
                                                 {activity.icon === "users" && (
                                                     <Users
                                                         size={24}
@@ -1660,9 +1640,9 @@ const DashContent = () => {
                                                     (a) =>
                                                         a.date === "Yesterday"
                                                 ).length -
-                                                    1 && (
-                                                <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                            )}
+                                                1 && (
+                                                    <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
+                                                )}
                                         </React.Fragment>
                                     ))}
                             </div>
