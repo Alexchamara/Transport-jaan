@@ -1009,7 +1009,7 @@ const DashContent = () => {
     }
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-5 xl:pr-5 xl:pl-0 py-10">
             {/* Real-time notifications */}
             {notifications.length > 0 && (
                 <div className="fixed top-4 right-4 z-50 space-y-2">
@@ -1225,7 +1225,7 @@ const DashContent = () => {
 
                         {/* booking chart */}
                         <div
-                            className="min-w-[742px] h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
+                            className="hidden md:block md:w-full md:min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10 overflow-hidden"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             {/* Occupancy Overview header and dropdown */}
@@ -1472,7 +1472,7 @@ const DashContent = () => {
 
                 <div className="flex flex-col xl:flex-row gap-5 justify-between">
                     <div
-                        className="min-w-[500px] w-full min-h-[858px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                        className={`w-full xl:min-w-[500px] ${unitTypes.length > 0 ? 'min-h-[858px]' : 'min-h-[300px]'} bg-[#FFFFFF] rounded-[10px] px-6 xl:px-10 py-10`}
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">
@@ -1525,7 +1525,7 @@ const DashContent = () => {
                         </div>
                     </div>
                     <div
-                        className="min-w-[553px] min-h-[858px] bg-[#0F0F0F08] rounded-[10px] px-10 py-10"
+                        className={`w-full xl:min-w-[553px] ${recentActivities.length > 0 ? 'min-h-[858px]' : 'min-h-[300px]'} bg-[#0F0F0F08] rounded-[10px] px-6 xl:px-10 py-10`}
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">
