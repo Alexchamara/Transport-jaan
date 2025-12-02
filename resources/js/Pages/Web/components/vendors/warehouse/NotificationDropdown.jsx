@@ -79,7 +79,7 @@ const NotificationDropdown = ({ notifications = [], unreadCount = 0 }) => {
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
         if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-        
+
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 
@@ -99,7 +99,7 @@ const NotificationDropdown = ({ notifications = [], unreadCount = 0 }) => {
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-[400px] max-h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                <div className="absolute left-1/2 -translate-x-1/2 lg:left-auto lg:right-0 lg:translate-x-0 mt-2 w-[90vw] max-w-[400px] lg:w-[400px] max-h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 z-50 overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
                         <div className="flex items-center gap-2">
@@ -133,9 +133,8 @@ const NotificationDropdown = ({ notifications = [], unreadCount = 0 }) => {
                                 {notifications.map((notification) => (
                                     <div
                                         key={notification.id}
-                                        className={`relative px-4 py-3 hover:bg-gray-50 transition-colors ${
-                                            !notification.read_at ? 'bg-blue-50/50' : ''
-                                        }`}
+                                        className={`relative px-4 py-3 hover:bg-gray-50 transition-colors ${!notification.read_at ? 'bg-blue-50/50' : ''
+                                            }`}
                                     >
                                         <div className="flex gap-3">
                                             <div className="flex-shrink-0 mt-1">
