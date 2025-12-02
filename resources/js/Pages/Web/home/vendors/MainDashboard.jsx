@@ -5,6 +5,7 @@ import CardDashboard from "../../components/vendors/mainDashboard/CardDashboard"
 
 const MainDashboard = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
 
     // Auto-refresh the page EVERY time it's visited to prevent stale CSRF token
     useEffect(() => {
@@ -23,6 +24,16 @@ const MainDashboard = () => {
         }
     }, []);
 
+    // Track scroll position
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 10);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
     // Simple loader overlay
     if (isRefreshing) {
         return (
@@ -37,7 +48,9 @@ const MainDashboard = () => {
 
     return (
         <div className="bg-[#E5E5E5] min-h-screen">
-            <Header />
+            <div className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black/10 backdrop-blur-sm shadow-md' : ''}`}>
+                <Header />
+            </div>
             <CardDashboard />
         </div>
     );
