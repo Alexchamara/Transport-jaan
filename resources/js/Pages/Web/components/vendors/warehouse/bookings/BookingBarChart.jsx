@@ -23,11 +23,11 @@ const options = {
     },
     tooltip: {
       enabled: false,
-      external: function(context) {
+      external: function (context) {
         // Custom tooltip rendering handled below
       },
       callbacks: {
-        label: function(context) {
+        label: function (context) {
           // Not used, custom tooltip below
           return '';
         },
@@ -77,7 +77,7 @@ const options = {
         font: {
           size: 14,
         },
-        callback: function(value) {
+        callback: function (value) {
           if (value === 500) return '500';
           if (value === -500) return '-500';
           return value;
@@ -114,7 +114,7 @@ function CustomTooltip({ chart, tooltip, labels, doneData, cancelledData }) {
       style={{
         position: 'absolute',
         left: tooltip.caretX,
-        top: tooltip.caretY - 60,
+        top: tooltip.caretY + 20,
         background: '#D8E4F2',
         color: '#000',
         padding: '12px 24px',
@@ -124,7 +124,7 @@ function CustomTooltip({ chart, tooltip, labels, doneData, cancelledData }) {
         minWidth: 120,
         textAlign: 'center',
         zIndex: 100,
-        transform: 'translate(-50%, -100%)',
+        transform: 'translate(0, 100%)',
       }}
     >
       <div className="text-[14px] font-[600]">{month} 2025</div>
@@ -146,7 +146,7 @@ function BookingBarChart() {
 
   const periodOptions = [
     'Last 3 months',
-    'Last 6 months', 
+    'Last 6 months',
     'Last 8 months',
     'Last 12 months',
     'This year',
@@ -159,11 +159,11 @@ function BookingBarChart() {
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await axios.get('/vendors/warehouse/api/bookings/chart-data', {
           params: { period: selectedPeriod }
         });
-        
+
         if (response.data.success) {
           setBookingData(response.data.data || []);
         } else {
@@ -280,8 +280,8 @@ function BookingBarChart() {
           <div className="text-center">
             <div className="text-red-500 text-[18px] font-[600] mb-2">Error</div>
             <p className="text-[#7B7B7A] text-[16px]">{error}</p>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               className="mt-4 bg-[#0955AC] text-white px-4 py-2 rounded-lg hover:bg-[#0845A0] transition-colors"
             >
               Retry
@@ -293,76 +293,75 @@ function BookingBarChart() {
   }
 
   return (
-<div className="w-full h-full flex flex-col items-stretch relative px-8 pt-8 pb-4">
-  {/* Header */}
-  <div className="flex flex-row justify-between items-center mb-6">
-    <div className="flex flex-col gap-2">
-      <h2 className="text-[28px] font-[700]">Booking Overview</h2>
-      <div className="flex flex-row items-center gap-6 mt-1">
-        <div className="flex flex-row items-center gap-2">
-          <span className="inline-block w-6 h-6 rounded bg-[#0955AC]"></span>
-          <span className="text-[20px] font-[600] text-[#7B7B7A]">Done</span>
+    <div className="w-full h-full flex flex-col items-stretch relative px-8 pt-8 pb-4">
+      {/* Header */}
+      <div className="flex flex-row justify-between items-center mb-6">
+        <div className="flex flex-col gap-2">
+          <h2 className="text-[28px] font-[700]">Booking Overview</h2>
+          <div className="flex flex-row items-center gap-6 mt-1">
+            <div className="flex flex-row items-center gap-2">
+              <span className="inline-block w-6 h-6 rounded bg-[#0955AC]"></span>
+              <span className="text-[20px] font-[600] text-[#7B7B7A]">Done</span>
+            </div>
+            <div className="flex flex-row items-center gap-2">
+              <span className="inline-block w-6 h-6 rounded bg-black"></span>
+              <span className="text-[20px] font-[600] text-[#7B7B7A]">Cancelled</span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-row items-center gap-2">
-          <span className="inline-block w-6 h-6 rounded bg-black"></span>
-          <span className="text-[20px] font-[600] text-[#7B7B7A]">Cancelled</span>
-        </div>
+      </div>
+
+
+      <div className="absolute top-4 right-4 sm:top-8 sm:right-8">
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="bg-[#F3F3F3] rounded-lg px-3 sm:px-4 py-1 sm:py-2 flex flex-row items-center gap-2 text-[14px] sm:text-[16px] font-[500] text-[#7B7B7A] shadow-none border-none outline-none hover:bg-[#E8E8E8] transition-colors"
+        >
+          {selectedPeriod}
+          <img
+            src={miniDownArrow}
+            alt="dropdown"
+            className={`w-3 sm:w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {isDropdownOpen && (
+          <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[120px] sm:min-w-[160px]">
+            {periodOptions.map((option) => (
+              <button
+                key={option}
+                onClick={() => {
+                  setSelectedPeriod(option);
+                  setIsDropdownOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2 text-[14px] font-[500] hover:bg-gray-50 transition-colors ${selectedPeriod === option ? 'text-[#0955AC] bg-blue-50' : 'text-[#7B7B7A]'
+                  }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Chart */}
+      <div className="relative w-full" style={{ height: `300px` }}>
+        {bookingData.length > 0 ? (
+          <>
+            <Bar
+              ref={chartRef}
+              data={data}
+              options={options}
+            />
+            {tooltipModel && <CustomTooltip chart={tooltipModel.chart} tooltip={tooltipModel} labels={labels} doneData={doneData} cancelledData={cancelledData} />}
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-[#7B7B7A] text-[16px]">No booking data available for the selected period</p>
+          </div>
+        )}
       </div>
     </div>
-  </div>
-
-  
-  <div className="absolute top-4 right-4 sm:top-8 sm:right-8">
-    <button 
-    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-    className="bg-[#F3F3F3] rounded-lg px-3 sm:px-4 py-1 sm:py-2 flex flex-row items-center gap-2 text-[14px] sm:text-[16px] font-[500] text-[#7B7B7A] shadow-none border-none outline-none hover:bg-[#E8E8E8] transition-colors"
-  >
-      {selectedPeriod}
-    <img 
-      src={miniDownArrow} 
-      alt="dropdown" 
-      className={`w-3 sm:w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-    />
-  </button>
-
-    {isDropdownOpen && (
-      <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-[120px] sm:min-w-[160px]">
-        {periodOptions.map((option) => (
-          <button
-            key={option}
-            onClick={() => {
-              setSelectedPeriod(option);
-              setIsDropdownOpen(false);
-            }}
-            className={`w-full text-left px-4 py-2 text-[14px] font-[500] hover:bg-gray-50 transition-colors ${
-              selectedPeriod === option ? 'text-[#0955AC] bg-blue-50' : 'text-[#7B7B7A]'
-            }`}
-          >
-            {option}
-          </button>
-        ))}
-      </div>
-    )}
-  </div>
-
-  {/* Chart */}
-  <div className="relative w-full" style={{ height: `300px` }}>
-    {bookingData.length > 0 ? (
-      <>
-        <Bar
-          ref={chartRef}
-          data={data}
-          options={options}
-        />
-        {tooltipModel && <CustomTooltip chart={tooltipModel.chart} tooltip={tooltipModel} labels={labels} doneData={doneData} cancelledData={cancelledData} />}
-      </>
-    ) : (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-[#7B7B7A] text-[16px]">No booking data available for the selected period</p>
-      </div>
-    )}
-  </div>
-</div>
 
   );
 }

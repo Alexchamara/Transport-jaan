@@ -1009,7 +1009,7 @@ const DashContent = () => {
     }
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-5 xl:pr-5 xl:pl-0 py-10">
             {/* Real-time notifications */}
             {notifications.length > 0 && (
                 <div className="fixed top-4 right-4 z-50 space-y-2">
@@ -1017,19 +1017,19 @@ const DashContent = () => {
                         <div
                             key={notification.id}
                             className={`p-3 rounded-lg shadow-lg border-l-4 bg-white transform transition-all duration-300 ${notification.type === "success"
-                                    ? "border-green-500"
-                                    : notification.type === "error"
-                                        ? "border-red-500"
-                                        : "border-blue-500"
+                                ? "border-green-500"
+                                : notification.type === "error"
+                                    ? "border-red-500"
+                                    : "border-blue-500"
                                 } animate-slide-in`}
                         >
                             <div className="flex items-center gap-2">
                                 <div
                                     className={`w-2 h-2 rounded-full ${notification.type === "success"
-                                            ? "bg-green-500"
-                                            : notification.type === "error"
-                                                ? "bg-red-500"
-                                                : "bg-blue-500"
+                                        ? "bg-green-500"
+                                        : notification.type === "error"
+                                            ? "bg-red-500"
+                                            : "bg-blue-500"
                                         }`}
                                 ></div>
                                 <span className="text-sm font-medium text-gray-800">
@@ -1096,10 +1096,10 @@ const DashContent = () => {
                     <div className="flex flex-col gap-5 w-full">
                         {/* mini 4 cards */}
                         <div className="flex flex-col gap-5">
-                            <div className="flex xl:flex-row flex-col gap-5 w-full">
+                            <div className="flex xl:flex-row flex-col gap-5 xl:w-full">
                                 {/* card 1 */}
                                 <div
-                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[600px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1129,7 +1129,7 @@ const DashContent = () => {
 
                                 {/* card 2 */}
                                 <div
-                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[600px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1161,7 +1161,7 @@ const DashContent = () => {
                             <div className="flex xl:flex-row flex-col gap-5 w-full">
                                 {/* card 3 */}
                                 <div
-                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[600px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1191,7 +1191,7 @@ const DashContent = () => {
 
                                 {/* card 4 */}
                                 <div
-                                    className="xl:w-[350px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:w-[600px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -1225,7 +1225,7 @@ const DashContent = () => {
 
                         {/* booking chart */}
                         <div
-                            className="min-w-[742px] h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
+                            className="hidden md:block md:w-full md:min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10 overflow-hidden"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             {/* Occupancy Overview header and dropdown */}
@@ -1273,7 +1273,7 @@ const DashContent = () => {
                             {/* Booking Overview Bar Chart */}
                             {isSearching &&
                                 chartData.bookingOverview.length === 0 ? (
-                                <div className="w-[600px] h-[217px] flex items-center justify-center text-gray-500">
+                                <div className="xl:w-[600px] h-[217px] flex items-center justify-center text-gray-500">
                                     <div className="flex flex-col items-center gap-3">
                                         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                                         <span>Loading chart data...</span>
@@ -1287,7 +1287,7 @@ const DashContent = () => {
                         </div>
 
                         <div
-                            className="min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10"
+                            className="w-full md:min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10 overflow-hidden"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between mb-12 w-full">
@@ -1380,15 +1380,15 @@ const DashContent = () => {
                             <div className="relative w-full sm:w-auto">
                                 <div
                                     className={`w-full sm:w-[280px] h-[35px] rounded-[6px] flex flex-row items-center py-2 px-5 transition-all duration-200 ${searchQuery
-                                            ? "bg-blue-50 border border-blue-200"
-                                            : "bg-[#F3F3F3]"
+                                        ? "bg-blue-50 border border-blue-200"
+                                        : "bg-[#F3F3F3]"
                                         }`}
                                 >
                                     <Search
                                         size={16}
                                         className={`transition-colors ${searchQuery
-                                                ? "text-blue-500"
-                                                : "text-gray-400"
+                                            ? "text-blue-500"
+                                            : "text-gray-400"
                                             }`}
                                     />
                                     <input
@@ -1472,7 +1472,7 @@ const DashContent = () => {
 
                 <div className="flex flex-col xl:flex-row gap-5 justify-between">
                     <div
-                        className="min-w-[500px] w-full min-h-[858px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                        className={`w-full xl:min-w-[500px] ${unitTypes.length > 0 ? 'min-h-[858px]' : 'min-h-[300px]'} bg-[#FFFFFF] rounded-[10px] px-6 xl:px-10 py-10`}
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">
@@ -1525,7 +1525,7 @@ const DashContent = () => {
                         </div>
                     </div>
                     <div
-                        className="min-w-[553px] min-h-[858px] bg-[#0F0F0F08] rounded-[10px] px-10 py-10"
+                        className={`w-full xl:min-w-[553px] ${recentActivities.length > 0 ? 'min-h-[858px]' : 'min-h-[300px]'} bg-[#0F0F0F08] rounded-[10px] px-6 xl:px-10 py-10`}
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">

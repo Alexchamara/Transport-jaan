@@ -52,25 +52,25 @@ const UserDropdown = ({ settingsRoute }) => {
         onClick={() => setIsOpen((prev) => !prev)}
       >
         {/* Profile Image */}
-        <div className="w-[60px] h-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center overflow-hidden text-xl font-bold text-[#7B7B7A]">
+        <div className="w-[40px] h-[40px] lg:w-[60px] lg:h-[60px] rounded-full lg:rounded-[10px] bg-[#E8E8EF] flex justify-center items-center overflow-hidden text-xl font-bold text-[#7B7B7A]">
           {user?.image ? (
             <img
               src={user.image}
               alt="Profile"
-              className="w-full h-full object-cover rounded-[10px]"
+              className="w-full h-full object-cover rounded-full lg:rounded-[10px]"
               onError={(e) => (e.target.src = proPic)}
             />
           ) : (
             <img
               src={proPic}
               alt="Default Profile"
-              className="w-full h-full object-cover rounded-[10px]"
+              className="w-full h-full object-cover rounded-full lg:rounded-[10px]"
             />
           )}
         </div>
 
-        {/* User Info */}
-        <div className="flex flex-col justify-center min-w-0 flex-1">
+        {/* User Info - Hidden on mobile, visible on lg+ */}
+        <div className="hidden lg:flex flex-col justify-center min-w-0 flex-1">
           <h1 className="text-[14px] sm:text-[16px] md:text-[20px] font-[700] truncate">
             {user?.name || "User"}
           </h1>
@@ -79,11 +79,10 @@ const UserDropdown = ({ settingsRoute }) => {
           </h1>
         </div>
 
-        {/* Chevron */}
+        {/* Chevron - Hidden on mobile, visible on lg+ */}
         <ChevronDown
-          className={`w-4 h-4 sm:w-5 sm:h-5 text-[#7B7B7A] transition-transform duration-200 shrink-0 ${
-            isOpen ? "rotate-180" : ""
-          }`}
+          className={`hidden lg:block w-4 h-4 sm:w-5 sm:h-5 text-[#7B7B7A] transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""
+            }`}
         />
       </div>
 
