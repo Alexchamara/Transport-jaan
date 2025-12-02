@@ -33,7 +33,7 @@ function BookingOverviewBarChart({ data = [] }) {
   }
   
   return (
-    <div className="w-[850px] h-auto flex flex-col items-stretch relative">
+    <div className="w-[850px] mx-auto h-auto flex flex-col items-stretch relative">
       {/* Chart area: grid lines and bars, fixed height */}
       <div className="relative w-full" style={{ height: `${chartHeight}px` }}>
         {/* Y-axis grid lines and labels */}
