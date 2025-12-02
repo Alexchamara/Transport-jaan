@@ -8,6 +8,7 @@ import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.sv
 import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 import AddUnit from "../../../../home/vendors/warehouse/AddUnit";
 import UserDropdown from "../../UserDropdown.jsx";
+import NotificationDropdown from "../NotificationDropdown";
 
 const UnitContent = () => {
     const { auth } = usePage().props;
@@ -37,6 +38,10 @@ const UnitContent = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [unitToDelete, setUnitToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Notifications
+    const [warehouseNotifications, setWarehouseNotifications] = useState([]);
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
     const perPageOptions = [5, 10, 20, 50];
 
@@ -88,6 +93,31 @@ const UnitContent = () => {
         }, 500);
         return () => clearTimeout(timer);
     }, [searchTerm, typeFilter, statusFilter]);
+
+    // Fetch notifications
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!auth?.user) return;
+
+            try {
+                const response = await fetch('/vendors/warehouse/notifications/data');
+                if (response.ok) {
+                    const data = await response.json();
+                    setWarehouseNotifications(data.notifications || []);
+                    setNotificationUnreadCount(data.unread_count || 0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch notifications:', error);
+            }
+        };
+
+        if (auth?.user) {
+            fetchNotifications();
+            // Refresh notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [auth?.user]);
 
     // Pagination Helpers
     const goToPage = (page) => {
@@ -194,67 +224,58 @@ const UnitContent = () => {
     };
 
     return (
-        <div className="w-full min-h-screen px-4 sm:px-6 lg:px-8 py-8 lg:py-12 bg-gray-50">
+        <div className="w-full min-h-screen px-4 sm:px-6 lg:px-8 pt-24 sm:pt-8 lg:pt-12 pb-8 lg:pb-12">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-center sm:items-center gap-6 mb-10">
-                <h1 className="figtree text-[28px] sm:text-[35px] font-bold text-gray-900">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-10">
+                <h1 className="figtree text-[28px] sm:text-[35px] font-bold text-gray-900 text-center sm:text-left">
                     Warehouse Units
                 </h1>
-                <UserDropdown />
+                <div className="hidden lg:flex items-center gap-3">
+                    <NotificationDropdown
+                        notifications={warehouseNotifications}
+                        unreadCount={notificationUnreadCount}
+                    />
+                    <UserDropdown />
+                </div>
             </div>
 
             {/* Search, Filter section - Only show when not in Add Unit mode */}
             {!showAddUnit && (
-                <div className="flex flex-row justify-between mt-10 mb-5">
-                    <div className="flex flex-row items-center justify-between w-full">
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                                <img src={miniSearchIcon} alt="Search" />
-                                <input
-                                    type="text"
-                                    className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                    placeholder="Search warehouse name, address..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                            <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                                <img
-                                    src={filterIcon}
-                                    className="size-[12px]"
-                                    alt="Filter"
-                                />
+                <div className="flex flex-col gap-4 mt-6 sm:mt-10 mb-5">
+                    {/* Search Bar */}
+                    <div className="w-full h-[40px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
+                        <img src={miniSearchIcon} alt="Search" className="w-4 h-4" />
+                        <input
+                            type="text"
+                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-sm ml-2"
+                            placeholder="Search warehouse name, address..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Filters and Button */}
+                    <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch">
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="relative flex-1 sm:flex-none sm:w-[180px]">
                                 <select
-                                    className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
+                                    className="w-full h-[40px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#7B7B7ACC] pl-10 pr-10 outline-none border-none appearance-none cursor-pointer transition-colors focus:ring-0 focus:outline-none"
                                     value={typeFilter}
                                     onChange={(e) => setTypeFilter(e.target.value)}
                                 >
                                     <option value="">All Types</option>
-                                    <option value="Cold Storage">
-                                        Cold Storage
-                                    </option>
+                                    <option value="Cold Storage">Cold Storage</option>
                                     <option value="Dry Storage">Dry Storage</option>
-                                    <option value="Climate Controlled">
-                                        Climate Controlled
-                                    </option>
-                                    <option value="General Storage">
-                                        General Storage
-                                    </option>
+                                    <option value="Climate Controlled">Climate Controlled</option>
+                                    <option value="General Storage">General Storage</option>
                                 </select>
-                                <img src={miniDownArrow} alt="Dropdown" />
+                                <img src={filterIcon} className="absolute left-3 top-1/2 -translate-y-1/2 size-[14px] pointer-events-none" alt="Filter" />
                             </div>
-                            <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                                <img
-                                    src={filterIcon}
-                                    className="size-[12px]"
-                                    alt="Filter"
-                                />
+                            <div className="relative flex-1 sm:flex-none sm:w-[180px]">
                                 <select
-                                    className="text-[14px] font-[500] text-[#7B7B7ACC] bg-transparent outline-none border-none"
+                                    className="w-full h-[40px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#7B7B7ACC] pl-10 pr-10 outline-none border-none appearance-none cursor-pointer transition-colors focus:ring-0 focus:outline-none"
                                     value={statusFilter}
-                                    onChange={(e) =>
-                                        setStatusFilter(e.target.value)
-                                    }
+                                    onChange={(e) => setStatusFilter(e.target.value)}
                                 >
                                     <option value="">All Status</option>
                                     <option value="Available">Available</option>
@@ -262,11 +283,11 @@ const UnitContent = () => {
                                     <option value="Pending">Pending</option>
                                     <option value="Inactive">Inactive</option>
                                 </select>
-                                <img src={miniDownArrow} alt="Dropdown" />
+                                <img src={filterIcon} className="absolute left-3 top-1/2 -translate-y-1/2 size-[14px] pointer-events-none" alt="Filter" />
                             </div>
                         </div>
                         <button
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+                            className="w-full sm:w-[140px] h-[40px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] hover:bg-[#074a94] transition-colors"
                             onClick={handleAddUnitClick}
                         >
                             Add Warehouse
@@ -317,25 +338,25 @@ const UnitContent = () => {
                                         className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col lg:flex-row"
                                     >
                                         {/* Image */}
-                                        <div className="w-full lg:w-72 h-56 lg:h-auto">
+                                        <div className="w-full lg:w-72 h-48 sm:h-56 lg:h-auto">
                                             {imageUrl ? (
                                                 <img src={imageUrl} alt={unit.name} className="w-full h-full object-cover" />
                                             ) : (
-                                                <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-500 text-xl font-medium">
+                                                <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-500 text-lg sm:text-xl font-medium">
                                                     No Image
                                                 </div>
                                             )}
                                         </div>
 
                                         {/* Content */}
-                                        <div className="flex-1 p-6 lg:p-8 flex flex-col justify-between min-w-0">
+                                        <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-between min-w-0">
                                             <div>
-                                                <h3 className="bebas-neue text-3xl lg:text-4xl font-normal leading-tight truncate">
+                                                <h3 className="bebas-neue text-2xl sm:text-3xl lg:text-4xl font-normal leading-tight">
                                                     {unit.name}{" "}
                                                     <span className="text-[#0955AC]">[{unit.type}]</span>
                                                 </h3>
 
-                                                <div className="mt-4 flex flex-wrap gap-4 text-sm font-medium text-gray-700">
+                                                <div className="mt-3 sm:mt-4 flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm font-medium text-gray-700">
                                                     <span className={statusColor(unit.availability_status)}>
                                                         {unit.availability_status}
                                                     </span>
@@ -344,9 +365,9 @@ const UnitContent = () => {
                                                     <span>Capacity: {unit.capacity || "N/A"}</span>
                                                 </div>
 
-                                                <p className="mt-3 text-gray-600">{unit.address}</p>
+                                                <p className="mt-2 sm:mt-3 text-gray-600 text-sm">{unit.address}</p>
                                                 {unit.description && (
-                                                    <p className="mt-3 text-gray-600 text-sm line-clamp-2">{unit.description}</p>
+                                                    <p className="mt-2 sm:mt-3 text-gray-600 text-xs sm:text-sm line-clamp-2">{unit.description}</p>
                                                 )}
 
                                                 <div className="mt-5 flex flex-wrap gap-2">
@@ -364,43 +385,43 @@ const UnitContent = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                                            <div className="mt-4 sm:mt-8 flex flex-col sm:flex-row gap-2 sm:gap-3">
                                                 <button
                                                     onClick={() => handleViewWarehouse(unit)}
-                                                    className="flex-1 h-12 bg-[#0955AC] text-white font-bold rounded-lg hover:bg-[#074a94] transition flex items-center justify-center gap-2"
+                                                    className="flex-1 h-10 sm:h-12 bg-[#0955AC] text-white text-sm sm:text-base font-bold rounded-lg hover:bg-[#074a94] transition flex items-center justify-center gap-2"
                                                 >
                                                     View Details
                                                 </button>
                                                 <button
                                                     onClick={() => handleEditWarehouse(unit)}
-                                                    className="h-12 px-6 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600"
+                                                    className="h-10 sm:h-12 px-4 sm:px-6 bg-orange-500 text-white text-sm sm:text-base font-bold rounded-lg hover:bg-orange-600"
                                                 >
                                                     Edit
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteWarehouse(unit)}
-                                                    className="h-12 px-6 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700"
+                                                    className="h-10 sm:h-12 px-4 sm:px-6 bg-red-600 text-white text-sm sm:text-base font-bold rounded-lg hover:bg-red-700"
                                                 >
                                                     Delete
                                                 </button>
                                                 <button
                                                     onClick={() => handleToggleStatus(unit)}
-                                                    className={`h-12 px-6 font-bold rounded-lg text-white ${unit.is_active ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
+                                                    className={`h-10 sm:h-12 px-4 sm:px-6 text-sm sm:text-base font-bold rounded-lg text-white ${unit.is_active ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
                                                 >
                                                     {unit.is_active ? "Deactivate" : "Activate"}
                                                 </button>
                                             </div>
                                         </div>
 
-                                        {/* Action Icons (Right on desktop, bottom on mobile) */}
-                                        <div className="bg-[#D8E4F2] p-6 lg:p-8 lg:w-48 flex lg:flex-col justify-center items-center gap-6 order-first lg:order-last">
-                                            <button onClick={() => handleViewWarehouse(unit)} className="size-14 bg-white border-2 border-[#0955AC] rounded-xl hover:bg-blue-50 transition flex items-center justify-center text-2xl" title="View">
+                                        {/* Action Icons (Hidden on mobile, shown on desktop) */}
+                                        <div className="hidden lg:flex bg-[#D8E4F2] p-6 lg:p-8 lg:w-48 lg:flex-col justify-center items-center gap-6">
+                                            <button onClick={() => handleViewWarehouse(unit)} className="size-14 bg-white border-2 border-[#0955AC] rounded-xl hover:bg-blue-50 transition flex items-center justify-center text-sm" title="View">
                                                 View
                                             </button>
-                                            <button onClick={() => handleEditWarehouse(unit)} className="size-14 bg-white border-2 border-orange-500 rounded-xl hover:bg-orange-50 transition flex items-center justify-center text-2xl" title="Edit">
+                                            <button onClick={() => handleEditWarehouse(unit)} className="size-14 bg-white border-2 border-orange-500 rounded-xl hover:bg-orange-50 transition flex items-center justify-center text-sm" title="Edit">
                                                 Edit
                                             </button>
-                                            <button onClick={() => handleDeleteWarehouse(unit)} className="size-14 bg-white border-2 border-red-600 rounded-xl hover:bg-red-50 transition flex items-center justify-center text-2xl" title="Delete">
+                                            <button onClick={() => handleDeleteWarehouse(unit)} className="size-14 bg-white border-2 border-red-600 rounded-xl hover:bg-red-50 transition flex items-center justify-center text-sm" title="Delete">
                                                 Delete
                                             </button>
                                         </div>
@@ -412,27 +433,27 @@ const UnitContent = () => {
 
                     {/* Pagination */}
                     {!loading && totalPages > 1 && (
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-6 mt-12">
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6 mt-8 sm:mt-12">
                             <div className="flex items-center gap-3">
-                                <span className="text-gray-700">Per page</span>
+                                <span className="text-gray-700 text-sm sm:text-base">Per page</span>
                                 <select
                                     value={itemsPerPage}
                                     onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                                    className="px-4 py-2 bg-white border rounded-lg"
+                                    className="px-3 sm:px-4 py-2 bg-white border rounded-lg text-sm sm:text-base"
                                 >
                                     {perPageOptions.map(n => <option key={n} value={n}>{n}</option>)}
                                 </select>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="size-10 rounded-lg bg-white border disabled:opacity-50 hover:bg-gray-50">Previous</button>
+                            <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-center">
+                                <button onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="h-9 px-2 sm:size-10 rounded-lg bg-white border disabled:opacity-50 hover:bg-gray-50 text-xs sm:text-base">Prev</button>
                                 {getPageNumbers().map((n, i) => (
-                                    n === "..." ? <span key={i}>...</span> :
-                                    <button key={n} onClick={() => goToPage(n)} className={`size-10 rounded-lg font-semibold ${currentPage === n ? "bg-[#0955AC] text-white" : "bg-white border hover:bg-gray-50"}`}>
-                                        {n}
-                                    </button>
+                                    n === "..." ? <span key={i} className="px-1">...</span> :
+                                        <button key={n} onClick={() => goToPage(n)} className={`size-9 sm:size-10 rounded-lg font-semibold text-sm sm:text-base ${currentPage === n ? "bg-[#0955AC] text-white" : "bg-white border hover:bg-gray-50"}`}>
+                                            {n}
+                                        </button>
                                 ))}
-                                <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} className="size-10 rounded-lg bg-white border disabled:opacity-50 hover:bg-gray-50">Next</button>
+                                <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} className="h-9 px-2 sm:size-10 rounded-lg bg-white border disabled:opacity-50 hover:bg-gray-50 text-xs sm:text-base">Next</button>
                             </div>
                         </div>
                     )}
