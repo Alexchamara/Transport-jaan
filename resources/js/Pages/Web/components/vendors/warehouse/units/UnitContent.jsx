@@ -224,10 +224,10 @@ const UnitContent = () => {
     };
 
     return (
-        <div className="w-full min-h-screen px-4 sm:px-6 lg:px-8 pt-24 sm:pt-8 lg:pt-12 pb-8 lg:pb-12">
+        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 sm:pt-8 lg:pt-12 pb-8 lg:pb-12">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 sm:mb-10">
-                <h1 className="figtree text-[28px] sm:text-[35px] font-bold text-gray-900 text-center sm:text-left">
+            <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
+                <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left md:mt-0">
                     Warehouse Units
                 </h1>
                 <div className="hidden lg:flex items-center gap-3">
@@ -241,7 +241,7 @@ const UnitContent = () => {
 
             {/* Search, Filter section - Only show when not in Add Unit mode */}
             {!showAddUnit && (
-                <div className="flex flex-col gap-4 mt-6 sm:mt-10 mb-5">
+                <div className="flex flex-col gap-5 py-10">
                     {/* Search Bar */}
                     <div className="w-full h-[40px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
                         <img src={miniSearchIcon} alt="Search" className="w-4 h-4" />
