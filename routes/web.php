@@ -333,7 +333,7 @@ Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->nam
     Route::get('/addUnit', fn() => Inertia::render('Web/home/vendors/warehouse/AddUnit'))->name('addUnit');
     Route::get('/editUnit/{id}', fn($id) => Inertia::render('Web/home/vendors/warehouse/EditUnit', ['unitId' => $id]))->name('editUnit');
     Route::get('/unitDetails/{id}', fn($id) => Inertia::render('Web/home/vendors/warehouse/UnitDetails', ['unitId' => $id]))->name('unitDetails');
-    Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Blank'))->name('bookings');
+    Route::get('/bookings', fn() => Inertia::render('Web/home/vendors/warehouse/Booking'))->name('bookings');
     Route::get('/clients', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseClientController::class, 'index'])->name('clients');
     Route::get('/expenses', fn() => Inertia::render('Web/home/vendors/warehouse/Expenses'))->name('expenses');
     Route::get('/payment', fn() => Inertia::render('Web/home/vendors/warehouse/Payment'))->name('payment');
