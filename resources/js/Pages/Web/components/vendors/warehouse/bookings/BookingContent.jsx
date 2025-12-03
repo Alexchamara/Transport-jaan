@@ -244,7 +244,7 @@ const BookingContent = () => {
             className="flex-1 bg-white rounded-[10px] min-h-[400px] flex items-center justify-center"
             style={{ boxShadow: "4px 4px 4px #0000001A" }}
           >
-            <BookingBarChart />
+            {/* <BookingBarChart /> */}
           </div>
 
           <div
