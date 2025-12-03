@@ -15,6 +15,7 @@ import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
 import WarehouseBookingTable from "./WarehouseBookingTable";
 import BookingBarChart from "./BookingBarChart";
 import UserDropdown from "../../UserDropdown";
+import NotificationDropdown from "../NotificationDropdown";
 
 const BookingContent = () => {
   const { auth } = usePage().props;
@@ -45,6 +46,8 @@ const BookingContent = () => {
     status: "",
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [warehouseNotifications, setWarehouseNotifications] = useState([]);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
   // Fetch bookings and stats
   useEffect(() => {
@@ -108,6 +111,31 @@ const BookingContent = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!auth?.user) return;
+
+      try {
+        const response = await fetch('/vendors/warehouse/notifications/data');
+        if (response.ok) {
+          const data = await response.json();
+          setWarehouseNotifications(data.notifications || []);
+          setNotificationUnreadCount(data.unread_count || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      }
+    };
+
+    if (auth?.user) {
+      fetchNotifications();
+      // Refresh notifications every 30 seconds
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [auth?.user]);
+
   const handleWarehouseTypeChange = (e) => {
     const value = e.target.value;
     setFilters((prev) => (prev.warehouseType === value ? prev : { ...prev, warehouseType: value }));
@@ -139,16 +167,22 @@ const BookingContent = () => {
     <div className="w-full my-[40px] max-w-7xl mx-auto px-4 py-6 md:px-10 md:py-10 flex flex-col gap-6 md:gap-10">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
-        <h1 className="figtree text-[24px] md:text-[35px] font-[700] text-center md:text-left md:order-1 mt-2 md:mt-0">Warehouse Bookings</h1>
-        <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
+        <h1 className="figtree text-[24px] md:text-[35px] font-[700] text-center md:text-left mt-8 md:mt-0">Warehouse Bookings</h1>
+        <div className="hidden lg:flex items-center gap-3">
+          <NotificationDropdown
+            notifications={warehouseNotifications}
+            unreadCount={notificationUnreadCount}
+          />
+          <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
+        </div>
       </div>
 
       {/* Stats cards */}
       <div className="flex flex-col lg:flex-row gap-5 mb-10">
         {[{ icon: icon1, label: "Upcoming", value: stats.upcoming_bookings },
-          { icon: icon2, label: "Pending", value: stats.pending_bookings },
-          { icon: icon3, label: "Cancelled", value: stats.cancelled_bookings },
-          { icon: icon4, label: "Completed", value: stats.completed_bookings }].map((card, idx) => (
+        { icon: icon2, label: "Pending", value: stats.pending_bookings },
+        { icon: icon3, label: "Cancelled", value: stats.cancelled_bookings },
+        { icon: icon4, label: "Completed", value: stats.completed_bookings }].map((card, idx) => (
           <div key={idx} className="flex-1 bg-white rounded-[8px] flex justify-between items-center px-5 py-3 shadow-md">
             <div className="flex items-center gap-3">
               <div className="w-[50px] h-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
