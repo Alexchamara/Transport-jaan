@@ -169,19 +169,19 @@ const BookingContent = () => {
       <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
         <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left  md:mt-0"
         >Warehouse Bookings</h1>
-        <div className="hidden lg:flex items-center gap-3">
+        {/* <div className="hidden lg:flex items-center gap-3">
           <NotificationDropdown
             notifications={warehouseNotifications}
             unreadCount={notificationUnreadCount}
           />
           <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
-        </div>
+        </div> */}
       </div>
 
       {/* Stats cards */}
       <div className="flex flex-col gap-5 py-10">
         <div className="flex flex-col gap-5">
-          <div className="flex xl:flex-row flex-col gap-5 xl:w-full">
+          {/* <div className="flex xl:flex-row flex-col gap-5 xl:w-full">
             {[{ icon: icon1, label: "Upcoming", value: stats.upcoming_bookings },
             { icon: icon2, label: "Pending", value: stats.pending_bookings }].map((card, idx) => (
               <div
@@ -207,9 +207,9 @@ const BookingContent = () => {
                 </div>
               </div>
             ))}
-          </div>
+          </div> */}
 
-          <div className="flex xl:flex-row flex-col gap-5 w-full">
+          {/* <div className="flex xl:flex-row flex-col gap-5 w-full">
             {[{ icon: icon3, label: "Cancelled", value: stats.cancelled_bookings },
             { icon: icon4, label: "Completed", value: stats.completed_bookings }].map((card, idx) => (
               <div
@@ -235,11 +235,11 @@ const BookingContent = () => {
                 </div>
               </div>
             ))}
-          </div>
+          </div> */}
         </div>
 
         {/* Chart and Table */}
-        <div className="flex flex-col xl:flex-row gap-5">
+        {/* <div className="flex flex-col xl:flex-row gap-5">
           <div
             className="flex-1 bg-white rounded-[10px] min-h-[400px] flex items-center justify-center"
             style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -304,7 +304,7 @@ const BookingContent = () => {
               </>
             )}
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

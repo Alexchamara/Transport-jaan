@@ -83,9 +83,9 @@ const Booking = () => {
         </div>
 
         {/* Main Content */}
-        {/* <div className="flex-1 overflow-y-auto h-screen">
+        <div className="flex-1 overflow-y-auto h-screen">
           <BookingContent />
-        </div> */}
+        </div>
       </div>
     </div>
   );
