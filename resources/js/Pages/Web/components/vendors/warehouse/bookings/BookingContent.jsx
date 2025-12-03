@@ -167,7 +167,7 @@ const BookingContent = () => {
     <div className="w-full my-[40px] max-w-7xl mx-auto px-4 py-6 md:px-10 md:py-10 flex flex-col gap-6 md:gap-10">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
-        <h1 className="figtree text-[24px] md:text-[35px] font-[700] text-center md:text-left mt-8 md:mt-0">Warehouse Bookings</h1>
+        <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left md:mt-0">Warehouse Bookings</h1>
         <div className="hidden lg:flex items-center gap-3">
           <NotificationDropdown
             notifications={warehouseNotifications}

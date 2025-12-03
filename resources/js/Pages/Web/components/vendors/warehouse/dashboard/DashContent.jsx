@@ -1044,7 +1044,7 @@ const DashContent = () => {
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
                 <div className="flex items-center gap-4">
-                    <h1 className="figtree text-[35px] font-[700]">
+                    <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left  md:mt-0">
                         Warehouse Dashboard
                     </h1>
                 </div>
