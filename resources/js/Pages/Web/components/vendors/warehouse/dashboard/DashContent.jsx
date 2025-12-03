@@ -1009,7 +1009,7 @@ const DashContent = () => {
     }
 
     return (
-        <div className="w-full h-auto px-5 xl:pr-5 xl:pl-0 py-10">
+        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
             {/* Real-time notifications */}
             {notifications.length > 0 && (
                 <div className="fixed top-4 right-4 z-50 space-y-2">
@@ -1042,9 +1042,9 @@ const DashContent = () => {
             )}
 
             {/* Header section */}
-            <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
+            <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
                 <div className="flex items-center gap-4">
-                    <h1 className="figtree text-[35px] font-[700]">
+                    <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left  md:mt-0">
                         Warehouse Dashboard
                     </h1>
                 </div>
@@ -1078,7 +1078,7 @@ const DashContent = () => {
                         </h1>
                     </div>
                 </div> */}
-                <div className="flex flex-col xl:flex-row gap-5 relative items-center">
+                <div className="hidden lg:flex items-center gap-3">
                     <NotificationDropdown
                         notifications={warehouseNotifications}
                         unreadCount={notificationUnreadCount}
