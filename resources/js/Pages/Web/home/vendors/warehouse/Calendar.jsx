@@ -1,23 +1,79 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import SideMenu from "../../../components/vendors/warehouse/SideMenu";
 import CalendarContent from "../../../components/vendors/warehouse/calendar/CalendarContent";
+import UserDropdown from "../../../components/vendors/UserDropdown";
+import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
 import { Menu } from "lucide-react";
 import { usePage } from "@inertiajs/react";
 
 const Calendar = () => {
+    const { auth, events, clients, currentMonth, currentYear, currentDay, selectedUserId } = usePage().props;
     const [isOpen, setIsOpen] = useState(false);
-    const { events, clients, currentMonth, currentYear, selectedUserId } = usePage().props;
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [warehouseNotifications, setWarehouseNotifications] = useState([]);
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+
+    // Track scroll position
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 10);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Fetch notifications
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!auth?.user) return;
+
+            try {
+                const response = await fetch('/vendors/warehouse/notifications/data');
+                if (response.ok) {
+                    const data = await response.json();
+                    setWarehouseNotifications(data.notifications || []);
+                    setNotificationUnreadCount(data.unread_count || 0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch notifications:', error);
+            }
+        };
+
+        if (auth?.user) {
+            fetchNotifications();
+            // Refresh notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [auth?.user]);
 
     return (
         <div className="bg-[#E5E5E5] min-h-screen">
             <div className="flex flex-row gap-10 h-auto">
-                {/* Toggle Button for mobile */}
-                <button
-                    className="lg:hidden p-2 m-2 fixed left-2 top-2 z-50 bg-white rounded-full shadow"
-                    onClick={() => setIsOpen(!isOpen)}
-                >
-                    <Menu size={22} />
-                </button>
+
+                {/* Mobile Header Bar with Toggle Button, Notifications and UserDropdown */}
+                <div className={`lg:hidden fixed left-0 right-0 top-0 z-50 flex justify-between items-center px-2 py-2 transition-all duration-300 ${isScrolled ? 'bg-black/10 backdrop-blur-sm shadow-md' : ''}`}>
+                    <button
+                        className="p-2 bg-white rounded-full shadow"
+                        onClick={() => setIsOpen(!isOpen)}
+                    >
+                        <Menu size={20} />
+                    </button>
+                    <div className="flex items-center gap-2">
+                        {!isOpen && (
+                            <div className="scale-75">
+                                <NotificationDropdown
+                                    notifications={warehouseNotifications}
+                                    unreadCount={notificationUnreadCount}
+                                />
+                            </div>
+                        )}
+                        <div className="scale-75">
+                            <UserDropdown />
+                        </div>
+                    </div>
+                </div>
 
                 {/* Side Menu */}
                 <div
@@ -35,6 +91,7 @@ const Calendar = () => {
                         clients={clients}
                         currentMonth={currentMonth}
                         currentYear={currentYear}
+                        currentDay={currentDay}
                         selectedUserId={selectedUserId}
                     />
                 </div>

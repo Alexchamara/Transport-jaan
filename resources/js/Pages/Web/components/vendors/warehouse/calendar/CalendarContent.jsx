@@ -12,6 +12,7 @@ import CalendarMonthPicker from "./CalendarMonthPicker";
 import CalendarGrid from "./CalendarGrid";
 
 import UserDropdown from "../../UserDropdown";
+import NotificationDropdown from "../NotificationDropdown";
 
 const monthNames = [
     "January",
@@ -50,6 +51,10 @@ const CalendarContent = ({
     const [selectedUser, setSelectedUser] = useState(selectedUserId || null);
     const [selectedBooking, setSelectedBooking] = useState(null);
 
+    // Notifications
+    const [warehouseNotifications, setWarehouseNotifications] = useState([]);
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+
     // Update when props change
     useEffect(() => {
         if (initialMonth !== undefined) setCurrentMonth(initialMonth);
@@ -62,6 +67,31 @@ const CalendarContent = ({
             setSelectedBooking(initialEvents[0]);
         }
     }, [initialEvents]);
+
+    // Fetch notifications
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!auth?.user) return;
+
+            try {
+                const response = await fetch('/vendors/warehouse/notifications/data');
+                if (response.ok) {
+                    const data = await response.json();
+                    setWarehouseNotifications(data.notifications || []);
+                    setNotificationUnreadCount(data.unread_count || 0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch notifications:', error);
+            }
+        };
+
+        if (auth?.user) {
+            fetchNotifications();
+            // Refresh notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [auth?.user]);
 
     const handlePrev = () => {
         switch (currentView) {
@@ -330,14 +360,19 @@ const CalendarContent = ({
     ];
 
     return (
-        <div className="w-full h-auto px-5 mt-10 xl:mt-0 py-10">
+        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
             {/* Header section */}
-            <div className="flex flex-col xl:flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
-                    Warehouse Calendar
-                </h1>
-
-                <div className="flex flex-row gap-5 relative items-center">
+            <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
+                <div className="flex items-center gap-4">
+                    <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left md:mt-0">
+                        Warehouse Calendar
+                    </h1>
+                </div>
+                <div className="hidden lg:flex items-center gap-3">
+                    <NotificationDropdown
+                        notifications={warehouseNotifications}
+                        unreadCount={notificationUnreadCount}
+                    />
                     <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
                 </div>
             </div>
@@ -421,135 +456,137 @@ const CalendarContent = ({
                 </div>
             </div> */}
 
-            {/* ==================== MAIN CALENDAR GRID ==================== */}
-            <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
-            >
-                <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">
-                    <div className="flex flex-row justify-center items-center gap-3">
-                        <div
-                            className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
-                            onClick={handleTodayClick}
-                        >
-                            Today
-                        </div>
-                        <div className="flex flex-row justify-center items-center gap-2">
+            <div className="flex flex-col gap-5 py-10">
+                {/* ==================== MAIN CALENDAR GRID ==================== */}
+                <div
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[8px] py-10"
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                >
+                    <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">
+                        <div className="flex flex-row justify-center items-center gap-3">
                             <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
-                                onClick={handlePrev}
+                                className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                onClick={handleTodayClick}
                             >
-                                <img src={leftArrow} alt="Previous" />
+                                Today
                             </div>
-                            <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
-                                onClick={handleNext}
-                            >
-                                <img
-                                    src={leftArrow}
-                                    className="rotate-180"
-                                    alt="Next"
-                                />
+                            <div className="flex flex-row justify-center items-center gap-2">
+                                <div
+                                    className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                    onClick={handlePrev}
+                                >
+                                    <img src={leftArrow} alt="Previous" />
+                                </div>
+                                <div
+                                    className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                    onClick={handleNext}
+                                >
+                                    <img
+                                        src={leftArrow}
+                                        className="rotate-180"
+                                        alt="Next"
+                                    />
+                                </div>
+                            </div>
+                            <h1 className="text-[18px] font-[700]">
+                                {getHeaderTitle()}
+                            </h1>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row justify-center items-center gap-5 mt-5 xl:mt-0">
+                            {/* Client Filter */}
+                            {clients && clients.length > 0 && (
+                                <select
+                                    value={selectedUser || ""}
+                                    onChange={(e) =>
+                                        handleUserChange(e.target.value || null)
+                                    }
+                                    className="w-[200px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] px-3"
+                                >
+                                    <option value="">All Clients</option>
+                                    {clients.map((client) => (
+                                        <option key={client.id} value={client.id}>
+                                            {client.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+
+                            <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
+                                <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
+                                    All
+                                </div>
+                                <div className="w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
+                                    Inbound
+                                </div>
+                                <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
+                                    Outbound
+                                </div>
+                            </div>
+
+                            <div className="flex flex-row justify-center items-center text-[14px] font-[600]">
+                                <div
+                                    className={`w-[70px] h-[35px] rounded-l-[6px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'day' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                        }`}
+                                    onClick={() => setCurrentView('day')}
+                                >
+                                    Day
+                                </div>
+                                <div
+                                    className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'week' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                        }`}
+                                    onClick={() => setCurrentView('week')}
+                                >
+                                    Week
+                                </div>
+                                <div
+                                    className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'month' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                        }`}
+                                    onClick={() => setCurrentView('month')}
+                                >
+                                    Month
+                                </div>
+                                <div
+                                    className={`w-[70px] h-[35px] rounded-r-[6px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'year' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                        }`}
+                                    onClick={() => setCurrentView('year')}
+                                >
+                                    Year
+                                </div>
                             </div>
                         </div>
-                        <h1 className="text-[18px] font-[700]">
-                            {getHeaderTitle()}
-                        </h1>
                     </div>
 
-                    <div className="flex flex-col md:flex-row justify-center items-center gap-5 mt-5 xl:mt-0">
-                        {/* Client Filter */}
-                        {clients && clients.length > 0 && (
-                            <select
-                                value={selectedUser || ""}
-                                onChange={(e) =>
-                                    handleUserChange(e.target.value || null)
+                    <div className="flex flex-row gap-10 justify-start items-center px-5 lg:px-20 py-5">
+                        <div className="flex flex-row justify-start items-center gap-5">
+                            <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
+                            <h1 className="text-[#00000080] font-[600] text-[16px]">
+                                Done
+                            </h1>
+                        </div>
+                        <div className="flex flex-row justify-start items-center gap-5">
+                            <div className="size-[16px] bg-[#FFDBDF] rounded-[4px]" />
+                            <h1 className="text-[#00000080] font-[600] text-[16px]">
+                                Cancelled
+                            </h1>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <div className={`${currentView === 'year' || currentView === 'month' ? '' : currentView === 'day' ? '' : 'grid grid-cols-8 border-t border-l border-[#00000026] min-w-[800px]'}`}>
+                            <CalendarGrid
+                                times={times}
+                                events={processedEvents}
+                                proPicTwo={proPicTwo}
+                                currentMonth={currentMonth}
+                                currentYear={currentYear}
+                                currentDay={currentDay}
+                                currentView={currentView}
+                                onEventClick={(event) =>
+                                    setSelectedBooking(event.fullData)
                                 }
-                                className="w-[200px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] px-3"
-                            >
-                                <option value="">All Clients</option>
-                                {clients.map((client) => (
-                                    <option key={client.id} value={client.id}>
-                                        {client.name}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-
-                        <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
-                                All
-                            </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
-                                Inbound
-                            </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
-                                Outbound
-                            </div>
+                            />
                         </div>
-
-                        <div className="flex flex-row justify-center items-center text-[14px] font-[600]">
-                            <div
-                                className={`w-[70px] h-[35px] rounded-l-[6px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'day' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
-                                    }`}
-                                onClick={() => setCurrentView('day')}
-                            >
-                                Day
-                            </div>
-                            <div
-                                className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'week' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
-                                    }`}
-                                onClick={() => setCurrentView('week')}
-                            >
-                                Week
-                            </div>
-                            <div
-                                className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'month' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
-                                    }`}
-                                onClick={() => setCurrentView('month')}
-                            >
-                                Month
-                            </div>
-                            <div
-                                className={`w-[70px] h-[35px] rounded-r-[6px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'year' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
-                                    }`}
-                                onClick={() => setCurrentView('year')}
-                            >
-                                Year
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-row gap-10 justify-start items-center px-5 lg:px-20 py-5">
-                    <div className="flex flex-row justify-start items-center gap-5">
-                        <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
-                        <h1 className="text-[#00000080] font-[600] text-[16px]">
-                            Done
-                        </h1>
-                    </div>
-                    <div className="flex flex-row justify-start items-center gap-5">
-                        <div className="size-[16px] bg-[#FFDBDF] rounded-[4px]" />
-                        <h1 className="text-[#00000080] font-[600] text-[16px]">
-                            Cancelled
-                        </h1>
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <div className={`${currentView === 'year' || currentView === 'month' ? '' : currentView === 'day' ? '' : 'grid grid-cols-8 border-t border-l border-[#00000026] min-w-[800px]'}`}>
-                        <CalendarGrid
-                            times={times}
-                            events={processedEvents}
-                            proPicTwo={proPicTwo}
-                            currentMonth={currentMonth}
-                            currentYear={currentYear}
-                            currentDay={currentDay}
-                            currentView={currentView}
-                            onEventClick={(event) =>
-                                setSelectedBooking(event.fullData)
-                            }
-                        />
                     </div>
                 </div>
             </div>
