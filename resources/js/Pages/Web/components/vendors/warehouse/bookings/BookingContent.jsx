@@ -164,10 +164,11 @@ const BookingContent = () => {
   ];
 
   return (
-    <div className="w-full my-[40px] max-w-7xl mx-auto px-4 py-6 md:px-10 md:py-10 flex flex-col gap-6 md:gap-10">
+    <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 sm:pt-8 lg:pt-12 pb-8 lg:pb-12">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
-        <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left md:mt-0">Warehouse Bookings</h1>
+      <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
+        <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left  md:mt-0"
+        >Warehouse Bookings</h1>
         <div className="hidden lg:flex items-center gap-3">
           <NotificationDropdown
             notifications={warehouseNotifications}
@@ -178,91 +179,131 @@ const BookingContent = () => {
       </div>
 
       {/* Stats cards */}
-      <div className="flex flex-col lg:flex-row gap-5 mb-10">
-        {[{ icon: icon1, label: "Upcoming", value: stats.upcoming_bookings },
-        { icon: icon2, label: "Pending", value: stats.pending_bookings },
-        { icon: icon3, label: "Cancelled", value: stats.cancelled_bookings },
-        { icon: icon4, label: "Completed", value: stats.completed_bookings }].map((card, idx) => (
-          <div key={idx} className="flex-1 bg-white rounded-[8px] flex justify-between items-center px-5 py-3 shadow-md">
-            <div className="flex items-center gap-3">
-              <div className="w-[50px] h-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                <img src={card.icon} alt={card.label} />
+      <div className="flex flex-col gap-5 py-10">
+        <div className="flex flex-col gap-5">
+          <div className="flex xl:flex-row flex-col gap-5 xl:w-full">
+            {[{ icon: icon1, label: "Upcoming", value: stats.upcoming_bookings },
+            { icon: icon2, label: "Pending", value: stats.pending_bookings }].map((card, idx) => (
+              <div
+                key={idx}
+                className="xl:w-[600px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+              >
+                <div className="flex flex-row gap-5 justify-center items-center">
+                  <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                    <img src={card.icon} alt={card.label} />
+                  </div>
+                  <div>
+                    <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">{card.label} Bookings</h1>
+                    <h1 className="text-[22px] md:text-[26px] font-[700]">{card.value}</h1>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
+                  <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                    <img src={upArrow} alt="Increase" className="w-[19px] h-[19px]" />
+                    <h1>+2.86%</h1>
+                  </div>
+                  <h1 className="text-[#7B7B7A]">from last week</h1>
+                </div>
               </div>
-              <div>
-                <h2 className="text-[16px] text-[#7B7B7A]">{card.label} Bookings</h2>
-                <h1 className="text-[26px] font-[700]">{card.value}</h1>
-              </div>
-            </div>
-            <div className="flex flex-col items-end text-[14px] text-[#7B7B7A]">
-              <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex items-center justify-center gap-1">
-                <img src={upArrow} alt="Increase" className="w-[19px] h-[19px]" />
-                +2.86%
-              </div>
-              <span>from last week</span>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Chart and Table */}
-      <div className="flex flex-col lg:flex-row gap-10">
-        <div className="flex-1 bg-white rounded-[10px] min-h-[400px] flex items-center justify-center shadow-md">
-          <BookingBarChart />
+          <div className="flex xl:flex-row flex-col gap-5 w-full">
+            {[{ icon: icon3, label: "Cancelled", value: stats.cancelled_bookings },
+            { icon: icon4, label: "Completed", value: stats.completed_bookings }].map((card, idx) => (
+              <div
+                key={idx}
+                className="xl:w-[600px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+              >
+                <div className="flex flex-row gap-5 justify-center items-center">
+                  <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                    <img src={card.icon} alt={card.label} />
+                  </div>
+                  <div>
+                    <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">{card.label} Bookings</h1>
+                    <h1 className="text-[22px] md:text-[26px] font-[700]">{card.value}</h1>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
+                  <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                    <img src={upArrow} alt="Increase" className="w-[19px] h-[19px]" />
+                    <h1>+2.86%</h1>
+                  </div>
+                  <h1 className="text-[#7B7B7A]">from last week</h1>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="flex-1 bg-white rounded-[10px] shadow-md p-5">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-5">
-            <div className="flex items-center gap-2 w-full md:w-[70%] bg-[#F3F3F3] rounded-[6px] px-3 py-2">
-              <img src={miniSearchIcon} alt="Search" />
-              <input
-                type="text"
-                placeholder="Search client, warehouse, purpose..."
-                className="w-full bg-transparent outline-none text-[14px]"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2 w-full md:flex-row md:gap-2 md:w-auto">
-              <select
-                value={filters.warehouseType}
-                onChange={handleWarehouseTypeChange}
-                className="bg-[#F3F3F3] text-[14px] rounded-[6px] px-3 py-2  pr-8 w-full md:w-auto"
-              >
-                {warehouseTypeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={filters.status}
-                onChange={handleStatusChange}
-                className="bg-[#F3F3F3] text-[14px] rounded-[6px] px-3 py-2 w-full md:w-auto"
-              >
-                {statusOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+        {/* Chart and Table */}
+        <div className="flex flex-col xl:flex-row gap-5">
+          <div
+            className="flex-1 bg-white rounded-[10px] min-h-[400px] flex items-center justify-center"
+            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+          >
+            <BookingBarChart />
           </div>
 
-          {loading ? (
-            <div className="text-center py-10 text-gray-600">Loading bookings...</div>
-          ) : (
-            <>
-              {error && <div className="text-red-600 text-center mb-3">{error}</div>}
-              <WarehouseBookingTable
-                bookings={bookings}
-                setBookings={setBookings}
-                statusColors={statusColors}
-                filters={filters}
-              />
-            </>
-          )}
+          <div
+            className="flex-1 bg-white rounded-[10px] py-5 px-5"
+            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+          >
+            <div className="flex flex-col md:flex-row justify-between items-center gap-3 mb-5">
+              <div className="flex items-center gap-2 w-full md:w-[70%] bg-[#F3F3F3] rounded-[6px] px-3 py-2">
+                <img src={miniSearchIcon} alt="Search" />
+                <input
+                  type="text"
+                  placeholder="Search client, warehouse, purpose..."
+                  className="w-full bg-transparent outline-none text-[14px]"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 w-full md:flex-row md:gap-2 md:w-auto">
+                <select
+                  value={filters.warehouseType}
+                  onChange={handleWarehouseTypeChange}
+                  className="bg-[#F3F3F3] text-[14px] rounded-[6px] px-3 py-2  pr-8 w-full md:w-auto"
+                >
+                  {warehouseTypeOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={filters.status}
+                  onChange={handleStatusChange}
+                  className="bg-[#F3F3F3] text-[14px] rounded-[6px] px-3 py-2 w-full md:w-auto"
+                >
+                  {statusOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-10 text-gray-600">Loading bookings...</div>
+            ) : (
+              <>
+                {error && <div className="text-red-600 text-center mb-3">{error}</div>}
+                <WarehouseBookingTable
+                  bookings={bookings}
+                  setBookings={setBookings}
+                  statusColors={statusColors}
+                  filters={filters}
+                />
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
