@@ -87,7 +87,7 @@ const NotificationDropdown = ({ notifications = [], unreadCount = 0 }) => {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center cursor-pointer hover:bg-[#D8E4F2] transition-colors"
+                className="relative size-[60px] rounded-full lg:rounded-[10px] bg-[#E8EBEF] flex justify-center items-center cursor-pointer hover:bg-[#D8E4F2] transition-colors"
                 title="Notifications"
             >
                 <Bell size={24} />
