@@ -2,9 +2,12 @@ import React, { useState } from "react";
 import SideMenu from "../../../components/vendors/warehouse/SideMenu";
 import CalendarContent from "../../../components/vendors/warehouse/calendar/CalendarContent";
 import { Menu } from "lucide-react";
+import { usePage } from "@inertiajs/react";
 
 const Calendar = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const { events, clients, currentMonth, currentYear, selectedUserId } = usePage().props;
+
     return (
         <div className="bg-[#E5E5E5] min-h-screen">
             <div className="flex flex-row gap-10 h-auto">
@@ -18,20 +21,23 @@ const Calendar = () => {
 
                 {/* Side Menu */}
                 <div
-                    className={`fixed lg:static top-0 left-0 h-full z-40 transition-transform duration-300 
+                    className={`fixed lg:static top-0 left-0 h-screen w-64 z-40 transition-transform duration-300 
               ${isOpen ? "translate-x-0" : "-translate-x-full"} 
-              lg:translate-x-0 bg-white shadow lg:shadow-none`}
+              lg:translate-x-0 bg-white shadow lg:shadow-none overflow-hidden`}
                 >
-                    <SideMenu />
+                    <SideMenu isOpen={isOpen} />
                 </div>
 
-                <CalendarContent
-                    events={events}
-                    clients={clients}
-                    currentMonth={currentMonth}
-                    currentYear={currentYear}
-                    selectedUserId={selectedUserId}
-                />
+                {/* Main Content */}
+                <div className="flex-1 overflow-y-auto h-screen">
+                    <CalendarContent
+                        events={events}
+                        clients={clients}
+                        currentMonth={currentMonth}
+                        currentYear={currentYear}
+                        selectedUserId={selectedUserId}
+                    />
+                </div>
             </div>
         </div>
     );
