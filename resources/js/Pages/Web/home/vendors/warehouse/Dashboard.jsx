@@ -60,12 +60,14 @@ const Dashboard = () => {
             <Menu size={20} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="scale-75">
-              <NotificationDropdown
-                notifications={warehouseNotifications}
-                unreadCount={notificationUnreadCount}
-              />
-            </div>
+            {!isOpen && (
+              <div className="scale-75">
+                <NotificationDropdown
+                  notifications={warehouseNotifications}
+                  unreadCount={notificationUnreadCount}
+                />
+              </div>
+            )}
             <div className="scale-75">
               <UserDropdown />
             </div>
@@ -78,7 +80,7 @@ const Dashboard = () => {
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0 bg-white shadow lg:shadow-none overflow-hidden`}
         >
-          <SideMenu />
+          <SideMenu isOpen={isOpen} />
         </div>
 
         {/* Main Content */}

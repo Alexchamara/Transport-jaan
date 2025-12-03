@@ -13,7 +13,7 @@ import {
     ArrowLeft,
 } from "lucide-react";
 
-const SideMenu = () => {
+const SideMenu = ({ isOpen = false }) => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
     const currentPath = window.location.pathname;
 
@@ -38,7 +38,7 @@ const SideMenu = () => {
                         onClick={() =>
                             (window.location.href = "/mainDashboard")
                         }
-                        className="absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className={`absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors ${isOpen ? 'lg:block hidden' : 'block'}`}
                         title="Go to Dashboard"
                     >
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -59,13 +59,12 @@ const SideMenu = () => {
                     <div className="figtree flex flex-col items-start gap-4 text-[18px] font-[500] text-[#00000066]">
                         {/* Dashboard */}
                         <div
-                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
-                                currentPath ===
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath ===
                                     "/vendors/warehouse/dashboard" ||
-                                currentPath === "/warehouse/dashboard"
+                                    currentPath === "/warehouse/dashboard"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
-                            }`}
+                                }`}
                             onClick={() =>
                                 (window.location.href = "/warehouse/dashboard")
                             }
@@ -76,12 +75,11 @@ const SideMenu = () => {
 
                         {/* Bookings */}
                         <div
-                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
-                                currentPath === "/vendors/warehouse/bookings" ||
-                                currentPath === "/warehouse/bookings"
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/bookings" ||
+                                    currentPath === "/warehouse/bookings"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
-                            }`}
+                                }`}
                             onClick={() =>
                                 (window.location.href = "/warehouse/bookings")
                             }
@@ -92,12 +90,11 @@ const SideMenu = () => {
 
                         {/* Units */}
                         <div
-                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
-                                currentPath === "/vendors/warehouse/units" ||
-                                currentPath === "/warehouse/units"
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/units" ||
+                                    currentPath === "/warehouse/units"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
-                            }`}
+                                }`}
                             onClick={() =>
                                 (window.location.href = "/warehouse/units")
                             }
@@ -108,12 +105,11 @@ const SideMenu = () => {
 
                         {/* Calendar */}
                         <div
-                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
-                                currentPath === "/vendors/warehouse/calendar" ||
-                                currentPath === "/warehouse/calendar"
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/calendar" ||
+                                    currentPath === "/warehouse/calendar"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
-                            }`}
+                                }`}
                             onClick={() =>
                                 (window.location.href = "/warehouse/calendar")
                             }
@@ -124,12 +120,11 @@ const SideMenu = () => {
 
                         {/* Clients */}
                         <div
-                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
-                                currentPath === "/vendors/warehouse/clients" ||
-                                currentPath === "/warehouse/clients"
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/clients" ||
+                                    currentPath === "/warehouse/clients"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
-                            }`}
+                                }`}
                             onClick={() =>
                                 (window.location.href = "/warehouse/clients")
                             }
@@ -140,8 +135,7 @@ const SideMenu = () => {
 
                         {/* Financial Dropdown */}
                         <div
-                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
-                                [
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${[
                                     "/vendors/warehouse/payment",
                                     "/warehouse/payment",
                                     "/vendors/warehouse/expenses",
@@ -149,7 +143,7 @@ const SideMenu = () => {
                                 ].includes(currentPath)
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
-                            }`}
+                                }`}
                             onClick={() =>
                                 setShowFinancialDropdown((prev) => !prev)
                             }
@@ -161,31 +155,29 @@ const SideMenu = () => {
                         {showFinancialDropdown && (
                             <div className="ml-8 mb-2 w-40 bg-white flex flex-col text-[18px] font-[500]">
                                 <div
-                                    className={`px-3 py-1.5 cursor-pointer rounded-lg ${
-                                        currentPath ===
+                                    className={`px-3 py-1.5 cursor-pointer rounded-lg ${currentPath ===
                                             "/vendors/warehouse/payment" ||
-                                        currentPath === "/warehouse/payment"
+                                            currentPath === "/warehouse/payment"
                                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                             : "text-[#00000066]"
-                                    }`}
+                                        }`}
                                     onClick={() =>
-                                        (window.location.href =
-                                            "/warehouse/payment")
+                                    (window.location.href =
+                                        "/warehouse/payment")
                                     }
                                 >
                                     Payment
                                 </div>
                                 <div
-                                    className={`px-3 py-1.5 cursor-pointer rounded-lg ${
-                                        currentPath ===
+                                    className={`px-3 py-1.5 cursor-pointer rounded-lg ${currentPath ===
                                             "/vendors/warehouse/expenses" ||
-                                        currentPath === "/warehouse/expenses"
+                                            currentPath === "/warehouse/expenses"
                                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                             : "text-[#00000066]"
-                                    }`}
+                                        }`}
                                     onClick={() =>
-                                        (window.location.href =
-                                            "/warehouse/expenses")
+                                    (window.location.href =
+                                        "/warehouse/expenses")
                                     }
                                 >
                                     Expenses
@@ -195,12 +187,11 @@ const SideMenu = () => {
 
                         {/* Tracking */}
                         <div
-                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
-                                currentPath === "/vendors/warehouse/tracking" ||
-                                currentPath === "/warehouse/tracking"
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/tracking" ||
+                                    currentPath === "/warehouse/tracking"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
-                            }`}
+                                }`}
                             onClick={() =>
                                 (window.location.href = "/warehouse/tracking")
                             }
