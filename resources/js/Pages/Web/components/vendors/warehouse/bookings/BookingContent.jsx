@@ -240,14 +240,14 @@ const BookingContent = () => {
 
         {/* Chart and Table */}
         <div className="flex flex-col xl:flex-row gap-5">
-          {/* <div
+          <div
             className="flex-1 bg-white rounded-[10px] min-h-[400px] flex items-center justify-center"
             style={{ boxShadow: "4px 4px 4px #0000001A" }}
           >
             <BookingBarChart />
-          </div> */}
+          </div>
 
-          {/* <div
+          <div
             className="flex-1 bg-white rounded-[10px] py-5 px-5"
             style={{ boxShadow: "4px 4px 4px #0000001A" }}
           >
@@ -303,7 +303,7 @@ const BookingContent = () => {
                 />
               </>
             )}
-          </div> */}
+          </div>
         </div>
       </div>
     </div>
