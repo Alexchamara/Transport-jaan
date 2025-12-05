@@ -25,9 +25,6 @@ class WarehouseReservationController extends Controller
             // Get reservations with optimized eager loading
             $query = WarehouseBooking::query()
                 ->with(['user:id,name,email', 'warehouseUnit:id,name,user_id,type,total_area,capacity,capacity_unit'])
-                ->whereHas('warehouseUnit', function($q) use ($user) {
-                    $q->where('user_id', $user->id);
-                })
                 ->select([
                     'id', 'booking_reference', 'warehouse_unit_id', 'user_id',
                     'company_name', 'contact_person', 'email', 'phone',
@@ -163,10 +160,7 @@ class WarehouseReservationController extends Controller
             
             // Base query for vendor's reservations
             $baseQuery = function() use ($user) {
-                return WarehouseBooking::query()
-                    ->whereHas('warehouseUnit', function($q) use ($user) {
-                        $q->where('user_id', $user->id);
-                    });
+                return WarehouseBooking::query();
             };
             
             // Calculate current week stats using optimized queries
@@ -252,9 +246,6 @@ class WarehouseReservationController extends Controller
                     DB::raw('COUNT(CASE WHEN status IN ("confirmed", "completed", "active") THEN 1 END) as confirmed'),
                     DB::raw('COUNT(CASE WHEN status = "cancelled" THEN 1 END) as cancelled')
                 ])
-                ->whereHas('warehouseUnit', function($q) use ($user) {
-                    $q->where('user_id', $user->id);
-                })
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->groupBy('year', 'month')
                 ->orderBy('year', 'asc')
@@ -695,9 +686,6 @@ class WarehouseReservationController extends Controller
         return WarehouseBooking::query()
             ->with(['user:id,name,email', 'warehouseUnit:id,name,user_id,type,total_area,capacity,capacity_unit'])
             ->where('booking_reference', $reservationId)
-            ->whereHas('warehouseUnit', function($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })
             ->first();
     }
 
