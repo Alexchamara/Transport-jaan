@@ -43,7 +43,7 @@ const decorateReservation = (r) => ({
 const ReservationContent = () => {
     const { auth } = usePage().props;
     const [reservations, setReservations] = useState([]);
-    const [reservationData, setReservationData] = useState([]);
+    // const [reservationData, setReservationData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         active: 0,
@@ -124,21 +124,21 @@ const ReservationContent = () => {
     }, []);
 
     // Fetch chart data
-    useEffect(() => {
-        const fetchChartData = async () => {
-            try {
-                const response = await axios.get("/vendors/warehouse/api/reservations/chart-data");
+    // useEffect(() => {
+    //     const fetchChartData = async () => {
+    //         try {
+    //             const response = await axios.get("/vendors/warehouse/api/reservations/chart-data");
                 
-                if (response.data.success) {
-                    setReservationData(response.data.data);
-                }
-            } catch (error) {
-                console.error("Error fetching chart data:", error);
-            }
-        };
+    //             if (response.data.success) {
+    //                 setReservationData(response.data.data);
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching chart data:", error);
+    //         }
+    //     };
 
-        fetchChartData();
-    }, []);
+    //     fetchChartData();
+    // }, []);
 
     return (
         <div className="w-full h-auto pr-5 py-10">
@@ -301,12 +301,12 @@ const ReservationContent = () => {
                 </div>
 
                 {/* Right: Chart */}
-                <div
+                {/* <div
                     className="min-w-[712px] w-full min-h-[437px] bg-white rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <ReservationBarChart reservationData={reservationData} />
-                </div>
+                </div> */}
             </div>
 
             {/* Table */}
