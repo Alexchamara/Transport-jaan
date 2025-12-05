@@ -24,7 +24,7 @@ class WarehouseReservationController extends Controller
             
             // Get reservations with optimized eager loading
             $query = WarehouseBooking::query()
-                ->with(['user:id,name,email', 'warehouseUnit:id,name,user_id,type,size'])
+                ->with(['user:id,name,email', 'warehouseUnit:id,name,user_id,type,total_area,capacity,capacity_unit'])
                 ->whereHas('warehouseUnit', function($q) use ($user) {
                     $q->where('user_id', $user->id);
                 })
@@ -119,7 +119,9 @@ class WarehouseReservationController extends Controller
             'warehouseName' => $unit->name ?? 'N/A',
             'warehouseUnit' => 'WH-' . str_pad($reservation->warehouse_unit_id, 3, '0', STR_PAD_LEFT),
             'unitType' => $unit->type ?? 'Standard',
-            'unitSize' => $unit->size ?? 'N/A',
+            'unitSize' => $unit->total_area 
+                ? number_format($unit->total_area, 2) . ' ' . ($unit->capacity_unit ?? 'sq_ft')
+                : 'N/A',
             'purpose' => $reservation->goods_type ?? 'General Storage',
             'specialRequirements' => $this->formatSpecialRequirements($reservation),
             'durationUnit' => 'months',
@@ -691,7 +693,7 @@ class WarehouseReservationController extends Controller
     private function findReservationForVendor($user, $reservationId)
     {
         return WarehouseBooking::query()
-            ->with(['user:id,name,email', 'warehouseUnit:id,name,user_id,type,size'])
+            ->with(['user:id,name,email', 'warehouseUnit:id,name,user_id,type,total_area,capacity,capacity_unit'])
             ->where('booking_reference', $reservationId)
             ->whereHas('warehouseUnit', function($q) use ($user) {
                 $q->where('user_id', $user->id);
