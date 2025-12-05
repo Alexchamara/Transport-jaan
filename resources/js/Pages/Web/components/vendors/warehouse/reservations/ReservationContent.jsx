@@ -15,34 +15,34 @@ import WarehouseReservationTable from "./WarehouseReservationTable";
 import UserDropdown from "../../../vendors/UserDropdown";
 
 // Status color mappings
-const paymentStatusColors = {
-    paid: { color: "#3B8F31", bg: "#ACE199" },
-    pending: { color: "#FF6060", bg: "#FF60608C" },
-    failed: { color: "#FF0000", bg: "#FF00004D" },
-};
+// const paymentStatusColors = {
+//     paid: { color: "#3B8F31", bg: "#ACE199" },
+//     pending: { color: "#FF6060", bg: "#FF60608C" },
+//     failed: { color: "#FF0000", bg: "#FF00004D" },
+// };
 
-const statusColors = {
-    confirmed: { bg: "#0955AC", text: "#FFFFFF" },
-    active: { bg: "#50AE31", text: "#FFFFFF" },
-    pending: { bg: "#FFCD29", text: "#000000" },
-    completed: { bg: "#6B7280", text: "#FFFFFF" },
-    cancelled: { bg: "#FF6060", text: "#FFFFFF" },
-};
+// const statusColors = {
+//     confirmed: { bg: "#0955AC", text: "#FFFFFF" },
+//     active: { bg: "#50AE31", text: "#FFFFFF" },
+//     pending: { bg: "#FFCD29", text: "#000000" },
+//     completed: { bg: "#6B7280", text: "#FFFFFF" },
+//     cancelled: { bg: "#FF6060", text: "#FFFFFF" },
+// };
 
 // Decorate a reservation with table-friendly color fields
-const decorateReservation = (r) => ({
-    ...r,
-    paymentStatusColor:
-        paymentStatusColors[r.paymentStatus?.toLowerCase()]?.color ?? "#7B7B7A",
-    paymentStatusBg:
-        paymentStatusColors[r.paymentStatus?.toLowerCase()]?.bg ?? "#E8E8EF",
-    statusBg: statusColors[r.status?.toLowerCase()]?.bg ?? "#FFCD29",
-    statusText: statusColors[r.status?.toLowerCase()]?.text ?? "#000000",
-});
+// const decorateReservation = (r) => ({
+//     ...r,
+//     paymentStatusColor:
+//         paymentStatusColors[r.paymentStatus?.toLowerCase()]?.color ?? "#7B7B7A",
+//     paymentStatusBg:
+//         paymentStatusColors[r.paymentStatus?.toLowerCase()]?.bg ?? "#E8E8EF",
+//     statusBg: statusColors[r.status?.toLowerCase()]?.bg ?? "#FFCD29",
+//     statusText: statusColors[r.status?.toLowerCase()]?.text ?? "#000000",
+// });
 
 const ReservationContent = () => {
     const { auth } = usePage().props;
-    const [reservations, setReservations] = useState([]);
+    // const [reservations, setReservations] = useState([]);
     // const [reservationData, setReservationData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -57,71 +57,71 @@ const ReservationContent = () => {
     });
 
     // Fetch reservations data
-    useEffect(() => {
-        const fetchReservations = async () => {
-            try {
-                setLoading(true);
-                const response = await axios.get("/vendors/warehouse/api/reservations");
+    // useEffect(() => {
+    //     const fetchReservations = async () => {
+    //         try {
+    //             setLoading(true);
+    //             const response = await axios.get("/vendors/warehouse/api/reservations");
                 
-                if (response.data.success) {
-                    const decorated = response.data.data.map(decorateReservation);
-                    setReservations(decorated);
-                }
-            } catch (error) {
-                console.error("Error fetching reservations:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    //             if (response.data.success) {
+    //                 const decorated = response.data.data.map(decorateReservation);
+    //                 setReservations(decorated);
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching reservations:", error);
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
 
-        fetchReservations();
-    }, []);
+    //     fetchReservations();
+    // }, []);
 
     // Fetch stats
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const response = await axios.get("/vendors/warehouse/api/reservations/stats");
+    // useEffect(() => {
+    //     const fetchStats = async () => {
+    //         try {
+    //             const response = await axios.get("/vendors/warehouse/api/reservations/stats");
                 
-                if (response.data.success) {
-                    const data = response.data.data;
+    //             if (response.data.success) {
+    //                 const data = response.data.data;
                     
-                    // Calculate growth percentages
-                    const calculateGrowth = (current, previous) => {
-                        if (previous === 0) return current > 0 ? 100 : 0;
-                        return ((current - previous) / previous * 100).toFixed(2);
-                    };
+    //                 // Calculate growth percentages
+    //                 const calculateGrowth = (current, previous) => {
+    //                     if (previous === 0) return current > 0 ? 100 : 0;
+    //                     return ((current - previous) / previous * 100).toFixed(2);
+    //                 };
                     
-                    setStats({
-                        active: data.active_reservations || 0,
-                        pending: data.pending_reservations || 0,
-                        expired: data.expired_reservations || 0,
-                        cancelled: data.cancelled_reservations || 0,
-                        activeGrowth: calculateGrowth(
-                            data.active_reservations || 0, 
-                            data.previous_active_reservations || 0
-                        ),
-                        pendingGrowth: calculateGrowth(
-                            data.pending_reservations || 0, 
-                            data.previous_pending_reservations || 0
-                        ),
-                        expiredGrowth: calculateGrowth(
-                            data.expired_reservations || 0, 
-                            data.previous_expired_reservations || 0
-                        ),
-                        cancelledGrowth: calculateGrowth(
-                            data.cancelled_reservations || 0, 
-                            data.previous_cancelled_reservations || 0
-                        ),
-                    });
-                }
-            } catch (error) {
-                console.error("Error fetching stats:", error);
-            }
-        };
+    //                 setStats({
+    //                     active: data.active_reservations || 0,
+    //                     pending: data.pending_reservations || 0,
+    //                     expired: data.expired_reservations || 0,
+    //                     cancelled: data.cancelled_reservations || 0,
+    //                     activeGrowth: calculateGrowth(
+    //                         data.active_reservations || 0, 
+    //                         data.previous_active_reservations || 0
+    //                     ),
+    //                     pendingGrowth: calculateGrowth(
+    //                         data.pending_reservations || 0, 
+    //                         data.previous_pending_reservations || 0
+    //                     ),
+    //                     expiredGrowth: calculateGrowth(
+    //                         data.expired_reservations || 0, 
+    //                         data.previous_expired_reservations || 0
+    //                     ),
+    //                     cancelledGrowth: calculateGrowth(
+    //                         data.cancelled_reservations || 0, 
+    //                         data.previous_cancelled_reservations || 0
+    //                     ),
+    //                 });
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching stats:", error);
+    //         }
+    //     };
 
-        fetchStats();
-    }, []);
+    //     fetchStats();
+    // }, []);
 
     // Fetch chart data
     // useEffect(() => {
@@ -310,7 +310,7 @@ const ReservationContent = () => {
             </div>
 
             {/* Table */}
-            <div
+            {/* <div
                 className="w-full bg-white rounded-[10px] py-10 px-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
@@ -333,7 +333,7 @@ const ReservationContent = () => {
                         statusColors={statusColors}
                     />
                 )}
-            </div>
+            </div> */}
         </div>
     );
 };
