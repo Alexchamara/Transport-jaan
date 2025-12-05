@@ -2,17 +2,17 @@ import React, { useEffect, useState } from "react";
 import { usePage } from "@inertiajs/react";
 import axios from "axios";
 
-import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
+// import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 
-import icon1 from "../../../../assets/vendors/booking/icons/icon1.svg";
-import icon2 from "../../../../assets/vendors/booking/icons/icon2.svg";
-import icon3 from "../../../../assets/vendors/booking/icons/icon3.svg";
-import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
+// import icon1 from "../../../../assets/vendors/booking/icons/icon1.svg";
+// import icon2 from "../../../../assets/vendors/booking/icons/icon2.svg";
+// import icon3 from "../../../../assets/vendors/booking/icons/icon3.svg";
+// import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
 
-import ReservationBarChart from "./ReservationBarChart";
-import WarehouseReservationTable from "./WarehouseReservationTable";
+// import ReservationBarChart from "./ReservationBarChart";
+// import WarehouseReservationTable from "./WarehouseReservationTable";
 
-import UserDropdown from "../../../vendors/UserDropdown";
+// import UserDropdown from "../../../vendors/UserDropdown";
 
 // Status color mappings
 // const paymentStatusColors = {
@@ -44,17 +44,17 @@ const ReservationContent = () => {
     const { auth } = usePage().props;
     // const [reservations, setReservations] = useState([]);
     // const [reservationData, setReservationData] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        active: 0,
-        pending: 0,
-        expired: 0,
-        cancelled: 0,
-        activeGrowth: 0,
-        pendingGrowth: 0,
-        expiredGrowth: 0,
-        cancelledGrowth: 0,
-    });
+    // const [loading, setLoading] = useState(true);
+    // const [stats, setStats] = useState({
+    //     active: 0,
+    //     pending: 0,
+    //     expired: 0,
+    //     cancelled: 0,
+    //     activeGrowth: 0,
+    //     pendingGrowth: 0,
+    //     expiredGrowth: 0,
+    //     cancelledGrowth: 0,
+    // });
 
     // Fetch reservations data
     // useEffect(() => {
@@ -143,20 +143,20 @@ const ReservationContent = () => {
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header */}
-            <div className="flex flex-row gap-5 justify-between items-center">
+            {/* <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">
                     Warehouse Reservations
                 </h1>
                 <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
                 </div>
-            </div>
+            </div> */}
 
             {/* KPI row */}
             <div className="flex flex-row gap-10 justify-between py-20 w-full">
                 <div className="flex flex-col gap-8 w-full">
                     {/* Active Reservations */}
-                    <div
+                    {/* <div
                         className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3 shadow-sm"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
@@ -189,10 +189,10 @@ const ReservationContent = () => {
                                 from last week
                             </span>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Pending Reservations */}
-                    <div
+                    {/* <div
                         className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
@@ -225,10 +225,10 @@ const ReservationContent = () => {
                                 from last week
                             </span>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Expired Reservations */}
-                    <div
+                    {/* <div
                         className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
@@ -261,10 +261,10 @@ const ReservationContent = () => {
                                 from last week
                             </span>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Cancelled Reservations */}
-                    <div
+                    {/* <div
                         className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
@@ -297,7 +297,7 @@ const ReservationContent = () => {
                                 from last week
                             </span>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Right: Chart */}
