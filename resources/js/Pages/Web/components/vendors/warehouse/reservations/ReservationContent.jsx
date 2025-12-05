@@ -124,21 +124,21 @@ const ReservationContent = () => {
     // }, []);
 
     // Fetch chart data
-    // useEffect(() => {
-    //     const fetchChartData = async () => {
-    //         try {
-    //             const response = await axios.get("/vendors/warehouse/api/reservations/chart-data");
+    useEffect(() => {
+        const fetchChartData = async () => {
+            try {
+                const response = await axios.get("/vendors/warehouse/api/reservations/chart-data");
                 
-    //             if (response.data.success) {
-    //                 setReservationData(response.data.data);
-    //             }
-    //         } catch (error) {
-    //             console.error("Error fetching chart data:", error);
-    //         }
-    //     };
+                if (response.data.success) {
+                    setReservationData(response.data.data);
+                }
+            } catch (error) {
+                console.error("Error fetching chart data:", error);
+            }
+        };
 
-    //     fetchChartData();
-    // }, []);
+        fetchChartData();
+    }, []);
 
     return (
         <div className="w-full h-auto pr-5 py-10">
