@@ -4,10 +4,10 @@ import axios from "axios";
 
 // import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 
-// import icon1 from "../../../../assets/vendors/booking/icons/icon1.svg";
-// import icon2 from "../../../../assets/vendors/booking/icons/icon2.svg";
-// import icon3 from "../../../../assets/vendors/booking/icons/icon3.svg";
-// import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
+import icon1 from "../../../../assets/vendors/booking/icons/icon1.svg";
+import icon2 from "../../../../assets/vendors/booking/icons/icon2.svg";
+import icon3 from "../../../../assets/vendors/booking/icons/icon3.svg";
+import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
 
 // import ReservationBarChart from "./ReservationBarChart";
 // import WarehouseReservationTable from "./WarehouseReservationTable";
