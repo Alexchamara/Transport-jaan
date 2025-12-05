@@ -20,39 +20,27 @@ class WarehouseReservationController extends Controller
     public function index(Request $request)
     {
         try {
-            $user = Auth::user();
-            
-            // Get reservations with optimized eager loading
-            $query = WarehouseBooking::query()
-                ->with(['user:id,name,email', 'warehouseUnit:id,name,user_id,type,total_area,capacity,capacity_unit'])
-                ->select([
-                    'id', 'booking_reference', 'warehouse_unit_id', 'user_id',
-                    'company_name', 'contact_person', 'email', 'phone',
-                    'goods_type', 'goods_description', 'required_space',
-                    'storage_type', 'special_requirements', 'estimated_weight',
-                    'start_date', 'end_date', 'duration_months', 'access_hours',
-                    'monthly_rate', 'security_deposit', 'setup_fee',
-                    'total_amount', 'tax_amount', 'final_amount',
-                    'payment_method', 'payment_status', 'status',
-                    'special_instructions', 'notes', 'insurance_required',
-                    'terms_accepted', 'created_at', 'updated_at'
-                ]);
-            
-            // Apply filters
-            $this->applyFilters($query, $request);
-            
-            // Get all reservations without pagination for frontend handling
-            $reservations = $query->orderBy('created_at', 'desc')->get();
-            
-            // Transform the data
-            $transformedReservations = $reservations->map(function ($reservation) {
-                return $this->transformReservation($reservation);
-            });
+            // Use raw SQL query to fetch warehouse bookings
+            $reservations = DB::select("
+                SELECT 
+                    wb.*,
+                    u.name as user_name,
+                    u.email as user_email,
+                    wu.name as warehouse_name,
+                    wu.type as warehouse_type,
+                    wu.total_area,
+                    wu.capacity,
+                    wu.capacity_unit
+                FROM warehouse_bookings wb
+                LEFT JOIN users u ON wb.user_id = u.id
+                LEFT JOIN warehouse_units wu ON wb.warehouse_unit_id = wu.id
+                ORDER BY wb.created_at DESC
+            ");
             
             return response()->json([
                 'success' => true,
-                'data' => $transformedReservations,
-                'total' => $transformedReservations->count()
+                'data' => $reservations,
+                'total' => count($reservations)
             ]);
             
         } catch (\Exception $e) {
