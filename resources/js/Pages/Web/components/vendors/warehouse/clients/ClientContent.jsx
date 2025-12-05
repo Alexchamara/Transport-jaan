@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
@@ -8,16 +8,48 @@ import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 import ClientTable from "./ClientTable";
 
 import UserDropdown from "../../UserDropdown";
+import NotificationDropdown from "../NotificationDropdown";
 
 const ClientContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
+    const [warehouseNotifications, setWarehouseNotifications] = useState([]);
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+
+    // Fetch notifications
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!auth?.user) return;
+
+            try {
+                const response = await fetch('/vendors/warehouse/notifications/data');
+                if (response.ok) {
+                    const data = await response.json();
+                    setWarehouseNotifications(data.notifications || []);
+                    setNotificationUnreadCount(data.unread_count || 0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch notifications:', error);
+            }
+        };
+
+        if (auth?.user) {
+            fetchNotifications();
+            // Refresh notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [auth?.user]);
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Warehouse Clients</h1>
+            <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
+                <div className="flex items-center gap-4">
+                    <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left md:mt-0">
+                        Warehouse Clients
+                    </h1>
+                </div>
                 {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
@@ -39,21 +71,25 @@ const ClientContent = () => {
                         </h1>
                     </div>
                 </div> */}
-                <div className="flex flex-row gap-5 relative items-center">
+                <div className="hidden lg:flex items-center gap-3">
+                    <NotificationDropdown
+                        notifications={warehouseNotifications}
+                        unreadCount={notificationUnreadCount}
+                    />
                     <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}
 
-            <div
-                className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-10 py-10"
-                style={{
-                    boxShadow: "4px 4px 4px #0000001A",
-                }}
-            >
-
-              <ClientTable />
-
+            <div className="flex flex-col gap-5 py-10">
+                <div
+                    className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] px-4 py-4"
+                    style={{
+                        boxShadow: "4px 4px 4px #0000001A",
+                    }}
+                >
+                    <ClientTable />
+                </div>
             </div>
         </div>
     );

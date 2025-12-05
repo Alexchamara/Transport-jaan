@@ -12,6 +12,7 @@ import CalendarMonthPicker from "./CalendarMonthPicker";
 import CalendarGrid from "./CalendarGrid";
 
 import UserDropdown from "../../UserDropdown";
+import NotificationDropdown from "../NotificationDropdown";
 
 const monthNames = [
     "January",
@@ -45,8 +46,14 @@ const CalendarContent = ({
     const [currentYear, setCurrentYear] = useState(
         initialYear || today.getFullYear()
     );
+    const [currentDay, setCurrentDay] = useState(today.getDate());
+    const [currentView, setCurrentView] = useState('week'); // 'day', 'week', 'month', 'year'
     const [selectedUser, setSelectedUser] = useState(selectedUserId || null);
     const [selectedBooking, setSelectedBooking] = useState(null);
+
+    // Notifications
+    const [warehouseNotifications, setWarehouseNotifications] = useState([]);
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
     // Update when props change
     useEffect(() => {
@@ -61,28 +68,87 @@ const CalendarContent = ({
         }
     }, [initialEvents]);
 
-    const handlePrevMonth = () => {
-        const newMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-        const newYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-        setCurrentMonth(newMonth);
-        setCurrentYear(newYear);
-        router.get(
-            "/vendors/warehouse/calendar",
-            { month: newMonth + 1, year: newYear, user_id: selectedUser },
-            { preserveState: true }
-        );
+    // Fetch notifications
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!auth?.user) return;
+
+            try {
+                const response = await fetch('/vendors/warehouse/notifications/data');
+                if (response.ok) {
+                    const data = await response.json();
+                    setWarehouseNotifications(data.notifications || []);
+                    setNotificationUnreadCount(data.unread_count || 0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch notifications:', error);
+            }
+        };
+
+        if (auth?.user) {
+            fetchNotifications();
+            // Refresh notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [auth?.user]);
+
+    const handlePrev = () => {
+        switch (currentView) {
+            case 'day':
+                const prevDay = new Date(currentYear, currentMonth, currentDay - 1);
+                setCurrentDay(prevDay.getDate());
+                setCurrentMonth(prevDay.getMonth());
+                setCurrentYear(prevDay.getFullYear());
+                break;
+            case 'week':
+                const prevWeek = new Date(currentYear, currentMonth, currentDay - 7);
+                setCurrentDay(prevWeek.getDate());
+                setCurrentMonth(prevWeek.getMonth());
+                setCurrentYear(prevWeek.getFullYear());
+                break;
+            case 'month':
+                setCurrentMonth((prev) => {
+                    if (prev === 0) {
+                        setCurrentYear((y) => y - 1);
+                        return 11;
+                    }
+                    return prev - 1;
+                });
+                break;
+            case 'year':
+                setCurrentYear((y) => y - 1);
+                break;
+        }
     };
 
-    const handleNextMonth = () => {
-        const newMonth = currentMonth === 11 ? 0 : currentMonth + 1;
-        const newYear = currentMonth === 11 ? currentYear + 1 : currentYear;
-        setCurrentMonth(newMonth);
-        setCurrentYear(newYear);
-        router.get(
-            "/vendors/warehouse/calendar",
-            { month: newMonth + 1, year: newYear, user_id: selectedUser },
-            { preserveState: true }
-        );
+    const handleNext = () => {
+        switch (currentView) {
+            case 'day':
+                const nextDay = new Date(currentYear, currentMonth, currentDay + 1);
+                setCurrentDay(nextDay.getDate());
+                setCurrentMonth(nextDay.getMonth());
+                setCurrentYear(nextDay.getFullYear());
+                break;
+            case 'week':
+                const nextWeek = new Date(currentYear, currentMonth, currentDay + 7);
+                setCurrentDay(nextWeek.getDate());
+                setCurrentMonth(nextWeek.getMonth());
+                setCurrentYear(nextWeek.getFullYear());
+                break;
+            case 'month':
+                setCurrentMonth((prev) => {
+                    if (prev === 11) {
+                        setCurrentYear((y) => y + 1);
+                        return 0;
+                    }
+                    return prev + 1;
+                });
+                break;
+            case 'year':
+                setCurrentYear((y) => y + 1);
+                break;
+        }
     };
 
     const handleUserChange = (userId) => {
@@ -96,20 +162,172 @@ const CalendarContent = ({
 
     const handleTodayClick = () => {
         const today = new Date();
-        const newMonth = today.getMonth();
-        const newYear = today.getFullYear();
-        setCurrentMonth(newMonth);
-        setCurrentYear(newYear);
-        router.get(
-            "/vendors/warehouse/calendar",
-            { month: newMonth + 1, year: newYear, user_id: selectedUser },
-            { preserveState: true }
-        );
+        setCurrentDay(today.getDate());
+        setCurrentMonth(today.getMonth());
+        setCurrentYear(today.getFullYear());
     };
 
-    // Convert events
-    const processedEvents =
-        initialEvents?.map((event) => {
+    const getHeaderTitle = () => {
+        switch (currentView) {
+            case 'day':
+                const dayDate = new Date(currentYear, currentMonth, currentDay);
+                return `${monthNames[currentMonth]} ${currentDay}`;
+            case 'week':
+                const weekDate = new Date(currentYear, currentMonth, currentDay);
+                const dayOfWeek = weekDate.getDay();
+                const monday = new Date(weekDate);
+                monday.setDate(weekDate.getDate() - ((dayOfWeek + 6) % 7));
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                return `${monthNames[monday.getMonth()]} ${monday.getDate()} - ${sunday.getDate()}`;
+            case 'month':
+                return `${monthNames[currentMonth]} ${currentYear}`;
+            case 'year':
+                return `${currentYear}`;
+            default:
+                return `${monthNames[currentMonth]} ${currentYear}`;
+        }
+    };
+
+    // Mock data for demonstration - remove when backend is ready
+    const mockEvents = !initialEvents || initialEvents.length === 0 ? [
+        {
+            day: 0, // Monday (December 1, 2025)
+            time: "8:00 AM",
+            title: "Electronics Storage",
+            person: "John Smith",
+            status: "done",
+            fullData: {
+                id: 1,
+                pickup_at: new Date(2025, 11, 1), // December 1, 2025
+                dropoff_at: new Date(2025, 11, 15),
+                pickup_time: "8:00 AM",
+                title: "Electronics Storage",
+                person: "John Smith",
+                notes: "Temperature controlled storage required",
+                vehicle: {
+                    name: "Cold Storage Unit A",
+                    type: "Climate Controlled",
+                    plate_number: "REF-001",
+                    transmission: "500 sq ft"
+                }
+            }
+        },
+        {
+            day: 0, // Monday (December 1, 2025)
+            time: "12:00 PM",
+            title: "Furniture Storage",
+            person: "Sarah Johnson",
+            status: "done",
+            fullData: {
+                id: 2,
+                pickup_at: new Date(2025, 11, 1), // December 1, 2025
+                dropoff_at: new Date(2025, 11, 20),
+                pickup_time: "12:00 PM",
+                title: "Furniture Storage",
+                person: "Sarah Johnson",
+                notes: "Fragile items - handle with care",
+                vehicle: {
+                    name: "General Storage B",
+                    type: "Standard",
+                    plate_number: "STD-002",
+                    transmission: "800 sq ft"
+                }
+            }
+        },
+        {
+            day: 1, // Tuesday (December 2, 2025)
+            time: "9:00 AM",
+            title: "Auto Parts Storage",
+            person: "Mike Davis",
+            status: "cancelled",
+            fullData: {
+                id: 3,
+                pickup_at: new Date(2025, 11, 2), // December 2, 2025
+                dropoff_at: new Date(2025, 11, 10),
+                pickup_time: "9:00 AM",
+                title: "Auto Parts Storage",
+                person: "Mike Davis",
+                notes: "Cancelled due to schedule conflict",
+                vehicle: {
+                    name: "Secure Storage C",
+                    type: "High Security",
+                    plate_number: "SEC-003",
+                    transmission: "300 sq ft"
+                }
+            }
+        },
+        {
+            day: 2, // Wednesday (December 3, 2025)
+            time: "8:00 AM",
+            title: "Textile Goods",
+            person: "Emily Wilson",
+            status: "done",
+            fullData: {
+                id: 4,
+                pickup_at: new Date(2025, 11, 3), // December 3, 2025
+                dropoff_at: new Date(2025, 11, 18),
+                pickup_time: "8:00 AM",
+                title: "Textile Goods",
+                person: "Emily Wilson",
+                notes: "Dry storage area required",
+                vehicle: {
+                    name: "Dry Storage D",
+                    type: "Climate Controlled",
+                    plate_number: "DRY-004",
+                    transmission: "600 sq ft"
+                }
+            }
+        },
+        {
+            day: 3, // Thursday (December 4, 2025)
+            time: "10:00 AM",
+            title: "Medical Supplies",
+            person: "Dr. Robert Brown",
+            status: "done",
+            fullData: {
+                id: 5,
+                pickup_at: new Date(2025, 11, 4), // December 4, 2025
+                dropoff_at: new Date(2025, 11, 12),
+                pickup_time: "10:00 AM",
+                title: "Medical Supplies",
+                person: "Dr. Robert Brown",
+                notes: "Temperature sensitive - maintain 2-8°C",
+                vehicle: {
+                    name: "Pharma Storage E",
+                    type: "Temperature Controlled",
+                    plate_number: "MED-005",
+                    transmission: "400 sq ft"
+                }
+            }
+        },
+        {
+            day: 4, // Friday (December 5, 2025)
+            time: "11:00 AM",
+            title: "Office Equipment",
+            person: "Lisa Anderson",
+            status: "done",
+            fullData: {
+                id: 6,
+                pickup_at: new Date(2025, 11, 5), // December 5, 2025
+                dropoff_at: new Date(2025, 11, 25),
+                pickup_time: "11:00 AM",
+                title: "Office Equipment",
+                person: "Lisa Anderson",
+                notes: "Computer servers and office furniture",
+                vehicle: {
+                    name: "Standard Storage F",
+                    type: "Standard",
+                    plate_number: "STD-006",
+                    transmission: "700 sq ft"
+                }
+            }
+        }
+    ] : [];
+
+    // Convert events or use mock data
+    const processedEvents = initialEvents && initialEvents.length > 0
+        ? initialEvents.map((event) => {
             const pickupDate = new Date(event.pickup_at);
             const dayOfWeek = (pickupDate.getDay() + 6) % 7; // Monday = 0
             return {
@@ -123,7 +341,11 @@ const CalendarContent = ({
                 bookingId: event.id,
                 fullData: event,
             };
-        }) || [];
+        })
+        : mockEvents;
+
+    console.log('Initial Events:', initialEvents);
+    console.log('Processed Events:', processedEvents);
 
     const times = [
         "8:00 AM",
@@ -138,39 +360,42 @@ const CalendarContent = ({
     ];
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
-            {/* ==================== HEADER WITH DROPDOWN ==================== */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
-                    Warehouse Calendar
-                </h1>
-
-                <div className="flex flex-row gap-5 relative items-center">
+        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
+            {/* Header section */}
+            <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
+                <div className="flex items-center gap-4">
+                    <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left md:mt-0">
+                        Warehouse Calendar
+                    </h1>
+                </div>
+                <div className="hidden lg:flex items-center gap-3">
+                    <NotificationDropdown
+                        notifications={warehouseNotifications}
+                        unreadCount={notificationUnreadCount}
+                    />
                     <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
                 </div>
             </div>
+            {/* end of header section */}
 
-            {/* ==================== TOP ROW: Booking + Reminders + Month Picker ==================== */}
-            <div className="mt-10 flex flex-row gap-5 w-full justify-between">
-                {/* Selected Booking Details */}
+            {/* <div className="mt-10 flex flex-col lg:flex-row gap-5 w-full justify-between">
                 <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-5 lg:px-8 py-10"
+                    style={{
+                        boxShadow: "4px 4px 4px #0000001A",
+                    }}
                 >
                     {selectedBooking ? (
                         <>
-                            <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                            <div className="flex flex-col xl:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
                                 <img
-                                    src={
-                                        selectedBooking.personImage || proPicTwo
-                                    }
+                                    src={selectedBooking.personImage || proPicTwo}
                                     className="size-[90px] rounded-full object-cover"
-                                    alt="client"
+                                    alt="Client"
                                 />
                                 <div className="flex flex-col gap-3">
                                     <h1 className="text-[18px] font-[700]">
-                                        {selectedBooking.client?.name ||
-                                            selectedBooking.person}
+                                        {selectedBooking.client?.name || selectedBooking.person}
                                     </h1>
                                     <div className="flex flex-row gap-10 text-[16px] font-[500]">
                                         <div className="flex flex-col gap-3 text-[#00000080]">
@@ -179,18 +404,14 @@ const CalendarContent = ({
                                         </div>
                                         <div className="flex flex-col gap-3">
                                             <h1>
-                                                {new Date(
-                                                    selectedBooking.pickup_at
-                                                ).toLocaleDateString("en-GB", {
+                                                {new Date(selectedBooking.pickup_at).toLocaleDateString("en-GB", {
                                                     day: "numeric",
                                                     month: "long",
                                                     year: "numeric",
                                                 })}
                                             </h1>
                                             <h1>
-                                                {new Date(
-                                                    selectedBooking.dropoff_at
-                                                ).toLocaleDateString("en-GB", {
+                                                {new Date(selectedBooking.dropoff_at).toLocaleDateString("en-GB", {
                                                     day: "numeric",
                                                     month: "long",
                                                     year: "numeric",
@@ -206,12 +427,11 @@ const CalendarContent = ({
                                 </div>
                             </div>
 
-                            <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                            <div className="flex flex-col xl:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
                                 <Boxes className="size-[90px] text-[#2E4683]" />
                                 <div className="flex flex-col gap-2">
                                     <h1 className="text-[18px] font-[700]">
-                                        {selectedBooking.vehicle?.name ||
-                                            selectedBooking.title}
+                                        {selectedBooking.vehicle?.name || selectedBooking.title}
                                     </h1>
                                     <div className="flex flex-row gap-10 text-[16px] font-[500]">
                                         <div className="flex flex-col gap-2 text-[#00000080]">
@@ -220,18 +440,9 @@ const CalendarContent = ({
                                             <h1>Space</h1>
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            <h1>
-                                                {selectedBooking.vehicle
-                                                    ?.type || "N/A"}
-                                            </h1>
-                                            <h1>
-                                                {selectedBooking.vehicle
-                                                    ?.plate_number || "N/A"}
-                                            </h1>
-                                            <h1>
-                                                {selectedBooking.vehicle
-                                                    ?.transmission || "N/A"}
-                                            </h1>
+                                            <h1>{selectedBooking.vehicle?.type || "N/A"}</h1>
+                                            <h1>{selectedBooking.vehicle?.plate_number || "N/A"}</h1>
+                                            <h1>{selectedBooking.vehicle?.transmission || "N/A"}</h1>
                                         </div>
                                     </div>
                                 </div>
@@ -243,150 +454,140 @@ const CalendarContent = ({
                         </div>
                     )}
                 </div>
+            </div> */}
 
-                {/* Reminders */}
+            <div className="flex flex-col gap-5 py-10">
+                {/* ==================== MAIN CALENDAR GRID ==================== */}
                 <div
-                    className="min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[8px] py-10"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <div className="flex flex-row items-center justify-between w-full">
-                        <h1 className="text-[24px] font-[700]">Reminders</h1>
-                        <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[30px] cursor-pointer">
-                            +
-                        </div>
-                    </div>
-                    <div className="py-5 flex flex-col justify-center items-center gap-5">
-                        {initialEvents?.slice(0, 4).map((event, idx) => (
+                    <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">
+                        <div className="flex flex-row justify-center items-center gap-3">
                             <div
-                                key={idx}
-                                className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2"
+                                className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                onClick={handleTodayClick}
                             >
-                                <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                    !
+                                Today
+                            </div>
+                            <div className="flex flex-row justify-center items-center gap-2">
+                                <div
+                                    className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                    onClick={handlePrev}
+                                >
+                                    <img src={leftArrow} alt="Previous" />
                                 </div>
-                                <h1 className="text-[14px] font-[500] w-[199px]">
-                                    {event.title} pickup at {event.pickup_time}{" "}
-                                    on {event.pickup_date}
-                                </h1>
+                                <div
+                                    className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                    onClick={handleNext}
+                                >
+                                    <img
+                                        src={leftArrow}
+                                        className="rotate-180"
+                                        alt="Next"
+                                    />
+                                </div>
                             </div>
-                        ))}
-                        {(!initialEvents || initialEvents.length === 0) && (
-                            <p className="text-gray-500 text-sm">
-                                No upcoming reminders
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                {/* Calendar Month Picker */}
-                <div
-                    className="min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                >
-                    <CalendarMonthPicker />
-                </div>
-            </div>
-
-            {/* ==================== MAIN CALENDAR GRID ==================== */}
-            <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
-            >
-                <div className="px-20 flex flex-row items-center justify-between">
-                    <div className="flex flex-row justify-center items-center gap-6">
-                        <div
-                            className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#e0e0e0]"
-                            onClick={handleTodayClick}
-                        >
-                            Today
+                            <h1 className="text-[18px] font-[700]">
+                                {getHeaderTitle()}
+                            </h1>
                         </div>
-                        <div className="flex flex-row justify-center items-center gap-2">
-                            <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#e0e0e0]"
-                                onClick={handlePrevMonth}
-                            >
-                                <img src={leftArrow} alt="previous" />
+
+                        <div className="flex flex-col md:flex-row justify-center items-center gap-5 mt-5 xl:mt-0">
+                            {/* Client Filter */}
+                            {clients && clients.length > 0 && (
+                                <select
+                                    value={selectedUser || ""}
+                                    onChange={(e) =>
+                                        handleUserChange(e.target.value || null)
+                                    }
+                                    className="w-[200px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] px-3"
+                                >
+                                    <option value="">All Clients</option>
+                                    {clients.map((client) => (
+                                        <option key={client.id} value={client.id}>
+                                            {client.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+
+                            <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
+                                <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
+                                    All
+                                </div>
+                                <div className="w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
+                                    Inbound
+                                </div>
+                                <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
+                                    Outbound
+                                </div>
                             </div>
-                            <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#e0e0e0]"
-                                onClick={handleNextMonth}
-                            >
-                                <img
-                                    src={leftArrow}
-                                    className="rotate-180"
-                                    alt="next"
-                                />
+
+                            <div className="flex flex-row justify-center items-center text-[14px] font-[600]">
+                                <div
+                                    className={`w-[70px] h-[35px] rounded-l-[6px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'day' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                        }`}
+                                    onClick={() => setCurrentView('day')}
+                                >
+                                    Day
+                                </div>
+                                <div
+                                    className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'week' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                        }`}
+                                    onClick={() => setCurrentView('week')}
+                                >
+                                    Week
+                                </div>
+                                <div
+                                    className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'month' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                        }`}
+                                    onClick={() => setCurrentView('month')}
+                                >
+                                    Month
+                                </div>
+                                <div
+                                    className={`w-[70px] h-[35px] rounded-r-[6px] flex justify-center items-center cursor-pointer transition-colors ${currentView === 'year' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                        }`}
+                                    onClick={() => setCurrentView('year')}
+                                >
+                                    Year
+                                </div>
                             </div>
                         </div>
-                        <h1 className="text-[18px] font-[700]">
-                            {monthNames[currentMonth]} {currentYear}
-                        </h1>
                     </div>
 
-                    <div className="flex flex-row justify-center items-center gap-5">
-                        {/* Client Filter */}
-                        {clients && clients.length > 0 && (
-                            <select
-                                value={selectedUser || ""}
-                                onChange={(e) =>
-                                    handleUserChange(e.target.value || null)
+                    <div className="flex flex-row gap-10 justify-start items-center px-5 lg:px-20 py-5">
+                        <div className="flex flex-row justify-start items-center gap-5">
+                            <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
+                            <h1 className="text-[#00000080] font-[600] text-[16px]">
+                                Done
+                            </h1>
+                        </div>
+                        <div className="flex flex-row justify-start items-center gap-5">
+                            <div className="size-[16px] bg-[#FFDBDF] rounded-[4px]" />
+                            <h1 className="text-[#00000080] font-[600] text-[16px]">
+                                Cancelled
+                            </h1>
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <div className={`${currentView === 'year' || currentView === 'month' ? '' : currentView === 'day' ? '' : 'grid grid-cols-8 border-t border-l border-[#00000026] min-w-[800px]'}`}>
+                            <CalendarGrid
+                                times={times}
+                                events={processedEvents}
+                                proPicTwo={proPicTwo}
+                                currentMonth={currentMonth}
+                                currentYear={currentYear}
+                                currentDay={currentDay}
+                                currentView={currentView}
+                                onEventClick={(event) =>
+                                    setSelectedBooking(event.fullData)
                                 }
-                                className="w-[200px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] px-3"
-                            >
-                                <option value="">All Clients</option>
-                                {clients.map((client) => (
-                                    <option key={client.id} value={client.id}>
-                                        {client.name}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-
-                        <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
-                                All
-                            </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
-                                Inbound
-                            </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
-                                Outbound
-                            </div>
-                        </div>
-
-                        <div className="w-[96px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center gap-3">
-                            <h1>Week</h1>
-                            <img src={miniDownArrow} alt="dropdown" />
+                            />
                         </div>
                     </div>
-                </div>
-
-                <div className="flex flex-row gap-10 justify-start items-center px-20 py-5">
-                    <div className="flex flex-row justify-start items-center gap-5">
-                        <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
-                        <h1 className="text-[#00000080] font-[600] text-[16px]">
-                            Done
-                        </h1>
-                    </div>
-                    <div className="flex flex-row justify-start items-center gap-5">
-                        <div className="size-[16px] bg-[#FFDBDF] rounded-[4px]" />
-                        <h1 className="text-[#00000080] font-[600] text-[16px]">
-                            Cancelled
-                        </h1>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-8 border-t border-l border-[#00000026]">
-                    <CalendarGrid
-                        times={times}
-                        events={processedEvents}
-                        proPicTwo={proPicTwo}
-                        currentMonth={currentMonth}
-                        currentYear={currentYear}
-                        onEventClick={(event) =>
-                            setSelectedBooking(event.fullData)
-                        }
-                    />
                 </div>
             </div>
         </div>

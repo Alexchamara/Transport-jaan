@@ -164,11 +164,14 @@ const BookingContent = () => {
   ];
 
   return (
-    <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 sm:pt-8 lg:pt-12 pb-8 lg:pb-12">
-      {/* Header */}
+    <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
+      {/* Header section */}
       <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
-        <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left  md:mt-0"
-        >Warehouse Bookings</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left md:mt-0">
+            Warehouse Bookings
+          </h1>
+        </div>
         <div className="hidden lg:flex items-center gap-3">
           <NotificationDropdown
             notifications={warehouseNotifications}
@@ -177,8 +180,8 @@ const BookingContent = () => {
           <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
         </div>
       </div>
+      {/* end of header section */}
 
-      {/* Stats cards */}
       <div className="flex flex-col gap-5 py-10">
         <div className="flex flex-col gap-5">
           <div className="flex xl:flex-row flex-col gap-5 xl:w-full">
@@ -301,9 +304,9 @@ const BookingContent = () => {
                   statusColors={statusColors}
                   filters={filters}
                 />
-              </>
+              </> 
             )}
-          </div>
+          </div>      
         </div>
       </div>
     </div>

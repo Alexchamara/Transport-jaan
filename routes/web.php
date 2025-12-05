@@ -674,7 +674,7 @@ Route::get('/SuperAdmin/AddUser', function () {
 
 // vendor dashboard - warehouse
 Route::get('/warehouse/bookings', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Booking');
+    return Inertia::render('Web/home/vendors/warehouse/Bookings');
 })->name('warehouse.bookings');
 Route::get('/SuperAdmin/Vehicles', function () {
     return Inertia::render('Web/home/SuperAdmin/Vehicles');
