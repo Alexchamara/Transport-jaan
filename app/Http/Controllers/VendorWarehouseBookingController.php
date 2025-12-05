@@ -113,6 +113,15 @@ class VendorWarehouseBookingController extends Controller
             $user = Auth::user();
             $warehouseUnitIds = WarehouseUnit::where('user_id', $user->id)->pluck('id');
             
+            // Current week calculations
+            $currentWeekStart = Carbon::now()->startOfWeek();
+            $currentWeekEnd = Carbon::now()->endOfWeek();
+            
+            // Last week calculations
+            $lastWeekStart = Carbon::now()->subWeek()->startOfWeek();
+            $lastWeekEnd = Carbon::now()->subWeek()->endOfWeek();
+            
+            // Current stats
             $stats = [
                 'upcoming_bookings' => WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
                     ->whereIn('status', ['confirmed', 'active'])
@@ -125,18 +134,42 @@ class VendorWarehouseBookingController extends Controller
                     
                 'cancelled_bookings' => WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
                     ->where('status', 'cancelled')
-                    ->whereMonth('created_at', now()->month)
+                    ->whereBetween('created_at', [$currentWeekStart, $currentWeekEnd])
                     ->count(),
                     
                 'completed_bookings' => WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
                     ->where('status', 'completed')
-                    ->whereMonth('created_at', now()->month)
+                    ->whereBetween('created_at', [$currentWeekStart, $currentWeekEnd])
+                    ->count(),
+            ];
+            
+            // Previous week stats for comparison
+            $previousStats = [
+                'previous_upcoming_bookings' => WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
+                    ->whereIn('status', ['confirmed', 'active'])
+                    ->where('start_date', '>', $lastWeekEnd)
+                    ->where('created_at', '<=', $lastWeekEnd)
+                    ->count(),
+                    
+                'previous_pending_bookings' => WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
+                    ->where('status', 'pending')
+                    ->where('created_at', '<=', $lastWeekEnd)
+                    ->count(),
+                    
+                'previous_cancelled_bookings' => WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
+                    ->where('status', 'cancelled')
+                    ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
+                    ->count(),
+                    
+                'previous_completed_bookings' => WarehouseBooking::whereIn('warehouse_unit_id', $warehouseUnitIds)
+                    ->where('status', 'completed')
+                    ->whereBetween('created_at', [$lastWeekStart, $lastWeekEnd])
                     ->count(),
             ];
             
             return response()->json([
                 'success' => true,
-                'data' => $stats
+                'data' => array_merge($stats, $previousStats)
             ]);
             
         } catch (\Exception $e) {
