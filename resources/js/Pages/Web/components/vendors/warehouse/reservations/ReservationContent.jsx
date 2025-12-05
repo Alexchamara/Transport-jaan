@@ -43,18 +43,18 @@ import UserDropdown from "../../../vendors/UserDropdown";
 const ReservationContent = () => {
     const { auth } = usePage().props;
     // const [reservations, setReservations] = useState([]);
-    // const [reservationData, setReservationData] = useState([]);
+    const [reservationData, setReservationData] = useState([]);
     // const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        active: 0,
-        pending: 0,
-        expired: 0,
-        cancelled: 0,
-        activeGrowth: 0,
-        pendingGrowth: 0,
-        expiredGrowth: 0,
-        cancelledGrowth: 0,
-    });
+    // const [stats, setStats] = useState({
+    //     active: 0,
+    //     pending: 0,
+    //     expired: 0,
+    //     cancelled: 0,
+    //     activeGrowth: 0,
+    //     pendingGrowth: 0,
+    //     expiredGrowth: 0,
+    //     cancelledGrowth: 0,
+    // });
 
     // Fetch reservations data
     // useEffect(() => {
@@ -156,7 +156,7 @@ const ReservationContent = () => {
             <div className="flex flex-row gap-10 justify-between py-20 w-full">
                 <div className="flex flex-col gap-8 w-full">
                     {/* Active Reservations */}
-                    <div
+                    {/* <div
                         className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3 shadow-sm"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
@@ -189,10 +189,10 @@ const ReservationContent = () => {
                                 from last week
                             </span>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Pending Reservations */}
-                    <div
+                    {/* <div
                         className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
@@ -225,10 +225,10 @@ const ReservationContent = () => {
                                 from last week
                             </span>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Expired Reservations */}
-                    <div
+                    {/* <div
                         className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
@@ -261,10 +261,10 @@ const ReservationContent = () => {
                                 from last week
                             </span>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Cancelled Reservations */}
-                    <div
+                    {/* <div
                         className="w-full bg-white rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
@@ -297,16 +297,16 @@ const ReservationContent = () => {
                                 from last week
                             </span>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Right: Chart */}
-                {/* <div
+                <div
                     className="min-w-[712px] w-full min-h-[437px] bg-white rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <ReservationBarChart reservationData={reservationData} />
-                </div> */}
+                </div>
             </div>
 
             {/* Table */}
