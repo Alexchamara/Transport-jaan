@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage, router } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable"; 
+import autoTable from "jspdf-autotable";
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -20,10 +20,13 @@ import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
 import UserDropdown from "../../../UserDropdown";
+import NotificationDropdown from "../../NotificationDropdown";
 
 const PaymentContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+    const [warehouseNotifications, setWarehouseNotifications] = useState([]);
+    const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
     // State management
     const [transactions, setTransactions] = useState([]);
@@ -38,13 +41,38 @@ const PaymentContent = () => {
     const [selectedRows, setSelectedRows] = useState(new Set());
     const [totalPages, setTotalPages] = useState(1);
     const [totalRecords, setTotalRecords] = useState(0);
-    
+
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [dateFilter, setDateFilter] = useState('');
-    
+
     const perPageOptions = [5, 10, 20, 50];
+
+    // Fetch notifications
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            if (!auth?.user) return;
+
+            try {
+                const response = await fetch('/vendors/warehouse/notifications/data');
+                if (response.ok) {
+                    const data = await response.json();
+                    setWarehouseNotifications(data.notifications || []);
+                    setNotificationUnreadCount(data.unread_count || 0);
+                }
+            } catch (error) {
+                console.error('Failed to fetch notifications:', error);
+            }
+        };
+
+        if (auth?.user) {
+            fetchNotifications();
+            // Refresh notifications every 30 seconds
+            const interval = setInterval(fetchNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [auth?.user]);
 
     // Fetch payment statistics
     const fetchStats = async () => {
@@ -73,7 +101,7 @@ const PaymentContent = () => {
 
             const response = await fetch(`/vendors/warehouse/api/payment-transactions?${params}`);
             const data = await response.json();
-            
+
             if (data.success) {
                 setTransactions(data.data);
                 setTotalPages(data.pagination.last_page);
@@ -266,7 +294,11 @@ const PaymentContent = () => {
                         </h1>
                     </div>
                 </div> */}
-                <div className="flex flex-row gap-5 relative items-center">
+                <div className="hidden lg:flex items-center gap-3">
+                    <NotificationDropdown
+                        notifications={warehouseNotifications}
+                        unreadCount={notificationUnreadCount}
+                    />
                     <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
                 </div>
             </div>
@@ -363,15 +395,16 @@ const PaymentContent = () => {
                                 <h1 className="text-[26px] font-[700] md:text-[20px]">
                                     LKR {stats.expenses.amount}
                                 </h1>
+                                <h1 className="text-[26px] font-[700]">LKR {stats.balance.amount}</h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500] md:text-[12px]">
                             <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
-                                    className="size-[19px] rotate-180"
+                                    className={`size-[19px] ${!stats.balance.isPositive ? 'rotate-180' : ''}`}
                                 />
-                                <h1>+{stats.expenses.growth}%</h1>
+                                <h1>{stats.balance.isPositive ? '+' : ''}{stats.balance.growth}%</h1>
                             </div>
                             <h1 className="text-[#7B7B7A]">from last week</h1>
                         </div>
@@ -568,32 +601,25 @@ const PaymentContent = () => {
                     <>
                         {/* Desktop table view */}
                         <div className="md:hidden">
-                        {currentTransactions.map((txn, idx) => (
+                            {currentTransactions.map((txn, idx) => (
                     <div
-                        key={startIdx + idx}
-                        className="grid grid-cols-9 h-[100px] justify-center items-center text-[15px] font-[500] px-10 border-b-[1.5px] border-[#00000033]"
+                        className="min-w-[250px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
-                            backgroundColor: selectedRows.has(startIdx + idx)
-                                ? "#CCCCCC4F"
-                                : "transparent",
+                            boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row items-center gap-5">
-                            <input
-                                type="checkbox"
-                                className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                                checked={selectedRows.has(startIdx + idx)}
-                                onChange={() => handleRowSelection(idx)}
-                            />
-                            <h1>{txn.id}</h1>
+                        <div className="flex flex-row gap-5 justify-center items-center">
+                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                <img src={income} />
+                            </div>
+                            <div>
+                                <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                    Income
+                                </h1>
+                                <h1 className="text-[26px] font-[700]">LKR {stats.income.amount}</h1>
+                            </div>
                         </div>
-                        <div className="">{txn.client}</div>
-                        <div>{txn.warehouse}</div>
-                        <div className="ml-5">{txn.ratePerDay}</div>
-                        <div className="ml-10">{txn.days}</div>
-                        <div>{txn.amount}</div>
-                        <div>{txn.dueDate}</div>
-                        <div>
+                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                             <div
                                 className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
                                 style={{
@@ -686,6 +712,8 @@ const PaymentContent = () => {
                                 </div>
                             ))}
                         </div>
+                    </>
+                )}
                 {/* Pagination Controls and Results per page inline */}
                 <div className="flex justify-between items-center gap-2 mt-20 md:mt-6 md:flex-col md:gap-4">
                     {/* Left: Results per page */}
@@ -744,8 +772,6 @@ const PaymentContent = () => {
                         </button>
                     </div>
                 </div>
-                    </>
-                )}
             </div>
         </div>
     );
