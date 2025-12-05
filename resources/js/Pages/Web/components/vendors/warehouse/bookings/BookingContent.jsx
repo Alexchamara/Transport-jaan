@@ -147,7 +147,6 @@ const BookingContent = () => {
 
   return (
     <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 sm:pt-8 lg:pt-12 pb-8 lg:pb-12">
-      {/* Header */}
       <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
         <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left  md:mt-0"
         >Warehouse Bookings</h1>
@@ -160,7 +159,6 @@ const BookingContent = () => {
         </div>
       </div>
 
-      {/* Stats cards */}
       <div className="flex flex-col gap-5 py-10">
         <div className="flex flex-col gap-5">
           <div className="flex xl:flex-row flex-col gap-5 xl:w-full">
@@ -220,7 +218,6 @@ const BookingContent = () => {
           </div>
         </div>
 
-        {/* Chart and Table */}
         <div className="flex flex-col xl:flex-row gap-5">
           <div
             className="flex-1 bg-white rounded-[10px] min-h-[400px] flex items-center justify-center"

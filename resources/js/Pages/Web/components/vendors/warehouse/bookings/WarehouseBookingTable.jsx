@@ -12,7 +12,6 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
     // State for pagination and remote data
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    const perPageOptions = [5, 10, 20, 50];
     const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
     const [isLoading, setIsLoading] = useState(false);
     const [fetchError, setFetchError] = useState(null);
@@ -70,24 +69,19 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
                 );
                 updateBookings(formattedBookings);
                 setPagination(response.pagination || { current_page: page, last_page: 1, total: formattedBookings.length });
-                const resolvedPage = response.pagination?.current_page ?? page;
-                setCurrentPage((prev) => (prev === resolvedPage ? prev : resolvedPage));
+                if (response.pagination?.current_page && response.pagination.current_page !== currentPage) {
+                    setCurrentPage(response.pagination.current_page);
+                }
             } else {
                 updateBookings([]);
                 setPagination({ current_page: 1, last_page: 1, total: 0 });
                 setFetchError(response.message || 'Failed to load bookings.');
-                if (page !== 1) {
-                    setCurrentPage(1);
-                }
             }
         } catch (error) {
             console.error('Error fetching bookings:', error);
             updateBookings([]);
             setPagination({ current_page: 1, last_page: 1, total: 0 });
             setFetchError('Failed to load bookings. Please try again.');
-            if (page !== 1) {
-                setCurrentPage(1);
-            }
         } finally {
             setIsLoading(false);
         }
@@ -116,12 +110,7 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
         fetchBookings(currentPage, itemsPerPage);
     }, [currentPage, itemsPerPage, fetchBookings, filters]);
 
-    const totalPages = Math.max(
-        1,
-        pagination?.total
-            ? Math.ceil(pagination.total / itemsPerPage)
-            : (pagination?.last_page ?? 1)
-    );
+    const totalPages = pagination?.last_page ?? Math.ceil((pagination?.total ?? 0) / itemsPerPage);
 
     const handleModifySubmit = async () => {
         try {
@@ -273,7 +262,6 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
                     </div>
                 ) : (
                     <div className="inline-block min-w-[1100px] align-middle">
-                        {/* table headings */}
                         <div className="grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
                             <div className="flex flex-row gap-2 items-center">
                                 <h1>Booking ID</h1>
@@ -336,11 +324,10 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
                             </div>
                         </div>
 
-                        {/* table rows */}
                         {bookings.map((booking, idx) => (
                             <div
                                 key={booking.id ?? idx}
-                                className={`grid grid-cols-9 ${(idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} min-h-[100px] justify-center items-center text-[15px] font-[500] px-10`}
+                                className={`grid grid-cols-9 ${idx !== bookings.length - 1 ? 'border-b-[1.5px] border-[#00000033]' : ''} min-h-[100px] justify-center items-center text-[15px] font-[500] px-10`}
                             >
                                 <div className="cursor-pointer hover:text-blue-600" onClick={() => handleRowClick(booking, idx)}>
                                     {booking.id}
@@ -452,7 +439,6 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
                 )}
             </div>
 
-            {/* Detailed View Popup */}
             {isDetailPopupOpen && selectedBooking && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
                     <div className="bg-white p-8 rounded-[10px] w-[900px] max-h-[80vh] overflow-y-auto shadow-lg">
@@ -467,7 +453,6 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
                         </div>
                         
                         <div className="grid grid-cols-2 gap-6">
-                            {/* Left Column */}
                             <div className="space-y-4">
                                 <div>
                                     <h3 className="text-[16px] font-[600] text-gray-700">Client Information</h3>
@@ -496,7 +481,6 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
                                 </div>
                             </div>
                             
-                            {/* Right Column */}
                             <div className="space-y-4">
                                 <div>
                                     <h3 className="text-[16px] font-[600] text-gray-700">Duration & Schedule</h3>
@@ -550,7 +534,6 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
                 </div>
             )}
 
-            {/* Modification Popup */}
             {isActionPopupOpen && actionBooking && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
                     <div className="bg-white p-6 rounded-lg w-[500px] shadow-lg">
@@ -655,16 +638,15 @@ const WarehouseBookingTable = ({ bookings: bookingsProp = [], setBookings: setBo
                 </div>
             )}
 
-            {/* Pagination Controls and Results per page inline */}
             <div className="flex justify-between items-center gap-2 mt-20">
                 <div className="flex items-center">
                     <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
                     <select
                         className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                         value={itemsPerPage}
-                        onChange={e => handleResultsPerPageChange(Number(e.target.value))}
+                        onChange={(e) => handleResultsPerPageChange(Number(e.target.value))}
                     >
-                        {perPageOptions.map(opt => (
+                        {[5, 10, 20, 50].map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
                         ))}
                     </select>

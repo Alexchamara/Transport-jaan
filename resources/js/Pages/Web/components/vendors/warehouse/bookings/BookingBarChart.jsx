@@ -23,15 +23,7 @@ const options = {
     },
     tooltip: {
       enabled: false,
-      external: function (context) {
-        // Custom tooltip rendering handled below
-      },
-      callbacks: {
-        label: function (context) {
-          // Not used, custom tooltip below
-          return '';
-        },
-      },
+      external: function (context) {},
     },
     title: {
       display: false,
@@ -87,14 +79,6 @@ const options = {
         display: false,
       },
     },
-  },
-  interaction: {
-    mode: 'index',
-    intersect: false,
-  },
-  hover: {
-    mode: 'index',
-    intersect: false,
   },
 };
 
@@ -185,9 +169,11 @@ function BookingBarChart() {
   const doneData = React.useMemo(() => bookingData.map((d) => d.done), [bookingData]);
   const cancelledData = React.useMemo(() => bookingData.map((d) => -d.cancelled), [bookingData]);
 
-  // Find the highest 'Done' value and its index
-  const maxDone = React.useMemo(() => Math.max(...doneData), [doneData]);
-  const maxDoneIndex = React.useMemo(() => doneData.indexOf(maxDone), [doneData, maxDone]);
+  // Find the highest 'Done' bar index
+  const maxDoneIndex = React.useMemo(() => {
+    const maxValue = Math.max(...doneData);
+    return doneData.indexOf(maxValue);
+  }, [doneData]);
 
   // Create chart data based on filtered data
   const data = React.useMemo(() => ({
@@ -196,7 +182,7 @@ function BookingBarChart() {
       {
         label: "Done",
         data: doneData,
-        backgroundColor: labels.map((_, i) => (i === Math.floor(labels.length * 0.6) ? "#39CEF3" : "#0955AC")),
+        backgroundColor: "#0955AC",
         borderRadius: { topLeft: 8, topRight: 8 },
         borderSkipped: false,
         barPercentage: 0.6,
@@ -218,8 +204,10 @@ function BookingBarChart() {
 
   // Handle clicks outside dropdown to close it
   React.useEffect(() => {
+    if (!isDropdownOpen) return;
+    
     const handleClickOutside = (event) => {
-      if (isDropdownOpen && !event.target.closest('.relative')) {
+      if (!event.target.closest('.relative')) {
         setIsDropdownOpen(false);
       }
     };
@@ -294,7 +282,6 @@ function BookingBarChart() {
 
   return (
     <div className="w-full h-full flex flex-col items-stretch relative px-8 pt-8 pb-4">
-      {/* Header */}
       <div className="flex flex-row justify-between items-center mb-6">
         <div className="flex flex-col gap-2">
           <h2 className="text-[28px] font-[700]">Booking Overview</h2>
@@ -344,7 +331,6 @@ function BookingBarChart() {
         )}
       </div>
 
-      {/* Chart */}
       <div className="relative w-full" style={{ height: `300px` }}>
         {bookingData.length > 0 ? (
           <>

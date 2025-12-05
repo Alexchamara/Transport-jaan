@@ -7,7 +7,6 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
     // State for pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    const perPageOptions = [5, 10, 20, 50];
     const totalPages = Math.ceil(bookings.length / itemsPerPage);
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
@@ -80,7 +79,6 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
 
     return (
         <div className="py-10">
-            {/* table headings */}
             <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Book id</h1>
@@ -140,11 +138,10 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                 </div>
             </div>
 
-            {/* table rows */}
             {currentBookings.map((booking, idx) => (
                 <div
                     key={startIdx + idx}
-                    className={`grid grid-cols-8 ${(startIdx + idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} h-[100px] justify-center items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100`}
+                    className={`grid grid-cols-8 ${startIdx + idx !== bookings.length - 1 ? 'border-b-[1.5px] border-[#00000033]' : ''} h-[100px] justify-center items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100`}
                     onClick={() => handleRowClick(booking, idx)}
                 >
                     <div>{booking.id}</div>
@@ -189,7 +186,6 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                 </div>
             ))}
 
-            {/* Popup Modal */}
             {isPopupOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
                     <div className="bg-white p-6 rounded-lg w-[400px] shadow-lg">
@@ -244,16 +240,15 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                 </div>
             )}
 
-            {/* Pagination Controls and Results per page inline */}
             <div className="flex justify-between items-center gap-2 mt-20">
                 <div className="flex items-center">
                     <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
                     <select
                         className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                         value={itemsPerPage}
-                        onChange={e => setItemsPerPage(Number(e.target.value))}
+                        onChange={(e) => setItemsPerPage(Number(e.target.value))}
                     >
-                        {perPageOptions.map(opt => (
+                        {[5, 10, 20, 50].map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
                         ))}
                     </select>

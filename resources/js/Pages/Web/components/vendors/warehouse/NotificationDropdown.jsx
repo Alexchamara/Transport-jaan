@@ -54,22 +54,6 @@ const NotificationDropdown = ({ notifications = [], unreadCount = 0 }) => {
         }
     };
 
-    const getNotificationColor = (type) => {
-        switch (type) {
-            case 'approval':
-            case 'approved':
-                return 'bg-green-50 border-green-200';
-            case 'rejection':
-            case 'rejected':
-                return 'bg-red-50 border-red-200';
-            case 'booking':
-            case 'new_booking':
-                return 'bg-blue-50 border-blue-200';
-            default:
-                return 'bg-gray-50 border-gray-200';
-        }
-    };
-
     const formatTime = (dateString) => {
         const date = new Date(dateString);
         const now = new Date();
