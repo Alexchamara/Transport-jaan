@@ -304,9 +304,9 @@ const BookingContent = () => {
                   statusColors={statusColors}
                   filters={filters}
                 />
-              </>
+              </> 
             )}
-          </div>
+          </div>      
         </div>
       </div>
     </div>
