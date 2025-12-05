@@ -88,6 +88,21 @@ const SideMenu = ({ isOpen = false }) => {
                             <span>Bookings</span>
                         </div>
 
+                        {/* Reservations */}
+                        <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/reservations" ||
+                                    currentPath === "/warehouse/reservations"
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                                }`}
+                            onClick={() =>
+                                (window.location.href = "/warehouse/reservations")
+                            }
+                        >
+                            <Calendar className="w-[22px] h-[22px]" />
+                            <span>Reservations</span>
+                        </div>
+
                         {/* Units */}
                         <div
                             className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/units" ||
