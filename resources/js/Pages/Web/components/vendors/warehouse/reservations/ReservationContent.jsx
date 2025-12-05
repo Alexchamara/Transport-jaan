@@ -14,35 +14,9 @@ import WarehouseReservationTable from "./WarehouseReservationTable";
 
 import UserDropdown from "../../../vendors/UserDropdown";
 
-// Status color mappings
-const paymentStatusColors = {
-    paid: { color: "#3B8F31", bg: "#ACE199" },
-    pending: { color: "#FF6060", bg: "#FF60608C" },
-    failed: { color: "#FF0000", bg: "#FF00004D" },
-};
-
-const statusColors = {
-    confirmed: { bg: "#0955AC", text: "#FFFFFF" },
-    active: { bg: "#50AE31", text: "#FFFFFF" },
-    pending: { bg: "#FFCD29", text: "#000000" },
-    completed: { bg: "#6B7280", text: "#FFFFFF" },
-    cancelled: { bg: "#FF6060", text: "#FFFFFF" },
-};
-
-// Decorate a reservation with table-friendly color fields
-const decorateReservation = (r) => ({
-    ...r,
-    paymentStatusColor:
-        paymentStatusColors[r.paymentStatus?.toLowerCase()]?.color ?? "#7B7B7A",
-    paymentStatusBg:
-        paymentStatusColors[r.paymentStatus?.toLowerCase()]?.bg ?? "#E8E8EF",
-    statusBg: statusColors[r.status?.toLowerCase()]?.bg ?? "#FFCD29",
-    statusText: statusColors[r.status?.toLowerCase()]?.text ?? "#000000",
-});
 
 const ReservationContent = () => {
     const [reservations, setReservations] = useState([]);
-    const [reservationData, setReservationData] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Fetch reservations data
@@ -65,23 +39,6 @@ const ReservationContent = () => {
         fetchReservations();
     }, []);
 
-    // Fetch chart data
-    useEffect(() => {
-        const fetchChartData = async () => {
-            try {
-                const response = await axios.get("/vendors/warehouse/api/reservations/chart-data");
-                
-                if (response.data.success) {
-                    setReservationData(response.data.data);
-                }
-            } catch (error) {
-                console.error("Error fetching chart data:", error);
-            }
-        };
-
-        fetchChartData();
-    }, []);
-
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header */}
@@ -91,16 +48,6 @@ const ReservationContent = () => {
                 </h1>
                 <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
-                </div>
-            </div>
-
-            {/* Chart Section */}
-            <div className="py-10 w-full">
-                <div
-                    className="w-full min-h-[437px] bg-white rounded-[10px] flex items-center justify-center"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                >
-                    <ReservationBarChart reservationData={reservationData} />
                 </div>
             </div>
 
@@ -122,31 +69,6 @@ const ReservationContent = () => {
                             Total Records: {reservations.length}
                         </div>
                     </div>
-                )}
-            </div>
-            {/* Table */}
-            <div
-                className="w-full bg-white rounded-[10px] py-10 px-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
-            >
-                <div className="flex flex-row justify-between">
-                    <h2 className="text-[24px] font-[700]">
-                        Warehouse Reservations
-                    </h2>
-                </div>
-
-                {loading ? (
-                    <div className="flex justify-center items-center py-20">
-                        <div className="text-[16px] text-[#7B7B7A]">
-                            Loading reservations...
-                        </div>
-                    </div>
-                ) : (
-                    <WarehouseReservationTable
-                        reservations={Array.isArray(reservations) ? reservations : []}
-                        setReservations={setReservations}
-                        statusColors={statusColors}
-                    />
                 )}
             </div>
         </div>
