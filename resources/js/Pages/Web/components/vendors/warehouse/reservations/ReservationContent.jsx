@@ -57,25 +57,25 @@ const ReservationContent = () => {
     // });
 
     // Fetch reservations data
-    // useEffect(() => {
-    //     const fetchReservations = async () => {
-    //         try {
-    //             setLoading(true);
-    //             const response = await axios.get("/vendors/warehouse/api/reservations");
+    useEffect(() => {
+        const fetchReservations = async () => {
+            try {
+                setLoading(true);
+                const response = await axios.get("/vendors/warehouse/api/reservations");
                 
-    //             if (response.data.success) {
-    //                 const decorated = response.data.data.map(decorateReservation);
-    //                 setReservations(decorated);
-    //             }
-    //         } catch (error) {
-    //             console.error("Error fetching reservations:", error);
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
+                if (response.data.success) {
+                    const decorated = response.data.data.map(decorateReservation);
+                    setReservations(decorated);
+                }
+            } catch (error) {
+                console.error("Error fetching reservations:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    //     fetchReservations();
-    // }, []);
+        fetchReservations();
+    }, []);
 
     // Fetch stats
     useEffect(() => {
