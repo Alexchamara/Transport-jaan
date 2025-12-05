@@ -143,14 +143,14 @@ const ReservationContent = () => {
     return (
         <div className="w-full h-auto pr-5 py-10">
             {/* Header */}
-            {/* <div className="flex flex-row gap-5 justify-between items-center">
+            <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">
                     Warehouse Reservations
                 </h1>
                 <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
                 </div>
-            </div> */}
+            </div>
 
             {/* KPI row */}
             <div className="flex flex-row gap-10 justify-between py-20 w-full">
