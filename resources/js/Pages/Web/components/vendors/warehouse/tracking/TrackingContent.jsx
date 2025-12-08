@@ -25,11 +25,11 @@ const TrackingContent = () => {
     const user = auth?.user;
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto">
             {/* Header section */}
             {/* Header */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Tracking</h1>
+            <div className="flex flex-col xl:flex-row gap-5 justify-between items-center">
+                <h1 className="figtree text-[24px] md:text-[35px] font-[700]">Warehouse Tracking</h1>
                 <div className="flex flex-row gap-5 relative items-center">
                     <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
@@ -38,13 +38,13 @@ const TrackingContent = () => {
             </div>
             {/* end of header section */}
 
-            <div className="flex flex-row gap-4 w-full py-10">
+            <div className="flex flex-col md:flex-row gap-4 w-full py-10">
                 <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-4 md:px-10 py-10"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <h1 className="text-[24px] font-[700]">Storage & Assets</h1>
-                    <div className="flex flex-row justify-between items-center gap-8">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-8">
                         {" "}
                         <div className="w-full h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5 my-5">
                             <img src={miniSearchIcon} />
@@ -61,11 +61,11 @@ const TrackingContent = () => {
                     </div>
                     <div className="flex flex-col">
                         {/* card 1 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <Warehouse className="h-[104px] w-[104px] text-[#2E4683]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Warehouse className="h-12 w-12 sm:h-16 sm:w-16 xl:size-[90px] text-[#2E4683]" />
+                                <div className="flex flex-col flex-1">
+                                    <h1 className="text-[18px] font-[700]">
                                         Rack A1 - Zone 01
                                     </h1>
                                     <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
@@ -73,19 +73,17 @@ const TrackingContent = () => {
                                         <h1>Pallets (48x40)</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
-                                        In Use
-                                    </div>
+                                <div className="w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                    In Use
                                 </div>
                             </div>
                         </div>
                         {/* card 2 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <Warehouse className="h-[104px] w-[104px] text-[#2E4683]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Warehouse className="h-12 w-12 sm:h-16 sm:w-16 xl:size-[90px] text-[#2E4683]" />
+                                <div className="flex flex-col flex-1">
+                                    <h1 className="text-[18px] font-[700]">
                                         Rack A1 - Zone 01
                                     </h1>
                                     <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
@@ -93,19 +91,17 @@ const TrackingContent = () => {
                                         <h1>Pallets (48x40)</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
-                                        In Use
-                                    </div>
+                                <div className="w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                    In Use
                                 </div>
                             </div>
                         </div>
                         {/* card 3 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <Warehouse className="h-[104px] w-[104px] text-[#2E4683]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Warehouse className="h-12 w-12 sm:h-16 sm:w-16 xl:size-[90px] text-[#2E4683]" />
+                                <div className="flex flex-col flex-1">
+                                    <h1 className="text-[18px] font-[700]">
                                         Rack A1 - Zone 01
                                     </h1>
                                     <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
@@ -113,19 +109,17 @@ const TrackingContent = () => {
                                         <h1>Pallets (48x40)</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
-                                        In Use
-                                    </div>
+                                <div className="w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                    In Use
                                 </div>
                             </div>
                         </div>
                         {/* card 4 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <Warehouse className="h-[104px] w-[104px] text-[#2E4683]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Warehouse className="h-12 w-12 sm:h-16 sm:w-16 xl:size-[90px] text-[#2E4683]" />
+                                <div className="flex flex-col flex-1">
+                                    <h1 className="text-[18px] font-[700]">
                                         Rack A1 - Zone 01
                                     </h1>
                                     <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
@@ -133,19 +127,17 @@ const TrackingContent = () => {
                                         <h1>Pallets (48x40)</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
-                                        In Use
-                                    </div>
+                                <div className="w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                    In Use
                                 </div>
                             </div>
                         </div>
                         {/* card 5 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <Warehouse className="h-[104px] w-[104px] text-[#2E4683]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Warehouse className="h-12 w-12 sm:h-16 sm:w-16 xl:size-[90px] text-[#2E4683]" />
+                                <div className="flex flex-col flex-1">
+                                    <h1 className="text-[18px] font-[700]">
                                         Rack A1 - Zone 01
                                     </h1>
                                     <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
@@ -153,19 +145,17 @@ const TrackingContent = () => {
                                         <h1>Pallets (48x40)</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
-                                        In Use
-                                    </div>
+                                <div className="w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                    In Use
                                 </div>
                             </div>
                         </div>
                         {/* card 6 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <Warehouse className="h-[104px] w-[104px] text-[#2E4683]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Warehouse className="h-12 w-12 sm:h-16 sm:w-16 xl:size-[90px] text-[#2E4683]" />
+                                <div className="flex flex-col flex-1">
+                                    <h1 className="text-[18px] font-[700]">
                                         Rack A1 - Zone 01
                                     </h1>
                                     <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
@@ -173,19 +163,17 @@ const TrackingContent = () => {
                                         <h1>Pallets (48x40)</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
-                                        In Use
-                                    </div>
+                                <div className="w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                    In Use
                                 </div>
                             </div>
                         </div>
                         {/* card 7 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <Warehouse className="h-[104px] w-[104px] text-[#2E4683]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Warehouse className="h-12 w-12 sm:h-16 sm:w-16 xl:size-[90px] text-[#2E4683]" />
+                                <div className="flex flex-col flex-1">
+                                    <h1 className="text-[18px] font-[700]">
                                         Rack A1 - Zone 01
                                     </h1>
                                     <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
@@ -193,19 +181,17 @@ const TrackingContent = () => {
                                         <h1>Pallets (48x40)</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
-                                        In Use
-                                    </div>
+                                <div className="w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                    In Use
                                 </div>
                             </div>
                         </div>
                         {/* card 8 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <Warehouse className="h-[104px] w-[104px] text-[#2E4683]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Warehouse className="h-12 w-12 sm:h-16 sm:w-16 xl:size-[90px] text-[#2E4683]" />
+                                <div className="flex flex-col flex-1">
+                                    <h1 className="text-[18px] font-[700]">
                                         Fiona Brown
                                     </h1>
                                     <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
@@ -213,19 +199,17 @@ const TrackingContent = () => {
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
-                                        On Trip
-                                    </div>
+                                <div className="w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                    On Trip
                                 </div>
                             </div>
                         </div>
                         {/* card 9 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <Warehouse className="h-[104px] w-[104px] text-[#2E4683]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-3">
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                                <Warehouse className="h-12 w-12 sm:h-16 sm:w-16 xl:size-[90px] text-[#2E4683]" />
+                                <div className="flex flex-col flex-1">
+                                    <h1 className="text-[18px] font-[700]">
                                         Fiona Brown
                                     </h1>
                                     <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
@@ -233,36 +217,34 @@ const TrackingContent = () => {
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
-                                        On Trip
-                                    </div>
+                                <div className="w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                    On Trip
                                 </div>
                             </div>
                         </div>
-                        <button className="w-full min-w-[479px] min-h-[51px] bg-[#0955AC] rounded-[6px] text-[18px] font-[700] text-[#FFFFFF] my-12">
+                        <button className="w-full min-h-[51px] bg-[#0955AC] rounded-[6px] text-[18px] font-[700] text-[#FFFFFF] my-12">
                             Check Slot Availability
                         </button>
                     </div>
                 </div>
                 <div className="w-full h-auto flex flex-col gap-4">
-                    <div className="flex flex-row gap-4">
+                    <div className="flex flex-col xl:flex-row gap-4">
                         <div className="flex flex-col gap-4 w-full">
                             <div
-                                className="min-w-[265px] w-full min-h-[128px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
+                                className="w-full bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
                             >
-                                <div className="flex flex-row gap-5">
-                                    <img src={proPicTwo} />
+                                <div className="flex flex-row items-center justify-center gap-5">
+                                    <img src={proPicTwo} className="2xl:size-[70px] size-[50px]" />
                                     <div className="flex flex-col justify-center items-start gap-1">
                                         {" "}
-                                        <h1 className="text-[16px] font-[600]">
+                                        <h1 className="text-[14px] font-[600]">
                                             Steve Gibson
                                         </h1>
-                                        <h1 className="text-[14px] font-[500] text-[#616161]">
+                                        <h1 className="text-[12px] font-[500] text-[#616161]">
                                             steve@example.com
                                         </h1>
-                                        <h1 className="text-[13px] font-[500] text-[#00000080]">
+                                        <h1 className="text-[11px] font-[500] text-[#00000080]">
                                             +94 77 301 1345
                                         </h1>
                                         <div className="flex justify-center items-center">
@@ -274,13 +256,13 @@ const TrackingContent = () => {
                                 </div>
                             </div>
                             <div
-                                className="min-w-[265px] w-full min-h-[102px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
+                                className="w-full bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
                             >
-                                <div className="flex flex-row gap-3">
-                                    <Package className="h-[72px] w-[104px] text-[#39CEF3]" />
-                                    <div className="text-[13px] font-[500]">
-                                        <h1 className="text-[16px] font-[600]">
+                                <div className="flex flex-row gap-5 justify-center items-center">
+                                    <Package className="size-[50px] 2xl:size-[70px] text-[#39CEF3]" />
+                                    <div className="text-[11px] font-[500]">
+                                        <h1 className="text-[14px] font-[600]">
                                             Pallets (48x40)
                                         </h1>
                                         <div className="flex flex-row gap-3">
@@ -300,14 +282,14 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         <div
-                            className="min-w-[277px] w-full min-h-[241px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
+                            className="w-full min-h-[241px] h-auto bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <h1 className="text-[24px] font-[700]">
                                 Allocation Info
                             </h1>
-                            <div className="flex flex-row justify-between items-center py-7">
-                                <div className="flex flex-col gap-7 justify-center items-start text-[14px] font-[500]">
+                            <div className="flex flex-row justify-between items-start sm:items-center py-7">
+                                <div className="flex flex-col gap-4 sm:gap-7 justify-center items-start text-[12px] font-[500]">
                                     <div className="flex flex-row gap-2">
                                         <img src={cal} />
                                         <h1 className="text-[#00000080]">
@@ -335,7 +317,7 @@ const TrackingContent = () => {
                                         </h1>
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-7 justify-center items-start text-[14px] font-[500]">
+                                <div className="flex flex-col gap-4 sm:gap-7 justify-center items-start text-[12px] font-[500]">
                                     <h1>25th June 2025</h1>
                                     <h1>27th June 2025</h1>
                                     <h1>22 hr 34 mins</h1>
@@ -346,6 +328,7 @@ const TrackingContent = () => {
                     </div>
                     <img
                         src={map}
+                        className="w-full"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     />
                 </div>
