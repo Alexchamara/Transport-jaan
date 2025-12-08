@@ -157,46 +157,48 @@ export default function BookingBarChart({
     (done.every((v) => v === 0) && canc.every((v) => v === 0));
 
   return (
-    <div className="w-full h-full p-6">
+    <div className="w-full h-full p-4 sm:p-6">
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
         <div>
-          <h3 className="text-[20px] font-[700] leading-tight">Booking Overview</h3>
-          <div className="flex gap-6 mt-3">
+          <h3 className="text-[16px] sm:text-[20px] font-[700] leading-tight">Booking Overview</h3>
+          <div className="flex gap-4 sm:gap-6 mt-2 sm:mt-3">
             <div className="flex items-center gap-2">
-              <span className="inline-block w-4 h-4 rounded bg-[#0955AC]" />
-              <span className="text-[14px] font-[600] text-[#111827]">Done</span>
+              <span className="inline-block w-3 h-3 sm:w-4 sm:h-4 rounded bg-[#0955AC]" />
+              <span className="text-[12px] sm:text-[14px] font-[600] text-[#111827]">Done</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-block w-4 h-4 rounded bg-black" />
-              <span className="text-[14px] font-[600] text-[#111827]">Cancelled</span>
+              <span className="inline-block w-3 h-3 sm:w-4 sm:h-4 rounded bg-black" />
+              <span className="text-[12px] sm:text-[14px] font-[600] text-[#111827]">Cancelled</span>
             </div>
           </div>
         </div>
 
         <button
           type="button"
-          className="bg-[#F3F4F6] rounded-md px-3 py-1.5 flex items-center gap-2 text-[13px] font-[600] text-[#374151]"
+          className="bg-[#F3F4F6] rounded-md px-3 py-1.5 flex items-center gap-2 text-[12px] sm:text-[13px] font-[600] text-[#374151]"
         >
           {dropdownLabel}
-          <img src={miniDownArrow} alt="" />
+          <img src={miniDownArrow} alt="" className="w-3 h-3" />
         </button>
       </div>
 
-      {/* Chart */}
-      <div className="relative w-full" style={{ height: 280 }}>
-        <Bar ref={chartRef} data={data} options={options} />
-        {noData && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="px-3 py-1.5 rounded bg-[#F3F4F6] text-[#6B7280] text-sm font-semibold">
-              No data to display
+      {/* Chart - Horizontally scrollable on mobile */}
+      <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
+        <div className="relative" style={{ height: 280 }}>
+          <Bar ref={chartRef} data={data} options={options} />
+          {noData && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="px-3 py-1.5 rounded bg-[#F3F4F6] text-[#6B7280] text-sm font-semibold">
+                No data to display
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {tooltipModel?.opacity && tooltipModel?.dataPoints?.length > 0 && (
-          <ArrowTooltip tooltip={tooltipModel} yearByMonth={yearByMonth} />
-        )}
+          {tooltipModel?.opacity && tooltipModel?.dataPoints?.length > 0 && (
+            <ArrowTooltip tooltip={tooltipModel} yearByMonth={yearByMonth} />
+          )}
+        </div>
       </div>
     </div>
   );

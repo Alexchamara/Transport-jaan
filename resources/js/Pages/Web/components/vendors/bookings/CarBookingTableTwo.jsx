@@ -89,28 +89,31 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
   }, [itemsPerPage]);
 
   return (
-    <div className="py-10">
-      {/* headings */}
-      <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] items-center rounded-[8px] text-[14px] font-[600] px-10">
-        {[
-          "Book id",
-          "Booking Date",
-          "Client Name",
-          "Car Model",
-          "Plan",
-          "Date",
-          "Payment",
-          "Status",
-        ].map((h, i) => (
-          <div key={i} className={`flex items-center gap-2 ${i === 6 ? "ml-10" : ""}`}>
-            <span>{h}</span>
-            <div className="flex flex-col items-center">
-              <img src={miniUp} className="w-[6px] h-[4px]" alt="Up" />
-              <img src={miniDown} className="w-[6px] h-[4px]" alt="Down" />
-            </div>
+    <div className="py-6 sm:py-10">
+      {/* Desktop Table View - Hidden on mobile */}
+      <div className="hidden lg:block overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+        <div className="min-w-[800px] lg:min-w-[1000px]">
+          {/* headings */}
+          <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] items-center rounded-[8px] text-[12px] sm:text-[14px] font-[600] px-4 sm:px-10">
+            {[
+              "Book id",
+              "Booking Date",
+              "Client Name",
+              "Car Model",
+              "Plan",
+              "Date",
+              "Payment",
+              "Status",
+            ].map((h, i) => (
+              <div key={i} className={`flex items-center gap-2 ${i === 6 ? "sm:ml-10" : ""}`}>
+                <span>{h}</span>
+                <div className="flex flex-col items-center">
+                  <img src={miniUp} className="w-[6px] h-[4px]" alt="Up" />
+                  <img src={miniDown} className="w-[6px] h-[4px]" alt="Down" />
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
       {/* rows */}
       {currentBookings.map((booking, idx) => (
@@ -118,7 +121,7 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
           key={startIdx + idx}
           className={`grid grid-cols-8 ${
             startIdx + idx !== bookings.length - 1 ? "border-b-[1.5px] border-[#00000033]" : ""
-          } h-[100px] items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100`}
+          } h-[100px] items-center text-[13px] sm:text-[15px] font-[500] px-4 sm:px-10 cursor-pointer hover:bg-gray-100`}
           onClick={() => handleRowClick(booking, idx)}
         >
           <div>{booking.id}</div>
@@ -131,7 +134,7 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
 
             {hasRealPlate(booking.carPlate) && (
               <div
-                className={`inline-flex ${booking.carModel ? "mt-1" : ""} w-[87px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] justify-center items-center text-[#00000099] text-[13px]`}
+                className={`inline-flex ${booking.carModel ? "mt-1" : ""} w-[87px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] justify-center items-center text-[#00000099] text-[11px] sm:text-[13px]`}
               >
                 {booking.carPlate}
               </div>
@@ -140,16 +143,16 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
 
           <div>{booking.plan}</div>
 
-          <div className="text-[14px] font-[500] text-[#939392]">
+          <div className="text-[12px] sm:text-[14px] font-[500] text-[#939392]">
             <div className="flex gap-2 items-center">
               <span>Start</span>
-              <div className="w-[92px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
+              <div className="w-[80px] sm:w-[92px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[10px] sm:text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
                 {booking.startDate}
               </div>
             </div>
             <div className="flex gap-3 items-center mt-1">
               <span>End</span>
-              <div className="w-[92px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
+              <div className="w-[80px] sm:w-[92px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[10px] sm:text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
                 {booking.endDate}
               </div>
             </div>
@@ -158,7 +161,7 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
           <div className="flex flex-col items-center">
             <div>{booking.payment}</div>
             <div
-              className="w-[80px] h-[20px] border rounded-[4px] text-[11px] text-[#00000099] font-[600] flex justify-center items-center"
+              className="w-[70px] sm:w-[80px] h-[20px] border rounded-[4px] text-[10px] sm:text-[11px] text-[#00000099] font-[600] flex justify-center items-center"
               style={{ borderColor: booking.paymentStatusColor, background: booking.paymentStatusBg }}
             >
               {booking.paymentStatus}
@@ -166,37 +169,127 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
           </div>
 
           <div
-            className="w-[86px] h-[22px] border rounded-[4px] flex justify-center items-center text-[11px] font-[700]"
+            className="w-[76px] sm:w-[86px] h-[22px] border rounded-[4px] flex justify-center items-center text-[10px] sm:text-[11px] font-[700]"
             style={{ background: booking.statusBg, borderColor: "#0000004D", color: booking.statusText }}
           >
             {booking.status}
           </div>
         </div>
       ))}
+        </div>
+      </div>
+
+      {/* Mobile Card View - Visible only on mobile */}
+      <div className="lg:hidden space-y-4">
+        {currentBookings.map((booking, idx) => (
+          <div
+            key={startIdx + idx}
+            className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+            style={{ boxShadow: "2px 2px 8px #0000001A" }}
+            onClick={() => handleRowClick(booking, idx)}
+          >
+            {/* Header Row */}
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <div className="text-[10px] text-[#7B7B7A] font-[500]">Book ID</div>
+                <div className="text-[16px] font-[700] text-[#0955AC]">{booking.id}</div>
+              </div>
+              <div
+                className="px-3 py-1 rounded-[4px] text-[11px] font-[700]"
+                style={{ background: booking.statusBg, color: booking.statusText }}
+              >
+                {booking.status}
+              </div>
+            </div>
+
+            {/* Client & Date Info */}
+            <div className="space-y-2 mb-3">
+              <div className="flex justify-between">
+                <span className="text-[12px] text-[#7B7B7A]">Client:</span>
+                <span className="text-[13px] font-[600]">{booking.clientName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[12px] text-[#7B7B7A]">Booking Date:</span>
+                <span className="text-[13px] font-[500]">{booking.bookingDate}</span>
+              </div>
+            </div>
+
+            {/* Car Info */}
+            <div className="bg-[#F9FAFB] rounded-md p-3 mb-3">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[12px] text-[#7B7B7A]">Car Model:</span>
+                <span className="text-[13px] font-[600]">{booking.carModel}</span>
+              </div>
+              {hasRealPlate(booking.carPlate) && (
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[12px] text-[#7B7B7A]">Plate:</span>
+                  <div className="px-2 py-1 rounded-[4px] bg-[#D9D9D957] border border-[#0000004D] text-[11px] text-[#00000099]">
+                    {booking.carPlate}
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="text-[12px] text-[#7B7B7A]">Plan:</span>
+                <span className="text-[13px] font-[600]">{booking.plan}</span>
+              </div>
+            </div>
+
+            {/* Dates */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <div className="text-[11px] text-[#7B7B7A] mb-1">Start Date</div>
+                <div className="px-2 py-1 bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[11px] text-[#00000099] rounded-[4px] text-center">
+                  {booking.startDate}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] text-[#7B7B7A] mb-1">End Date</div>
+                <div className="px-2 py-1 bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[11px] text-[#00000099] rounded-[4px] text-center">
+                  {booking.endDate}
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Info */}
+            <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+              <div>
+                <div className="text-[11px] text-[#7B7B7A]">Payment</div>
+                <div className="text-[16px] font-[700]">{booking.payment}</div>
+              </div>
+              <div
+                className="px-3 py-1 border rounded-[4px] text-[11px] font-[600]"
+                style={{ borderColor: booking.paymentStatusColor, background: booking.paymentStatusBg, color: booking.paymentStatusColor }}
+              >
+                {booking.paymentStatus}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* Modal */}
       {isPopupOpen && (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg w-[420px] shadow-lg">
-            <h2 className="text-[18px] font-[700] mb-4">Edit Booking</h2>
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white p-4 sm:p-6 rounded-lg w-full max-w-[420px] shadow-lg">
+            <h2 className="text-[16px] sm:text-[18px] font-[700] mb-4">Edit Booking</h2>
 
             <div className="mb-4">
-              <label className="block text-[14px] font-[500] mb-1">Payment Amount</label>
+              <label className="block text-[13px] sm:text-[14px] font-[500] mb-1">Payment Amount</label>
               <input
                 type="text"
                 value={newPayment}
                 onChange={(e) => setNewPayment(e.target.value)}
-                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0"
+                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0 text-[14px]"
                 placeholder="Enter payment amount"
               />
             </div>
 
             <div className="mb-4">
-              <label className="block text-[14px] font-[500] mb-1">Payment Status</label>
+              <label className="block text-[13px] sm:text-[14px] font-[500] mb-1">Payment Status</label>
               <select
                 value={newPaymentStatus}
                 onChange={(e) => setNewPaymentStatus(e.target.value)}
-                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0"
+                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0 text-[14px]"
               >
                 <option value="Paid">Paid</option>
                 <option value="Pending">Pending</option>
@@ -204,11 +297,11 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
             </div>
 
             <div className="mb-6">
-              <label className="block text-[14px] font-[500] mb-1">Status</label>
+              <label className="block text-[13px] sm:text-[14px] font-[500] mb-1">Status</label>
               <select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
-                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0"
+                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0 text-[14px]"
               >
                 <option value="Ongoing">Ongoing</option>
                 <option value="Returned">Returned</option>
@@ -219,13 +312,13 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsPopupOpen(false)}
-                className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"
+                className="px-3 sm:px-4 py-2 bg-gray-200 rounded-[5px] text-[13px] sm:text-[14px] font-[700]"
               >
                 Cancel
               </button>
               <button
                 onClick={handlePopupSubmit}
-                className="px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[14px] font-[700]"
+                className="px-3 sm:px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[13px] sm:text-[14px] font-[700]"
               >
                 Save
               </button>
@@ -235,11 +328,11 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
       )}
 
       {/* Pagination */}
-      <div className="flex justify-between items-center gap-2 mt-10">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-2 mt-6 sm:mt-10">
         <div className="flex items-center">
-          <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
+          <span className="mr-2 sm:mr-3 text-[#00000080] text-[13px] sm:text-[15px]">Results per page</span>
           <select
-            className="rounded px-3 py-2 font-[600] text-[16px] bg-[#F4F3F3] border border-[#BEBEBE] w-[90px] h-[40px] focus:outline-none"
+            className="rounded px-2 sm:px-3 py-2 font-[600] text-[14px] sm:text-[16px] bg-[#F4F3F3] border border-[#BEBEBE] w-[70px] sm:w-[90px] h-[36px] sm:h-[40px] focus:outline-none"
             value={itemsPerPage}
             onChange={(e) => setItemsPerPage(Number(e.target.value))}
           >
@@ -251,9 +344,9 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto max-w-full">
           <button
-            className="size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+            className="size-[36px] sm:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 flex-shrink-0"
             onClick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
           >
@@ -262,11 +355,11 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
 
           {getPageNumbers().map((num, i) =>
             num === "..." ? (
-              <span key={`dots-${i}`} className="px-2">...</span>
+              <span key={`dots-${i}`} className="px-1 sm:px-2">...</span>
             ) : (
               <button
                 key={`p-${num}`}
-                className={`size-[40px] rounded-[4px] text-[16px] font-[600] ${
+                className={`size-[36px] sm:size-[40px] rounded-[4px] text-[14px] sm:text-[16px] font-[600] flex-shrink-0 ${
                   currentPage === num
                     ? "bg-white border-2 border-[#0955AC] text-[#0955AC]"
                     : "bg-[#F4F3F3]"
@@ -279,7 +372,7 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
           )}
 
           <button
-            className="size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+            className="size-[36px] sm:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 flex-shrink-0"
             onClick={() => goToPage(currentPage + 1)}
             disabled={currentPage === totalPages}
           >

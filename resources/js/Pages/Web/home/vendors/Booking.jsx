@@ -16,7 +16,7 @@ const Booking = () => {
 
   return (
     <div className="bg-[#E5E5E5] min-h-screen h-auto">
-      <div className="flex flex-row gap-10 h-auto">
+      <div className="flex flex-row gap-5 h-auto">
 
         {/* Mobile Toggle Button */}
         <button
@@ -36,7 +36,7 @@ const Booking = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 bg-[#E5E5E5]">
           {server_error && (
             <div className="m-4 p-3 rounded bg-red-100 text-red-700 text-sm">
               {server_error}
