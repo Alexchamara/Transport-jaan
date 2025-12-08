@@ -142,10 +142,10 @@ const CalendarContent = ({
     ];
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-5 xl:px-0 xl:pr-5 py-10">
             {/* ==================== HEADER WITH DROPDOWN ==================== */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Calendar</h1>
+            <div className="flex flex-col sm:flex-row gap-5 justify-between items-center">
+                <h1 className="figtree text-[25px] sm:text-[35px] font-[700]">Vehicle Rental Calendar</h1>
 
                 <div className="flex flex-row gap-5 relative items-center">
                     <div className="flex flex-row gap-5 relative items-center">
@@ -155,7 +155,7 @@ const CalendarContent = ({
             </div>
 
             {/* ==================== TOP ROW: Booking + Reminders + Month Picker ==================== */}
-            <div className="mt-10 flex flex-row gap-5 w-full justify-between">
+            <div className="mt-10 flex flex-col lg:flex-row gap-5 w-full justify-between">
                 {/* Selected Booking Details */}
                 <div
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
@@ -176,7 +176,7 @@ const CalendarContent = ({
                                         {selectedBooking.client?.name ||
                                             selectedBooking.person}
                                     </h1>
-                                    <div className="flex flex-row gap-10 text-[16px] font-[500]">
+                                    <div className="flex flex-col sm:flex-row gap-10 text-[16px] font-[500]">
                                         <div className="flex flex-col gap-3 text-[#00000080]">
                                             <h1>Start Date</h1>
                                             <h1>End Date</h1>
@@ -221,7 +221,7 @@ const CalendarContent = ({
                                         {selectedBooking.vehicle?.name ||
                                             selectedBooking.title}
                                     </h1>
-                                    <div className="flex flex-row gap-10 text-[16px] font-[500]">
+                                    <div className="flex flex-col sm:flex-row gap-10 text-[16px] font-[500]">
                                         <div className="flex flex-col gap-2 text-[#00000080]">
                                             <h1>Car Type</h1>
                                             <h1>Car Number</h1>
@@ -254,7 +254,7 @@ const CalendarContent = ({
 
                 {/* Reminders */}
                 <div
-                    className="min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="w-full lg:min-w-[349px] lg:w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row items-center justify-between w-full">
@@ -267,12 +267,12 @@ const CalendarContent = ({
                         {initialEvents?.slice(0, 4).map((event, idx) => (
                             <div
                                 key={idx}
-                                className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2"
+                                className="w-full max-w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2"
                             >
                                 <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                     !
                                 </div>
-                                <h1 className="text-[14px] font-[500] w-[199px]">
+                                <h1 className="text-[14px] font-[500] flex-1">
                                     {event.title} pickup at {event.pickup_time}{" "}
                                     on {event.pickup_date}
                                 </h1>
@@ -288,7 +288,7 @@ const CalendarContent = ({
 
                 {/* Calendar Month Picker */}
                 <div
-                    className="min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
+                    className="w-full lg:min-w-[315px] lg:w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <CalendarMonthPicker />
@@ -297,11 +297,11 @@ const CalendarContent = ({
 
             {/* ==================== MAIN CALENDAR GRID ==================== */}
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
+                className="w-full max-w-[280px] sm:max-w-[1100px] h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
-                <div className="px-20 flex flex-row items-center justify-between">
-                    <div className="flex flex-row justify-center items-center gap-6">
+                <div className="px-5 sm:px-10 lg:px-20 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
                         <div
                             className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#e0e0e0]"
                             onClick={handleTodayClick}
@@ -331,7 +331,7 @@ const CalendarContent = ({
                         </h1>
                     </div>
 
-                    <div className="flex flex-row justify-center items-center gap-5">
+                    <div className="flex flex-col sm:flex-row justify-center items-center gap-5">
                         {/* Client Filter */}
                         {clients && clients.length > 0 && (
                             <select
@@ -339,7 +339,7 @@ const CalendarContent = ({
                                 onChange={(e) =>
                                     handleUserChange(e.target.value || null)
                                 }
-                                className="w-[200px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] px-3"
+                                className="w-full sm:w-[200px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] px-3"
                             >
                                 <option value="">All Clients</option>
                                 {clients.map((client) => (
@@ -362,14 +362,14 @@ const CalendarContent = ({
                             </div>
                         </div>
 
-                        <div className="w-[96px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center gap-3">
+                        <div className="w-full sm:w-[96px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center gap-3">
                             <h1>Week</h1>
                             <img src={miniDownArrow} alt="dropdown" />
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-row gap-10 justify-start items-center px-20 py-5">
+                <div className="flex flex-row gap-10 justify-start items-center px-5 sm:px-10 lg:px-20 py-5">
                     <div className="flex flex-row justify-start items-center gap-5">
                         <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
                         <h1 className="text-[#00000080] font-[600] text-[16px]">
@@ -384,17 +384,19 @@ const CalendarContent = ({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-8 border-t border-l border-[#00000026]">
-                    <CalendarGrid
-                        times={times}
-                        events={processedEvents}
-                        proPicTwo={proPicTwo}
-                        currentMonth={currentMonth}
-                        currentYear={currentYear}
-                        onEventClick={(event) =>
-                            setSelectedBooking(event.fullData)
-                        }
-                    />
+                <div className="overflow-x-auto">
+                    <div className="grid grid-cols-8 border-t border-l border-[#00000026] min-w-[1400px]">
+                        <CalendarGrid
+                            times={times}
+                            events={processedEvents}
+                            proPicTwo={proPicTwo}
+                            currentMonth={currentMonth}
+                            currentYear={currentYear}
+                            onEventClick={(event) =>
+                                setSelectedBooking(event.fullData)
+                            }
+                        />
+                    </div>
                 </div>
             </div>
         </div>
