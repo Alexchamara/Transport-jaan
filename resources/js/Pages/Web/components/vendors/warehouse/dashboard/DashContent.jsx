@@ -188,6 +188,10 @@ const DashContent = () => {
     const fetchDashboardStats = useCallback(
         async (silent = false) => {
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+                
+                try {
                 const response = await axios.get(
                     `${API_BASE_URL}vendors/warehouse/api/bookings/stats`,
                     {
