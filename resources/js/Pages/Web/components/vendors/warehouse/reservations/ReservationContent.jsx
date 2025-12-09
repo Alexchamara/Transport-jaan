@@ -272,124 +272,97 @@ const ReservationContent = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-lg p-6 shadow">
-                        {/* Table headings */}
-                        <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] items-center rounded-[8px] text-[14px] font-[600] px-10">
-                            {[
-                                "Reservation ID",
-                                "Reserved Date",
-                                "Client Name",
-                                "Warehouse",
-                                "Unit Details",
-                                "Date Range",
-                                "Payment",
-                                "Status",
-                            ].map((h, i) => (
-                                <div
-                                    key={i}
-                                    className={`flex items-center gap-2 ${
-                                        i === 6 ? "ml-10" : ""
-                                    }`}
-                                >
-                                    <span>{h}</span>
-                                    <div className="flex flex-col items-center">
-                                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Up" />
-                                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Down" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Table rows */}
-                        {currentReservations.length === 0 ? (
-                            <div className="flex justify-center items-center py-20 text-[#7B7B7A]">
-                                No reservations found
-                            </div>
-                        ) : (
-                            currentReservations.map((reservation, idx) => (
-                                <div
-                                    key={startIdx + idx}
-                                    className={`grid grid-cols-8 ${
-                                        startIdx + idx !== reservations.length - 1
-                                            ? "border-b-[1.5px] border-[#00000033]"
-                                            : ""
-                                    } h-[100px] items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100`}
-                                    onClick={() => handleRowClick(reservation, idx)}
-                                >
-                                    {/* Reservation ID */}
-                                    <div className="truncate">{reservation.booking_reference || reservation.id}</div>
-
-                                    {/* Reserved Date */}
-                                    <div>{reservation.reservation_date || reservation.created_at?.split('T')[0] || 'N/A'}</div>
-
-                                    {/* Client Name */}
-                                    <div className="truncate">{reservation.company_name || 'N/A'}</div>
-
-                                    {/* Warehouse */}
-                                    <div className="flex flex-col">
-                                        <div className="truncate">{reservation.warehouse_name || 'N/A'}</div>
-                                        <div className="text-[12px] text-[#7B7B7A] truncate">
-                                            {reservation.warehouse_location || ''}
-                                        </div>
-                                    </div>
-
-                                    {/* Unit Details (Type & Size) */}
-                                    <div className="flex flex-col">
-                                        <div className="text-[13px] font-[600] truncate">
-                                            {reservation.storage_type || "N/A"}
-                                        </div>
-                                        <div className="text-[11px] text-[#7B7B7A] truncate">
-                                            {reservation.quantity ? `${reservation.quantity} units` : "N/A"}
-                                        </div>
-                                    </div>
-
-                                    {/* Date Range */}
-                                    <div className="text-[14px] font-[500] text-[#939392]">
-                                        <div className="flex gap-2 items-center">
-                                            <span>Start</span>
-                                            <div className="w-[92px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                                {reservation.start_date || 'N/A'}
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-3 items-center mt-1">
-                                            <span>End</span>
-                                            <div className="w-[92px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                                {reservation.end_date || 'N/A'}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Payment */}
-                                    <div className="flex flex-col items-center">
-                                        <div className="truncate">{reservation.total_amount ? `Rs ${reservation.total_amount}` : 'N/A'}</div>
-                                        <div
-                                            className="w-[80px] h-[20px] border rounded-[4px] text-[11px] text-[#00000099] font-[600] flex justify-center items-center"
-                                            style={{
-                                                borderColor: reservation.paymentStatusColor,
-                                                background: reservation.paymentStatusBg,
-                                            }}
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-[#D8E4F2]">
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Reservation ID</th>
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Reserved Date</th>
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Client Name</th>
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Warehouse</th>
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Storage Type</th>
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Start Date</th>
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">End Date</th>
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Amount</th>
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Payment</th>
+                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {currentReservations.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="10" className="px-4 py-20 text-center text-[#7B7B7A]">
+                                            No reservations found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    currentReservations.map((reservation, idx) => (
+                                        <tr
+                                            key={startIdx + idx}
+                                            className="border-b border-[#00000033] hover:bg-gray-50 cursor-pointer"
+                                            onClick={() => handleRowClick(reservation, idx)}
                                         >
-                                            {reservation.payment_status || 'pending'}
-                                        </div>
-                                    </div>
+                                            <td className="px-4 py-4 text-[14px] font-[500]">
+                                                {reservation.booking_reference || reservation.id}
+                                            </td>
+                                            <td className="px-4 py-4 text-[14px] font-[500]">
+                                                {reservation.reservation_date || reservation.created_at?.split('T')[0] || 'N/A'}
+                                            </td>
+                                            <td className="px-4 py-4 text-[14px] font-[500]">
+                                                {reservation.company_name || 'N/A'}
+                                            </td>
+                                            <td className="px-4 py-4 text-[14px] font-[500]">
+                                                <div>{reservation.warehouse_name || 'N/A'}</div>
+                                                <div className="text-[12px] text-[#7B7B7A]">
+                                                    {reservation.warehouse_location || ''}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 text-[14px] font-[500]">
+                                                <div>{reservation.storage_type || "N/A"}</div>
+                                                <div className="text-[12px] text-[#7B7B7A]">
+                                                    {reservation.quantity ? `${reservation.quantity} units` : ""}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 text-[14px] font-[500]">
+                                                {reservation.start_date || 'N/A'}
+                                            </td>
+                                            <td className="px-4 py-4 text-[14px] font-[500]">
+                                                {reservation.end_date || 'N/A'}
+                                            </td>
+                                            <td className="px-4 py-4 text-[14px] font-[500]">
+                                                {reservation.total_amount ? `Rs ${reservation.total_amount}` : 'N/A'}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span
+                                                    className="px-3 py-1 rounded-[4px] text-[11px] font-[600] inline-block"
+                                                    style={{
+                                                        color: reservation.paymentStatusColor,
+                                                        background: reservation.paymentStatusBg,
+                                                    }}
+                                                >
+                                                    {reservation.payment_status || 'pending'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span
+                                                    className="px-3 py-1 rounded-[4px] text-[11px] font-[700] inline-block"
+                                                    style={{
+                                                        background: reservation.statusBg,
+                                                        color: reservation.statusText,
+                                                    }}
+                                                >
+                                                    {reservation.status || 'pending'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
 
-                                    {/* Status */}
-                                    <div
-                                        className="w-[86px] h-[22px] border rounded-[4px] flex justify-center items-center text-[11px] font-[700]"
-                                        style={{
-                                            background: reservation.statusBg,
-                                            borderColor: "#0000004D",
-                                            color: reservation.statusText,
-                                        }}
-                                    >
-                                        {reservation.status || 'pending'}
-                                    </div>
-                                </div>
-                            ))
-                        )}
+                            </tbody>
+                        </table>
 
                         {/* Pagination */}
-                        <div className="flex justify-between items-center gap-2 mt-10">
+                        <div className="flex justify-between items-center gap-2 px-6 py-4 border-t border-[#00000033]">
                             <div className="flex items-center">
                                 <span className="mr-3 text-[#00000080] text-[15px]">
                                     Results per page
