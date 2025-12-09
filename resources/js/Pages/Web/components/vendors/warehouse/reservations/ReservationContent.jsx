@@ -28,6 +28,13 @@ const ReservationContent = () => {
     const [newPaymentStatus, setNewPaymentStatus] = useState("");
     const [cancellationReason, setCancellationReason] = useState("");
 
+    // Filter states
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [paymentFilter, setPaymentFilter] = useState("all");
+    const [startDateFilter, setStartDateFilter] = useState("");
+    const [endDateFilter, setEndDateFilter] = useState("");
+
     const perPageOptions = [5, 10, 20, 50];
 
     // Status colors configuration
@@ -82,11 +89,49 @@ const ReservationContent = () => {
         fetchReservations();
     }, []);
 
+    // Filter reservations based on all filter criteria
+    const filteredReservations = reservations.filter((reservation) => {
+        // Search filter (reservation ID or client name)
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            const matchesId = (reservation.booking_reference || reservation.id.toString()).toLowerCase().includes(query);
+            const matchesClient = (reservation.company_name || "").toLowerCase().includes(query);
+            if (!matchesId && !matchesClient) return false;
+        }
+
+        // Status filter
+        if (statusFilter !== "all") {
+            if ((reservation.status || "").toLowerCase() !== statusFilter.toLowerCase()) return false;
+        }
+
+        // Payment filter
+        if (paymentFilter !== "all") {
+            if ((reservation.payment_status || "").toLowerCase() !== paymentFilter.toLowerCase()) return false;
+        }
+
+        // Start date filter
+        if (startDateFilter && reservation.start_date) {
+            if (reservation.start_date < startDateFilter) return false;
+        }
+
+        // End date filter
+        if (endDateFilter && reservation.end_date) {
+            if (reservation.end_date > endDateFilter) return false;
+        }
+
+        return true;
+    });
+
+    // Reset current page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter, paymentFilter, startDateFilter, endDateFilter]);
+
     // Pagination calculations
-    const totalPages = Math.max(1, Math.ceil(reservations.length / itemsPerPage));
+    const totalPages = Math.max(1, Math.ceil(filteredReservations.length / itemsPerPage));
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
-    const currentReservations = reservations.slice(startIdx, endIdx);
+    const currentReservations = filteredReservations.slice(startIdx, endIdx);
 
     const goToPage = (p) => {
         if (p < 1 || p > totalPages) return;
@@ -267,6 +312,112 @@ const ReservationContent = () => {
                 </div>
             </div>
 
+            {/* Filters Section */}
+            <div className="mt-6 bg-white rounded-lg shadow p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {/* Search */}
+                    <div>
+                        <label className="block text-[12px] font-[500] text-[#7B7B7A] mb-1">
+                            Search
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="Reservation ID or Client Name"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full px-3 py-2 bg-[#F7F7F7] rounded-[5px] text-[14px] outline-none border-0 focus:ring-1 focus:ring-[#0955AC]"
+                        />
+                    </div>
+
+                    {/* Status Filter */}
+                    <div>
+                        <label className="block text-[12px] font-[500] text-[#7B7B7A] mb-1">
+                            Status
+                        </label>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full px-3 py-2 bg-[#F7F7F7] rounded-[5px] text-[14px] outline-none border-0 focus:ring-1 focus:ring-[#0955AC]"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
+
+                    {/* Payment Status Filter */}
+                    <div>
+                        <label className="block text-[12px] font-[500] text-[#7B7B7A] mb-1">
+                            Payment Status
+                        </label>
+                        <select
+                            value={paymentFilter}
+                            onChange={(e) => setPaymentFilter(e.target.value)}
+                            className="w-full px-3 py-2 bg-[#F7F7F7] rounded-[5px] text-[14px] outline-none border-0 focus:ring-1 focus:ring-[#0955AC]"
+                        >
+                            <option value="all">All Payments</option>
+                            <option value="paid">Paid</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+
+                    {/* Start Date Filter */}
+                    <div>
+                        <label className="block text-[12px] font-[500] text-[#7B7B7A] mb-1">
+                            Start Date From
+                        </label>
+                        <input
+                            type="date"
+                            value={startDateFilter}
+                            onChange={(e) => setStartDateFilter(e.target.value)}
+                            className="w-full px-3 py-2 bg-[#F7F7F7] rounded-[5px] text-[14px] outline-none border-0 focus:ring-1 focus:ring-[#0955AC]"
+                        />
+                    </div>
+
+                    {/* End Date Filter */}
+                    <div>
+                        <label className="block text-[12px] font-[500] text-[#7B7B7A] mb-1">
+                            End Date To
+                        </label>
+                        <input
+                            type="date"
+                            value={endDateFilter}
+                            onChange={(e) => setEndDateFilter(e.target.value)}
+                            className="w-full px-3 py-2 bg-[#F7F7F7] rounded-[5px] text-[14px] outline-none border-0 focus:ring-1 focus:ring-[#0955AC]"
+                        />
+                    </div>
+                </div>
+
+                {/* Filter Summary and Clear */}
+                <div className="flex justify-between items-center mt-4 pt-3 border-t border-[#00000033]">
+                    <div className="text-[14px] text-[#7B7B7A]">
+                        Showing {currentReservations.length} of {filteredReservations.length} reservations
+                        {filteredReservations.length !== reservations.length && (
+                            <span className="text-[#0955AC] font-[600]"> (filtered from {reservations.length} total)</span>
+                        )}
+                    </div>
+                    {(searchQuery || statusFilter !== "all" || paymentFilter !== "all" || startDateFilter || endDateFilter) && (
+                        <button
+                            onClick={() => {
+                                setSearchQuery("");
+                                setStatusFilter("all");
+                                setPaymentFilter("all");
+                                setStartDateFilter("");
+                                setEndDateFilter("");
+                            }}
+                            className="px-4 py-2 bg-[#FF6060] text-white rounded-[5px] text-[14px] font-[600] hover:bg-[#FF4040] transition-colors"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
+                </div>
+            </div>
+
             {/* Table Display */}
             <div className="mt-10">
                 {loading ? (
@@ -425,19 +576,6 @@ const ReservationContent = () => {
                     </div>
                 )}
             </div>
-
-            {/* Raw Data Display */}
-            {!loading && reservations.length > 0 && (
-                <div className="mt-10 bg-white rounded-lg p-6 shadow">
-                    <h2 className="text-[24px] font-[700] mb-4">Raw Data</h2>
-                    <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-[600px] text-sm">
-                        {JSON.stringify(reservations, null, 2)}
-                    </pre>
-                    <div className="mt-4 text-[14px] text-[#7B7B7A]">
-                        Total Records: {reservations.length}
-                    </div>
-                </div>
-            )}
 
             {/* Detail/Edit Modal */}
             {isPopupOpen && selectedReservation && (
