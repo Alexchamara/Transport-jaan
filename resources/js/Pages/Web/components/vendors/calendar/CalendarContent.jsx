@@ -384,8 +384,8 @@ const CalendarContent = ({
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <div className="grid grid-cols-8 border-t border-l border-[#00000026] min-w-[1400px]">
+                <div className="sm:overflow-x-auto">
+                    <div className="sm:grid sm:grid-cols-8 sm:border-t sm:border-l sm:border-[#00000026] sm:min-w-[1400px]">
                         <CalendarGrid
                             times={times}
                             events={processedEvents}

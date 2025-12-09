@@ -13,7 +13,7 @@ const total = data.reduce((sum, item) => sum + item.value, 0);
 
 const ExpensesPieChart = () => (
     <div className="flex flex-col items-center justify-center w-full h-full">
-        <div className="flex flex-col sm:flex-row items-center justify-center w-full mb-2 gap-4">
+        <div className="flex flex-row items-center justify-center w-full mb-2">
             <PieChart width={140} height={140}>
                 <Pie
                     data={data}
@@ -30,16 +30,19 @@ const ExpensesPieChart = () => (
                     ))}
                 </Pie>
             </PieChart>
-            <div className="flex flex-col items-center justify-center w-full sm:px-5">
-                <div className="text-[14px] font-[500] text-[#00000080] w-[114px] h-[33px] gap-3 bg-[#D9D9D94F] flex justify-center items-center rounded-[6px] px-3 py-1 mb-2">
-                    This Week
-                    <img src={miniArrow} />
-                </div>
-                <div className="text-[14px] font-[500] text-[#00000080] text-center">
-                    Total Expenses
-                </div>
-                <div className="text-[20px] sm:text-[26px] font-[700] text-[#000000] w-full text-center pr-2 leading-tight">
-                    ${total.toLocaleString()}
+            <div>
+                <div className="flex flex-col items-center justify-center w-full px-5">
+                    <div className="text-[14px] font-[500] text-[#00000080] w-[114px] h-[33px] gap-3 bg-[#D9D9D94F] flex justify-center items-center rounded-[6px] px-3 py-1">
+                        This Week
+                        <img src={miniArrow} />
+                    </div>
+                    <div className="text-[14px] font-[500] text-[#00000080]">
+                        Total Expenses
+                    </div>
+
+                    <div className="text-[26px] font-[700] text-[#000000] w-full text-center pr-2 leading-tight">
+                        ${total.toLocaleString()}
+                    </div>
                 </div>
             </div>
         </div>
