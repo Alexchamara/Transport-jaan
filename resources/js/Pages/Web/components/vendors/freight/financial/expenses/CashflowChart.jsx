@@ -202,31 +202,31 @@ const CashflowChart = () => {
     return (
         <div className="relative w-full h-full">
             {/* Custom Legends */}
-            <div className="flex flex-row gap-8 items-center mt-7 mb-2 ml-2 px-12">
-                <h1 className="figtree text-[24px] font-[700]">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center mt-7 mb-2 ml-2 px-4 md:px-12">
+                <h1 className="figtree text-[20px] md:text-[24px] font-[700]">
                     Cashflow
                 </h1>
-                <div className="ml-auto">
-                    <button className="bg-[#F6F8FA] rounded-[8px] px-5 py-2 text-[14px] font-[600] text-[#00000080]">
+                <div className="ml-auto md:ml-auto">
+                    <button className="bg-[#F6F8FA] rounded-[8px] px-3 md:px-5 py-2 text-[12px] md:text-[14px] font-[600] text-[#00000080]">
                         Last 8 months <span className="ml-2">▼</span>
                     </button>
                 </div>
             </div>
-            <div className="flex flex-row gap-6 items-center ml-20 mb-2 px-10">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center ml-4 md:ml-20 mb-2 px-4 md:px-10">
                 <div className="flex flex-row gap-2 items-center">
                     <div className="w-[22px] h-[4px] bg-[#0A56AD]" />
-                    <span className="figtree text-[20px] font-[600] text-[#00000080]">
+                    <span className="figtree text-[16px] md:text-[20px] font-[600] text-[#00000080]">
                         Income
                     </span>
                 </div>
                 <div className="flex flex-row gap-2 items-center">
                     <div className="w-[22px] h-[4px] bg-[#000000]" />
-                    <span className="figtree text-[20px] font-[600] text-[#00000080]">
+                    <span className="figtree text-[16px] md:text-[20px] font-[600] text-[#00000080]">
                         Expenses
                     </span>
                 </div>
             </div>
-            <div className="w-full h-[320px] bg-transparent px-10 pb-10 mt-5">
+            <div className="w-full h-[250px] md:h-[320px] bg-transparent px-4 md:px-10 pb-10 mt-5">
                 <Line ref={chartRef} data={data} options={options} />
                 {/* Custom Tooltip */}
                 {tooltip && (
