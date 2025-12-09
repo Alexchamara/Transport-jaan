@@ -302,7 +302,7 @@ const UnitContent = () => {
 
             {/* Add Unit or List */}
             {showAddUnit ? (
-                <AddUnit />
+                <AddUnit onCancel={() => setShowAddUnit(false)} />
             ) : (
                 <>
                     {/* States */}
