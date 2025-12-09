@@ -20,7 +20,10 @@ class WarehouseReservationController extends Controller
     public function index(Request $request)
     {
         try {
-            // Use raw SQL query to fetch warehouse bookings
+            $user = Auth::user();
+            
+            // Use raw SQL query to fetch warehouse bookings for the authenticated vendor
+            // Filter by warehouse units that belong to the vendor
             $reservations = DB::select("
                 SELECT 
                     wb.*,
@@ -34,11 +37,9 @@ class WarehouseReservationController extends Controller
                 FROM warehouse_bookings wb
                 LEFT JOIN users u ON wb.user_id = u.id
                 LEFT JOIN warehouse_units wu ON wb.warehouse_unit_id = wu.id
+                WHERE wu.user_id = ?
                 ORDER BY wb.created_at DESC
-            ");
-
-            // select all from user table
-            // $reservations = DB::select("SELECT * FROM warehouse_bookings");
+            ", [$user->id]);
             
             return response()->json([
                 'success' => true,
