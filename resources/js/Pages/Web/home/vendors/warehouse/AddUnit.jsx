@@ -392,7 +392,7 @@ const AddUnit = () => {
       documentFiles.forEach((f) => data.append('documents[]', f));
       if (termsPdfFile) data.append('terms_pdf', termsPdfFile);
 
-      Inertia.post('/vendors/warehouse/api/units', data, {
+      Inertia.post('https://transport.jaan.lk/vendors/warehouse/api/units', data, {
         forceFormData: true,
         onError: (err) => {
           setErrors(err);

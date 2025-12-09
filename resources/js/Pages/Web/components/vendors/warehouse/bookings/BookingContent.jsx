@@ -127,7 +127,7 @@ const BookingContent = () => {
     useEffect(() => {
         const fetchChartData = async () => {
             try {
-                const response = await axios.get("/vendors/warehouse/api/bookings/chart-data");
+                const response = await axios.get("https://transport.jaan.lk/vendors/warehouse/api/bookings/chart-data");
                 
                 if (response.data.success) {
                     setBookingData(response.data.data);

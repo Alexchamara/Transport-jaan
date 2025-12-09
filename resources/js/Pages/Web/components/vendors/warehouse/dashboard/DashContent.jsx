@@ -260,7 +260,7 @@ const DashContent = () => {
             try {
                 if (!silent) setIsSearching(true);
                 const response = await axios.get(
-                    "/vendors/warehouse/api/bookings/chart-data",
+                    "https://transport.jaan.lk/vendors/warehouse/api/bookings/chart-data",
                     {
                         params: {
                             period: selectedPeriod,
@@ -363,7 +363,7 @@ const DashContent = () => {
         async (silent = false) => {
             try {
                 const response = await axios.get(
-                    "/vendors/warehouse/api/bookings",
+                    "https://transport.jaan.lk/vendors/warehouse/api/bookings",
                     {
                         params: {
                             per_page: 50,
@@ -432,7 +432,7 @@ const DashContent = () => {
     // Fetch warehouse units data
     const fetchUnits = useCallback(async () => {
         try {
-            const response = await axios.get("/vendors/warehouse/api/units");
+            const response = await axios.get("https://transport.jaan.lk/vendors/warehouse/api/units");
             if (response.data.data) {
                 const units = response.data.data;
                 const typeStats = units.reduce((acc, unit) => {
