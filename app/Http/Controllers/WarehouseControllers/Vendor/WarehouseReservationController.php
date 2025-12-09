@@ -21,24 +21,24 @@ class WarehouseReservationController extends Controller
     {
         try {
             // Use raw SQL query to fetch warehouse bookings
-            // $reservations = DB::select("
-            //     SELECT 
-            //         wb.*,
-            //         u.name as user_name,
-            //         u.email as user_email,
-            //         wu.name as warehouse_name,
-            //         wu.type as warehouse_type,
-            //         wu.total_area,
-            //         wu.capacity,
-            //         wu.capacity_unit
-            //     FROM warehouse_bookings wb
-            //     LEFT JOIN users u ON wb.user_id = u.id
-            //     LEFT JOIN warehouse_units wu ON wb.warehouse_unit_id = wu.id
-            //     ORDER BY wb.created_at DESC
-            // ");
+            $reservations = DB::select("
+                SELECT 
+                    wb.*,
+                    u.name as user_name,
+                    u.email as user_email,
+                    wu.name as warehouse_name,
+                    wu.type as warehouse_type,
+                    wu.total_area,
+                    wu.capacity,
+                    wu.capacity_unit
+                FROM warehouse_bookings wb
+                LEFT JOIN users u ON wb.user_id = u.id
+                LEFT JOIN warehouse_units wu ON wb.warehouse_unit_id = wu.id
+                ORDER BY wb.created_at DESC
+            ");
 
             // select all from user table
-            $reservations = DB::select("SELECT * FROM warehouse_bookings");
+            // $reservations = DB::select("SELECT * FROM warehouse_bookings");
             
             return response()->json([
                 'success' => true,
