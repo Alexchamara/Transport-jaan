@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -26,6 +26,15 @@ import UserDropdown from "../../../UserDropdown";
 const ExpensesContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const expensesData = [
         {
@@ -310,33 +319,12 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto lg:pr-5 lg:px-0 py-10 px-5">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+            <div className="flex flex-col sm:flex-row gap-5 justify-between xl:items-start items-center">
+                <h1 className="figtree text-[24px] sm:text-[35px] font-[700]">
                     Multimodal Expenses
                 </h1>
-                {/* <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
-                    </div>
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
-                </div> */}
-
                 <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("multimodal.settingsPage")} />
                 </div>
@@ -344,10 +332,10 @@ const ExpensesContent = () => {
             {/* end of header section */}
 
             {/* mini 4 cards */}
-            <div className="flex flex-row gap-5 w-full">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 w-full">
                 {/* card 1 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="min-w-[340px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -375,7 +363,7 @@ const ExpensesContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="min-w-[340px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -401,46 +389,44 @@ const ExpensesContent = () => {
                 </div>
                 {/* end of card 2 */}
 
-                <div className="flex flex-row gap-5 w-full">
-                    {/* card 3 */}
-                    <div
-                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={expenses} />
-                            </div>
-                            <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                    Expenses
-                                </h1>
-                                <h1 className="text-[26px] font-[700]">
-                                    $14,756
-                                </h1>
-                            </div>
+                {/* card 3 */}
+                <div
+                    className="min-w-[340px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    style={{
+                        boxShadow: "4px 4px 4px #0000001A",
+                    }}
+                >
+                    <div className="flex flex-row gap-5 justify-center items-center">
+                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                            <img src={expenses} />
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
-                                <img
-                                    src={upArrow}
-                                    className="size-[19px] rotate-180"
-                                />
-                                <h1 className="">+2.86%</h1>
-                            </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
+                        <div>
+                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                Expenses
+                            </h1>
+                            <h1 className="text-[26px] font-[700]">
+                                $14,756
+                            </h1>
                         </div>
                     </div>
-                    {/* end of card 3 */}
+                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                        <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
+                            <img
+                                src={upArrow}
+                                className="size-[19px] rotate-180"
+                            />
+                            <h1 className="">+2.86%</h1>
+                        </div>
+                        <h1 className="text-[#7B7B7A]">from last week</h1>
+                    </div>
                 </div>
+                {/* end of card 3 */}
             </div>
 
             {/* bar chart and pie chart section */}
-            <div className="flex flex-row w-full gap-8">
+            <div className="flex flex-col xl:flex-row w-full gap-8">
                 <div
-                    className="min-w-[730px] min-h-[426px] bg-[#FFFFFF] rounded-[10px]"
+                    className="w-full xl:min-w-[600px] min-h-[426px] bg-[#FFFFFF] rounded-[10px]"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -448,13 +434,13 @@ const ExpensesContent = () => {
                     <CashflowChart />
                 </div>
                 <div
-                    className="min-w-[339px] w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
+                    className="w-full min-h-[226px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
                     <div className="w-full flex flex-row justify-between items-center ">
-                        <h2 className="text-[24px] font-bold mb-2 w-full text-left">
+                        <h2 className="text-[20px] sm:text-[24px] font-bold mb-2 w-full text-left">
                             Expenses Breakdown
                         </h2>
                         <img src={dotThree} />
@@ -465,26 +451,26 @@ const ExpensesContent = () => {
 
             {/* Transaction table */}
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-4 sm:px-10 py-10"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}
             >
                 {/* card header */}
-                <div className="flex flex-row justify-between">
-                    <h1 className="text-[24px] font-[700]">
+                <div className="flex flex-col sm:flex-row justify-between gap-4">
+                    <h1 className="text-[20px] sm:text-[24px] font-[700]">
                         Recent Transactions
                     </h1>
-                    <div className="flex flex-row gap-5">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-5">
+                        <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} />
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="Search client name, car, etc."
+                                placeholder="Search expenses, category, etc."
                             />
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full sm:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img src={filterIcon} className="size-[12px]" />
                             <input
                                 type="text"
@@ -493,7 +479,7 @@ const ExpensesContent = () => {
                             />
                             <img src={miniDownArrow} />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full sm:w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img src={calendar} className="size-[17px]" />
                             <input
                                 type="text"
@@ -504,7 +490,7 @@ const ExpensesContent = () => {
                         </div>
                         <button
                             onClick={downloadTableAsPDF}
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+                            className="w-full sm:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
                         >
                             <img src={downloadLogo} />
                             <h1>Download</h1>
@@ -513,127 +499,186 @@ const ExpensesContent = () => {
                 </div>
                 {/* end */}
 
-                {/* expenses table */}
-                {/* table headings */}
-                <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
-                    <div className="flex flex-row gap-5 items-center col-span-2">
-                        <input
-                            type="checkbox"
-                            className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                        />
-                        <h1>Expenses</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
+                {isMobile ? (
+                    // Mobile Card View
+                    <div className="mt-10 space-y-4">
+                        {currentExpenses.map((expense, idx) => (
+                            <div
+                                key={expense.name + startIdx + idx}
+                                className="bg-white rounded-lg p-4 shadow-md border"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-[16px] font-[700]">{expense.name}</h3>
+                                    <div
+                                        className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
+                                        style={{
+                                            border: `1px solid ${expense.status.border}`,
+                                            background: expense.status.bg,
+                                            color: expense.status.text,
+                                        }}
+                                    >
+                                        {expense.status.label}
+                                    </div>
+                                </div>
+                                <div className="space-y-2 text-[14px]">
+                                    <div>
+                                        <span className="font-[600]">Category:</span>{" "}
+                                        <span
+                                            className="inline-flex items-center gap-2 px-2 py-1 bg-[#E8E8E8] rounded-[4px] text-[12px]"
+                                        >
+                                            <div
+                                                className="size-[8px] rounded-[2px]"
+                                                style={{
+                                                    backgroundColor: expense.category.color,
+                                                }}
+                                            ></div>
+                                            {expense.category.label}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span><span className="font-[600]">Quantity:</span> {expense.quantity}</span>
+                                        <span><span className="font-[600]">Amount:</span> {expense.amount}</span>
+                                    </div>
+                                    <div>
+                                        <span className="font-[600]">Date:</span> {expense.date}
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 mt-4">
+                                    <button className="flex-1 h-[30px] border border-[#0955AC] rounded-[4px] text-[12px] text-[#0955AC] font-[500] flex justify-center items-center">
+                                        Edit
+                                    </button>
+                                    <button className="flex-1 h-[30px] border border-[#FF0000] rounded-[4px] text-[12px] text-[#FF0000] font-[500] flex justify-center items-center">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    <div className="flex flex-row gap-2 items-center col-span-2">
-                        <h1>Category</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
+                ) : (
+                    <>
+                        {/* expenses table */}
+                        {/* table headings */}
+                        <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
+                            <div className="flex flex-row gap-5 items-center col-span-2">
+                                <input
+                                    type="checkbox"
+                                    className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                                />
+                                <h1>Expenses</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center col-span-2">
+                                <h1>Category</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Quantity</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Amount</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Date</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Status</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" />
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-2 items-center">
+                                <h1>Action</h1>
+                                <div className="flex flex-col justify-center items-center">
+                                    <img src={miniUp} className="w-[6px] h-[4px]" />
+                                    <img src={miniDown} className="w-[6px] h-[4px]" />
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Quantity</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Amount</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Date</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Status</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Action</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                </div>
-                {/* end */}
+                        {/* end */}
 
-                {/* expenses rows */}
-                {currentExpenses.map((expense, idx) => (
-                    <div
-                        key={expense.name + startIdx + idx}
-                        className="grid grid-cols-9 text-[15px] font-[500] px-10 h-[100px] border-b-[1.5px] border-[#00000033] items-center"
-                    >
-                        <div className="flex flex-row gap-5 col-span-2">
-                            <input
-                                type="checkbox"
-                                className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                            />
-                            <h1>{expense.name}</h1>
-                        </div>
-                        <div className={`col-span-2`}>
+                        {/* expenses rows */}
+                        {currentExpenses.map((expense, idx) => (
                             <div
-                                className={` ${expense.category.width} h-[20px] bg-[#E8E8E8] rounded-[4px] text-[10px] flex flex-row justify-start items-center gap-3 px-2`}
+                                key={expense.name + startIdx + idx}
+                                className="grid grid-cols-9 text-[15px] font-[500] px-10 h-[100px] border-b-[1.5px] border-[#00000033] items-center"
                             >
-                                <div
-                                    className="size-[10px] rounded-[2px]"
-                                    style={{
-                                        backgroundColor: expense.category.color,
-                                    }}
-                                ></div>
-                                <h1>{expense.category.label}</h1>
+                                <div className="flex flex-row gap-5 col-span-2">
+                                    <input
+                                        type="checkbox"
+                                        className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                                    />
+                                    <h1>{expense.name}</h1>
+                                </div>
+                                <div className={`col-span-2`}>
+                                    <div
+                                        className={` ${expense.category.width} h-[20px] bg-[#E8E8E8] rounded-[4px] text-[10px] flex flex-row justify-start items-center gap-3 px-2`}
+                                    >
+                                        <div
+                                            className="size-[10px] rounded-[2px]"
+                                            style={{
+                                                backgroundColor: expense.category.color,
+                                            }}
+                                        ></div>
+                                        <h1>{expense.category.label}</h1>
+                                    </div>
+                                </div>
+                                <div className="">{expense.quantity}</div>
+                                <div>{expense.amount}</div>
+                                <div>{expense.date}</div>
+                                <div>
+                                    <div
+                                        className="w-[72px] h-[20px] border-[1.5px] text-[10px] flex justify-center items-center rounded-[4px]"
+                                        style={{
+                                            borderColor: expense.status.border,
+                                            background: expense.status.bg,
+                                            color: expense.status.text,
+                                        }}
+                                    >
+                                        {expense.status.label}
+                                    </div>
+                                </div>
+                                <div className="flex flex-row justify-center items-center gap-2">
+                                    <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
+                                        Edit
+                                    </div>
+                                    <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
+                                        Delete
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="">{expense.quantity}</div>
-                        <div>{expense.amount}</div>
-                        <div>{expense.date}</div>
-                        <div>
-                            <div
-                                className="w-[72px] h-[20px] border-[1.5px] text-[10px] flex justify-center items-center rounded-[4px]"
-                                style={{
-                                    borderColor: expense.status.border,
-                                    background: expense.status.bg,
-                                    color: expense.status.text,
-                                }}
-                            >
-                                {expense.status.label}
-                            </div>
-                        </div>
-                        <div className="flex flex-row justify-center items-center gap-2">
-                            <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
-                                Edit
-                            </div>
-                            <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
-                                Delete
-                            </div>
-                        </div>
-                    </div>
-                ))}
-                {/* end */}
+                        ))}
+                        {/* end */}
+                    </>
+                )}
 
                 {/* Pagination Controls and Results per page inline */}
-                <div className="flex justify-between items-center gap-2 mt-20">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-20">
                     {/* Left: Results per page */}
                     <div className="flex items-center">
-                        <span className="mr-3 text-[#00000080] text-[15px]">
+                        <span className="mr-3 text-[#00000080] text-[14px] sm:text-[15px]">
                             Results per page
                         </span>
                         <select
-                            className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+                            className="rounded px-3 py-1 font-[600] text-[14px] sm:text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                             value={itemsPerPage}
                             onChange={(e) =>
                                 setItemsPerPage(Number(e.target.value))
@@ -647,7 +692,7 @@ const ExpensesContent = () => {
                         </select>
                     </div>
                     {/* Right: Pagination */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <button
                             className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
                             onClick={() => goToPage(currentPage - 1)}
@@ -663,7 +708,7 @@ const ExpensesContent = () => {
                             ) : (
                                 <button
                                     key={num}
-                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                    className={`px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
                                         currentPage === num
                                             ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
