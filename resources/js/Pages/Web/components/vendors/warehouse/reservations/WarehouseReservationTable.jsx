@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../../../../../../config/api";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
@@ -74,7 +75,7 @@ const WarehouseReservationTable = ({ reservations = [], setReservations, statusC
 
         try {
             const response = await axios.patch(
-                `/vendors/warehouse/api/reservations/${selectedReservation.id}/confirm`
+                `${API_BASE_URL}vendors/warehouse/api/reservations/${selectedReservation.id}/confirm`
             );
 
             if (response.data.success) {
@@ -112,7 +113,7 @@ const WarehouseReservationTable = ({ reservations = [], setReservations, statusC
 
         try {
             const response = await axios.patch(
-                `/vendors/warehouse/api/reservations/${selectedReservation.id}/cancel`,
+                `${API_BASE_URL}vendors/warehouse/api/reservations/${selectedReservation.id}/cancel`,
                 { cancellation_reason: cancellationReason }
             );
 
@@ -146,7 +147,7 @@ const WarehouseReservationTable = ({ reservations = [], setReservations, statusC
 
         try {
             const response = await axios.patch(
-                `/vendors/warehouse/api/reservations/${selectedReservation.id}/complete`
+                `${API_BASE_URL}vendors/warehouse/api/reservations/${selectedReservation.id}/complete`
             );
 
             if (response.data.success) {
@@ -174,7 +175,7 @@ const WarehouseReservationTable = ({ reservations = [], setReservations, statusC
 
         try {
             const response = await axios.put(
-                `/vendors/warehouse/api/reservations/${selectedReservation.id}`,
+                `${API_BASE_URL}vendors/warehouse/api/reservations/${selectedReservation.id}`,
                 { payment_status: newPaymentStatus }
             );
 

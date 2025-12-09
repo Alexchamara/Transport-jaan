@@ -360,12 +360,12 @@ const ReservationContent = () => {
                 </div>
 
                 {/* Right: Chart */}
-                <div
+                {/* <div
                     className="min-w-[712px] w-full min-h-[437px] bg-white rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <ReservationBarChart reservationData={reservationData} />
-                </div>
+                </div> */}
             </div>
 
             {/* Table */}
