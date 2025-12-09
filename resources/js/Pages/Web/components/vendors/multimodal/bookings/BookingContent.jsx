@@ -464,7 +464,7 @@ const BookingContent = () => {
 
                 {/* mini right */}
                 <div
-                    className="w-full xl:min-w-[712px] min-h-[350px] md:min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
+                    className="w-full xl:min-w-[680px] min-h-[350px] md:min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <BookingBarChart />
