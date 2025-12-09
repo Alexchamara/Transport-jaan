@@ -311,7 +311,7 @@ const BookingContent = () => {
             </div>
             {/* end of header section */}
 
-            <div className="flex flex-col md:flex-row gap-10 justify-between py-10 md:py-20 w-full">
+            <div className="flex flex-col md:flex-row gap-10 justify-between py-10 w-full">
                 {/* mini left */}
                 <div className="flex flex-col gap-8 w-full">
                     {/* card 1 */}

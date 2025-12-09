@@ -276,7 +276,7 @@ const UnitContent = () => {
     };
 
     return (
-        <div className="w-full h-auto xl:pr-5 py-10 px-5 md:px-0">
+        <div className="w-full h-auto xl:pr-5 py-10 px-5 xl:px-0">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
                 <h1 className="figtree text-[28px] md:text-[35px] font-[700]">
@@ -291,7 +291,7 @@ const UnitContent = () => {
             {/* Search, Filter section */}
             <div className="flex flex-col md:flex-row justify-between mt-10 mb-5 gap-4">
                 <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-5 justify-center items-center w-full">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-5 justify-start items-center w-full">
                         <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} alt="Search" />
                             <input
@@ -300,7 +300,7 @@ const UnitContent = () => {
                                 placeholder="Search client, shipment, unit type, etc."
                             />
                         </div>
-                        <div className="w-full sm:w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full sm:w-[159px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"
@@ -382,8 +382,8 @@ const UnitContent = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col lg:flex-row justify-center items-center gap-4 lg:gap-20 w-full lg:w-auto">
-                                    <div className="poppins grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 text-[13px] md:text-[15px] font-[500]">
+                                <div className="flex flex-col xl:flex-row justify-center items-center gap-4 lg:gap-20 w-full lg:w-auto">
+                                    <div className="poppins grid grid-cols-4 gap-4 md:gap-8 text-[13px] md:text-[15px] font-[500]">
                                         <div className="flex flex-col justify-center items-center gap-3">
                                             <Weight
                                                 size={24}

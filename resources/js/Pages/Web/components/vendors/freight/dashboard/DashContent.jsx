@@ -232,7 +232,7 @@ const DashContent = () => {
 
                         {/* booking chart */}
                         <div
-                            className="w-full xl:w-[742px] h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
+                            className="w-full xl:w-[730px] h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             {/* Booking Overview header and dropdown */}
@@ -252,7 +252,7 @@ const DashContent = () => {
                         </div>
 
                         <div
-                            className="w-full xl:w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10"
+                            className="w-full xl:w-[730px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between mb-12 w-full">
