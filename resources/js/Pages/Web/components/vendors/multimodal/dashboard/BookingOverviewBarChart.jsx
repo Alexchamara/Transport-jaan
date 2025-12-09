@@ -23,7 +23,7 @@ function BookingOverviewBarChart() {
   // Find the index of the highest bookings
   const maxIndex = bookingData.reduce((maxIdx, d, idx, arr) => d.bookings > arr[maxIdx].bookings ? idx : maxIdx, 0);
   return (
-    <div className="w-[600px] h-auto flex flex-col items-stretch relative">
+    <div className="w-full max-w-[600px] h-auto flex flex-col items-stretch relative">
       {/* Chart area: grid lines and bars, fixed height */}
       <div className="relative w-full" style={{ height: `${chartHeight}px` }}>
         {/* Y-axis grid lines and labels */}

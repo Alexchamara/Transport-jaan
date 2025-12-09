@@ -46,6 +46,17 @@ function generateSmoothPath(points) {
 }
 
 const EarningSummaryChart = () => {
+  const [chartWidth, setChartWidth] = useState(650);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setChartWidth(Math.min(650, window.innerWidth - 80));
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Find the index of the highest value
   const highestIndex = earningData.reduce(
     (maxIdx, d, idx, arr) => d.value > arr[maxIdx].value ? idx : maxIdx,

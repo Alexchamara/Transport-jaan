@@ -1,5 +1,5 @@
 import React from "react";
-import { PieChart, Pie, Cell } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import miniArrow from "../../../../../assets/financial/expenses/miniArrow.svg";
 
 const data = [
@@ -13,24 +13,26 @@ const total = data.reduce((sum, item) => sum + item.value, 0);
 
 const ExpensesPieChart = () => (
     <div className="flex flex-col items-center justify-center w-full h-full">
-        <div className="flex flex-row items-center justify-center w-full mb-2">
-            <PieChart width={140} height={140}>
-                <Pie
-                    data={data}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={65}
-                    paddingAngle={0}
-                    dataKey="value"
-                    stroke="none"
-                >
-                    {data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                </Pie>
-            </PieChart>
-            <div>
+        <div className="flex flex-col md:flex-row items-center justify-center w-full mb-2">
+            <ResponsiveContainer width="100%" height={140}>
+                <PieChart>
+                    <Pie
+                        data={data}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={65}
+                        paddingAngle={0}
+                        dataKey="value"
+                        stroke="none"
+                    >
+                        {data.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                    </Pie>
+                </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-4 md:mt-0">
                 <div className="flex flex-col items-center justify-center w-full px-5">
                     <div className="text-[14px] font-[500] text-[#00000080] w-[114px] h-[33px] gap-3 bg-[#D9D9D94F] flex justify-center items-center rounded-[6px] px-3 py-1">
                         This Week

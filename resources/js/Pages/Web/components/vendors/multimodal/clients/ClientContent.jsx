@@ -14,34 +14,12 @@ const ClientContent = () => {
     const user = auth?.user;
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-5 lg:py-10">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+            <div className="flex flex-col sm:flex-row gap-5 justify-between lg:items-start items-center">
+                <h1 className="figtree text-[24px] sm:text-[35px] font-[700]">
                     Multimodal Clients
                 </h1>
-                {/* <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
-                    </div>
-
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
-                </div> */}
-
                 <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("multimodal.settingsPage")} />
                 </div>
@@ -49,7 +27,7 @@ const ClientContent = () => {
             {/* end of header section */}
 
             <div
-                className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-10 py-10"
+                className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-4 sm:px-10 py-10"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}

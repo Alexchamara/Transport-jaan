@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 function getDaysArray(year, month) {
   // Get the first day of the week for the month (0=Sunday, 1=Monday, ...)
@@ -22,7 +22,94 @@ function getDaysArray(year, month) {
 
 // Accept currentMonth and currentYear as props
 const CalendarGrid = ({ times, events, proPicTwo, currentMonth, currentYear, onEventClick }) => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const days = getDaysArray(currentYear, currentMonth);
+
+  // Group events by day for mobile view - show all days of current month
+  const eventsByDay = days.map((day, dayIdx) => {
+    const dayEvents = events?.filter(event => event.day === dayIdx) || [];
+    return {
+      ...day,
+      events: dayEvents.sort((a, b) => a.time.localeCompare(b.time)) // Sort by time
+    };
+  });
+
+  if (isMobile) {
+    // Mobile Card View - show all days of the month
+    return (
+      <div className="space-y-4 p-4">
+        {eventsByDay.map((day) => (
+          <div
+            key={`${day.label}-${day.date || 'empty'}`}
+            className="bg-white rounded-lg p-4 shadow-md border"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[18px] font-[700]">
+                {day.label}{day.date ? `, ${day.date}` : ''}
+              </h3>
+              <span className="text-[14px] text-[#00000080]">
+                {day.events.length} event{day.events.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {day.events.length > 0 ? (
+              <div className="space-y-3">
+                {day.events.map((event, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity ${
+                      event.status === "done" ? "bg-[#C5E6F9] border-[#C5E6F9]" : "bg-[#FFDBDF] border-[#FFDBDF]"
+                    }`}
+                    onClick={() => onEventClick && onEventClick(event)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <img
+                        src={event.personImage || proPicTwo}
+                        alt="avatar"
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[14px] font-[600] text-[#000000]">
+                            {event.time}
+                          </span>
+                          <span className={`text-[12px] font-[600] px-2 py-1 rounded ${
+                            event.status === "done"
+                              ? "bg-white text-[#0955AC]"
+                              : "bg-white text-[#FF0000]"
+                          }`}>
+                            {event.status === "done" ? "Done" : "Cancelled"}
+                          </span>
+                        </div>
+                        <h4 className="text-[16px] font-[600] text-[#000000] truncate mb-1">
+                          {event.title}
+                        </h4>
+                        <p className="text-[14px] text-[#00000080] truncate">
+                          {event.person}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-[#00000080] text-[14px]">
+                No events scheduled
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>

@@ -20,6 +20,7 @@ import miniUp from "../../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
 import UserDropdown from "../../../UserDropdown";
+import MobilePaymentCards from "../../../financial/payments/MobilePaymentCards";
 
 const PaymentContent = () => {
     const { auth } = usePage().props;
@@ -286,6 +287,16 @@ const PaymentContent = () => {
         }
     };
 
+    const handleEdit = (txn) => {
+        // TODO: Implement edit functionality
+        console.log("Edit transaction:", txn);
+    };
+
+    const handleDelete = (id) => {
+        // TODO: Implement delete functionality
+        console.log("Delete transaction:", id);
+    };
+
     const downloadTableAsPDF = () => {
         const { auth } = usePage().props;
         const user = auth?.user;
@@ -354,10 +365,10 @@ const PaymentContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
+        <div className="flex flex-col gap-5 md:gap-10 w-full h-auto lg:pr-5 py-5 lg:py-10 px-5 lg:px-0">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+            <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
+                <h1 className="figtree text-[28px] md:text-[35px] font-[700]">
                     Freight Payment
                 </h1>
                 {/* <div className="flex flex-row gap-5">
@@ -387,10 +398,10 @@ const PaymentContent = () => {
             {/* end of header section */}
 
             {/* mini 4 cards */}
-            <div className="flex flex-row gap-5 w-full">
+            <div className="flex flex-col md:flex-row gap-5 w-full">
                 {/* card 1 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -418,7 +429,7 @@ const PaymentContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -444,10 +455,10 @@ const PaymentContent = () => {
                 </div>
                 {/* end of card 2 */}
 
-                <div className="flex flex-row gap-5 w-full">
+                <div className="flex flex-col md:flex-row gap-5 w-full">
                     {/* card 3 */}
                     <div
-                        className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -487,12 +498,12 @@ const PaymentContent = () => {
                 }}
             >
                 {/* card header */}
-                <div className="flex flex-row justify-between">
+                <div className="flex flex-col xl:flex-row justify-between">
                     <h1 className="text-[24px] font-[700]">
                         Recent Transactions
                     </h1>
-                    <div className="flex flex-row gap-5">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                    <div className="flex flex-col xl:flex-row gap-5">
+                        <div className="xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} />
                             <input
                                 type="text"
@@ -500,7 +511,7 @@ const PaymentContent = () => {
                                 placeholder="Search client name, car, etc."
                             />
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="xl:w-[125px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img src={filterIcon} className="size-[12px]" />
                             <input
                                 type="text"
@@ -509,7 +520,7 @@ const PaymentContent = () => {
                             />
                             <img src={miniDownArrow} />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="xl:w-[139px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img src={calendar} className="size-[17px]" />
                             <input
                                 type="text"
@@ -520,7 +531,7 @@ const PaymentContent = () => {
                         </div>
                         <button
                             onClick={downloadTableAsPDF}
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+                            className="xl:w-[125px] xl:h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3 py-2 px-4"
                         >
                             <img src={downloadLogo} />
                             <h1>Download</h1>
@@ -529,7 +540,15 @@ const PaymentContent = () => {
                 </div>
                 {/* end */}
 
+                {/* ==================== MOBILE CARDS ==================== */}
+                <MobilePaymentCards
+                    transactions={currentTransactions}
+                    handleEdit={handleEdit}
+                    handleDelete={handleDelete}
+                />
+
                 {/* expenses table */}
+                <div className="hidden md:block">
                 {/* table headings */}
                 <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
                     <div className="flex flex-row gap-3 items-center">
@@ -654,6 +673,7 @@ const PaymentContent = () => {
                         </div>
                     </div>
                 ))}
+                </div>
                 {/* Pagination Controls and Results per page inline */}
                 <div className="flex justify-between items-center gap-2 mt-20">
                     {/* Left: Results per page */}

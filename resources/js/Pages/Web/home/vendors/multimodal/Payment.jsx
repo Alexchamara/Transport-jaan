@@ -19,7 +19,7 @@ const Payment = () => {
 
         {/* Side Menu */}
         <div
-          className={`fixed lg:static top-0 left-0 h-full z-40 transition-transform duration-300
+          className={`fixed lg:static top-0 left-0 min-h-screen z-40 transition-transform duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0 bg-white shadow lg:shadow-none`}
         >
@@ -27,7 +27,7 @@ const Payment = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 bg-[#E5E5E5]">
           <PaymentContent />
         </div>
       </div>

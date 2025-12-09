@@ -103,7 +103,7 @@ const CarBookingTable = () => {
     return (
         <div className="py-10">
             {/* table headings */}
-            <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
+            <div className="hidden md:grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Book id</h1>
                     <div className="flex flex-col justify-center items-center">
@@ -162,7 +162,62 @@ const CarBookingTable = () => {
                 </div>
             </div>
 
-            <div>
+            {/* Mobile Cards View */}
+            <div className="md:hidden flex flex-col gap-4">
+                {tableData.map((row, index) => (
+                    <div
+                        key={index}
+                        className="bg-[#FFFFFF] rounded-[10px] p-4 shadow-md"
+                        style={{
+                            boxShadow: "4px 4px 4px #0000001A",
+                        }}
+                    >
+                        <div className="flex justify-between items-start mb-2">
+                            <div>
+                                <h1 className="text-[16px] font-[600]">{row.customer}</h1>
+                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">{row.id}</h1>
+                            </div>
+                            <div className="flex gap-2">
+                                <div
+                                    className="w-[52px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                                    style={{
+                                        backgroundColor: row.statusBg,
+                                        border: `1px solid ${row.statusBorder}`,
+                                        color: row.statusText,
+                                    }}
+                                >
+                                    {row.status}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center mb-2">
+                            <div>
+                                <h1 className="text-[14px] font-[500]">{row.car}</h1>
+                                <h1 className="text-[12px] font-[500] text-[#7B7B7A]">{row.plate}</h1>
+                            </div>
+                            <h1 className="text-[16px] font-[600]">{row.price}</h1>
+                        </div>
+                        <div className="flex justify-between items-center mb-2">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">Duration: {row.duration}</h1>
+                            <div
+                                className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                style={{
+                                    border: `0.5px solid ${row.paymentColor}`,
+                                    backgroundColor: row.paymentBg,
+                                }}
+                            >
+                                {row.paymentStatus}
+                            </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">Date: {row.date}</h1>
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">{row.startDate} - {row.endDate}</h1>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="hidden md:block">
                 {tableData.map((row, index) => (
                     <div
                         key={index}

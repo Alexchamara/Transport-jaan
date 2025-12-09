@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell } from "recharts";
 
 import up from "../../../../assets/vendors/dashboard/icons/up.svg"
@@ -17,15 +17,35 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 const RealStatusPieChart = () => {
+  const [chartSize, setChartSize] = useState({ width: 172, height: 171, innerRadius: 60, outerRadius: 80 });
+
+  useEffect(() => {
+    const updateSize = () => {
+      const width = window.innerWidth;
+      let size;
+      if (width < 640) {
+        size = { width: 180, height: 180, innerRadius: 42, outerRadius: 56 };
+      } else if (width < 1024) {
+        size = { width: 150, height: 150, innerRadius: 52, outerRadius: 70 };
+      } else {
+        size = { width: 172, height: 171, innerRadius: 60, outerRadius: 80 };
+      }
+      setChartSize(size);
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
   return (
     <div className="flex flex-col items-center justify-center w-full h-full">
-      <PieChart width={172} height={171}>
+      <PieChart width={chartSize.width} height={chartSize.height}>
         <Pie
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={60}
-          outerRadius={80}
+          innerRadius={chartSize.innerRadius}
+          outerRadius={chartSize.outerRadius}
           startAngle={200}
           endAngle={-160}
           paddingAngle={6}
@@ -42,7 +62,7 @@ const RealStatusPieChart = () => {
       </PieChart>
       <div className="flex flex-col gap-2 mt-6 w-full">
         {data.map((entry, idx) => (
-          <div key={entry.name} className="flex flex-row items-center justify-between w-full mb-1">
+          <div key={entry.name} className="flex flex-row items-center gap-10 justify-center xl:justify-between w-full mb-1">
             <div className="flex flex-row items-center gap-2">
               <span className=" w-5 h-5 rounded bg-[#E8EBEF] flex items-center justify-center" style={{ backgroundColor: entry.color }}></span>
               <span className="text-[20px] font-[600] text-[#00000080]">{entry.name}</span>

@@ -6,6 +6,8 @@ import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 import file from "../../../../assets/vendors/clients/file.svg";
 import proPic from "../../../../assets/vendors/clients/proPic.svg";
 
+import MobileClientCards from "./MobileClientCards";
+
 const ClientTable = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
@@ -121,18 +123,12 @@ const ClientTable = () => {
     const currentClients = clients.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -173,9 +169,6 @@ const ClientTable = () => {
 
     // Handle file input
     const handleFileChange = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const file = e.target.files[0];
         if (file) {
             setSelectedFile(file);
@@ -184,9 +177,6 @@ const ClientTable = () => {
 
     // Add file to documents
     const addFileToDocuments = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         if (selectedFile) {
             setNewClient({
                 ...newClient,
@@ -201,9 +191,6 @@ const ClientTable = () => {
 
     // Handle form submission
     const handleSubmit = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         e.preventDefault();
         if (isEditing) {
             setClients(
@@ -232,9 +219,6 @@ const ClientTable = () => {
 
     // Handle edit button click
     const handleEdit = (client) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         setNewClient({ ...client });
         setCurrentClientId(client.id);
         setIsEditing(true);
@@ -243,9 +227,6 @@ const ClientTable = () => {
 
     // Handle delete button click
     const handleDelete = (id) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         setClients(clients.filter((client) => client.id !== id));
     };
 
@@ -256,7 +237,7 @@ const ClientTable = () => {
 
     return (
         <div className="relative">
-            <div className="flex flex-row items-center justify-between w-full">
+            <div className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
                 <div className="flex flex-row gap-5 justify-center items-center">
                     <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                         <img src={miniSearchIcon} />
@@ -281,14 +262,14 @@ const ClientTable = () => {
                         setIsPopupOpen(true);
                     }}
                 >
-                    Add Booking
+                    Add Client
                 </button>
             </div>
 
             {/* Popup for adding/editing client */}
             {isPopupOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                    <div className="bg-white p-10 rounded-[10px] w-[500px] max-h-[100vh] overflow-y-auto">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins p-4">
+                    <div className="bg-white p-5 md:p-10 rounded-[10px] w-full max-w-[500px] max-h-[100vh] overflow-y-auto">
                         <h2 className="text-[18px] font-[700] mb-4">
                             {isEditing ? "Edit Client" : "Add New Client"}
                         </h2>
@@ -414,8 +395,17 @@ const ClientTable = () => {
                 </div>
             )}
 
+            {/* Mobile Cards View */}
+            <MobileClientCards
+                clients={currentClients}
+                handleEdit={handleEdit}
+                handleDelete={handleDelete}
+            />
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
             {/* table headings */}
-            <div className="figtree grid grid-cols-7 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
+            <div className="figtree grid grid-cols-7 bg-[#D8E4F2] py-5 justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
                 <div className="flex flex-row gap-5 items-center col-span-2">
                     <input
                         type="checkbox"
@@ -462,7 +452,7 @@ const ClientTable = () => {
             {currentClients.map((client, idx) => (
                 <div
                     key={client.id}
-                    className="figtree grid grid-cols-7 h-[100px] border-b-[1.5px] border-[#00000033] px-10 items-center text-[14px] font-[500]"
+                    className="figtree grid grid-cols-7 py-5 border-b-[1.5px] border-[#00000033] px-10 items-center text-[14px] font-[500]"
                 >
                     <div className="flex flex-row col-span-2 items-center gap-7">
                         <input
@@ -472,20 +462,20 @@ const ClientTable = () => {
                         <div className="flex flex-row gap-3 justify-center items-center">
                             <img src={proPic} className="size-[50px]" />
                             <div>
-                                <h1 className="text-[15px]">{client.name}</h1>
-                                <h1 className="text-[#616161] text-[14px]">
+                                <h1 className="text-[15px] break-all">{client.name}</h1>
+                                <h1 className="text-[#616161] text-[14px] break-all">
                                     {client.email}
                                 </h1>
                             </div>
                         </div>
                     </div>
                     <div className="pl-10">{client.phone}</div>
-                    <div className="col-span-2 pl-20">{client.address}</div>
+                    <div className="col-span-2 pl-20 break-all">{client.address}</div>
                     <div className="text-[12px]">
                         {client.documents.map((doc, docIdx) => (
                             <div className="flex flex-row gap-2" key={docIdx}>
                                 <img src={file} />
-                                <h1>{doc.name}</h1>
+                                <h1 className="break-all">{doc.name}</h1>
                             </div>
                         ))}
                     </div>
@@ -506,16 +496,17 @@ const ClientTable = () => {
                 </div>
             ))}
             {/* end */}
+            </div>
 
             {/* Pagination Controls and Results per page */}
-            <div className="flex justify-between items-center gap-2 mt-20">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-10 md:mt-20">
                 {/* Left: Results per page */}
                 <div className="flex items-center">
-                    <span className="mr-3 text-[#00000080] text-[15px]">
+                    <span className="mr-3 text-[#00000080] text-[14px] md:text-[15px]">
                         Results per page
                     </span>
                     <select
-                        className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+                        className="rounded px-3 py-1 font-[600] text-[14px] md:text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                         value={itemsPerPage}
                         onChange={(e) =>
                             setItemsPerPage(Number(e.target.value))
@@ -545,7 +536,7 @@ const ClientTable = () => {
                         ) : (
                             <button
                                 key={num}
-                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                className={`px-3 py-1 text-[14px] md:text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
                                     currentPage === num
                                         ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                         : "bg-[#F4F3F3]"

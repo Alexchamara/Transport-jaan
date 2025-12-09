@@ -79,9 +79,9 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
     }, [itemsPerPage]);
 
     return (
-        <div className="py-10">
-            {/* table headings */}
-            <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
+        <div className="py-5 md:py-10">
+            {/* table headings - hidden on mobile */}
+            <div className="hidden md:grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10">
                 <div className="flex flex-row gap-2 items-center">
                     <h1>Book id</h1>
                     <div className="flex flex-col justify-center items-center">
@@ -140,13 +140,80 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                 </div>
             </div>
 
-            {/* table rows */}
-            {currentBookings.map((booking, idx) => (
-                <div
-                    key={startIdx + idx}
-                    className={`grid grid-cols-8 ${(startIdx + idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} h-[100px] justify-center items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100`}
-                    onClick={() => handleRowClick(booking, idx)}
-                >
+            {/* Mobile Cards - shown only on mobile */}
+            <div className="md:hidden space-y-4">
+                {currentBookings.map((booking, idx) => (
+                    <div
+                        key={startIdx + idx}
+                        className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm cursor-pointer hover:bg-gray-50"
+                        onClick={() => handleRowClick(booking, idx)}
+                    >
+                        <div className="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">{booking.clientName}</h3>
+                                <p className="text-sm text-gray-600">ID: {booking.id}</p>
+                            </div>
+                            <div
+                                className="px-2 py-1 rounded text-xs font-semibold"
+                                style={{ background: booking.statusBg, color: booking.statusText }}
+                            >
+                                {booking.status}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <p className="text-xs text-gray-500">Car Model</p>
+                                <p className="text-sm font-medium">{booking.carModel}</p>
+                                <p className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded mt-1 inline-block">{booking.carPlate}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">Plan</p>
+                                <p className="text-sm font-medium">{booking.plan}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                                <p className="text-xs text-gray-500">Booking Date</p>
+                                <p className="text-sm">{booking.bookingDate}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">Payment</p>
+                                <p className="text-sm font-medium">{booking.payment}</p>
+                                <div
+                                    className="text-xs px-2 py-1 rounded mt-1 inline-block"
+                                    style={{ borderColor: booking.paymentStatusColor, background: booking.paymentStatusBg, border: '1px solid' }}
+                                >
+                                    {booking.paymentStatus}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t pt-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <p className="text-xs text-gray-500">Start Date</p>
+                                    <p className="text-sm bg-gray-100 px-2 py-1 rounded inline-block">{booking.startDate}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">End Date</p>
+                                    <p className="text-sm bg-gray-100 px-2 py-1 rounded inline-block">{booking.endDate}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* table rows - hidden on mobile */}
+            <div className="hidden md:block">
+                {currentBookings.map((booking, idx) => (
+                    <div
+                        key={startIdx + idx}
+                        className={`grid grid-cols-8 ${(startIdx + idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} h-[100px] justify-center items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100`}
+                        onClick={() => handleRowClick(booking, idx)}
+                    >
                     <div>{booking.id}</div>
                     <div>{booking.bookingDate}</div>
                     <div>{booking.clientName}</div>
@@ -188,12 +255,13 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                     </div>
                 </div>
             ))}
+            </div>
 
             {/* Popup Modal */}
             {isPopupOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                    <div className="bg-white p-6 rounded-lg w-[400px] shadow-lg">
-                        <h2 className="text-[18px] font-[700] mb-4">Edit Booking</h2>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins p-4">
+                    <div className="bg-white p-4 md:p-6 rounded-lg w-full max-w-[400px] shadow-lg">
+                        <h2 className="text-[16px] md:text-[18px] font-[700] mb-4">Edit Booking</h2>
                         <div className="mb-4">
                             <label className="block text-[14px] font-[500] mb-1">Payment Amount</label>
                             <input
@@ -226,7 +294,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                                 <option value="Returned">Returned</option>
                             </select>
                         </div>
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 mt-6">
                             <button
                                 onClick={() => setIsPopupOpen(false)}
                                 className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"
@@ -245,11 +313,11 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
             )}
 
             {/* Pagination Controls and Results per page inline */}
-            <div className="flex justify-between items-center gap-2 mt-20">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-10 md:mt-20">
                 <div className="flex items-center">
-                    <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
+                    <span className="mr-3 text-[#00000080] text-[14px] md:text-[15px]">Results per page</span>
                     <select
-                        className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+                        className="rounded px-3 py-1 font-[600] text-[14px] md:text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[65px] md:w-[71px] h-[36px] md:h-[40px] focus:outline-none"
                         value={itemsPerPage}
                         onChange={e => setItemsPerPage(Number(e.target.value))}
                     >
@@ -258,31 +326,31 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                         ))}
                     </select>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 md:gap-2">
                     <button
-                        className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                        className="px-2 md:px-3 py-1 size-[36px] md:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 text-sm md:text-lg"
                         onClick={() => goToPage(currentPage - 1)}
                         disabled={currentPage === 1}
                     >
-                        <span className="text-lg">&#60;</span>
+                        <span>&#60;</span>
                     </button>
                     {getPageNumbers().map((num, idx) =>
                         num === '...'
-                            ? <span key={idx} className="px-2">...</span>
+                            ? <span key={idx} className="px-1 md:px-2 text-sm md:text-base">...</span>
                             : <button
                                 key={num}
-                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num ? ' text-[#0955AC] font-[600] border-[2px] border-[#0955AC]' : 'bg-[#F4F3F3]'}`}
+                                className={`px-2 md:px-3 py-1 text-[14px] md:text-[16px] font-[600] rounded-[4px] size-[36px] md:size-[40px] bg-[#F4F3F3] ${currentPage === num ? ' text-[#0955AC] font-[600] border-[2px] border-[#0955AC]' : 'bg-[#F4F3F3]'}`}
                                 onClick={() => goToPage(num)}
                             >
                                 {num}
                             </button>
                     )}
                     <button
-                        className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                        className="px-2 md:px-3 py-1 size-[36px] md:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 text-sm md:text-lg"
                         onClick={() => goToPage(currentPage + 1)}
                         disabled={currentPage === totalPages}
                     >
-                        <span className="text-lg">&#62;</span>
+                        <span>&#62;</span>
                     </button>
                 </div>
             </div>

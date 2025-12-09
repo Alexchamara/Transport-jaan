@@ -200,19 +200,19 @@ const CashflowChart = () => {
     }, [chartRef]);
 
     return (
-        <div className="relative w-full h-full">
+        <div className="relative w-full overflow-x-auto h-full">
             {/* Custom Legends */}
             <div className="flex flex-row gap-8 items-center mt-7 mb-2 ml-2 px-12">
                 <h1 className="figtree text-[24px] font-[700]">
                     Cashflow
                 </h1>
                 <div className="ml-auto">
-                    <button className="bg-[#F6F8FA] rounded-[8px] px-5 py-2 text-[14px] font-[600] text-[#00000080]">
+                    <button className="bg-[#F6F8FA] rounded-[8px] px-5 py-2 text-[12px] font-[600] text-[#00000080]">
                         Last 8 months <span className="ml-2">▼</span>
                     </button>
                 </div>
             </div>
-            <div className="flex flex-row gap-6 items-center ml-20 mb-2 px-10">
+            <div className="flex flex-row gap-6 items-center xl:ml-20 mb-2 px-10">
                 <div className="flex flex-row gap-2 items-center">
                     <div className="w-[22px] h-[4px] bg-[#0A56AD]" />
                     <span className="figtree text-[20px] font-[600] text-[#00000080]">
@@ -226,8 +226,10 @@ const CashflowChart = () => {
                     </span>
                 </div>
             </div>
-            <div className="w-full h-[320px] bg-transparent px-10 pb-10 mt-5">
-                <Line ref={chartRef} data={data} options={options} />
+            <div className="w-full h-[300px] bg-transparent px-10 pb-10 mt-5 overflow-auto xl:overflow-visible">
+                <div className="min-h-[320px]">
+                    <Line ref={chartRef} data={data} options={options} />
+                </div>
                 {/* Custom Tooltip */}
                 {tooltip && (
                     <div
