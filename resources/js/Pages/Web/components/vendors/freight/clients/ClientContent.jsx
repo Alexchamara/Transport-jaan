@@ -14,10 +14,10 @@ const ClientContent = () => {
   const user = auth?.user;
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto xl:pr-5 px-5 xl:px-0 py-5 xl:py-10">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Freight Clients</h1>
+            <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
+                <h1 className="figtree text-[28px] md:text-[35px] font-[700]">Freight Clients</h1>
                 {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
                         <img src={search} />
@@ -46,7 +46,7 @@ const ClientContent = () => {
             {/* end of header section */}
 
             <div
-                className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-10 px-10 py-10"
+                className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] mt-5 md:mt-10 px-5 md:px-10 py-5 md:py-10"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}

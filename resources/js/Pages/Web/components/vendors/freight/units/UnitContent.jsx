@@ -276,7 +276,7 @@ const UnitContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-5 py-10 px-4 md:px-0">
+        <div className="w-full h-auto xl:pr-5 py-10 px-5 md:px-0">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
                 <h1 className="figtree text-[28px] md:text-[35px] font-[700]">
