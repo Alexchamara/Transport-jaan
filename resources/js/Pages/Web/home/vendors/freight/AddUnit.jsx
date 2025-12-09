@@ -310,10 +310,10 @@ const AddUnit = () => {
       </section>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-4 pt-6 border-t border-gray-200">
             <button
               type="button"
-              className="px-6 py-2.5 border border-gray-300 text-gray-700 font-[700] figtree rounded-lg focus:outline-none focus:ring-0 transition-colors duration-150"
+              className="w-full sm:w-auto px-6 py-2.5 border border-gray-300 text-gray-700 font-[700] figtree rounded-lg focus:outline-none focus:ring-0 transition-colors duration-150"
               onClick={() => window.location.href = "/freight/units"}
             >
               Cancel
@@ -321,7 +321,7 @@ const AddUnit = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`inline-flex items-center px-6 py-2.5 border border-transparent font-[700] figtree rounded-lg text-[#FFFFFF] bg-[#0955AC] focus:outline-none focus:ring-0 transition-colors duration-150 ${isSubmitting ? 'opacity-75 cursor-not-allowed' : ''}`}
+              className={`w-full sm:w-auto inline-flex items-center px-6 py-2.5 border border-transparent font-[700] figtree rounded-lg text-[#FFFFFF] bg-[#0955AC] focus:outline-none focus:ring-0 transition-colors duration-150 ${isSubmitting ? 'opacity-75 cursor-not-allowed' : ''}`}
             >
               {isSubmitting ? (
                 <>

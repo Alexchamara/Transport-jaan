@@ -25,7 +25,7 @@ const VehicleInfo = ({ vehicle }) => {
 
       <div className="flex flex-col md:flex-row justify-between">
         <div className="flex flex-col md:flex-row gap-5">
-          <h1 className="bebas-neue text-[30px]">
+          <h1 className="bebas-neue text-[24px] md:text-[30px]">
             {make} <span className="text-[#0955AC]">{model}</span>{" "}
             {year ? `(${year})` : ""}
           </h1>
@@ -47,8 +47,8 @@ const VehicleInfo = ({ vehicle }) => {
         <h1 className="underline">44 Reviews</h1>
       </div>
 
-      <div className="py-10">
-        <div className="flex flex-col md:flex-row md:gap-20 px-20 text-[12px] font-[600] text-[#00000080] border-b-[2px] border-[#0000001F]">
+      <div className="py-5 md:py-10">
+        <div className="flex flex-col md:flex-row md:gap-20 px-5 md:px-20 text-[12px] font-[600] text-[#00000080] border-b-[2px] border-[#0000001F]">
           <h1
             className={`border-b-[2px] pb-5 w-[92px] flex justify-center items-center cursor-pointer ${
               selectedTab === "car-details"
