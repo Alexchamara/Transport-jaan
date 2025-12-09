@@ -47,10 +47,10 @@ const DashContent = () => {
     const user = auth?.user;
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-5 lg:pr-5 lg:px-0 py-5 md:py-10">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+                <h1 className="figtree text-[24px] md:text-[35px] font-[700]">
                     Multimodal Dashboard
                 </h1>
                 {/* <div className="flex flex-row gap-5">
@@ -90,7 +90,7 @@ const DashContent = () => {
                             <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
                                 {/* card 1 */}
                                 <div
-                                    className="min-w-[360px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -125,7 +125,7 @@ const DashContent = () => {
 
                                 {/* card 2 */}
                                 <div
-                                    className="min-w-[360px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -161,7 +161,7 @@ const DashContent = () => {
                             <div className="flex xl:flex-row flex-col gap-5 w-full">
                                 {/* card 3 */}
                                 <div
-                                    className="min-w-[360px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -195,7 +195,7 @@ const DashContent = () => {
                                 {/* end of card 3 */}
                                 {/* card 4 */}
                                 <div
-                                    className="min-w-[360px] min-h-[91px] w-full bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="min-h-[91px] w-full bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -233,7 +233,7 @@ const DashContent = () => {
 
                         {/* booking chart */}
                         <div
-                            className="min-w-[742px] h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
+                            className="w-full h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-5 px-4 md:px-5"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             {/* Booking Overview header and dropdown */}
@@ -253,7 +253,7 @@ const DashContent = () => {
                         </div>
 
                         <div
-                            className="min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10"
+                            className="w-full min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-5 px-4 md:px-5"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between mb-12 w-full">
@@ -273,7 +273,7 @@ const DashContent = () => {
                     {/* mini right section */}
                     <div className="flex flex-col items-center gap-5 w-full">
                         <div
-                            className="min-w-[349px] w-full min-h-[206px] bg-[#D8E4F2] flex flex-col px-10 py-5 justify-center items-center rounded-[10px]"
+                            className="w-full min-h-[206px] bg-[#D8E4F2] flex flex-col px-5 py-5 justify-center items-center rounded-[10px]"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <h1 className="text-[24px] font-[700] mb-3">
@@ -281,7 +281,7 @@ const DashContent = () => {
                             </h1>
 
                             <div className="flex flex-col gap-3">
-                                <div className="w-[283px] h-[35px] flex flex-row justify-center items-center gap-2 rounded-[6px] px-3 py-2 bg-[#FFFFFF] placeholder:text-[#7B7B7ACC] placeholder:text-[14px] placeholder:font-[500]">
+                                <div className="2xl:w-[283px] h-[35px] flex flex-row justify-center items-center gap-2 rounded-[6px] px-3 py-2 bg-[#FFFFFF] placeholder:text-[#7B7B7ACC] placeholder:text-[14px] placeholder:font-[500]">
                                     <img src={car} className="size-[20px]" />
                                     <input
                                         type="text"
@@ -292,7 +292,7 @@ const DashContent = () => {
                                 </div>
 
                                 <div className="flex flex-row gap-3">
-                                    <div className="w-[137px] h-[35px] bg-[#FFFFFF] rounded-[6px] flex flex-row justify-center items-center gap-2 py-2 px-3">
+                                    <div className="2xl:w-[137px] h-[35px] bg-[#FFFFFF] rounded-[6px] flex flex-row justify-center items-center gap-2 py-2 px-3">
                                         <img
                                             src={date}
                                             className="size-[20px]"
@@ -303,7 +303,7 @@ const DashContent = () => {
                                             placeholder="Car Type"
                                         />
                                     </div>
-                                    <div className="w-[137px] h-[35px] bg-[#FFFFFF] rounded-[6px]">
+                                    <div className="2xl:w-[137px] h-[35px] bg-[#FFFFFF] rounded-[6px]">
                                         <div className="w-[137px] h-[35px] bg-[#FFFFFF] rounded-[6px] flex flex-row justify-center gap-2 items-center py-2 px-3">
                                             <img
                                                 src={clock}
@@ -317,21 +317,21 @@ const DashContent = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <button className="w-[283px] h-[40px] bg-[#0955AC] rounded-[6px] flex justify-center items-center text-[16px] font-[700] text-[#FFFFFF] cursor-pointer">
+                                <button className="2xl:w-[283px] h-[40px] bg-[#0955AC] rounded-[6px] flex justify-center items-center text-[16px] font-[700] text-[#FFFFFF] cursor-pointer">
                                     Check Availability
                                 </button>
                             </div>
                         </div>
                         <div
-                            className="min-w-[349px] w-full min-h-[427px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
+                            className="w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] py-5 px-4 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between w-full">
                                 <h1 className="text-[24px] font-[700]">
                                     Real Status
                                 </h1>
-                                <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
-                                    <h1 className="text-[#00000080] font-[600] text-[14px]">
+                                <div className="w-[110px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3 p-2">
+                                    <h1 className="text-[#00000080] font-[600] text-[12px]">
                                         This Week
                                     </h1>
                                     <img src={miniDownArrow} />
@@ -342,7 +342,7 @@ const DashContent = () => {
 
                         {/* Reminder section  */}
                         <div
-                            className="min-w-[349px] w-full min-h-[335px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
+                            className="w-full xl:min-h-[335px] bg-[#FFFFFF] rounded-[10px] py-5 px-5"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between w-full">
@@ -354,29 +354,29 @@ const DashContent = () => {
                                 </div>
                             </div>
                             <div className="py-10 flex flex-col justify-center items-center gap-2">
-                                <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                                <div className="w-full h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                                     <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                         !
                                     </div>
-                                    <h1 className="text-[14px] font-[500] w-[199px]">
+                                    <h1 className="text-[14px] font-[500] 2xl:w-[199px]">
                                         Update the car rental plans for the
                                         upcoming sessions.
                                     </h1>
                                 </div>
-                                <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                                <div className="w-full h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                                     <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                         !
                                     </div>
-                                    <h1 className="text-[14px] font-[500] w-[199px]">
+                                    <h1 className="text-[14px] font-[500] 2xl:w-[199px]">
                                         Update the car rental plans for the
                                         upcoming sessions.
                                     </h1>
                                 </div>
-                                <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                                <div className="w-full h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                                     <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                         !
                                     </div>
-                                    <h1 className="text-[14px] font-[500] w-[199px]">
+                                    <h1 className="text-[14px] font-[500] 2xl:w-[199px]">
                                         Update the car rental plans for the
                                         upcoming sessions.
                                     </h1>
@@ -390,13 +390,13 @@ const DashContent = () => {
                 {/* car booking section */}
 
                 <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
+                    className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] py-5 px-5"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row justify-between">
                         <h1 className="text-[24px] font-[700]">Car Booking</h1>
-                        <div className="flex flex-row gap-5">
-                            <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                        <div className="flex flex-col md:flex-row gap-5">
+                            <div className="w-full md:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                                 <img src={miniSearchIcon} />
                                 <input
                                     type="text"
@@ -404,7 +404,7 @@ const DashContent = () => {
                                     placeholder="Search client name, car, etc."
                                 />
                             </div>
-                            <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                            <div className="w-full md:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                                 <img src={filterIcon} className="size-[12px]" />
                                 <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
                                     Filter
@@ -420,7 +420,7 @@ const DashContent = () => {
 
                 <div className="flex flex-col xl:flex-row gap-5 justify-between">
                     <div
-                        className="min-w-[500px] w-full min-h-[858px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                        className="w-full min-h-[858px] bg-[#FFFFFF] rounded-[10px] px-4 md:px-10 py-10"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">
@@ -434,18 +434,18 @@ const DashContent = () => {
                             {carTypes.map((type, idx) => (
                                 <div
                                     key={idx}
-                                    className="w-full h-[107px] border-[1px] border-[#00000080] rounded-[9px] flex flex-row"
+                                    className="w-full h-auto xl:h-[107px] border-[1px] border-[#00000080] rounded-[9px] flex flex-col md:flex-row pb-5"
                                 >
                                     <img
                                         src={type.img}
-                                        className="h-[107px] w-[172px]"
+                                        className="h-auto md:h-[107px] w-full md:w-[172px] object-cover"
                                     />
                                     <div className="flex flex-col justify-center gap-3 w-full px-5">
                                         <div className="flex flex-row justify-between items-center text-[15px] font-[500]">
                                             <h1 className="text-[#00000080]">
                                                 {type.name}
                                             </h1>
-                                            <h1 className="pr-5">
+                                            <h1 className="pr-0 md:pr-5">
                                                 {type.percent}%
                                             </h1>
                                         </div>
@@ -468,7 +468,7 @@ const DashContent = () => {
                         </div>
                     </div>
                     <div
-                        className="min-w-[553px] min-h-[858px] bg-[#0F0F0F08] rounded-[10px] px-10 py-10"
+                        className="w-full min-h-[858px] bg-[#0F0F0F08] rounded-[10px] px-5 py-5"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">

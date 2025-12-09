@@ -19,7 +19,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 const RealStatusPieChart = () => {
   return (
     <div className="flex flex-col items-center justify-center w-full h-full">
-      <PieChart width={172} height={171}>
+      <PieChart width={162} height={171}>
         <Pie
           data={data}
           cx="50%"
@@ -40,9 +40,9 @@ const RealStatusPieChart = () => {
           ))}
         </Pie>
       </PieChart>
-      <div className="flex flex-col gap-2 mt-6 w-full">
+      <div className="flex flex-col gap-2 mt-6 w-full pb-10">
         {data.map((entry, idx) => (
-          <div key={entry.name} className="flex flex-row items-center justify-between w-full mb-1">
+          <div key={entry.name} className="flex flex-row items-center justify-center gap-10 xl:justify-between w-full mb-1">
             <div className="flex flex-row items-center gap-2">
               <span className=" w-5 h-5 rounded bg-[#E8EBEF] flex items-center justify-center" style={{ backgroundColor: entry.color }}></span>
               <span className="text-[20px] font-[600] text-[#00000080]">{entry.name}</span>

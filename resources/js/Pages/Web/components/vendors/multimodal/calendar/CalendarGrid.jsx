@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 function getDaysArray(year, month) {
   // Get the first day of the week for the month (0=Sunday, 1=Monday, ...)
@@ -23,6 +23,15 @@ function getDaysArray(year, month) {
 // Accept currentMonth and currentYear as props
 const CalendarGrid = ({ times, events: initialEvents, proPicTwo, currentMonth, currentYear }) => {
   const [events, setEvents] = useState(initialEvents);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const days = getDaysArray(currentYear, currentMonth);
 
   // Handler to add a new event
@@ -71,14 +80,70 @@ const CalendarGrid = ({ times, events: initialEvents, proPicTwo, currentMonth, c
     }
   };
 
+  const EventCard = ({ event }) => (
+    <div
+      className={`w-full h-[90px] rounded-[12px] px-3 py-2 flex flex-col justify-center items-center ${event.status === "done" ? "bg-[#C5E6F9]" : "bg-[#FFDBDF]"} cursor-pointer`}
+      onClick={() => {
+        const eventIdx = events.findIndex(
+          (e) => e.day === event.day && e.time === event.time && e.title === event.title && e.person === event.person && e.status === event.status
+        );
+        handleEditEvent(eventIdx);
+      }}
+    >
+      {/* Time */}
+      <span className="w-full text-start text-[12px] font-[500] text-[#000000B2] tracking-wide mb-1">
+        {event.time.replace(":", " : ")}
+      </span>
+      {/* Car Name */}
+      <span className="w-full text-left font-[500] text-[16px] text-[#000000B2]">
+        {event.title}
+      </span>
+      {/* Avatar and Name */}
+      <div className="flex flex-row items-start w-full mt-auto">
+        <img
+          src={proPicTwo}
+          alt="avatar"
+          className="w-7 h-7 rounded-full object-cover mr-2"
+        />
+        <span className="text-[12px] font-[500] text-[#000000B2]">{event.person}</span>
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="flex flex-col gap-4 p-4">
+        {days.map((day, idx) => {
+          const dayEvents = events.filter(e => e.day === idx);
+          return (
+            <div key={idx} className="bg-white rounded-lg p-4 shadow-md border">
+              <h3 className="text-lg font-bold text-[#00000080] mb-2">
+                {day.date ? `${day.date} ${day.label}` : day.label}
+              </h3>
+              {dayEvents.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {dayEvents.map((event, eventIdx) => (
+                    <EventCard key={eventIdx} event={event} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">No events</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
-    <>
+    <div className="grid grid-cols-8 border-t border-l border-[#00000026]">
       {/* Header Row */}
-      <div className="border-b border-r border-[#00000026] bg-white flex justify-center items-center text-[#00000080] text-[14px] font-[500]">UTC +1</div>
+      <div className="border-b border-r border-[#00000026] bg-white flex justify-center items-center text-[#00000080] text-[12px] sm:text-[14px] font-[500]">UTC +1</div>
       {days.map((day) => (
-        <div key={day.date} className="border-b border-r border-[#00000026] flex flex-col items-center py-2">
-          <span className="font-[700] text-[24px]">{day.date}</span>
-          <span className="text-[14px] font-[500] text-[#00000080]">{day.label}</span>
+        <div key={day.date} className="border-b border-r border-[#00000026] flex flex-col items-center py-2 min-w-[100px]">
+          <span className="font-[700] text-[20px] sm:text-[24px]">{day.date}</span>
+          <span className="text-[12px] sm:text-[14px] font-[500] text-[#00000080]">{day.label}</span>
         </div>
       ))}
 
@@ -86,7 +151,7 @@ const CalendarGrid = ({ times, events: initialEvents, proPicTwo, currentMonth, c
       {times.map((time, rowIdx) => (
         <React.Fragment key={time}>
           {/* Time column */}
-          <div className="relative border-[#00000026] bg-[#FFFFFF] h-[80px] text-[14px] text-[#7B7B7A] font-[500]">
+          <div className="relative border-[#00000026] bg-[#FFFFFF] h-[60px] sm:h-[80px] text-[12px] sm:text-[14px] text-[#7B7B7A] font-[500] flex items-center justify-center">
             <div className="absolute bottom-[0px] left-1/2 -translate-x-1/2 mb-1">
               {time}
             </div>
@@ -100,7 +165,7 @@ const CalendarGrid = ({ times, events: initialEvents, proPicTwo, currentMonth, c
             return (
               <div
                 key={colIdx}
-                className="border-b border-r border-l border-[#00000026] relative h-[100px] flex flex-col items-center justify-center gap-1 cursor-pointer"
+                className="border-b border-r border-l border-[#00000026] relative h-[80px] sm:h-[100px] flex flex-col items-center justify-center gap-1 cursor-pointer min-w-[100px]"
                 onClick={cellEvents.length === 0 ? () => handleAddEvent(colIdx, time) : undefined}
                 style={{ background: cellEvents.length === 0 ? '#f9f9f9' : undefined }}
               >
@@ -112,18 +177,18 @@ const CalendarGrid = ({ times, events: initialEvents, proPicTwo, currentMonth, c
                   return (
                     <div
                       key={idx}
-                      className={`w-[122px] h-[90px] rounded-[12px] px-3 py-2 flex flex-col justify-center items-center ${event.status === "done" ? "bg-[#C5E6F9]" : "bg-[#FFDBDF]"} cursor-pointer`}
+                      className={`w-[100px] sm:w-[122px] h-[70px] sm:h-[90px] rounded-[12px] px-2 sm:px-3 py-2 flex flex-col justify-center items-center ${event.status === "done" ? "bg-[#C5E6F9]" : "bg-[#FFDBDF]"} cursor-pointer`}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEditEvent(eventIdx);
                       }}
                     >
                       {/* Time */}
-                      <span className="w-full text-start text-[12px] font-[500] text-[#000000B2] tracking-wide mb-1">
+                      <span className="w-full text-start text-[10px] sm:text-[12px] font-[500] text-[#000000B2] tracking-wide mb-1">
                         {event.time.replace(":", " : ")}
                       </span>
                       {/* Car Name */}
-                      <span className="w-full text-left font-[500] text-[16px] text-[#000000B2]">
+                      <span className="w-full text-left font-[500] text-[14px] sm:text-[16px] text-[#000000B2]">
                         {event.title}
                       </span>
                       {/* Avatar and Name */}
@@ -131,9 +196,9 @@ const CalendarGrid = ({ times, events: initialEvents, proPicTwo, currentMonth, c
                         <img
                           src={proPicTwo}
                           alt="avatar"
-                          className="w-7 h-7 rounded-full object-cover mr-2"
+                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover mr-2"
                         />
-                        <span className="text-[12px] font-[500] text-[#000000B2]">{event.person}</span>
+                        <span className="text-[10px] sm:text-[12px] font-[500] text-[#000000B2]">{event.person}</span>
                       </div>
                     </div>
                   );
@@ -143,7 +208,7 @@ const CalendarGrid = ({ times, events: initialEvents, proPicTwo, currentMonth, c
           })}
         </React.Fragment>
       ))}
-    </>
+    </div>
   );
 };
 
