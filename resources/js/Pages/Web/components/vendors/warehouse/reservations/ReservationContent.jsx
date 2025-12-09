@@ -368,7 +368,7 @@ const ReservationContent = () => {
                 </div> */}
             </div>
 
-            {/* Table */}
+            {/* Table
             <div
                 className="w-full bg-white rounded-[10px] py-10 px-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -394,7 +394,7 @@ const ReservationContent = () => {
                         statusColors={statusColors}
                     />
                 )}
-            </div>
+            </div> */}
         </div>
     );
 };
