@@ -121,8 +121,9 @@ const ReservationContent = () => {
         }
 
         try {
+            const reservationId = selectedReservation.booking_reference || selectedReservation.id;
             const response = await axios.patch(
-                `${API_BASE_URL}vendors/warehouse/api/reservations/${selectedReservation.id}/confirm`
+                `${API_BASE_URL}vendors/warehouse/api/reservations/${reservationId}/confirm`
             );
 
             if (response.data.success) {
@@ -158,8 +159,9 @@ const ReservationContent = () => {
         }
 
         try {
+            const reservationId = selectedReservation.booking_reference || selectedReservation.id;
             const response = await axios.patch(
-                `${API_BASE_URL}vendors/warehouse/api/reservations/${selectedReservation.id}/cancel`,
+                `${API_BASE_URL}vendors/warehouse/api/reservations/${reservationId}/cancel`,
                 { cancellation_reason: cancellationReason }
             );
 
@@ -191,8 +193,9 @@ const ReservationContent = () => {
         }
 
         try {
+            const reservationId = selectedReservation.booking_reference || selectedReservation.id;
             const response = await axios.patch(
-                `${API_BASE_URL}vendors/warehouse/api/reservations/${selectedReservation.id}/complete`
+                `${API_BASE_URL}vendors/warehouse/api/reservations/${reservationId}/complete`
             );
 
             if (response.data.success) {
@@ -218,8 +221,9 @@ const ReservationContent = () => {
         if (!selectedReservation) return;
 
         try {
+            const reservationId = selectedReservation.booking_reference || selectedReservation.id;
             const response = await axios.put(
-                `${API_BASE_URL}vendors/warehouse/api/reservations/${selectedReservation.id}`,
+                `${API_BASE_URL}vendors/warehouse/api/reservations/${reservationId}`,
                 { payment_status: newPaymentStatus }
             );
 
