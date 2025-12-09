@@ -1,6 +1,7 @@
 // resources/js/Pages/Web/components/vendors/warehouse/UnitContent.jsx
 import React, { useState, useEffect } from "react";
 import { router, usePage } from "@inertiajs/react";
+import { API_BASE_URL } from "../../../../../../config/api";
 
 // Assets
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
@@ -57,7 +58,7 @@ const UnitContent = () => {
             if (type) params.append("type", type);
             if (status) params.append("status", status);
 
-            const response = await fetch(`/vendors/warehouse/api/units?${params}`, {
+            const response = await fetch(`${API_BASE_URL}vendors/warehouse/api/units?${params}`, {
                 method: "GET",
                 headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
                 credentials: "same-origin",
@@ -100,7 +101,7 @@ const UnitContent = () => {
             if (!auth?.user) return;
 
             try {
-                const response = await fetch('/vendors/warehouse/notifications/data');
+                const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
                 if (response.ok) {
                     const data = await response.json();
                     setWarehouseNotifications(data.notifications || []);
@@ -153,7 +154,7 @@ const UnitContent = () => {
         setIsToggling(true);
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
-            const res = await fetch(`/vendors/warehouse/api/units/${unitToToggle.id}/status`, {
+            const res = await fetch(`${API_BASE_URL}vendors/warehouse/api/units/${unitToToggle.id}/status`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -185,7 +186,7 @@ const UnitContent = () => {
         if (!unitToDelete) return;
         setIsDeleting(true);
         try {
-            const res = await fetch(`/vendors/warehouse/api/units/${unitToDelete.id}`, {
+            const res = await fetch(`${API_BASE_URL}vendors/warehouse/api/units/${unitToDelete.id}`, {
                 method: "DELETE",
                 headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "" },
             });

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { usePage } from "@inertiajs/react";
 import axios from "axios";
+import { API_BASE_URL } from "../../../../../../config/api";
 
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 
@@ -61,7 +62,7 @@ const BookingContent = () => {
         const fetchBookings = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get("https://transport.jaan.lk/vendors/warehouse/api/bookings");
+                const response = await axios.get(`${API_BASE_URL}vendors/warehouse/api/bookings`);
                 
                 if (response.data.success) {
                     const decorated = response.data.data.map(decorateBooking);
@@ -81,7 +82,7 @@ const BookingContent = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await axios.get("https://transport.jaan.lk/vendors/warehouse/api/bookings/stats");
+                const response = await axios.get(`${API_BASE_URL}vendors/warehouse/api/bookings/stats`);
                 
                 if (response.data.success) {
                     const data = response.data.data;
@@ -127,7 +128,7 @@ const BookingContent = () => {
     useEffect(() => {
         const fetchChartData = async () => {
             try {
-                const response = await axios.get("https://transport.jaan.lk/vendors/warehouse/api/bookings/chart-data");
+                const response = await axios.get(`${API_BASE_URL}vendors/warehouse/api/bookings/chart-data`);
                 
                 if (response.data.success) {
                     setBookingData(response.data.data);

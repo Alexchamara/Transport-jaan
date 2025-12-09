@@ -5,6 +5,7 @@ import UserDropdown from "../../../components/vendors/UserDropdown";
 import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
 import { Menu } from "lucide-react";
 import { usePage } from "@inertiajs/react";
+import { API_BASE_URL } from "../../../../../config/api";
 
 const Booking = () => {
   const { auth } = usePage().props;
@@ -29,7 +30,7 @@ const Booking = () => {
       if (!auth?.user) return;
 
       try {
-        const response = await fetch('/vendors/warehouse/notifications/data');
+        const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
         if (response.ok) {
           const data = await response.json();
           setWarehouseNotifications(data.notifications || []);

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import { usePage } from '@inertiajs/react';
 import SideMenu from '../../../components/vendors/warehouse/SideMenu';
+import { API_BASE_URL } from '../../../../../config/api';
 
 // Header icons
 import search from '../../../assets/vendors/dashboard/searchIcon.svg';
@@ -107,7 +108,7 @@ const EditUnit = () => {
         
         // Debug request first
         try {
-          const debugResponse = await fetch(`/vendors/warehouse/api/debug/${unitId}`, {
+          const debugResponse = await fetch(`${API_BASE_URL}vendors/warehouse/api/debug/${unitId}`, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
@@ -125,7 +126,7 @@ const EditUnit = () => {
           console.warn('Debug request failed:', debugError);
         }
         
-        const response = await fetch(`/vendors/warehouse/api/units/${unitId}`, {
+        const response = await fetch(`${API_BASE_URL}vendors/warehouse/api/units/${unitId}`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -658,7 +659,7 @@ const EditUnit = () => {
       // Get CSRF token from meta tag
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       
-      const response = await fetch(`/vendors/warehouse/api/units/${unitId}`, {
+      const response = await fetch(`${API_BASE_URL}vendors/warehouse/api/units/${unitId}`, {
         method: 'POST',
         headers: {
           ...(csrfToken && { 'X-CSRF-TOKEN': csrfToken }),

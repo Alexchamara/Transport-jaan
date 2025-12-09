@@ -18,6 +18,7 @@ import {
     AlertCircle,
 } from "lucide-react";
 import axios from "axios";
+import { API_BASE_URL } from "../../../../../../config/api";
 import BookingOverviewBarChart from "./BookingOverviewBarChart";
 import EarningSummaryChart from "./EarningSummaryChart";
 import RealStatusPieChart from "./RealStatusPieChart";
@@ -190,7 +191,7 @@ const DashContent = () => {
         async (silent = false) => {
             try {
                 const response = await axios.get(
-                    "https://transport.jaan.lk/vendors/warehouse/api/bookings/stats",
+                    `${API_BASE_URL}vendors/warehouse/api/bookings/stats`,
                     {
                         params: { timestamp: Date.now() },
                     }
@@ -260,7 +261,7 @@ const DashContent = () => {
             try {
                 if (!silent) setIsSearching(true);
                 const response = await axios.get(
-                    "https://transport.jaan.lk/vendors/warehouse/api/bookings/chart-data",
+                    `${API_BASE_URL}vendors/warehouse/api/bookings/chart-data`,
                     {
                         params: {
                             period: selectedPeriod,
@@ -363,7 +364,7 @@ const DashContent = () => {
         async (silent = false) => {
             try {
                 const response = await axios.get(
-                    "https://transport.jaan.lk/vendors/warehouse/api/bookings",
+                    `${API_BASE_URL}vendors/warehouse/api/bookings`,
                     {
                         params: {
                             per_page: 50,
@@ -432,7 +433,7 @@ const DashContent = () => {
     // Fetch warehouse units data
     const fetchUnits = useCallback(async () => {
         try {
-            const response = await axios.get("https://transport.jaan.lk/vendors/warehouse/api/units");
+            const response = await axios.get(`${API_BASE_URL}vendors/warehouse/api/units`);
             if (response.data.data) {
                 const units = response.data.data;
                 const typeStats = units.reduce((acc, unit) => {

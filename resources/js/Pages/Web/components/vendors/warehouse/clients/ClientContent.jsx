@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
+import { API_BASE_URL } from "../../../../../../config/api";
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -22,7 +23,7 @@ const ClientContent = () => {
             if (!auth?.user) return;
 
             try {
-                const response = await fetch('/vendors/warehouse/notifications/data');
+                const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
                 if (response.ok) {
                     const data = await response.json();
                     setWarehouseNotifications(data.notifications || []);
