@@ -2,7 +2,7 @@
  * API Configuration
  * Base URL for all API requests
  */
-export const API_BASE_URL = "https://transport.jaan.lk/";
+export const API_BASE_URL = "https://transport.jaan.lk/" || "http://127.0.0.1:8000";
 
 /**
  * Helper function to construct full API URL
