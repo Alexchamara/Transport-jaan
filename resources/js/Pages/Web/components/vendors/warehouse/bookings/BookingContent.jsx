@@ -61,7 +61,7 @@ const BookingContent = () => {
         const fetchBookings = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get("/vendors/warehouse/api/bookings");
+                const response = await axios.get("https://transport.jaan.lk/vendors/warehouse/api/bookings");
                 
                 if (response.data.success) {
                     const decorated = response.data.data.map(decorateBooking);

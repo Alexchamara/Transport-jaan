@@ -27,6 +27,7 @@ const ReservationContent = () => {
                 const response = await axios.get("/vendors/warehouse/api/reservations");
                 
                 if (response.data.success) {
+                    console.log("Fetched reservations:", response.data.data);
                     setReservations(response.data.data);
                 }
             } catch (error) {
