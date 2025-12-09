@@ -190,7 +190,7 @@ const DashContent = () => {
         async (silent = false) => {
             try {
                 const response = await axios.get(
-                    "/vendors/warehouse/api/bookings/stats",
+                    "https://transport.jaan.lk/vendors/warehouse/api/bookings/stats",
                     {
                         params: { timestamp: Date.now() },
                     }

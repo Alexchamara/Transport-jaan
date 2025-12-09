@@ -81,7 +81,7 @@ const BookingContent = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await axios.get("/vendors/warehouse/api/bookings/stats");
+                const response = await axios.get("https://transport.jaan.lk/vendors/warehouse/api/bookings/stats");
                 
                 if (response.data.success) {
                     const data = response.data.data;
