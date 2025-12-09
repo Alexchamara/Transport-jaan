@@ -237,12 +237,12 @@ const CalendarContent = () => {
                     }}
                 >
                     <div className="flex flex-col sm:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
-                        <img src={proPicTwo} className="size-[60px] sm:size-[90px]" />
+                        <img src={proPicTwo} className="size-[60px] sm:size-[80px]" />
                         <div className="flex flex-col gap-3 text-center sm:text-left">
-                            <h1 className="text-[16px] sm:text-[18px] font-[700]">
+                            <h1 className="text-[16px] font-[700]">
                                 Steve Gibson
                             </h1>
-                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-10 text-[14px] sm:text-[16px] font-[500]">
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 text-[14px] font-[500]">
                                 <div className="flex flex-col gap-3 text-[#00000080]">
                                     <h1>Start Date</h1>
                                     <h1>End Date</h1>
@@ -252,17 +252,17 @@ const CalendarContent = () => {
                                     <h1>27th June 2025</h1>
                                 </div>
                             </div>
-                            <h1 className="text-[14px] sm:text-[16px] font-[600] text-[#0955AC]">
+                            <h1 className="text-[14px] font-[600] text-[#0955AC]">
                                 Client request a child safety seat.
                             </h1>
                         </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
-                        <img src={car1} className="size-[60px] sm:size-[90px]" />
+                        <img src={car1} className="size-[60px] sm:size-[80px]" />
                         <div className="flex flex-col gap-2 text-center sm:text-left">
-                            <h1 className="text-[16px] sm:text-[18px] font-[700]">BMW LX3</h1>
-                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-10 text-[14px] sm:text-[16px] font-[500]">
+                            <h1 className="text-[16px] font-[700]">BMW LX3</h1>
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-5 text-[14px] font-[500]">
                                 <div className="flex flex-col gap-2 text-[#00000080]">
                                     <h1>Car Type</h1>
                                     <h1>Car Number</h1>
@@ -274,7 +274,7 @@ const CalendarContent = () => {
                                     <h1>Automatic</h1>
                                 </div>
                             </div>
-                            <h1 className="text-[14px] sm:text-[16px] font-[600] text-[#0955AC]">
+                            <h1 className="text-[14px] font-[600] text-[#0955AC]">
                                 Client request a child safety seat.
                             </h1>
                         </div>
