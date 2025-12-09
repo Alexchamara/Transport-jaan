@@ -38,7 +38,7 @@ class WarehouseReservationController extends Controller
             // ");
 
             // select all from user table
-            $reservations = DB::select("SELECT * FROM warehouse_units");
+            $reservations = DB::select("SELECT * FROM warehouse_bookings");
             
             return response()->json([
                 'success' => true,
