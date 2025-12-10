@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
     Chart as ChartJS,
     LineElement,
@@ -158,6 +158,15 @@ const options = {
 
 const CashflowChart = () => {
     const chartRef = useRef();
+    const chartDivRef = useRef(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
     const [tooltip, setTooltip] = React.useState({
         x: null, // Will be set after chart renders
         y: null,
@@ -174,8 +183,9 @@ const CashflowChart = () => {
         }
         const dataIndex = tooltip.dataPoints?.[0]?.dataIndex;
         if (dataIndex !== undefined) {
+            const paddingLeft = isMobile ? 0 : (chartDivRef.current ? parseInt(getComputedStyle(chartDivRef.current).paddingLeft, 10) : 0);
             setTooltip({
-                x: chart.scales.x.getPixelForValue(months[dataIndex]),
+                x: paddingLeft + chart.scales.x.getPixelForValue(months[dataIndex]),
                 y: chart.scales.y.getPixelForValue(expensesData[dataIndex]),
                 month: months[dataIndex],
                 income: incomeData[dataIndex],
@@ -187,20 +197,44 @@ const CashflowChart = () => {
     };
 
     React.useEffect(() => {
-        const chart = chartRef.current;
-        if (chart) {
-            chart.options.plugins.tooltip.external = customTooltip;
-            // Set initial tooltip position after chart is ready
-            setTooltip((prev) => ({
-                ...prev,
-                x: chart.scales.x.getPixelForValue(months[highlightIndex]),
-                y: chart.scales.y.getPixelForValue(expensesData[highlightIndex]),
-            }));
+        if (!isMobile) {
+            const chart = chartRef.current;
+            if (chart) {
+                chart.options.plugins.tooltip.external = customTooltip;
+                // Set initial tooltip position after chart is ready
+                const paddingLeft = chartDivRef.current ? parseInt(getComputedStyle(chartDivRef.current).paddingLeft, 10) : 0;
+                setTooltip((prev) => ({
+                    ...prev,
+                    x: paddingLeft + chart.scales.x.getPixelForValue(months[highlightIndex]),
+                    y: chart.scales.y.getPixelForValue(expensesData[highlightIndex]),
+                }));
+            }
         }
-    }, [chartRef]);
+    }, [chartRef, isMobile]);
 
-    return (
-        <div className="relative w-full overflow-x-auto h-full">
+    const mobileView = (
+        <div className="space-y-4 p-4">
+            <h1 className="figtree text-[24px] font-[700] mb-4">Cashflow</h1>
+            {months.map((month, index) => (
+                <div key={month} className="bg-white rounded-lg shadow p-4 border">
+                    <h3 className="text-lg font-semibold">{month} 2025</h3>
+                    <div className="flex justify-between mt-2">
+                        <div className="flex flex-col">
+                            <span className="text-sm text-gray-600">Income</span>
+                            <span className="text-xl font-bold text-green-600">${incomeData[index].toLocaleString()}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm text-gray-600">Expenses</span>
+                            <span className="text-xl font-bold text-red-600">${expensesData[index].toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    const desktopView = (
+        <>
             {/* Custom Legends */}
             <div className="flex flex-row gap-8 items-center mt-7 mb-2 ml-2 px-12">
                 <h1 className="figtree text-[24px] font-[700]">
@@ -226,7 +260,7 @@ const CashflowChart = () => {
                     </span>
                 </div>
             </div>
-            <div className="w-full h-[300px] bg-transparent px-10 pb-10 mt-5 overflow-auto xl:overflow-visible">
+            <div className="w-full h-[300px] bg-transparent px-10 pb-10 mt-5 overflow-auto xl:overflow-visible" ref={chartDivRef}>
                 <div className="min-h-[320px]">
                     <Line ref={chartRef} data={data} options={options} />
                 </div>
@@ -266,6 +300,12 @@ const CashflowChart = () => {
                     </div>
                 )}
             </div>
+        </>
+    );
+
+    return (
+        <div className="relative w-full overflow-x-auto h-full">
+            {isMobile ? mobileView : desktopView}
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect } from "react";
 
 import dollarIcon from "../../../assets/vendors/dashboard/icons/dollarIcon.svg";
 import carIcon from "../../../assets/vendors/dashboard/icons/carIcon.svg";
@@ -38,18 +38,17 @@ const DashContent = ({
     recentActivities, // <— NEW (from controller)
     unreadNotifications = 0, // NEW
 }) => {
-    // UserDropdown component handles its own open/close logic
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
 
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
+    useLayoutEffect(() => {
         const checkMobile = () => {
-            setIsMobile(window.innerWidth < 768); // md breakpoint
+            setIsMobile(window.innerWidth < 640);
         };
-        checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    // UserDropdown component handles its own open/close logic
 
     const computedCarTypes = (carTypes ?? []).map((t) => ({
         name: t.name ?? "Unknown",
@@ -318,48 +317,10 @@ const DashContent = ({
                                 )}
                             </div>
                         </div>
-
-                        {/* Real Status - Moved to left on mobile */}
-                        <div
-                            className="w-full max-w-[320px] md:max-w-none xl:hidden min-h-[427px] bg-white rounded-[10px] py-5 px-3 md:px-10 overflow-x-auto"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
-                                <h1 className="text-[20px] md:text-[24px] font-[700]">
-                                    Real Status
-                                </h1>
-                                <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
-                                    <h1 className="text-[#00000080] font-[600] text-[14px]">
-                                        {filters?.rs_period === "month"
-                                            ? "This Month"
-                                            : "This Week"}
-                                    </h1>
-                                    <img src={miniDownArrow} />
-                                </div>
-                            </div>
-                            <div className="w-full min-w-0">
-                                <div className="flex flex-col gap-2 mt-4">
-                                    {(realStatus ?? []).map((item, index) => {
-                                        const total = (realStatus ?? []).reduce((s, n) => s + (Number.isFinite(n.value) ? n.value : 0), 0);
-                                        const percent = Math.round((item.value / Math.max(total, 1)) * 100);
-                                        return (
-                                            <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-4 h-4 rounded" style={{ backgroundColor: item.color || '#C4C4C4' }}></span>
-                                                    <span className="font-medium text-gray-700">{item.name}</span>
-                                                </div>
-                                                <span className="font-bold text-gray-800">{percent}%</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     {/* Right */}
                     <div className="flex flex-col items-center gap-5 w-full h-full">
-                        {/* Car Availability - Desktop only */}
                         <div
                             className="hidden xl:flex bg-[#D8E4F2] flex-col px-5 py-5 justify-center items-center rounded-[10px] w-full"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -406,9 +367,9 @@ const DashContent = ({
                             </div>
                         </div>
 
-                        {/* Real Status - Desktop only */}
+                
                         <div
-                            className="hidden xl:block w-full max-w-[320px] md:max-w-none min-h-[427px] bg-white rounded-[10px] py-5 px-3 md:px-10 overflow-x-auto"
+                            className="w-full max-w-[320px] md:max-w-none min-h-[427px] bg-white rounded-[10px] py-5 px-3 md:px-10 overflow-x-auto"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
@@ -425,11 +386,22 @@ const DashContent = ({
                                 </div>
                             </div>
                             <div className="w-full min-w-0">
-                                <RealStatusPieChart data={realStatus ?? []} />
+                                {isMobile ? (
+                                    <div className="flex flex-col gap-2 mt-4">
+                                        {(realStatus ?? []).map((item, index) => (
+                                            <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                                <span className="font-medium text-gray-700">{item.name}</span>
+                                                <span className="font-bold text-purple-600">{item.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <RealStatusPieChart data={realStatus ?? []} />
+                                )}
                             </div>
                         </div>
 
-                        {/* Reminders - Desktop only */}
+           
                         <div
                             className="hidden xl:block w-full max-w-[320px] md:max-w-none min-h-[335px] bg-white rounded-[10px] py-5 px-3 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -482,13 +454,13 @@ const DashContent = ({
                         </div>
                     </div>
 
-                    {/* ✅ Only the table scrolls in mobile */}
-                    <div className="w-full overflow-x-auto">
-                        <CarBookingTable rows={bookings ?? []} />
-                    </div>
+                    <CarBookingTable
+                        bookings={bookings ?? []}
+                        bookingsMeta={bookingsMeta ?? {}}
+                    />
                 </div>
 
-                {/* Car types + Recent activities - Compact Layout */}
+              
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full">
                     {/* Car Types - Full width on mobile */}
                     <div className="w-full">
