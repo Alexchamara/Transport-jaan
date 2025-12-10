@@ -192,23 +192,31 @@ const CalendarContent = () => {
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
     const [currentDay, setCurrentDay] = useState(today.getDate());
-    const [currentView, setCurrentView] = useState('day'); // 'day', 'week', 'month', 'year'
+    const [currentView, setCurrentView] = useState("day"); // 'day', 'week', 'month', 'year'
 
     const handlePrev = () => {
         switch (currentView) {
-            case 'day':
-                const prevDay = new Date(currentYear, currentMonth, currentDay - 1);
+            case "day":
+                const prevDay = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay - 1
+                );
                 setCurrentDay(prevDay.getDate());
                 setCurrentMonth(prevDay.getMonth());
                 setCurrentYear(prevDay.getFullYear());
                 break;
-            case 'week':
-                const prevWeek = new Date(currentYear, currentMonth, currentDay - 7);
+            case "week":
+                const prevWeek = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay - 7
+                );
                 setCurrentDay(prevWeek.getDate());
                 setCurrentMonth(prevWeek.getMonth());
                 setCurrentYear(prevWeek.getFullYear());
                 break;
-            case 'month':
+            case "month":
                 setCurrentMonth((prev) => {
                     if (prev === 0) {
                         setCurrentYear((y) => y - 1);
@@ -217,7 +225,7 @@ const CalendarContent = () => {
                     return prev - 1;
                 });
                 break;
-            case 'year':
+            case "year":
                 setCurrentYear((y) => y - 1);
                 break;
         }
@@ -225,19 +233,27 @@ const CalendarContent = () => {
 
     const handleNext = () => {
         switch (currentView) {
-            case 'day':
-                const nextDay = new Date(currentYear, currentMonth, currentDay + 1);
+            case "day":
+                const nextDay = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay + 1
+                );
                 setCurrentDay(nextDay.getDate());
                 setCurrentMonth(nextDay.getMonth());
                 setCurrentYear(nextDay.getFullYear());
                 break;
-            case 'week':
-                const nextWeek = new Date(currentYear, currentMonth, currentDay + 7);
+            case "week":
+                const nextWeek = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay + 7
+                );
                 setCurrentDay(nextWeek.getDate());
                 setCurrentMonth(nextWeek.getMonth());
                 setCurrentYear(nextWeek.getFullYear());
                 break;
-            case 'month':
+            case "month":
                 setCurrentMonth((prev) => {
                     if (prev === 11) {
                         setCurrentYear((y) => y + 1);
@@ -246,7 +262,7 @@ const CalendarContent = () => {
                     return prev + 1;
                 });
                 break;
-            case 'year':
+            case "year":
                 setCurrentYear((y) => y + 1);
                 break;
         }
@@ -261,20 +277,26 @@ const CalendarContent = () => {
 
     const getHeaderTitle = () => {
         switch (currentView) {
-            case 'day':
+            case "day":
                 const dayDate = new Date(currentYear, currentMonth, currentDay);
                 return `${monthNames[currentMonth]} ${currentDay}`;
-            case 'week':
-                const weekDate = new Date(currentYear, currentMonth, currentDay);
+            case "week":
+                const weekDate = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay
+                );
                 const dayOfWeek = weekDate.getDay();
                 const monday = new Date(weekDate);
                 monday.setDate(weekDate.getDate() - ((dayOfWeek + 6) % 7));
                 const sunday = new Date(monday);
                 sunday.setDate(monday.getDate() + 6);
-                return `${monthNames[monday.getMonth()]} ${monday.getDate()} - ${sunday.getDate()}`;
-            case 'month':
+                return `${
+                    monthNames[monday.getMonth()]
+                } ${monday.getDate()} - ${sunday.getDate()}`;
+            case "month":
                 return `${monthNames[currentMonth]} ${currentYear}`;
-            case 'year':
+            case "year":
                 return `${currentYear}`;
             default:
                 return `${monthNames[currentMonth]} ${currentYear}`;
@@ -282,10 +304,10 @@ const CalendarContent = () => {
     };
 
     return (
-        <div className=" w-full h-auto px-5 mt-10 xl:mt-0 py-10">
+        <div className="w-full h-auto px-5 lg:pr-5 lg:px-0 py-5 lg:py-10">
             {/* Header section */}
-            <div className="flex flex-col xl:flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+            <div className="flex flex-col lg:flex-row gap-2 lg:gap-5 justify-between lg:items-start items-center">
+                <h1 className="figtree text-[24px] lg:text-[35px] font-[700]">
                     Ticket Booking Calendar
                 </h1>
                 <div className="flex flex-row gap-5 relative items-center">
@@ -300,13 +322,15 @@ const CalendarContent = () => {
           </div> */}
 
                     <div className="flex flex-row gap-5 relative items-center">
-                        <UserDropdown settingsRoute={route("ticketBooking.settingsPage")} />
+                        <UserDropdown
+                            settingsRoute={route("ticketBooking.settingsPage")}
+                        />
                     </div>
                 </div>
             </div>
             {/* end of header section */}
 
-            <div className="mt-10 flex flex-col lg:flex-row gap-5 w-full justify-between">
+            <div className="mt-10 flex flex-col xl:flex-row gap-5 w-full justify-between">
                 <div
                     className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-5 lg:px-8 py-10"
                     style={{
@@ -362,66 +386,66 @@ const CalendarContent = () => {
                     </div>
                 </div>
                 <div
-                    // className="min-w-0 lg:min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
-                    // style={{
-                    //     boxShadow: "4px 4px 4px #0000001A",
-                    // }}
+                className="xl:max-w-[300px] xl:min-w-[349px] w-full h-auto xl:min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
+                style={{
+                    boxShadow: "4px 4px 4px #0000001A",
+                }}
                 >
                     {/* Reminder section  */}
-                    {/* <div className="flex flex-row items-center justify-between w-full">
+                    <div className="flex flex-row items-center justify-between w-full">
                         <h1 className="text-[24px] font-[700]">Reminders</h1>
                         <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[30px]">
                             +
                         </div>
                     </div>
                     <div className="py-5 flex flex-col justify-center items-center gap-5">
-                        <div className="md:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full xl:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[14px] font-[500] xl:w-[199px]">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                        <div className="md:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full xl:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[14px] font-[500] xl:w-[199px]">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                        <div className="md:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full xl:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[14px] font-[500] xl:w-[199px]">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                        <div className="md:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full xl:w-[286px] md:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[14px] font-[500] xl:w-[199px]">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                    </div> */}
+                    </div>
                     {/* end */}
                 </div>
-                {/* <div
-                    className="min-w-0 lg:min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
+                <div
+                    className="w-full h-auto mx-auto xl:min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
                     <CalendarMonthPicker />
-                </div> */}
+                </div>
             </div>
 
             <div
@@ -432,7 +456,7 @@ const CalendarContent = () => {
             >
                 <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">
                     <div className="flex flex-row justify-center items-center gap-3">
-                        <div 
+                        <div
                             className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
                             onClick={handleToday}
                         >
@@ -473,35 +497,43 @@ const CalendarContent = () => {
                             </div>
                         </div>
                         <div className="flex flex-row justify-center items-center text-[14px] font-[600]">
-                            <div 
+                            <div
                                 className={`w-[70px] h-[35px] rounded-l-[6px] flex justify-center items-center cursor-pointer transition-colors ${
-                                    currentView === 'day' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                    currentView === "day"
+                                        ? "bg-[#0955AC] text-white"
+                                        : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
                                 }`}
-                                onClick={() => setCurrentView('day')}
+                                onClick={() => setCurrentView("day")}
                             >
                                 Day
                             </div>
-                            <div 
+                            <div
                                 className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${
-                                    currentView === 'week' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                    currentView === "week"
+                                        ? "bg-[#0955AC] text-white"
+                                        : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
                                 }`}
-                                onClick={() => setCurrentView('week')}
+                                onClick={() => setCurrentView("week")}
                             >
                                 Week
                             </div>
-                            <div 
+                            <div
                                 className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${
-                                    currentView === 'month' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                    currentView === "month"
+                                        ? "bg-[#0955AC] text-white"
+                                        : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
                                 }`}
-                                onClick={() => setCurrentView('month')}
+                                onClick={() => setCurrentView("month")}
                             >
                                 Month
                             </div>
-                            <div 
+                            <div
                                 className={`w-[70px] h-[35px] rounded-r-[6px] flex justify-center items-center cursor-pointer transition-colors ${
-                                    currentView === 'year' ? 'bg-[#0955AC] text-white' : 'bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]'
+                                    currentView === "year"
+                                        ? "bg-[#0955AC] text-white"
+                                        : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
                                 }`}
-                                onClick={() => setCurrentView('year')}
+                                onClick={() => setCurrentView("year")}
                             >
                                 Year
                             </div>
@@ -509,7 +541,7 @@ const CalendarContent = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-row gap-10 justify-start items-center px-5 lg:px-20 py-5">
+                <div className="flex flex-col sm:flex-row gap-5 sm:gap-10 justify-start items-center px-5 lg:px-20 py-5">
                     <div className="flex flex-row justify-start items-center gap-5 ">
                         <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
                         <h1 className=" text-[#00000080] font-[600] text-[16px]">
@@ -525,18 +557,16 @@ const CalendarContent = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <div className={`${currentView === 'year' || currentView === 'month' ? '' : currentView === 'day' ? '' : 'grid grid-cols-8 border-t border-l border-[#00000026] min-w-[800px]'}`}>
-                        <CalendarGrid
-                            days={days}
-                            times={times}
-                            events={events}
-                            proPicTwo={proPicTwo}
-                            currentMonth={currentMonth}
-                            currentYear={currentYear}
-                            currentDay={currentDay}
-                            currentView={currentView}
-                        />
-                    </div>
+                    <CalendarGrid
+                        days={days}
+                        times={times}
+                        events={events}
+                        proPicTwo={proPicTwo}
+                        currentMonth={currentMonth}
+                        currentYear={currentYear}
+                        currentDay={currentDay}
+                        currentView={currentView}
+                    />
                 </div>
             </div>
         </div>

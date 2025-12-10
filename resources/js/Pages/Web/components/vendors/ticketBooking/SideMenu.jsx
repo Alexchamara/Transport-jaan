@@ -1,16 +1,14 @@
-// resources/js/Pages/Web/components/vendors/SideMenu.jsx
 import React, { useState } from "react";
-import {
-    LayoutDashboard,
-    Ticket,
-    Calendar,
-    Users,
-    Wallet,
-    Settings,
-    Bell,
-    LogOut,
-    ArrowLeft,
-} from "lucide-react";
+import dashLogo from "../../../assets/vendors/dashboard/dashLogo.svg";
+import bookLogo from "../../../assets/vendors/dashboard/bookLogo.svg";
+import uniLogo from "../../../assets/vendors/dashboard/uniLogo.svg";
+import calendarLogo from "../../../assets/vendors/dashboard/calendarLogo.svg";
+import clientsLogo from "../../../assets/vendors/dashboard/clientsLogo.svg";
+import finLogo from "../../../assets/vendors/dashboard/finLogo.svg";
+import trackLogo from "../../../assets/vendors/dashboard/trackLogo.svg";
+import messgLogo from "../../../assets/vendors/dashboard/messgLogo.svg";
+import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg";
+import { Settings, Bell, ArrowLeft } from "lucide-react";
 
 const SideMenu = () => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
@@ -19,28 +17,19 @@ const SideMenu = () => {
 
     return (
         <>
-            {/* Scrollbar Styling */}
+            {/* Custom Scrollbar – same as first */}
             <style>{`
-        .sidebar-scroll::-webkit-scrollbar {
-          width: 6px;
-        }
-        .sidebar-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
+        .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
         .sidebar-scroll::-webkit-scrollbar-thumb {
           background: #d1d5db;
           border-radius: 3px;
         }
-        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-          background: #9ca3af;
-        }
-        .sidebar-scroll {
-          scrollbar-width: thin;
-          scrollbar-color: #d1d5db transparent;
-        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
       `}</style>
 
-            <div className="poppins w-[250px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
+            <div className="poppins min-w-[250px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
                 {/* Logo - Fixed at top with Back Button */}
                 <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
                     <button
@@ -63,12 +52,12 @@ const SideMenu = () => {
                     </h1>
                 </div>
 
-                {/* Scrollable menu container */}
+                {/* Scrollable Menu */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">
                     <div className="figtree flex flex-col items-start gap-4 text-[18px] font-[500] text-[#00000066]">
                         {/* Dashboard */}
                         <div
-                            className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-3 py-1.5 ${
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
                                 currentPath ===
                                     "/vendors/ticketBooking/dashboard" ||
                                 currentPath === "/ticketBooking/dashboard"
@@ -76,17 +65,20 @@ const SideMenu = () => {
                                     : "text-[#00000066]"
                             }`}
                             onClick={() =>
-                                (window.location.href =
-                                    "/ticketBooking/dashboard")
+                                (window.location.href = "/ticketBooking/dashboard")
                             }
                         >
-                            <LayoutDashboard className="w-[22px] h-[22px]" />
-                            <h1>Dashboard</h1>
+                            <img
+                                src={dashLogo}
+                                className="w-[22px]"
+                                alt="Dashboard"
+                            />
+                            <span>Dashboard</span>
                         </div>
 
                         {/* Bookings */}
                         <div
-                            className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-3 py-1.5 ${
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
                                 currentPath ===
                                     "/vendors/ticketBooking/bookings" ||
                                 currentPath === "/ticketBooking/bookings"
@@ -94,17 +86,40 @@ const SideMenu = () => {
                                     : "text-[#00000066]"
                             }`}
                             onClick={() =>
-                                (window.location.href =
-                                    "/ticketBooking/bookings")
+                                (window.location.href = "/ticketBooking/bookings")
                             }
                         >
-                            <Ticket className="w-[22px] h-[22px]" />
-                            <h1>Bookings</h1>
+                            <img
+                                src={bookLogo}
+                                className="w-[22px]"
+                                alt="Bookings"
+                            />
+                            <span>Bookings</span>
+                        </div>
+
+                        {/* Units */}
+                        <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath === "/vendors/ticketBooking/units" ||
+                                currentPath === "/ticketBooking/units"
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            onClick={() =>
+                                (window.location.href = "/ticketBooking/units")
+                            }
+                        >
+                            <img
+                                src={uniLogo}
+                                className="w-[22px]"
+                                alt="Units"
+                            />
+                            <span>Units</span>
                         </div>
 
                         {/* Calendar */}
                         <div
-                            className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-3 py-1.5 ${
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
                                 currentPath ===
                                     "/vendors/ticketBooking/calendar" ||
                                 currentPath === "/ticketBooking/calendar"
@@ -112,35 +127,40 @@ const SideMenu = () => {
                                     : "text-[#00000066]"
                             }`}
                             onClick={() =>
-                                (window.location.href =
-                                    "/ticketBooking/calendar")
+                                (window.location.href = "/ticketBooking/calendar")
                             }
                         >
-                            <Calendar className="w-[22px] h-[22px]" />
-                            <h1>Calendar</h1>
+                            <img
+                                src={calendarLogo}
+                                className="w-[22px]"
+                                alt="Calendar"
+                            />
+                            <span>Calendar</span>
                         </div>
 
                         {/* Clients */}
                         <div
-                            className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-3 py-1.5 ${
-                                currentPath ===
-                                    "/vendors/ticketBooking/clients" ||
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath === "/vendors/ticketBooking/clients" ||
                                 currentPath === "/ticketBooking/clients"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
                             onClick={() =>
-                                (window.location.href =
-                                    "/ticketBooking/clients")
+                                (window.location.href = "/ticketBooking/clients")
                             }
                         >
-                            <Users className="w-[22px] h-[22px]" />
-                            <h1>Clients</h1>
+                            <img
+                                src={clientsLogo}
+                                className="w-[22px]"
+                                alt="Clients"
+                            />
+                            <span>Clients</span>
                         </div>
 
                         {/* Financial Dropdown */}
                         <div
-                            className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-3 py-1.5 ${
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
                                 [
                                     "/vendors/ticketBooking/payment",
                                     "/ticketBooking/payment",
@@ -150,15 +170,16 @@ const SideMenu = () => {
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                             }`}
+                            onClick={() =>
+                                setShowFinancialDropdown((prev) => !prev)
+                            }
                         >
-                            <Wallet className="w-[22px] h-[22px]" />
-                            <h1
-                                onClick={() =>
-                                    setShowFinancialDropdown((prev) => !prev)
-                                }
-                            >
-                                Financial
-                            </h1>
+                            <img
+                                src={finLogo}
+                                className="w-[22px]"
+                                alt="Financial"
+                            />
+                            <span>Financial</span>
                         </div>
 
                         {showFinancialDropdown && (
@@ -182,8 +203,7 @@ const SideMenu = () => {
                                     className={`px-3 py-1.5 cursor-pointer rounded-lg ${
                                         currentPath ===
                                             "/vendors/ticketBooking/expenses" ||
-                                        currentPath ===
-                                            "/ticketBooking/expenses"
+                                        currentPath === "/ticketBooking/expenses"
                                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                             : "text-[#00000066]"
                                     }`}
@@ -197,24 +217,53 @@ const SideMenu = () => {
                             </div>
                         )}
 
-                        {/* Settings with Notifications
+                        {/* Tracking */}
+                        <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath ===
+                                    "/vendors/ticketBooking/tracking" ||
+                                currentPath === "/ticketBooking/tracking"
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            onClick={() =>
+                                (window.location.href = "/ticketBooking/tracking")
+                            }
+                        >
+                            <img
+                                src={trackLogo}
+                                className="w-[22px]"
+                                alt="Tracking"
+                            />
+                            <span>Tracking</span>
+                        </div>
+
+                        {/* Message
             <div
-              className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-3 py-1.5 ${
-                currentPath === "/vendors/ticketBooking/settingsPage" ||
-                currentPath === "/ticketBooking/settingsPage" ||
-                currentPath === "/vendors/ticketBooking/notifications"
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/multimodal/message" ||
+                currentPath === "/multimodal/message"
                   ? "bg-[#0955AC29] text-[#000000] font-[700]"
                   : "text-[#00000066]"
               }`}
+              onClick={() => (window.location.href = "/multimodal/message")}
+            >
+              <img src={messgLogo} className="w-[22px]" alt="Message" />
+              <span>Message</span>
+            </div> */}
+
+                        {/* Settings Dropdown
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/multimodal/settingsPage" ||
+                currentPath === "/multimodal/settingsPage"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => setShowSettingsDropdown((prev) => !prev)}
             >
               <Settings className="w-[22px] h-[22px]" />
-              <h1
-                onClick={() =>
-                  setShowSettingsDropdown((prev) => !prev)
-                }
-              >
-                Settings
-              </h1>
+              <span>Settings</span>
             </div> */}
 
                         {showSettingsDropdown && (
@@ -222,7 +271,9 @@ const SideMenu = () => {
                                 <div
                                     className={`px-3 py-1.5 cursor-pointer rounded-lg flex items-center gap-2 ${
                                         currentPath ===
-                                        "/vendors/ticketBooking/notifications"
+                                            "/vendors/ticketBooking/notifications" ||
+                                        currentPath ===
+                                            "/ticketBooking/notifications"
                                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                             : "text-[#00000066]"
                                     }`}
@@ -239,11 +290,18 @@ const SideMenu = () => {
                     </div>
                 </div>
 
-                {/* Logout - Fixed at bottom (commented as in original) */}
-                {/* <div className="flex-shrink-0 mt-2 pt-4 border-t border-gray-200 w-full">
-          <div className="figtree flex flex-row justify-start items-center gap-5 cursor-pointer text-[18px] font-[500] text-[#00000066] px-3 py-2.5 hover:bg-[#FEF2F2] hover:text-[#DC2626] rounded-lg w-full transition-all duration-200 group">
-            <LogOut className="w-[22px] h-[22px] group-hover:text-red-600 transition-colors" />
-            <h1>Logout</h1>
+                {/* Logout – fixed bottom
+        <div className="flex-shrink-0 mt-2 pt-4 border-t border-gray-200 w-full">
+          <div
+            className="figtree flex items-center gap-5 text-[18px] font-[500] text-[#00000066] px-3 py-2.5 hover:bg-[#FEF2F2] hover:text-[#DC2626] rounded-lg w-full transition-all duration-200 group cursor-pointer"
+            onClick={() => (window.location.href = "/logout")}
+          >
+            <img
+              src={logOutLogo}
+              className="w-[22px] h-[22px] group-hover:brightness-0 group-hover:invert group-hover:sepia group-hover:saturate-[5000%] group-hover:hue-rotate-[340deg] transition-all duration-200"
+              alt="Logout"
+            />
+            <span>Logout</span>
           </div>
         </div> */}
             </div>

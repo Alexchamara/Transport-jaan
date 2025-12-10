@@ -3,41 +3,44 @@ import { usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
 import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 import {
-  Search as SearchIcon,
-  Settings as SettingsIcon,
-  Bell as BellIcon,
-  Filter as FilterIcon,
-  ChevronDown,
-  Plane,
-  TrainFront,
-  BusFront,
-  CheckCircle,
-  Clock,
-  BadgeCheck,
-  Users,
-  Fuel,
-  Pencil,
-  Trash2
+    Search as SearchIcon,
+    Settings as SettingsIcon,
+    Bell as BellIcon,
+    Filter as FilterIcon,
+    ChevronDown,
+    Plane,
+    TrainFront,
+    BusFront,
+    CheckCircle,
+    Clock,
+    BadgeCheck,
+    Users,
+    Fuel,
+    Pencil,
+    Trash2,
 } from "lucide-react";
 // Helper to select transport icon per unit (Plane / Train / Bus) based on brand/model
 const transportIconForUnit = (unit, size = 120) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
-  const brand = (unit.brand || "").toLowerCase();
-  const model = (unit.model || "").toLowerCase();
-  const isFlight = brand.includes("airlines") || /[a-z]{1,2}\d{2,4}/i.test(model);
-  const isTrain = brand.includes("railways") || model.includes("intercity") || model.includes("line") || model.includes("rejina");
-  if (isFlight) return <Plane size={size} />;
-  if (isTrain) return <TrainFront size={size} />;
-  return <BusFront size={size} />;
+    const brand = (unit.brand || "").toLowerCase();
+    const model = (unit.model || "").toLowerCase();
+    const isFlight =
+        brand.includes("airlines") || /[a-z]{1,2}\d{2,4}/i.test(model);
+    const isTrain =
+        brand.includes("railways") ||
+        model.includes("intercity") ||
+        model.includes("line") ||
+        model.includes("rejina");
+    if (isFlight) return <Plane size={size} />;
+    if (isTrain) return <TrainFront size={size} />;
+    return <BusFront size={size} />;
 };
+import UserDropdown from "../../UserDropdown";
 
 import AddUnit from "../../../../home/vendors/ticketBooking/AddUnit";
 
 const UnitContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
     // Sample data array for units
     const units = [
@@ -240,18 +243,12 @@ const UnitContent = () => {
     const currentUnits = units.slice(startIdx, endIdx);
 
     const goToPage = (page) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         if (page < 1 || page > totalPages) return;
         setCurrentPage(page);
     };
 
     // Helper for pagination numbers with ellipsis
     const getPageNumbers = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         const pages = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -288,45 +285,29 @@ const UnitContent = () => {
 
     // Handle Add Unit button click
     const handleAddUnitClick = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
-
         setShowAddUnit(true);
     };
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-5 py-5 lg:px-0 lg:pr-5 lg:py-10">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Ticket Booking Units</h1>
-                <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <SearchIcon />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <SettingsIcon />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <BellIcon />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} alt="Profile" />
-                    </div>
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
+            <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
+                <h1 className="figtree text-[28px] md:text-[35px] font-[700]">
+                    Ticket Units
+                </h1>
+                <div className="flex flex-row gap-5 relative items-center">
+                    <UserDropdown
+                        settingsRoute={route("freight.settingsPage")}
+                    />
                 </div>
             </div>
             {/* end of header section */}
 
             {/* Search, Filter section */}
-            <div className="flex flex-row justify-between mt-10 mb-5">
-                <div className="flex flex-row items-center justify-between w-full">
-                    <div className="flex flex-row gap-5 justify-center items-center">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+            <div className="flex flex-col md:flex-row justify-between mt-10 mb-5 gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-3 sm:gap-5">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 justify-center items-center w-full">
+                        <div className="w-full xl:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <SearchIcon className="size-[16px]" />
                             <input
                                 type="text"
@@ -334,14 +315,14 @@ const UnitContent = () => {
                                 placeholder="Search transport, route, etc."
                             />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full xl::w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <FilterIcon className="size-[12px]" />
                             <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
                                 Transport
                             </h1>
                             <ChevronDown />
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full xl:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <FilterIcon className="size-[12px]" />
                             <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
                                 Status
@@ -350,7 +331,7 @@ const UnitContent = () => {
                         </div>
                     </div>
                     <button
-                        className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+                        className="w-full xl::w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] py-2 px-4"
                         onClick={handleAddUnitClick}
                     >
                         Add Unit
@@ -371,13 +352,13 @@ const UnitContent = () => {
                             className="relative w-auto h-auto min-h-[157px] bg-[#FFFFFF] rounded-[10px] flex lg:flex-row flex-col items-center my-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <div className="w-[172px] h-[107px] flex items-center justify-center">
-                              {transportIconForUnit(unit, 80)}
+                            <div className="w-full sm:w-[172px] h-auto sm:h-[107px] flex items-center justify-center p-4 sm:p-0">
+                                {transportIconForUnit(unit, 80)}
                             </div>
                             {/* text section */}
-                            <div className="px-5 py-5 flex flex-row justify-center items-center">
-                                <div>
-                                    <div className="bebas-neue text-[30px] font-[400] max-w-[150px]">
+                            <div className="px-5 py-8 lg:py-5 flex flex-col lg:flex-row justify-center items-center flex-1 w-full">
+                                <div className="w-full lg:w-auto">
+                                    <div className="bebas-neue text-[22px] sm:text-[28px] font-[400] max-w-[150px] mx-auto lg:mx-0 text-center lg:text-left">
                                         <h1>
                                             {unit.brand}{" "}
                                             <span className="text-[#0955AC]">
@@ -386,55 +367,56 @@ const UnitContent = () => {
                                         </h1>
                                         <h1>
                                             ${unit.price}
-                                            <span className="figtree text-[#00000080] text-[15px] font-[600]">
+                                            <span className="figtree text-[#00000080] text-[10px] sm:text-[13px] font-[600]">
                                                 /day
                                             </span>
                                         </h1>
                                     </div>
-                                    <div className="poppins flex flex-row justify-start items-center gap-8 text-[14px] font-[600]">
+                                    <div className="poppins flex flex-row justify-center lg:justify-start items-center gap-3 sm:gap-8 text-[14px] font-[600] mt-4 text-center lg:text-left">
                                         <div className="flex flex-row justify-center items-center gap-3">
-                                            <CheckCircle className="w-[26px] h-[26px]" />
+                                            <CheckCircle className="w-[18px] sm:w-[24px] h-[18px] sm:h-[26px]" />
                                             <h1 className="text-[#3C9A34]">
                                                 {unit.status}
                                             </h1>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex lg:flex-row flex-col justify-center items-center pl-[40px] gap-20 ">
-                                    <div className="poppins flex lg:flex-row flex-col gap-10 text-[15px] font-[500]">
-                                        <div className="flex flex-col justify-center items-center gap-7">
-                                            <Clock className="w-[26px] h-[26px]" />
+                                <div className="flex flex-col lg:flex-row justify-center items-center pl-0 lg:pl-[40px] gap-5 lg:gap-20 w-full mt-4 lg:mt-0">
+                                    <div className="poppins flex flex-col lg:flex-row gap-3 lg:gap-10 text-[12px] sm:text-[13px] font-[500] w-full lg:w-auto text-center lg:text-left">
+                                        <div className="flex flex-col justify-center items-center gap-3 sm:gap-7">
+                                            <Clock className="w-[18px] sm:w-[24px] h-[18px] sm:h-[24px]" />
                                             <h1>{unit.mileage}</h1>
                                         </div>
-                                        <div className="flex flex-col justify-center items-center gap-7">
-                                            <BadgeCheck className="w-[26px] h-[26px]" />
+                                        <div className="flex flex-col justify-center items-center gap-3 sm:gap-7">
+                                            <BadgeCheck className="w-[18px] sm:w-[24px] h-[18px] sm:h-[24px]" />
                                             <h1>{unit.transmission}</h1>
                                         </div>
-                                        <div className="flex flex-col justify-center items-center gap-7">
-                                            <Users className="w-[26px] h-[26px]" />
+                                        <div className="flex flex-col justify-center items-center gap-3 sm:gap-7">
+                                            <Users className="w-[18px] sm:w-[24px] h-[18px] sm:h-[24px]" />
                                             <h1>{unit.capacity}</h1>
                                         </div>
-                                        <div className="flex flex-col justify-center items-center gap-7">
-                                            <Fuel className="w-[26px] h-[26px]" />
+                                        <div className="flex flex-col justify-center items-center gap-3 sm:gap-7">
+                                            <Fuel className="w-[18px] sm:w-[24px] h-[18px] sm:h-[24px]" />
                                             <h1>{unit.fuelType}</h1>
                                         </div>
                                     </div>
                                     <button
-                                        className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-[#FFFFFF] font-[700]"
+                                        className="figtree w-full lg:min-w-[100px] h-[44px] bg-[#0955AC] rounded-[5px] text-[16px] sm:text-[20px] text-[#FFFFFF] font-[700] mt-4 lg:mt-0"
                                         onClick={() =>
-                                            (window.location.href = "/ticketBooking/unitDetails")
+                                            (window.location.href =
+                                                "/ticketBooking/unitDetails")
                                         }
                                     >
                                         View
                                     </button>
                                 </div>
                             </div>
-                            {/* delete buttons */}
-                            <div className="absolute right-0 w-auto min-w-[143px] h-full bg-[#D8E4F2] flex flex-row justify-center items-center gap-3 rounded-tr-[10px] rounded-br-[10px]">
-                                <div className="size-[36px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer">
+                            {/* edit and delete buttons */}
+                            <div className="w-full lg:w-auto lg:min-w-[143px] min-h-[60px] lg:min-h-full bg-[#D8E4F2] flex flex-row justify-center items-center gap-3 rounded-b-[10px] lg:rounded-tr-[10px] lg:rounded-br-[10px] lg:rounded-bl-none self-stretch">
+                                <div className="size-[36px] border-[1.5px] border-[#0955AC] bg-transparent rounded-[5px] flex justify-center items-center cursor-pointer">
                                     <Pencil className="size-[24px]" />
                                 </div>
-                                <div className="size-[36px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[5px] flex justify-center items-center cursor-pointer">
+                                <div className="size-[36px] border-[1.5px] border-[#FF0000] bg-transparent rounded-[5px] flex justify-center items-center cursor-pointer">
                                     <Trash2 className="size-[24px]" />
                                 </div>
                             </div>
@@ -442,14 +424,14 @@ const UnitContent = () => {
                     ))}
 
                     {/* Pagination Controls and Results per page */}
-                    <div className="flex justify-between items-center gap-2 mt-20">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-2 mt-20">
                         {/* Left: Results per page */}
                         <div className="flex items-center">
-                            <span className="mr-3 text-[#00000080] text-[15px]">
+                            <span className="mr-3 text-[#00000080] text-[14px] sm:text-[15px]">
                                 Results per page
                             </span>
                             <select
-                                className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+                                className="rounded px-3 py-1 font-[600] text-[14px] sm:text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                                 value={itemsPerPage}
                                 onChange={(e) =>
                                     setItemsPerPage(Number(e.target.value))
@@ -463,7 +445,7 @@ const UnitContent = () => {
                             </select>
                         </div>
                         {/* Right: Pagination */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap justify-center md:justify-end">
                             <button
                                 className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
                                 onClick={() => goToPage(currentPage - 1)}
@@ -479,7 +461,7 @@ const UnitContent = () => {
                                 ) : (
                                     <button
                                         key={num}
-                                        className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                        className={`px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
                                             currentPage === num
                                                 ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                                 : "bg-[#F4F3F3]"
