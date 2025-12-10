@@ -27,7 +27,7 @@ const Payment = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1">
+        <div className="flex-1 bg-[#E5E5E5]">
           <PaymentContent />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
@@ -26,6 +26,35 @@ import UserDropdown from "../../UserDropdown";
 const BookingContent = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
+
+    // State for mobile detection
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    // Mobile detection effect
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Booking data for mobile list view
+    const bookingChartData = [
+        { name: "Jan", done: 320, cancelled: 220 },
+        { name: "Feb", done: 380, cancelled: 270 },
+        { name: "Mar", done: 250, cancelled: 150 },
+        { name: "Apr", done: 500, cancelled: 230 },
+        { name: "May", done: 310, cancelled: 410 },
+        { name: "Jun", done: 370, cancelled: 180 },
+        { name: "Jul", done: 420, cancelled: 210 },
+        { name: "Aug", done: 480, cancelled: 380 },
+        { name: "Sep", done: 270, cancelled: 320 },
+        { name: "Oct", done: 390, cancelled: 210 },
+        { name: "Nov", done: 320, cancelled: 170 },
+        { name: "Dec", done: 500, cancelled: 250 },
+    ];
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
@@ -467,7 +496,41 @@ const BookingContent = () => {
                     className="w-full xl:min-w-[680px] min-h-[350px] md:min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <BookingBarChart />
+                    {isMobile ? (
+                        // Mobile list view
+                        <div className="w-full p-4">
+                            <h3 className="text-[18px] font-[700] mb-4 text-center">Monthly Bookings</h3>
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                                {bookingChartData.map((month, index) => (
+                                    <div key={index} className="bg-[#F8F9FA] rounded-[8px] p-3 border border-[#E9ECEF]">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="font-[600] text-[16px]">{month.name}</h4>
+                                            <div className="text-right">
+                                                <div className="text-[14px] text-[#28A745] font-[600]">
+                                                    ✓ {month.done} Done
+                                                </div>
+                                                <div className="text-[14px] text-[#DC3545] font-[600]">
+                                                    ✗ {month.cancelled} Cancelled
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-[#E9ECEF] rounded-full h-2">
+                                            <div
+                                                className="bg-[#0955AC] h-2 rounded-full"
+                                                style={{ width: `${(month.done / (month.done + month.cancelled)) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="text-[12px] text-[#6C757D] mt-1 text-center">
+                                            {month.done + month.cancelled} total bookings
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        // Desktop chart view
+                        <BookingBarChart />
+                    )}
                 </div>
             </div>
 

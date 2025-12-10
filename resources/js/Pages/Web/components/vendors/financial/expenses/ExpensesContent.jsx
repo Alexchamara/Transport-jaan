@@ -29,6 +29,43 @@ const ExpensesContent = () => {
     const { auth, unreadNotifications = 0 } = usePage().props;
     const user = auth?.user;
 
+    // State for mobile detection
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    // Mobile detection effect
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Cashflow data for mobile list view
+    const cashflowData = [
+        { month: "Jan", income: 4000, expenses: 15000 },
+        { month: "Feb", income: 5000, expenses: 17000 },
+        { month: "Mar", income: 4500, expenses: 16000 },
+        { month: "Apr", income: 7000, expenses: 19000 },
+        { month: "May", income: 6000, expenses: 17000 },
+        { month: "Jun", income: 6500, expenses: 18000 },
+        { month: "Jul", income: 9000, expenses: 18500 },
+        { month: "Aug", income: 12000, expenses: 18200 },
+        { month: "Sep", income: 11000, expenses: 17000 },
+        { month: "Oct", income: 13000, expenses: 17500 },
+        { month: "Nov", income: 15000, expenses: 20000 },
+        { month: "Dec", income: 12000, expenses: 22000 },
+    ];
+
+    // Expenses breakdown data for mobile list view
+    const expensesBreakdownData = [
+        { name: "Vehicle Maintenance", value: 3000, percent: 65, color: "#344B8E" },
+        { name: "Hired", value: 2500, percent: 25, color: "#3DD0FF" },
+        { name: "Pending", value: 2000, percent: 30, color: "#0955AC" },
+        { name: "Cancelled", value: 500, percent: 30, color: "#8CA9E6" },
+    ];
+
     const expensesData = [
         {
             name: "Oil Change",
@@ -300,10 +337,10 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto lg:pr-5 px-5 lg:px-0 lg:py-5 py-10">
             {/* ==================== HEADER WITH DROPDOWN ==================== */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Expenses</h1>
+            <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
+                <h1 className="figtree text-[35px] font-[700] text-center">Vehicle Rental Expenses</h1>
 
                 <div className="flex flex-row gap-5 relative items-center">
                     <div className="flex flex-row gap-5 relative items-center">
@@ -313,10 +350,10 @@ const ExpensesContent = () => {
             </div>
 
             {/* ==================== MINI CARDS ==================== */}
-            <div className="flex flex-row gap-5 w-full">
+            <div className="flex flex-col md:flex-row gap-5 w-full">
                 {/* card 1 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="xl:min-w-[300px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -324,13 +361,13 @@ const ExpensesContent = () => {
                             <img src={wallet} alt="wallet" />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Balance
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$8,450</h1>
+                            <h1 className="text-[24px] font-[700]">$8,450</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <img
                                 src={upArrow}
@@ -345,7 +382,7 @@ const ExpensesContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="xl:min-w-[300px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -353,13 +390,13 @@ const ExpensesContent = () => {
                             <img src={income} alt="income" />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Income
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$25,700</h1>
+                            <h1 className="text-[24px] font-[700]">$25,700</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <img
                                 src={upArrow}
@@ -374,7 +411,7 @@ const ExpensesContent = () => {
 
                 {/* card 3 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="x:min-w-[300px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -382,13 +419,13 @@ const ExpensesContent = () => {
                             <img src={expenses} alt="expenses" />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Expenses
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$14,756</h1>
+                            <h1 className="text-[24px] font-[700]">$14,756</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                             <img
                                 src={upArrow}
@@ -403,38 +440,111 @@ const ExpensesContent = () => {
             </div>
 
             {/* ==================== CHARTS SECTION ==================== */}
-            <div className="flex flex-row w-full gap-8">
+            <div className="flex flex-col lg:flex-row w-full gap-8">
                 <div
-                    className="min-w-[730px] min-h-[426px] bg-[#FFFFFF] rounded-[10px]"
+                    className="w-full min-h-[426px] xl:min-w-[680px] bg-[#FFFFFF] rounded-[10px]"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <CashflowChart />
+                    {isMobile ? (
+                        // Mobile cashflow list view
+                        <div className="w-full p-4">
+                            <h3 className="text-[18px] font-[700] mb-4 text-center">Monthly Cashflow</h3>
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                                {cashflowData.map((month, index) => (
+                                    <div key={index} className="bg-[#F8F9FA] rounded-[8px] p-3 border border-[#E9ECEF]">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="font-[600] text-[16px]">{month.month}</h4>
+                                            <div className="text-right">
+                                                <div className="text-[14px] text-[#28A745] font-[600]">
+                                                    +${month.income.toLocaleString()} Income
+                                                </div>
+                                                <div className="text-[14px] text-[#DC3545] font-[600]">
+                                                    -${month.expenses.toLocaleString()} Expenses
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-[#E9ECEF] rounded-full h-2">
+                                            <div
+                                                className="bg-[#0955AC] h-2 rounded-full"
+                                                style={{ width: `${(month.income / (month.income + month.expenses)) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="text-[12px] text-[#6C757D] mt-1 text-center">
+                                            Net: ${(month.income - month.expenses).toLocaleString()}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        // Desktop chart view
+                        <CashflowChart />
+                    )}
                 </div>
                 <div
-                    className="min-w-[339px] w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
+                    className="w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <div className="w-full flex flex-row justify-between items-center">
-                        <h2 className="text-[24px] font-bold mb-2 w-full text-left">
-                            Expenses Breakdown
-                        </h2>
-                        <img src={dotThree} alt="more" />
-                    </div>
-                    <ExpensesPieChart />
+                    {isMobile ? (
+                        // Mobile expenses breakdown list view
+                        <div className="w-full p-4">
+                            <h3 className="text-[18px] font-[700] mb-4 text-center">Expenses Breakdown</h3>
+                            <div className="space-y-3">
+                                {expensesBreakdownData.map((item, index) => (
+                                    <div key={index} className="bg-[#F8F9FA] rounded-[8px] p-3 border border-[#E9ECEF]">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="font-[600] text-[16px]">{item.name}</h4>
+                                            <div className="text-right">
+                                                <div className="text-[14px] font-[600]">
+                                                    ${item.value.toLocaleString()}
+                                                </div>
+                                                <div className="text-[12px] text-[#6C757D]">
+                                                    {item.percent}%
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-[#E9ECEF] rounded-full h-2">
+                                            <div
+                                                className="h-2 rounded-full"
+                                                style={{ width: `${item.percent}%`, backgroundColor: item.color }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))}
+                                <div className="mt-4 p-3 bg-[#0955AC] text-white rounded-[8px] text-center">
+                                    <div className="text-[14px] font-[500]">Total Expenses</div>
+                                    <div className="text-[20px] font-[700]">
+                                        ${expensesBreakdownData.reduce((sum, item) => sum + item.value, 0).toLocaleString()}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        // Desktop pie chart view
+                        <>
+                            <div className="w-full flex flex-row justify-between items-center">
+                                <h2 className="text-[24px] font-bold mb-2 w-full text-left">
+                                    Expenses Breakdown
+                                </h2>
+                                <img src={dotThree} alt="more" />
+                            </div>
+                            <ExpensesPieChart />
+                        </>
+                    )}
                 </div>
             </div>
 
             {/* ==================== EXPENSES TABLE ==================== */}
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-4 md:px-10 py-5 md:py-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
                 {/* Table Header */}
-                <div className="flex flex-row justify-between">
-                    <h1 className="text-[24px] font-[700]">
+                <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-0">
+                    <h1 className="text-[20px] md:text-[24px] font-[700]">
                         Recent Transactions
                     </h1>
-                    <div className="flex flex-row gap-5">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-5">
                         <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} alt="search" />
                             <input
@@ -479,8 +589,8 @@ const ExpensesContent = () => {
                     </div>
                 </div>
 
-                {/* Table Headings */}
-                <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
+                {/* Table Headings - hidden on mobile */}
+                <div className="hidden md:grid figtree grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
                     <div className="flex flex-row gap-5 items-center col-span-2">
                         <input
                             type="checkbox"
@@ -596,16 +706,20 @@ const ExpensesContent = () => {
                 {currentExpenses.map((expense, idx) => (
                     <div
                         key={expense.name + startIdx + idx}
-                        className="grid grid-cols-9 text-[15px] font-[500] px-10 h-[100px] border-b-[1.5.li] border-[#00000033] items-center"
+                        className="grid grid-cols-1 md:grid-cols-9 text-[15px] font-[500] px-4 md:px-10 h-auto md:h-[100px] border-b-[1.5px] border-[#00000033] items-center py-4 md:py-0"
                     >
-                        <div className="flex flex-row gap-5 col-span-2">
+                        <div className="flex flex-row gap-5 col-span-2 md:col-span-2">
                             <input
                                 type="checkbox"
                                 className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
                             />
-                            <h1>{expense.name}</h1>
+                            <div>
+                                <span className="md:hidden font-bold">Expense: </span>
+                                <h1>{expense.name}</h1>
+                            </div>
                         </div>
-                        <div className={`col-span-2`}>
+                        <div className={`col-span-2 md:col-span-2`}>
+                            <span className="md:hidden font-bold">Category: </span>
                             <div
                                 className={` ${expense.category.width} h-[20px] bg-[#E8E8E8] rounded-[4px] text-[10px] flex flex-row justify-start items-center gap-3 px-2`}
                             >
@@ -618,10 +732,20 @@ const ExpensesContent = () => {
                                 <h1>{expense.category.label}</h1>
                             </div>
                         </div>
-                        <div>{expense.quantity}</div>
-                        <div>{expense.amount}</div>
-                        <div>{expense.date}</div>
                         <div>
+                            <span className="md:hidden font-bold">Quantity: </span>
+                            {expense.quantity}
+                        </div>
+                        <div>
+                            <span className="md:hidden font-bold">Amount: </span>
+                            {expense.amount}
+                        </div>
+                        <div>
+                            <span className="md:hidden font-bold">Date: </span>
+                            {expense.date}
+                        </div>
+                        <div>
+                            <span className="md:hidden font-bold">Status: </span>
                             <div
                                 className="w-[72px] h-[20px] border-[1.5px] text-[10px] flex justify-center items-center rounded-[4px]"
                                 style={{
@@ -633,7 +757,8 @@ const ExpensesContent = () => {
                                 {expense.status.label}
                             </div>
                         </div>
-                        <div className="flex flex-row justify-center items-center gap-2">
+                        <div className="flex flex-row justify-center items-center gap-2 mt-2 md:mt-0">
+                            <span className="md:hidden font-bold mr-2">Actions: </span>
                             <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
                                 Edit
                             </div>

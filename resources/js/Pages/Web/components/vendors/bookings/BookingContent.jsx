@@ -48,6 +48,14 @@ const BookingContent = ({
 
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const wrapperRef = useRef(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // // Close dropdown when clicking outside or pressing Escape
     // useEffect(() => {
@@ -261,10 +269,36 @@ const BookingContent = ({
 
                 {/* Right: Chart */}
                 <div
-                    className="w-full min-w-[295px] sm:min-w-[495px] xl:max-w-[700px] min-h-[250px] sm:min-h-[300px] lg:min-h-[437px] bg-white rounded-[8px] sm:rounded-[10px] flex items-center justify-start lg:justify-center overflow-x-auto"
+                    className="w-full min-w-[295px] lg:min-w-[495px] xl:max-w-[700px] min-h-[250px] sm:min-h-[300px] lg:min-h-[437px] bg-white rounded-[8px] sm:rounded-[10px] flex items-center justify-center overflow-x-auto"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <BookingBarChart bookingData={bookingData} />
+                    {isMobile ? (
+                        <div className="w-full p-4">
+                            <div className="flex flex-col gap-2">
+                                {/* Placeholder data for mobile since we can't access the chart's state */}
+                                {[
+                                    { name: "Jan", done: 320, cancelled: 220 },
+                                    { name: "Feb", done: 380, cancelled: 270 },
+                                    { name: "Mar", done: 250, cancelled: 150 },
+                                    { name: "Apr", done: 500, cancelled: 230 },
+                                    { name: "May", done: 310, cancelled: 410 },
+                                    { name: "Jun", done: 370, cancelled: 180 },
+                                    { name: "Jul", done: 420, cancelled: 210 },
+                                    { name: "Aug", done: 480, cancelled: 380 },
+                                ].map((item, index) => (
+                                    <div key={index} className="bg-gray-50 rounded-md p-3">
+                                        <div className="font-medium text-gray-700 mb-2">{item.name}</div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-blue-600 text-sm">{item.done} done</span>
+                                            <span className="font-bold text-red-600 text-sm">{item.cancelled} cancelled</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <BookingBarChart bookingData={bookingData} />
+                    )}
                 </div>
             </div>
             {/* Table */}

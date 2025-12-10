@@ -100,7 +100,7 @@ const CarBookingTable = () => {
             {/* DESKTOP/TABLET TABLE (keeps your original layout) */}
             <div className="hidden md:block overflow-auto">
                 {/* table headings */}
-                <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[14px] font-[600] px-12 py-3 gap-x-6 min-w-[1200px]">
+                <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[14px] font-[600] px-12 py-3 gap-x-6">
                     <div className="flex flex-row gap-2 items-center">
                         <h1>Booking ID</h1>
                         <div className="flex flex-col justify-center items-center">
@@ -163,7 +163,7 @@ const CarBookingTable = () => {
                     {tableData.map((row, index) => (
                         <div
                             key={index}
-                            className="grid grid-cols-8 border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[15px] font-[500] px-12 py-4 gap-x-6 min-w-[1200px]"
+                            className="hidden md:grid grid-cols-8 border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[15px] font-[500] px-12 py-4 gap-x-6"
                         >
                             <div>{row.id}</div>
                             <div>{row.date}</div>

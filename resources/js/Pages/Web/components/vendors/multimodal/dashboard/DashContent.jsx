@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
@@ -45,6 +45,17 @@ const carTypes = [
 const DashContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     return (
         <div className="w-full h-auto px-5 lg:pr-5 lg:px-0 py-5 md:py-10">
@@ -249,7 +260,31 @@ const DashContent = () => {
                                 </div>
                             </div>
                             {/* Booking Overview Bar Chart */}
-                            <BookingOverviewBarChart />
+                            {isMobile ? (
+                                <div className="flex flex-col gap-2 w-full">
+                                    {[
+                                        { name: "Jan", bookings: 450 },
+                                        { name: "Feb", bookings: 670 },
+                                        { name: "Mar", bookings: 540 },
+                                        { name: "Apr", bookings: 900 },
+                                        { name: "May", bookings: 800 },
+                                        { name: "Jun", bookings: 200 },
+                                        { name: "Jul", bookings: 340 },
+                                        { name: "Aug", bookings: 859 },
+                                        { name: "Sep", bookings: 670 },
+                                        { name: "Oct", bookings: 570 },
+                                        { name: "Nov", bookings: 400 },
+                                        { name: "Dec", bookings: 900 },
+                                    ].map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                            <span className="font-bold text-blue-600">{item.bookings} bookings</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <BookingOverviewBarChart />
+                            )}
                         </div>
 
                         <div
@@ -267,7 +302,31 @@ const DashContent = () => {
                                     <img src={miniDownArrow} />
                                 </div>
                             </div>
-                            <EarningSummaryChart />
+                            {isMobile ? (
+                                <div className="flex flex-col gap-2">
+                                    {[
+                                        { name: "Jan", value: 5000 },
+                                        { name: "Feb", value: 7000 },
+                                        { name: "Mar", value: 6000 },
+                                        { name: "Apr", value: 23456 },
+                                        { name: "May", value: 8000 },
+                                        { name: "Jun", value: 4000 },
+                                        { name: "Jul", value: 9000 },
+                                        { name: "Aug", value: 12000 },
+                                        { name: "Sep", value: 10000 },
+                                        { name: "Oct", value: 9500 },
+                                        { name: "Nov", value: 15000 },
+                                        { name: "Dec", value: 21000 },
+                                    ].map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                            <span className="font-bold text-green-600">${Number(item.value).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <EarningSummaryChart />
+                            )}
                         </div>
                     </div>
                     {/* mini right section */}
@@ -323,7 +382,7 @@ const DashContent = () => {
                             </div>
                         </div>
                         <div
-                            className="w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] py-5 px-4 md:px-10"
+                            className="w-full xl:min-h-[437px] bg-[#FFFFFF] rounded-[10px] py-5 px-4 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between w-full">
@@ -337,7 +396,29 @@ const DashContent = () => {
                                     <img src={miniDownArrow} />
                                 </div>
                             </div>
-                            <RealStatusPieChart />
+                            {isMobile ? (
+                                <div className="flex flex-col gap-2 mt-4">
+                                    {[
+                                        { name: "Hired", value: 46, color: "#3DD0FF" },
+                                        { name: "Pending", value: 27, color: "#0955AC" },
+                                        { name: "Cancelled", value: 14, color: "#C4C4C4" },
+                                    ].map((item, index) => {
+                                        const total = 46 + 27 + 14;
+                                        const percent = Math.round((item.value / total) * 100);
+                                        return (
+                                            <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-4 h-4 rounded" style={{ backgroundColor: item.color }}></span>
+                                                    <span className="font-medium text-gray-700">{item.name}</span>
+                                                </div>
+                                                <span className="font-bold text-gray-800">{percent}%</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <RealStatusPieChart />
+                            )}
                         </div>
 
                         {/* Reminder section  */}
@@ -468,30 +549,30 @@ const DashContent = () => {
                         </div>
                     </div>
                     <div
-                        className="w-full min-h-[858px] bg-[#0F0F0F08] rounded-[10px] px-5 py-5"
+                        className="w-full xl:min-h-[858px] bg-[#0F0F0F08] rounded-[10px] px-5 md:px-10 py-5 md:py-10"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row justify-between items-center">
-                            <h1 className="text-[24px] font-[700]">
+                            <h1 className="text-[20px] md:text-[24px] font-[700]">
                                 Recent Activities
                             </h1>
-                            <h1 className="text-[24px] font-[700]">...</h1>
+                            <h1 className="text-[20px] md:text-[24px] font-[700]">...</h1>
                         </div>
-                        <h1 className="text-[20px] font-[600] text-[#0F0F0F80] py-3">
+                        <h1 className="text-[16px] md:text-[20px] font-[600] text-[#0F0F0F80] py-3">
                             Today
                         </h1>
 
-                        <div className="flex flex-row justify-center items-start gap-10">
+                        <div className="flex flex-row justify-center items-start gap-5 md:gap-10">
                             <div className="flex flex-col items-center py-5">
-                                <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
+                                <div className="size-[40px] md:size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
                                     <img src={cal} />
                                 </div>
-                                <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
+                                <div className="w-[2px] h-[36px] md:h-[54px] bg-[#00000054]"></div>
+                                <div className="size-[40px] md:size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
                                     <img src={icon} />
                                 </div>
                             </div>
-                            <div className="flex flex-col py-5 gap-10 text-[20px] font-[700]">
+                            <div className="flex flex-col py-5 gap-5 md:gap-10 text-[16px] md:text-[20px] font-[700]">
                                 <div>
                                     <h1>
                                         Alice Johnson completed a booking for
@@ -513,24 +594,24 @@ const DashContent = () => {
                             </div>
                         </div>
 
-                        <h1 className="text-[20px] font-[600] text-[#0F0F0F80] py-3">
+                        <h1 className="text-[16px] md:text-[20px] font-[600] text-[#0F0F0F80] py-3">
                             Yesterday
                         </h1>
-                        <div className="flex flex-row justify-center items-start gap-10">
+                        <div className="flex flex-row justify-center items-start gap-5 md:gap-10">
                             <div className="flex flex-col items-center py-5">
-                                <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
+                                <div className="size-[40px] md:size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
                                     <img src={icon2} />
                                 </div>
-                                <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
+                                <div className="w-[2px] h-[36px] md:h-[54px] bg-[#00000054]"></div>
+                                <div className="size-[40px] md:size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
                                     <img src={carIcon} />
                                 </div>
-                                <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
+                                <div className="w-[2px] h-[36px] md:h-[54px] bg-[#00000054]"></div>
+                                <div className="size-[40px] md:size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center">
                                     <img src={icon} />
                                 </div>
                             </div>
-                            <div className="flex flex-col py-5 gap-10 text-[20px] font-[700]">
+                            <div className="flex flex-col py-5 gap-5 md:gap-10 text-[16px] md:text-[20px] font-[700]">
                                 <div>
                                     <h1>
                                         Alice Johnson completed a booking for

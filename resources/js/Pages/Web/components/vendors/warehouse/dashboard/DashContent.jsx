@@ -29,6 +29,17 @@ const DashContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
 
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     // State management
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -1388,6 +1399,15 @@ const DashContent = () => {
                                         <span>Loading chart data...</span>
                                     </div>
                                 </div>
+                            ) : isMobile ? (
+                                <div className="flex flex-col gap-2">
+                                    {(chartData.bookingOverview ?? []).map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                            <span className="font-bold text-blue-600">{item.bookings} bookings</span>
+                                        </div>
+                                    ))}
+                                </div>
                             ) : (
                                 <BookingOverviewBarChart
                                     data={chartData.bookingOverview}
@@ -1435,7 +1455,20 @@ const DashContent = () => {
                                     )}
                                 </div>
                             </div>
-                            <EarningSummaryChart data={chartData.earningSummary} />
+                            {isMobile ? (
+                                <div className="flex flex-col gap-2">
+                                    {(chartData.earningSummary ?? []).map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                            <span className="font-bold text-green-600">${Number(item.value || 0).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <EarningSummaryChart
+                                    data={chartData.earningSummary}
+                                />
+                            )}
                         </div>
                     </div>
                     {/* mini right section */}

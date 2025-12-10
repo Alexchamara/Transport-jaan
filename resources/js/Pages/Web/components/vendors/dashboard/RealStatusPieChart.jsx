@@ -43,19 +43,24 @@ const RealStatusPieChart = ({ data = [], rangeLabel = "This Week", showHeader = 
   const total = normalized.reduce((s, n) => s + (Number.isFinite(n.value) ? n.value : 0), 0);
 
   const [isMobile, setIsMobile] = React.useState(false);
+  const [isTablet, setIsTablet] = React.useState(false);
   
   React.useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const checkSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+    checkSize();
+    window.addEventListener('resize', checkSize);
+    return () => window.removeEventListener('resize', checkSize);
   }, []);
 
-  const size = isMobile ? 140 : 180;
+  const size = isMobile ? 140 : isTablet ? 160 : 180;
   const cx = size / 2;
   const cy = size / 2;
-  const rOuter = isMobile ? 55 : 70;
-  const rInner = isMobile ? 38 : 48;
+  const rOuter = isMobile ? 55 : isTablet ? 65 : 70;
+  const rInner = isMobile ? 38 : isTablet ? 45 : 48;
   const gapDeg = 1.5;
   const startAngle = -90;
   let cumAngle = startAngle;
@@ -94,11 +99,11 @@ const RealStatusPieChart = ({ data = [], rangeLabel = "This Week", showHeader = 
               return (
                 <div key={idx} className="flex flex-row items-center justify-between w-full mb-1">
                   <div className="flex flex-row items-center gap-2">
-                    <span className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} rounded`} style={{ backgroundColor: entry.color }} />
-                    <span className={`${isMobile ? 'text-[14px]' : 'text-[20px]'} font-[600] text-[#00000080]`}>{entry.name}</span>
+                    <span className={`${isMobile ? 'w-4 h-4' : isTablet ? 'w-4.5 h-4.5' : 'w-5 h-5'} rounded`} style={{ backgroundColor: entry.color }} />
+                    <span className={`${isMobile ? 'text-[14px]' : isTablet ? 'text-[18px]' : 'text-[20px]'} font-[600] text-[#00000080]`}>{entry.name}</span>
                   </div>
                   <div className="flex flex-row items-center gap-2">
-                    <span className={`${isMobile ? 'text-[14px]' : 'text-[20px]'} font-[600] text-[#000000]`}>{percent}%</span>
+                    <span className={`${isMobile ? 'text-[14px]' : isTablet ? 'text-[16px]' : 'text-[20px]'} font-[600] text-[#000000]`}>{percent}%</span>
                     {entry.change === "up" && <span className={`text-green-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>▲</span>}
                     {entry.change === "down" && <span className={`text-red-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>▼</span>}
                   </div>

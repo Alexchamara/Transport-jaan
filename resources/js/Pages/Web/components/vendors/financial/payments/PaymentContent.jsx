@@ -186,10 +186,10 @@ const PaymentContent = () => {
     }, [itemsPerPage, searchTerm]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-5 lg:px-0 py-5 lg:pr-5 lg:py-10">
             {/* ==================== HEADER WITH DROPDOWN ==================== */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Payments</h1>
+            <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
+                <h1 className="figtree text-[35px] font-[700] text-center">Vehicle Rental Payments</h1>
 
                 <div className="flex flex-row gap-5 relative items-center">
                     <div className="flex flex-row gap-5 relative items-center">

@@ -137,18 +137,26 @@ const MaintenanceActionModal = ({
     if (!open || !unit) return null;
 
     const validate = () => {
-        if (!startDate || !endDate) return "Please select both start and end dates.";
+        if (!startDate || !endDate)
+            return "Please select both start and end dates.";
         if (endDate < startDate) return "End date cannot be before start date.";
         return "";
     };
 
     const doCheckOverlaps = async () => {
-        setError(""); setOkMsg("");
+        setError("");
+        setOkMsg("");
         const v = validate();
-        if (v) { setError(v); return; }
+        if (v) {
+            setError(v);
+            return;
+        }
         setChecking(true);
         try {
-            const res = await fetch(ROUTES.overlaps(unit.id, startDate, endDate), { credentials: "same-origin" });
+            const res = await fetch(
+                ROUTES.overlaps(unit.id, startDate, endDate),
+                { credentials: "same-origin" }
+            );
             if (!res.ok) throw new Error(`Overlap check failed: ${res.status}`);
             const json = await res.json();
             setOverlaps(Array.isArray(json) ? json : json.data || []);
@@ -161,9 +169,13 @@ const MaintenanceActionModal = ({
     };
 
     const doCreateMaintenance = async () => {
-        setError(""); setOkMsg("");
+        setError("");
+        setOkMsg("");
         const v = validate();
-        if (v) { setError(v); return; }
+        if (v) {
+            setError(v);
+            return;
+        }
         setCreating(true);
         try {
             const csrf = getCsrf();
@@ -174,7 +186,11 @@ const MaintenanceActionModal = ({
                     ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ start_date: startDate, end_date: endDate, reason }),
+                body: JSON.stringify({
+                    start_date: startDate,
+                    end_date: endDate,
+                    reason,
+                }),
             });
             if (!res.ok) throw new Error(`Save failed: ${res.status}`);
             setOkMsg("Maintenance window saved.");
@@ -187,8 +203,12 @@ const MaintenanceActionModal = ({
     };
 
     const doNotifyClients = async () => {
-        setError(""); setOkMsg("");
-        if (!overlaps.length) { setError("There are no overlapping bookings to notify."); return; }
+        setError("");
+        setOkMsg("");
+        if (!overlaps.length) {
+            setError("There are no overlapping bookings to notify.");
+            return;
+        }
         setNotifying(true);
         try {
             const csrf = getCsrf();
@@ -219,16 +239,27 @@ const MaintenanceActionModal = ({
 
     return (
         // Added p-4 for padding on small viewports
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+        >
             <div className="absolute inset-0 bg-black/50" onClick={onClose} />
             {/* Removed mx-4 since p-4 is in parent, max-w-2xl handles width */}
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
                 <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                     <h2 className="text-xl font-semibold">
                         Action – Maintenance for{" "}
-                        <span className="text-[#0955AC]">{unit.brand} {unit.model}</span>
+                        <span className="text-[#0955AC]">
+                            {unit.brand} {unit.model}
+                        </span>
                     </h2>
-                    <button onClick={onClose} className="h-9 w-9 grid place-items-center rounded-full hover:bg-gray-100" title="Close" aria-label="Close">
+                    <button
+                        onClick={onClose}
+                        className="h-9 w-9 grid place-items-center rounded-full hover:bg-gray-100"
+                        title="Close"
+                        aria-label="Close"
+                    >
                         X
                     </button>
                 </div>
@@ -237,72 +268,159 @@ const MaintenanceActionModal = ({
                     {/* Responsive Grid: 1 column on mobile, 3 columns on medium screens and up */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Start date</label>
-                            <input type="date" min={today} value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Start date
+                            </label>
+                            <input
+                                type="date"
+                                min={today}
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                            />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">End date</label>
-                            <input type="date" min={startDate || today} value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                End date
+                            </label>
+                            <input
+                                type="date"
+                                min={startDate || today}
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                            />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
-                            <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Scheduled maintenance"
-                                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500" />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Reason
+                            </label>
+                            <input
+                                type="text"
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                                placeholder="Scheduled maintenance"
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                            />
                         </div>
                     </div>
 
                     {/* Action Buttons: Used flex-wrap for responsiveness */}
                     <div className="flex flex-wrap gap-3 pt-1">
-                        <button onClick={doCheckOverlaps} disabled={checking}
-                            className={`px-4 py-2 rounded-lg border border-gray-300 font-semibold ${checking ? "opacity-70 cursor-not-allowed" : "hover:bg-gray-50"}`}>
+                        <button
+                            onClick={doCheckOverlaps}
+                            disabled={checking}
+                            className={`px-4 py-2 rounded-lg border border-gray-300 font-semibold ${
+                                checking
+                                    ? "opacity-70 cursor-not-allowed"
+                                    : "hover:bg-gray-50"
+                            }`}
+                        >
                             {checking ? "Checking…" : "Check Bookings"}
                         </button>
-                        <button onClick={doCreateMaintenance} disabled={creating}
-                            className={`px-4 py-2 rounded-lg bg-[#0955AC] text-white font-semibold ${creating ? "opacity-70 cursor-not-allowed" : "hover:bg-[#0a4b97]"}`}>
+                        <button
+                            onClick={doCreateMaintenance}
+                            disabled={creating}
+                            className={`px-4 py-2 rounded-lg bg-[#0955AC] text-white font-semibold ${
+                                creating
+                                    ? "opacity-70 cursor-not-allowed"
+                                    : "hover:bg-[#0a4b97]"
+                            }`}
+                        >
                             {creating ? "Saving…" : "Save Maintenance"}
                         </button>
-                        <button onClick={doNotifyClients} disabled={notifying || !overlaps.length}
-                            className={`px-4 py-2 rounded-lg font-semibold ${overlaps.length ? "bg-green-600 text-white hover:bg-green-700" : "bg-gray-200 text-gray-600 cursor-not-allowed"}`}
-                            title={overlaps.length ? "Send email to affected client(s)" : "No overlapping bookings"}>
-                            {notifying ? "Sending Emails…" : `Notify Client${overlaps.length > 1 ? "s" : ""} (${overlaps.length})`}
+                        <button
+                            onClick={doNotifyClients}
+                            disabled={notifying || !overlaps.length}
+                            className={`px-4 py-2 rounded-lg font-semibold ${
+                                overlaps.length
+                                    ? "bg-green-600 text-white hover:bg-green-700"
+                                    : "bg-gray-200 text-gray-600 cursor-not-allowed"
+                            }`}
+                            title={
+                                overlaps.length
+                                    ? "Send email to affected client(s)"
+                                    : "No overlapping bookings"
+                            }
+                        >
+                            {notifying
+                                ? "Sending Emails…"
+                                : `Notify Client${
+                                      overlaps.length > 1 ? "s" : ""
+                                  } (${overlaps.length})`}
                         </button>
                     </div>
 
                     {(error || okMsg) && (
-                        <div className={`${error ? "text-red-700 bg-red-50 border-red-200" : "text-green-700 bg-green-50 border-green-200"} border rounded-lg px-3 py-2 text-sm`}>
+                        <div
+                            className={`${
+                                error
+                                    ? "text-red-700 bg-red-50 border-red-200"
+                                    : "text-green-700 bg-green-50 border-green-200"
+                            } border rounded-lg px-3 py-2 text-sm`}
+                        >
                             {error || okMsg}
                         </div>
                     )}
 
                     <div className="mt-2">
-                        <h3 className="text-sm font-semibold text-gray-800 mb-2">Overlapping bookings</h3>
+                        <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                            Overlapping bookings
+                        </h3>
                         {overlaps.length === 0 ? (
-                            <p className="text-sm text-gray-600">None detected for the selected dates.</p>
+                            <p className="text-sm text-gray-600">
+                                None detected for the selected dates.
+                            </p>
                         ) : (
                             // Key Responsive Fix: Added overflow-x-auto to contain the table on small screens
                             <div className="overflow-x-auto border border-gray-200 rounded-lg">
                                 <table className="min-w-full text-sm">
                                     <thead className="bg-gray-50">
                                         <tr className="text-left text-gray-700">
-                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">Booking #</th>
-                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">Client</th>
-                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">Email</th>
-                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">Phone</th>
-                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">From</th>
-                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">To</th>
+                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">
+                                                Booking #
+                                            </th>
+                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">
+                                                Client
+                                            </th>
+                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">
+                                                Email
+                                            </th>
+                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">
+                                                Phone
+                                            </th>
+                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">
+                                                From
+                                            </th>
+                                            <th className="px-3 py-2 font-semibold whitespace-nowrap">
+                                                To
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {overlaps.map((b) => (
-                                            <tr key={b.id} className="border-t border-gray-200">
-                                                <td className="px-3 py-2 whitespace-nowrap">{b.reference || b.id}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap">{b.client?.name || "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap">{b.client?.email || "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap">{b.client?.phone || "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap">{b.start_date}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap">{b.end_date}</td>
+                                            <tr
+                                                key={b.id}
+                                                className="border-t border-gray-200"
+                                            >
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                    {b.reference || b.id}
+                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                    {b.client?.name || "-"}
+                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                    {b.client?.email || "-"}
+                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                    {b.client?.phone || "-"}
+                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                    {b.start_date}
+                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                    {b.end_date}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -355,7 +473,10 @@ const UnitContent = () => {
     // Close dropdown on outside click or Escape
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(e.target)
+            ) {
                 setShowUserDropdown(false);
             }
         };
@@ -374,13 +495,15 @@ const UnitContent = () => {
     const fetchUnits = async (url = null) => {
         setLoading(true);
         try {
-            const endpoint = url ?? `/vendor/vehicles/list?${new URLSearchParams({
-                search: searchTerm || "",
-                status: status || "",
-                category: category || "",
-                per_page: String(itemsPerPage || 10),
-                page: String(unitsPage.current_page || 1),
-            }).toString()}`;
+            const endpoint =
+                url ??
+                `/vendor/vehicles/list?${new URLSearchParams({
+                    search: searchTerm || "",
+                    status: status || "",
+                    category: category || "",
+                    per_page: String(itemsPerPage || 10),
+                    page: String(unitsPage.current_page || 1),
+                }).toString()}`;
 
             const res = await fetch(endpoint, { credentials: "same-origin" });
             if (!res.ok) throw new Error(`Failed to load: ${res.status}`);
@@ -409,7 +532,6 @@ const UnitContent = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchTerm, status, category, itemsPerPage, unitsPage.current_page]);
 
-
     const handleAddUnitClick = () => setShowAddUnit(true);
 
     const goToLink = (link) => {
@@ -423,16 +545,39 @@ const UnitContent = () => {
         }
     };
 
-    const goPrev = () => { if (unitsPage.current_page > 1) setUnitsPage(p => ({ ...p, current_page: p.current_page - 1 })); };
-    const goNext = () => { if (unitsPage.current_page < unitsPage.last_page) setUnitsPage(p => ({ ...p, current_page: p.current_page + 1 })); };
+    const goPrev = () => {
+        if (unitsPage.current_page > 1)
+            setUnitsPage((p) => ({ ...p, current_page: p.current_page - 1 }));
+    };
+    const goNext = () => {
+        if (unitsPage.current_page < unitsPage.last_page)
+            setUnitsPage((p) => ({ ...p, current_page: p.current_page + 1 }));
+    };
 
-    const onPerPageChange = (n) => { setItemsPerPage(n); setUnitsPage(p => ({ ...p, current_page: 1 })); };
-    const onStatusChange = (val) => { setStatus(val); setUnitsPage(p => ({ ...p, current_page: 1 })); };
-    const onCategoryChange = (val) => { setCategory(val); setUnitsPage(p => ({ ...p, current_page: 1 })); };
-    const onSearchEnter = (e) => { if (e.key === "Enter") { setUnitsPage(p => ({ ...p, current_page: 1 })); fetchUnits(); } };
+    const onPerPageChange = (n) => {
+        setItemsPerPage(n);
+        setUnitsPage((p) => ({ ...p, current_page: 1 }));
+    };
+    const onStatusChange = (val) => {
+        setStatus(val);
+        setUnitsPage((p) => ({ ...p, current_page: 1 }));
+    };
+    const onCategoryChange = (val) => {
+        setCategory(val);
+        setUnitsPage((p) => ({ ...p, current_page: 1 }));
+    };
+    const onSearchEnter = (e) => {
+        if (e.key === "Enter") {
+            setUnitsPage((p) => ({ ...p, current_page: 1 }));
+            fetchUnits();
+        }
+    };
 
     /* ────────────── DELETE FLOW ────────────── */
-    const requestDelete = (id) => { setPendingDeleteId(id); setConfirmOpen(true); };
+    const requestDelete = (id) => {
+        setPendingDeleteId(id);
+        setConfirmOpen(true);
+    };
     const confirmDelete = () => {
         if (!pendingDeleteId) return;
         const id = pendingDeleteId;
@@ -456,47 +601,44 @@ const UnitContent = () => {
             },
         });
     };
-    const cancelDelete = () => { setConfirmOpen(false); setPendingDeleteId(null); };
+    const cancelDelete = () => {
+        setConfirmOpen(false);
+        setPendingDeleteId(null);
+    };
 
-    const viewDetails = (unit) => router.visit(`/vendors/unitDetails/${unit.id}`);
+    const viewDetails = (unit) =>
+        router.visit(`/vendors/unitDetails/${unit.id}`);
     const editUnit = (unit) => router.visit(`/vendors/addUnit/${unit.id}`);
 
-    
     return (
-        
-        <div className="w-full h-auto px-4 sm:px-5 py-10"> 
-            
+        <div className="w-full h-auto px-4 sm:px-5 py-10">
             {/* ==================== HEADER WITH DROPDOWN (Fully Responsive) ==================== */}
-<div className="flex flex-col sm:flex-row justify-between items-center sm:items-center gap-4 sm:gap-6 mb-8">
-    {/* Title */}
-    <h1 className="figtree text-[28px] leading-tight sm:text-[30px] font-[700] text-gray-900">
-        Vehicle Rental Units
-    </h1>
+            <div className="flex flex-col md:flex-row justify-between lg:items-start items-center gap-4 sm:gap-6 mb-8">
+                {/* Title */}
+                <h1 className="figtree text-[28px] leading-tight sm:text-[30px] font-[700] text-gray-900">
+                    Vehicle Rental Units
+                </h1>
 
-    {/* Right Side: Notifications + User Dropdown */}
-    <div className="flex items-center gap-3 sm:gap-5 w-full sm:w-auto justify-end">
-        {/* Optional: Add bell/notification icon here if you want */}
-        {/* <button className="relative p-2 rounded-full hover:bg-gray-100 transition">
-            <img src={bell} alt="Notifications" className="w-6 h-6" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button> */}
+                {/* Right Side: Notifications + User Dropdown */}
+                <div className="flex items-center gap-3 sm:gap-5 w-full sm:w-auto lg:justify-end justify-center">
 
-        {/* User Dropdown - Now properly aligned and responsive */}
-        <div className="flex-shrink-0">
-            <UserDropdown settingsRoute={route("settingsPage")} />
-        </div>
-    </div>
-</div>
-           
-            
+                    {/* User Dropdown - Now properly aligned and responsive */}
+                    <div className="">
+                        <UserDropdown settingsRoute={route("settingsPage")} />
+                    </div>
+                </div>
+            </div>
+
             {/* ==================== SEARCH / FILTERS (Responsive Layout) ==================== */}
             <div className="mt-8 mb-4">
-                
                 <div className="flex flex-wrap items-center justify-between gap-4 w-full">
-                    <div className="flex flex-wrap gap-4"> 
-                        
+                    <div className="flex flex-wrap gap-4">
                         <div className="w-full min-w-40 sm:w-[240px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-3">
-                            <img src={miniSearchIcon} alt="Search" className="mr-2" />
+                            <img
+                                src={miniSearchIcon}
+                                alt="Search"
+                                className="mr-2"
+                            />
                             <input
                                 type="text"
                                 className="w-full bg-transparent text-[13px] placeholder:text-[#7B7BACC] border-0 outline-none ring-0 focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none"
@@ -509,11 +651,17 @@ const UnitContent = () => {
 
                         {/* Category Select */}
                         <div className="w-[170px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-2">
-                            <img src={filterIcon} className="size-[12px] mr-2" alt="Filter" />
+                            <img
+                                src={filterIcon}
+                                className="size-[12px] mr-2"
+                                alt="Filter"
+                            />
                             <select
                                 className="w-full bg-transparent text-[13px] font-[500] text-[#7B7BACC] appearance-none border-0 outline-none ring-0 focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none"
                                 value={category}
-                                onChange={(e) => onCategoryChange(e.target.value)}
+                                onChange={(e) =>
+                                    onCategoryChange(e.target.value)
+                                }
                             >
                                 <option value="">Category</option>
                                 <option value="Land">Land</option>
@@ -524,7 +672,11 @@ const UnitContent = () => {
 
                         {/* Status Select */}
                         <div className="w-[170px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-2">
-                            <img src={filterIcon} className="size-[12px] mr-2" alt="Filter" />
+                            <img
+                                src={filterIcon}
+                                className="size-[12px] mr-2"
+                                alt="Filter"
+                            />
                             <select
                                 className="w-full bg-transparent text-[13px] font-[500] text-[#7B7BACC] appearance-none border-0 outline-none ring-0 focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none"
                                 value={status}
@@ -549,25 +701,36 @@ const UnitContent = () => {
                 </div>
             </div>
 
-           
-
             {/* ==================== BODY ==================== */}
             {showAddUnit ? (
                 <AddUnit />
             ) : (
                 <>
-                    {loading && <div className="text-sm text-gray-600 my-3">Loading units…</div>}
+                    {loading && (
+                        <div className="text-sm text-gray-600 my-3">
+                            Loading units…
+                        </div>
+                    )}
                     {!loading && unitsPage.data.length === 0 && (
-                        <div className="text-sm text-gray-600 my-3">No units found. Try adjusting your filters.</div>
+                        <div className="text-sm text-gray-600 my-3">
+                            No units found. Try adjusting your filters.
+                        </div>
                     )}
 
                     {unitsPage.data.map((unit) => (
-                        <div key={unit.id} className="relative w-auto  bg-white rounded-[10px] my-6 shadow-[4px_4px_4px_#0000001A]">
-                            
+                        <div
+                            key={unit.id}
+                            className="relative w-auto  bg-white rounded-[10px] my-6 shadow-[4px_4px_4px_#0000001A]"
+                        >
                             <div className="flex flex-col md:flex-row items-stretch">
                                 {/* Image container */}
                                 <div className="shrink-0 w-full h-[200px] md:w-[260px] md:h-auto overflow-hidden md:rounded-l-[10px] rounded-t-[10px] md:rounded-t-none self-stretch">
-                                    <img src={unit.image || car1} alt="Vehicle" className="block w-full h-full object-cover" loading="lazy" />
+                                    <img
+                                        src={unit.image || car1}
+                                        alt="Vehicle"
+                                        className="block w-full h-full object-cover"
+                                        loading="lazy"
+                                    />
                                 </div>
 
                                 <div className="flex-1 px-4 sm:px-6 py-4">
@@ -575,49 +738,113 @@ const UnitContent = () => {
                                         <div className="min-w-0">
                                             <div className="bebas-neue text-[28px] leading-7">
                                                 <span className="truncate block">
-                                                    {unit.brand} <span className="text-[#0955AC]">{unit.model}</span>
+                                                    {unit.brand}{" "}
+                                                    <span className="text-[#0955AC]">
+                                                        {unit.model}
+                                                    </span>
                                                 </span>
                                             </div>
                                             <div className="bebas-neue text-[24px] leading-6">
-                                                ${Number(unit.price ?? 0).toFixed(0)}
-                                                <span className="figtree text-[#00000080] text-[14px] font-[600]">/day</span>
+                                                $
+                                                {Number(
+                                                    unit.price ?? 0
+                                                ).toFixed(0)}
+                                                <span className="figtree text-[#00000080] text-[14px] font-[600]">
+                                                    /day
+                                                </span>
                                             </div>
                                             <div className="poppins flex items-center gap-2 mt-1 text-[13px] font-[600]">
-                                                <img src={availableIcon} className="w-[16px] h-[16px]" alt="Status" />
-                                                <span className={
-                                                    unit.status === "Available" ? "text-[#3C9A34]" :
-                                                    unit.status === "Pending" ? "text-[#D97706]" : "text-[#6B7280]"
-                                                }>
+                                                <img
+                                                    src={availableIcon}
+                                                    className="w-[16px] h-[16px]"
+                                                    alt="Status"
+                                                />
+                                                <span
+                                                    className={
+                                                        unit.status ===
+                                                        "Available"
+                                                            ? "text-[#3C9A34]"
+                                                            : unit.status ===
+                                                              "Pending"
+                                                            ? "text-[#D97706]"
+                                                            : "text-[#6B7280]"
+                                                    }
+                                                >
                                                     {unit.status || "—"}
                                                 </span>
                                             </div>
                                         </div>
 
-                                        
                                         <div className="flex items-center gap-2 shrink-0">
-                                            <ViewButton onClick={() => viewDetails(unit)} />
-                                            <ActionButton onClick={() => setActionUnit(unit)} />
+                                            <ViewButton
+                                                onClick={() =>
+                                                    viewDetails(unit)
+                                                }
+                                            />
+                                            <ActionButton
+                                                onClick={() =>
+                                                    setActionUnit(unit)
+                                                }
+                                            />
                                         </div>
                                     </div>
 
-                                    
                                     <div className="mt-5 flex flex-wrap justify-start items-center gap-x-6 gap-y-3">
-                                        <Spec icon={icon1} alt="Mileage" label={unit.mileage ?? "-"} />
-                                        <Spec icon={icon2} alt="Transmission" label={unit.transmission ?? "-"} />
-                                        <Spec icon={icon3} alt="Capacity" label={unit.capacity ? nbsp(unit.capacity) : "-"} />
-                                        <Spec icon={icon4} alt="Fuel" label={unit.fuel_type ?? unit.fuelType ?? "-"} />
+                                        <Spec
+                                            icon={icon1}
+                                            alt="Mileage"
+                                            label={unit.mileage ?? "-"}
+                                        />
+                                        <Spec
+                                            icon={icon2}
+                                            alt="Transmission"
+                                            label={unit.transmission ?? "-"}
+                                        />
+                                        <Spec
+                                            icon={icon3}
+                                            alt="Capacity"
+                                            label={
+                                                unit.capacity
+                                                    ? nbsp(unit.capacity)
+                                                    : "-"
+                                            }
+                                        />
+                                        <Spec
+                                            icon={icon4}
+                                            alt="Fuel"
+                                            label={
+                                                unit.fuel_type ??
+                                                unit.fuelType ??
+                                                "-"
+                                            }
+                                        />
                                     </div>
                                 </div>
 
-                                
                                 <div className="w-full md:w-[150px] bg-[#D8E4F2] md:rounded-r-[10px] rounded-b-[10px] md:rounded-b-none py-4 px-6 md:px-0 flex flex-row md:flex-col justify-center items-center gap-4">
-                                    <button type="button" className="size-[40px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[6px] flex justify-center items-center"
-                                        onClick={() => editUnit(unit)} aria-label="Edit">
-                                        <img src={editIcon} className="size-[22px]" alt="" />
+                                    <button
+                                        type="button"
+                                        className="size-[40px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[6px] flex justify-center items-center"
+                                        onClick={() => editUnit(unit)}
+                                        aria-label="Edit"
+                                    >
+                                        <img
+                                            src={editIcon}
+                                            className="size-[22px]"
+                                            alt=""
+                                        />
                                     </button>
-                                    <button type="button" className="size-[40px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[6px] flex justify-center items-center"
-                                        onClick={() => requestDelete(unit.id)} aria-label="Delete">
-                                        <img src={deleteIcon} className="size-[22px]" alt="" />
+                                    <button
+                                        type="button"
+                                        className="size-[40px] border-[1.5px] border-[#FF0000] bg-[#D8E4F2] rounded-[6px] flex justify-center items-center"
+                                        onClick={() => requestDelete(unit.id)}
+                                        aria-label="Delete"
+                                    >
+                                        <img
+                                            src={deleteIcon}
+                                            className="size-[22px]"
+                                            alt=""
+                                        />
                                     </button>
                                 </div>
                             </div>
@@ -627,50 +854,77 @@ const UnitContent = () => {
                     {/* Pagination */}
                     <div className="flex flex-wrap justify-between items-center gap-4 mt-12">
                         <div className="flex items-center">
-                            <span className="mr-3 text-[#00000080] text-[14px] whitespace-nowrap">Results per page</span>
+                            <span className="mr-3 text-[#00000080] text-[14px] whitespace-nowrap">
+                                Results per page
+                            </span>
                             <select
                                 className="rounded px-3 py-1 font-[600] text-[15px] bg-[#F4F3F3] outline-none border-0 ring-0 focus:outline-none focus:ring-0"
                                 value={itemsPerPage}
-                                onChange={(e) => onPerPageChange(Number(e.target.value))}
+                                onChange={(e) =>
+                                    onPerPageChange(Number(e.target.value))
+                                }
                             >
                                 {perPageOptions.map((opt) => (
-                                    <option key={opt} value={opt}>{opt}</option>
+                                    <option key={opt} value={opt}>
+                                        {opt}
+                                    </option>
                                 ))}
                             </select>
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <button className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50" onClick={goPrev} disabled={unitsPage.current_page <= 1}>
+                            <button
+                                className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                                onClick={goPrev}
+                                disabled={unitsPage.current_page <= 1}
+                            >
                                 <span className="text-lg">&lt;</span>
                             </button>
 
                             {unitsPage.links
-                                ?.filter((l) => !["&laquo; Previous", "Next &raquo;"].includes(l.label))
+                                ?.filter(
+                                    (l) =>
+                                        ![
+                                            "&laquo; Previous",
+                                            "Next &raquo;",
+                                        ].includes(l.label)
+                                )
                                 .map((l, idx) => (
                                     <button
                                         key={idx}
-                                        className={`px-3 py-1 text-[15px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${l.active ? "text-[#0955AC] border-[2px] border-[#0955AC]" : ""}`}
+                                        className={`px-3 py-1 text-[15px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                            l.active
+                                                ? "text-[#0955AC] border-[2px] border-[#0955AC]"
+                                                : ""
+                                        }`}
                                         onClick={() => goToLink(l)}
                                         disabled={!l.url}
-                                        dangerouslySetInnerHTML={{ __html: l.label }}
+                                        dangerouslySetInnerHTML={{
+                                            __html: l.label,
+                                        }}
                                     />
                                 ))}
 
-                            <button className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50" onClick={goNext} disabled={unitsPage.current_page >= unitsPage.last_page}>
+                            <button
+                                className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                                onClick={goNext}
+                                disabled={
+                                    unitsPage.current_page >=
+                                    unitsPage.last_page
+                                }
+                            >
                                 <span className="text-lg">&gt;</span>
                             </button>
                         </div>
                     </div>
                 </>
             )}
-            
-      
 
             {/* Action Modal */}
-            <MaintenanceActionModal 
-                open={!!actionUnit} 
-                unit={actionUnit} 
-                onClose={() => setActionUnit(null)} 
+            <MaintenanceActionModal
+                open={!!actionUnit}
+                unit={actionUnit}
+                onClose={() => setActionUnit(null)}
                 onMaintenanceSaved={() => {
                     // Refresh data after successful maintenance save
                     fetchUnits();

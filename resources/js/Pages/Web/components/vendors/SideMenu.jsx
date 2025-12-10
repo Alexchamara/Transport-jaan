@@ -41,7 +41,7 @@ const SideMenu = () => {
           scrollbar-color: #d1d5db transparent;
         }
       `}</style>
-            <div className="poppins min-w-[279px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
+            <div className="poppins min-w-[250px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
                 {/* Logo - Fixed at top with Back Button */}
                 <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
                     <button
