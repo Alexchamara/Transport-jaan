@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
     Chart as ChartJS,
     LineElement,
@@ -157,6 +157,15 @@ const options = {
 };
 
 const CashflowChart = () => {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     const chartRef = useRef();
     const [tooltip, setTooltip] = React.useState({
         x: null, // Will be set after chart renders
@@ -212,58 +221,82 @@ const CashflowChart = () => {
                     </button>
                 </div>
             </div>
-            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center ml-4 md:ml-20 mb-2 px-4 md:px-10">
-                <div className="flex flex-row gap-2 items-center">
-                    <div className="w-[22px] h-[4px] bg-[#0A56AD]" />
-                    <span className="figtree text-[16px] md:text-[20px] font-[600] text-[#00000080]">
-                        Income
-                    </span>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <div className="w-[22px] h-[4px] bg-[#000000]" />
-                    <span className="figtree text-[16px] md:text-[20px] font-[600] text-[#00000080]">
-                        Expenses
-                    </span>
-                </div>
-            </div>
-            <div className="w-full h-[250px] md:h-[320px] bg-transparent px-4 md:px-10 pb-10 mt-5">
-                <Line ref={chartRef} data={data} options={options} />
-                {/* Custom Tooltip */}
-                {tooltip && (
-                    <div
-                        className="absolute z-10 bg-[#D8E4F2] rounded-[10px] px-2 py-2 shadow-lg flex flex-col items-center"
-                        style={{
-                            left: tooltip.x - 20,
-                            top: tooltip.y - 20,
-                            minWidth: 180,
-                            width: 152,
-                            height: 73,
-                        }}
-                    >
-                        <div className="figtree text-[14px] font-[600]">
-                            {`${tooltip.month} 2025`}
-                        </div>
-                        <div className="flex flex-col">
-                            <div className="flex flex-row items-center gap-4">
-                                <span className="text-[#000000] text-[10px] font-[500]">
-                                    Income
-                                </span>
-                                <span className="text-[#000000] text-[13px] font-[700]">
-                                    ${tooltip.income.toLocaleString()}
-                                </span>
-                            </div>
-                            <div className="flex flex-row items-center gap-4">
-                                <span className="text-[#000000] text-[10px] font-[500]">
-                                    Expenses
-                                </span>
-                                <span className="text-[#000000] text-[13px] font-[700]">
-                                    ${tooltip.expenses.toLocaleString()}
-                                </span>
-                            </div>
-                        </div>
+            {!isMobile && (
+                <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center ml-4 md:ml-20 mb-2 px-4 md:px-10">
+                    <div className="flex flex-row gap-2 items-center">
+                        <div className="w-[22px] h-[4px] bg-[#0A56AD]" />
+                        <span className="figtree text-[16px] md:text-[20px] font-[600] text-[#00000080]">
+                            Income
+                        </span>
                     </div>
-                )}
-            </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <div className="w-[22px] h-[4px] bg-[#000000]" />
+                        <span className="figtree text-[16px] md:text-[20px] font-[600] text-[#00000080]">
+                            Expenses
+                        </span>
+                    </div>
+                </div>
+            )}
+            {isMobile ? (
+                <div className="flex flex-col gap-4 px-4 md:px-10 pb-10 mt-5 max-h-[400px] overflow-y-auto">
+                    {months.map((month, index) => (
+                        <div key={month} className="bg-[#D8E4F2] rounded-[10px] p-4 shadow-md">
+                            <div className="figtree text-[14px] font-[600] text-center mb-2">
+                                {month} 2025
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[#000000] text-[12px] font-[500]">Income</span>
+                                    <span className="text-[#0955AC] text-[14px] font-[700]">${incomeData[index].toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[#000000] text-[12px] font-[500]">Expenses</span>
+                                    <span className="text-[#000000] text-[14px] font-[700]">${expensesData[index].toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="w-full h-[250px] md:h-[320px] bg-transparent px-4 md:px-10 pb-10 mt-5">
+                    <Line ref={chartRef} data={data} options={options} />
+                    {/* Custom Tooltip */}
+                    {tooltip && (
+                        <div
+                            className="absolute z-10 bg-[#D8E4F2] rounded-[10px] px-2 py-2 shadow-lg flex flex-col items-center"
+                            style={{
+                                left: tooltip.x - 20,
+                                top: tooltip.y - 20,
+                                minWidth: 180,
+                                width: 152,
+                                height: 73,
+                            }}
+                        >
+                            <div className="figtree text-[14px] font-[600]">
+                                {`${tooltip.month} 2025`}
+                            </div>
+                            <div className="flex flex-col">
+                                <div className="flex flex-row items-center gap-4">
+                                    <span className="text-[#000000] text-[10px] font-[500]">
+                                        Income
+                                    </span>
+                                    <span className="text-[#000000] text-[13px] font-[700]">
+                                        ${tooltip.income.toLocaleString()}
+                                    </span>
+                                </div>
+                                <div className="flex flex-row items-center gap-4">
+                                    <span className="text-[#000000] text-[10px] font-[500]">
+                                        Expenses
+                                    </span>
+                                    <span className="text-[#000000] text-[13px] font-[700]">
+                                        ${tooltip.expenses.toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
