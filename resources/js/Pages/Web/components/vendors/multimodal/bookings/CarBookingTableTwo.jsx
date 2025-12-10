@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
 const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
   
+    // State for mobile detection
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
     // State for pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -19,6 +22,16 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
     const [newPayment, setNewPayment] = useState('');
     const [newPaymentStatus, setNewPaymentStatus] = useState('');
     const [newStatus, setNewStatus] = useState('');
+
+    // Mobile detection effect
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const goToPage = (page) => {
         if (page < 1 || page > totalPages) return;

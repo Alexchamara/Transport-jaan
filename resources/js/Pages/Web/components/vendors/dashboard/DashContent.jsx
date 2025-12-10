@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 import dollarIcon from "../../../assets/vendors/dashboard/icons/dollarIcon.svg";
 import carIcon from "../../../assets/vendors/dashboard/icons/carIcon.svg";
@@ -40,6 +40,17 @@ const DashContent = ({
 }) => {
     // UserDropdown component handles its own open/close logic
 
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     const computedCarTypes = (carTypes ?? []).map((t) => ({
         name: t.name ?? "Unknown",
         percent: Number(t.percent ?? 0),
@@ -56,32 +67,37 @@ const DashContent = ({
             : n;
 
     return (
-        <div className="w-full max-w-full h-auto px-4 md:pr-5 py-6 md:py-10 overflow-x-hidden">
+        <div className="w-full max-w-full h-auto px-5 lg:px-0 lg:pr-5 py-5 lg:py-10">
             {/* Header */}
-            <div className="flex flex-col md:flex-row gap-4 md:gap-5 justify-between items-start md:items-center w-full max-w-full">
-                <h1 className="figtree text-[24px] sm:text-[28px] md:text-[35px] font-[700] w-full md:w-auto">Vehicle Rental Dashboard</h1>
+            <div className="flex md:flex-row flex-col gap-5 justify-between xl:items-start items-center">
+                <h1 className="figtree text-[24px] sm:text-[28px] md:text-[35px] font-[700] text-center">
+                    Vehicle Rental Dashboard
+                </h1>
                 <div className="w-full md:w-auto flex justify-center md:justify-end">
                     <UserDropdown settingsRoute={route("settingsPage")} />
                 </div>
             </div>
 
-            <div className="flex flex-col gap-5 py-6 md:py-10 w-full min-w-0">
-                <div className="flex flex-col xl:flex-row gap-5 w-full min-w-0">
+            <div className="flex flex-col gap-5 py-10 w-full">
+                <div className="flex flex-col xl:flex-row gap-5 w-full">
                     {/* Left */}
-                    <div className="flex flex-col gap-5 w-full min-w-0">
+                    <div className="flex flex-col gap-5 w-full">
                         {/* Cards */}
                         <div className="flex flex-col gap-5">
                             <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
                                 {/* Total Revenue */}
                                 <div
-                                    className="w-full max-w-[320px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full xl:min-w-[300px] min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
                                 >
                                     <div className="flex flex-row gap-2 md:gap-5 items-center min-w-0 flex-1">
                                         <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
-                                            <img src={dollarIcon} className="w-5 md:w-6" />
+                                            <img
+                                                src={dollarIcon}
+                                                className="w-5 md:w-6"
+                                            />
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
@@ -100,7 +116,9 @@ const DashContent = ({
                                                 src={upArrow}
                                                 className="size-[14px] md:size-[19px]"
                                             />
-                                            <h1 className="text-[10px] md:text-sm">—</h1>
+                                            <h1 className="text-[10px] md:text-sm">
+                                                —
+                                            </h1>
                                         </div>
                                         <h1 className="text-[10px] md:text-sm text-[#7B7B7A] hidden md:block">
                                             from last period
@@ -110,14 +128,17 @@ const DashContent = ({
 
                                 {/* New Bookings */}
                                 <div
-                                    className="w-full max-w-[320px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full xl:min-w-[300px] min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
                                 >
                                     <div className="flex flex-row gap-2 md:gap-5 items-center min-w-0 flex-1">
                                         <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
-                                            <img src={bookingIcon} className="w-5 md:w-6" />
+                                            <img
+                                                src={bookingIcon}
+                                                className="w-5 md:w-6"
+                                            />
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
@@ -134,7 +155,9 @@ const DashContent = ({
                                                 src={upArrow}
                                                 className="size-[14px] md:size-[19px]"
                                             />
-                                            <h1 className="text-[10px] md:text-sm">—</h1>
+                                            <h1 className="text-[10px] md:text-sm">
+                                                —
+                                            </h1>
                                         </div>
                                         <h1 className="text-[10px] md:text-sm text-[#7B7B7A] hidden md:block">
                                             from last week
@@ -146,14 +169,17 @@ const DashContent = ({
                             <div className="flex xl:flex-row flex-col gap-5 w-full">
                                 {/* Rented Cars */}
                                 <div
-                                    className="w-full max-w-[320px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full xl:min-w-[300px] min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
                                 >
                                     <div className="flex flex-row gap-2 md:gap-5 items-center min-w-0 flex-1">
                                         <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
-                                            <img src={wheelIcon} className="w-5 md:w-6" />
+                                            <img
+                                                src={wheelIcon}
+                                                className="w-5 md:w-6"
+                                            />
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
@@ -170,7 +196,9 @@ const DashContent = ({
                                                 src={upArrow}
                                                 className="size-[14px] md:size-[19px] rotate-180"
                                             />
-                                            <h1 className="text-[10px] md:text-sm">—</h1>
+                                            <h1 className="text-[10px] md:text-sm">
+                                                —
+                                            </h1>
                                         </div>
                                         <h1 className="text-[10px] md:text-sm text-[#7B7B7A] hidden md:block">
                                             from last week
@@ -180,14 +208,17 @@ const DashContent = ({
 
                                 {/* Total Cars */}
                                 <div
-                                    className="w-full max-w-[320px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full xl:min-w-[300px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
                                 >
                                     <div className="flex flex-row gap-2 md:gap-5 items-center min-w-0 flex-1">
                                         <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center shrink-0">
-                                            <img src={carIcon} className="w-5 md:w-6" />
+                                            <img
+                                                src={carIcon}
+                                                className="w-5 md:w-6"
+                                            />
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
@@ -204,7 +235,9 @@ const DashContent = ({
                                                 src={upArrow}
                                                 className="size-[14px] md:size-[19px]"
                                             />
-                                            <h1 className="text-[10px] md:text-sm">—</h1>
+                                            <h1 className="text-[10px] md:text-sm">
+                                                —
+                                            </h1>
                                         </div>
                                         <h1 className="text-[10px] md:text-sm text-[#7B7B7A] hidden md:block">
                                             from last week
@@ -216,7 +249,7 @@ const DashContent = ({
 
                         {/* Booking Overview */}
                         <div
-                            className="w-full max-w-[320px] md:max-w-none h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-10 px-3 md:px-10 overflow-x-auto"
+                            className="w-full xl:w-[730px] h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-16 w-full gap-4">
@@ -233,15 +266,26 @@ const DashContent = ({
                                 </div>
                             </div>
                             <div className="w-full min-w-0">
-                                <BookingOverviewBarChart
-                                    data={bookingOverview ?? []}
-                                />
+                                {isMobile ? (
+                                    <div className="flex flex-col gap-2">
+                                        {(bookingOverview ?? []).map((item, index) => (
+                                            <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                                <span className="font-medium text-gray-700">{item.name}</span>
+                                                <span className="font-bold text-blue-600">{item.bookings} bookings</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <BookingOverviewBarChart
+                                        data={bookingOverview ?? []}
+                                    />
+                                )}
                             </div>
                         </div>
 
                         {/* Earning Summary */}
                         <div
-                            className="w-full max-w-[320px] md:max-w-full min-h-[381px] bg-white rounded-[10px] py-6 md:py-10 px-3 md:px-10 overflow-x-auto"
+                            className="w-full xl:w-[730px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-12 w-full gap-4">
@@ -258,7 +302,20 @@ const DashContent = ({
                                 </div>
                             </div>
                             <div className="w-full min-w-0">
-                                <EarningSummaryChart data={earningSummary ?? []} />
+                                {isMobile ? (
+                                    <div className="flex flex-col gap-2">
+                                        {(earningSummary ?? []).map((item, index) => (
+                                            <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                                <span className="font-medium text-gray-700">{item.name}</span>
+                                                <span className="font-bold text-green-600">${Number(item.value || 0).toLocaleString()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <EarningSummaryChart
+                                        data={earningSummary ?? []}
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -281,78 +338,30 @@ const DashContent = ({
                                 </div>
                             </div>
                             <div className="w-full min-w-0">
-                                <RealStatusPieChart data={realStatus ?? []} />
+                                <div className="flex flex-col gap-2 mt-4">
+                                    {(realStatus ?? []).map((item, index) => {
+                                        const total = (realStatus ?? []).reduce((s, n) => s + (Number.isFinite(n.value) ? n.value : 0), 0);
+                                        const percent = Math.round((item.value / Math.max(total, 1)) * 100);
+                                        return (
+                                            <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-4 h-4 rounded" style={{ backgroundColor: item.color || '#C4C4C4' }}></span>
+                                                    <span className="font-medium text-gray-700">{item.name}</span>
+                                                </div>
+                                                <span className="font-bold text-gray-800">{percent}%</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
-
-                        {/* Car Availability - Moved to left on mobile */}
-                        <div
-                            className="w-full max-w-[320px] md:max-w-none xl:hidden xl:min-h-[206px] bg-[#D8E4F2] flex flex-col px-4 md:px-10 py-5 justify-center items-center rounded-[10px]"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <h1 className="text-[20px] md:text-[24px] font-[700] mb-3">
-                                Car Availability
-                            </h1>
-                            <div className="flex flex-col gap-3 w-full max-w-[283px] items-center">
-                                <div className="w-full xl:w-[283px] xl:h-[35px] flex flex-row items-center gap-2 rounded-[6px] px-3 py-2 bg-white">
-                                    <img src={car} className="size-[20px]" />
-                                    <input
-                                        className="w-full outline-none bg-transparent border-0 focus:ring-0"
-                                        placeholder="Car Type"
-                                    />
-                                    <img src={miniDownArrow} />
-                                </div>
-
-                                <div className="flex flex-row gap-3 w-full">
-                                    <div className="flex-1 xl:w-[137px] xl:h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
-                                        <img
-                                            src={date}
-                                            className="size-[20px] shrink-0"
-                                        />
-                                        <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
-                                            placeholder="Start date"
-                                        />
-                                    </div>
-                                    <div className="flex-1 xl:w-[137px] h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
-                                        <img
-                                            src={clock}
-                                            className="size-[16px] shrink-0"
-                                        />
-                                        <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
-                                            placeholder="Start time"
-                                        />
-                                    </div>
-                                </div>
-
-                                <button className="w-full xl:w-[283px] xl:h-[40px] bg-[#0955AC] rounded-[6px] text-[14px] md:text-[16px] font-[700] text-white border-0 focus:ring-0 py-2">
-                                    Check Availability
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Reminders - Moved to left on mobile */}
-                        {/* <div
-                            className="w-full max-w-[320px] md:max-w-none xl:hidden min-h-[335px] bg-white rounded-[10px] py-5 px-3 md:px-10"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-row items-center justify-between w-full">
-                                <h1 className="text-[20px] md:text-[24px] font-[700]">
-                                    Reminders
-                                </h1>
-                                <button className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center text-[#00000080] font-[600] text-[30px] border-0 focus:ring-0">
-                                    +
-                                </button>
-                            </div>
-                        </div> */}
                     </div>
 
                     {/* Right */}
-                    <div className="flex flex-col items-center gap-5 w-full min-w-0 h-full">
+                    <div className="flex flex-col items-center gap-5 w-full h-full">
                         {/* Car Availability - Desktop only */}
                         <div
-                            className="hidden xl:flex w-full max-w-[320px] md:max-w-none xl:min-h-[206px] bg-[#D8E4F2] flex-col px-4 md:px-10 py-5 justify-center items-center rounded-[10px]"
+                            className="hidden xl:flex bg-[#D8E4F2] flex-col px-5 py-5 justify-center items-center rounded-[10px] w-full"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <h1 className="text-[20px] md:text-[24px] font-[700] mb-3">
@@ -420,7 +429,7 @@ const DashContent = ({
                             </div>
                         </div>
 
-                        {/* Reminders - Desktop only
+                        {/* Reminders - Desktop only */}
                         <div
                             className="hidden xl:block w-full max-w-[320px] md:max-w-none min-h-[335px] bg-white rounded-[10px] py-5 px-3 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -433,109 +442,142 @@ const DashContent = ({
                                     +
                                 </button>
                             </div>
-                        </div> */}
+                        </div>
                     </div>
                 </div>
 
-               {/* Bookings table */}
-<div
-    className="w-full max-w-[320px] md:max-w-none h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-10 px-3 md:px-10"
-    style={{ boxShadow: "4px 4px 4px #0000001A" }}
->
-    <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
-        <h1 className="text-[20px] md:text-[24px] font-[700]">Car Booking</h1>
+                {/* Bookings table */}
+                <div
+                    className="w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-10 px-3 md:px-10"
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                >
+                    <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
+                        <h1 className="text-[20px] md:text-[24px] font-[700]">
+                            Car Booking
+                        </h1>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
-                <img src={miniSearchIcon} className="shrink-0" />
-                <input
-                    type="text"
-                    className="w-full outline-none bg-transparent placeholder:text-[#7B7B7ACC] border-0 focus:ring-0 text-sm"
-                    placeholder="Search client name, car, etc."
-                />
-            </div>
+                        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
+                                <img
+                                    src={miniSearchIcon}
+                                    className="shrink-0"
+                                />
+                                <input
+                                    type="text"
+                                    className="w-full outline-none bg-transparent placeholder:text-[#7B7B7ACC] border-0 focus:ring-0 text-sm"
+                                    placeholder="Search client name, car, etc."
+                                />
+                            </div>
 
-            <button className="w-full sm:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-4 border-0 focus:ring-0">
-                <img src={filterIcon} className="size-[12px] shrink-0" />
-                <span className="text-[12px] sm:text-[14px] font-[500] text-[#7B7B7ACC]">Filter</span>
-                <img src={miniDownArrow} className="shrink-0" />
-            </button>
-        </div>
-    </div>
+                            <button className="w-full sm:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-4 border-0 focus:ring-0">
+                                <img
+                                    src={filterIcon}
+                                    className="size-[12px] shrink-0"
+                                />
+                                <span className="text-[12px] sm:text-[14px] font-[500] text-[#7B7B7ACC]">
+                                    Filter
+                                </span>
+                                <img src={miniDownArrow} className="shrink-0" />
+                            </button>
+                        </div>
+                    </div>
 
-    {/* ✅ Only the table scrolls in mobile */}
-    <div className="w-full overflow-x-auto">
-        <CarBookingTable rows={bookings ?? []} />
-    </div>
-</div>
+                    {/* ✅ Only the table scrolls in mobile */}
+                    <div className="w-full overflow-x-auto">
+                        <CarBookingTable rows={bookings ?? []} />
+                    </div>
+                </div>
 
-               {/* Car types + Recent activities - Compact Layout */}
-<div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full">
-    {/* Car Types - Full width on mobile */}
-    <div className="w-full">
-        <div
-            className="w-full bg-white rounded-[10px] py-6 px-4 md:px-8"
-            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-        >
-            <div className="flex justify-between items-center mb-5">
-                <h2 className="text-[20px] md:text-[24px] font-bold">Car Types</h2>
-                <span className="text-2xl font-bold text-gray-400">...</span>
-            </div>
-            <div className="space-y-4">
-                {computedCarTypes.length > 0 ? (
-                    computedCarTypes.slice(0, 4).map((type, idx) => (  // Show only top 4
+                {/* Car types + Recent activities - Compact Layout */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full">
+                    {/* Car Types - Full width on mobile */}
+                    <div className="w-full">
                         <div
-                            key={idx}
-                            className="flex items-center gap-3 border border-gray-300 rounded-lg overflow-hidden"
+                            className="w-full bg-white rounded-[10px] py-6 px-4 md:px-8"
+                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <img
-                                src={type.img}
-                                alt={type.name}
-                                className="w-24 h-20 object-cover"
-                            />
-                            <div className="flex-1 pr-3">
-                                <div className="flex justify-between text-sm font-medium mb-1">
-                                    <span className="text-gray-600 truncate">{type.name}</span>
-                                    <span>{type.percent}%</span>
-                                </div>
-                                <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full transition-all duration-700"
-                                        style={{
-                                            width: `${type.percent}%`,
-                                            backgroundColor: type.percent <= 30 ? "#ef4444" : "#0955AC",
-                                        }}
-                                    />
-                                </div>
+                            <div className="flex justify-between items-center mb-5">
+                                <h2 className="text-[20px] md:text-[24px] font-bold">
+                                    Car Types
+                                </h2>
+                                <span className="text-2xl font-bold text-gray-400">
+                                    ...
+                                </span>
+                            </div>
+                            <div className="space-y-4">
+                                {computedCarTypes.length > 0 ? (
+                                    computedCarTypes.slice(0, 4).map(
+                                        (
+                                            type,
+                                            idx // Show only top 4
+                                        ) => (
+                                            <div
+                                                key={idx}
+                                                className="flex items-center gap-3 border border-gray-300 rounded-lg overflow-hidden"
+                                            >
+                                                <img
+                                                    src={type.img}
+                                                    alt={type.name}
+                                                    className="w-20 md:w-24 h-16 md:h-20 object-cover"
+                                                />
+                                                <div className="flex-1 pr-3">
+                                                    <div className="flex justify-between text-sm font-medium mb-1">
+                                                        <span className="text-gray-600 truncate">
+                                                            {type.name}
+                                                        </span>
+                                                        <span>
+                                                            {type.percent}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full transition-all duration-700"
+                                                            style={{
+                                                                width: `${type.percent}%`,
+                                                                backgroundColor:
+                                                                    type.percent <=
+                                                                    30
+                                                                        ? "#ef4444"
+                                                                        : "#0955AC",
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    )
+                                ) : (
+                                    <p className="text-center text-gray-500 py-8">
+                                        No car type data yet.
+                                    </p>
+                                )}
                             </div>
                         </div>
-                    ))
-                ) : (
-                    <p className="text-center text-gray-500 py-8">No car type data yet.</p>
-                )}
-            </div>
-        </div>
-    </div>
+                    </div>
 
-    {/* Recent Activities - Compact & Reduced Size */}
-    <div className="w-full xl:max-w-md mx-auto"> {/* Controls max width on large screens */}
-        <div
-            className="w-full bg-white rounded-[10px] py-5 px-4 md:px-6 h-96 md:h-[380px] overflow-y-auto"
-            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-        >
-            <div className="flex justify-between items-center mb-4">
-                <h2 className="text-[20px] md:text-[22px] font-bold">Recent Activities</h2>
-                {unreadNotifications > 0 && (
-                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        {unreadNotifications}
-                    </span>
-                )}
-            </div>
+                    {/* Recent Activities - Compact & Reduced Size */}
+                    <div className="w-full xl:max-w-md mx-auto">
+                        {" "}
+                        {/* Controls max width on large screens */}
+                        <div
+                            className="w-full bg-white rounded-[10px] py-5 px-4 md:px-6 h-96 md:h-[380px] overflow-y-auto"
+                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        >
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-[20px] md:text-[22px] font-bold">
+                                    Recent Activities
+                                </h2>
+                                {unreadNotifications > 0 && (
+                                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        {unreadNotifications}
+                                    </span>
+                                )}
+                            </div>
 
-            <RecentActivities activities={recentActivities} />
-        </div>
-    </div>
-</div>
+                            <RecentActivities activities={recentActivities} />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

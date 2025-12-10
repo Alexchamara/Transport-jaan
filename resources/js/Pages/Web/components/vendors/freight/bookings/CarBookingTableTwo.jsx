@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
 const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
   
+    // State for mobile detection
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
     // State for pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -19,6 +22,16 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
     const [newPayment, setNewPayment] = useState('');
     const [newPaymentStatus, setNewPaymentStatus] = useState('');
     const [newStatus, setNewStatus] = useState('');
+
+    // Mobile detection effect
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const goToPage = (page) => {
         if (page < 1 || page > totalPages) return;
@@ -80,65 +93,67 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
 
     return (
         <div className="py-10">
-            {/* table headings */}
-            <div className="grid grid-cols-1 md:grid-cols-8 bg-[#D8E4F2] h-auto md:h-[42px] justify-center items-center rounded-[8px] text-[10px] md:text-[12px] lg:text-[14px] font-[600] px-4 md:px-6 lg:px-10 py-2 md:py-0">
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Book id</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+            {/* table headings - only show on desktop */}
+            {!isMobile && (
+                <div className="grid grid-cols-1 md:grid-cols-8 bg-[#D8E4F2] h-auto md:h-[42px] justify-center items-center rounded-[8px] text-[10px] md:text-[12px] lg:text-[14px] font-[600] px-4 md:px-6 lg:px-10 py-2 md:py-0">
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Book id</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Booking Date</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Client Name</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Car Model</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Plan</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Date</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center ml-10">
+                        <h1>Payment</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Status</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
+                            <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                        </div>
                     </div>
                 </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Booking Date</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Client Name</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Car Model</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Plan</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Date</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center ml-10">
-                    <h1>Payment</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Status</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-            </div>
+            )}
 
             {/* table rows */}
             {currentBookings.map((booking, idx) => (

@@ -43,6 +43,17 @@ const DashContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
 
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     return (
         <div className="w-full max-w-full px-4 sm:px-6 xl:max-w-[1055px] mx-auto h-auto py-12 xl:py-10">
             {/* Header section */}
@@ -203,7 +214,34 @@ const DashContent = () => {
                                 className="w-full mx-auto overflow-auto h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-8 px-3"
                                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
                             >
-                                <BookingOverviewBarChart />
+                                {isMobile ? (
+                                    <div className="w-full">
+                                        <div className="figtree text-[24px] font-[700] mb-4">Flight Booking Overview</div>
+                                        <div className="flex flex-col gap-2">
+                                            {[
+                                                { name: "Jan", bookings: 450 },
+                                                { name: "Feb", bookings: 670 },
+                                                { name: "Mar", bookings: 540 },
+                                                { name: "Apr", bookings: 900 },
+                                                { name: "May", bookings: 800 },
+                                                { name: "Jun", bookings: 200 },
+                                                { name: "Jul", bookings: 340 },
+                                                { name: "Aug", bookings: 859 },
+                                                { name: "Sep", bookings: 670 },
+                                                { name: "Oct", bookings: 570 },
+                                                { name: "Nov", bookings: 400 },
+                                                { name: "Dec", bookings: 900 },
+                                            ].map((item, index) => (
+                                                <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                                    <span className="font-medium text-gray-700">{item.name} 2025</span>
+                                                    <span className="font-bold text-blue-600">{item.bookings} bookings</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <BookingOverviewBarChart />
+                                )}
                             </div>
                         </div>
 
@@ -223,7 +261,31 @@ const DashContent = () => {
                                         <ChevronDown />
                                     </div>
                                 </div>
-                                <EarningSummaryChart />
+                                {isMobile ? (
+                                    <div className="flex flex-col gap-2">
+                                        {[
+                                            { name: "Jan", value: 5000 },
+                                            { name: "Feb", value: 7000 },
+                                            { name: "Mar", value: 6000 },
+                                            { name: "Apr", value: 23456 },
+                                            { name: "May", value: 8000 },
+                                            { name: "Jun", value: 4000 },
+                                            { name: "Jul", value: 9000 },
+                                            { name: "Aug", value: 12000 },
+                                            { name: "Sep", value: 10000 },
+                                            { name: "Oct", value: 9500 },
+                                            { name: "Nov", value: 15000 },
+                                            { name: "Dec", value: 21000 },
+                                        ].map((item, index) => (
+                                            <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                                <span className="font-medium text-gray-700">{item.name} 2025</span>
+                                                <span className="font-bold text-green-600">${Number(item.value).toLocaleString()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <EarningSummaryChart />
+                                )}
                             </div>
                         </div>
                     </div>
@@ -288,7 +350,29 @@ const DashContent = () => {
                                     <ChevronDown />
                                 </div>
                             </div>
-                            <RealStatusPieChart />
+                            {isMobile ? (
+                                <div className="flex flex-col gap-2 mt-4">
+                                    {[
+                                        { name: "Hired", value: 46, color: "#3DD0FF" },
+                                        { name: "Pending", value: 27, color: "#0955AC" },
+                                        { name: "Cancelled", value: 14, color: "#C4C4C4" },
+                                    ].map((item, index) => {
+                                        const total = 46 + 27 + 14;
+                                        const percent = Math.round((item.value / total) * 100);
+                                        return (
+                                            <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-4 h-4 rounded" style={{ backgroundColor: item.color }}></span>
+                                                    <span className="font-medium text-gray-700">{item.name}</span>
+                                                </div>
+                                                <span className="font-bold text-gray-800">{percent}%</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <RealStatusPieChart />
+                            )}
                         </div>
 
                         {/* Reminder section  */}

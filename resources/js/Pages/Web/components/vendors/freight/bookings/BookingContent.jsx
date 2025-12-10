@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
@@ -25,6 +25,17 @@ import UserDropdown from "../../UserDropdown";
 const BookingContent = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
@@ -445,7 +456,36 @@ const BookingContent = () => {
                     className="w-full min-h-[250px] md:min-h-[350px] lg:min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <BookingBarChart />
+                    {isMobile ? (
+                        <div className="w-full p-4">
+                            <div className="flex flex-col gap-2">
+                                {[
+                                    { name: "Jan", done: 320, cancelled: 220 },
+                                    { name: "Feb", done: 380, cancelled: 270 },
+                                    { name: "Mar", done: 250, cancelled: 150 },
+                                    { name: "Apr", done: 500, cancelled: 230 },
+                                    { name: "May", done: 310, cancelled: 410 },
+                                    { name: "Jun", done: 370, cancelled: 180 },
+                                    { name: "Jul", done: 420, cancelled: 210 },
+                                    { name: "Aug", done: 480, cancelled: 380 },
+                                    { name: "Sep", done: 270, cancelled: 320 },
+                                    { name: "Oct", done: 390, cancelled: 210 },
+                                    { name: "Nov", done: 320, cancelled: 170 },
+                                    { name: "Dec", done: 500, cancelled: 250 },
+                                ].map((item, index) => (
+                                    <div key={index} className="bg-gray-50 rounded-md p-3">
+                                        <div className="font-medium text-gray-700 mb-2">{item.name}</div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-blue-600 text-sm">{item.done} done</span>
+                                            <span className="font-bold text-red-600 text-sm">{item.cancelled} cancelled</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <BookingBarChart />
+                    )}
                 </div>
             </div>
 
