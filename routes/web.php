@@ -117,6 +117,19 @@ Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])
 Route::get('/bus-ticket/download/{reference}', [BusBookingController::class, 'downloadTicket'])->name('bus.ticket.download')->middleware('auth');
 Route::get('/bus-ticket/view/{reference}', [BusBookingController::class, 'viewTicket'])->name('bus.ticket.view')->middleware('auth');
 Route::post('/bus-ticket/email/{reference}', [BusBookingController::class, 'emailTicket'])->name('bus.ticket.email')->middleware('auth');
+
+// Bus booking cancellation routes
+Route::get('/bus-bookings/{reference}/cancellation-policy', [BusBookingController::class, 'getCancellationPolicy'])->name('bus.booking.cancellation.policy')->middleware('auth');
+Route::post('/bus-bookings/{reference}/cancel', [BusBookingController::class, 'cancelBooking'])->name('bus.booking.cancel')->middleware('auth');
+
+// Train booking cancellation routes
+Route::get('/train-bookings/{reference}/cancellation-policy', [TrainController::class, 'getCancellationPolicy'])->name('train.booking.cancellation.policy')->middleware('auth');
+Route::post('/train-bookings/{reference}/cancel', [TrainController::class, 'cancelBooking'])->name('train.booking.cancel')->middleware('auth');
+
+// Flight booking cancellation routes
+Route::get('/flight-bookings/{reference}/cancellation-policy', [FlightBookingController::class, 'getCancellationPolicy'])->name('flight.booking.cancellation.policy')->middleware('auth');
+Route::post('/flight-bookings/{reference}/cancel', [FlightBookingController::class, 'cancelBooking'])->name('flight.booking.cancel')->middleware('auth');
+
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
 Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store')->middleware('auth');
 
@@ -1042,9 +1055,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/clientDashboardSettings/image', [ClientSettingsController::class, 'removeImage'])->name('client.settings.removeImage');
 });
 
-Route::get('/clientTicketBookingDashboard', function () {
-    return Inertia::render('Web/home/client/ClientTicketBookingDashboard');
-})->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
+Route::get('/clientTicketBookingDashboard', [UserDashboardController::class, 'ticketBookingDashboard'])->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
 
 Route::get('/clientVehicleDashboard', function () {
     $user = Auth::user();

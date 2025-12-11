@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Services\CancellationPolicyService;
 
 class BusBookingController extends Controller
 {
@@ -534,6 +535,141 @@ class BusBookingController extends Controller
             }
 
             return back()->withErrors(['error' => 'Failed to email ticket. Please try again.']);
+        }
+    }
+
+    /**
+     * Get cancellation policy details for a booking
+     */
+    public function getCancellationPolicy($reference)
+    {
+        // Check if user is logged in
+        if (!Auth::check()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Please log in.'], 401);
+            }
+            return redirect()->route('signin')->with('message', 'Please log in to view cancellation policy.');
+        }
+
+        $booking = BusBooking::with(['busSchedule'])
+            ->where('booking_reference', $reference)
+            ->firstOrFail();
+
+        // Verify ownership
+        if ($booking->user_id !== Auth::id()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403, 'Unauthorized access.');
+        }
+
+        try {
+            $cancellationService = app(CancellationPolicyService::class);
+            
+            // Check if booking can be cancelled
+            if (!$cancellationService->canCancel('bus', $booking)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This booking cannot be cancelled.',
+                    'can_cancel' => false
+                ]);
+            }
+
+            // Calculate refund details
+            $refundDetails = $cancellationService->calculateRefund('bus', $booking);
+
+            return response()->json([
+                'success' => true,
+                'can_cancel' => true,
+                'refund_details' => $refundDetails
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get cancellation policy', [
+                'reference' => $reference,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve cancellation policy.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel a bus booking
+     */
+    public function cancelBooking(Request $request, $reference)
+    {
+        // Check if user is logged in
+        if (!Auth::check()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Please log in.'], 401);
+            }
+            return redirect()->route('signin')->with('message', 'Please log in to cancel your booking.');
+        }
+
+        $booking = BusBooking::where('booking_reference', $reference)->firstOrFail();
+
+        // Verify ownership
+        if ($booking->user_id !== Auth::id()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403, 'Unauthorized access.');
+        }
+
+        // Validate request
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            $cancellationService = app(CancellationPolicyService::class);
+            
+            $result = $cancellationService->cancelBooking(
+                'bus',
+                $reference,
+                Auth::id(),
+                $validated['reason'] ?? null
+            );
+
+            if ($result['success']) {
+                Log::info('Bus booking cancelled successfully', [
+                    'reference' => $reference,
+                    'user_id' => Auth::id()
+                ]);
+
+                if (request()->expectsJson()) {
+                    return response()->json($result);
+                }
+
+                return redirect()->route('dashboard')
+                    ->with('success', $result['message']);
+            } else {
+                if (request()->expectsJson()) {
+                    return response()->json($result, 400);
+                }
+
+                return back()->withErrors(['error' => $result['message']]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Bus booking cancellation failed', [
+                'reference' => $reference,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to cancel booking. Please try again.'
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => 'Failed to cancel booking. Please try again.']);
         }
     }
 

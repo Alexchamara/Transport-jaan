@@ -23,13 +23,20 @@ class BusBooking extends Model
         'status',
         'payment_status',
         'booking_date',
-        'expires_at'
+        'expires_at',
+        'cancelled_at',
+        'cancellation_reason',
+        'refund_amount',
+        'cancellation_fee'
     ];
 
     protected $casts = [
         'seat_numbers' => 'array',
         'booking_date' => 'datetime',
         'expires_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'refund_amount' => 'decimal:2',
+        'cancellation_fee' => 'decimal:2',
     ];
 
     public function user()

@@ -25,12 +25,19 @@ class TrainBooking extends Model
         'booking_reference',
         'status',
         'payment_status',
-        'expires_at'
+        'expires_at',
+        'cancelled_at',
+        'cancellation_reason',
+        'refund_amount',
+        'cancellation_fee'
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
         'seat_numbers' => 'array',
+        'cancelled_at' => 'datetime',
+        'refund_amount' => 'decimal:2',
+        'cancellation_fee' => 'decimal:2',
     ];
 
     public function user()
