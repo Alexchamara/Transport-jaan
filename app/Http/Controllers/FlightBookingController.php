@@ -8,6 +8,7 @@ use App\Models\FlightBooking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 
 class FlightBookingController extends Controller
 {
@@ -40,13 +41,23 @@ class FlightBookingController extends Controller
         }
 
         try {
-            // Associate the booking with the authenticated user
-            $data = $request->validated();
-            $data['user_id'] = auth()->id();
+            // Use database transaction for data consistency
+            $flightBooking = DB::transaction(function () use ($request) {
+                // Associate the booking with the authenticated user
+                $data = $request->validated();
+                $data['user_id'] = auth()->id();
 
-            $flightBooking = FlightBooking::create($data);
+                $flightBooking = FlightBooking::create($data);
 
-            // Send confirmation email
+                Log::info('Flight booking created successfully', [
+                    'booking_id' => $flightBooking->id,
+                    'user_id' => auth()->id()
+                ]);
+
+                return $flightBooking;
+            });
+
+            // Send confirmation email (outside transaction to avoid blocking)
             try {
                 Mail::to($flightBooking->email)->send(new FlightBookingConfirmation($flightBooking));
             } catch (\Exception $e) {
