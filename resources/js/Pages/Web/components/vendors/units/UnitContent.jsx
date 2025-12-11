@@ -611,11 +611,11 @@ const UnitContent = () => {
     const editUnit = (unit) => router.visit(`/vendors/addUnit/${unit.id}`);
 
     return (
-        <div className="w-full h-auto px-4 sm:px-5 py-10">
+        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
             {/* ==================== HEADER WITH DROPDOWN (Fully Responsive) ==================== */}
             <div className="flex flex-col md:flex-row justify-between lg:items-start items-center gap-4 sm:gap-6 mb-8">
                 {/* Title */}
-                <h1 className="figtree text-[28px] leading-tight sm:text-[30px] font-[700] text-gray-900">
+                <h1 className="figtree text-[28px] leading-tight sm:text-[35px] font-[700] text-gray-900">
                     Vehicle Rental Units
                 </h1>
 

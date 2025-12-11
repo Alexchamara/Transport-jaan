@@ -105,7 +105,7 @@ const BookingContent = ({
     }, [bookings]);
 
     return (
-        <div className="w-full h-auto px-3 sm:px-4 lg:px-0 lg:pr-5 py-4 sm:py-6 lg:py-10">
+        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
             {/* Header */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-5 justify-between items-center mb-4 sm:mb-0">
                 <h1 className="figtree text-[20px] sm:text-[24px] lg:text-[28px] xl:text-[35px] font-[700]">
@@ -116,11 +116,11 @@ const BookingContent = ({
                 </div>
             </div>{" "}
             {/* KPI row */}
-            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-10 justify-between py-6 sm:py-10 w-full">
+            <div className="flex flex-col lg:flex-row gap-5 lg:gap-10 justify-between py-6 sm:py-10 w-full">
                 <div className="flex flex-col gap-3 sm:gap-4 lg:gap-8">
                     {/* Upcoming */}
                     <div
-                        className="w-full lg:w-[360px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
+                        className="w-full xl:min-w-[300px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-3 sm:gap-5 items-center">
@@ -132,7 +132,7 @@ const BookingContent = ({
                                 />
                             </div>
                             <div>
-                                <div className="text-[13px] sm:text-[16px] font-[500] text-[#7B7B7A]">
+                                <div className="text-[12px] sm:text-[16px] font-[500] text-[#7B7B7A]">
                                     Upcoming Bookings
                                 </div>
                                 <div className="text-[20px] sm:text-[26px] font-[700]">
@@ -157,7 +157,7 @@ const BookingContent = ({
 
                     {/* Pending */}
                     <div
-                        className="w-full lg:w-[360px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
+                        className="w-full xl:min-w-[300px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-3 sm:gap-5 items-center">
@@ -169,7 +169,7 @@ const BookingContent = ({
                                 />
                             </div>
                             <div>
-                                <div className="text-[13px] sm:text-[16px] font-[500] text-[#7B7B7A]">
+                                <div className="text-[12px] sm:text-[16px] font-[500] text-[#7B7B7A]">
                                     Pending Bookings
                                 </div>
                                 <div className="text-[20px] sm:text-[26px] font-[700]">
@@ -194,7 +194,7 @@ const BookingContent = ({
 
                     {/* Cancelled */}
                     <div
-                        className="w-full lg:w-[360px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
+                        className="w-full xl:min-w-[300px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-3 sm:gap-5 items-center">
@@ -206,7 +206,7 @@ const BookingContent = ({
                                 />
                             </div>
                             <div>
-                                <div className="text-[13px] sm:text-[16px] font-[500] text-[#7B7B7A]">
+                                <div className="text-[12px] sm:text-[16px] font-[500] text-[#7B7B7A]">
                                     Cancelled Bookings
                                 </div>
                                 <div className="text-[20px] sm:text-[26px] font-[700]">
@@ -231,7 +231,7 @@ const BookingContent = ({
 
                     {/* Completed */}
                     <div
-                        className="w-full lg:w-[360px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
+                        className="w-full xl:min-w-[300px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 sm:px-5 py-3"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
                         <div className="flex flex-row gap-3 sm:gap-5 items-center">
@@ -243,7 +243,7 @@ const BookingContent = ({
                                 />
                             </div>
                             <div>
-                                <div className="text-[13px] sm:text-[16px] font-[500] text-[#7B7B7A]">
+                                <div className="text-[12px] sm:text-[16px] font-[500] text-[#7B7B7A]">
                                     Completed Bookings
                                 </div>
                                 <div className="text-[20px] sm:text-[26px] font-[700]">
@@ -269,7 +269,7 @@ const BookingContent = ({
 
                 {/* Right: Chart */}
                 <div
-                    className="w-full min-w-[295px] lg:min-w-[495px] xl:max-w-[700px] min-h-[250px] sm:min-h-[300px] lg:min-h-[437px] bg-white rounded-[8px] sm:rounded-[10px] flex items-center justify-center overflow-x-auto"
+                    className="w-full min-w-[280px] lg:min-w-[495px] xl:max-w-[700px] min-h-[250px] sm:min-h-[300px] lg:min-h-[437px] bg-white rounded-[8px] sm:rounded-[10px] flex items-center justify-center overflow-x-auto"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     {isMobile ? (
