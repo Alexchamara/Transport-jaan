@@ -22,7 +22,12 @@ class TrainBooking extends Model
         'total_amount',
         'booking_reference',
         'status',
-        'payment_status'
+        'payment_status',
+        'expires_at'
+    ];
+
+    protected $casts = [
+        'expires_at' => 'datetime',
     ];
 
     public function user()
@@ -48,6 +53,43 @@ class TrainBooking extends Model
             if (empty($booking->booking_reference)) {
                 $booking->booking_reference = 'TRN-' . strtoupper(uniqid());
             }
+        });
+    }
+
+    /**
+     * Check if the booking has expired
+     */
+    public function isExpired(): bool
+    {
+        if (!$this->expires_at) {
+            return false;
+        }
+
+        return $this->expires_at->isPast() && 
+               $this->status === 'pending' && 
+               $this->payment_status === 'pending';
+    }
+
+    /**
+     * Scope to get expired bookings
+     */
+    public function scopeExpired($query)
+    {
+        return $query->where('expires_at', '<=', now())
+                    ->where('status', 'pending')
+                    ->where('payment_status', 'pending');
+    }
+
+    /**
+     * Scope to get active (non-expired) bookings
+     */
+    public function scopeActive($query)
+    {
+        return $query->where(function($q) {
+            $q->where('expires_at', '>', now())
+              ->orWhereNull('expires_at')
+              ->orWhere('status', '!=', 'pending')
+              ->orWhere('payment_status', 'paid');
         });
     }
 }

@@ -299,8 +299,9 @@ class TrainController extends Controller
                     'infants' => $infants,
                     'total_passengers' => $totalPassengers,
                     'total_amount' => $totalAmount,
-                    'status' => 'confirmed',
+                    'status' => 'pending', // Start as pending until payment
                     'payment_status' => 'pending',
+                    'expires_at' => now()->addMinutes(15) // Booking expires in 15 minutes
                 ]);
 
                 // Atomically decrement available seats

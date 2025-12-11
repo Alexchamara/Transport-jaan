@@ -269,7 +269,9 @@ class BusBookingController extends Controller
                     'total_price' => $totalPrice,
                     'booking_reference' => BusBooking::generateBookingReference(),
                     'booking_date' => now(),
-                    'status' => 'confirmed'
+                    'status' => 'pending', // Start as pending until payment
+                    'payment_status' => 'pending',
+                    'expires_at' => now()->addMinutes(15) // Booking expires in 15 minutes
                 ];
 
                 $booking = BusBooking::create($bookingData);

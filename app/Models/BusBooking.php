@@ -20,12 +20,15 @@ class BusBooking extends Model
         'total_price',
         'booking_reference',
         'status',
-        'booking_date'
+        'payment_status',
+        'booking_date',
+        'expires_at'
     ];
 
     protected $casts = [
         'seat_numbers' => 'array',
         'booking_date' => 'datetime',
+        'expires_at' => 'datetime',
     ];
 
     public function user()
@@ -41,5 +44,42 @@ class BusBooking extends Model
     public static function generateBookingReference()
     {
         return 'BUS-' . strtoupper(uniqid());
+    }
+
+    /**
+     * Check if the booking has expired
+     */
+    public function isExpired(): bool
+    {
+        if (!$this->expires_at) {
+            return false;
+        }
+
+        return $this->expires_at->isPast() && 
+               $this->status === 'pending' && 
+               $this->payment_status === 'pending';
+    }
+
+    /**
+     * Scope to get expired bookings
+     */
+    public function scopeExpired($query)
+    {
+        return $query->where('expires_at', '<=', now())
+                    ->where('status', 'pending')
+                    ->where('payment_status', 'pending');
+    }
+
+    /**
+     * Scope to get active (non-expired) bookings
+     */
+    public function scopeActive($query)
+    {
+        return $query->where(function($q) {
+            $q->where('expires_at', '>', now())
+              ->orWhereNull('expires_at')
+              ->orWhere('status', '!=', 'pending')
+              ->orWhere('payment_status', 'paid');
+        });
     }
 }
