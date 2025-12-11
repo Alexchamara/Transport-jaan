@@ -12,7 +12,6 @@ import icon2 from "../../../../assets/vendors/booking/icons/icon2.svg";
 import icon3 from "../../../../assets/vendors/booking/icons/icon3.svg";
 import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
 
-import WarehouseBookingTable from "./WarehouseBookingTable";
 import BookingBarChart from "./BookingBarChart";
 import UserDropdown from "../../UserDropdown";
 import NotificationDropdown from "../NotificationDropdown";
@@ -335,12 +334,7 @@ const BookingContent = () => {
             ) : (
               <>
                 {error && <div className="text-red-600 text-center mb-3">{error}</div>}
-                <WarehouseBookingTable
-                  bookings={bookings}
-                  setBookings={setBookings}
-                  statusColors={statusColors}
-                  filters={filters}
-                />
+                <div className="text-center py-10 text-gray-600">Bookings table coming soon...</div>
               </>
             )}
           </div>
