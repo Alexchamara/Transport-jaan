@@ -73,19 +73,19 @@ const SideMenu = ({ isOpen = false }) => {
                             <span>Dashboard</span>
                         </div>
 
-                        {/* Bookings */}
+                        {/* Reservations */}
                         <div
-                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/bookings" ||
-                                    currentPath === "/warehouse/bookings"
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${currentPath === "/vendors/warehouse/reservations" ||
+                                    currentPath === "/warehouse/reservations"
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
                                 }`}
                             onClick={() =>
-                                (window.location.href = "/warehouse/bookings")
+                                (window.location.href = "/warehouse/reservations")
                             }
                         >
-                            <Building2 className="w-[22px] h-[22px]" />
-                            <span>Bookings</span>
+                            <Calendar className="w-[22px] h-[22px]" />
+                            <span>Reservations</span>
                         </div>
 
                         {/* Units */}

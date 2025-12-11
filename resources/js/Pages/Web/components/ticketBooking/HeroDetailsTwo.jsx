@@ -116,7 +116,7 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
             <div className="mb-4">
                 <Link
                     href="/ticketBooking?type=bus"
-                    className="inline-flex items-center gap-2 text-[#0955AC] text-base font-semibold"
+                    className="inline-flex items-center gap-2 text-[#0955AC] text-sm sm:text-base font-semibold"
                 >
                     <span className="inline-block rounded-full border border-[#0955AC]/20 p-1 leading-none">
                         ←
@@ -124,17 +124,17 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                     Back
                 </Link>
             </div>
-            <div className="mb-20">
+            <div className="mb-8 sm:mb-20">
                 <BusCard />
             </div>
 
             {/* Toolbar */}
-            <div className="sticky top-0 z-10 -mx-6 mb-4 border-b bg-white/80 px-6 py-5 backdrop-blur">
-                <div className="flex flex-wrap items-center gap-4">
-                    <span className="text-lg font-bold text-gray-800">
+            <div className="sticky top-0 z-10 -mx-6 mb-4 border-b bg-white/80 px-4 sm:px-6 py-3 sm:py-5 backdrop-blur">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                    <span className="text-sm sm:text-lg font-bold text-gray-800 w-full sm:w-auto mb-2 sm:mb-0">
                         Sort by:
                     </span>
-                    <div className="flex flex-wrap gap-4">
+                    <div className="flex flex-wrap gap-2 sm:gap-4">
                         {[
                             "Fare",
                             "Departure",
@@ -145,7 +145,7 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                             <button
                                 key={f}
                                 onClick={() => handleSort(f)}
-                                className={`rounded border px-5 py-2 text-lg font-semibold transition hover:bg-gray-50 ${
+                                className={`rounded border px-3 sm:px-5 py-1.5 sm:py-2 text-sm sm:text-lg font-semibold transition hover:bg-gray-50 ${
                                     sortBy === f
                                         ? 'border-[#0955AC] text-[#0955AC] bg-[#0955AC]/10'
                                         : 'border-gray-300 text-gray-800'
@@ -155,14 +155,14 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                             </button>
                         ))}
                     </div>
-                    <div className="ml-auto flex items-center gap-4 text-lg text-gray-600">
-                        <span>
+                    <div className="ml-auto flex items-center gap-2 sm:gap-4 text-xs sm:text-lg text-gray-600 w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0">
+                        <span className="truncate">
                             {searchParams.from && searchParams.to
                                 ? `${searchParams.from} → ${searchParams.to}`
                                 : "Colombo → Negombo"}
                         </span>
-                        <span>•</span>
-                        <span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="whitespace-nowrap">
                             {searchParams.date
                                 ? new Date(searchParams.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                                 : "03/09/2025"}
@@ -177,31 +177,31 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                     <Link
                         href="/busTicketBookingPreview"
                         key={trip.id}
-                        className="block rounded-xl border border-gray-300 bg-white p-8 shadow-md transition hover:shadow-xl"
+                        className="block rounded-xl border border-gray-300 bg-white p-4 sm:p-8 shadow-md transition hover:shadow-xl"
                     >
-                        <div className="grid grid-cols-12 items-center gap-8">
+                        <div className="grid grid-cols-12 items-start sm:items-center gap-4 sm:gap-8">
                             {/* Left meta */}
                             <div className="col-span-12 sm:col-span-5">
-                                <div className="flex items-center justify-between gap-6">
-                                    <div>
-                                        <div className="mb-3 flex flex-wrap items-center gap-3">
+                                <div className="flex items-center justify-between gap-3 sm:gap-6">
+                                    <div className="w-full">
+                                        <div className="mb-2 sm:mb-3 flex flex-wrap items-center gap-2 sm:gap-3">
                                             {/* Bus type badge */}
-                                            <span className="inline-flex items-center rounded-md bg-[#0955AC]/10 px-4 py-2 text-lg font-bold text-[#0955AC] ring-1 ring-inset ring-[#0955AC]/40">
+                                            <span className="inline-flex items-center rounded-md bg-[#0955AC]/10 px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-lg font-bold text-[#0955AC] ring-1 ring-inset ring-[#0955AC]/40">
                                                 {trip.busType}
                                             </span>
                                             {/* Expressway tag */}
                                             {trip.expressway && (
-                                                <span className="inline-flex items-center rounded-md bg-[#0955AC]/10 px-3 py-1.5 text-base font-semibold text-[#0955AC] ring-1 ring-inset ring-[#0955AC]/30">
+                                                <span className="inline-flex items-center rounded-md bg-[#0955AC]/10 px-2 sm:px-3 py-0.5 sm:py-1.5 text-xs sm:text-base font-semibold text-[#0955AC] ring-1 ring-inset ring-[#0955AC]/30">
                                                     Expressway
                                                 </span>
                                             )}
                                         </div>
 
-                                        <h3 className="text-xl font-extrabold text-gray-900">
+                                        <h3 className="text-base sm:text-xl font-extrabold text-gray-900">
                                             {trip.operator}
                                         </h3>
 
-                                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-lg text-gray-700">
+                                        <div className="mt-1 sm:mt-2 flex flex-wrap items-center gap-x-2 sm:gap-x-4 gap-y-1 sm:gap-y-2 text-xs sm:text-lg text-gray-700">
                                             <span>
                                                 <span className="font-semibold text-gray-900">
                                                     Route:
@@ -220,12 +220,12 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                                         </div>
 
                                         {/* Amenities */}
-                                        <div className="mt-3 hidden gap-3 sm:flex">
+                                        <div className="mt-2 sm:mt-3 flex gap-2 sm:gap-3">
                                             {amenities.map((a) => (
                                                 <span
                                                     key={a}
                                                     title={a}
-                                                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-base font-semibold text-gray-700"
+                                                    className="inline-flex h-6 w-6 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-gray-300 text-xs sm:text-base font-semibold text-gray-700"
                                                 >
                                                     {a[0]}
                                                 </span>
@@ -237,44 +237,44 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
 
                             {/* Times */}
                             <div className="col-span-12 sm:col-span-4">
-                                <div className="flex items-center justify-center sm:justify-start">
+                                <div className="flex items-center justify-between sm:justify-start">
                                     <div className="text-center sm:text-left">
-                                        <div className="text-lg font-bold text-gray-900">
+                                        <div className="text-sm sm:text-lg font-bold text-gray-900">
                                             {trip.depart}
                                         </div>
-                                        <div className="text-base text-gray-600">
+                                        <div className="text-xs sm:text-base text-gray-600">
                                             {trip.day}
                                         </div>
                                     </div>
 
-                                    <span className="mx-4 inline-block h-3 w-3 rounded-full bg-gray-400 align-middle" />
+                                    <span className="mx-2 sm:mx-4 inline-block h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-gray-400 align-middle" />
 
                                     <div className="text-center">
-                                        <div className="text-base text-gray-600">
+                                        <div className="text-xs sm:text-base text-gray-600">
                                             Duration
                                         </div>
-                                        <div className="text-lg font-bold text-gray-800">
+                                        <div className="text-sm sm:text-lg font-bold text-gray-800">
                                             {trip.duration}
                                         </div>
                                     </div>
 
-                                    <span className="mx-4 inline-block h-3 w-3 rounded-full bg-gray-400 align-middle" />
+                                    <span className="mx-2 sm:mx-4 inline-block h-2 w-2 sm:h-3 sm:w-3 rounded-full bg-gray-400 align-middle" />
 
                                     <div className="text-center sm:text-right">
-                                        <div className="text-lg font-bold text-gray-900">
+                                        <div className="text-sm sm:text-lg font-bold text-gray-900">
                                             {trip.arrive}
                                         </div>
-                                        <div className="text-base text-gray-600">
+                                        <div className="text-xs sm:text-base text-gray-600">
                                             {trip.day}
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="mt-5 flex flex-wrap gap-6 text-lg">
-                                    <button className="text-[#0955AC] hover:underline">
+                                <div className="mt-3 sm:mt-5 flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-6 text-xs sm:text-lg">
+                                    <button className="text-[#0955AC] hover:underline text-left">
                                         View boarding &amp; drop-off points
                                     </button>
-                                    <button className="text-gray-600 hover:underline">
+                                    <button className="text-gray-600 hover:underline text-left">
                                         View cancellation policy
                                     </button>
                                 </div>
@@ -282,21 +282,19 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
 
                             {/* Price / action */}
                             <div className="col-span-12 sm:col-span-3">
-                                <div className="flex flex-col items-end gap-4 sm:items-end">
-                                    <div className="text-right">
-                                        <div className="text-2xl font-extrabold text-gray-900">
+                                <div className="flex flex-row sm:flex-col justify-between sm:justify-start items-center sm:items-end gap-3 sm:gap-4">
+                                    <div className="text-left sm:text-right">
+                                        <div className="text-lg sm:text-2xl font-extrabold text-gray-900">
                                             LKR {trip.price.toLocaleString()}
                                         </div>
-                                        <div className="text-lg text-gray-600">
-                                            Seats available:{" "}
-                                            {trip.seatsAvailable}/
-                                            {trip.totalSeats}
+                                        <div className="text-xs sm:text-lg text-gray-600">
+                                            Seats: {trip.seatsAvailable}/{trip.totalSeats}
                                         </div>
                                     </div>
 
                                     <Link
                                         href={trip.soldOut ? "#" : `/busTicketBookingPreview?id=${trip.id}&from=${searchParams.from || 'Colombo'}&to=${searchParams.to || 'Negombo'}&date=${searchParams.date || '2025-09-24'}`}
-                                        className={`block w-full text-center rounded-lg px-6 py-4 text-lg font-bold text-white sm:w-auto ${
+                                        className={`block whitespace-nowrap text-center rounded-lg px-4 sm:px-6 py-2 sm:py-4 text-sm sm:text-lg font-bold text-white w-auto ${
                                             trip.soldOut
                                                 ? "bg-red-500/70 cursor-not-allowed pointer-events-none"
                                                 : "bg-[#0955AC] hover:bg-[#074489]"
@@ -310,12 +308,12 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
 
                                     {/* Secondary actions */}
                                     {!trip.soldOut && (
-                                        <div className="flex w-full flex-wrap justify-end gap-3 sm:w-auto">
-                                            <button className="rounded-lg border border-[#0955AC]/30 px-4 py-2 text-base font-semibold text-[#0955AC] hover:bg-[#0955AC]/5">
-                                                Hold for 10 min
+                                        <div className="flex w-full flex-wrap justify-start sm:justify-end gap-2 sm:gap-3 sm:w-auto">
+                                            <button className="rounded-lg border border-[#0955AC]/30 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-base font-semibold text-[#0955AC] hover:bg-[#0955AC]/5">
+                                                Hold 10 min
                                             </button>
-                                            <button className="rounded-lg border border-gray-300 px-4 py-2 text-base font-semibold text-gray-700 hover:bg-gray-50">
-                                                View seat map
+                                            <button className="rounded-lg border border-gray-300 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-base font-semibold text-gray-700 hover:bg-gray-50">
+                                                Seat map
                                             </button>
                                         </div>
                                     )}
@@ -324,7 +322,7 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                         </div>
 
                         {/* Footer info row */}
-                        <div className="mt-6 grid grid-cols-1 gap-3 text-base text-gray-600 sm:grid-cols-3">
+                        <div className="mt-4 sm:mt-6 grid grid-cols-1 gap-2 sm:gap-3 text-xs sm:text-base text-gray-600 sm:grid-cols-3">
                             <div>
                                 <span className="font-semibold text-gray-900">
                                     Boarding:
@@ -341,18 +339,18 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                                 <span className="font-semibold text-gray-900">
                                     Tracking:
                                 </span>
-                                <span className="rounded-md bg-[#0955AC]/10 px-2.5 py-1 text-sm font-semibold text-[#0955AC] ring-1 ring-inset ring-[#0955AC]/30">
+                                <span className="rounded-md bg-[#0955AC]/10 px-2 sm:px-2.5 py-0.5 sm:py-1 text-xs sm:text-sm font-semibold text-[#0955AC] ring-1 ring-inset ring-[#0955AC]/30">
                                     Live GPS
                                 </span>
                             </div>
                         </div>
                     </Link>
                 )) : (
-                    <div className="text-center py-12">
-                        <div className="text-gray-500 text-lg">
+                    <div className="text-center py-8 sm:py-12">
+                        <div className="text-gray-500 text-sm sm:text-lg">
                             No bus schedules found for the selected route and date.
                         </div>
-                        <p className="text-gray-400 mt-2">
+                        <p className="text-gray-400 mt-2 text-xs sm:text-base">
                             Please try different stations or dates.
                         </p>
                     </div>

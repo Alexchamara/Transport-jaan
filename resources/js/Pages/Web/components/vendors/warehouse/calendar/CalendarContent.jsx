@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage, router } from "@inertiajs/react";
+import { API_BASE_URL } from "../../../../../../config/api";
 
 import proPicTwo from "../../../../assets/vendors/tracking/proPic.svg";
 
@@ -74,7 +75,7 @@ const CalendarContent = ({
             if (!auth?.user) return;
 
             try {
-                const response = await fetch('/vendors/warehouse/notifications/data');
+                const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
                 if (response.ok) {
                     const data = await response.json();
                     setWarehouseNotifications(data.notifications || []);

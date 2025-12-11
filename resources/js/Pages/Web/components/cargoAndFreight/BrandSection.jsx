@@ -8,14 +8,14 @@ import logoSix from "../../assets/cargoAndFreight/logoSix.png"
 
 const BrandSection = () => {
     return (
-        <div className="w-full h-[128px] flex justify-center items-center bg-[#0955AC38]">
-            <div className="flex flex-row gap-10 justify-center items-center">
-              <img src={logoOne}  />
-              <img src={logoTwo} />
-              <img src={logoThree} />
-              <img src={logoFour} />
-              <img src={logoFive} />
-              <img src={logoSix} />
+        <div className="w-full min-h-[128px] h-auto py-6 md:py-0 md:h-[128px] flex justify-center items-center bg-[#0955AC38]">
+            <div className="flex flex-row flex-wrap gap-4 md:gap-10 justify-center items-center px-4 md:px-0">
+              <img src={logoOne} className="h-8 md:h-auto w-auto" alt="Brand logo" />
+              <img src={logoTwo} className="h-8 md:h-auto w-auto" alt="Brand logo" />
+              <img src={logoThree} className="h-8 md:h-auto w-auto" alt="Brand logo" />
+              <img src={logoFour} className="h-8 md:h-auto w-auto" alt="Brand logo" />
+              <img src={logoFive} className="h-8 md:h-auto w-auto" alt="Brand logo" />
+              <img src={logoSix} className="h-8 md:h-auto w-auto" alt="Brand logo" />
             </div>
         </div>
     );

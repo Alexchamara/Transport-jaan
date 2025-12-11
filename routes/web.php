@@ -395,6 +395,17 @@ Route::middleware(['auth', 'vendor.verified'])->prefix('vendors/warehouse')->nam
     Route::patch('/api/bookings/{bookingId}/complete', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'complete'])->name('api.bookings.complete');
     Route::put('/api/bookings/{bookingId}', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'update'])->name('api.bookings.update');
 
+    // API routes for warehouse reservations management
+    Route::get('/reservations', fn() => Inertia::render('Web/home/vendors/warehouse/Reservation'))->name('reservations');
+    Route::get('/api/reservations', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseReservationController::class, 'index'])->name('api.reservations.index');
+    Route::get('/api/reservations/stats', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseReservationController::class, 'getStats'])->name('api.reservations.stats');
+    Route::get('/api/reservations/chart-data', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseReservationController::class, 'getChartData'])->name('api.reservations.chart-data');
+    Route::get('/api/reservations/{reservationId}', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseReservationController::class, 'show'])->name('api.reservations.show');
+    Route::patch('/api/reservations/{reservationId}/confirm', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseReservationController::class, 'confirm'])->name('api.reservations.confirm');
+    Route::patch('/api/reservations/{reservationId}/cancel', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseReservationController::class, 'cancel'])->name('api.reservations.cancel');
+    Route::patch('/api/reservations/{reservationId}/complete', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseReservationController::class, 'complete'])->name('api.reservations.complete');
+    Route::put('/api/reservations/{reservationId}', [\App\Http\Controllers\WarehouseControllers\Vendor\WarehouseReservationController::class, 'update'])->name('api.reservations.update');
+
     // Payment endpoints
     Route::get('/api/payment-transactions', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getPaymentTransactions'])->name('api.payments.transactions');
     Route::get('/api/payment-stats', [\App\Http\Controllers\VendorWarehouseBookingController::class, 'getPaymentStats'])->name('api.payments.stats');
@@ -674,7 +685,7 @@ Route::get('/SuperAdmin/AddUser', function () {
 
 // vendor dashboard - warehouse
 Route::get('/warehouse/bookings', function () {
-    return Inertia::render('Web/home/vendors/warehouse/Booking');
+    return Inertia::render('Web/home/vendors/warehouse/Bookings');
 })->name('warehouse.bookings');
 Route::get('/SuperAdmin/Vehicles', function () {
     return Inertia::render('Web/home/SuperAdmin/Vehicles');

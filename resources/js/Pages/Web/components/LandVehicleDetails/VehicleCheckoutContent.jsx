@@ -554,7 +554,7 @@ const VehicleCheckoutContent = () => {
                       {currency}
                       {money(pricePerDay)}/day
                     </span>
-                    <span className="text-[#0955AC] whitespace-nowrap">(×{rentalDays} days)</span>
+                    <span className="text-[#0955AC] whitespace-nowrap">(×{Math.floor(rentalDays)} {Math.floor(rentalDays) === 1 ? 'day' : 'days'})</span>
                   </div>
                 </div>
                 <div className="text-[#000000CC] whitespace-nowrap">
