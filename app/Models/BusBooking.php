@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\BookingReferenceGenerator;
 
 class BusBooking extends Model
 {
@@ -41,9 +42,24 @@ class BusBooking extends Model
         return $this->belongsTo(BusSchedule::class);
     }
 
+    /**
+     * Generate secure booking reference
+     * @deprecated Use BookingReferenceGenerator::forBus() instead
+     */
     public static function generateBookingReference()
     {
-        return 'BUS-' . strtoupper(uniqid());
+        return BookingReferenceGenerator::forBus();
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($booking) {
+            if (empty($booking->booking_reference)) {
+                $booking->booking_reference = BookingReferenceGenerator::forBus();
+            }
+        });
     }
 
     /**

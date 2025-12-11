@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from '@inertiajs/react';
 import Header from '../../layouts/Header';
 import Footer from '../../layouts/Footer';
+import BookingReferenceDisplay from '../../../../Components/BookingReferenceDisplay';
 
 const BusBookingSuccess = ({ booking }) => {
     return (
@@ -21,11 +22,14 @@ const BusBookingSuccess = ({ booking }) => {
 
                     {/* Booking reference */}
                     <div className="border-b px-6 py-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-gray-600">Booking Reference</h2>
-                            <span className="text-xl font-bold text-[#0955AC]">{booking.reference}</span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-2">
+                        <h2 className="text-lg font-semibold text-gray-600 mb-3">Booking Reference</h2>
+                        <BookingReferenceDisplay 
+                            reference={booking.reference}
+                            size="large"
+                            showCopy={true}
+                            showValidation={true}
+                        />
+                        <p className="text-sm text-gray-500 mt-3">
                             Please save this reference number for your records. You'll need it for any booking inquiries.
                         </p>
                     </div>

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\BusSchedule;
 use App\Models\BusStation;
 use App\Models\BusBooking;
+use App\Services\BookingReferenceGenerator;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;

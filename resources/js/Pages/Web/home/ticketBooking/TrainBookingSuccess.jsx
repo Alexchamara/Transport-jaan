@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, usePage } from "@inertiajs/react";
 import Header from "../../layouts/Header";
+import BookingReferenceDisplay from "../../../../Components/BookingReferenceDisplay";
 
 const TrainBookingSuccess = () => {
     const { props } = usePage();
@@ -24,7 +25,13 @@ const TrainBookingSuccess = () => {
                 {/* Booking Details */}
                 <div className="bg-white rounded-lg shadow-lg overflow-hidden">
                     <div className="bg-[#0955AC] text-white px-6 py-4">
-                        <h2 className="text-xl font-semibold">Booking Reference: {booking.reference}</h2>
+                        <h2 className="text-lg font-semibold mb-3">Booking Reference</h2>
+                        <BookingReferenceDisplay 
+                            reference={booking.reference}
+                            size="large"
+                            showCopy={true}
+                            showValidation={true}
+                        />
                     </div>
 
                     <div className="p-6">

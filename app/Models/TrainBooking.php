@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\BookingReferenceGenerator;
 
 class TrainBooking extends Model
 {
@@ -51,7 +52,7 @@ class TrainBooking extends Model
 
         static::creating(function ($booking) {
             if (empty($booking->booking_reference)) {
-                $booking->booking_reference = 'TRN-' . strtoupper(uniqid());
+                $booking->booking_reference = BookingReferenceGenerator::forTrain();
             }
         });
     }
