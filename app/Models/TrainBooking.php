@@ -20,6 +20,7 @@ class TrainBooking extends Model
         'children',
         'infants',
         'total_passengers',
+        'seat_numbers',
         'total_amount',
         'booking_reference',
         'status',
@@ -29,6 +30,7 @@ class TrainBooking extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
+        'seat_numbers' => 'array',
     ];
 
     public function user()
