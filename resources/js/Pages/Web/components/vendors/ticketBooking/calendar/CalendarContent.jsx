@@ -343,11 +343,11 @@ const CalendarContent = () => {
                             className="size-[90px]"
                             alt="Client"
                         />
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-3 items-center text-center lg:items-start lg:text-start">
                             <h1 className="text-[18px] font-[700]">
                                 Steve Gibson
                             </h1>
-                            <div className="flex flex-row gap-10 text-[16px] font-[500]">
+                            <div className="flex flex-row md:gap-10 gap-5 text-[16px] font-[500]">
                                 <div className="flex flex-col gap-3 text-[#00000080]">
                                     <h1>Start Date</h1>
                                     <h1>End Date</h1>
@@ -365,9 +365,9 @@ const CalendarContent = () => {
 
                     <div className="flex flex-col xl:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
                         <img src={car1} className="size-[90px]" alt="Car" />
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2 items-center text-center lg:items-start lg:text-start">
                             <h1 className="text-[18px] font-[700]">BMW LX3</h1>
-                            <div className="flex flex-row gap-10 text-[16px] font-[500]">
+                            <div className="flex flex-row md:gap-10 gap-5 text-[16px] font-[500]">
                                 <div className="flex flex-col gap-2 text-[#00000080]">
                                     <h1>Car Type</h1>
                                     <h1>Car Number</h1>
@@ -455,22 +455,22 @@ const CalendarContent = () => {
                 }}
             >
                 <div className="px-5 lg:px-20 flex flex-col xl:flex-row items-center justify-between">
-                    <div className="flex flex-row justify-center items-center gap-3">
+                    <div className="flex md:flex-row flex-col justify-center items-center gap-3">
                         <div
-                            className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                            className="md:w-[75px] md:h-[35px] p-2 bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
                             onClick={handleToday}
                         >
                             Today
                         </div>
                         <div className="flex flex-row justify-center items-center gap-2">
                             <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                className="md:w-[35px] md:h-[35px] p-2 bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
                                 onClick={handlePrev}
                             >
                                 <img src={leftArrow} alt="Previous" />
                             </div>
                             <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
+                                className="md:w-[35px] md:h-[35px] p-2 bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer hover:bg-[#E0E0E0] transition-colors"
                                 onClick={handleNext}
                             >
                                 <img
@@ -486,19 +486,19 @@ const CalendarContent = () => {
                     </div>
                     <div className="flex flex-col md:flex-row justify-center items-center gap-5 mt-5 xl:mt-0">
                         <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
+                            <div className="md:w-[85px] md:h-[35px] p-2 bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
                                 All
                             </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
+                            <div className="md:w-[85px] md:h-[35px] p-2 bg-[#F3F3F3] flex justify-center items-center">
                                 Pickup
                             </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
+                            <div className="md:w-[85px] md:h-[35px] p-2 bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
                                 Return
                             </div>
                         </div>
                         <div className="flex flex-row justify-center items-center text-[14px] font-[600]">
                             <div
-                                className={`w-[70px] h-[35px] rounded-l-[6px] flex justify-center items-center cursor-pointer transition-colors ${
+                                className={`md:w-[70px] md:h-[35px] rounded-l-[6px] flex justify-center px-2 py-2 items-center cursor-pointer transition-colors ${
                                     currentView === "day"
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
@@ -508,7 +508,7 @@ const CalendarContent = () => {
                                 Day
                             </div>
                             <div
-                                className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${
+                                className={`md:w-[70px] md:h-[35px] px-2 py-2 flex justify-center items-center cursor-pointer transition-colors ${
                                     currentView === "week"
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
@@ -518,7 +518,7 @@ const CalendarContent = () => {
                                 Week
                             </div>
                             <div
-                                className={`w-[70px] h-[35px] flex justify-center items-center cursor-pointer transition-colors ${
+                                className={`md:w-[70px] md:h-[35px] px-2 py-2 flex justify-center items-center cursor-pointer transition-colors ${
                                     currentView === "month"
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
@@ -528,7 +528,7 @@ const CalendarContent = () => {
                                 Month
                             </div>
                             <div
-                                className={`w-[70px] h-[35px] rounded-r-[6px] flex justify-center items-center cursor-pointer transition-colors ${
+                                className={`md:w-[70px] md:h-[35px] px-2 py-2 rounded-r-[6px] flex justify-center items-center cursor-pointer transition-colors ${
                                     currentView === "year"
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
@@ -541,7 +541,7 @@ const CalendarContent = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-5 sm:gap-10 justify-start items-center px-5 lg:px-20 py-5">
+                <div className="flex flex-row gap-5 md:gap-10 justify-start items-center px-5 lg:px-20 py-5">
                     <div className="flex flex-row justify-start items-center gap-5 ">
                         <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
                         <h1 className=" text-[#00000080] font-[600] text-[16px]">

@@ -364,7 +364,7 @@ const ExpensesContent = () => {
                             <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Balance
                             </h1>
-                            <h1 className="text-[24px] font-[700]">$8,450</h1>
+                            <h1 className="text-[20px] font-[700]">$8,450</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
@@ -393,7 +393,7 @@ const ExpensesContent = () => {
                             <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Income
                             </h1>
-                            <h1 className="text-[24px] font-[700]">$25,700</h1>
+                            <h1 className="text-[20px] font-[700]">$25,700</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
@@ -422,7 +422,7 @@ const ExpensesContent = () => {
                             <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Expenses
                             </h1>
-                            <h1 className="text-[24px] font-[700]">$14,756</h1>
+                            <h1 className="text-[20px] font-[700]">$14,756</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
@@ -482,7 +482,7 @@ const ExpensesContent = () => {
                     )}
                 </div>
                 <div
-                    className="w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
+                    className="w-full xl:min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-5 py-5"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     {isMobile ? (
@@ -540,12 +540,12 @@ const ExpensesContent = () => {
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
                 {/* Table Header */}
-                <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-0">
+                <div className="flex flex-col xl:flex-row justify-between gap-4 md:gap-0">
                     <h1 className="text-[20px] md:text-[24px] font-[700]">
                         Recent Transactions
                     </h1>
                     <div className="flex flex-col sm:flex-row gap-3 md:gap-5">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                        <div className="xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} alt="search" />
                             <input
                                 type="text"
@@ -553,7 +553,7 @@ const ExpensesContent = () => {
                                 placeholder="Search client name, car, etc."
                             />
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="xl:w-[125px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"
@@ -566,7 +566,7 @@ const ExpensesContent = () => {
                             />
                             <img src={miniDownArrow} alt="arrow" />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="xl:w-[139px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={calendar}
                                 className="size-[17px]"
@@ -581,7 +581,7 @@ const ExpensesContent = () => {
                         </div>
                         <button
                             onClick={downloadTableAsPDF}
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+                            className="xl:w-[125px] xl:h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3 py-2 px-4"
                         >
                             <img src={downloadLogo} alt="download" />
                             <h1>Download</h1>
@@ -770,7 +770,7 @@ const ExpensesContent = () => {
                 ))}
 
                 {/* Pagination */}
-                <div className="flex justify-between items-center gap-2 mt-20">
+                <div className="flex md:flex-row flex-col justify-between items-center gap-2 mt-20">
                     <div className="flex items-center">
                         <span className="mr-3 text-[#00000080] text-[15px]">
                             Results per page

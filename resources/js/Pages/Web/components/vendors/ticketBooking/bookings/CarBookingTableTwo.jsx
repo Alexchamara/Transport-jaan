@@ -324,7 +324,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
             )}
 
             {/* Pagination Controls and Results per page inline */}
-            <div className="flex justify-between items-center gap-2 mt-20">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-20">
                 <div className="flex items-center">
                     <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
                     <select

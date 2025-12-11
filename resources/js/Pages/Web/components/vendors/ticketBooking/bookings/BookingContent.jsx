@@ -27,7 +27,7 @@ const BookingContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
 
-    const [isMobile, setIsMobile] = useState(false);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
     useEffect(() => {
         const checkMobile = () => {
