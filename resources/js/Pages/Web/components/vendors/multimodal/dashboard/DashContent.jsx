@@ -385,7 +385,7 @@ const DashContent = () => {
                             className="w-full xl:min-h-[437px] bg-[#FFFFFF] rounded-[10px] py-5 px-4 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <div className="flex flex-row items-center justify-between w-full">
+                            <div className="flex flex-col xl:flex-row items-center justify-between w-full">
                                 <h1 className="text-[24px] font-[700]">
                                     Real Status
                                 </h1>
@@ -474,8 +474,8 @@ const DashContent = () => {
                     className="w-auto h-auto bg-[#FFFFFF] rounded-[10px] py-5 px-5"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <div className="flex flex-row justify-between">
-                        <h1 className="text-[24px] font-[700]">Car Booking</h1>
+                    <div className="flex flex-col xl:flex-row justify-between">
+                        <h1 className="text-[24px] font-[700] mb-5 xl:mb-0">Car Booking</h1>
                         <div className="flex flex-col md:flex-row gap-5">
                             <div className="w-full md:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                                 <img src={miniSearchIcon} />
