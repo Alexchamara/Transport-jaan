@@ -495,8 +495,8 @@ const DashContent = () => {
                             <h1 className="text-[24px] font-[700]">
                                 Flight Bookings
                             </h1>
-                            <div className="flex md:flex-row flex-col gap-5">
-                                <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                            <div className="flex md:flex-row flex-col gap-5 mt-5 lg:mt-0">
+                                <div className="xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                                     <SearchIcon className="size-[16px]" />
                                     <input
                                         type="text"
@@ -504,7 +504,7 @@ const DashContent = () => {
                                         placeholder="Search passenger, flight no., route..."
                                     />
                                 </div>
-                                <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                                <div className="xl:w-[125px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                                     <FilterIcon className="size-[12px]" />
                                     <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
                                         Filter

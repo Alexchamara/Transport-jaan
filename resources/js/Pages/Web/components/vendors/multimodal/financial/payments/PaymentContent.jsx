@@ -392,7 +392,7 @@ const PaymentContent = () => {
                             <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Balance
                             </h1>
-                            <h1 className="text-[24px] font-[700]">$8,450</h1>
+                            <h1 className="text-[20px] font-[700]">$8,450</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
@@ -420,7 +420,7 @@ const PaymentContent = () => {
                             <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Income
                             </h1>
-                            <h1 className="text-[24px] font-[700]">$25,700</h1>
+                            <h1 className="text-[20px] font-[700]">$25,700</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
@@ -448,7 +448,7 @@ const PaymentContent = () => {
                             <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Expenses
                             </h1>
-                            <h1 className="text-[24px] font-[700]">
+                            <h1 className="text-[20px] font-[700]">
                                 $14,756
                             </h1>
                         </div>
