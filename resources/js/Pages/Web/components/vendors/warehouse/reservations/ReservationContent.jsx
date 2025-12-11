@@ -301,15 +301,15 @@ const ReservationContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto lg:pr-5 px-5 lg:px-0 py-10">
             {/* Header */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+            <div className="flex lg:flex-row flex-col gap-5 justify-between items-center mt-10">
+                <h1 className="figtree text-[35px] font-[700] text-center">
                     Warehouse Reservations
                 </h1>
-                <div className="flex flex-row gap-5 relative items-center">
+                {/* <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
-                </div>
+                </div> */}
             </div>
 
             {/* Filters Section */}
@@ -427,69 +427,180 @@ const ReservationContent = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="bg-[#D8E4F2]">
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Reservation ID</th>
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Reserved Date</th>
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Client Name</th>
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Warehouse</th>
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Storage Type</th>
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Start Date</th>
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">End Date</th>
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Amount</th>
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Payment</th>
-                                    <th className="px-4 py-3 text-left text-[14px] font-[600]">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {currentReservations.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="10" className="px-4 py-20 text-center text-[#7B7B7A]">
-                                            No reservations found
-                                        </td>
+                    <>
+                        {/* Desktop Table View */}
+                        <div className="bg-white rounded-lg shadow overflow-hidden hidden xl:block">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="bg-[#D8E4F2]">
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">Reservation ID</th>
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">Reserved Date</th>
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">Client Name</th>
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">Warehouse</th>
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">Storage Type</th>
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">Start Date</th>
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">End Date</th>
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">Amount</th>
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">Payment</th>
+                                        <th className="px-4 py-3 text-left text-[14px] font-[600]">Status</th>
                                     </tr>
-                                ) : (
-                                    currentReservations.map((reservation, idx) => (
-                                        <tr
-                                            key={startIdx + idx}
-                                            className="border-b border-[#00000033] hover:bg-gray-50 cursor-pointer"
-                                            onClick={() => handleRowClick(reservation, idx)}
-                                        >
-                                            <td className="px-4 py-4 text-[14px] font-[500]">
-                                                {reservation.booking_reference || reservation.id}
+                                </thead>
+                                <tbody>
+                                    {currentReservations.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="10" className="px-4 py-20 text-center text-[#7B7B7A]">
+                                                No reservations found
                                             </td>
-                                            <td className="px-4 py-4 text-[14px] font-[500]">
-                                                {reservation.reservation_date || reservation.created_at?.split('T')[0] || 'N/A'}
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] font-[500]">
-                                                {reservation.company_name || 'N/A'}
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] font-[500]">
-                                                <div>{reservation.warehouse_name || 'N/A'}</div>
-                                                <div className="text-[12px] text-[#7B7B7A]">
-                                                    {reservation.warehouse_location || ''}
+                                        </tr>
+                                    ) : (
+                                        currentReservations.map((reservation, idx) => (
+                                            <tr
+                                                key={startIdx + idx}
+                                                className="border-b border-[#00000033] hover:bg-gray-50 cursor-pointer"
+                                                onClick={() => handleRowClick(reservation, idx)}
+                                            >
+                                                <td className="px-4 py-4 text-[14px] font-[500]">
+                                                    {reservation.booking_reference || reservation.id}
+                                                </td>
+                                                <td className="px-4 py-4 text-[14px] font-[500]">
+                                                    {reservation.reservation_date || reservation.created_at?.split('T')[0] || 'N/A'}
+                                                </td>
+                                                <td className="px-4 py-4 text-[14px] font-[500]">
+                                                    {reservation.company_name || 'N/A'}
+                                                </td>
+                                                <td className="px-4 py-4 text-[14px] font-[500]">
+                                                    <div>{reservation.warehouse_name || 'N/A'}</div>
+                                                    <div className="text-[12px] text-[#7B7B7A]">
+                                                        {reservation.warehouse_location || ''}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4 text-[14px] font-[500]">
+                                                    <div>{reservation.storage_type || "N/A"}</div>
+                                                    <div className="text-[12px] text-[#7B7B7A]">
+                                                        {reservation.quantity ? `${reservation.quantity} units` : ""}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4 text-[14px] font-[500]">
+                                                    {reservation.start_date || 'N/A'}
+                                                </td>
+                                                <td className="px-4 py-4 text-[14px] font-[500]">
+                                                    {reservation.end_date || 'N/A'}
+                                                </td>
+                                                <td className="px-4 py-4 text-[14px] font-[500]">
+                                                    {reservation.total_amount ? `Rs ${reservation.total_amount}` : 'N/A'}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span
+                                                        className="px-3 py-1 rounded-[4px] text-[11px] font-[600] inline-block"
+                                                        style={{
+                                                            color: reservation.paymentStatusColor,
+                                                            background: reservation.paymentStatusBg,
+                                                        }}
+                                                    >
+                                                        {reservation.payment_status || 'pending'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span
+                                                        className="px-3 py-1 rounded-[4px] text-[11px] font-[700] inline-block"
+                                                        style={{
+                                                            background: reservation.statusBg,
+                                                            color: reservation.statusText,
+                                                        }}
+                                                    >
+                                                        {reservation.status || 'pending'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+
+                            {/* Pagination */}
+                            <div className="flex justify-between items-center gap-2 px-6 py-4 border-t border-[#00000033]">
+                                <div className="flex items-center">
+                                    <span className="mr-3 text-[#00000080] text-[15px]">
+                                        Results per page
+                                    </span>
+                                    <select
+                                        className="rounded px-3 py-2 font-[600] text-[16px] bg-[#F4F3F3] border border-[#BEBEBE] w-[90px] h-[40px] focus:outline-none"
+                                        value={itemsPerPage}
+                                        onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                    >
+                                        {perPageOptions.map((opt) => (
+                                            <option key={opt} value={opt}>
+                                                {opt}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        className="size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                                        onClick={() => goToPage(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                    >
+                                        &lt;
+                                    </button>
+
+                                    {getPageNumbers().map((num, i) =>
+                                        num === "..." ? (
+                                            <span key={`dots-${i}`} className="px-2">
+                                                ...
+                                            </span>
+                                        ) : (
+                                            <button
+                                                key={`p-${num}`}
+                                                className={`size-[40px] rounded-[4px] text-[16px] font-[600] ${
+                                                    currentPage === num
+                                                        ? "bg-white border-2 border-[#0955AC] text-[#0955AC]"
+                                                        : "bg-[#F4F3F3]"
+                                                }`}
+                                                onClick={() => goToPage(num)}
+                                            >
+                                                {num}
+                                            </button>
+                                        )
+                                    )}
+
+                                    <button
+                                        className="size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                                        onClick={() => goToPage(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                    >
+                                        &gt;
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="block xl:hidden space-y-4">
+                            {currentReservations.length === 0 ? (
+                                <div className="bg-white rounded-lg shadow p-8 text-center text-[#7B7B7A]">
+                                    No reservations found
+                                </div>
+                            ) : (
+                                currentReservations.map((reservation, idx) => (
+                                    <div
+                                        key={startIdx + idx}
+                                        className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-gray-50"
+                                        onClick={() => handleRowClick(reservation, idx)}
+                                    >
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <div className="text-[16px] font-[600] text-[#0955AC]">
+                                                    {reservation.booking_reference || reservation.id}
                                                 </div>
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] font-[500]">
-                                                <div>{reservation.storage_type || "N/A"}</div>
                                                 <div className="text-[12px] text-[#7B7B7A]">
-                                                    {reservation.quantity ? `${reservation.quantity} units` : ""}
+                                                    Reserved: {reservation.reservation_date || reservation.created_at?.split('T')[0] || 'N/A'}
                                                 </div>
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] font-[500]">
-                                                {reservation.start_date || 'N/A'}
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] font-[500]">
-                                                {reservation.end_date || 'N/A'}
-                                            </td>
-                                            <td className="px-4 py-4 text-[14px] font-[500]">
-                                                {reservation.total_amount ? `Rs ${reservation.total_amount}` : 'N/A'}
-                                            </td>
-                                            <td className="px-4 py-4">
+                                            </div>
+                                            <div className="flex gap-2">
                                                 <span
-                                                    className="px-3 py-1 rounded-[4px] text-[11px] font-[600] inline-block"
+                                                    className="px-2 py-1 rounded-[4px] text-[10px] font-[600] inline-block"
                                                     style={{
                                                         color: reservation.paymentStatusColor,
                                                         background: reservation.paymentStatusBg,
@@ -497,10 +608,8 @@ const ReservationContent = () => {
                                                 >
                                                     {reservation.payment_status || 'pending'}
                                                 </span>
-                                            </td>
-                                            <td className="px-4 py-4">
                                                 <span
-                                                    className="px-3 py-1 rounded-[4px] text-[11px] font-[700] inline-block"
+                                                    className="px-2 py-1 rounded-[4px] text-[10px] font-[700] inline-block"
                                                     style={{
                                                         background: reservation.statusBg,
                                                         color: reservation.statusText,
@@ -508,72 +617,96 @@ const ReservationContent = () => {
                                                 >
                                                     {reservation.status || 'pending'}
                                                 </span>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                            </div>
+                                        </div>
 
-                            </tbody>
-                        </table>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-[12px] text-[#7B7B7A]">Client:</span>
+                                                <span className="text-[14px] font-[500]">{reservation.company_name || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-[12px] text-[#7B7B7A]">Warehouse:</span>
+                                                <span className="text-[14px] font-[500]">{reservation.warehouse_name || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-[12px] text-[#7B7B7A]">Storage Type:</span>
+                                                <span className="text-[14px] font-[500]">{reservation.storage_type || "N/A"} {reservation.quantity ? `(${reservation.quantity} units)` : ""}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-[12px] text-[#7B7B7A]">Period:</span>
+                                                <span className="text-[14px] font-[500]">{reservation.start_date || 'N/A'} - {reservation.end_date || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-[12px] text-[#7B7B7A]">Amount:</span>
+                                                <span className="text-[14px] font-[500]">{reservation.total_amount ? `Rs ${reservation.total_amount}` : 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
 
-                        {/* Pagination */}
-                        <div className="flex justify-between items-center gap-2 px-6 py-4 border-t border-[#00000033]">
-                            <div className="flex items-center">
-                                <span className="mr-3 text-[#00000080] text-[15px]">
-                                    Results per page
-                                </span>
-                                <select
-                                    className="rounded px-3 py-2 font-[600] text-[16px] bg-[#F4F3F3] border border-[#BEBEBE] w-[90px] h-[40px] focus:outline-none"
-                                    value={itemsPerPage}
-                                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                                >
-                                    {perPageOptions.map((opt) => (
-                                        <option key={opt} value={opt}>
-                                            {opt}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <button
-                                    className="size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
-                                    onClick={() => goToPage(currentPage - 1)}
-                                    disabled={currentPage === 1}
-                                >
-                                    &lt;
-                                </button>
-
-                                {getPageNumbers().map((num, i) =>
-                                    num === "..." ? (
-                                        <span key={`dots-${i}`} className="px-2">
-                                            ...
+                            {/* Mobile Pagination */}
+                            <div className="bg-white rounded-lg shadow p-4">
+                                <div className="flex justify-between items-center gap-2">
+                                    <div className="flex items-center">
+                                        <span className="mr-3 text-[#00000080] text-[15px]">
+                                            Results per page
                                         </span>
-                                    ) : (
-                                        <button
-                                            key={`p-${num}`}
-                                            className={`size-[40px] rounded-[4px] text-[16px] font-[600] ${
-                                                currentPage === num
-                                                    ? "bg-white border-2 border-[#0955AC] text-[#0955AC]"
-                                                    : "bg-[#F4F3F3]"
-                                            }`}
-                                            onClick={() => goToPage(num)}
+                                        <select
+                                            className="rounded px-3 py-2 font-[600] text-[16px] bg-[#F4F3F3] border border-[#BEBEBE] w-[90px] h-[40px] focus:outline-none"
+                                            value={itemsPerPage}
+                                            onChange={(e) => setItemsPerPage(Number(e.target.value))}
                                         >
-                                            {num}
-                                        </button>
-                                    )
-                                )}
+                                            {perPageOptions.map((opt) => (
+                                                <option key={opt} value={opt}>
+                                                    {opt}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
 
-                                <button
-                                    className="size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
-                                    onClick={() => goToPage(currentPage + 1)}
-                                    disabled={currentPage === totalPages}
-                                >
-                                    &gt;
-                                </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            className="size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                                            onClick={() => goToPage(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                        >
+                                            &lt;
+                                        </button>
+
+                                        {getPageNumbers().map((num, i) =>
+                                            num === "..." ? (
+                                                <span key={`dots-${i}`} className="px-2">
+                                                    ...
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    key={`p-${num}`}
+                                                    className={`size-[40px] rounded-[4px] text-[16px] font-[600] ${
+                                                        currentPage === num
+                                                            ? "bg-white border-2 border-[#0955AC] text-[#0955AC]"
+                                                            : "bg-[#F4F3F3]"
+                                                    }`}
+                                                    onClick={() => goToPage(num)}
+                                                >
+                                                    {num}
+                                                </button>
+                                            )
+                                        )}
+
+                                        <button
+                                            className="size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                                            onClick={() => goToPage(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                        >
+                                            &gt;
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </>
                 )}
             </div>
 
