@@ -124,18 +124,55 @@ const BusBookingSuccess = ({ booking }) => {
                     {/* Actions */}
                     <div className="px-6 py-6 flex flex-wrap gap-4 justify-between">
                         <div className="space-x-4">
-                            <button className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium">
-                                Print Ticket
-                            </button>
-                            <button className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium">
-                                Email Ticket
+                            <a 
+                                href={`/bus-ticket/download/${booking.reference}`}
+                                className="inline-block bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors"
+                                target="_blank"
+                            >
+                                📄 Download Ticket
+                            </a>
+                            <a 
+                                href={`/bus-ticket/view/${booking.reference}`}
+                                className="inline-block bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors"
+                                target="_blank"
+                            >
+                                👁️ View Ticket
+                            </a>
+                            <button 
+                                onClick={() => {
+                                    if (confirm('Send ticket to ' + (booking.passengerEmail || 'your email') + '?')) {
+                                        fetch(`/bus-ticket/email/${booking.reference}`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                                                'Accept': 'application/json'
+                                            }
+                                        })
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                alert(data.message);
+                                            } else {
+                                                alert('Failed to send email. Please try again.');
+                                            }
+                                        })
+                                        .catch(err => {
+                                            console.error(err);
+                                            alert('Failed to send email. Please try again.');
+                                        });
+                                    }
+                                }}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors"
+                            >
+                                📧 Email Ticket
                             </button>
                         </div>
 
                         <div>
                             <Link
                                 href="/flight-booking"
-                                className="bg-[#0955AC] hover:bg-[#074489] text-white px-6 py-2 rounded-lg font-medium"
+                                className="inline-block bg-[#0955AC] hover:bg-[#074489] text-white px-6 py-2 rounded-lg font-medium transition-colors"
                             >
                                 Back to Home
                             </Link>

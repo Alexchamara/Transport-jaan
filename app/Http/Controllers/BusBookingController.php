@@ -7,6 +7,8 @@ use App\Models\BusSchedule;
 use App\Models\BusStation;
 use App\Models\BusBooking;
 use App\Services\BookingReferenceGenerator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -83,7 +85,7 @@ class BusBookingController extends Controller
     public function preview(Request $request)
     {
         // Check if the user is logged in
-        if (!auth()->check()) {
+        if (!Auth::check()) {
             return redirect()->route('signin')->with('message', 'Please log in to make a booking.');
         }
 
@@ -97,12 +99,31 @@ class BusBookingController extends Controller
 
         $schedule = null;
         $tripData = null;
+        $bookedSeats = [];
+        $seatLayout = null;
 
         if ($scheduleId) {
             $schedule = BusSchedule::with(['bus', 'departureStation', 'arrivalStation'])
                 ->find($scheduleId);
 
             if ($schedule) {
+                // Get all booked seats for this schedule
+                $bookedSeats = BusBooking::where('bus_schedule_id', $schedule->id)
+                    ->whereIn('status', ['confirmed', 'pending'])
+                    ->get()
+                    ->pluck('seat_numbers')
+                    ->flatten()
+                    ->toArray();
+
+                // Get seat layout configuration from bus
+                $busCapacity = $schedule->bus->capacity ?? 52;
+                $seatLayout = [
+                    'rows' => ceil($busCapacity / 4), // 4 seats per row (2+2)
+                    'columns' => 4,
+                    'totalSeats' => $busCapacity,
+                    'aisle' => 2, // Aisle after 2nd column
+                ];
+
                 $tripData = [
                     'id' => $schedule->id,
                     'operator' => $schedule->bus->operator,
@@ -127,7 +148,9 @@ class BusBookingController extends Controller
 
         return Inertia::render('Web/home/ticketBooking/BusTicketBookingPreview', [
             'trip' => $tripData,
-            'searchParams' => $searchParams
+            'searchParams' => $searchParams,
+            'bookedSeats' => $bookedSeats,
+            'seatLayout' => $seatLayout,
         ]);
     }
 
@@ -137,7 +160,7 @@ class BusBookingController extends Controller
     public function store(Request $request)
     {
         // Check if the user is logged in
-        if (!auth()->check()) {
+        if (!Auth::check()) {
             return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
         }
 
@@ -151,7 +174,7 @@ class BusBookingController extends Controller
         }
 
         // Log received data for debugging
-        \Log::info('Bus booking request data:', $request->all());
+        Log::info('Bus booking request data:', $request->all());
 
         try {
             $validatedData = $request->validate([
@@ -164,9 +187,9 @@ class BusBookingController extends Controller
                 'boarding_point' => 'required|string|max:255',
                 'destination_point' => 'required|string|max:255'
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             // Log validation errors
-            \Log::error('Bus booking validation failed:', $e->errors());
+            Log::error('Bus booking validation failed:', $e->errors());
 
             if ($request->expectsJson() || $request->isJson() || $request->ajax()) {
                 return response()->json(['errors' => $e->errors()], 422);
@@ -280,7 +303,7 @@ class BusBookingController extends Controller
                 // Atomically decrement available seats
                 $schedule->decrement('available_seats', $request->passenger_count);
 
-                \Log::info('Bus booking created successfully', [
+                Log::info('Bus booking created successfully', [
                     'booking_id' => $booking->id,
                     'reference' => $booking->booking_reference,
                     'seats_remaining' => $schedule->fresh()->available_seats
@@ -307,7 +330,7 @@ class BusBookingController extends Controller
                 ->with('success', 'Bus booking confirmed successfully!');
 
         } catch (ValidationException $e) {
-            \Log::warning('Bus booking validation failed within transaction', ['errors' => $e->errors()]);
+            Log::warning('Bus booking validation failed within transaction', ['errors' => $e->errors()]);
             
             if ($request->ajax() || $request->expectsJson() || $request->wantsJson() || $request->isJson()) {
                 return response()->json(['errors' => $e->errors()], 422);
@@ -315,7 +338,7 @@ class BusBookingController extends Controller
             
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            \Log::error('Bus booking failed', [
+            Log::error('Bus booking failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -361,6 +384,157 @@ class BusBookingController extends Controller
                 'arrivalTime' => Carbon::parse($booking->busSchedule->arrival_time)->format('g:i A'),
             ]
         ]);
+    }
+
+    /**
+     * Download ticket as PDF
+     */
+    public function downloadTicket($reference)
+    {
+        // Check if user is logged in
+        if (!Auth::check()) {
+            return redirect()->route('signin')->with('message', 'Please log in to download your ticket.');
+        }
+
+        $booking = BusBooking::with(['busSchedule.bus', 'busSchedule.departureStation', 'busSchedule.arrivalStation', 'user'])
+            ->where('booking_reference', $reference)
+            ->firstOrFail();
+
+        // Verify ownership
+        if ($booking->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access to ticket.');
+        }
+
+        try {
+            $ticketService = app(\App\Services\TicketGenerationService::class);
+            $result = $ticketService->generateBusTicket($booking);
+
+            return response()->download($result['path'], "{$reference}.pdf", [
+                'Content-Type' => 'application/pdf',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Ticket download failed', [
+                'reference' => $reference,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->withErrors(['error' => 'Failed to generate ticket. Please try again.']);
+        }
+    }
+
+    /**
+     * View ticket in browser
+     */
+    public function viewTicket($reference)
+    {
+        // Check if user is logged in
+        if (!Auth::check()) {
+            return redirect()->route('signin')->with('message', 'Please log in to view your ticket.');
+        }
+
+        $booking = BusBooking::with(['busSchedule.bus', 'busSchedule.departureStation', 'busSchedule.arrivalStation', 'user'])
+            ->where('booking_reference', $reference)
+            ->firstOrFail();
+
+        // Verify ownership
+        if ($booking->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access to ticket.');
+        }
+
+        try {
+            $ticketService = app(\App\Services\TicketGenerationService::class);
+            $result = $ticketService->generateBusTicket($booking);
+
+            return response()->file($result['path'], [
+                'Content-Type' => 'application/pdf',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Ticket view failed', [
+                'reference' => $reference,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->withErrors(['error' => 'Failed to generate ticket. Please try again.']);
+        }
+    }
+
+    /**
+     * Email ticket to customer
+     */
+    public function emailTicket($reference)
+    {
+        // Check if user is logged in
+        if (!Auth::check()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Please log in.'], 401);
+            }
+            return redirect()->route('signin')->with('message', 'Please log in to email your ticket.');
+        }
+
+        $booking = BusBooking::with(['busSchedule.bus', 'busSchedule.departureStation', 'busSchedule.arrivalStation', 'user'])
+            ->where('booking_reference', $reference)
+            ->firstOrFail();
+
+        // Verify ownership
+        if ($booking->user_id !== Auth::id()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403, 'Unauthorized access to ticket.');
+        }
+
+        try {
+            $ticketService = app(\App\Services\TicketGenerationService::class);
+            $result = $ticketService->generateBusTicket($booking);
+
+            // Send email with ticket attachment
+            $email = $booking->passenger_email ?? $booking->user->email;
+            
+            if (!$email) {
+                throw new \Exception('No email address available for this booking.');
+            }
+
+            Mail::send('emails.ticket', [
+                'booking' => $booking,
+                'reference' => $reference
+            ], function ($message) use ($email, $result, $reference) {
+                $message->to($email)
+                    ->subject('Your Bus Ticket - ' . $reference)
+                    ->attach($result['path'], [
+                        'as' => $reference . '.pdf',
+                        'mime' => 'application/pdf',
+                    ]);
+            });
+
+            Log::info('Ticket emailed successfully', [
+                'reference' => $reference,
+                'email' => $email
+            ]);
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Ticket has been sent to ' . $email
+                ]);
+            }
+
+            return back()->with('success', 'Ticket has been sent to ' . $email);
+
+        } catch (\Exception $e) {
+            Log::error('Ticket email failed', [
+                'reference' => $reference,
+                'error' => $e->getMessage()
+            ]);
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to email ticket. Please try again.'
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => 'Failed to email ticket. Please try again.']);
+        }
     }
 
     /**

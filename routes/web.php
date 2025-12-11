@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 use App\Http\Controllers\ProfileController;
@@ -111,6 +112,11 @@ Route::get('/busTicketBookingDetails', [BusBookingController::class, 'search'])-
 Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store')->middleware('auth');
 Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success')->middleware('auth');
 Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview')->middleware('auth');
+
+// Bus ticket routes
+Route::get('/bus-ticket/download/{reference}', [BusBookingController::class, 'downloadTicket'])->name('bus.ticket.download')->middleware('auth');
+Route::get('/bus-ticket/view/{reference}', [BusBookingController::class, 'viewTicket'])->name('bus.ticket.view')->middleware('auth');
+Route::post('/bus-ticket/email/{reference}', [BusBookingController::class, 'emailTicket'])->name('bus.ticket.email')->middleware('auth');
 Route::get('/flightBooking', [WebController::class, 'flightBooking'])->name('flightBooking.flightBooking');
 Route::post('/flight-bookings', [FlightBookingController::class, 'store'])->name('flight-bookings.store')->middleware('auth');
 
@@ -570,13 +576,13 @@ Route::middleware(['auth', \App\Http\Middleware\ClientVerificationCheck::class])
     ->prefix('user')
     ->name('user.')
     ->group(function () {
-        Route::get('/dashboard', [\App\Http\Controllers\User\UserDashboardController::class, 'view'])->name('dashboard');
-        Route::get('/flight-view', [\App\Http\Controllers\User\UserDashboardController::class, 'flightView'])->name('fight_view');
-        Route::get('/booking-view', [\App\Http\Controllers\User\UserDashboardController::class, 'bookingView'])->name('booking_view');
-        Route::get('/freight-bookings', [\App\Http\Controllers\User\UserDashboardController::class, 'freightBookings'])->name('freight_bookings');
-        Route::get('/airticket-book', [\App\Http\Controllers\User\UserDashboardController::class, 'airticketBook'])->name('airticket_book');
-        Route::get('/airticket-view', [\App\Http\Controllers\User\UserDashboardController::class, 'airticketBookView'])->name('airticket_view');
-        Route::delete('/booking/{id}', [\App\Http\Controllers\User\UserDashboardController::class, 'destroy'])->name('booking_view.destroy');
+        Route::get('/dashboard', [UserDashboardController::class, 'view'])->name('dashboard');
+        Route::get('/flight-view', [UserDashboardController::class, 'flightView'])->name('fight_view');
+        Route::get('/booking-view', [UserDashboardController::class, 'bookingView'])->name('booking_view');
+        Route::get('/freight-bookings', [UserDashboardController::class, 'freightBookings'])->name('freight_bookings');
+        Route::get('/airticket-book', [UserDashboardController::class, 'airticketBook'])->name('airticket_book');
+        Route::get('/airticket-view', [UserDashboardController::class, 'airticketBookView'])->name('airticket_view');
+        Route::delete('/booking/{id}', [UserDashboardController::class, 'destroy'])->name('booking_view.destroy');
     });
 
 /*
@@ -585,23 +591,23 @@ Route::middleware(['auth', \App\Http\Middleware\ClientVerificationCheck::class])
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard/view', [\App\Http\Controllers\User\UserDashboardController::class, 'view'])->name('dashboard.view');
+    Route::get('/dashboard/view', [UserDashboardController::class, 'view'])->name('dashboard.view');
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard', [
-            'user' => auth()->user()
+            'user' => Auth::user()
         ]);
     })->name('dashboard');
 });
 
 // Client Dashboard Route with proper verification
-Route::get('/client/dashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('client.dashboard');
+Route::get('/client/dashboard', [ClientDashboardController::class, 'dashboard'])->name('client.dashboard');
 
 // Main client dashboard route (referenced by auth controllers)
-Route::get('/client/main-dashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('client.mainDashboard');
+Route::get('/client/main-dashboard', [ClientDashboardController::class, 'dashboard'])->name('client.mainDashboard');
 
 // Legacy client dashboard routes (public shell) - keep for backward compatibility
 Route::get('/ClientDashboard', fn() => Inertia::render('Web/home/client/ClientDashboard'))->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('ClientDashboard');
-Route::get('/clientDashboard', [\App\Http\Controllers\Client\ClientDashboardController::class, 'dashboard'])->name('clientDashboard');
+Route::get('/clientDashboard', [ClientDashboardController::class, 'dashboard'])->name('clientDashboard');
 
 /*
 |--------------------------------------------------------------------------
@@ -1041,7 +1047,7 @@ Route::get('/clientTicketBookingDashboard', function () {
 })->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientTicketBookingDashboard');
 
 Route::get('/clientVehicleDashboard', function () {
-    $user = auth()->user();
+    $user = Auth::user();
     
     // Get user's vehicle bookings
     $bookings = \App\Models\Booking::with(['vehicle', 'client'])
@@ -1250,7 +1256,7 @@ Route::get('/clientAllBookings', function () {
 
     // Fetch flight bookings
     $flightBookings = \App\Models\FlightBooking::when(
-        \Schema::hasColumn('flight_bookings', 'user_id'),
+        Schema::hasColumn('flight_bookings', 'user_id'),
         fn($q) => $q->where('user_id', $clientId),
         fn($q) => $q->where('email', Auth::user()->email)
     )

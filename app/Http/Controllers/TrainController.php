@@ -8,9 +8,12 @@ use App\Models\TrainSchedule;
 use App\Models\TrainStation;
 use App\Models\Train;
 use App\Models\TrainBooking;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
+
 
 class TrainController extends Controller
 {
@@ -157,7 +160,7 @@ class TrainController extends Controller
     public function preview(Request $request)
     {
         // Check if the user is logged in
-        if (!auth()->check()) {
+        if (!Auth::check()) {
             return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
         }
 
@@ -230,7 +233,7 @@ class TrainController extends Controller
     public function store(Request $request)
     {
         // Check if the user is logged in
-        if (!auth()->check()) {
+        if (!Auth::check()) {
             return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
         }
 
@@ -289,7 +292,7 @@ class TrainController extends Controller
 
                 // Create the booking
                 $booking = TrainBooking::create([
-                    'user_id' => auth()->id(),
+                    'user_id' => Auth::id(),
                     'train_schedule_id' => $request->train_schedule_id,
                     'passenger_name' => $request->passenger_name,
                     'passenger_email' => $request->passenger_email,
@@ -307,7 +310,7 @@ class TrainController extends Controller
                 // Atomically decrement available seats
                 $schedule->decrement('available_seats', $totalPassengers);
 
-                \Log::info('Train booking created successfully', [
+                Log::info('Train booking created successfully', [
                     'booking_id' => $booking->id,
                     'reference' => $booking->booking_reference,
                     'seats_remaining' => $schedule->fresh()->available_seats
@@ -320,10 +323,10 @@ class TrainController extends Controller
                 ->with('success', 'Train booking confirmed successfully!');
 
         } catch (ValidationException $e) {
-            \Log::warning('Train booking validation failed', ['errors' => $e->errors()]);
+            Log::warning('Train booking validation failed', ['errors' => $e->errors()]);
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            \Log::error('Train booking failed', [
+            Log::error('Train booking failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

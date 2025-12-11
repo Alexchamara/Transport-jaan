@@ -7,6 +7,7 @@ use App\Mail\FlightBookingConfirmation;
 use App\Models\FlightBooking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 
@@ -36,7 +37,7 @@ class FlightBookingController extends Controller
     public function store(StoreFlightBookingRequest $request)
     {
         // Check if the user is logged in
-        if (!auth()->check()) {
+        if (!Auth::check()) {
             return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
         }
 
@@ -45,13 +46,13 @@ class FlightBookingController extends Controller
             $flightBooking = DB::transaction(function () use ($request) {
                 // Associate the booking with the authenticated user
                 $data = $request->validated();
-                $data['user_id'] = auth()->id();
+                $data['user_id'] = Auth::id();
 
                 $flightBooking = FlightBooking::create($data);
 
                 Log::info('Flight booking created successfully', [
                     'booking_id' => $flightBooking->id,
-                    'user_id' => auth()->id()
+                    'user_id' => Auth::id()
                 ]);
 
                 return $flightBooking;

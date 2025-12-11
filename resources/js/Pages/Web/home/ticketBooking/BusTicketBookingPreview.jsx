@@ -4,8 +4,6 @@ import Header from "../../layouts/Header";
 
 const COL_LEFT = 2; // two seats left of aisle
 const COL_RIGHT = 2; // two seats right of aisle
-const ROWS = 13; // 13 rows as in screenshot
-const PRICE_PER_SEAT_LKR = 1200;
 
 const BoardingOptions = [
     "Pettah Bus Stand",
@@ -21,63 +19,74 @@ const DestinationOptions = [
     "Dankotuwa",
 ];
 
-// seat statuses (to demonstrate legend)
+// seat statuses
 const STATUS = {
-    LADIES: "ladies",
-    NOT_PROVIDED: "not-provided",
-    IN_PROGRESS: "in-progress",
     AVAILABLE: "available",
     BOOKED: "booked",
 };
 
-function buildSeatMap() {
-    // Build a 13x(2+aisle+2) map with seat numbers and mock statuses
-    let num = 1;
-    const map = [];
-    for (let r = 0; r < ROWS; r++) {
-        const row = [];
-        // left 2
-        for (let c = 0; c < COL_LEFT; c++) {
-            row.push({ id: num++, status: STATUS.AVAILABLE });
-        }
-        // aisle
-        row.push(null);
-        // right 2
-        for (let c = 0; c < COL_RIGHT; c++) {
-            row.push({ id: num++, status: STATUS.AVAILABLE });
-        }
-        map.push(row);
+function buildSeatMap(seatLayout, bookedSeats) {
+    // Build seat map from real data
+    if (!seatLayout) {
+        // Fallback to default layout
+        seatLayout = {
+            rows: 13,
+            columns: 4,
+            totalSeats: 52,
+            aisle: 2
+        };
     }
 
-    // Apply a few sample statuses to resemble the screenshot
-    const mark = (ids, status) =>
-        ids.forEach((id) => {
-            for (const row of map) {
-                for (const seat of row) {
-                    if (seat && seat.id === id) seat.status = status;
-                }
+    let num = 1;
+    const map = [];
+    const bookedSeatNumbers = bookedSeats || [];
+    
+    for (let r = 0; r < seatLayout.rows; r++) {
+        const row = [];
+        
+        // left 2 seats
+        for (let c = 0; c < COL_LEFT; c++) {
+            if (num <= seatLayout.totalSeats) {
+                row.push({ 
+                    id: num, 
+                    status: bookedSeatNumbers.includes(num) || bookedSeatNumbers.includes(num.toString()) 
+                        ? STATUS.BOOKED 
+                        : STATUS.AVAILABLE 
+                });
+                num++;
             }
-        });
-
-    mark([5, 48, 49], STATUS.AVAILABLE); // highlighted examples
-    mark([21, 26, 33, 34, 37, 38, 41, 42], STATUS.BOOKED);
-    mark([13, 14, 15, 16], STATUS.NOT_PROVIDED);
-    mark([24, 28, 45, 46], STATUS.IN_PROGRESS);
-    mark([1, 2], STATUS.LADIES);
+        }
+        
+        // aisle
+        row.push(null);
+        
+        // right 2 seats
+        for (let c = 0; c < COL_RIGHT; c++) {
+            if (num <= seatLayout.totalSeats) {
+                row.push({ 
+                    id: num, 
+                    status: bookedSeatNumbers.includes(num) || bookedSeatNumbers.includes(num.toString())
+                        ? STATUS.BOOKED 
+                        : STATUS.AVAILABLE 
+                });
+                num++;
+            }
+        }
+        
+        map.push(row);
+    }
 
     return map;
 }
 
 const legend = [
-    { label: "Available for Ladies Only", color: "bg-[#94B3FF]" },
-    { label: "Not Provided", color: "bg-[#F5F5DC]" },
-    { label: "Booking In Progress", color: "bg-black" },
     { label: "Available", color: "bg-[#62B36F]" },
     { label: "Already Booked", color: "bg-[#C7C7C7]" },
+    { label: "Selected", color: "bg-[#0955AC]" },
 ];
 
-const BusTicketBookingPreview = ({ trip, searchParams }) => {
-    const seatMap = useMemo(buildSeatMap, []);
+const BusTicketBookingPreview = ({ trip, searchParams, bookedSeats, seatLayout }) => {
+    const seatMap = useMemo(() => buildSeatMap(seatLayout, bookedSeats), [seatLayout, bookedSeats]);
     const [selected, setSelected] = useState([]);
     const [passengerName, setPassengerName] = useState("");
     const [mobile, setMobile] = useState("");
@@ -87,12 +96,10 @@ const BusTicketBookingPreview = ({ trip, searchParams }) => {
     const [reuseCredits, setReuseCredits] = useState(false);
 
     const toggleSeat = (seatId, status) => {
-        if (
-            status === STATUS.BOOKED ||
-            status === STATUS.NOT_PROVIDED ||
-            status === STATUS.IN_PROGRESS
-        )
+        // Only allow selection of available seats
+        if (status === STATUS.BOOKED) {
             return;
+        }
         setSelected((prev) =>
             prev.includes(seatId)
                 ? prev.filter((id) => id !== seatId)
@@ -100,7 +107,7 @@ const BusTicketBookingPreview = ({ trip, searchParams }) => {
         );
     };
 
-    const pricePerSeat = trip?.price || PRICE_PER_SEAT_LKR;
+    const pricePerSeat = trip?.price || 0;
     const total = selected.length * pricePerSeat;
 
     const canContinue =
@@ -274,7 +281,7 @@ const BusTicketBookingPreview = ({ trip, searchParams }) => {
                                 {/* Grid with row numbers on left */}
                                 <div className="flex">
                                     <div className="mr-4 flex flex-col items-end pr-2">
-                                        {Array.from({ length: ROWS }).map(
+                                        {Array.from({ length: seatMap.length }).map(
                                             (_, i) => (
                                                 <div
                                                     key={i}
@@ -295,6 +302,7 @@ const BusTicketBookingPreview = ({ trip, searchParams }) => {
                                                 {/* left 2 */}
                                                 {row
                                                     .slice(0, COL_LEFT)
+                                                    .filter(s => s !== null)
                                                     .map((s) => (
                                                         <SeatButton
                                                             key={s.id}
@@ -315,6 +323,7 @@ const BusTicketBookingPreview = ({ trip, searchParams }) => {
                                                 {/* right 2 */}
                                                 {row
                                                     .slice(COL_LEFT + 1)
+                                                    .filter(s => s !== null)
                                                     .map((s) => (
                                                         <SeatButton
                                                             key={s.id}
@@ -534,21 +543,32 @@ const BusTicketBookingPreview = ({ trip, searchParams }) => {
 
 const SeatButton = ({ seat, selected, onClick }) => {
     const base =
-        "h-12 w-12 rounded-md text-sm font-semibold flex items-center justify-center";
-    let cls = "bg-gray-200 text-gray-700";
-    if (seat.status === STATUS.AVAILABLE)
-        cls = "bg-gray-200 text-gray-800 hover:bg-[#62B36F]/70";
-    if (seat.status === STATUS.BOOKED)
+        "h-12 w-12 rounded-md text-sm font-semibold flex items-center justify-center transition-all";
+    
+    // Determine seat color and cursor based on status
+    let cls = "";
+    let isDisabled = false;
+    
+    if (seat.status === STATUS.BOOKED) {
         cls = "bg-[#C7C7C7] text-gray-600 cursor-not-allowed";
-    if (seat.status === STATUS.IN_PROGRESS)
-        cls = "bg-black text-white cursor-not-allowed";
-    if (seat.status === STATUS.NOT_PROVIDED)
-        cls = "bg-[#F5F5DC] text-gray-800 cursor-not-allowed";
-    if (seat.status === STATUS.LADIES) cls = "bg-[#94B3FF] text-gray-800";
-    if (selected) cls = "bg-[#62B36F] text-white ring-2 ring-[#2f8240]";
+        isDisabled = true;
+    } else if (seat.status === STATUS.AVAILABLE) {
+        cls = "bg-[#62B36F] text-white hover:bg-[#62B36F]/80 cursor-pointer";
+    }
+    
+    // Override with selected state if seat is selected (and selectable)
+    if (selected && !isDisabled) {
+        cls = "bg-[#0955AC] text-white ring-2 ring-[#0955AC]/50 cursor-pointer";
+    }
 
     return (
-        <button type="button" className={`${base} ${cls}`} onClick={onClick}>
+        <button 
+            type="button" 
+            className={`${base} ${cls}`} 
+            onClick={isDisabled ? undefined : onClick}
+            disabled={isDisabled}
+            title={isDisabled ? "This seat is already booked" : "Click to select this seat"}
+        >
             {seat.id}
         </button>
     );
