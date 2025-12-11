@@ -33,7 +33,7 @@ const Tracking = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 pr-5 py-10">
+        <div className="flex-1 bg-[#E5E5E5]">
           {/* ==================== HEADER WITH DROPDOWN ==================== */}
           {/* Uncomment if needed
           <div className="flex flex-row gap-5 justify-between items-center mb-10">

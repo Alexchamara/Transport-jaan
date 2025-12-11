@@ -6,6 +6,7 @@ import bell from "../assets/header/bell.svg";
 import search from "../assets/header/search.svg";
 import useCSRFRefresh from "../../../hooks/useCSRFRefresh.js";
 import NotificationDropdown from "../components/vendors/warehouse/NotificationDropdown";
+import { API_BASE_URL } from "../../../config/api";
 
 const Header = () => {
     const { auth } = usePage().props;
@@ -41,7 +42,7 @@ const Header = () => {
     const fetchNotifications = async () => {
         try {
             console.log('Fetching warehouse notifications...');
-            const response = await fetch('/vendors/warehouse/notifications/data');
+            const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
             console.log('Response status:', response.status);
 
             if (response.ok) {

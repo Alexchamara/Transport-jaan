@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 function BookingOverviewBarChart() {
   const colors = bookingData.map((d, i) => i === 7 ? '#39CEF3' : '#2957C6');
   return (
-    <div className="w-full flex flex-col items-start xl:items-center">
+    <div className="w-full flex flex-col items-center">
         <div className="w-[600px] h-auto flex flex-col items-stretch relative">
         <div className="figtree text-[32px] font-[700] mb-2 ml-2"> Flight Booking Overview</div>
         <div className="absolute right-0 top-0">

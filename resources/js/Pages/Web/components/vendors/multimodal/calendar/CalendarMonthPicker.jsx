@@ -99,17 +99,17 @@ const CalendarMonthPicker = () => {
   for (let y = year - 5; y <= year + 5; y++) years.push(y);
 
   return (
-    <div className="w-full h-auto flex flex-col items-center">
+    <div className="w-full max-w-[300px] h-auto flex flex-col items-center">
       {/* Header: Year, Month, Arrows */}
-      <div className="flex flex-row justify-between items-center w-full mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-center w-full mb-4 gap-2">
         {/* Year dropdown */}
         <div className="relative">
           <button
-            className="text-[12px] font-[500] text-[#424242] px-2 py-1 rounded hover:bg-gray-100 flex items-center gap-1"
+            className="text-[10px] sm:text-[12px] font-[500] text-[#424242] px-2 py-1 rounded hover:bg-gray-100 flex items-center gap-1"
             onClick={() => setShowYearDropdown((v) => !v)}
           >
             {year}
-            <span className="ml-1 text-gray-400"><img src={dropdown} /></span>
+            <span className="ml-1 text-gray-400"><img src={dropdown} alt="dropdown" /></span>
           </button>
           {showYearDropdown && (
             <div className="absolute z-10 bg-white border rounded shadow w-[80px] max-h-[180px] overflow-y-auto mt-1">
@@ -128,39 +128,27 @@ const CalendarMonthPicker = () => {
         {/* Month navigation */}
         <div className="flex flex-row items-center gap-2">
           <button
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100"
+            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center hover:bg-gray-100"
             onClick={handlePrevMonth}
             aria-label="Previous Month"
           >
-            <span className="text-xl">&#60;</span>
+            <span className="text-lg sm:text-xl">&#60;</span>
           </button>
           <div className="relative">
             <button
-              className="text-[12px] text-[#424242] font-[500] px-2 py-1 rounded hover:bg-gray-100 flex items-center gap-1"
+              className="text-[10px] sm:text-[12px] text-[#424242] font-[500] px-2 py-1 rounded hover:bg-gray-100 flex items-center gap-1"
               onClick={() => setShowMonthDropdown((v) => !v)}
             >
               {months[month]}
             </button>
-            {/* {showMonthDropdown && (
-              <div className="absolute z-10 bg-white border rounded w-[120px] max-h-[180px] overflow-y-auto mt-1">
-                {months.map((m, idx) => (
-                  <div
-                    key={m}
-                    className={`px-3 py-1 cursor-pointer hover:bg-gray-100 ${idx === month ? "font-bold bg-gray-50" : ""}`}
-                    onClick={() => handleMonthSelect(idx)}
-                  >
-                    {m}
-                  </div>
-                ))}
-              </div>
-            )} */}
+            {/* Month dropdown commented out */}
           </div>
           <button
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100"
+            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center hover:bg-gray-100"
             onClick={handleNextMonth}
             aria-label="Next Month"
           >
-            <span className="text-xl">&#62;</span>
+            <span className="text-lg sm:text-xl">&#62;</span>
           </button>
         </div>
       </div>
@@ -170,7 +158,7 @@ const CalendarMonthPicker = () => {
           {daysOfWeek.map((d) => (
             <div
               key={d}
-              className="text-center text-[10px] font-[400] text-[#757575] py-1"
+              className="text-center text-[8px] sm:text-[10px] font-[400] text-[#757575] py-1"
             >
               {d}
             </div>
@@ -179,7 +167,7 @@ const CalendarMonthPicker = () => {
         {calendarDays.map(({ day, current, key }, idx) => (
           <div
             key={key}
-            className={`flex items-center justify-center text-[12px] font-[400] h-10 w-10 m-auto my-1 rounded-full cursor-pointer
+            className={`flex items-center justify-center text-[10px] sm:text-[12px] font-[400] h-8 w-8 sm:h-10 sm:w-10 m-auto my-1 rounded-full cursor-pointer
               ${current ? "text-[#424242]" : "text-gray-300"}
               ${current && day === selectedDay ? "bg-[#0955AC] text-[#FFFFFF] font-[700]" : ""}
               ${current && day !== selectedDay ? "hover:bg-[#E5EFFF]" : ""}

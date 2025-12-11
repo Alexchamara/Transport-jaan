@@ -1,14 +1,632 @@
 // resources/js/Pages/Web/components/vendors/warehouse/UnitContent.jsx
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { router, usePage } from "@inertiajs/react";
+import { API_BASE_URL } from "../../../../../../config/api";
 
 // Assets
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.svg";
-import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
-import AddUnit from "../../../../home/vendors/warehouse/AddUnit";
 import UserDropdown from "../../UserDropdown.jsx";
 import NotificationDropdown from "../NotificationDropdown";
+
+const initialInlineUnitForm = {
+    name: "",
+    description: "",
+    address: "",
+    latitude: "",
+    longitude: "",
+    total_area: "",
+    capacity: "",
+    type: "",
+    pricing_model: "",
+    price: "",
+    monthly_rate: "",
+    security_deposit: "",
+    setup_fee: "",
+    tax_rate: "",
+    terms_conditions: "",
+    amenities: [],
+    is_active: true,
+};
+
+const warehouseTypeOptions = [
+    { value: "cold_storage", label: "Cold Storage" },
+    { value: "dry", label: "Dry Storage" },
+    { value: "climate_controlled", label: "Climate Controlled" },
+    { value: "hazmat", label: "Hazmat Storage" },
+    { value: "bonded", label: "Bonded Storage" },
+    { value: "open_yard", label: "Open Yard" },
+];
+
+const pricingModelOptions = [
+    { value: "hourly", label: "Hourly" },
+    { value: "daily", label: "Daily" },
+    { value: "monthly", label: "Monthly" },
+    { value: "yearly", label: "Yearly" },
+];
+
+const amenityCatalogue = [
+    "Loading Dock",
+    "Forklift Access",
+    "Temperature Control",
+    "Humidity Control",
+    "Security System",
+    "CCTV",
+    "24/7 Access",
+    "Fire Safety",
+    "Climate Control",
+    "Refrigeration",
+    "Power Backup",
+    "Internet Access",
+    "Office Space",
+];
+
+const InlineAddUnit = ({ onCancel, onCreated }) => {
+    const [form, setForm] = useState(initialInlineUnitForm);
+    const [errors, setErrors] = useState({});
+    const [images, setImages] = useState([]);
+    const [documents, setDocuments] = useState([]);
+    const [termsPdf, setTermsPdf] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [amenityInput, setAmenityInput] = useState("");
+    const [amenityOptions, setAmenityOptions] = useState(amenityCatalogue);
+
+    useEffect(() => {
+        return () => {
+            images.forEach(image => image.preview && URL.revokeObjectURL(image.preview));
+        };
+    }, [images]);
+
+    const pricingSummary = useMemo(() => {
+        const monthlyRate = parseFloat(form.monthly_rate) || 0;
+        const deposit = parseFloat(form.security_deposit) || 0;
+        const setup = parseFloat(form.setup_fee) || 0;
+        const taxRate = parseFloat(form.tax_rate) || 0;
+        const subtotal = monthlyRate + deposit + setup;
+        const taxAmount = (subtotal * taxRate) / 100;
+        const finalAmount = subtotal + taxAmount;
+        return {
+            subtotal: subtotal.toFixed(2),
+            taxAmount: taxAmount.toFixed(2),
+            finalAmount: finalAmount.toFixed(2),
+        };
+    }, [form.monthly_rate, form.security_deposit, form.setup_fee, form.tax_rate]);
+
+    const clearFieldError = (field) => {
+        if (!errors[field]) return;
+        setErrors(prev => {
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
+    };
+
+    const handleInputChange = (event) => {
+        const { name, value } = event.target;
+        clearFieldError(name);
+        setForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleToggleActive = () => {
+        setForm(prev => ({ ...prev, is_active: !prev.is_active }));
+    };
+
+    const handleAmenityToggle = (amenity) => {
+        setForm(prev => ({
+            ...prev,
+            amenities: prev.amenities.includes(amenity)
+                ? prev.amenities.filter(item => item !== amenity)
+                : [...prev.amenities, amenity],
+        }));
+    };
+
+    const handleAmenityAdd = () => {
+        const nextAmenity = amenityInput.trim();
+        if (!nextAmenity) return;
+        if (!amenityOptions.includes(nextAmenity)) {
+            setAmenityOptions(prev => [...prev, nextAmenity]);
+        }
+        setForm(prev => ({ ...prev, amenities: [...prev.amenities, nextAmenity] }));
+        setAmenityInput("");
+    };
+
+    const handleImageUpload = (event) => {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+        const mapped = files.map(file => ({ file, preview: URL.createObjectURL(file) }));
+        setImages(prev => [...prev, ...mapped].slice(0, 20));
+        clearFieldError("images");
+    };
+
+    const removeImage = (index) => {
+        setImages(prev => {
+            const next = [...prev];
+            const [removed] = next.splice(index, 1);
+            if (removed?.preview) URL.revokeObjectURL(removed.preview);
+            return next;
+        });
+    };
+
+    const handleDocumentUpload = (event) => {
+        const files = Array.from(event.target.files || []);
+        if (!files.length) return;
+        setDocuments(prev => [...prev, ...files].slice(0, 20));
+    };
+
+    const removeDocument = (index) => {
+        setDocuments(prev => {
+            const next = [...prev];
+            next.splice(index, 1);
+            return next;
+        });
+    };
+
+    const handleTermsPdf = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        clearFieldError("terms_conditions");
+        setTermsPdf(file);
+    };
+
+    const validateForm = () => {
+        const nextErrors = {};
+        if (!form.name.trim()) nextErrors.name = "Warehouse name is required.";
+        if (!form.address.trim()) nextErrors.address = "Address is required.";
+        if (!form.type) nextErrors.type = "Warehouse type is required.";
+        if (!form.pricing_model) nextErrors.pricing_model = "Pricing model is required.";
+        if (!form.monthly_rate) nextErrors.monthly_rate = "Monthly rate is required.";
+        if (!form.capacity) nextErrors.capacity = "Capacity is required.";
+        if (!form.total_area) nextErrors.total_area = "Total area is required.";
+        if (!form.terms_conditions.trim() && !termsPdf) {
+            nextErrors.terms_conditions = "Provide inline terms or upload a PDF.";
+        }
+        if (images.length === 0) nextErrors.images = "At least one image is required.";
+        return nextErrors;
+    };
+
+    const resetForm = () => {
+        images.forEach(image => image.preview && URL.revokeObjectURL(image.preview));
+        setForm(initialInlineUnitForm);
+        setImages([]);
+        setDocuments([]);
+        setTermsPdf(null);
+        setAmenityInput("");
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        const validationErrors = validateForm();
+        if (Object.keys(validationErrors).length) {
+            setErrors(validationErrors);
+            return;
+        }
+
+        const payload = new FormData();
+        payload.append("name", form.name);
+        payload.append("description", form.description || "");
+        payload.append("address", form.address);
+        payload.append("latitude", form.latitude || "");
+        payload.append("longitude", form.longitude || "");
+        payload.append("total_area", form.total_area || "");
+        payload.append("capacity", form.capacity || "");
+        payload.append("type", form.type);
+        payload.append("pricing_model", form.pricing_model);
+        payload.append("price", form.price || "");
+        payload.append("monthly_rate", form.monthly_rate || "");
+        payload.append("security_deposit", form.security_deposit || "");
+        payload.append("setup_fee", form.setup_fee || "");
+        payload.append("tax_rate", form.tax_rate || "");
+        payload.append("total_amount", pricingSummary.subtotal);
+        payload.append("tax_amount", pricingSummary.taxAmount);
+        payload.append("final_amount", pricingSummary.finalAmount);
+        payload.append("terms_conditions", form.terms_conditions || "");
+        payload.append("is_active", form.is_active ? "1" : "0");
+        payload.append("amenities", JSON.stringify(form.amenities));
+        images.forEach(item => payload.append("images[]", item.file));
+        documents.forEach(file => payload.append("documents[]", file));
+        if (termsPdf) payload.append("terms_pdf", termsPdf);
+
+        setIsSubmitting(true);
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+            const response = await fetch(`${API_BASE_URL}vendors/warehouse/api/units`, {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                    "X-CSRF-TOKEN": csrfToken,
+                },
+                body: payload,
+                credentials: "same-origin",
+            });
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                if (response.status === 422 && data?.errors) {
+                    setErrors(Object.fromEntries(Object.entries(data.errors).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])));
+                } else {
+                    alert(data?.message || "Failed to create warehouse unit.");
+                }
+                return;
+            }
+
+            resetForm();
+            if (onCreated) onCreated();
+        } catch (err) {
+            console.error("Failed to submit warehouse unit", err);
+            alert("Unexpected error while saving the warehouse unit.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-10">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Add Warehouse Unit</h2>
+                    <p className="text-gray-600">Provide detailed information about your warehouse to publish it.</p>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        type="button"
+                        className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
+                        onClick={onCancel}
+                        disabled={isSubmitting}
+                    >
+                        Back to List
+                    </button>
+                    <button
+                        type="submit"
+                        form="inline-add-unit-form"
+                        className="px-5 py-2.5 rounded-lg bg-[#0955AC] text-white font-semibold hover:bg-[#074a94] disabled:opacity-60"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? "Saving..." : "Save Unit"}
+                    </button>
+                </div>
+            </div>
+
+            <form id="inline-add-unit-form" onSubmit={handleSubmit} className="mt-8 space-y-10">
+                <section className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Warehouse Name *</label>
+                            <input
+                                type="text"
+                                name="name"
+                                value={form.name}
+                                onChange={handleInputChange}
+                                className={`mt-1 w-full rounded-lg border ${errors.name ? "border-red-500" : "border-gray-200"} px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]`}
+                                placeholder="e.g. Downtown Cold Storage"
+                            />
+                            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Warehouse Type *</label>
+                            <select
+                                name="type"
+                                value={form.type}
+                                onChange={handleInputChange}
+                                className={`mt-1 w-full rounded-lg border ${errors.type ? "border-red-500" : "border-gray-200"} px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]`}
+                            >
+                                <option value="">Select type</option>
+                                {warehouseTypeOptions.map(option => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                            {errors.type && <p className="mt-1 text-sm text-red-600">{errors.type}</p>}
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="text-sm font-medium text-gray-700">Description</label>
+                            <textarea
+                                name="description"
+                                value={form.description}
+                                onChange={handleInputChange}
+                                rows={4}
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                placeholder="Describe the key features of this warehouse"
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="text-sm font-medium text-gray-700">Address *</label>
+                            <input
+                                type="text"
+                                name="address"
+                                value={form.address}
+                                onChange={handleInputChange}
+                                className={`mt-1 w-full rounded-lg border ${errors.address ? "border-red-500" : "border-gray-200"} px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]`}
+                                placeholder="Street, city, state"
+                            />
+                            {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Latitude</label>
+                            <input
+                                type="text"
+                                name="latitude"
+                                value={form.latitude}
+                                onChange={handleInputChange}
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                placeholder="e.g. 6.9271"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Longitude</label>
+                            <input
+                                type="text"
+                                name="longitude"
+                                value={form.longitude}
+                                onChange={handleInputChange}
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                placeholder="e.g. 79.8612"
+                            />
+                        </div>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Capacity & Pricing</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Total Area (sqft) *</label>
+                            <input
+                                type="number"
+                                name="total_area"
+                                value={form.total_area}
+                                onChange={handleInputChange}
+                                className={`mt-1 w-full rounded-lg border ${errors.total_area ? "border-red-500" : "border-gray-200"} px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]`}
+                                min="0"
+                                step="0.01"
+                            />
+                            {errors.total_area && <p className="mt-1 text-sm text-red-600">{errors.total_area}</p>}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Capacity *</label>
+                            <input
+                                type="number"
+                                name="capacity"
+                                value={form.capacity}
+                                onChange={handleInputChange}
+                                className={`mt-1 w-full rounded-lg border ${errors.capacity ? "border-red-500" : "border-gray-200"} px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]`}
+                                min="0"
+                                step="1"
+                            />
+                            {errors.capacity && <p className="mt-1 text-sm text-red-600">{errors.capacity}</p>}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Pricing Model *</label>
+                            <select
+                                name="pricing_model"
+                                value={form.pricing_model}
+                                onChange={handleInputChange}
+                                className={`mt-1 w-full rounded-lg border ${errors.pricing_model ? "border-red-500" : "border-gray-200"} px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]`}
+                            >
+                                <option value="">Select model</option>
+                                {pricingModelOptions.map(option => (
+                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
+                            </select>
+                            {errors.pricing_model && <p className="mt-1 text-sm text-red-600">{errors.pricing_model}</p>}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Base Price ({form.pricing_model || "model"})</label>
+                            <input
+                                type="number"
+                                name="price"
+                                value={form.price}
+                                onChange={handleInputChange}
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                min="0"
+                                step="0.01"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Monthly Rate *</label>
+                            <input
+                                type="number"
+                                name="monthly_rate"
+                                value={form.monthly_rate}
+                                onChange={handleInputChange}
+                                className={`mt-1 w-full rounded-lg border ${errors.monthly_rate ? "border-red-500" : "border-gray-200"} px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]`}
+                                min="0"
+                                step="0.01"
+                            />
+                            {errors.monthly_rate && <p className="mt-1 text-sm text-red-600">{errors.monthly_rate}</p>}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Security Deposit</label>
+                            <input
+                                type="number"
+                                name="security_deposit"
+                                value={form.security_deposit}
+                                onChange={handleInputChange}
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                min="0"
+                                step="0.01"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Setup Fee</label>
+                            <input
+                                type="number"
+                                name="setup_fee"
+                                value={form.setup_fee}
+                                onChange={handleInputChange}
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                min="0"
+                                step="0.01"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Tax Rate (%)</label>
+                            <input
+                                type="number"
+                                name="tax_rate"
+                                value={form.tax_rate}
+                                onChange={handleInputChange}
+                                className="mt-1 w-full rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                            />
+                        </div>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+                        <p className="flex justify-between"><span>Subtotal</span><span>{pricingSummary.subtotal}</span></p>
+                        <p className="flex justify-between"><span>Estimated Tax</span><span>{pricingSummary.taxAmount}</span></p>
+                        <p className="flex justify-between font-semibold text-gray-900"><span>Projected Total</span><span>{pricingSummary.finalAmount}</span></p>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Amenities</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {amenityOptions.map(option => {
+                            const active = form.amenities.includes(option);
+                            return (
+                                <button
+                                    type="button"
+                                    key={option}
+                                    onClick={() => handleAmenityToggle(option)}
+                                    className={`px-4 py-2 rounded-full border text-sm font-semibold transition ${active ? "bg-[#0955AC] text-white border-[#0955AC]" : "bg-white text-gray-700 border-gray-200 hover:border-[#0955AC]"}`}
+                                >
+                                    {option}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="flex gap-3 flex-wrap">
+                        <input
+                            type="text"
+                            value={amenityInput}
+                            onChange={(event) => setAmenityInput(event.target.value)}
+                            className="flex-1 min-w-[200px] rounded-lg border border-gray-200 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                            placeholder="Add custom amenity"
+                        />
+                        <button
+                            type="button"
+                            onClick={handleAmenityAdd}
+                            className="px-5 py-2.5 rounded-lg bg-gray-900 text-white font-semibold hover:bg-gray-800"
+                        >
+                            Add Amenity
+                        </button>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Media & Documents</h3>
+                    <div className="space-y-6">
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Warehouse Images *</label>
+                            <label className={`mt-2 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed ${errors.images ? "border-red-500" : "border-gray-300"} px-6 py-8 text-center cursor-pointer hover:border-[#0955AC]`}>
+                                <span className="font-semibold text-gray-900">Upload Images</span>
+                                <span className="text-sm text-gray-500">PNG, JPG, GIF up to 50MB each</span>
+                                <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+                            </label>
+                            {errors.images && <p className="mt-1 text-sm text-red-600">{errors.images}</p>}
+                            {images.length > 0 && (
+                                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {images.map((item, index) => (
+                                        <div key={item.preview} className="relative h-32 w-full overflow-hidden rounded-xl">
+                                            <img src={item.preview} alt={`Upload ${index + 1}`} className="h-full w-full object-cover" />
+                                            <button
+                                                type="button"
+                                                className="absolute top-2 right-2 bg-white/80 rounded-full px-2 py-1 text-xs font-semibold text-red-600"
+                                                onClick={() => removeImage(index)}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Supporting Documents</label>
+                            <label className="mt-2 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 px-6 py-8 text-center cursor-pointer hover:border-[#0955AC]">
+                                <span className="font-semibold text-gray-900">Upload Documents</span>
+                                <span className="text-sm text-gray-500">PDF, DOC up to 50MB each</span>
+                                <input type="file" accept=".pdf,.doc,.docx,.txt" multiple className="hidden" onChange={handleDocumentUpload} />
+                            </label>
+                            {documents.length > 0 && (
+                                <ul className="mt-4 space-y-2 text-sm text-gray-700">
+                                    {documents.map((file, index) => (
+                                        <li key={`${file.name}-${index}`} className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-2">
+                                            <span className="truncate pr-4">{file.name}</span>
+                                            <button type="button" className="text-red-600 font-semibold" onClick={() => removeDocument(index)}>
+                                                Remove
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Terms & Activation</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <div>
+                            <label className="text-sm font-medium text-gray-700">Terms & Conditions *</label>
+                            <textarea
+                                name="terms_conditions"
+                                value={form.terms_conditions}
+                                onChange={handleInputChange}
+                                rows={6}
+                                className={`mt-1 w-full rounded-lg border ${errors.terms_conditions ? "border-red-500" : "border-gray-200"} px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0955AC]`}
+                                placeholder="Include cancellation, liability, or service level details"
+                            />
+                            {errors.terms_conditions && <p className="mt-1 text-sm text-red-600">{errors.terms_conditions}</p>}
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium text-gray-700">Upload Terms PDF (optional)</label>
+                                <label className="mt-2 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 px-6 py-6 text-center cursor-pointer hover:border-[#0955AC]">
+                                    <span className="font-semibold text-gray-900">Attach PDF</span>
+                                    <input type="file" accept="application/pdf" className="hidden" onChange={handleTermsPdf} />
+                                </label>
+                                {termsPdf && <p className="mt-2 text-sm text-gray-700">{termsPdf.name}</p>}
+                            </div>
+                            <div className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3">
+                                <div>
+                                    <p className="font-semibold text-gray-900">Active Listing</p>
+                                    <p className="text-sm text-gray-600">Toggle to publish or pause this unit</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleToggleActive}
+                                    className={`relative w-14 h-8 rounded-full transition ${form.is_active ? "bg-green-500" : "bg-gray-300"}`}
+                                >
+                                    <span className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-white transition ${form.is_active ? "translate-x-6" : "translate-x-0"}`}></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div className="flex flex-wrap justify-end gap-3">
+                    <button
+                        type="button"
+                        className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
+                        onClick={onCancel}
+                        disabled={isSubmitting}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        className="px-5 py-2.5 rounded-lg bg-[#0955AC] text-white font-semibold hover:bg-[#074a94] disabled:opacity-60"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? "Saving..." : "Save Warehouse"}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+};
 
 const UnitContent = () => {
     const { auth } = usePage().props;
@@ -57,7 +675,7 @@ const UnitContent = () => {
             if (type) params.append("type", type);
             if (status) params.append("status", status);
 
-            const response = await fetch(`/vendors/warehouse/api/units?${params}`, {
+            const response = await fetch(`${API_BASE_URL}vendors/warehouse/api/units?${params}`, {
                 method: "GET",
                 headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
                 credentials: "same-origin",
@@ -100,7 +718,7 @@ const UnitContent = () => {
             if (!auth?.user) return;
 
             try {
-                const response = await fetch('/vendors/warehouse/notifications/data');
+                const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
                 if (response.ok) {
                     const data = await response.json();
                     setWarehouseNotifications(data.notifications || []);
@@ -153,7 +771,7 @@ const UnitContent = () => {
         setIsToggling(true);
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
-            const res = await fetch(`/vendors/warehouse/api/units/${unitToToggle.id}/status`, {
+            const res = await fetch(`${API_BASE_URL}vendors/warehouse/api/units/${unitToToggle.id}/status`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -185,7 +803,7 @@ const UnitContent = () => {
         if (!unitToDelete) return;
         setIsDeleting(true);
         try {
-            const res = await fetch(`/vendors/warehouse/api/units/${unitToDelete.id}`, {
+            const res = await fetch(`${API_BASE_URL}vendors/warehouse/api/units/${unitToDelete.id}`, {
                 method: "DELETE",
                 headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "" },
             });
@@ -301,7 +919,13 @@ const UnitContent = () => {
 
             {/* Add Unit or List */}
             {showAddUnit ? (
-                <AddUnit />
+                <InlineAddUnit
+                    onCancel={() => setShowAddUnit(false)}
+                    onCreated={() => {
+                        setShowAddUnit(false);
+                        fetchUnits(1, itemsPerPage, searchTerm, typeFilter, statusFilter);
+                    }}
+                />
             ) : (
                 <>
                     {/* States */}

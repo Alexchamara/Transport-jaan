@@ -25,10 +25,10 @@ const TrackingContent = () => {
     const user = auth?.user;
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-4 md:px-5 py-5 xl:pr-5 xl:px-0 xl:py-10">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+            <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
+                <h1 className="figtree text-[24px] md:text-[35px] font-[700]">
                     Freight Tracking
                 </h1>
                 {/* <div className="flex flex-row gap-5">
@@ -58,13 +58,13 @@ const TrackingContent = () => {
             </div>
             {/* end of header section */}
 
-            <div className="flex flex-row gap-4 w-full py-10">
+            <div className="flex flex-col lg:flex-row gap-4 w-full py-5 md:py-10">
                 <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <h1 className="text-[24px] font-[700]">Car Types</h1>
-                    <div className="flex flex-row justify-between items-center gap-8">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-8">
                         {" "}
                         <div className="w-full h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5 my-5">
                             <img src={miniSearchIcon} />
@@ -81,195 +81,195 @@ const TrackingContent = () => {
                     </div>
                     <div className="flex flex-col">
                         {/* card 1 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[104px]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
+                            <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
+                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
+                                    <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
                                     </h1>
-                                    <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
+                                    <div className="flex flex-row justify-start items-start text-[14px] md:text-[16px] font-[500] text-[#00000080] gap-3">
                                         <img src={miniCarIcon} />
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                <div className="flex justify-center items-center mt-2 md:mt-0">
+                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[14px] md:text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
                                         On Trip
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* card 2 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[104px]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
+                            <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
+                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
+                                    <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
                                     </h1>
-                                    <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
+                                    <div className="flex flex-row justify-start items-start text-[14px] md:text-[16px] font-[500] text-[#00000080] gap-3">
                                         <img src={miniCarIcon} />
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                <div className="flex justify-center items-center mt-2 md:mt-0">
+                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[14px] md:text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
                                         On Trip
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* card 3 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[104px]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
+                            <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
+                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
+                                    <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
                                     </h1>
-                                    <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
+                                    <div className="flex flex-row justify-start items-start text-[14px] md:text-[16px] font-[500] text-[#00000080] gap-3">
                                         <img src={miniCarIcon} />
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                <div className="flex justify-center items-center mt-2 md:mt-0">
+                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[14px] md:text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
                                         On Trip
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* card 4 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[104px]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
+                            <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
+                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
+                                    <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
                                     </h1>
-                                    <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
+                                    <div className="flex flex-row justify-start items-start text-[14px] md:text-[16px] font-[500] text-[#00000080] gap-3">
                                         <img src={miniCarIcon} />
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                <div className="flex justify-center items-center mt-2 md:mt-0">
+                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[14px] md:text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
                                         On Trip
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* card 5 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[104px]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
+                            <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
+                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
+                                    <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
                                     </h1>
-                                    <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
+                                    <div className="flex flex-row justify-start items-start text-[14px] md:text-[16px] font-[500] text-[#00000080] gap-3">
                                         <img src={miniCarIcon} />
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                <div className="flex justify-center items-center mt-2 md:mt-0">
+                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[14px] md:text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
                                         On Trip
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* card 6 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[104px]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
+                            <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
+                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
+                                    <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
                                     </h1>
-                                    <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
+                                    <div className="flex flex-row justify-start items-start text-[14px] md:text-[16px] font-[500] text-[#00000080] gap-3">
                                         <img src={miniCarIcon} />
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                <div className="flex justify-center items-center mt-2 md:mt-0">
+                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[14px] md:text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
                                         On Trip
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* card 7 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[104px]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
+                            <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
+                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
+                                    <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
                                     </h1>
-                                    <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
+                                    <div className="flex flex-row justify-start items-start text-[14px] md:text-[16px] font-[500] text-[#00000080] gap-3">
                                         <img src={miniCarIcon} />
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                <div className="flex justify-center items-center mt-2 md:mt-0">
+                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[14px] md:text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
                                         On Trip
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* card 8 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[104px]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
+                            <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
+                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
+                                    <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
                                     </h1>
-                                    <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
+                                    <div className="flex flex-row justify-start items-start text-[14px] md:text-[16px] font-[500] text-[#00000080] gap-3">
                                         <img src={miniCarIcon} />
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                <div className="flex justify-center items-center mt-2 md:mt-0">
+                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[14px] md:text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
                                         On Trip
                                     </div>
                                 </div>
                             </div>
                         </div>
                         {/* card 9 */}
-                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5">
-                            <div className="grid grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[104px]" />
-                                <div className="flex flex-col justify-start items-start ml-8">
-                                    <h1 className="text-[20px] font-[700]">
+                        <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
+                            <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
+                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
+                                    <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
                                     </h1>
-                                    <div className="flex flex-row justify-start items-start text-[16px] font-[500] text-[#00000080] gap-3">
+                                    <div className="flex flex-row justify-start items-start text-[14px] md:text-[16px] font-[500] text-[#00000080] gap-3">
                                         <img src={miniCarIcon} />
                                         <h1>BMW LX3</h1>
                                     </div>
                                 </div>
-                                <div className="flex justify-center items-center">
-                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
+                                <div className="flex justify-center items-center mt-2 md:mt-0">
+                                    <div className=" w-[101px] h-[33px] rounded-[5px] border-[1.5px] bg-[#50AE3140] border-[#50AE31] text-[14px] md:text-[16px] font-[700] text-[#50AE31] flex justify-center items-center">
                                         On Trip
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <button className="w-full min-w-[479px] min-h-[51px] bg-[#0955AC] rounded-[6px] text-[18px] font-[700] text-[#FFFFFF] my-12">
+                        <button className="w-full min-w-[200px] md:min-w-[479px] min-h-[51px] bg-[#0955AC] rounded-[6px] text-[16px] md:text-[18px] font-[700] text-[#FFFFFF] my-8 md:my-12">
                             Check Availability
                         </button>
                     </div>
                 </div>
                 <div className="w-full h-auto flex flex-col gap-4">
-                    <div className="flex flex-row gap-4">
+                    <div className="flex flex-col md:flex-row gap-4">
                         <div className="flex flex-col gap-4 w-full">
                             <div
-                                className="min-w-[265px] w-full min-h-[128px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
+                                className="min-w-[265px] w-full min-h-[128px] bg-[#FFFFFF] rounded-[10px] px-4 md:px-5 py-4 md:py-5"
                                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
                             >
                                 <div className="flex flex-row gap-5">
@@ -294,7 +294,7 @@ const TrackingContent = () => {
                                 </div>
                             </div>
                             <div
-                                className="min-w-[265px] w-full min-h-[102px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
+                                className="min-w-[265px] w-full min-h-[102px] bg-[#FFFFFF] rounded-[10px] px-4 md:px-5 py-4 md:py-5"
                                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
                             >
                                 <div className="flex flex-row gap-3">
@@ -323,7 +323,7 @@ const TrackingContent = () => {
                             </div>
                         </div>
                         <div
-                            className="min-w-[277px] w-full min-h-[241px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
+                            className="min-w-[277px] w-full min-h-[241px] bg-[#FFFFFF] rounded-[10px] px-4 md:px-5 py-4 md:py-5"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <h1 className="text-[24px] font-[700]">
@@ -369,6 +369,7 @@ const TrackingContent = () => {
                     </div>
                     <img
                         src={map}
+                        className="w-full h-auto"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     />
                 </div>

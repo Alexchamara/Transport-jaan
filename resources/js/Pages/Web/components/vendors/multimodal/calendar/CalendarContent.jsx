@@ -217,53 +217,32 @@ const CalendarContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto lg:pr-5 lg:px-0 py-10 px-5">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+            <div className="flex flex-col sm:flex-row gap-5 justify-between xl:items-start items-center">
+                <h1 className="figtree text-[24px] sm:text-[35px] font-[700]">
                     Multimodal Calendar
                 </h1>
-                {/* <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={search} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={settings} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={bell} />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                        <img src={proPic} />
-                    </div>
-
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
-                </div> */}
                 <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("multimodal.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}
 
-            <div className="mt-10 flex flex-row gap-5 w-full justify-between">
+            <div className="mt-10 flex flex-col xl:flex-row gap-5 w-full">
                 <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
-                        <img src={proPicTwo} className="size-[90px]" />
-                        <div className="flex flex-col gap-3">
-                            <h1 className="text-[18px] font-[700]">
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                        <img src={proPicTwo} className="size-[60px] sm:size-[80px]" />
+                        <div className="flex flex-col gap-3 text-center sm:text-left">
+                            <h1 className="text-[16px] font-[700]">
                                 Steve Gibson
                             </h1>
-                            <div className="flex flex-row gap-10 text-[16px] font-[500]">
+                            <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 text-[14px] font-[500]">
                                 <div className="flex flex-col gap-3 text-[#00000080]">
                                     <h1>Start Date</h1>
                                     <h1>End Date</h1>
@@ -273,17 +252,17 @@ const CalendarContent = () => {
                                     <h1>27th June 2025</h1>
                                 </div>
                             </div>
-                            <h1 className="text-[16px] font-[600] text-[#0955AC]">
+                            <h1 className="text-[14px] font-[600] text-[#0955AC]">
                                 Client request a child safety seat.
                             </h1>
                         </div>
                     </div>
 
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
-                        <img src={car1} className="size-[90px]" />
-                        <div className="flex flex-col gap-2">
-                            <h1 className="text-[18px] font-[700]">BMW LX3</h1>
-                            <div className="flex flex-row gap-10 text-[16px] font-[500]">
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                        <img src={car1} className="size-[60px] sm:size-[80px]" />
+                        <div className="flex flex-col gap-2 text-center sm:text-left">
+                            <h1 className="text-[16px] font-[700]">BMW LX3</h1>
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-5 text-[14px] font-[500]">
                                 <div className="flex flex-col gap-2 text-[#00000080]">
                                     <h1>Car Type</h1>
                                     <h1>Car Number</h1>
@@ -295,58 +274,58 @@ const CalendarContent = () => {
                                     <h1>Automatic</h1>
                                 </div>
                             </div>
-                            <h1 className="text-[16px] font-[600] text-[#0955AC]">
+                            <h1 className="text-[14px] font-[600] text-[#0955AC]">
                                 Client request a child safety seat.
                             </h1>
                         </div>
                     </div>
                 </div>
                 <div
-                    className="min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
                     {/* Reminder section  */}
                     <div className="flex flex-row items-center justify-between w-full">
-                        <h1 className="text-[24px] font-[700]">Reminders</h1>
-                        <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[30px]">
+                        <h1 className="text-[20px] sm:text-[24px] font-[700]">Reminders</h1>
+                        <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[24px] sm:text-[30px]">
                             +
                         </div>
                     </div>
                     <div className="py-5 flex flex-col justify-center items-center gap-5">
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full max-w-[286px] xl:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[12px] sm:text-[14px] font-[500] flex-1">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full max-w-[286px] xl:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[12px] sm:text-[14px] font-[500] flex-1">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full max-w-[286px] xl:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[12px] sm:text-[14px] font-[500] flex-1">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full max-w-[286px] xl:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[12px] sm:text-[14px] font-[500] flex-1">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
@@ -355,7 +334,7 @@ const CalendarContent = () => {
                     {/* end */}
                 </div>
                 <div
-                    className="min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
+                    className="w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -370,8 +349,8 @@ const CalendarContent = () => {
                     boxShadow: "4px 4px 4px #0000001A",
                 }}
             >
-                <div className="px-20 flex flex-row items-center justify-between">
-                    <div className="flex flex-row justify-center items-center gap-6">
+                <div className="px-4 sm:px-10 lg:px-20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row justify-center items-start sm:items-center gap-4 sm:gap-6">
                         <div className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center">
                             Today
                         </div>
@@ -389,19 +368,19 @@ const CalendarContent = () => {
                                 <img src={leftArrow} className="rotate-180" />
                             </div>
                         </div>
-                        <h1 className="text-[18px] font-[700]">
+                        <h1 className="text-[16px] sm:text-[18px] font-[700]">
                             {monthNames[currentMonth]} {currentYear}
                         </h1>
                     </div>
-                    <div className="flex flex-row justify-center items-center gap-5">
-                        <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
+                    <div className="flex flex-col sm:flex-row justify-center items-start sm:items-center gap-4 sm:gap-5">
+                        <div className="flex flex-row justify-center items-center text-[#0955AC] text-[12px] sm:text-[14px] font-[700]">
+                            <div className="w-[70px] sm:w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
                                 All
                             </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
+                            <div className="w-[70px] sm:w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
                                 Pickup
                             </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
+                            <div className="w-[70px] sm:w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
                                 Return
                             </div>
                         </div>
@@ -412,22 +391,22 @@ const CalendarContent = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-row gap-10 justify-start items-center px-20 py-5">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-10 justify-start items-start sm:items-center px-4 sm:px-10 lg:px-20 py-5">
                     <div className="flex flex-row justify-start items-center gap-5 ">
                         <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
-                        <h1 className=" text-[#00000080] font-[600] text-[16px]">
+                        <h1 className=" text-[#00000080] font-[600] text-[14px] sm:text-[16px]">
                             Done
                         </h1>
                     </div>
                     <div className="flex flex-row justify-start items-center gap-5">
                         <div className="size-[16px] bg-[#FFDBDF] rounded-[4px]" />
-                        <h1 className=" text-[#00000080] font-[600] text-[16px]">
+                        <h1 className=" text-[#00000080] font-[600] text-[14px] sm:text-[16px]">
                             Cancelled
                         </h1>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-8 border-t border-l border-[#00000026]">
+                <div className="overflow-x-auto">
                     <CalendarGrid
                         days={days}
                         times={times}

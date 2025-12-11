@@ -12,14 +12,23 @@ import icon2 from "../../../../assets/vendors/booking/icons/icon2.svg";
 import icon3 from "../../../../assets/vendors/booking/icons/icon3.svg";
 import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
 
-import WarehouseBookingTable from "./WarehouseBookingTable";
-import BookingBarChart from "./BookingBarChart";
 import UserDropdown from "../../UserDropdown";
 import NotificationDropdown from "../NotificationDropdown";
 
 const BookingContent = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const paymentStatusColors = {
     Paid: { color: "#3B8F31", bg: "#ACE199" },
@@ -247,7 +256,7 @@ const BookingContent = () => {
             className="flex-1 bg-white rounded-[10px] min-h-[400px] flex items-center justify-center"
             style={{ boxShadow: "4px 4px 4px #0000001A" }}
           >
-            <BookingBarChart />
+            <div className="text-center text-gray-600">Chart coming soon...</div>
           </div>
 
           <div
@@ -298,15 +307,10 @@ const BookingContent = () => {
             ) : (
               <>
                 {error && <div className="text-red-600 text-center mb-3">{error}</div>}
-                <WarehouseBookingTable
-                  bookings={bookings}
-                  setBookings={setBookings}
-                  statusColors={statusColors}
-                  filters={filters}
-                />
-              </> 
+                <div className="text-center py-10 text-gray-600">Bookings table coming soon...</div>
+              </>
             )}
-          </div>      
+          </div>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { usePage, router } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { API_BASE_URL } from "../../../../../../../config/api";
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -55,7 +56,7 @@ const PaymentContent = () => {
             if (!auth?.user) return;
 
             try {
-                const response = await fetch('/vendors/warehouse/notifications/data');
+                const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
                 if (response.ok) {
                     const data = await response.json();
                     setWarehouseNotifications(data.notifications || []);
@@ -77,7 +78,7 @@ const PaymentContent = () => {
     // Fetch payment statistics
     const fetchStats = async () => {
         try {
-            const response = await fetch('/vendors/warehouse/api/payment-stats');
+            const response = await fetch(`${API_BASE_URL}vendors/warehouse/api/payment-stats`);
             const data = await response.json();
             if (data.success) {
                 setStats(data.data);
@@ -99,7 +100,7 @@ const PaymentContent = () => {
                 ...(dateFilter && { date: dateFilter })
             });
 
-            const response = await fetch(`/vendors/warehouse/api/payment-transactions?${params}`);
+            const response = await fetch(`${API_BASE_URL}vendors/warehouse/api/payment-transactions?${params}`);
             const data = await response.json();
 
             if (data.success) {

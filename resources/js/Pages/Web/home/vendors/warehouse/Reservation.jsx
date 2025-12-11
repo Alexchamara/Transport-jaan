@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import SideMenu from "../../../components/vendors/warehouse/SideMenu";
-import BookingContent from "../../../components/vendors/warehouse/bookings/BookingContent";
+import ReservationContent from "../../../components/vendors/warehouse/reservations/ReservationContent";
 import UserDropdown from "../../../components/vendors/UserDropdown";
 import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
 import { Menu } from "lucide-react";
 import { usePage } from "@inertiajs/react";
+import { API_BASE_URL } from "../../../../../config/api";
 
-const Booking = () => {
+const Reservation = () => {
   const { auth } = usePage().props;
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -29,7 +30,7 @@ const Booking = () => {
       if (!auth?.user) return;
 
       try {
-        const response = await fetch('/vendors/warehouse/notifications/data');
+        const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
         if (response.ok) {
           const data = await response.json();
           setWarehouseNotifications(data.notifications || []);
@@ -84,11 +85,11 @@ const Booking = () => {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto h-screen">
-          <BookingContent />
+          <ReservationContent />
         </div>
       </div>
     </div>
   );
 };
 
-export default Booking;
+export default Reservation;

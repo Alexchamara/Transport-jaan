@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const earningData = [
   { name: "Jan", value: 5000 },
@@ -20,13 +20,6 @@ const chartHeight = 250;
 const chartWidth = 650;
 const padding = 40;
 
-function getX(index) {
-  return padding + (index * (chartWidth - 2 * padding)) / (earningData.length - 1);
-}
-function getY(value) {
-  return chartHeight - padding - (value * (chartHeight - 2 * padding)) / maxValue;
-}
-
 // Helper function to generate smooth curve
 function generateSmoothPath(points) {
   if (points.length < 2) return "";
@@ -46,12 +39,34 @@ function generateSmoothPath(points) {
 }
 
 const EarningSummaryChart = () => {
+  const [chartWidth, setChartWidth] = useState(650);
+  const [hovered, setHovered] = useState(null);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      const width = window.innerWidth;
+      if (width < 640) setChartWidth(300);
+      else if (width < 1024) setChartWidth(500);
+      else setChartWidth(650);
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  function getX(index) {
+    return padding + (index * (chartWidth - 2 * padding)) / (earningData.length - 1);
+  }
+  function getY(value) {
+    return chartHeight - padding - (value * (chartHeight - 2 * padding)) / maxValue;
+  }
+
   // Find the index of the highest value
   const highestIndex = earningData.reduce(
     (maxIdx, d, idx, arr) => d.value > arr[maxIdx].value ? idx : maxIdx,
     0
   );
-  const [hovered, setHovered] = useState(highestIndex);
+  if (hovered === null) setHovered(highestIndex);
 
   // Generate points for the paths
   const points = earningData.map((d, i) => [getX(i), getY(d.value)]);
@@ -68,8 +83,8 @@ const EarningSummaryChart = () => {
   ].join(" ");
 
   return (
-    <div className="w-full h-auto ml-10">
-      <svg width={chartWidth} height={chartHeight} className="block mx-auto">
+    <div className="w-full h-auto flex justify-center">
+      <svg width={chartWidth} height={chartHeight} className="block">
         {/* Define linear gradient */}
         <defs>
           <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -150,14 +165,14 @@ const EarningSummaryChart = () => {
             key={i}
             x={getX(i)}
             y={chartHeight - padding + 20}
-            className="fill-[#7B7B7A] text-[14px] font-[500]"
+            className={`fill-[#7B7B7A] font-[500] ${chartWidth < 500 ? 'text-[10px]' : 'text-[14px]'}`}
             textAnchor="middle"
           >
             {d.name}
           </text>
         ))}
       </svg>
-    </div>
+      </div>
   );
 };
 

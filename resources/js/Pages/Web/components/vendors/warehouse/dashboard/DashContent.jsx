@@ -8,6 +8,7 @@ import {
     CalendarDays,
     Filter,
     ChevronDown,
+    ChevronUp,
     ArrowUp,
     Clock,
     Building2,
@@ -18,10 +19,8 @@ import {
     AlertCircle,
 } from "lucide-react";
 import axios from "axios";
-import BookingOverviewBarChart from "./BookingOverviewBarChart";
-import EarningSummaryChart from "./EarningSummaryChart";
-import RealStatusPieChart from "./RealStatusPieChart";
-import CarBookingTable from "./CarBookingTable";
+import { API_BASE_URL } from "../../../../../../config/api";
+import { PieChart, Pie, Cell } from "recharts";
 
 import UserDropdown from "../../UserDropdown";
 import NotificationDropdown from "../NotificationDropdown";
@@ -29,6 +28,17 @@ import NotificationDropdown from "../NotificationDropdown";
 const DashContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // State management
     const [loading, setLoading] = useState(true);
@@ -190,7 +200,7 @@ const DashContent = () => {
         async (silent = false) => {
             try {
                 const response = await axios.get(
-                    "/vendors/warehouse/api/bookings/stats",
+                    `${API_BASE_URL}vendors/warehouse/api/bookings/stats`,
                     {
                         params: { timestamp: Date.now() },
                     }
@@ -230,28 +240,12 @@ const DashContent = () => {
                 }
             } catch (error) {
                 console.error("Failed to fetch dashboard stats:", error);
-                // Use fallback data when API is unavailable
                 if (!silent) {
-                    const fallbackStats = {
-                        totalRevenue: "LKR 24,500",
-                        activeBookings: 12,
-                        occupiedUnits: "8 Units",
-                        totalUnits: "15 Units",
-                        revenueChange: "+12.5%",
-                        bookingsChange: "+8.3%",
-                        occupiedChange: "+5.2%",
-                        unitsChange: "+2.1%",
-                    };
-                    setDashboardStats(fallbackStats);
-                    setRealtimeStats({
-                        pending_bookings: 5,
-                        upcoming_bookings: 7,
-                        completed_bookings: 20,
-                    });
+                    showNotification("Failed to load dashboard statistics", "error");
                 }
             }
         },
-        [calculateChange, showNotification]
+        [calculateChange, showNotification, dashboardStats]
     );
 
     // Fetch chart data with real-time updates
@@ -260,7 +254,7 @@ const DashContent = () => {
             try {
                 if (!silent) setIsSearching(true);
                 const response = await axios.get(
-                    "/vendors/warehouse/api/bookings/chart-data",
+                    `${API_BASE_URL}vendors/warehouse/api/bookings/chart-data`,
                     {
                         params: {
                             period: selectedPeriod,
@@ -293,63 +287,8 @@ const DashContent = () => {
                 }
             } catch (error) {
                 console.error("Failed to fetch chart data:", error);
-                // Use fallback chart data when API is unavailable
                 if (!silent) {
-                    const fallbackData = {
-                        bookingOverview: [
-                            {
-                                name: "Jan",
-                                bookings: 45,
-                                confirmed: 32,
-                                pending: 8,
-                                cancelled: 5,
-                            },
-                            {
-                                name: "Feb",
-                                bookings: 52,
-                                confirmed: 40,
-                                pending: 7,
-                                cancelled: 5,
-                            },
-                            {
-                                name: "Mar",
-                                bookings: 61,
-                                confirmed: 48,
-                                pending: 8,
-                                cancelled: 5,
-                            },
-                            {
-                                name: "Apr",
-                                bookings: 58,
-                                confirmed: 44,
-                                pending: 9,
-                                cancelled: 5,
-                            },
-                            {
-                                name: "May",
-                                bookings: 67,
-                                confirmed: 52,
-                                pending: 10,
-                                cancelled: 5,
-                            },
-                            {
-                                name: "Jun",
-                                bookings: 73,
-                                confirmed: 58,
-                                pending: 10,
-                                cancelled: 5,
-                            },
-                        ],
-                        earningSummary: [
-                            { month: "Jan", earnings: 12000 },
-                            { month: "Feb", earnings: 15000 },
-                            { month: "Mar", earnings: 18000 },
-                            { month: "Apr", earnings: 16500 },
-                            { month: "May", earnings: 22000 },
-                            { month: "Jun", earnings: 24500 },
-                        ],
-                    };
-                    setChartData((prev) => ({ ...prev, ...fallbackData }));
+                    showNotification("Failed to load chart data", "error");
                 }
             } finally {
                 if (!silent) setIsSearching(false);
@@ -363,7 +302,7 @@ const DashContent = () => {
         async (silent = false) => {
             try {
                 const response = await axios.get(
-                    "/vendors/warehouse/api/bookings",
+                    `${API_BASE_URL}vendors/warehouse/api/bookings`,
                     {
                         params: {
                             per_page: 50,
@@ -395,34 +334,8 @@ const DashContent = () => {
                 }
             } catch (error) {
                 console.error("Failed to fetch bookings:", error);
-                // Use fallback booking data when API is unavailable
                 if (!silent) {
-                    const fallbackBookings = [
-                        {
-                            id: 1,
-                            contact_person: "John Smith",
-                            company_name: "ABC Logistics",
-                            email: "john@abclogistics.com",
-                            phone: "+1234567890",
-                            booking_reference: "WH001",
-                            status: "confirmed",
-                            created_at: new Date().toISOString(),
-                        },
-                        {
-                            id: 2,
-                            contact_person: "Sarah Johnson",
-                            company_name: "Global Trade Co",
-                            email: "sarah@globaltrade.com",
-                            phone: "+1234567891",
-                            booking_reference: "WH002",
-                            status: "pending",
-                            created_at: new Date(
-                                Date.now() - 86400000
-                            ).toISOString(),
-                        },
-                    ];
-                    setAllBookings(fallbackBookings);
-                    applyCurrentFilters(fallbackBookings);
+                    showNotification("Failed to load bookings", "error");
                 }
             }
         },
@@ -432,7 +345,7 @@ const DashContent = () => {
     // Fetch warehouse units data
     const fetchUnits = useCallback(async () => {
         try {
-            const response = await axios.get("/vendors/warehouse/api/units");
+            const response = await axios.get(`${API_BASE_URL}vendors/warehouse/api/units`);
             if (response.data.data) {
                 const units = response.data.data;
                 const typeStats = units.reduce((acc, unit) => {
@@ -493,23 +406,7 @@ const DashContent = () => {
             }
         } catch (error) {
             console.error("Failed to fetch units:", error);
-            // Use fallback unit data when API is unavailable
-            const fallbackUnitTypes = [
-                { name: "Cold Storage", percent: 65 },
-                { name: "Dry Storage", percent: 45 },
-                { name: "Climate Controlled", percent: 80 },
-                { name: "Open Yard", percent: 25 },
-            ];
-            setUnitTypes(fallbackUnitTypes);
-
-            setChartData((prev) => ({
-                ...prev,
-                warehouseStatus: [
-                    { name: "Active", value: 55, color: "#3DD0FF" },
-                    { name: "Pending", value: 25, color: "#0955AC" },
-                    { name: "Inactive", value: 20, color: "#C4C4C4" },
-                ],
-            }));
+            showNotification("Failed to load warehouse units", "error");
         }
     }, []);
 
@@ -950,6 +847,229 @@ const DashContent = () => {
         }
     }, [liveMode, showNotification]);
 
+    // Inline BookingOverviewBarChart Component
+    const BookingOverviewBarChart = ({ data = [] }) => {
+        const bookingData = data;
+        const maxBookings = Math.max(1000, ...bookingData.map(d => d.bookings || d.confirmed + d.pending + d.cancelled || 0));
+        const [hovered, setHovered] = useState(null);
+        const chartHeight = 217; // px
+        // Find the index of the highest bookings
+        const maxIndex = bookingData.reduce((maxIdx, d, idx, arr) => (d.bookings || 0) > (arr[maxIdx]?.bookings || 0) ? idx : maxIdx, 0);
+        
+        if (bookingData.length === 0) {
+            return (
+                <div className="w-[600px] h-[217px] flex items-center justify-center text-gray-500">
+                    <span>No booking data available</span>
+                </div>
+            );
+        }
+        
+        return (
+            <div className="w-[850px] mx-auto h-auto flex flex-col items-stretch relative">
+                {/* Chart area: grid lines and bars, fixed height */}
+                <div className="relative w-full" style={{ height: `${chartHeight}px` }}>
+                    {/* Y-axis grid lines and labels */}
+                    <div className="absolute left-0 w-full h-full z-0 pointer-events-none" style={{ height: `${chartHeight}px` }}>
+                        {[1000, 750, 500, 250, 0].map((v) => {
+                            const percentFromBottom = (v / maxBookings) * 100;
+                            return (
+                                <div
+                                    key={v}
+                                    className="w-full absolute flex items-center"
+                                    style={{ bottom: `${percentFromBottom}%` }}
+                                >
+                                    <span className="text-[14px] text-gray-400 absolute -left-12 -top-7 w-8 text-left" style={{transform: 'translateY(50%)'}}>{v === 1000 ? '1K' : v}</span>
+                                    <div className={`w-full border-t`}></div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {/* Bars */}
+                    <div className="flex flex-row items-end w-full h-full z-10 relative" style={{ height: `${chartHeight}px`, marginBottom: 0 }}>
+                        {bookingData.map((d, i) => (
+                            <div key={d.name} className="flex flex-col items-center flex-1 relative group">
+                                {/* Bar */}
+                                <div
+                                    className={`w-[25px] rounded-md transition-all duration-200 cursor-pointer ${i === 7 ? 'bg-[#39CEF3]' : 'bg-[#0955AC]'}`}
+                                    style={{ height: `${(d.bookings / maxBookings) * chartHeight}px` }}
+                                    onMouseEnter={() => setHovered(i)}
+                                    onMouseLeave={() => setHovered(null)}
+                                ></div>
+                                {/* Tooltip */}
+                                {(hovered === i || (hovered === null && i === maxIndex)) && (
+                                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 bg-[#D8E4F2] text-black px-6 py-2 rounded-lg shadow text-center z-20">
+                                        <div className="font-[600] text-[14px] flex flex-row items-center justify-center gap-1">{d.name} <span className="">2025</span></div>
+                                        <div className="text-[16px] font-[700]">{d.bookings}</div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                {/* Month labels below chart area */}
+                <div className="flex flex-row items-end w-full z-10 relative" style={{ marginTop: '8px' }}>
+                    {bookingData.map((d) => (
+                        <div key={d.name} className="flex-1 flex justify-center" style={{minWidth: '36px'}}>
+                            <div className="text-[14px] font-[500] text-[#7B7B7A]">{d.name}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    // Inline EarningSummaryChart Component
+    const EarningSummaryChart = ({ data = [] }) => {
+        const chartHeight = 300;
+        const chartWidth = 1000;
+        const padding = 40;
+
+        // Normalize data to handle both 'value' and 'earnings' properties
+        const normalizedData = data.map(d => ({
+            name: d.name || d.month,
+            value: d.value || d.earnings || 0
+        }));
+
+        const earningData = normalizedData;
+        const maxValue = Math.max(24000, ...earningData.map(d => d.value || 0));
+
+        const getX = (index) => {
+            return padding + (index * (chartWidth - 2 * padding)) / (earningData.length - 1);
+        };
+        
+        const getY = (value) => {
+            return chartHeight - padding - (value * (chartHeight - 2 * padding)) / maxValue;
+        };
+
+        // Helper function to generate smooth curve
+        const generateSmoothPath = (points) => {
+            if (points.length < 2) return "";
+            const path = [];
+            path.push(`M ${points[0][0]} ${points[0][1]}`);
+            for (let i = 0; i < points.length - 1; i++) {
+                const current = points[i];
+                const next = points[i + 1];
+                const controlPointX = (current[0] + next[0]) / 2;
+                path.push(`C ${controlPointX} ${current[1]}, ${controlPointX} ${next[1]}, ${next[0]} ${next[1]}`);
+            }
+            return path.join(" ");
+        };
+
+        // Find the index of the highest value
+        const highestIndex = earningData.reduce(
+            (maxIdx, d, idx, arr) => (d.value || 0) > (arr[maxIdx].value || 0) ? idx : maxIdx,
+            0
+        );
+        const [hovered, setHovered] = useState(highestIndex);
+
+        if (earningData.length === 0) {
+            return (
+                <div className="w-full h-[250px] flex items-center justify-center text-gray-500">
+                    <span>No earnings data available</span>
+                </div>
+            );
+        }
+
+        // Generate points for the paths
+        const points = earningData.map((d, i) => [getX(i), getY(d.value || 0)]);
+
+        // Build the smooth line path
+        const linePath = generateSmoothPath(points);
+
+        // Build the smooth area path
+        const areaPath = [
+            `M ${getX(0)} ${chartHeight - padding}`,
+            generateSmoothPath(points).slice(1),
+            `L ${getX(earningData.length - 1)} ${chartHeight - padding}`,
+            "Z",
+        ].join(" ");
+
+        return (
+            <div className="w-full overflow-x-auto">
+                <div className="w-full h-auto ml-10" style={{ minWidth: '1000px' }}>
+                    <svg width={chartWidth} height={chartHeight} className="block mx-auto w-full">
+                        <defs>
+                            <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#C4E0FF" />
+                                <stop offset="100%" stopColor="#0955AC1A" />
+                            </linearGradient>
+                        </defs>
+                        {[0, 6000, 12000, 18000, 24000].map((val, i) => {
+                            const y = getY(val);
+                            return (
+                                <g key={i}>
+                                    <line x1={padding} x2={chartWidth - padding} y1={y} y2={y} stroke="#E5E7EB" strokeWidth={1} />
+                                    <text x={0} y={y + 5} className="fill-[#7B7B7A] text-[14px] font-[500]" textAnchor="start">
+                                        {val / 1000}K
+                                    </text>
+                                </g>
+                            );
+                        })}
+                        <path d={areaPath} fill="url(#areaGradient)" />
+                        <path d={linePath} fill="none" stroke="#0955AC" strokeWidth={2} />
+                        {earningData.map((d, i) => (
+                            <g key={i}>
+                                <circle
+                                    cx={getX(i)}
+                                    cy={getY(d.value)}
+                                    r={15}
+                                    fill="transparent"
+                                    className="cursor-pointer"
+                                    onClick={() => setHovered(i)}
+                                />
+                                {hovered === i && (
+                                    <circle
+                                        cx={getX(i)}
+                                        cy={getY(d.value)}
+                                        r={6}
+                                        fill="rgba(9, 85, 172, 1)"
+                                        strokeWidth={2}
+                                    />
+                                )}
+                            </g>
+                        ))}
+                        {hovered !== null && earningData[hovered] && (() => {
+                            const tooltipWidth = 108;
+                            const tooltipHeight = 55;
+                            const pointX = getX(hovered);
+                            const pointY = getY(earningData[hovered].value || 0);
+                            let tooltipX = pointX - tooltipWidth / 2;
+                            let tooltipY = pointY - tooltipHeight - 15;
+
+                            if (tooltipX < 0) tooltipX = 0;
+                            if (tooltipX + tooltipWidth > chartWidth) tooltipX = chartWidth - tooltipWidth;
+                            if (tooltipY < 0) tooltipY = pointY + 15;
+                            if (tooltipY + tooltipHeight > chartHeight) tooltipY = pointY - tooltipHeight - 15;
+
+                            const earningValue = earningData[hovered].value || 0;
+
+                            return (
+                                <foreignObject x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} pointerEvents="none">
+                                    <div className="bg-[#D8E4F2] w-[108px] h-[55px] rounded-[5px] shadow-lg px-4 py-2 flex flex-col items-center">
+                                        <span className="text-[14px] font-[500] mb-1">{earningData[hovered].name} 2025</span>
+                                        <span className="text-[16px] font-[700]">LKR {earningValue.toLocaleString()}</span>
+                                    </div>
+                                </foreignObject>
+                            );
+                        })()}
+                        {earningData.map((d, i) => (
+                            <text
+                                key={i}
+                                x={getX(i)}
+                                y={chartHeight - padding + 20}
+                                className="fill-[#7B7B7A] text-[14px] font-[500]"
+                                textAnchor="middle"
+                            >
+                                {d.name}
+                            </text>
+                        ))}
+                    </svg>
+                </div>
+            </div>
+        );
+    };
+
+
     const refreshAllData = useCallback(async () => {
         setRefreshing(true);
         try {
@@ -1279,6 +1399,15 @@ const DashContent = () => {
                                         <span>Loading chart data...</span>
                                     </div>
                                 </div>
+                            ) : isMobile ? (
+                                <div className="flex flex-col gap-2">
+                                    {(chartData.bookingOverview ?? []).map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                            <span className="font-bold text-blue-600">{item.bookings} bookings</span>
+                                        </div>
+                                    ))}
+                                </div>
                             ) : (
                                 <BookingOverviewBarChart
                                     data={chartData.bookingOverview}
@@ -1326,9 +1455,20 @@ const DashContent = () => {
                                     )}
                                 </div>
                             </div>
-                            <EarningSummaryChart
-                                data={chartData.earningSummary}
-                            />
+                            {isMobile ? (
+                                <div className="flex flex-col gap-2">
+                                    {(chartData.earningSummary ?? []).map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                            <span className="font-bold text-green-600">${Number(item.value || 0).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <EarningSummaryChart
+                                    data={chartData.earningSummary}
+                                />
+                            )}
                         </div>
                     </div>
                     {/* mini right section */}
@@ -1466,203 +1606,378 @@ const DashContent = () => {
                         </div>
                     </div>
 
-                    <CarBookingTable data={bookings} loading={loading} />
-                </div>
-                {/* end */}
+                    {/* Warehouse Booking Table */}
+                    <div className="py-10 w-full">
+                        {/* DESKTOP/TABLET TABLE */}
+                        <div className="hidden md:block overflow-auto">
+                            {/* table headings */}
+                            <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[14px] font-[600] px-12 py-3 gap-x-6 min-w-[1200px]">
+                                <div className="flex flex-row gap-2 items-center">
+                                    <h1>Booking ID</h1>
+                                    <div className="flex flex-col justify-center items-center">
+                                        <ChevronUp className="w-[6px] h-[10px]" />
+                                        <ChevronDown className="w-[6px] h-[10px]" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <h1>Booking Date</h1>
+                                    <div className="flex flex-col justify-center items-center">
+                                        <ChevronUp className="w-[6px] h-[10px]" />
+                                        <ChevronDown className="w-[6px] h-[10px]" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <h1>Client Name</h1>
+                                    <div className="flex flex-col justify-center items-center">
+                                        <ChevronUp className="w-[6px] h-[10px]" />
+                                        <ChevronDown className="w-[6px] h-[10px]" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <h1>Company / Unit</h1>
+                                    <div className="flex flex-col justify-center items-center">
+                                        <ChevronUp className="w-[6px] h-[10px]" />
+                                        <ChevronDown className="w-[6px] h-[10px]" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <h1>Term</h1>
+                                    <div className="flex flex-col justify-center items-center">
+                                        <ChevronUp className="w-[6px] h-[10px]" />
+                                        <ChevronDown className="w-[6px] h-[10px]" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <h1>Dates</h1>
+                                    <div className="flex flex-col justify-center items-center">
+                                        <ChevronUp className="w-[6px] h-[10px]" />
+                                        <ChevronDown className="w-[6px] h-[10px]" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-row gap-2 items-center ml-10">
+                                    <h1>Payment</h1>
+                                    <div className="flex flex-col justify-center items-center">
+                                        <ChevronUp className="w-[6px] h-[10px]" />
+                                        <ChevronDown className="w-[6px] h-[10px]" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <h1>Status</h1>
+                                    <div className="flex flex-col justify-center items-center">
+                                        <ChevronUp className="w-[6px] h-[10px]" />
+                                        <ChevronDown className="w-[6px] h-[10px]" />
+                                    </div>
+                                </div>
+                            </div>
 
-                <div className="flex flex-col xl:flex-row gap-5 justify-between">
-                    <div
-                        className={`w-full xl:min-w-[500px] ${unitTypes.length > 0 ? 'min-h-[858px]' : 'min-h-[300px]'} bg-[#FFFFFF] rounded-[10px] px-6 xl:px-10 py-10`}
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <div className="flex flex-row justify-between items-center">
-                            <h1 className="text-[24px] font-[700]">
-                                Unit types
-                            </h1>
-                            <h1 className="text-[24px] font-[700]">...</h1>
+                            <div>
+                                {isSearching && bookings.length === 0 ? (
+                                    <div className="py-10 flex items-center justify-center h-64">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                        <span className="ml-3 text-gray-600">Loading bookings...</span>
+                                    </div>
+                                ) : bookings.length === 0 ? (
+                                    <div className="py-10 flex flex-col items-center justify-center h-64 text-gray-500">
+                                        <Package size={48} className="mb-4 text-gray-400" />
+                                        <span className="text-lg font-medium">No bookings found</span>
+                                        <span className="text-sm text-gray-400">Your warehouse bookings will appear here</span>
+                                    </div>
+                                ) : (
+                                    bookings.map((booking, index) => {
+                                        const parseDate = (dateValue) => {
+                                            if (!dateValue) return new Date();
+                                            try {
+                                                return new Date(dateValue);
+                                            } catch {
+                                                return new Date();
+                                            }
+                                        };
+
+                                        const getStatusBg = (status) => {
+                                            switch(status?.toLowerCase()) {
+                                                case 'confirmed': 
+                                                case 'active': return '#FFCD29';
+                                                case 'completed': return '#ACE19957';
+                                                case 'cancelled': return 'transparent';
+                                                default: return '#FFCD29';
+                                            }
+                                        };
+                                        
+                                        const getStatusBorder = (status) => {
+                                            switch(status?.toLowerCase()) {
+                                                case 'confirmed':
+                                                case 'active': return '#0000004D';
+                                                case 'completed': return '#3B8F314D';
+                                                case 'cancelled': return '#FF6060';
+                                                default: return '#0000004D';
+                                            }
+                                        };
+                                        
+                                        const getStatusText = (status) => {
+                                            switch(status?.toLowerCase()) {
+                                                case 'confirmed':
+                                                case 'active': return '#000000';
+                                                case 'completed': return '#3B8F31';
+                                                case 'cancelled': return '#FF6060';
+                                                default: return '#000000';
+                                            }
+                                        };
+
+                                        const displayData = {
+                                            id: booking.id || booking.booking_reference || 'N/A',
+                                            createdAt: parseDate(booking.bookingDate || booking.created_at).toLocaleDateString('en-US', { 
+                                                year: 'numeric', 
+                                                month: 'short', 
+                                                day: '2-digit' 
+                                            }),
+                                            vendor: booking.contactPerson || booking.contact_person || booking.clientName || 'Unknown',
+                                            company: booking.company_name || booking.companyName || 'N/A',
+                                            unit: booking.warehouseUnit || booking.warehouse_unit || 'N/A',
+                                            term: `${booking.durationMonths || booking.duration_months || booking.durationValue || 1} ${((booking.durationMonths || booking.duration_months || booking.durationValue || 1) === 1) ? 'month' : 'months'}`,
+                                            startDate: parseDate(booking.startDate || booking.start_date).toLocaleDateString('en-US', { 
+                                                month: 'short', 
+                                                day: '2-digit', 
+                                                year: 'numeric' 
+                                            }),
+                                            endDate: parseDate(booking.endDate || booking.end_date).toLocaleDateString('en-US', { 
+                                                month: 'short', 
+                                                day: '2-digit', 
+                                                year: 'numeric' 
+                                            }),
+                                            rate: `LKR ${(booking.monthlyRate || booking.monthly_rate || 0).toLocaleString()}/mo`,
+                                            paymentStatus: booking.paymentStatus || (booking.payment_status === 'paid' ? 'Paid' : 'Pending'),
+                                            paymentColor: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#3B8F314D' : '#FF6060',
+                                            paymentBg: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#ACE19957' : '#FF60608C',
+                                            status: booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Pending',
+                                            statusBg: getStatusBg(booking.status),
+                                            statusBorder: getStatusBorder(booking.status),
+                                            statusText: getStatusText(booking.status)
+                                        };
+
+                                        return (
+                                            <div
+                                                key={displayData.id || index}
+                                                className="grid grid-cols-8 border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[15px] font-[500] px-12 py-4 gap-x-6 min-w-[1200px]"
+                                            >
+                                                <div>{displayData.id}</div>
+                                                <div>{displayData.createdAt}</div>
+                                                <div>{displayData.vendor}</div>
+                                                <div className="flex flex-col gap-2">
+                                                    <h1>{displayData.company}</h1>
+                                                    <div className="w-[120px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                                        {displayData.unit}
+                                                    </div>
+                                                </div>
+                                                <div>{displayData.term}</div>
+                                                <div className="text-[14px] font-[500] text-[#939392] space-y-2">
+                                                    <div className="flex flex-row gap-2 justify-start items-center">
+                                                        <h1>Start</h1>
+                                                        <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                                            {displayData.startDate}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-row gap-4 justify-start items-center">
+                                                        <h1>End</h1>
+                                                        <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                                            {displayData.endDate}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col justify-center items-center gap-2">
+                                                    <h1>{displayData.rate}</h1>
+                                                    <div
+                                                        className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                                        style={{
+                                                            border: `0.5px solid ${displayData.paymentColor}`,
+                                                            backgroundColor: displayData.paymentBg,
+                                                        }}
+                                                    >
+                                                        {displayData.paymentStatus}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className="w-[75px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                                                    style={{
+                                                        backgroundColor: displayData.statusBg,
+                                                        border: `1px solid ${displayData.statusBorder}`,
+                                                        color: displayData.statusText,
+                                                    }}
+                                                >
+                                                    {displayData.status}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
                         </div>
 
-                        <div className="mt-10 flex flex-col gap-5">
-                            {unitTypes.length > 0 ? (
-                                unitTypes.map((type, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="w-full h-[107px] border-[1px] border-[#00000080] rounded-[9px] flex flex-row hover:shadow-md transition-shadow cursor-pointer"
-                                    >
-                                        <Boxes className="h-[107px] w-[172px] p-6 text-gray-600" />
-                                        <div className="flex flex-col justify-center gap-3 w-full px-5">
-                                            <div className="flex flex-row justify-between items-center text-[15px] font-[500]">
-                                                <h1 className="text-[#00000080]">
-                                                    {type.name}
-                                                </h1>
-                                                <h1 className="pr-5">
-                                                    {type.percent}%
-                                                </h1>
+                        {/* MOBILE VIEW: stacked cards */}
+                        <div className="md:hidden space-y-4">
+                            {isSearching && bookings.length === 0 ? (
+                                <div className="py-10 flex items-center justify-center h-64">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                    <span className="ml-3 text-gray-600">Loading bookings...</span>
+                                </div>
+                            ) : bookings.length === 0 ? (
+                                <div className="py-10 flex flex-col items-center justify-center h-64 text-gray-500">
+                                    <Package size={48} className="mb-4 text-gray-400" />
+                                    <span className="text-lg font-medium">No bookings found</span>
+                                    <span className="text-sm text-gray-400">Your warehouse bookings will appear here</span>
+                                </div>
+                            ) : (
+                                bookings.map((booking, index) => {
+                                    const parseDate = (dateValue) => {
+                                        if (!dateValue) return new Date();
+                                        try {
+                                            return new Date(dateValue);
+                                        } catch {
+                                            return new Date();
+                                        }
+                                    };
+
+                                    const getStatusBg = (status) => {
+                                        switch(status?.toLowerCase()) {
+                                            case 'confirmed': 
+                                            case 'active': return '#FFCD29';
+                                            case 'completed': return '#ACE19957';
+                                            case 'cancelled': return 'transparent';
+                                            default: return '#FFCD29';
+                                        }
+                                    };
+                                    
+                                    const getStatusBorder = (status) => {
+                                        switch(status?.toLowerCase()) {
+                                            case 'confirmed':
+                                            case 'active': return '#0000004D';
+                                            case 'completed': return '#3B8F314D';
+                                            case 'cancelled': return '#FF6060';
+                                            default: return '#0000004D';
+                                        }
+                                    };
+                                    
+                                    const getStatusText = (status) => {
+                                        switch(status?.toLowerCase()) {
+                                            case 'confirmed':
+                                            case 'active': return '#000000';
+                                            case 'completed': return '#3B8F31';
+                                            case 'cancelled': return '#FF6060';
+                                            default: return '#000000';
+                                        }
+                                    };
+
+                                    const displayData = {
+                                        id: booking.id || booking.booking_reference || 'N/A',
+                                        createdAt: parseDate(booking.bookingDate || booking.created_at).toLocaleDateString('en-US', { 
+                                            year: 'numeric', 
+                                            month: 'short', 
+                                            day: '2-digit' 
+                                        }),
+                                        vendor: booking.contactPerson || booking.contact_person || booking.clientName || 'Unknown',
+                                        company: booking.company_name || booking.companyName || 'N/A',
+                                        unit: booking.warehouseUnit || booking.warehouse_unit || 'N/A',
+                                        term: `${booking.durationMonths || booking.duration_months || booking.durationValue || 1} ${((booking.durationMonths || booking.duration_months || booking.durationValue || 1) === 1) ? 'month' : 'months'}`,
+                                        startDate: parseDate(booking.startDate || booking.start_date).toLocaleDateString('en-US', { 
+                                            month: 'short', 
+                                            day: '2-digit', 
+                                            year: 'numeric' 
+                                        }),
+                                        endDate: parseDate(booking.endDate || booking.end_date).toLocaleDateString('en-US', { 
+                                            month: 'short', 
+                                            day: '2-digit', 
+                                            year: 'numeric' 
+                                        }),
+                                        rate: `LKR ${(booking.monthlyRate || booking.monthly_rate || 0).toLocaleString()}/mo`,
+                                        paymentStatus: booking.paymentStatus || (booking.payment_status === 'paid' ? 'Paid' : 'Pending'),
+                                        paymentColor: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#3B8F314D' : '#FF6060',
+                                        paymentBg: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#ACE19957' : '#FF60608C',
+                                        status: booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Pending',
+                                        statusBg: getStatusBg(booking.status),
+                                        statusBorder: getStatusBorder(booking.status),
+                                        statusText: getStatusText(booking.status)
+                                    };
+
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="border border-[#00000033] rounded-[8px] p-4 text-[14px] font-[500] space-y-2 bg-white"
+                                        >
+                                            <div className="flex justify-between">
+                                                <span className="font-[600]">Booking ID</span>
+                                                <span className="text-gray-600">{displayData.id}</span>
                                             </div>
-                                            <div className="w-full h-[20px] rounded-[4px] bg-[#D8E4F2] relative overflow-hidden">
+                                            <div className="flex justify-between">
+                                                <span className="font-[600]">Booking Date</span>
+                                                <span className="text-gray-600">{displayData.createdAt}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="font-[600]">Client</span>
+                                                <span className="text-gray-600">{displayData.vendor}</span>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <span className="font-[600]">Company / Unit</span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-gray-600">{displayData.company}</span>
+                                                    <div className="w-[120px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                                        {displayData.unit}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="font-[600]">Term</span>
+                                                <span className="text-gray-600">{displayData.term}</span>
+                                            </div>
+                                            <div className="space-y-1 text-[#939392]">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-[600] text-black">Start</span>
+                                                    <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                                        {displayData.startDate}
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-[600] text-black">End</span>
+                                                    <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                                        {displayData.endDate}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-[600]">Price</span>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <span className="text-gray-600">{displayData.rate}</span>
+                                                    <div
+                                                        className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                                        style={{
+                                                            border: `0.5px solid ${displayData.paymentColor}`,
+                                                            backgroundColor: displayData.paymentBg,
+                                                        }}
+                                                    >
+                                                        {displayData.paymentStatus}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-[600]">Status</span>
                                                 <div
-                                                    className="h-full rounded-[4px] absolute top-0 left-0 transition-all duration-700 ease-out"
+                                                    className="w-[75px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
                                                     style={{
-                                                        width: `${type.percent}%`,
-                                                        backgroundColor:
-                                                            type.percent <= 20
-                                                                ? "#F51D1D"
-                                                                : type.percent <=
-                                                                    50
-                                                                    ? "#FFCD29"
-                                                                    : "#0955AC",
+                                                        backgroundColor: displayData.statusBg,
+                                                        border: `1px solid ${displayData.statusBorder}`,
+                                                        color: displayData.statusText,
                                                     }}
-                                                ></div>
+                                                >
+                                                    {displayData.status}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="flex items-center justify-center h-32 text-gray-500">
-                                    <span>No unit types data available</span>
-                                </div>
+                                    );
+                                })
                             )}
                         </div>
                     </div>
-                    <div
-                        className={`w-full xl:min-w-[553px] ${recentActivities.length > 0 ? 'min-h-[858px]' : 'min-h-[300px]'} bg-[#0F0F0F08] rounded-[10px] px-6 xl:px-10 py-10`}
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <div className="flex flex-row justify-between items-center">
-                            <h1 className="text-[24px] font-[700]">
-                                Recent Activities
-                            </h1>
-                            <h1 className="text-[24px] font-[700]">...</h1>
-                        </div>
-                        <h1 className="text-[20px] font-[600] text-[#0F0F0F80] py-3">
-                            Today
-                        </h1>
 
-                        <div className="flex flex-row justify-center items-start gap-10">
-                            <div className="flex flex-col items-center py-5">
-                                {recentActivities
-                                    .filter((a) => a.date === "Today")
-                                    .map((activity, idx) => (
-                                        <React.Fragment key={activity.id}>
-                                            <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center shadow-sm border">
-                                                {activity.icon ===
-                                                    "calendar" && (
-                                                        <CalendarDays
-                                                            size={24}
-                                                            className="text-blue-600"
-                                                        />
-                                                    )}
-                                                {activity.icon ===
-                                                    "package" && (
-                                                        <Package
-                                                            size={24}
-                                                            className="text-green-600"
-                                                        />
-                                                    )}
-                                                {activity.icon === "users" && (
-                                                    <Users
-                                                        size={24}
-                                                        className="text-purple-600"
-                                                    />
-                                                )}
-                                                {activity.icon === "boxes" && (
-                                                    <Boxes
-                                                        size={24}
-                                                        className="text-orange-600"
-                                                    />
-                                                )}
-                                            </div>
-                                            {idx <
-                                                recentActivities.filter(
-                                                    (a) => a.date === "Today"
-                                                ).length -
-                                                1 && (
-                                                    <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                                )}
-                                        </React.Fragment>
-                                    ))}
-                            </div>
-                            <div className="flex flex-col py-5 gap-10 text-[20px] font-[700]">
-                                {recentActivities
-                                    .filter((a) => a.date === "Today")
-                                    .map((activity) => (
-                                        <div key={activity.id}>
-                                            <h1 className="text-[18px]">
-                                                {activity.title}
-                                            </h1>
-                                            <h1 className="font-[600] text-[#0F0F0F80] text-[16px]">
-                                                {activity.time}
-                                            </h1>
-                                        </div>
-                                    ))}
-                            </div>
-                        </div>
-
-                        <h1 className="text-[20px] font-[600] text-[#0F0F0F80] py-3">
-                            Yesterday
-                        </h1>
-                        <div className="flex flex-row justify-center items-start gap-10">
-                            <div className="flex flex-col items-center py-5">
-                                {recentActivities
-                                    .filter((a) => a.date === "Yesterday")
-                                    .map((activity, idx) => (
-                                        <React.Fragment key={activity.id}>
-                                            <div className="size-[60px] bg-[#FFFFFF] rounded-full flex justify-center items-center shadow-sm border">
-                                                {activity.icon ===
-                                                    "calendar" && (
-                                                        <CalendarDays
-                                                            size={24}
-                                                            className="text-blue-600"
-                                                        />
-                                                    )}
-                                                {activity.icon ===
-                                                    "package" && (
-                                                        <Package
-                                                            size={24}
-                                                            className="text-green-600"
-                                                        />
-                                                    )}
-                                                {activity.icon === "users" && (
-                                                    <Users
-                                                        size={24}
-                                                        className="text-purple-600"
-                                                    />
-                                                )}
-                                                {activity.icon === "boxes" && (
-                                                    <Boxes
-                                                        size={24}
-                                                        className="text-orange-600"
-                                                    />
-                                                )}
-                                            </div>
-                                            {idx <
-                                                recentActivities.filter(
-                                                    (a) =>
-                                                        a.date === "Yesterday"
-                                                ).length -
-                                                1 && (
-                                                    <div className="w-[2px] h-[54px] bg-[#00000054]"></div>
-                                                )}
-                                        </React.Fragment>
-                                    ))}
-                            </div>
-                            <div className="flex flex-col py-5 gap-10 text-[20px] font-[700]">
-                                {recentActivities
-                                    .filter((a) => a.date === "Yesterday")
-                                    .map((activity) => (
-                                        <div key={activity.id}>
-                                            <h1 className="text-[18px]">
-                                                {activity.title}
-                                            </h1>
-                                            <h1 className="font-[600] text-[#0F0F0F80] text-[16px]">
-                                                {activity.time}
-                                            </h1>
-                                        </div>
-                                    ))}
-                            </div>
-                        </div>
-                    </div>
                 </div>
+                {/* end */}
             </div>
         </div>
     );

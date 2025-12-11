@@ -41,23 +41,23 @@ const Register = ({ role = "client" }) => {
     };
 
     return (
-        <div className="bg-[#000000] text-[#FFFFFF] poppins min-h-screen">
-            <div className="flex relative justify-center items-center md:py-10 md:px-20 px-10 poppins">
+        <div className="bg-[#000000] text-[#FFFFFF] poppins h-auto">
+            <div className="flex relative justify-center items-center md:py-10 md:px-20 px-0 poppins">
                 <h1
-                    className="absolute md:top-[30px] top-[10px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
+                    className="absolute top-[30px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
                     onClick={() => router.visit("/")}
                 >
                     Company Logo
                 </h1>
 
                 <div
-                    className="min-h-screen w-full bg-cover bg-center bg-no-repeat py-[100px] px-10 xl:px-20 flex justify-center items-center bg-gradient-to-br from-gray-900 to-black"
+                    className="h-auto xl:min-h-screen w-full bg-cover bg-center bg-no-repeat py-[100px] px-0 xl:px-20 flex justify-center items-center bg-gradient-to-br from-gray-900 to-black"
                     style={{ 
                         backgroundImage: `url(${bg})`
                     }}
                 >
                     <div
-                        className="w-auto h-auto bg-white/5 rounded-[30px] backdrop-blur-lg px-10 py-10 flex flex-col items-center relative"
+                        className="w-auto h-auto bg-white/5 rounded-[30px] backdrop-blur-lg px-5 py-10 flex flex-col items-center relative"
                         style={{
                             boxShadow: "4px 4px 4px 0px rgba(0, 0, 0, 0.25)",
                         }}
@@ -80,7 +80,7 @@ const Register = ({ role = "client" }) => {
                                             <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                                 Vendor Type
                                             </label>
-                                            <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                                 <select
                                                     value={data.vendor_type}
                                                     onChange={(e) =>
@@ -110,14 +110,14 @@ const Register = ({ role = "client" }) => {
                                             )}
                                         </div>
                                     )}
-                            <div className="flex flex-row gap-10 justify-center items-start">
+                            <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
                                 <div className="flex flex-col gap-0">
                                     {/* username */}
                                     <div className="flex flex-col gap-2 mb-6">
                                         <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                             Full Name
                                         </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                             <input
                                                 type="text"
                                                 value={data.name}
@@ -143,7 +143,7 @@ const Register = ({ role = "client" }) => {
                                         <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                             Phone Number
                                         </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                             <input
                                                 type="tel"
                                                 value={data.phone}
@@ -170,7 +170,7 @@ const Register = ({ role = "client" }) => {
                                         <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                             Password
                                         </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
+                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
                                             <input
                                                 type={
                                                     showPassword
@@ -212,7 +212,7 @@ const Register = ({ role = "client" }) => {
                                         <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                             Email Address
                                         </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                             <input
                                                 type="email"
                                                 value={data.email}
@@ -239,7 +239,7 @@ const Register = ({ role = "client" }) => {
                                         <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                             Date of Birth
                                         </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                             <input
                                                 type="date"
                                                 value={data.date_of_birth}
@@ -267,7 +267,7 @@ const Register = ({ role = "client" }) => {
                                         <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                             Confirm Password
                                         </label>
-                                        <div className="w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
+                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
                                             <input
                                                 type={
                                                     showConfirmPassword
@@ -321,7 +321,7 @@ const Register = ({ role = "client" }) => {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-[397px] h-[56px] bg-[#2E6099] rounded-[100px] text-[16px] font-[600] flex justify-center items-center cursor-pointer mt-10 disabled:opacity-50"
+                                className="w-full md:w-[397px] h-[56px] bg-[#2E6099] rounded-[100px] text-[16px] font-[600] flex justify-center items-center cursor-pointer mt-10 disabled:opacity-50"
                             >
                                 {processing
                                     ? "Creating Account..."
@@ -339,12 +339,12 @@ const Register = ({ role = "client" }) => {
                             </h1>
 
                             <div className="flex flex-row gap-5 justify-center items-center py-10">
-                                <div className="w-[174px] h-[1px] bg-[#FFFFFF80]" />
+                                <div className="w-full md:w-[174px] h-[1px] bg-[#FFFFFF80]" />
                                 <h1 className="text-[12px] font-[500]">or</h1>
                                 <div className="w-[174px] h-[1px] bg-[#FFFFFF80]" />
                             </div>
 
-                            <div className="w-[397px] h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] text-[16px] font-[600] flex flex-row gap-5 justify-center items-center cursor-pointer">
+                            <div className="w-full md:w-[397px] h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] text-[16px] font-[600] flex flex-row gap-5 justify-center items-center cursor-pointer">
                                 <img src={google} />
                                 <h1>Continue with Google</h1>
                             </div>

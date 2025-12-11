@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
@@ -26,6 +26,35 @@ import UserDropdown from "../../UserDropdown";
 const BookingContent = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
+
+    // State for mobile detection
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    // Mobile detection effect
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Booking data for mobile list view
+    const bookingChartData = [
+        { name: "Jan", done: 320, cancelled: 220 },
+        { name: "Feb", done: 380, cancelled: 270 },
+        { name: "Mar", done: 250, cancelled: 150 },
+        { name: "Apr", done: 500, cancelled: 230 },
+        { name: "May", done: 310, cancelled: 410 },
+        { name: "Jun", done: 370, cancelled: 180 },
+        { name: "Jul", done: 420, cancelled: 210 },
+        { name: "Aug", done: 480, cancelled: 380 },
+        { name: "Sep", done: 270, cancelled: 320 },
+        { name: "Oct", done: 390, cancelled: 210 },
+        { name: "Nov", done: 320, cancelled: 170 },
+        { name: "Dec", done: 500, cancelled: 250 },
+    ];
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
@@ -302,10 +331,10 @@ const BookingContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-5 lg:py-10">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Multimodal Bookings</h1>
+            <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
+                <h1 className="figtree text-[24px] md:text-[35px] font-[700]">Multimodal Bookings</h1>
                 {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
                         <img src={search} alt="Search" />
@@ -333,32 +362,32 @@ const BookingContent = () => {
             </div>
             {/* end of header section */}
 
-            <div className="flex flex-row gap-10 justify-between py-20 w-full">
+            <div className="flex flex-col xl:flex-row gap-5 xl:gap-10 justify-between py-10 w-full">
                 {/* mini left */}
-                <div className="flex flex-col gap-8 w-full">
+                <div className="flex flex-col gap-4 md:gap-8 w-full xl:w-auto">
                     {/* card 1 */}
                     <div
-                        className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                        <div className="flex flex-row gap-3 md:gap-5 justify-center items-center">
+                            <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                                 <img src={icon1} alt="Upcoming Bookings" />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
+                                <h1 className="text-[14px] md:text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Upcoming Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
+                                <h1 className="text-[20px] md:text-[26px] font-[700]">145</h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                        <div className="flex flex-col gap-2 items-end text-[12px] md:text-[14px] font-[500]">
+                            <div className="w-[70px] md:w-[81px] h-[22px] md:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
-                                    className="size-[19px]"
+                                    className="size-[15px] md:size-[19px]"
                                     alt="Increase"
                                 />
                                 <h1 className="">+2.86%</h1>
@@ -369,27 +398,27 @@ const BookingContent = () => {
                     {/* end of card 1 */}
                     {/* card 2 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                        <div className="flex flex-row gap-3 md:gap-5 justify-center items-center">
+                            <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                                 <img src={icon2} alt="Pending Bookings" />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
+                                <h1 className="text-[14px] md:text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Pending Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">234</h1>
+                                <h1 className="text-[20px] md:text-[26px] font-[700]">234</h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                        <div className="flex flex-col gap-2 items-end text-[12px] md:text-[14px] font-[500]">
+                            <div className="w-[70px] md:w-[81px] h-[22px] md:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
-                                    className="size-[19px]"
+                                    className="size-[15px] md:size-[19px]"
                                     alt="Increase"
                                 />
                                 <h1 className="">+2.86%</h1>
@@ -400,27 +429,27 @@ const BookingContent = () => {
                     {/* end of card 2 */}
                     {/* card 3 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                        <div className="flex flex-row gap-3 md:gap-5 justify-center items-center">
+                            <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                                 <img src={icon3} alt="Cancelled Bookings" />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
+                                <h1 className="text-[14px] md:text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Cancelled Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">24</h1>
+                                <h1 className="text-[20px] md:text-[26px] font-[700]">24</h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                        <div className="flex flex-col gap-2 items-end text-[12px] md:text-[14px] font-[500]">
+                            <div className="w-[70px] md:w-[81px] h-[22px] md:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
-                                    className="size-[19px]"
+                                    className="size-[15px] md:size-[19px]"
                                     alt="Increase"
                                 />
                                 <h1 className="">+2.86%</h1>
@@ -431,27 +460,27 @@ const BookingContent = () => {
                     {/* end of card 3 */}
                     {/* card 4 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                        <div className="flex flex-row gap-3 md:gap-5 justify-center items-center">
+                            <div className="size-[40px] md:size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                                 <img src={icon4} alt="Completed Bookings" />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
+                                <h1 className="text-[14px] md:text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Completed Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
+                                <h1 className="text-[20px] md:text-[26px] font-[700]">145</h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                        <div className="flex flex-col gap-2 items-end text-[12px] md:text-[14px] font-[500]">
+                            <div className="w-[70px] md:w-[81px] h-[22px] md:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
-                                    className="size-[19px]"
+                                    className="size-[15px] md:size-[19px]"
                                     alt="Increase"
                                 />
                                 <h1 className="">+2.86%</h1>
@@ -464,22 +493,56 @@ const BookingContent = () => {
 
                 {/* mini right */}
                 <div
-                    className="min-w-[712px] w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
+                    className="w-full xl:min-w-[680px] min-h-[350px] md:min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <BookingBarChart />
+                    {isMobile ? (
+                        // Mobile list view
+                        <div className="w-full p-4">
+                            <h3 className="text-[18px] font-[700] mb-4 text-center">Monthly Bookings</h3>
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                                {bookingChartData.map((month, index) => (
+                                    <div key={index} className="bg-[#F8F9FA] rounded-[8px] p-3 border border-[#E9ECEF]">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h4 className="font-[600] text-[16px]">{month.name}</h4>
+                                            <div className="text-right">
+                                                <div className="text-[14px] text-[#28A745] font-[600]">
+                                                    ✓ {month.done} Done
+                                                </div>
+                                                <div className="text-[14px] text-[#DC3545] font-[600]">
+                                                    ✗ {month.cancelled} Cancelled
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-[#E9ECEF] rounded-full h-2">
+                                            <div
+                                                className="bg-[#0955AC] h-2 rounded-full"
+                                                style={{ width: `${(month.done / (month.done + month.cancelled)) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="text-[12px] text-[#6C757D] mt-1 text-center">
+                                            {month.done + month.cancelled} total bookings
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        // Desktop chart view
+                        <BookingBarChart />
+                    )}
                 </div>
             </div>
 
             {/* car booking section */}
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-5 md:py-10 px-4 md:px-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
-                <div className="flex flex-row justify-between">
-                    <h1 className="text-[24px] font-[700]">Car Booking</h1>
-                    <div className="flex flex-row gap-5">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-0">
+                    <h1 className="text-[20px] md:text-[24px] font-[700]">Car Booking</h1>
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-5">
+                        <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} alt="Search" />
                             <input
                                 type="text"
@@ -487,7 +550,7 @@ const BookingContent = () => {
                                 placeholder="Search client name, car, etc."
                             />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full sm:w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"
@@ -498,7 +561,7 @@ const BookingContent = () => {
                             </h1>
                             <img src={miniDownArrow} alt="Dropdown" />
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full sm:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"
@@ -510,7 +573,7 @@ const BookingContent = () => {
                             <img src={miniDownArrow} alt="Dropdown" />
                         </div>
                         <button
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+                            className="w-full sm:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
                             onClick={() => setIsAddPopupOpen(true)}
                         >
                             Add Booking
@@ -520,12 +583,12 @@ const BookingContent = () => {
 
                 {/* Add Booking Popup */}
                 {isAddPopupOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                        <div className="bg-white p-10 rounded-[10px] w-[600px] shadow-lg">
-                            <h2 className="text-[18px] font-[700] mb-4">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins p-4">
+                        <div className="bg-white p-4 md:p-10 rounded-[10px] w-full max-w-[600px] shadow-lg max-h-[90vh] overflow-y-auto">
+                            <h2 className="text-[18px] md:text-[20px] font-[700] mb-4">
                                 Add New Booking
                             </h2>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="mb-4">
                                     <label className="block text-[14px] font-[500] mb-1">
                                         Booking ID
@@ -657,7 +720,7 @@ const BookingContent = () => {
                                         <option value="Pending">Pending</option>
                                     </select>
                                 </div>
-                                <div className="mb-4">
+                                <div className="mb-4 md:col-span-2">
                                     <label className="block text-[14px] font-[500] mb-1">
                                         Status
                                     </label>
@@ -674,7 +737,7 @@ const BookingContent = () => {
                                     </select>
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-2">
+                            <div className="flex justify-end gap-2 mt-6">
                                 <button
                                     onClick={() => setIsAddPopupOpen(false)}
                                     className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"

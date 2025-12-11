@@ -22,6 +22,7 @@ import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; //
 
 import NotificationDropdown from "../../NotificationDropdown";
 import UserDropdown from "../../UserDropdown";
+import MobilePaymentCards from "./MobilePaymentCards";
 
 const PaymentContent = () => {
     const {
@@ -111,6 +112,16 @@ const PaymentContent = () => {
         }
     };
 
+    const handleEdit = (txn) => {
+        // TODO: Implement edit functionality
+        console.log("Edit transaction:", txn);
+    };
+
+    const handleDelete = (id) => {
+        // TODO: Implement delete functionality
+        console.log("Delete transaction:", id);
+    };
+
     const downloadTableAsPDF = () => {
         const doc = new jsPDF();
         doc.setFontSize(18);
@@ -175,10 +186,10 @@ const PaymentContent = () => {
     }, [itemsPerPage, searchTerm]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-5 lg:px-0 py-5 lg:pr-5 lg:py-10">
             {/* ==================== HEADER WITH DROPDOWN ==================== */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Vehicle Rental Payments</h1>
+            <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
+                <h1 className="figtree text-[35px] font-[700] text-center">Vehicle Rental Payments</h1>
 
                 <div className="flex flex-row gap-5 relative items-center">
                     <div className="flex flex-row gap-5 relative items-center">
@@ -188,10 +199,10 @@ const PaymentContent = () => {
             </div>
 
             {/* ==================== MINI CARDS ==================== */}
-            <div className="flex flex-row gap-5 w-full">
+            <div className="flex flex-col md:flex-row gap-5 w-full">
                 {/* card 1 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -222,7 +233,7 @@ const PaymentContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -248,7 +259,7 @@ const PaymentContent = () => {
 
                 {/* card 3 */}
                 <div
-                    className="min-w-[350px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <div className="flex flex-row gap-5 justify-center items-center">
@@ -273,62 +284,69 @@ const PaymentContent = () => {
                 </div>
             </div>
 
+            {/* ==================== MOBILE CARDS ==================== */}
+            <MobilePaymentCards
+                transactions={currentTransactions}
+                handleEdit={handleEdit}
+                handleDelete={handleDelete}
+            />
+
             {/* ==================== TABLE CARD ==================== */}
+            {/* Card Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0 mb-5">
+                <h1 className="text-[24px] font-[700]">
+                    Recent Transactions
+                </h1>
+                <div className="flex flex-col md:flex-row gap-3 md:gap-5 w-full md:w-auto">
+                    <div className="w-full md:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                        <img src={miniSearchIcon} alt="search" />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                            placeholder="Search client name, car, invoice..."
+                        />
+                    </div>
+                    <div className="w-full md:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <img
+                            src={filterIcon}
+                            className="size-[12px]"
+                            alt="filter"
+                        />
+                        <input
+                            type="text"
+                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                            placeholder="Status"
+                        />
+                        <img src={miniDownArrow} alt="arrow" />
+                    </div>
+                    <div className="w-full md:w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <img
+                            src={calendar}
+                            className="size-[17px]"
+                            alt="calendar"
+                        />
+                        <input
+                            type="text"
+                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                            placeholder="25th May"
+                        />
+                        <img src={miniDownArrow} alt="arrow" />
+                    </div>
+                    <button
+                        onClick={downloadTableAsPDF}
+                        className="w-full md:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+                    >
+                        <img src={downloadLogo} alt="download" />
+                        <h1>Download</h1>
+                    </button>
+                </div>
+            </div>
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                className="hidden md:block w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
-                {/* Card Header */}
-                <div className="flex flex-row justify-between">
-                    <h1 className="text-[24px] font-[700]">
-                        Recent Transactions
-                    </h1>
-                    <div className="flex flex-row gap-5">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                            <img src={miniSearchIcon} alt="search" />
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="Search client name, car, invoice..."
-                            />
-                        </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img
-                                src={filterIcon}
-                                className="size-[12px]"
-                                alt="filter"
-                            />
-                            <input
-                                type="text"
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="Status"
-                            />
-                            <img src={miniDownArrow} alt="arrow" />
-                        </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img
-                                src={calendar}
-                                className="size-[17px]"
-                                alt="calendar"
-                            />
-                            <input
-                                type="text"
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                                placeholder="25th May"
-                            />
-                            <img src={miniDownArrow} alt="arrow" />
-                        </div>
-                        <button
-                            onClick={downloadTableAsPDF}
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
-                        >
-                            <img src={downloadLogo} alt="download" />
-                            <h1>Download</h1>
-                        </button>
-                    </div>
-                </div>
 
                 {/* Table Headings */}
                 <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
@@ -427,62 +445,63 @@ const PaymentContent = () => {
                     </div>
                 ))}
 
-                {/* Pagination */}
-                <div className="flex justify-between items-center gap-2 mt-20">
-                    <div className="flex items-center">
-                        <span className="mr-3 text-[#00000080] text-[15px]">
-                            Results per page
-                        </span>
-                        <select
-                            className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
-                            value={itemsPerPage}
-                            onChange={(e) =>
-                                setItemsPerPage(Number(e.target.value))
-                            }
-                        >
-                            {perPageOptions.map((opt) => (
-                                <option key={opt} value={opt}>
-                                    {opt}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+            </div>
 
-                    <div className="flex items-center gap-2">
-                        <button
-                            className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
-                            onClick={() => goToPage(currentPage - 1)}
-                            disabled={currentPage === 1}
-                        >
-                            <span className="text-lg">&lt;</span>
-                        </button>
-                        {getPageNumbers().map((num, idx) =>
-                            num === "..." ? (
-                                <span key={idx} className="px-2">
-                                    ...
-                                </span>
-                            ) : (
-                                <button
-                                    key={num}
-                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
-                                        currentPage === num
-                                            ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
-                                            : "bg-[#F4F3F3]"
-                                    }`}
-                                    onClick={() => goToPage(num)}
-                                >
-                                    {num}
-                                </button>
-                            )
-                        )}
-                        <button
-                            className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
-                            onClick={() => goToPage(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                        >
-                            <span className="text-lg">&gt;</span>
-                        </button>
-                    </div>
+            {/* Pagination */}
+            <div className="flex justify-between items-center gap-2 mt-20">
+                <div className="flex items-center">
+                    <span className="mr-3 text-[#00000080] text-[15px]">
+                        Results per page
+                    </span>
+                    <select
+                        className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+                        value={itemsPerPage}
+                        onChange={(e) =>
+                            setItemsPerPage(Number(e.target.value))
+                        }
+                    >
+                        {perPageOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                                {opt}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                    >
+                        <span className="text-lg">&lt;</span>
+                    </button>
+                    {getPageNumbers().map((num, idx) =>
+                        num === "..." ? (
+                            <span key={idx} className="px-2">
+                                ...
+                            </span>
+                        ) : (
+                            <button
+                                key={num}
+                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                    currentPage === num
+                                        ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
+                                        : "bg-[#F4F3F3]"
+                                }`}
+                                onClick={() => goToPage(num)}
+                            >
+                                {num}
+                            </button>
+                        )
+                    )}
+                    <button
+                        className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                    >
+                        <span className="text-lg">&gt;</span>
+                    </button>
                 </div>
             </div>
         </div>

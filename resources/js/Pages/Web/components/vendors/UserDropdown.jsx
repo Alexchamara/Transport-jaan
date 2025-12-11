@@ -1,4 +1,3 @@
-// components/UserDropdown.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { usePage, Link, router } from "@inertiajs/react";
 import proPic from "../../assets/vendors/dashboard/proPic.svg";
@@ -12,7 +11,6 @@ const UserDropdown = ({ settingsRoute }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Close dropdown on outside click or Escape key
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -30,7 +28,6 @@ const UserDropdown = ({ settingsRoute }) => {
     };
   }, []);
 
-  // Logout
   const handleLogout = (e) => {
     e.preventDefault();
     setIsOpen(false);
@@ -46,12 +43,10 @@ const UserDropdown = ({ settingsRoute }) => {
 
   return (
     <div ref={dropdownRef} className="relative">
-      {/* Trigger */}
       <div
         className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 max-w-full"
         onClick={() => setIsOpen((prev) => !prev)}
       >
-        {/* Profile Image */}
         <div className="w-[40px] h-[40px] lg:w-[60px] lg:h-[60px] rounded-full lg:rounded-[10px] bg-[#E8E8EF] flex justify-center items-center overflow-hidden text-xl font-bold text-[#7B7B7A]">
           {user?.image ? (
             <img
@@ -69,7 +64,6 @@ const UserDropdown = ({ settingsRoute }) => {
           )}
         </div>
 
-        {/* User Info - Hidden on mobile, visible on lg+ */}
         <div className="hidden lg:flex flex-col justify-center min-w-0 flex-1">
           <h1 className="text-[14px] sm:text-[16px] md:text-[20px] font-[700] truncate">
             {user?.name || "User"}
@@ -79,21 +73,16 @@ const UserDropdown = ({ settingsRoute }) => {
           </h1>
         </div>
 
-        {/* Chevron - Hidden on mobile, visible on lg+ */}
         <ChevronDown
           className={`hidden lg:block w-4 h-4 sm:w-5 sm:h-5 text-[#7B7B7A] transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""
             }`}
         />
       </div>
 
-      {/* Dropdown */}
       {isOpen && (
         <div
           className="absolute top-[70px] right-0 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
-          onMouseEnter={() => setIsOpen(true)}
-          onMouseLeave={() => setIsOpen(false)}
         >
-          {/* Profile / Settings */}
           <Link
             href={settingsRoute}
             className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-[500] text-[#000000CC] hover:bg-[#F3F4F6] transition-colors"
@@ -104,7 +93,6 @@ const UserDropdown = ({ settingsRoute }) => {
 
           <div className="w-full h-[1px] bg-[#E5E7EB] my-1" />
 
-          {/* Logout */}
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-[500] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors text-left"

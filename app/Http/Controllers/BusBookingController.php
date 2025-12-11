@@ -9,6 +9,8 @@ use App\Models\BusBooking;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class BusBookingController extends Controller
 {
@@ -129,7 +131,7 @@ class BusBookingController extends Controller
     }
 
     /**
-     * Store a new booking
+     * Store a new booking with race condition protection
      */
     public function store(Request $request)
     {
@@ -172,16 +174,7 @@ class BusBookingController extends Controller
             throw $e; // Re-throw for normal form processing
         }
 
-        $schedule = BusSchedule::findOrFail($request->schedule_id);
-
-        // Check seat availability
-        if ($schedule->available_seats < $request->passenger_count) {
-            return back()->withErrors(['seats' => 'Not enough seats available']);
-        }
-
-        $totalPrice = $schedule->price * $request->passenger_count;
-
-        // Parse seat numbers if it's a JSON string
+        // Parse seat numbers early for validation
         $seatNumbers = $request->seat_numbers;
         if (is_string($seatNumbers)) {
             $seatNumbers = json_decode($seatNumbers, true);
@@ -190,48 +183,151 @@ class BusBookingController extends Controller
                 $seatNumbers = explode(',', $request->seat_numbers);
             }
         }
+        // Clean up seat numbers array
+        $seatNumbers = array_map('trim', $seatNumbers);
+        $seatNumbers = array_values(array_filter($seatNumbers));
 
-        // Create the booking (without requiring authentication)
-        $bookingData = [
-            'user_id' => null, // No user ID required
-            'bus_schedule_id' => $schedule->id,
-            'passenger_name' => $request->passenger_name,
-            'passenger_email' => $request->passenger_email,
-            'passenger_phone' => $request->passenger_phone,
-            'seat_numbers' => $seatNumbers,
-            'passenger_count' => $request->passenger_count,
-            'total_price' => $totalPrice,
-            'booking_reference' => BusBooking::generateBookingReference(),
-            'booking_date' => now(),
-            'status' => 'confirmed'
-        ];
+        try {
+            // Use database transaction with row locking to prevent race conditions
+            $booking = DB::transaction(function () use ($request, $seatNumbers) {
+                // Lock the schedule row for update to prevent concurrent modifications
+                $schedule = BusSchedule::where('id', $request->schedule_id)
+                    ->lockForUpdate()
+                    ->first();
 
-        // Add user_id only if the user is authenticated
-        if (Auth::check()) {
-            $bookingData['user_id'] = Auth::id();
+                if (!$schedule) {
+                    throw ValidationException::withMessages([
+                        'schedule' => ['Schedule not found.']
+                    ]);
+                }
+
+                // Check if schedule is active
+                if ($schedule->status !== 'active') {
+                    throw ValidationException::withMessages([
+                        'schedule' => ['This schedule is not currently available for booking.']
+                    ]);
+                }
+
+                // Check if booking date is not in the past
+                if (Carbon::parse($schedule->date)->isPast()) {
+                    throw ValidationException::withMessages([
+                        'schedule' => ['Cannot book a schedule in the past.']
+                    ]);
+                }
+
+                // Check seat availability (atomic check within transaction)
+                if ($schedule->available_seats < $request->passenger_count) {
+                    throw ValidationException::withMessages([
+                        'seats' => ["Only {$schedule->available_seats} seat(s) available. You requested {$request->passenger_count}"]
+                    ]);
+                }
+
+                // Check for seat collision - verify requested seats aren't already booked
+                $bookedSeats = BusBooking::where('bus_schedule_id', $schedule->id)
+                    ->whereIn('status', ['confirmed', 'pending'])
+                    ->get()
+                    ->pluck('seat_numbers')
+                    ->flatten()
+                    ->toArray();
+
+                $conflicts = array_intersect($seatNumbers, $bookedSeats);
+                if (!empty($conflicts)) {
+                    throw ValidationException::withMessages([
+                        'seats' => ['The following seats are already booked: ' . implode(', ', $conflicts) . '. Please select different seats.']
+                    ]);
+                }
+
+                // Validate seat count matches requested seats
+                if (count($seatNumbers) !== $request->passenger_count) {
+                    throw ValidationException::withMessages([
+                        'seats' => ['Number of selected seats must match passenger count.']
+                    ]);
+                }
+
+                // Check that seats don't exceed bus capacity
+                $busCapacity = $schedule->bus->capacity ?? 50;
+                foreach ($seatNumbers as $seatNum) {
+                    if (is_numeric($seatNum) && $seatNum > $busCapacity) {
+                        throw ValidationException::withMessages([
+                            'seats' => ['Invalid seat number: ' . $seatNum . '. Bus capacity is ' . $busCapacity]
+                        ]);
+                    }
+                }
+
+                // Calculate total price from database (never trust client-side calculations)
+                $totalPrice = $schedule->price * $request->passenger_count;
+
+                // Create the booking
+                $bookingData = [
+                    'user_id' => Auth::check() ? Auth::id() : null,
+                    'bus_schedule_id' => $schedule->id,
+                    'passenger_name' => $request->passenger_name,
+                    'passenger_email' => $request->passenger_email,
+                    'passenger_phone' => $request->passenger_phone,
+                    'seat_numbers' => $seatNumbers,
+                    'passenger_count' => $request->passenger_count,
+                    'total_price' => $totalPrice,
+                    'booking_reference' => BusBooking::generateBookingReference(),
+                    'booking_date' => now(),
+                    'status' => 'confirmed'
+                ];
+
+                $booking = BusBooking::create($bookingData);
+
+                // Atomically decrement available seats
+                $schedule->decrement('available_seats', $request->passenger_count);
+
+                \Log::info('Bus booking created successfully', [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->booking_reference,
+                    'seats_remaining' => $schedule->fresh()->available_seats
+                ]);
+
+                return $booking;
+            });
+
+            // Prepare the success response
+            $successData = [
+                'success' => true,
+                'message' => 'Bus booking confirmed successfully!',
+                'reference' => $booking->booking_reference,
+                'redirect' => route('bus.booking.success', $booking->booking_reference)
+            ];
+
+            // For AJAX/JSON requests
+            if ($request->ajax() || $request->expectsJson() || $request->wantsJson() || $request->isJson()) {
+                return response()->json($successData);
+            }
+
+            // For normal form submission
+            return redirect()->route('bus.booking.success', $booking->booking_reference)
+                ->with('success', 'Bus booking confirmed successfully!');
+
+        } catch (ValidationException $e) {
+            \Log::warning('Bus booking validation failed within transaction', ['errors' => $e->errors()]);
+            
+            if ($request->ajax() || $request->expectsJson() || $request->wantsJson() || $request->isJson()) {
+                return response()->json(['errors' => $e->errors()], 422);
+            }
+            
+            return back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            \Log::error('Bus booking failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            $errorMessage = 'An error occurred while processing your booking. Please try again.';
+
+            if ($request->ajax() || $request->expectsJson() || $request->wantsJson() || $request->isJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMessage
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => $errorMessage])->withInput();
         }
-
-        $booking = BusBooking::create($bookingData);
-
-        // Update available seats
-        $schedule->decrement('available_seats', $request->passenger_count);
-
-        // Prepare the success response
-        $successData = [
-            'success' => true,
-            'message' => 'Bus booking confirmed successfully!',
-            'reference' => $booking->booking_reference,
-            'redirect' => route('bus.booking.success', $booking->booking_reference)
-        ];
-
-        // For AJAX/JSON requests
-        if ($request->ajax() || $request->expectsJson() || $request->wantsJson() || $request->isJson()) {
-            return response()->json($successData);
-        }
-
-        // For normal form submission
-        return redirect()->route('bus.booking.success', $booking->booking_reference)
-            ->with('success', 'Bus booking confirmed successfully!');
     }
 
     /**

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
+import { API_BASE_URL } from "../../../../../../config/api";
 
 import WarehouseImages from "./WarehouseImages";
 import WarehouseInfo from "./WarehouseInfo";
@@ -31,7 +32,7 @@ const UnitDetailsContent = ({ unitId }) => {
     const fetchWarehouseDetails = async (id) => {
         try {
             setLoading(true);
-            const response = await fetch(`/vendors/warehouse/api/units/${id}`, {
+            const response = await fetch(`${API_BASE_URL}vendors/warehouse/api/units/${id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

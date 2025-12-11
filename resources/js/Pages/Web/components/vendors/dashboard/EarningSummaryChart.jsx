@@ -2,18 +2,22 @@ import React, { useState } from "react";
 
 const chartHeight = 250;
 const chartWidth = 650;
+const chartWidthTablet = 500;
 const chartWidthMobile = 280;
 const padding = 40;
+const paddingTablet = 30;
 const paddingMobile = 20;
 
-function getX(index, len, isMobile = false) {
-  const width = isMobile ? chartWidthMobile : chartWidth;
-  const pad = isMobile ? paddingMobile : padding;
-  return pad + (index * (width - 2 * pad)) / Math.max(1, len - 1);
+function getCurrentSizes(isMobile, isTablet) {
+  if (isMobile) return { width: chartWidthMobile, padding: paddingMobile };
+  if (isTablet) return { width: chartWidthTablet, padding: paddingTablet };
+  return { width: chartWidth, padding: padding };
 }
-function getY(value, maxValue, isMobile = false) {
-  const pad = isMobile ? paddingMobile : padding;
-  return chartHeight - pad - (value * (chartHeight - 2 * pad)) / Math.max(1, maxValue);
+function getX(index, len, currentWidth, currentPadding) {
+  return currentPadding + (index * (currentWidth - 2 * currentPadding)) / Math.max(1, len - 1);
+}
+function getY(value, maxValue, currentPadding) {
+  return chartHeight - currentPadding - (value * (chartHeight - 2 * currentPadding)) / Math.max(1, maxValue);
 }
 function generateSmoothPath(points) {
   if (points.length < 2) return "";
@@ -30,12 +34,17 @@ function generateSmoothPath(points) {
 
 const EarningSummaryChart = ({ data = [] }) => {
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   
   React.useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    const checkSize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+    checkSize();
+    window.addEventListener('resize', checkSize);
+    return () => window.removeEventListener('resize', checkSize);
   }, []);
 
   const maxValue = Math.max(1, ...data.map((d) => Number(d.value || 0)));
@@ -45,15 +54,14 @@ const EarningSummaryChart = ({ data = [] }) => {
   );
   const [hovered, setHovered] = useState(highestIndex);
 
-  const currentWidth = isMobile ? chartWidthMobile : chartWidth;
-  const currentPadding = isMobile ? paddingMobile : padding;
+  const { width: currentWidth, padding: currentPadding } = getCurrentSizes(isMobile, isTablet);
 
-  const points = data.map((d, i) => [getX(i, data.length, isMobile), getY(Number(d.value || 0), maxValue, isMobile)]);
+  const points = data.map((d, i) => [getX(i, data.length, currentWidth, currentPadding), getY(Number(d.value || 0), maxValue, currentPadding)]);
   const linePath = generateSmoothPath(points);
   const areaPath = [
-    `M ${getX(0, data.length, isMobile)} ${chartHeight - currentPadding}`,
+    `M ${getX(0, data.length, currentWidth, currentPadding)} ${chartHeight - currentPadding}`,
     generateSmoothPath(points).slice(1),
-    `L ${getX(Math.max(0, data.length - 1), data.length, isMobile)} ${chartHeight - currentPadding}`,
+    `L ${getX(Math.max(0, data.length - 1), data.length, currentWidth, currentPadding)} ${chartHeight - currentPadding}`,
     "Z",
   ].join(" ");
 
@@ -68,12 +76,12 @@ const EarningSummaryChart = ({ data = [] }) => {
         </defs>
 
         {[0, maxValue * 0.25, maxValue * 0.5, maxValue * 0.75, maxValue].map((val, i) => {
-          const y = getY(val, maxValue, isMobile);
+          const y = getY(val, maxValue, currentPadding);
           const label = (val / 1000).toFixed(0) + "K";
           return (
             <g key={i}>
               <line x1={currentPadding} x2={currentWidth - currentPadding} y1={y} y2={y} stroke="#E5E7EB" strokeWidth={1} />
-              <text x={isMobile ? 2 : 0} y={y + 5} className={`fill-[#7B7B7A] ${isMobile ? 'text-[10px]' : 'text-[14px]'} font-[500]`} textAnchor="start">
+              <text x={isMobile ? 2 : 0} y={y + 5} className={`fill-[#7B7B7A] ${isMobile ? 'text-[10px]' : isTablet ? 'text-[12px]' : 'text-[14px]'} font-[500]`} textAnchor="start">
                 {label}
               </text>
             </g>
@@ -86,8 +94,8 @@ const EarningSummaryChart = ({ data = [] }) => {
         {data.map((d, i) => (
           <g key={i}>
             <circle
-              cx={getX(i, data.length, isMobile)}
-              cy={getY(Number(d.value || 0), maxValue, isMobile)}
+              cx={getX(i, data.length, currentWidth, currentPadding)}
+              cy={getY(Number(d.value || 0), maxValue, currentPadding)}
               r={isMobile ? 10 : 15}
               fill="transparent"
               className="cursor-pointer"
@@ -95,8 +103,8 @@ const EarningSummaryChart = ({ data = [] }) => {
             />
             {hovered === i && (
               <circle
-                cx={getX(i, data.length, isMobile)}
-                cy={getY(Number(d.value || 0), maxValue, isMobile)}
+                cx={getX(i, data.length, currentWidth, currentPadding)}
+                cy={getY(Number(d.value || 0), maxValue, currentPadding)}
                 r={isMobile ? 4 : 6}
                 fill="rgba(9, 85, 172, 1)"
                 strokeWidth={2}
@@ -108,8 +116,8 @@ const EarningSummaryChart = ({ data = [] }) => {
         {hovered !== null && data[hovered] && (() => {
           const tooltipWidth = isMobile ? 90 : 108;
           const tooltipHeight = isMobile ? 45 : 55;
-          const pointX = getX(hovered, data.length, isMobile);
-          const pointY = getY(Number(data[hovered].value || 0), maxValue, isMobile);
+          const pointX = getX(hovered, data.length, currentWidth, currentPadding);
+          const pointY = getY(Number(data[hovered].value || 0), maxValue, currentPadding);
           let tooltipX = pointX - tooltipWidth / 2;
           let tooltipY = pointY - tooltipHeight - 15;
           if (tooltipX < 0) tooltipX = 0;
@@ -119,8 +127,8 @@ const EarningSummaryChart = ({ data = [] }) => {
           return (
             <foreignObject x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} pointerEvents="none">
               <div className={`bg-[#D8E4F2] ${isMobile ? 'w-[90px] h-[45px]' : 'w-[108px] h-[55px]'} rounded-[5px] shadow-lg px-2 md:px-4 py-2 flex flex-col items-center`}>
-                <span className={`${isMobile ? 'text-[10px]' : 'text-[14px]'} font-[500] mb-1`}>{data[hovered].name} 2025</span>
-                <span className={`${isMobile ? 'text-[12px]' : 'text-[16px]'} font-[700]`}>${Number(data[hovered].value || 0).toLocaleString()}</span>
+                <span className={`${isMobile ? 'text-[10px]' : isTablet ? 'text-[12px]' : 'text-[14px]'} font-[500] mb-1`}>{data[hovered].name} 2025</span>
+                <span className={`${isMobile ? 'text-[12px]' : isTablet ? 'text-[14px]' : 'text-[16px]'} font-[700]`}>${Number(data[hovered].value || 0).toLocaleString()}</span>
               </div>
             </foreignObject>
           );
@@ -129,9 +137,9 @@ const EarningSummaryChart = ({ data = [] }) => {
         {data.map((d, i) => (
           <text
             key={i}
-            x={getX(i, data.length, isMobile)}
+            x={getX(i, data.length, currentWidth, currentPadding)}
             y={chartHeight - currentPadding + 20}
-            className={`fill-[#7B7B7A] ${isMobile ? 'text-[10px]' : 'text-[14px]'} font-[500]`}
+            className={`fill-[#7B7B7A] ${isMobile ? 'text-[10px]' : isTablet ? 'text-[12px]' : 'text-[14px]'} font-[500]`}
             textAnchor="middle"
           >
             {d.name}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
@@ -25,6 +25,17 @@ import UserDropdown from "../../UserDropdown";
 const BookingContent = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
@@ -301,43 +312,22 @@ const BookingContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto py-10 px-5 lg:px-0 lg:pr-5">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">Freight Bookings</h1>
-                {/* <div className="flex flex-row gap-5">
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={search} alt="Search" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={settings} alt="Settings" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={bell} alt="Notifications" />
-                    </div>
-                    <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
-                        <img src={proPic} alt="Profile" />
-                    </div>
-
-                    <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                        <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
-                        </h1>
-                    </div>
-                </div> */}
+            <div className="flex flex-col md:flex-row gap-5 justify-between xl:items-start items-center">
+                <h1 className="figtree text-[28px] md:text-[35px] font-[700]">Freight Bookings</h1>
                 <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("freight.settingsPage")} />
                 </div>
             </div>
             {/* end of header section */}
 
-            <div className="flex flex-row gap-10 justify-between py-20 w-full">
+            <div className="flex flex-col md:flex-row gap-10 justify-between py-10 w-full">
                 {/* mini left */}
                 <div className="flex flex-col gap-8 w-full">
                     {/* card 1 */}
                     <div
-                        className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -347,10 +337,10 @@ const BookingContent = () => {
                                 <img src={icon1} alt="Upcoming Bookings" />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
+                                <h1 className="xl:text-[16px] text-[14px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Upcoming Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
+                                <h1 className="xl:text-[26px] text-[20px] font-[700]">145</h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -368,7 +358,7 @@ const BookingContent = () => {
                     {/* end of card 1 */}
                     {/* card 2 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -378,10 +368,10 @@ const BookingContent = () => {
                                 <img src={icon2} alt="Pending Bookings" />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
+                                <h1 className="xl:text-[16px] text-[14px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Pending Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">234</h1>
+                                <h1 className="xl:text-[26px] text-[20px] font-[700]">234</h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -399,7 +389,7 @@ const BookingContent = () => {
                     {/* end of card 2 */}
                     {/* card 3 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -409,10 +399,10 @@ const BookingContent = () => {
                                 <img src={icon3} alt="Cancelled Bookings" />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
+                                <h1 className="xl:text-[16px] text-[14px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Cancelled Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">24</h1>
+                                <h1 className="xl:text-[26px] text-[20px] font-[700]">24</h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -430,7 +420,7 @@ const BookingContent = () => {
                     {/* end of card 3 */}
                     {/* card 4 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -440,10 +430,10 @@ const BookingContent = () => {
                                 <img src={icon4} alt="Completed Bookings" />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A] text-nowrap">
+                                <h1 className="xl:text-[16px] text-[14px] font-[500] text-[#7B7B7A] text-nowrap">
                                     Completed Bookings
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">145</h1>
+                                <h1 className="xl:text-[26px] text-[20px] font-[700]">145</h1>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -463,22 +453,51 @@ const BookingContent = () => {
 
                 {/* mini right */}
                 <div
-                    className="min-w-[712px] w-full min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
+                    className="w-full min-h-[250px] md:min-h-[350px] lg:min-h-[437px] bg-[#FFFFFF] rounded-[10px] flex items-center justify-center"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <BookingBarChart />
+                    {isMobile ? (
+                        <div className="w-full p-4">
+                            <div className="flex flex-col gap-2">
+                                {[
+                                    { name: "Jan", done: 320, cancelled: 220 },
+                                    { name: "Feb", done: 380, cancelled: 270 },
+                                    { name: "Mar", done: 250, cancelled: 150 },
+                                    { name: "Apr", done: 500, cancelled: 230 },
+                                    { name: "May", done: 310, cancelled: 410 },
+                                    { name: "Jun", done: 370, cancelled: 180 },
+                                    { name: "Jul", done: 420, cancelled: 210 },
+                                    { name: "Aug", done: 480, cancelled: 380 },
+                                    { name: "Sep", done: 270, cancelled: 320 },
+                                    { name: "Oct", done: 390, cancelled: 210 },
+                                    { name: "Nov", done: 320, cancelled: 170 },
+                                    { name: "Dec", done: 500, cancelled: 250 },
+                                ].map((item, index) => (
+                                    <div key={index} className="bg-gray-50 rounded-md p-3">
+                                        <div className="font-medium text-gray-700 mb-2">{item.name}</div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-bold text-blue-600 text-sm">{item.done} done</span>
+                                            <span className="font-bold text-red-600 text-sm">{item.cancelled} cancelled</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <BookingBarChart />
+                    )}
                 </div>
             </div>
 
             {/* car booking section */}
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-4 md:px-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
-                <div className="flex flex-row justify-between">
+                <div className="flex flex-col md:flex-row justify-between gap-4">
                     <h1 className="text-[24px] font-[700]">Car Booking</h1>
-                    <div className="flex flex-row gap-5">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-5">
+                        <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} alt="Search" />
                             <input
                                 type="text"
@@ -486,7 +505,7 @@ const BookingContent = () => {
                                 placeholder="Search client name, car, etc."
                             />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full sm:w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"
@@ -497,7 +516,7 @@ const BookingContent = () => {
                             </h1>
                             <img src={miniDownArrow} alt="Dropdown" />
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full sm:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"
@@ -509,7 +528,7 @@ const BookingContent = () => {
                             <img src={miniDownArrow} alt="Dropdown" />
                         </div>
                         <button
-                            className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+                            className="w-full sm:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
                             onClick={() => setIsAddPopupOpen(true)}
                         >
                             Add Booking
@@ -519,12 +538,12 @@ const BookingContent = () => {
 
                 {/* Add Booking Popup */}
                 {isAddPopupOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
-                        <div className="bg-white p-10 rounded-[10px] w-[600px] shadow-lg">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins p-4">
+                        <div className="bg-white p-6 md:p-10 rounded-[10px] w-full max-w-[600px] shadow-lg">
                             <h2 className="text-[18px] font-[700] mb-4">
                                 Add New Booking
                             </h2>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="mb-4">
                                     <label className="block text-[14px] font-[500] mb-1">
                                         Booking ID
@@ -656,7 +675,7 @@ const BookingContent = () => {
                                         <option value="Pending">Pending</option>
                                     </select>
                                 </div>
-                                <div className="mb-4">
+                                <div className="mb-4 md:col-span-2">
                                     <label className="block text-[14px] font-[500] mb-1">
                                         Status
                                     </label>
@@ -673,7 +692,7 @@ const BookingContent = () => {
                                     </select>
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-2">
+                            <div className="flex flex-col sm:flex-row justify-end gap-2">
                                 <button
                                     onClick={() => setIsAddPopupOpen(false)}
                                     className="px-4 py-2 bg-gray-200 rounded-[5px] text-[14px] font-[700]"

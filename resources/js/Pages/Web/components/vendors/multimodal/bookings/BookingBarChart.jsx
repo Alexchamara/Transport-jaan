@@ -220,31 +220,31 @@ function BookingBarChart() {
   }, []);
 
   return (
-    <div className="w-full h-full flex flex-col items-stretch relative px-8 pt-8 pb-4">
+    <div className="w-full h-full flex flex-col items-stretch relative px-4 md:px-8 pt-4 md:pt-8 pb-4">
       {/* Header */}
-      <div className="flex flex-row justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-4 md:gap-0">
         <div className="flex flex-col gap-2">
-          <h2 className="text-[28px] font-[700]">Booking Overview</h2>
-          <div className="flex flex-row items-center gap-6 mt-1">
+          <h2 className="text-[20px] md:text-[28px] font-[700]">Booking Overview</h2>
+          <div className="flex flex-row items-center gap-4 md:gap-6 mt-1">
             <div className="flex flex-row items-center gap-2">
-              <span className="inline-block w-6 h-6 rounded bg-[#0955AC]"></span>
-              <span className="text-[20px] font-[600] text-[#7B7B7A]">Done</span>
+              <span className="inline-block w-4 h-4 md:w-6 md:h-6 rounded bg-[#0955AC]"></span>
+              <span className="text-[16px] md:text-[20px] font-[600] text-[#7B7B7A]">Done</span>
             </div>
             <div className="flex flex-row items-center gap-2">
-              <span className="inline-block w-6 h-6 rounded bg-black"></span>
-              <span className="text-[20px] font-[600] text-[#7B7B7A]">Cancelled</span>
+              <span className="inline-block w-4 h-4 md:w-6 md:h-6 rounded bg-black"></span>
+              <span className="text-[16px] md:text-[20px] font-[600] text-[#7B7B7A]">Cancelled</span>
             </div>
           </div>
         </div>
-        <div className="ml-8">
-          <button className="bg-[#F3F3F3] rounded-lg px-4 py-2 flex flex-row items-center gap-2 text-[16px] font-[500] text-[#7B7B7A] shadow-none border-none outline-none">
+        <div className="w-full md:w-auto md:ml-8">
+          <button className="bg-[#F3F3F3] rounded-lg px-3 md:px-4 py-2 flex flex-row items-center justify-center gap-2 text-[14px] md:text-[16px] font-[500] text-[#7B7B7A] shadow-none border-none outline-none w-full md:w-auto">
             Last 8 months
             <img src={miniDownArrow} alt="dropdown" />
           </button>
         </div>
       </div>
       {/* Chart */}
-      <div className="relative w-full" style={{ height: `300px` }}>
+      <div className="relative w-full" style={{ height: `250px`, minHeight: '200px' }}>
         <Bar
           ref={chartRef}
           data={data}

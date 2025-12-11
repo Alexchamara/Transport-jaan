@@ -272,39 +272,16 @@ const UnitContent = () => {
 
     // Handle Add Unit button click
     const handleAddUnitClick = () => {
-        const { auth } = usePage().props;
-        const user = auth?.user;
-
         setShowAddUnit(true);
     };
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto xl:pr-5 py-10 px-5 xl:px-0">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+            <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
+                <h1 className="figtree text-[28px] md:text-[35px] font-[700]">
                     Freight Units
                 </h1>
-                {/* <div className="flex flex-row gap-5">
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={search} alt="Search" />
-                        </div>
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={settings} alt="Settings" />
-                        </div>
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={bell} alt="Notifications" />
-                        </div>
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={proPic} alt="Profile" />
-                        </div>
-                        <div className="figtree flex flex-col justify-center items-start">
-                            <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
-                            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                                Vendor
-                            </h1>
-                        </div>
-                    </div> */}
                 <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("freight.settingsPage")} />
                 </div>
@@ -312,10 +289,10 @@ const UnitContent = () => {
             {/* end of header section */}
 
             {/* Search, Filter section */}
-            <div className="flex flex-row justify-between mt-10 mb-5">
-                <div className="flex flex-row items-center justify-between w-full">
-                    <div className="flex flex-row gap-5 justify-center items-center">
-                        <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+            <div className="flex flex-col md:flex-row justify-between mt-10 mb-5 gap-4">
+                <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-5 justify-start items-center w-full">
+                        <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} alt="Search" />
                             <input
                                 type="text"
@@ -323,7 +300,7 @@ const UnitContent = () => {
                                 placeholder="Search client, shipment, unit type, etc."
                             />
                         </div>
-                        <div className="w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full sm:w-[159px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"
@@ -334,7 +311,7 @@ const UnitContent = () => {
                             </h1>
                             <img src={miniDownArrow} alt="Dropdown" />
                         </div>
-                        <div className="w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full sm:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"
@@ -347,7 +324,7 @@ const UnitContent = () => {
                         </div>
                     </div>
                     <button
-                        className="w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
+                        className="w-full sm:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700]"
                         onClick={handleAddUnitClick}
                     >
                         Add Unit
@@ -375,9 +352,9 @@ const UnitContent = () => {
                                 />
                             </div>
                             {/* text section */}
-                            <div className="px-5 py-5 flex flex-row justify-between items-center w-full lg:pr-[140px]">
+                            <div className="px-5 py-5 flex flex-col lg:flex-row justify-between items-start lg:items-center w-full lg:pr-[140px] gap-4">
                                 <div>
-                                    <div className="bebas-neue text-[30px] font-[400]">
+                                    <div className="bebas-neue text-[24px] md:text-[30px] font-[400]">
                                         <h1>
                                             {unit.carrier}{" "}
                                             <span className="text-[#0955AC]">
@@ -386,15 +363,15 @@ const UnitContent = () => {
                                         </h1>
                                         <h1>
                                             ${unit.rate}
-                                            <span className="figtree text-[#00000080] text-[15px] font-[600]">
+                                            <span className="figtree text-[#00000080] text-[13px] md:text-[15px] font-[600]">
                                                 /km
                                             </span>
                                         </h1>
                                     </div>
-                                    <div className="poppins flex flex-row justify-start items-center gap-8 text-[14px] font-[600]">
+                                    <div className="poppins flex flex-row justify-start items-center gap-4 md:gap-8 text-[12px] md:text-[14px] font-[600]">
                                         <div className="flex flex-row justify-center items-center gap-3">
                                             <CheckCircle2
-                                                size={24}
+                                                size={20}
                                                 aria-label="Status"
                                                 role="img"
                                                 className="text-[#3C9A34]"
@@ -405,11 +382,11 @@ const UnitContent = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex lg:flex-row flex-col justify-center items-center pl-[40px] gap-20">
-                                    <div className="poppins grid grid-cols-2 lg:grid-cols-4 gap-8 text-[15px] font-[500]">
+                                <div className="flex flex-col xl:flex-row justify-center items-center gap-4 lg:gap-20 w-full lg:w-auto">
+                                    <div className="poppins grid grid-cols-4 gap-4 md:gap-8 text-[13px] md:text-[15px] font-[500]">
                                         <div className="flex flex-col justify-center items-center gap-3">
                                             <Weight
-                                                size={26}
+                                                size={24}
                                                 aria-label="Max Load"
                                                 role="img"
                                             />
@@ -417,7 +394,7 @@ const UnitContent = () => {
                                         </div>
                                         <div className="flex flex-col justify-center items-center gap-3">
                                             <Ruler
-                                                size={26}
+                                                size={24}
                                                 aria-label="Dimensions"
                                                 role="img"
                                             />
@@ -425,7 +402,7 @@ const UnitContent = () => {
                                         </div>
                                         <div className="flex flex-col justify-center items-center gap-3">
                                             <Package
-                                                size={26}
+                                                size={24}
                                                 aria-label="Body Type"
                                                 role="img"
                                             />
@@ -433,7 +410,7 @@ const UnitContent = () => {
                                         </div>
                                         <div className="flex flex-col justify-center items-center gap-3">
                                             <Fuel
-                                                size={26}
+                                                size={24}
                                                 aria-label="Fuel Type"
                                                 role="img"
                                             />
@@ -441,7 +418,7 @@ const UnitContent = () => {
                                         </div>
                                     </div>
                                     <button
-                                        className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[20px] text-[#FFFFFF] font-[700]"
+                                        className="figtree min-w-[120px] md:min-w-[140px] h-[40px] md:h-[44px] bg-[#0955AC] rounded-[5px] text-[16px] md:text-[20px] text-[#FFFFFF] font-[700]"
                                         onClick={() =>
                                             (window.location.href =
                                                 "/freight/unitDetails")
@@ -455,16 +432,16 @@ const UnitContent = () => {
                             <div className="lg:absolute right-0 top-0 lg:bottom-0 w-full lg:w-auto min-w-[120px] bg-[#EAF2FC] flex flex-row lg:flex-col justify-center items-center gap-3 lg:rounded-tr-[12px] lg:rounded-br-[12px] p-2 lg:p-3 border-t lg:border-t-0 border-[#E6E8EB]">
                                 <div className="flex flex-row lg:flex-col gap-3">
                                     <button
-                                        className="size-[36px] border-[1.5px] border-[#0955AC] bg-white rounded-[8px] flex justify-center items-center hover:bg-[#F5F8FC] shrink-0"
+                                        className="size-[32px] md:size-[36px] border-[1.5px] border-[#0955AC] bg-white rounded-[8px] flex justify-center items-center hover:bg-[#F5F8FC] shrink-0"
                                         aria-label="Edit"
                                     >
-                                        <Pencil size={20} />
+                                        <Pencil size={18} />
                                     </button>
                                     <button
-                                        className="size-[36px] border-[1.5px] border-[#FF0000] bg-white rounded-[8px] flex justify-center items-center hover:bg-[#FFF5F5] shrink-0"
+                                        className="size-[32px] md:size-[36px] border-[1.5px] border-[#FF0000] bg-white rounded-[8px] flex justify-center items-center hover:bg-[#FFF5F5] shrink-0"
                                         aria-label="Delete"
                                     >
-                                        <Trash2 size={20} />
+                                        <Trash2 size={18} />
                                     </button>
                                 </div>
                             </div>
@@ -472,14 +449,14 @@ const UnitContent = () => {
                     ))}
 
                     {/* Pagination Controls and Results per page */}
-                    <div className="flex justify-between items-center gap-2 mt-20">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-10 md:mt-20">
                         {/* Left: Results per page */}
                         <div className="flex items-center">
-                            <span className="mr-3 text-[#00000080] text-[15px]">
+                            <span className="mr-3 text-[#00000080] text-[13px] md:text-[15px]">
                                 Results per page
                             </span>
                             <select
-                                className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
+                                className="rounded px-3 py-1 font-[600] text-[14px] md:text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[60px] md:w-[71px] h-[35px] md:h-[40px] focus:outline-none"
                                 value={itemsPerPage}
                                 onChange={(e) =>
                                     setItemsPerPage(Number(e.target.value))
@@ -493,13 +470,13 @@ const UnitContent = () => {
                             </select>
                         </div>
                         {/* Right: Pagination */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap justify-center">
                             <button
-                                className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                                className="px-3 py-1 size-[35px] md:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
                                 onClick={() => goToPage(currentPage - 1)}
                                 disabled={currentPage === 1}
                             >
-                                <span className="text-lg">&#60;</span>
+                                <span className="text-base md:text-lg">&#60;</span>
                             </button>
                             {getPageNumbers().map((num, idx) =>
                                 num === "..." ? (
@@ -509,7 +486,7 @@ const UnitContent = () => {
                                 ) : (
                                     <button
                                         key={num}
-                                        className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                        className={`px-3 py-1 text-[14px] md:text-[16px] font-[600] rounded-[4px] size-[35px] md:size-[40px] bg-[#F4F3F3] ${
                                             currentPage === num
                                                 ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                                 : "bg-[#F4F3F3]"
@@ -521,11 +498,11 @@ const UnitContent = () => {
                                 )
                             )}
                             <button
-                                className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
+                                className="px-3 py-1 size-[35px] md:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"
                                 onClick={() => goToPage(currentPage + 1)}
                                 disabled={currentPage === totalPages}
                             >
-                                <span className="text-lg">&#62;</span>
+                                <span className="text-base md:text-lg">&#62;</span>
                             </button>
                         </div>
                     </div>

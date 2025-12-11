@@ -99,12 +99,12 @@ const ActivityRow = ({ item, drawConnector }) => {
 
       {/* right text */}
       <div className="flex-1 pt-2">
-        <p className="text-[18px] leading-6">
+        <p className="text-[16px] md:text-[18px] leading-6">
           <span className="font-[700]">{bold}</span>
           {rest ? <span className="text-[#6B7280] font-[600]"> {" "}{rest}</span> : null}
         </p>
         {datetime && (
-          <p className="text-[16px] font-[600] text-[#0F0F0F80] mt-2">{fmtTime(datetime)}</p>
+          <p className="text-[14px] md:text-[16px] font-[600] text-[#0F0F0F80] mt-2">{fmtTime(datetime)}</p>
         )}
       </div>
     </div>
@@ -114,7 +114,7 @@ const ActivityRow = ({ item, drawConnector }) => {
 /* ====== section renderer (Today / Yesterday) ====== */
 const Section = ({ title, items }) => (
   <>
-    <h2 className="text-[20px] font-[600] text-[#0F0F0F80] py-3">{title}</h2>
+    <h2 className="text-[18px] md:text-[20px] font-[600] text-[#0F0F0F80] py-3">{title}</h2>
     {items.length ? (
       <div className="flex flex-col">
         {items.map((it, idx) => (
@@ -177,12 +177,12 @@ const RecentActivities = ({ activities }) => {
 
   return (
     <div
-      className="min-w-[553px] min-h-[858px] bg-[#0F0F0F08] rounded-[10px] px-10 py-10"
+      className="w-full min-w-0 min-h-0 bg-[#0F0F0F08] rounded-[10px] px-4 md:px-10 py-5 md:py-10"
       style={{ boxShadow: "4px 4px 4px #0000001A" }}
     >
       <div className="flex flex-row justify-between items-center">
-        <h1 className="text-[24px] font-[700]">Recent Activities</h1>
-        <h1 className="text-[24px] font-[700]">...</h1>
+        <h1 className="text-[20px] md:text-[24px] font-[700]">Recent Activities</h1>
+        <h1 className="text-[20px] md:text-[24px] font-[700]">...</h1>
       </div>
 
       <Section title="Today" items={todayList} />

@@ -13,6 +13,7 @@ import miniDownArrow from "../../../../assets/vendors/calendar/miniDown.svg";
 
 import CalendarMonthPicker from "./CalendarMonthPicker";
 import CalendarGrid from "./CalendarGrid";
+import MobileCalendarCard from "./MobileCalendarCard";
 
 import UserDropdown from "../../UserDropdown";
 
@@ -218,10 +219,10 @@ const CalendarContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-5 md:py-10">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
+            <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
+                <h1 className="figtree text-[25px] md:text-[35px] font-[700] text-wrap">
                     Freight Calendar
                 </h1>
                 {/* <div className="flex flex-row gap-5">
@@ -246,25 +247,30 @@ const CalendarContent = () => {
                     </div>
                 </div> */}
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown settingsRoute={route("freight.settingsPage")} />
+                    <UserDropdown
+                        settingsRoute={route("freight.settingsPage")}
+                    />
                 </div>
             </div>
             {/* end of header section */}
 
-            <div className="mt-10 flex flex-row gap-5 w-full justify-between">
+            <div className="mt-5 md:mt-10 flex flex-col xl:flex-row gap-5 w-full justify-between items-start">
                 <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
+                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-5 md:px-5 py-5 md:py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
-                        <img src={proPicTwo} className="size-[90px]" />
+                    <div className="flex flex-col xl:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                        <img
+                            src={proPicTwo}
+                            className="size-[60px] md:size-[90px]"
+                        />
                         <div className="flex flex-col gap-3">
-                            <h1 className="text-[18px] font-[700]">
+                            <h1 className="text-[14px] md:text-[16px] font-[700]">
                                 Steve Gibson
                             </h1>
-                            <div className="flex flex-row gap-10 text-[16px] font-[500]">
+                            <div className="flex flex-col sm:flex-row gap-3 text-[10px] md:text-[12px] font-[500]">
                                 <div className="flex flex-col gap-3 text-[#00000080]">
                                     <h1>Start Date</h1>
                                     <h1>End Date</h1>
@@ -274,17 +280,22 @@ const CalendarContent = () => {
                                     <h1>27th June 2025</h1>
                                 </div>
                             </div>
-                            <h1 className="text-[16px] font-[600] text-[#0955AC]">
+                            <h1 className="text-[12px] md:text-[14px] font-[600] text-[#0955AC]">
                                 Client request a child safety seat.
                             </h1>
                         </div>
                     </div>
 
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
-                        <img src={car1} className="size-[90px]" />
+                    <div className="flex flex-col xl:flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
+                        <img
+                            src={car1}
+                            className="size-[60px] md:size-[90px]"
+                        />
                         <div className="flex flex-col gap-2">
-                            <h1 className="text-[18px] font-[700]">BMW LX3</h1>
-                            <div className="flex flex-row gap-10 text-[16px] font-[500]">
+                            <h1 className="text-[14px] md:text-[16px] font-[700]">
+                                BMW LX3
+                            </h1>
+                            <div className="flex flex-col sm:flex-row gap-3 text-[10px] md:text-[12px] font-[500]">
                                 <div className="flex flex-col gap-2 text-[#00000080]">
                                     <h1>Car Type</h1>
                                     <h1>Car Number</h1>
@@ -296,58 +307,60 @@ const CalendarContent = () => {
                                     <h1>Automatic</h1>
                                 </div>
                             </div>
-                            <h1 className="text-[16px] font-[600] text-[#0955AC]">
+                            <h1 className="text-[12px] md:text-[14px] font-[600] text-[#0955AC]">
                                 Client request a child safety seat.
                             </h1>
                         </div>
                     </div>
                 </div>
                 <div
-                    className="min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                    className="w-full h-auto xl:min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
                     {/* Reminder section  */}
                     <div className="flex flex-row items-center justify-between w-full">
-                        <h1 className="text-[24px] font-[700]">Reminders</h1>
-                        <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[30px]">
+                        <h1 className="text-[20px] md:text-[24px] font-[700]">
+                            Reminders
+                        </h1>
+                        <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[24px] md:text-[30px]">
                             +
                         </div>
                     </div>
                     <div className="py-5 flex flex-col justify-center items-center gap-5">
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full xl:max-w-[286px] xl:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[12px] md:text-[14px] font-[500] xl:w-[199px]">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full xl:max-w-[286px] xl:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[12px] md:text-[14px] font-[500] xl:w-[199px]">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full xl:max-w-[286px] xl:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[12px] md:text-[14px] font-[500] xl:w-[199px]">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
                         </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
+                        <div className="w-full xl:max-w-[286px] xl:h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
                             <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
                                 !
                             </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
+                            <h1 className="text-[12px] md:text-[14px] font-[500] xl:w-[199px]">
                                 Update the car rental plans for the upcoming
                                 sessions.
                             </h1>
@@ -356,7 +369,7 @@ const CalendarContent = () => {
                     {/* end */}
                 </div>
                 <div
-                    className="min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
+                    className="w-full h-auto mx-auto xl:min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -365,14 +378,23 @@ const CalendarContent = () => {
                 </div>
             </div>
 
+            <div className="mt-10">
+                <MobileCalendarCard
+                    days={days}
+                    times={times}
+                    events={events}
+                    proPicTwo={proPicTwo}
+                />
+            </div>
+
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-5 md:mt-10 py-5 md:py-10 hidden md:block"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}
             >
-                <div className="px-20 flex flex-row items-center justify-between">
-                    <div className="flex flex-row justify-center items-center gap-6">
+                <div className="px-5 md:px-20 flex flex-col md:flex-row items-center justify-between gap-5">
+                    <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-6">
                         <div className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center">
                             Today
                         </div>
@@ -390,53 +412,55 @@ const CalendarContent = () => {
                                 <img src={leftArrow} className="rotate-180" />
                             </div>
                         </div>
-                        <h1 className="text-[18px] font-[700]">
+                        <h1 className="text-[16px] md:text-[18px] font-[700]">
                             {monthNames[currentMonth]} {currentYear}
                         </h1>
                     </div>
-                    <div className="flex flex-row justify-center items-center gap-5">
-                        <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
+                    <div className="flex flex-col md:flex-row justify-center items-center gap-3 md:gap-5">
+                        <div className="flex flex-row justify-center items-center text-[#0955AC] text-[12px] md:text-[14px] font-[700]">
+                            <div className="w-[70px] md:w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
                                 All
                             </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
+                            <div className="w-[70px] md:w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
                                 Pickup
                             </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
+                            <div className="w-[70px] md:w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
                                 Return
                             </div>
                         </div>
-                        <div className="w-[96px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center gap-3">
+                        <div className="w-[80px] md:w-[96px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[12px] md:text-[14px] font-[500] text-[#00000080] flex justify-center items-center gap-3">
                             <h1>Week</h1>
                             <img src={miniDownArrow} />
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-row gap-10 justify-start items-center px-20 py-5">
+                <div className="flex flex-col md:flex-row gap-5 md:gap-10 justify-start items-center px-5 md:px-20 py-5">
                     <div className="flex flex-row justify-start items-center gap-5 ">
                         <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
-                        <h1 className=" text-[#00000080] font-[600] text-[16px]">
+                        <h1 className=" text-[#00000080] font-[600] text-[14px] md:text-[16px]">
                             Done
                         </h1>
                     </div>
                     <div className="flex flex-row justify-start items-center gap-5">
                         <div className="size-[16px] bg-[#FFDBDF] rounded-[4px]" />
-                        <h1 className=" text-[#00000080] font-[600] text-[16px]">
+                        <h1 className=" text-[#00000080] font-[600] text-[14px] md:text-[16px]">
                             Cancelled
                         </h1>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-8 border-t border-l border-[#00000026]">
-                    <CalendarGrid
-                        days={days}
-                        times={times}
-                        events={events}
-                        proPicTwo={proPicTwo}
-                        currentMonth={currentMonth}
-                        currentYear={currentYear}
-                    />
+                <div className="overflow-x-auto">
+                    <div className="grid grid-cols-8 border-t border-l border-[#00000026] min-w-[600px]">
+                        <CalendarGrid
+                            days={days}
+                            times={times}
+                            events={events}
+                            proPicTwo={proPicTwo}
+                            currentMonth={currentMonth}
+                            currentYear={currentYear}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
