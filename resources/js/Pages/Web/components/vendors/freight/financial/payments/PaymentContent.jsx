@@ -365,7 +365,7 @@ const PaymentContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-5 md:gap-10 w-full h-auto lg:pr-5 py-5 lg:py-10 px-5 lg:px-0">
+        <div className="flex flex-col gap-5 md:gap-10 w-full h-auto lg:pr-5 py-10 px-5 lg:px-0">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
                 <h1 className="figtree text-[28px] md:text-[35px] font-[700]">
@@ -401,7 +401,7 @@ const PaymentContent = () => {
             <div className="flex flex-col md:flex-row gap-5 w-full">
                 {/* card 1 */}
                 <div
-                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -411,13 +411,13 @@ const PaymentContent = () => {
                             <img src={wallet} />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Balance
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$8,450</h1>
+                            <h1 className="text-[20px] font-[700]">$8,450</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <img src={upArrow} className="size-[19px]" />
                             <h1 className="">+2.86%</h1>
@@ -429,7 +429,7 @@ const PaymentContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -439,13 +439,13 @@ const PaymentContent = () => {
                             <img src={income} />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Income
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$25,700</h1>
+                            <h1 className="text-[20px] font-[700]">$25,700</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <img src={upArrow} className="size-[19px]" />
                             <h1 className="">+1.73%</h1>
@@ -458,7 +458,7 @@ const PaymentContent = () => {
                 <div className="flex flex-col md:flex-row gap-5 w-full">
                     {/* card 3 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -468,15 +468,15 @@ const PaymentContent = () => {
                                 <img src={expenses} />
                             </div>
                             <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                     Expenses
                                 </h1>
-                                <h1 className="text-[26px] font-[700]">
+                                <h1 className="text-[20px] font-[700]">
                                     $14,756
                                 </h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                             <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
@@ -492,14 +492,14 @@ const PaymentContent = () => {
             </div>
 
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10"
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-5 py-5"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}
             >
                 {/* card header */}
                 <div className="flex flex-col xl:flex-row justify-between">
-                    <h1 className="text-[24px] font-[700]">
+                    <h1 className="text-[24px] font-[700] mb-3 xl:mb-0">
                         Recent Transactions
                     </h1>
                     <div className="flex flex-col xl:flex-row gap-5">
@@ -675,7 +675,7 @@ const PaymentContent = () => {
                 ))}
                 </div>
                 {/* Pagination Controls and Results per page inline */}
-                <div className="flex justify-between items-center gap-2 mt-20">
+                <div className="flex md:flex-row flex-col justify-between items-center gap-2 mt-20">
                     {/* Left: Results per page */}
                     <div className="flex items-center">
                         <span className="mr-3 text-[#00000080] text-[15px]">

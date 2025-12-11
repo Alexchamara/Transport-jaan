@@ -310,7 +310,7 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto px-5 py-5 xl:pr-5 xl:px-0 xl:py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-5 xl:pr-5 xl:px-0 py-10">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[24px] md:text-[35px] font-[700]">
@@ -346,23 +346,23 @@ const ExpensesContent = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full">
                 {/* card 1 */}
                 <div
-                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-5 justify-center items-center">
+                    <div className="flex flex-row xl:gap-5 gap-2 justify-center items-center">
                         <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                             <img src={wallet} />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Balance
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$8,450</h1>
+                            <h1 className="text-[20px] font-[700]">$8,450</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <img src={upArrow} className="size-[19px]" />
                             <h1 className="">+2.86%</h1>
@@ -374,23 +374,23 @@ const ExpensesContent = () => {
 
                 {/* card 2 */}
                 <div
-                    className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-5 justify-center items-center">
+                    <div className="flex flex-row xl:gap-5 gap-2 justify-center items-center">
                         <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                             <img src={income} />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Income
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$25,700</h1>
+                            <h1 className="text-[20px] font-[700]">$25,700</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <img src={upArrow} className="size-[19px]" />
                             <h1 className="">+1.73%</h1>
@@ -407,20 +407,20 @@ const ExpensesContent = () => {
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-5 justify-center items-center">
+                    <div className="flex flex-row xl:gap-5 gap-2 justify-center items-center">
                         <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                             <img src={expenses} />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Expenses
                             </h1>
-                            <h1 className="text-[26px] font-[700]">
+                            <h1 className="text-[20px] font-[700]">
                                 $14,756
                             </h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                             <img
                                 src={upArrow}
@@ -437,7 +437,7 @@ const ExpensesContent = () => {
             {/* bar chart and pie chart section */}
             <div className="flex flex-col lg:flex-row w-full gap-8">
                 <div
-                    className="w-full min-h-[426px] xl:min-w-[700px] bg-[#FFFFFF] rounded-[10px]"
+                    className="w-full xl:min-w-[700px] bg-[#FFFFFF] rounded-[10px]"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -445,13 +445,13 @@ const ExpensesContent = () => {
                     <CashflowChart />
                 </div>
                 <div
-                    className="w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
+                    className="w-full xl:min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
                     <div className="w-full flex flex-row justify-between items-center ">
-                        <h2 className="text-[24px] font-bold mb-2 w-full text-left">
+                        <h2 className="xl:text-[24px] text-[20px] font-bold mb-2 w-full text-left">
                             Expenses Breakdown
                         </h2>
                         <img src={dotThree} />
@@ -473,7 +473,7 @@ const ExpensesContent = () => {
                         Recent Transactions
                     </h1>
                     <div className="flex flex-col md:flex-row gap-2 md:gap-5">
-                        <div className="w-full md:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                        <div className="w-full xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                             <img src={miniSearchIcon} />
                             <input
                                 type="text"
@@ -481,7 +481,7 @@ const ExpensesContent = () => {
                                 placeholder="Search client name, car, etc."
                             />
                         </div>
-                        <div className="w-full md:w-[125px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full xl:w-[125px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img src={filterIcon} className="size-[12px]" />
                             <input
                                 type="text"
@@ -490,7 +490,7 @@ const ExpensesContent = () => {
                             />
                             <img src={miniDownArrow} />
                         </div>
-                        <div className="w-full md:w-[139px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="w-full xl:w-[139px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img src={calendar} className="size-[17px]" />
                             <input
                                 type="text"
@@ -501,7 +501,7 @@ const ExpensesContent = () => {
                         </div>
                         <button
                             onClick={downloadTableAsPDF}
-                            className="w-full md:w-[125px] h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3"
+                            className="w-full xl:w-[125px] xl:h-[35px] bg-[#0955AC] text-[14px] rounded-[6px] text-[#FFFFFF] font-[700] flex justify-center items-center gap-3 py-2 px-4"
                         >
                             <img src={downloadLogo} />
                             <h1>Download</h1>
@@ -579,19 +579,19 @@ const ExpensesContent = () => {
                                 boxShadow: "4px 4px 4px #0000001A",
                             }}
                         >
-                            <div className="flex justify-between items-start mb-2">
+                            <div className="flex flex-col gap-2 justify-between items-start mb-2">
                                 <div className="flex items-center gap-2">
                                     <input
                                         type="checkbox"
-                                        className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                                        className="size-[16px] rounded-[4px] bg-[#CCCCCC73]"
                                     />
-                                    <h1 className="text-[18px] font-[600]">{expense.name}</h1>
+                                    <h1 className="text-[16px] font-[600]">{expense.name}</h1>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center">
+                                    <button className="w-[50px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center">
                                         Edit
                                     </button>
-                                    <button className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center">
+                                    <button className="w-[50px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center">
                                         Delete
                                     </button>
                                 </div>
@@ -599,18 +599,18 @@ const ExpensesContent = () => {
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
                                     <div
-                                        className="w-[20px] h-[20px] rounded-[4px] flex items-center justify-center"
+                                        className="w-[18px] h-[18px] rounded-[4px] flex items-center justify-center"
                                         style={{
                                             backgroundColor: expense.category.color,
                                         }}
                                     ></div>
-                                    <span className="text-[14px] font-[500]">{expense.category.label}</span>
+                                    <span className="text-[12px] font-[500]">{expense.category.label}</span>
                                 </div>
-                                <span className="text-[16px] font-[600]">{expense.amount}</span>
+                                <span className="text-[14px] font-[600]">{expense.amount}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-[14px] font-[500] text-[#7B7B7A]">Quantity: {expense.quantity}</span>
-                                <span className="text-[14px] font-[500] text-[#7B7B7A]">{expense.date}</span>
+                                <span className="text-[12px] font-[500] text-[#7B7B7A]">Quantity: {expense.quantity}</span>
+                                <span className="text-[12px] font-[500] text-[#7B7B7A]">{expense.date}</span>
                             </div>
                             <div className="flex justify-end mt-2">
                                 <div
@@ -684,7 +684,7 @@ const ExpensesContent = () => {
                 {/* end */}
 
                 {/* Pagination Controls and Results per page inline */}
-                <div className="flex justify-between items-center gap-2 mt-20">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-20">
                     {/* Left: Results per page */}
                     <div className="flex items-center">
                         <span className="mr-3 text-[#00000080] text-[15px]">

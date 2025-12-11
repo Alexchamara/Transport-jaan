@@ -61,7 +61,7 @@ const DashContent = () => {
     }, []);
 
     return (
-        <div className="w-full max-w-full lg:pr-5 px-5 lg:px-0 py-5 lg:py-10">
+        <div className="w-full max-w-full lg:pr-5 px-5 lg:px-0 py-10">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] sm:text-[28px] font-[700] text-center
@@ -104,7 +104,7 @@ const DashContent = () => {
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
@@ -139,7 +139,7 @@ const DashContent = () => {
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
@@ -175,7 +175,7 @@ const DashContent = () => {
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
@@ -209,7 +209,7 @@ const DashContent = () => {
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
@@ -377,11 +377,11 @@ const DashContent = () => {
                             className="xl:w-[339px] w-full xl:min-h-[427px] bg-[#FFFFFF] rounded-[10px] py-5 px-5"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <div className="flex flex-row items-center justify-between w-full">
+                            <div className="flex flex-col xl:flex-row items-center justify-between w-full">
                                 <h1 className="text-[24px] font-[700]">
                                     Flight Status
                                 </h1>
-                                <div className="xl:w-[113px] xl:h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3 p-5">
+                                <div className="xl:w-[120px] xl:h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3 p-2">
                                     <h1 className="text-[#00000080] font-[600] text-[14px]">
                                         This Week
                                     </h1>

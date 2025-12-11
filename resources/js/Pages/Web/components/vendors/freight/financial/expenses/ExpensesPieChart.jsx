@@ -26,18 +26,18 @@ const ExpensesPieChart = () => {
             {isMobile ? (
                 <div className="flex flex-col w-full gap-4 px-4">
                     <div className="flex flex-col items-center justify-center w-full mb-4">
-                        <div className="text-[14px] font-[500] text-[#00000080] w-[114px] h-[33px] gap-3 bg-[#D9D9D94F] flex justify-center items-center rounded-[6px] px-3 py-1">
+                        <div className="text-[14px] font-[500] text-[#00000080] xl:w-[114px] xl:h-[33px] gap-3 bg-[#D9D9D94F] flex justify-center items-center rounded-[6px] px-3 py-1 mb-3">
                             This Week
                             <img src={miniArrow} />
                         </div>
-                        <div className="text-[14px] font-[500] text-[#00000080]">
+                        <div className="text-[12px] font-[500] text-[#00000080]">
                             Total Expenses
                         </div>
-                        <div className="text-[26px] font-[700] text-[#000000] w-full text-center pr-2 leading-tight">
+                        <div className="text-[24px] font-[700] text-[#000000] w-full text-center pr-2 leading-tight">
                             ${total.toLocaleString()}
                         </div>
                     </div>
-                    <div className="min-w-[287px] w-full h-[0.8px] bg-[#00000080] mb-4" />
+                    <div className="w-full h-[0.8px] bg-[#00000080] mb-4" />
                     {data.map((item, idx) => (
                         <div
                             key={item.name}
@@ -52,11 +52,11 @@ const ExpensesPieChart = () => {
                                         {item.percent}%
                                     </span>
                                 </span>
-                                <span className="text-[16px] font-[600] text-[#00000080]">
+                                <span className="text-[14px] font-[600] text-[#00000080]">
                                     {item.name}
                                 </span>
                             </div>
-                            <span className="text-[15px] font-[600] text-[#000000]">
+                            <span className="text-[13px] font-[600] text-[#000000]">
                                 ${item.value.toLocaleString()}
                             </span>
                         </div>
@@ -99,7 +99,7 @@ const ExpensesPieChart = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="min-w-[287px] w-full h-[0.8px] bg-[#00000080] mt-10" />
+                    <div className="min-w-[257px] w-full h-[0.8px] bg-[#00000080] mt-10" />
                     <div className="flex flex-col w-full mt-4">
                         {data.map((item, idx) => (
                             <div
