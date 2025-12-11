@@ -12,7 +12,6 @@ import icon2 from "../../../../assets/vendors/booking/icons/icon2.svg";
 import icon3 from "../../../../assets/vendors/booking/icons/icon3.svg";
 import icon4 from "../../../../assets/vendors/booking/icons/icon4.svg";
 
-import BookingBarChart from "./BookingBarChart";
 import UserDropdown from "../../UserDropdown";
 import NotificationDropdown from "../NotificationDropdown";
 
@@ -257,33 +256,7 @@ const BookingContent = () => {
             className="flex-1 bg-white rounded-[10px] min-h-[400px] flex items-center justify-center"
             style={{ boxShadow: "4px 4px 4px #0000001A" }}
           >
-            {isMobile ? (
-              <div className="w-full p-4">
-                <div className="flex flex-col gap-2">
-                  {/* Placeholder data for mobile since we can't access the chart's state */}
-                  {[
-                    { name: "Jan", done: 320, cancelled: 220 },
-                    { name: "Feb", done: 380, cancelled: 270 },
-                    { name: "Mar", done: 250, cancelled: 150 },
-                    { name: "Apr", done: 500, cancelled: 230 },
-                    { name: "May", done: 310, cancelled: 410 },
-                    { name: "Jun", done: 370, cancelled: 180 },
-                    { name: "Jul", done: 420, cancelled: 210 },
-                    { name: "Aug", done: 480, cancelled: 380 },
-                  ].map((item, index) => (
-                    <div key={index} className="bg-gray-50 rounded-md p-3">
-                      <div className="font-medium text-gray-700 mb-2">{item.name}</div>
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-blue-600 text-sm">{item.done} done</span>
-                        <span className="font-bold text-red-600 text-sm">{item.cancelled} cancelled</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <BookingBarChart />
-            )}
+            <div className="text-center text-gray-600">Chart coming soon...</div>
           </div>
 
           <div
