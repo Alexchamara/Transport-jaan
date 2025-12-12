@@ -442,7 +442,7 @@ const DashContent = () => {
 
                         {/* Reminder section  */}
                         <div
-                            className="xl:w-[339px] w-full xl:h-[335px] bg-[#FFFFFF] rounded-[10px] py-5 px-5"
+                            className="xl:w-[339px] w-full xl:min-h-[335px] h-full bg-[#FFFFFF] rounded-[10px] py-5 px-5"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between w-full">
