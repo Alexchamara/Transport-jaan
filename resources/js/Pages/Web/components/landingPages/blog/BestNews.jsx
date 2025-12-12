@@ -12,7 +12,7 @@ import calendar2 from "../../../assets/landingPages/blog/calendar2.svg";
 const BestNews = () => {
     return (
         <div>
-            <div className="xl:px-40 px-10 py-10">
+            <div className="xl:px-40 px-5 py-10">
                 <div className="flex lg:flex-row flex-col gap-10">
                     {/* left section */}
                     <div className="w-full">

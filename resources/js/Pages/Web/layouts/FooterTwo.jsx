@@ -71,12 +71,12 @@ const FooterTwo = () => {
             </div>
 
             {/* Copyright & legal links */}
-            <div className="flex flex-row justify-between items-center mt-5 md:text-[17px] text-[12px] font-[400]">
-                <h1>
+            <div className="flex flex-col md:flex-row justify-between items-center mt-5 md:text-[17px] text-[10px] font-[400]">
+                <h1 className="order-2 md:order-1 mt-3 md:mt-0 ">
                     © {currentYear} JAAN Network (Pvt) Ltd. | All rights
                     reserved.
                 </h1>
-                <div className="flex flex-row gap-10">
+                <div className="flex flex-row gap-10 order-1 md:order-2">
                     <h1 className="cursor-pointer hover:text-[#FF7003]">
                         Privacy Policy
                     </h1>

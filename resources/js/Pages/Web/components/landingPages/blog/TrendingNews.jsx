@@ -17,7 +17,7 @@ const TrendingNews = () => {
                     "radial-gradient(closest-side at center, #32261D 0%, #000000 100%)",
             }}
         >
-            <div className="xl:px-40 px-10 py-20">
+            <div className="xl:px-40 px-5 py-20">
                 <div className="flex flex-row justify-center items-center">
                     <div className="xl:w-[198px] xl:h-[37px] bg-[#286BB6] rounded-[3px] flex justify-center items-center text-[12px] font-[600] p-3">
                         <h1>Trending Travelling News</h1>
