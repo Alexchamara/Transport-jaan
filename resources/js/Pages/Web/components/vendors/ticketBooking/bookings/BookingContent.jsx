@@ -259,7 +259,7 @@ const BookingContent = () => {
     return (
         <div className="w-full h-auto px-5 lg:pr-5 lg:px-0 py-10">
             {/* Header section */}
-            <div className="flex flex-col xl:flex-row gap-5 justify-between items-center">
+            <div className="flex flex-col lg:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] sm:text-[28px] font-[700]">
                     Ticket Bookings
                 </h1>

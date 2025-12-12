@@ -58,7 +58,7 @@ const DashContent = () => {
     }, []);
 
     return (
-        <div className="w-full h-auto px-5 xl:px-0 xl:pr-5 py-10">
+        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
                 <h1 className="figtree text-[28px] md:text-[35px] font-[700]">

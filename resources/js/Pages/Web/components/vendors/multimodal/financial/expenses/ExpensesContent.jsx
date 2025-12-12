@@ -347,7 +347,7 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto px-5 xl:pr-5 xl:px-0 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-5 lg:pr-5 lg:px-0 py-10">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[24px] md:text-[35px] font-[700]">
