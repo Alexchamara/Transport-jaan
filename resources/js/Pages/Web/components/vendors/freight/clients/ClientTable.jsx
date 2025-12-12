@@ -239,7 +239,7 @@ const ClientTable = () => {
         <div className="relative">
             <div className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
                 <div className="flex flex-row gap-5 justify-center items-center">
-                    <div className="w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                    <div className="xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
                         <img src={miniSearchIcon} />
                         <input
                             type="text"

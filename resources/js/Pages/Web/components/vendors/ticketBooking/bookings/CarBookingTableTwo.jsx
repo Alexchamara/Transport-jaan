@@ -3,7 +3,6 @@ import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../../assets/vendors/dashboard/icons/miniDown.svg";
 
 const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
-  
     // State for pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -16,9 +15,9 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
     // State for popup
     const [isPopupOpen, setIsPopupOpen] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState(null);
-    const [newPayment, setNewPayment] = useState('');
-    const [newPaymentStatus, setNewPaymentStatus] = useState('');
-    const [newStatus, setNewStatus] = useState('');
+    const [newPayment, setNewPayment] = useState("");
+    const [newPaymentStatus, setNewPaymentStatus] = useState("");
+    const [newStatus, setNewStatus] = useState("");
 
     const goToPage = (page) => {
         if (page < 1 || page > totalPages) return;
@@ -31,11 +30,25 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
             for (let i = 1; i <= totalPages; i++) pages.push(i);
         } else {
             if (currentPage <= 3) {
-                pages.push(1, 2, 3, '...', totalPages);
+                pages.push(1, 2, 3, "...", totalPages);
             } else if (currentPage >= totalPages - 2) {
-                pages.push(1, '...', totalPages - 2, totalPages - 1, totalPages);
+                pages.push(
+                    1,
+                    "...",
+                    totalPages - 2,
+                    totalPages - 1,
+                    totalPages
+                );
             } else {
-                pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+                pages.push(
+                    1,
+                    "...",
+                    currentPage - 1,
+                    currentPage,
+                    currentPage + 1,
+                    "...",
+                    totalPages
+                );
             }
         }
         return pages;
@@ -61,8 +74,10 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                 ...selectedBooking,
                 payment: newPayment,
                 paymentStatus: newPaymentStatus,
-                paymentStatusColor: paymentStatusColors[newPaymentStatus]?.color || "#3B8F314D",
-                paymentStatusBg: paymentStatusColors[newPaymentStatus]?.bg || "#ACE19957",
+                paymentStatusColor:
+                    paymentStatusColors[newPaymentStatus]?.color || "#3B8F314D",
+                paymentStatusBg:
+                    paymentStatusColors[newPaymentStatus]?.bg || "#ACE19957",
                 status: newStatus,
                 statusBg: statusColors[newStatus]?.bg || "#FFCD29", // Use statusColors prop
                 statusText: statusColors[newStatus]?.text || "#000000", // Use statusColors prop
@@ -79,121 +94,194 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
     }, [itemsPerPage]);
 
     return (
-        <div className="py-10 w-full">
+        <div className="py-10 w-full md:max-w-[820px] xl:max-w-[1000px]">
             {/* DESKTOP/TABLET TABLE (md and up) */}
             <div className="hidden md:block overflow-auto">
                 {/* table headings */}
-                <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 min-w-[1200px]">
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Book id</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
+                <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[42px] justify-center items-center rounded-[8px] text-[12px] font-[600] px-10 min-w-[1200px]">
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Book id</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Down"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Booking Date</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Down"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Client Name</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Down"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Flight (Airline &amp; No.)</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Down"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Route (From → To)</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Down"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Schedule</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Down"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center ml-10">
+                        <h1>Payment</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Down"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-row gap-2 items-center">
+                        <h1>Status</h1>
+                        <div className="flex flex-col justify-center items-center">
+                            <img
+                                src={miniUp}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Up"
+                            />
+                            <img
+                                src={miniDown}
+                                className="w-[6px] h-[4px]"
+                                alt="Sort Down"
+                            />
+                        </div>
                     </div>
                 </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Booking Date</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Client Name</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Flight (Airline &amp; No.)</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Route (From → To)</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Schedule</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center ml-10">
-                    <h1>Payment</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-                <div className="flex flex-row gap-2 items-center">
-                    <h1>Status</h1>
-                    <div className="flex flex-col justify-center items-center">
-                        <img src={miniUp} className="w-[6px] h-[4px]" alt="Sort Up" />
-                        <img src={miniDown} className="w-[6px] h-[4px]" alt="Sort Down" />
-                    </div>
-                </div>
-            </div>
 
-            {/* table rows */}
-            {currentBookings.map((booking, idx) => (
-                <div
-                    key={startIdx + idx}
-                    className={`grid grid-cols-8 ${(startIdx + idx !== bookings.length - 1) ? 'border-b-[1.5px] border-[#00000033]' : ''} h-[100px] justify-center items-center text-[15px] font-[500] px-10 cursor-pointer hover:bg-gray-100 min-w-[1200px]`}
-                    onClick={() => handleRowClick(booking, idx)}
-                >
-                    <div>{booking.id}</div>
-                    <div>{booking.bookingDate}</div>
-                    <div>{booking.clientName}</div>
-                    <div>
-                      <>
-                        <h1>{booking.airline}</h1>
-                        <div className="w-[87px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
-                          {booking.flightNo}
-                        </div>
-                      </>
-                    </div>
-                    <div>
-                      {`${booking.from} → ${booking.to}`}
-                    </div>
-                    <div className="text-[14px] font-[500] text-[#939392]">
-                      <div className="flex flex-row gap-2 justify-start items-center">
-                        <h1>Depart</h1>
-                        <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                          {booking.startDate}
-                        </div>
-                      </div>
-                      <div className="flex flex-row gap-4 justify-start items-center">
-                        <h1>Arrive</h1>
-                        <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                          {booking.endDate}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col justify-center items-center">
-                        <h1>{booking.payment}</h1>
-                        <div
-                            className="w-[75px] h-[19px] border-[0.5px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
-                            style={{ borderColor: booking.paymentStatusColor, background: booking.paymentStatusBg }}
-                        >
-                            {booking.paymentStatus}
-                        </div>
-                    </div>
+                {/* table rows */}
+                {currentBookings.map((booking, idx) => (
                     <div
-                        className="w-[75px] h-[19px] border-[1px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
-                        style={{ background: booking.statusBg, borderColor: '#0000004D', color: booking.statusText }}
+                        key={startIdx + idx}
+                        className={`grid grid-cols-8 ${
+                            startIdx + idx !== bookings.length - 1
+                                ? "border-b-[1.5px] border-[#00000033]"
+                                : ""
+                        } h-[100px] justify-center items-center text-[13px] font-[500] px-10 cursor-pointer hover:bg-gray-100 min-w-[1200px]`}
+                        onClick={() => handleRowClick(booking, idx)}
                     >
-                        {booking.status}
+                        <div>{booking.id}</div>
+                        <div>{booking.bookingDate}</div>
+                        <div>{booking.clientName}</div>
+                        <div>
+                            <>
+                                <h1>{booking.airline}</h1>
+                                <div className="w-[87px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                    {booking.flightNo}
+                                </div>
+                            </>
+                        </div>
+                        <div>{`${booking.from} → ${booking.to}`}</div>
+                        <div className="text-[14px] font-[500] text-[#939392]">
+                            <div className="flex flex-row gap-2 justify-start items-center">
+                                <h1>Depart</h1>
+                                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                    {booking.startDate}
+                                </div>
+                            </div>
+                            <div className="flex flex-row gap-4 justify-start items-center">
+                                <h1>Arrive</h1>
+                                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                    {booking.endDate}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col justify-center items-center">
+                            <h1>{booking.payment}</h1>
+                            <div
+                                className="w-[75px] h-[19px] border-[0.5px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                style={{
+                                    borderColor: booking.paymentStatusColor,
+                                    background: booking.paymentStatusBg,
+                                }}
+                            >
+                                {booking.paymentStatus}
+                            </div>
+                        </div>
+                        <div
+                            className="w-[75px] h-[19px] border-[1px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                            style={{
+                                background: booking.statusBg,
+                                borderColor: "#0000004D",
+                                color: booking.statusText,
+                            }}
+                        >
+                            {booking.status}
+                        </div>
                     </div>
-                </div>
-            ))}
+                ))}
             </div>
 
             {/* MOBILE VIEW: no side scroll, data stacked nicely */}
@@ -210,16 +298,22 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                         </div>
                         <div className="flex justify-between">
                             <span className="font-[600]">Booking Date</span>
-                            <span className="text-gray-600">{booking.bookingDate}</span>
+                            <span className="text-gray-600">
+                                {booking.bookingDate}
+                            </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="font-[600]">Client Name</span>
-                            <span className="text-gray-600">{booking.clientName}</span>
+                            <span className="text-gray-600">
+                                {booking.clientName}
+                            </span>
                         </div>
                         <div className="space-y-1">
                             <span className="font-[600]">Flight</span>
                             <div className="flex flex-col gap-1">
-                                <span className="text-gray-600">{booking.airline}</span>
+                                <span className="text-gray-600">
+                                    {booking.airline}
+                                </span>
                                 <div className="w-[87px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
                                     {booking.flightNo}
                                 </div>
@@ -231,13 +325,17 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                         </div>
                         <div className="space-y-1 text-[#939392]">
                             <div className="flex justify-between items-center">
-                                <span className="font-[600] text-black">Depart</span>
+                                <span className="font-[600] text-black">
+                                    Depart
+                                </span>
                                 <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
                                     {booking.startDate}
                                 </div>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="font-[600] text-black">Arrive</span>
+                                <span className="font-[600] text-black">
+                                    Arrive
+                                </span>
                                 <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
                                     {booking.endDate}
                                 </div>
@@ -246,10 +344,15 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                         <div className="flex justify-between items-center">
                             <span className="font-[600]">Payment</span>
                             <div className="flex flex-col items-end gap-1">
-                                <span className="text-gray-600">{booking.payment}</span>
+                                <span className="text-gray-600">
+                                    {booking.payment}
+                                </span>
                                 <div
                                     className="w-[75px] h-[19px] border-[0.5px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
-                                    style={{ borderColor: booking.paymentStatusColor, background: booking.paymentStatusBg }}
+                                    style={{
+                                        borderColor: booking.paymentStatusColor,
+                                        background: booking.paymentStatusBg,
+                                    }}
                                 >
                                     {booking.paymentStatus}
                                 </div>
@@ -259,7 +362,11 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                             <span className="font-[600]">Status</span>
                             <div
                                 className="w-[75px] h-[19px] border-[1px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
-                                style={{ background: booking.statusBg, borderColor: '#0000004D', color: booking.statusText }}
+                                style={{
+                                    background: booking.statusBg,
+                                    borderColor: "#0000004D",
+                                    color: booking.statusText,
+                                }}
                             >
                                 {booking.status}
                             </div>
@@ -272,9 +379,13 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
             {isPopupOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 poppins">
                     <div className="bg-white p-6 rounded-lg w-[400px] shadow-lg">
-                        <h2 className="text-[18px] font-[700] mb-4">Edit Booking</h2>
+                        <h2 className="text-[18px] font-[700] mb-4">
+                            Edit Booking
+                        </h2>
                         <div className="mb-4">
-                            <label className="block text-[14px] font-[500] mb-1">Payment Amount</label>
+                            <label className="block text-[14px] font-[500] mb-1">
+                                Payment Amount
+                            </label>
                             <input
                                 type="text"
                                 value={newPayment}
@@ -284,10 +395,14 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                             />
                         </div>
                         <div className="mb-4">
-                            <label className="block text-[14px] font-[500] mb-1">Payment Status</label>
+                            <label className="block text-[14px] font-[500] mb-1">
+                                Payment Status
+                            </label>
                             <select
                                 value={newPaymentStatus}
-                                onChange={(e) => setNewPaymentStatus(e.target.value)}
+                                onChange={(e) =>
+                                    setNewPaymentStatus(e.target.value)
+                                }
                                 className="w-full p-2 border-[1px] focus:border-[#000000] rounded-[5px] focus:outline-none focus:ring-0"
                             >
                                 <option value="Paid">Paid</option>
@@ -295,7 +410,9 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                             </select>
                         </div>
                         <div className="mb-4">
-                            <label className="block text-[14px] font-[500] mb-1">Status</label>
+                            <label className="block text-[14px] font-[500] mb-1">
+                                Status
+                            </label>
                             <select
                                 value={newStatus}
                                 onChange={(e) => setNewStatus(e.target.value)}
@@ -324,16 +441,22 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
             )}
 
             {/* Pagination Controls and Results per page inline */}
-            <div className="flex justify-between items-center gap-2 mt-20">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-20">
                 <div className="flex items-center">
-                    <span className="mr-3 text-[#00000080] text-[15px]">Results per page</span>
+                    <span className="mr-3 text-[#00000080] text-[15px]">
+                        Results per page
+                    </span>
                     <select
                         className="rounded px-3 py-1 font-[600] text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[71px] h-[40px] focus:outline-none"
                         value={itemsPerPage}
-                        onChange={e => setItemsPerPage(Number(e.target.value))}
+                        onChange={(e) =>
+                            setItemsPerPage(Number(e.target.value))
+                        }
                     >
-                        {perPageOptions.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
+                        {perPageOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                                {opt}
+                            </option>
                         ))}
                     </select>
                 </div>
@@ -346,15 +469,23 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                         <span className="text-lg">&#60;</span>
                     </button>
                     {getPageNumbers().map((num, idx) =>
-                        num === '...'
-                            ? <span key={idx} className="px-2">...</span>
-                            : <button
+                        num === "..." ? (
+                            <span key={idx} className="px-2">
+                                ...
+                            </span>
+                        ) : (
+                            <button
                                 key={num}
-                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num ? ' text-[#0955AC] font-[600] border-[2px] border-[#0955AC]' : 'bg-[#F4F3F3]'}`}
+                                className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
+                                    currentPage === num
+                                        ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
+                                        : "bg-[#F4F3F3]"
+                                }`}
                                 onClick={() => goToPage(num)}
                             >
                                 {num}
                             </button>
+                        )
                     )}
                     <button
                         className="px-3 py-1 size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50"

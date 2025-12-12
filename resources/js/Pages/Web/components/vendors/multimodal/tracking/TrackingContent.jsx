@@ -25,7 +25,7 @@ const TrackingContent = () => {
     const user = auth?.user;
 
     return (
-        <div className="w-full h-auto px-4 md:px-5 py-5 xl:pr-5 xl:px-0 xl:py-10">
+        <div className="w-full h-auto px-5 lg:pr-5 lg:px-0 py-10">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[24px] md:text-[35px] font-[700]">
@@ -53,7 +53,9 @@ const TrackingContent = () => {
                     </div>
                 </div> */}
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown settingsRoute={route("freight.settingsPage")} />
+                    <UserDropdown
+                        settingsRoute={route("freight.settingsPage")}
+                    />
                 </div>
             </div>
             {/* end of header section */}
@@ -64,7 +66,7 @@ const TrackingContent = () => {
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <h1 className="text-[24px] font-[700]">Car Types</h1>
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-8">
+                    <div className="flex flex-row justify-between items-center gap-4 md:gap-8">
                         {" "}
                         <div className="w-full h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5 my-5">
                             <img src={miniSearchIcon} />
@@ -83,7 +85,10 @@ const TrackingContent = () => {
                         {/* card 1 */}
                         <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
                             <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <img
+                                    src={car1}
+                                    className="h-[80px] md:h-[104px] w-auto"
+                                />
                                 <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
                                     <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
@@ -103,7 +108,10 @@ const TrackingContent = () => {
                         {/* card 2 */}
                         <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
                             <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <img
+                                    src={car1}
+                                    className="h-[80px] md:h-[104px] w-auto"
+                                />
                                 <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
                                     <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
@@ -123,7 +131,10 @@ const TrackingContent = () => {
                         {/* card 3 */}
                         <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
                             <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <img
+                                    src={car1}
+                                    className="h-[80px] md:h-[104px] w-auto"
+                                />
                                 <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
                                     <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
@@ -143,7 +154,10 @@ const TrackingContent = () => {
                         {/* card 4 */}
                         <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
                             <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <img
+                                    src={car1}
+                                    className="h-[80px] md:h-[104px] w-auto"
+                                />
                                 <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
                                     <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
@@ -163,7 +177,10 @@ const TrackingContent = () => {
                         {/* card 5 */}
                         <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
                             <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <img
+                                    src={car1}
+                                    className="h-[80px] md:h-[104px] w-auto"
+                                />
                                 <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
                                     <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
@@ -183,7 +200,10 @@ const TrackingContent = () => {
                         {/* card 6 */}
                         <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
                             <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <img
+                                    src={car1}
+                                    className="h-[80px] md:h-[104px] w-auto"
+                                />
                                 <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
                                     <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
@@ -203,7 +223,10 @@ const TrackingContent = () => {
                         {/* card 7 */}
                         <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
                             <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <img
+                                    src={car1}
+                                    className="h-[80px] md:h-[104px] w-auto"
+                                />
                                 <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
                                     <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
@@ -223,7 +246,10 @@ const TrackingContent = () => {
                         {/* card 8 */}
                         <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
                             <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <img
+                                    src={car1}
+                                    className="h-[80px] md:h-[104px] w-auto"
+                                />
                                 <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
                                     <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown
@@ -243,7 +269,10 @@ const TrackingContent = () => {
                         {/* card 9 */}
                         <div className="w-full min-h-[104px] border-[1px] border-[#0000004D] rounded-[9px] mt-5 p-5 xl:p-0">
                             <div className="flex flex-col md:grid md:grid-cols-3 justify-center items-center">
-                                <img src={car1} className="h-[80px] md:h-[104px] w-auto" />
+                                <img
+                                    src={car1}
+                                    className="h-[80px] md:h-[104px] w-auto"
+                                />
                                 <div className="flex flex-col justify-start items-start ml-0 md:ml-8 mt-2 md:mt-0">
                                     <h1 className="text-[18px] md:text-[20px] font-[700]">
                                         Fiona Brown

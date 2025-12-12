@@ -8,7 +8,7 @@ const Hero = () => {
         <div className="py-10">
             {/* back button */}
             <div
-                className="flex flex-row items-center gap-3 cursor-pointer px-10 py-5"
+                className="flex flex-row items-center gap-3 cursor-pointer px-5 xl:px-10 py-5"
                 onClick={() => (window.location.href = "/landingPage/blog")}
             >
                 <div className="size-[24px] rounded-full border-[2px] border-[#FF7003] flex justify-center items-center">
@@ -21,7 +21,7 @@ const Hero = () => {
             {/* image section */}
             <img src={coverImg} className="xl:h-[594px]" />
 
-            <div className="xl:px-40 px-10 py-10">
+            <div className="xl:px-40 px-5 py-10">
                 <h1 className="text-[48px] font-[700]">
                     Classic Revival: Revisiting Iconic Cars Through Modern
                     Reviews

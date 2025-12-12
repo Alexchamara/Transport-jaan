@@ -270,7 +270,7 @@ const UnitContent = () => {
     };
 
     return (
-        <div className="w-full h-auto px-5 py-5 lg:px-0 lg:pr-5 lg:py-10">
+        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-col lg:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[24px] md:text-[35px] font-[700]">Multimodal Units</h1>

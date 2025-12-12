@@ -165,10 +165,10 @@ const Hero = () => {
                         </div>
 
                         {/* form section */}
-                        <div className="w-full flex flex-col xl:h-[200px] gap-5 sm:gap-6 md:flex-row md:justify-between md:items-center px-4 sm:px-6 md:px-8 py-5 sm:py-6 bg-white/95 backdrop-blur-md rounded-b-[15px] rounded-tr-[15px] relative z-20 text-[15px] font-[600] text-[#286BB6] shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
+                        <div className="w-full flex flex-col xl:h-[200px] gap-5 sm:gap-6 md:flex-row md:justify-between md:items-center px-4 sm:px-6 md:px-8 py-5 sm:py-6 bg-white/95 backdrop-blur-md rounded-b-[15px] sm:rounded-tr-[15px] relative z-20 text-[15px] font-[600] text-[#286BB6] shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
                             <div className="flex flex-wrap gap-4 sm:gap-5 md:gap-6 items-end w-full">
                                 {currentTab?.fields?.map((field) => (
-                                    <div key={field.id} className="flex flex-col gap-2 w-full sm:w-[48%] lg:w-auto min-w-[230px] lg:min-w-[260px]">
+                                    <div key={field.id} className="flex flex-col gap-2 w-full sm:w-[48%] lg:w-auto min-w-[200px] lg:min-w-[260px]">
                                         <label className="text-[14px] text-[#286BB6] font-[600]">{field.label}</label>
                                         <div className="flex flex-row gap-2 items-center px-3 sm:px-4 h-[50px] sm:h-[54px] rounded-[10px] border border-[#00000012] bg-white/80">
                                             {field.id === "date" || field.id === "depart" ? (
@@ -203,7 +203,7 @@ const Hero = () => {
                                         </div>
                                     </div>
                                 ))}
-                                <button className="w-full sm:w-[180px] h-[50px] sm:h-[55px] mt-2 sm:mt-6 md:mt-0 md:ml-6 flex justify-center items-center text-[15px] sm:text-[16px] text-white font-[700] bg-[#0955AC] rounded-[100px] shadow-lg hover:bg-[#074282] transition-all">
+                                <button className="w-full md:w-[180px] h-[50px] md:h-[55px] mt-2 sm:mt-6 md:mt-0 md:ml-6 flex justify-center items-center text-[15px] sm:text-[16px] text-white font-[700] bg-[#0955AC] rounded-[100px] shadow-lg hover:bg-[#074282] transition-all">
                                     SEARCH
                                 </button>
                             </div>

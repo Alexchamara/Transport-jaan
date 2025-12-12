@@ -16,7 +16,7 @@ const Explore = () => {
                     height: "626px",
                 }}
             >
-                <div className="text-[#FFFFFF] px-20 py-20">
+                <div className="text-[#FFFFFF] p-5 xl:px-20 xl:py-20">
                     <h1 className="bebas-neue text-[40px] font-[400]">
                         Explore our services
                     </h1>
@@ -29,7 +29,7 @@ const Explore = () => {
                     </p>
                 </div>
             </div>
-            <div className="flex flex-col md:flex-row justify-center items-center gap-5 -mt-[350px] px-20 py-20">
+            <div className="flex flex-col md:flex-row justify-center items-center gap-5 xl:-mt-[350px] xl:px-20 xl:py-20 p-5">
                 <div
                     className="md:w-[429px] h-[554px] bg-[#FFFFFF] rounded-[20px] flex flex-col justify-start items-center px-5 py-5"
                     style={{ boxShadow: "4px 4px 4px 0px rgba(0, 0, 0, 0.1)" }}

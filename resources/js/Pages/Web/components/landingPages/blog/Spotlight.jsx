@@ -18,7 +18,7 @@ import sideArrow from "../../../assets/landingPages/blog/sideArrow.svg";
 
 const Spotlight = () => {
     return (
-        <div className="xl:px-40 px-10 py-10">
+        <div className="xl:px-40 px-5 py-10">
             <div className="flex lg:flex-row flex-col gap-10">
                 {/* left section */}
                 <div className="w-full">

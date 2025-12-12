@@ -363,7 +363,7 @@ const PaymentContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto pr-5 py-10 px-4 sm:px-5">
+        <div className="flex flex-col gap-10 w-full h-auto lg:pr-5 py-10 px-5 lg:px-0">
             {/* Header section */}
             <div className="flex flex-col sm:flex-row gap-5 justify-between xl:items-start items-center">
                 <h1 className="figtree text-[24px] sm:text-[35px] font-[700]">
@@ -392,7 +392,7 @@ const PaymentContent = () => {
                             <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Balance
                             </h1>
-                            <h1 className="text-[24px] font-[700]">$8,450</h1>
+                            <h1 className="text-[20px] font-[700]">$8,450</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
@@ -420,7 +420,7 @@ const PaymentContent = () => {
                             <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Income
                             </h1>
-                            <h1 className="text-[24px] font-[700]">$25,700</h1>
+                            <h1 className="text-[20px] font-[700]">$25,700</h1>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
@@ -448,7 +448,7 @@ const PaymentContent = () => {
                             <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Expenses
                             </h1>
-                            <h1 className="text-[24px] font-[700]">
+                            <h1 className="text-[20px] font-[700]">
                                 $14,756
                             </h1>
                         </div>

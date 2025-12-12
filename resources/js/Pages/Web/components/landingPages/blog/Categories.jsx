@@ -8,7 +8,7 @@ import card6 from "../../../assets/landingPages/blog/card6.svg";
 
 const Categories = () => {
     return (
-        <div className="xl:px-40 px-10 py-20">
+        <div className="xl:px-40 px-5 py-20">
             <div className="flex flex-row justify-center items-center xl:pl-20">
                 <div className="w-[155px] h-[37px] bg-[#286BB6] rounded-[3px] flex justify-center items-center text-[12px] font-[600] p-3">
                     <h1>Exciting Categories</h1>

@@ -30,7 +30,7 @@ const TrackingContent = () => {
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
                 <h1 className="figtree text-[28px] md:text-[35px] font-[700]">
-                    Ticket Units
+                    Ticket Tracking
                 </h1>
                 <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown
@@ -46,7 +46,7 @@ const TrackingContent = () => {
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
                     <h1 className="text-[24px] font-[700]">Car Types</h1>
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-8">
+                    <div className="flex flex-row justify-between items-center gap-4 sm:gap-8">
                         {" "}
                         <div className="w-full h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5 my-5">
                             <img src={miniSearchIcon} />

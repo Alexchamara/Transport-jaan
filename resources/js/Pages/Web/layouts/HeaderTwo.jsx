@@ -16,13 +16,13 @@ const HeaderTwo = () => {
     };
 
     return (
-        <div className="px-10 py-10 bg-[#000000] flex flex-row justify-between items-center poppins text-[#FFFFFF]">
+        <div className="px-5 py-5 xl:px-10 xl:py-10 bg-[#000000] flex flex-row justify-between items-center poppins text-[#FFFFFF]">
 
           <div className="text-[31px] font-[700] uppercase cursor-pointer">
                <h1>Company Logo</h1>
           </div>
             {/* navbar section - desktop only */}
-            <div className="lg:flex hidden flex-row items-center justify-between gap-40">
+            <div className="lg:flex hidden flex-row items-center justify-between gap-20">
                 <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[400]">
                     <div
                         className="xl:w-[101px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] bg-[#0A063000] flex justify-center items-center cursor-pointer px-4 py-2"
@@ -88,7 +88,7 @@ const HeaderTwo = () => {
                         onClick={() => setMenuOpen(false)}
                     ></div>
                     {/* Sidebar */}
-                    <div className="fixed top-0 left-0 h-full w-64 bg-[#0A0630] z-50 shadow-lg flex flex-col p-6 animate-slideIn">
+                    <div className="fixed top-0 left-0 h-full w-64 bg-[#000000] z-50 shadow-lg flex flex-col p-6 animate-slideIn">
                         <div className="flex justify-end mb-6">
                             <button
                                 className="text-white text-2xl"

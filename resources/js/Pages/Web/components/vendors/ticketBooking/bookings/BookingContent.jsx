@@ -27,7 +27,7 @@ const BookingContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
 
-    const [isMobile, setIsMobile] = useState(false);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
     useEffect(() => {
         const checkMobile = () => {
@@ -257,9 +257,9 @@ const BookingContent = () => {
     };
 
     return (
-        <div className="w-full h-auto px-5 xl:py-10 py-20">
+        <div className="w-full h-auto px-5 lg:pr-5 lg:px-0 py-10">
             {/* Header section */}
-            <div className="flex flex-col xl:flex-row gap-5 justify-between items-center">
+            <div className="flex flex-col lg:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] sm:text-[28px] font-[700]">
                     Ticket Bookings
                 </h1>
@@ -274,7 +274,7 @@ const BookingContent = () => {
                 <div className="flex flex-col gap-8 w-full">
                     {/* card 1 */}
                     <div
-                        className="w-full min-w-[160px] md:min-w-[360px] h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full xl:min-w-[300px] xl:min-h-[91px] h-auto bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -305,7 +305,7 @@ const BookingContent = () => {
                     {/* end of card 1 */}
                     {/* card 2 */}
                     <div
-                        className="w-full min-w-[160px] md:min-w-[360px] h-auto xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full xl:min-w-[300px] h-auto xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -336,7 +336,7 @@ const BookingContent = () => {
                     {/* end of card 2 */}
                     {/* card 3 */}
                     <div
-                        className="w-full min-w-[160px] md:min-w-[360px] xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full xl:min-w-[300px] xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -367,7 +367,7 @@ const BookingContent = () => {
                     {/* end of card 3 */}
                     {/* card 4 */}
                     <div
-                        className="w-full min-w-[160px] md:min-w-[360px] min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                        className="w-full xl:min-w-[300px] xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
@@ -454,7 +454,7 @@ const BookingContent = () => {
                                 }
                             />
                         </div>
-                        <div className="xl:w-[139px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                        <div className="xl:w-[155px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
                             <img
                                 src={filterIcon}
                                 className="size-[12px]"

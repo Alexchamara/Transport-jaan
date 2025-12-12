@@ -314,10 +314,10 @@ const ExpensesContent = () => {
               <img src={wallet} alt="Wallet" />
             </div>
             <div>
-              <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+              <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                 Balance
               </h1>
-              <h1 className="text-[26px] font-[700]">$8,450</h1>
+              <h1 className="text-[20px] font-[700]">$8,450</h1>
             </div>
           </div>
           <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -339,10 +339,10 @@ const ExpensesContent = () => {
               <img src={income} alt="Income" />
             </div>
             <div>
-              <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+              <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                 Income
               </h1>
-              <h1 className="text-[26px] font-[700]">$25,700</h1>
+              <h1 className="text-[20px] font-[700]">$25,700</h1>
             </div>
           </div>
           <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
@@ -365,10 +365,10 @@ const ExpensesContent = () => {
                 <img src={expenses} alt="Expenses" />
               </div>
               <div>
-                <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                   Expenses
                 </h1>
-                <h1 className="text-[26px] font-[700]">$14,756</h1>
+                <h1 className="text-[20px] font-[700]">$14,756</h1>
               </div>
             </div>
             <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
