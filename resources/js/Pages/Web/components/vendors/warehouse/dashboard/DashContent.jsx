@@ -1419,7 +1419,7 @@ const DashContent = () => {
                             className="w-full md:min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10 overflow-hidden"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
-                            <div className="flex flex-row items-center justify-between mb-12 w-full">
+                            <div className="flex flex-col xl:flex-row items-center justify-between mb-12 w-full">
                                 <h1 className="text-[24px] font-[700]">
                                     Earnings Summary
                                 </h1>

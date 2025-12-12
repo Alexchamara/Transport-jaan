@@ -648,7 +648,7 @@ const ReservationContent = () => {
 
                             {/* Mobile Pagination */}
                             <div className="bg-white rounded-lg shadow p-4">
-                                <div className="flex justify-between items-center gap-2">
+                                <div className="flex xl:flex-row flex-col justify-between items-center gap-2">
                                     <div className="flex items-center">
                                         <span className="mr-3 text-[#00000080] text-[15px]">
                                             Results per page

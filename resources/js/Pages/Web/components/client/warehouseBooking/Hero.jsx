@@ -571,7 +571,7 @@ const Hero = () => {
     }
 
     return (
-        <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+        <div className="min-h-screen w-full bg-[#E5E5E5] p-10 md:p-20 poppins">
             <div className="mx-auto max-w-[1300px]">
                 <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-col gap-1">
@@ -579,7 +579,7 @@ const Hero = () => {
                             Warehouse Management
                             <span className="text-[#0955AC]"> Dashboard</span>
                         </h1>
-                        <p className="flex items-center gap-3 text-sm text-slate-500">
+                        <p className="flex flex-col md:flex-row md:items-center gap-3 text-sm text-slate-500">
                             End-to-end control for your warehouse reservations
                             {dashboard?.lastUpdated ? (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">

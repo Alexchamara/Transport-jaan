@@ -84,7 +84,7 @@ const Reservation = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto h-screen">
+        <div className="flex-1 bg-[#E5E5E5] overflow-y-auto h-screen">
           <ReservationContent />
         </div>
       </div>

@@ -2,8 +2,8 @@ import React from "react";
 import ship3 from "../../assets/freight/ship3.svg";
 const why = () => {
     return (
-        <div className="flex flex-row justify-between items-start px-20 py-20">
-            <div className="xl:w-[725px] text-justify">
+        <div className="flex flex-col xl:flex-row gap-10 justify-between items-center xl:items-start p-5 xl:px-20 xl:py-20">
+            <div className="xl:w-[725px] text-center xl:text-justify">
                 <h1 className="figtree text-[24px] font-[700] text-[#0955AC]">
                     Why Choose Us
                 </h1>
@@ -69,7 +69,7 @@ const why = () => {
                 </div>
             </div>
             <div>
-                <img src={ship3} className="xl:flex hidden" />
+                <img src={ship3} className="xl:flex hidden w-[480px]" />
             </div>
         </div>
     );

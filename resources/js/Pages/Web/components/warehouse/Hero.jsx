@@ -14,7 +14,7 @@ const Hero = () => {
             <div className="flex flex-col justify-center items-center gap-20 py-20 px-5 md:px-10 lg:px-40 text-[#FFFFFF] text-center">
                 <div className="lg:px-[100px]">
                     <div className="w-[102px] h-[5px] bg-[#FFFFFF] rounded-sm" />
-                    <h1 className="text-[78px]/[70px] font-[400] bebas-neue mt-5">
+                    <h1 className="text-[58px]/[50px] xl:text-[78px]/[70px] font-[400] bebas-neue mt-5">
                         Find and Rent the Perfect Warehouse for Your Business
                     </h1>
                 </div>

@@ -14,7 +14,7 @@ const Process = () => {
                     OUR <span className="text-[#0955AC]"> DELIVERY</span>{" "}
                     PROCESS
                 </h1>
-                <p className="text-center text-[14px]/[33px] pb-20 md:pb-0 px-10 md:px-0">
+                <p className="text-center text-[14px]/[33px] px-10 md:px-0">
                     Lorem ipsum dolor sit amet, consectetur adipiscing elit.
                     Donec semper eu risus ut ornare. In bibendum <br /> tempus
                     sapien, tristique consectetur purus pellentesque ac
@@ -22,13 +22,13 @@ const Process = () => {
 
                 {/* process chart */}
                 <div className="relative flex flex-col lg:flex-row w-auto justify-center items-center overflow-visible py-10">
-                    <div className="h-[826px] lg:w-[425px] xl:w-[525px] flex flex-col gap-10 justify-center items-center">
-                        <div className="absolute lg:top-[180px] lg:left-[60px] xl:left-[10px] xl:top-[70px] flex flex-col gap-5">
+                    <div className="lg:w-[425px] xl:w-[525px] flex flex-col gap-10 justify-center items-center">
+                        <div className="lg:absolute lg:top-[180px] lg:left-[60px] xl:left-[10px] xl:top-[70px] flex flex-col gap-5 px-10 lg:px-0">
                             {" "}
                             {/* 1st card */}
                             <div className="bg-[#FFFFFF] border-[1px] border-[#0000001A] xl:w-[625px] w-auto md:w-[470px] xl:h-[170px] lg:h-[120px] rounded-[24px] p-5 flex">
-                                <div className="flex flex-row justify-center items-center gap-5">
-                                    <div className="bg-[#F5F5F5] w-[78px] h-[106px] rounded-[16px] flex justify-center items-center p-2">
+                                <div className="flex flex-col md:flex-row justify-center items-center gap-5">
+                                    <div className="bg-[#F5F5F5] w-full md:w-[78px] h-[106px] rounded-[16px] flex justify-center items-center p-2">
                                         <img
                                             src={calendarIcon}
                                             className="size-[20px]"
@@ -50,8 +50,8 @@ const Process = () => {
                             </div>
                             {/* 2nd card */}
                             <div className="bg-[#FFFFFF] border-[1px] border-[#0000001A] w-auto xl:w-[625px] md:w-[470px] xl:h-[170px] lg:h-[120px] rounded-[24px] p-5 flex">
-                                <div className="flex flex-row justify-center items-center gap-5">
-                                    <div className="bg-[#F5F5F5] w-[57px] h-[106px] rounded-[16px] flex justify-center items-center p-2">
+                                <div className="flex flex-col md:flex-row justify-center items-center gap-5">
+                                    <div className="bg-[#F5F5F5] w-full md:w-[57px] h-[106px] rounded-[16px] flex justify-center items-center p-2">
                                         <img
                                             src={pac}
                                             className="size-[20px]"
@@ -71,8 +71,8 @@ const Process = () => {
                             </div>
                             {/* 3rd card */}
                             <div className="bg-[#FFFFFF] border-[1px] border-[#0000001A] xl:w-[625px] md:w-[470px] xl:h-[170px] lg:h-[120px] rounded-[24px] p-5 flex">
-                                <div className="flex flex-row justify-center items-center gap-5">
-                                    <div className="bg-[#F5F5F5] w-[67px] h-[106px] rounded-[16px] flex justify-center items-center p-2">
+                                <div className="flex flex-col md:flex-row justify-center items-center gap-5">
+                                    <div className="bg-[#F5F5F5] w-full md:w-[67px] h-[106px] rounded-[16px] flex justify-center items-center p-2">
                                         <img
                                             src={truck}
                                             className="size-[20px]"
@@ -93,8 +93,8 @@ const Process = () => {
                             </div>
                             {/* 4th card */}
                             <div className="bg-[#FFFFFF] border-[1px] border-[#0000001A] xl:w-[625px] md:w-[470px] xl:h-[170px] lg:h-[120px] rounded-[24px] p-5 flex">
-                                <div className="flex flex-row justify-center items-center gap-5">
-                                    <div className="bg-[#F5F5F5] w-[78px] h-[106px] rounded-[16px] flex justify-center items-center p-2">
+                                <div className="flex flex-col md:flex-row justify-center items-center gap-5">
+                                    <div className="bg-[#F5F5F5] w-full md:w-[78px] h-[106px] rounded-[16px] flex justify-center items-center p-2">
                                         <img
                                             src={delivery}
                                             className="size-[20px]"

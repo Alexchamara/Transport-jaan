@@ -85,7 +85,7 @@ const IMAGES = [
         description:
             "Seamlessly combine land, sea, and air transport for complex logistics needs. End-to-end visibility and coordination.",
         ctaLabel: "Plan Multi-model",
-        href: "/multi-model",
+        href: "/multimodal",
         url: img6,
         tags: [
             "Land",
@@ -310,7 +310,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                     className="fixed inset-0 bg-black bg-opacity-40 z-40"
                                     onClick={() => setMenuOpen(false)}
                                 />
-                                <div className="fixed top-0 left-0 h-full w-64 bg-[#0A0630] z-50 shadow-lg flex flex-col p-6">
+                                <div className="fixed top-0 left-0 h-full w-64 bg-[#000000] z-50 shadow-lg flex flex-col p-6">
                                     <div className="flex justify-end mb-6">
                                         <button
                                             className="text-white text-2xl"

@@ -403,7 +403,7 @@ const DashContent = ({
 
            
                         <div
-                            className="hidden xl:block w-full max-w-[320px] md:max-w-none min-h-[335px] bg-white rounded-[10px] py-5 px-3 md:px-10"
+                            className="hidden xl:block w-full min-w-[320px] xl:min-h-[400px] bg-white rounded-[10px] py-5 px-3 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between w-full">
@@ -423,7 +423,7 @@ const DashContent = ({
                     className="w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-10 px-3 md:px-10"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
+                    <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 w-full">
                         <h1 className="text-[20px] md:text-[24px] font-[700]">
                             Car Booking
                         </h1>
@@ -465,7 +465,7 @@ const DashContent = ({
                     {/* Car Types - Full width on mobile */}
                     <div className="w-full">
                         <div
-                            className="w-full bg-white rounded-[10px] py-6 px-4 md:px-8"
+                            className="w-full min-h-full bg-white rounded-[10px] py-6 px-4 md:px-8"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex justify-between items-center mb-5">
@@ -528,7 +528,7 @@ const DashContent = ({
                     </div>
 
                     {/* Recent Activities - Compact & Reduced Size */}
-                    <div className="w-full xl:max-w-md mx-auto">
+                    <div className="w-full mx-auto">
                         {" "}
                         {/* Controls max width on large screens */}
                         <div

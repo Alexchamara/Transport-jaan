@@ -108,7 +108,7 @@ const Hero = () => {
   }).length;
 
   return (
-    <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+    <div className="min-h-screen w-full bg-[#E5E5E5] p-10 md:p-20 poppins">
       <div className="mx-auto max-w-[1300px]">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
@@ -118,7 +118,7 @@ const Hero = () => {
             </h1>
             <p className="text-slate-600 text-[14px]">Plan, book, and manage tickets across Flight • Train • Bus.</p>
           </div>
-          <div className="flex gap-2 justify-center items-center">
+          <div className="flex flex-col md:flex-row gap-2 justify-center items-center">
             <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium">
               <Download className="mr-2 h-7 w-7" /> Export
             </button>

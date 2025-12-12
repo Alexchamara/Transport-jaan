@@ -1025,6 +1025,11 @@ Route::get('/multimodal/settingsPage', function () {
 // end ==================================================
 
 
+Route::get('/multimodal', function () {
+    return Inertia::render('Web/home/multiModel/HomePage');
+})->name('multimodal.home');
+
+
 // Client dashboard - redirect to proper route
 Route::get('/clientDashboard', function () {
     return redirect()->route('client.dashboard');

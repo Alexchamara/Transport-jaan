@@ -166,7 +166,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
     };
 
     return (
-        <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+        <div className="min-h-screen w-full bg-[#E5E5E5] p-10 md:p-20 poppins">
             <div className="mx-auto max-w-[1300px]">
                 {/* Header */}
                 <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">

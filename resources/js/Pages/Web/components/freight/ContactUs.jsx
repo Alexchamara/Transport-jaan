@@ -6,7 +6,7 @@ const ContactUs = () => {
         <div className="bg-[#0E253E]">
             <div className="flex flex-row">
                 <img src={ship4} className="xl:flex hidden" />
-                <div className="bebas-neue text-[#FFFFFF] text-[40px] font-[400] flex flex-col gap-5 justify-center items-start px-12 py-10">
+                <div className="bebas-neue text-[#FFFFFF] text-[40px] font-[400] flex flex-col gap-5 justify-center items-start p-5 xl:px-12 xl:py-10">
                     <h1>ready to make your business forward?</h1>
                     <p className="poppins text-[14px]/[33px] font-[400]">
                         Lorem ipsum dolor sit amet, consectetur adipiscing elit.

@@ -70,7 +70,7 @@ const RentByBrands = ({ selectedType = "other" }) => {
 
     return (
         <div className="w-full py-12">
-            <div className="container mx-auto px-20">
+            <div className="container mx-auto px-10 xl:px-20">
                 <h2 className="bebas-neue text-[40px] font-[400] text-center mb-8">
                     RENT BY <span className="text-[#0955AC]">BRAND</span>
                 </h2>
