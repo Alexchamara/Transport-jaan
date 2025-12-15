@@ -12,10 +12,10 @@ import ProFill from "../../assets/freight/ProFill.svg";
 
 const Review = () => {
     return (
-        <div className="flex flex-col xl:flex-row gap-10 xl:gap-0 justify-between items-center xl:py-20 xl:px-20 p-5">
+        <div className="flex flex-col xl:flex-row gap-10 xl:gap-5 justify-between items-center xl:py-20 xl:px-20 p-5">
 
           {/* card 1 */}
-            <div className="relative md:w-[507px] w-full h-[700px] md:h-[561px] rounded-[20px]">
+            <div className="relative md:w-[507px] w-full h-[700px] md:h-[635px] rounded-[20px]">
                 <div
                     className="w-full h-full rounded-[20px]"
                     style={{
@@ -33,26 +33,26 @@ const Review = () => {
                         our success stories from our customers
                     </h1>
 
-                    <div className="absolute left-4 bottom-4 sm:bottom-6 md:bottom-20 flex flex-row items-center gap-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-[58px] md:h-[58px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white">
+                    <div className="absolute left-5 bottom-5 sm:bottom-6 md:bottom-20 flex flex-row items-center gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-[48px] md:h-[48px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white">
                             <img src={proPic1} alt="pro1" className="w-full h-full object-cover" />
                         </div>
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-[58px] md:h-[58px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white -ml-2 md:ml-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-[48px] md:h-[48px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white -ml-2 md:ml-0">
                             <img src={proPic2} alt="pro2" className="w-full h-full object-cover" />
                         </div>
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-[58px] md:h-[58px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white -ml-2 md:ml-0">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-[48px] md:h-[48px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white -ml-2 md:ml-0">
                             <img src={proPic3} alt="pro3" className="w-full h-full object-cover" />
                         </div>
-                        <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-[58px] md:h-[58px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white -ml-2 md:ml-0 flex items-center justify-center">
+                        <div className="relative w-8 h-8 sm:w-10 sm:h-10 md:w-[48px] md:h-[48px] rounded-full border-[1.5px] border-[#FFFFFF] overflow-hidden bg-white -ml-2 md:ml-0 flex items-center justify-center">
                             <img src={proPic4} alt="pro4" className="absolute inset-0 w-full h-full object-cover" />
                             <span className="relative z-10 figtree text-[10px] sm:text-[12px] md:text-[16px] font-[900] text-white">10+</span>
                         </div>
                     </div>
-                    <div className="absolute bottom-20 right-10 flex flex-row gap-3">
-                        <button className="w-8 h-8 sm:w-10 sm:h-10 md:w-[65px] md:h-[65px] rounded-full bg-[#FFFFFF] flex justify-center items-center cursor-pointer">
+                    <div className="absolute bottom-5 sm:bottom-6 md:bottom-20 right-10 flex flex-row gap-3">
+                        <button className="w-8 h-8 sm:w-10 sm:h-10 md:w-[45px] md:h-[45px] rounded-full bg-[#FFFFFF] flex justify-center items-center cursor-pointer">
                             <img src={leftBlue} />
                         </button>
-                        <button className="w-8 h-8 sm:w-10 sm:h-10 md:w-[65px] md:h-[65px] rounded-full bg-[#FFFFFF] flex justify-center items-center cursor-pointer">
+                        <button className="w-8 h-8 sm:w-10 sm:h-10 md:w-[45px] md:h-[45px] rounded-full bg-[#FFFFFF] flex justify-center items-center cursor-pointer">
                             <img src={leftBlue} className="rotate-180" />
                         </button>
                     </div>
@@ -61,7 +61,7 @@ const Review = () => {
 
             {/* Card 2 */}
             <div
-                className="md:w-[378px] md:h-[561px] rounded-[20px] xl:px-10 xl:py-10 p-5"
+                className="md:w-[378px] h-auto rounded-[20px] xl:px-10 xl:py-10 p-5"
                 style={{ boxShadow: "2px 2px 2px 4px rgba(0, 0, 0, 0.1)" }}
             >
                 <div className="flex flex-col md:flex-row items-start justify-between">
@@ -92,7 +92,7 @@ const Review = () => {
 
             {/* Card 3 */}
             <div
-                className="md:w-[378px] md:h-[561px] rounded-[20px] xl:px-10 xl:py-10 p-5"
+                className="md:w-[378px] h-auto rounded-[20px] xl:px-10 xl:py-10 p-5"
                 style={{ boxShadow: "2px 2px 2px 4px rgba(0, 0, 0, 0.1)" }}
             >
                 <div className="flex flex-col md:flex-row items-start justify-between">

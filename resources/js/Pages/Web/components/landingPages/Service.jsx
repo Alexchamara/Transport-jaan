@@ -5,6 +5,7 @@ import card2 from "../../assets/landingPages/servicesCards/img2.svg";
 import card3 from "../../assets/landingPages/servicesCards/img3.svg";
 import card4 from "../../assets/landingPages/servicesCards/img4.svg";
 import card5 from "../../assets/landingPages/servicesCards/img5.svg";
+import card6 from "../../assets/multiModel/bg2.jpg";
 import rightArrow from "../../assets/landingPages/servicesCards/rightArrow.svg";
 
 import monostone from "../../assets/landingPages/servicesCards/monostone.svg";
@@ -302,7 +303,7 @@ const Service = () => {
                     onClick={() => (window.location.href = "/multimodal")}
                 >
                     {/* Background image */}
-                    <img src={card1} className="w-full h-full object-cover" />
+                    <img src={card6} className="w-full h-full object-cover" />
 
                     {/* Default (non-hover) content */}
                     <div className="absolute top-0 left-0 w-full h-full flex flex-col justify-end items-start px-10 py-20 z-10 transition-opacity duration-300 group-hover:opacity-0">
