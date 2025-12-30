@@ -11,6 +11,7 @@ class Driver extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'full_name',
         'phone',
         'email',
@@ -44,6 +45,13 @@ class Driver extends Model
         'license_download_url',
         'nic_download_url',
     ];
+
+    // ---- Relationships ----
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     // ---- Accessors (prefer controller routes; fallback to public URL) ----
 

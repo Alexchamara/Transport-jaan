@@ -14,6 +14,9 @@ class DriverController extends Controller
     {
         $query = Driver::query();
 
+        // Filter by authenticated vendor's user_id
+        $query->where('user_id', auth()->id());
+
         // Dedicated status filter
         if ($status = $request->query('status')) {
             if (in_array($status, ['Active', 'Inactive'], true)) {
@@ -68,6 +71,9 @@ class DriverController extends Controller
             'vehicle_no.regex' => 'Vehicle number format is invalid. Use format: WP ABC-1234 or CAA-1234',
             'vehicle_no.unique' => 'This vehicle number is already registered.',
         ]);
+
+        // Assign the driver to the authenticated vendor
+        $data['user_id'] = auth()->id();
 
         if ($request->hasFile('license_photo')) {
             $data['license_photo_path'] = $request->file('license_photo')->store('drivers/licenses', 'public');
