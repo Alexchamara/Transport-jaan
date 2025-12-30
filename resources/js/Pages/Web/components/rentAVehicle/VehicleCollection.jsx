@@ -126,16 +126,7 @@ const handleViewMore = () => {
 
     // choose a sensible default by vehicle type:
     // prefer the explicit prop, fall back to the `type` query param
-    const typeFromProp = (selectedType || "").toString().toLowerCase();
-    const qs = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    const typeFromQuery = qs ? (qs.get('type') || '').toString().toLowerCase() : '';
-    const type = typeFromProp || typeFromQuery;
-
-    if (type === 'air') return airPlaceholder;
-    if (type === 'sea') return seaPlaceholder;
-    if (type === 'land' || type === 'car') return landPlaceholder;
-
-    // final fallback
+    // final fallback - use the imported placeholder for all types
     return placeholderImg;
   };
 
