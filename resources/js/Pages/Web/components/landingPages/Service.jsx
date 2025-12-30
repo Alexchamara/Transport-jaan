@@ -14,7 +14,7 @@ const Service = () => {
         <div className="poppins py-10">
             <div className="flex flex-row justify-center items-center gap-5">
                 <div className="md:w-[112px] w-[30px] h-[1.8px] bg-[#FF7003]" />
-                <h1 className="text-[#FF7003] text-[40px] font-[600] uppercase">
+                <h1 className="text-[#FF7003] text-[20px] xl:text-[40px] font-[600] uppercase">
                     Services
                 </h1>
                 <div className="md:w-[112px] w-[30px] h-[1.8px] bg-[#FF7003]" />
@@ -299,7 +299,7 @@ const Service = () => {
                  {/* Card 6 */}
                 <div
                     className="w-[305px] h-[740px] relative group overflow-hidden"
-                    onClick={() => (window.location.href = "/clientRent")}
+                    onClick={() => (window.location.href = "/multimodal")}
                 >
                     {/* Background image */}
                     <img src={card1} className="w-full h-full object-cover" />

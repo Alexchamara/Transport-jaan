@@ -528,7 +528,8 @@ const Hero = ({
                             </div>
                         </div>
                         <div className="px-4 sm:px-6 md:px-10 pb-6 md:pb-10">
-                            <div className="h-[250px] sm:h-[300px] md:h-[350px] w-full">
+                            {/* Chart for md and up */}
+                            <div className="hidden md:block h-[250px] sm:h-[300px] md:h-[350px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={chartData} margin={{ left: 0, right: 0, top: 10 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -541,6 +542,28 @@ const Hero = ({
                                         <Bar dataKey="logistics" name="Logistics" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
+                            </div>
+                            {/* Cards for mobile */}
+                            <div className="block md:hidden space-y-3">
+                                {chartData.map((item, index) => (
+                                    <div key={index} className="bg-gray-50 rounded-lg p-4 border">
+                                        <h4 className="font-semibold text-gray-800 mb-2">{item.month}</h4>
+                                        <div className="space-y-1 text-sm">
+                                            <div className="flex justify-between">
+                                                <span className="text-blue-600">Vehicles:</span>
+                                                <span className="font-medium">{item.vehicle}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-[#0955AC]">Tickets:</span>
+                                                <span className="font-medium">{item.tickets}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-purple-600">Logistics:</span>
+                                                <span className="font-medium">{item.logistics}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
@@ -556,7 +579,8 @@ const Hero = ({
                             </p>
                         </div>
                         <div className="px-4 sm:px-6 md:px-10 pb-6 md:pb-10">
-                            <div className="h-[250px] sm:h-[280px] md:h-[300px] w-full">
+                            {/* Chart for md and up */}
+                            <div className="hidden md:block h-[250px] sm:h-[280px] md:h-[300px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
@@ -576,7 +600,20 @@ const Hero = ({
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
-                            <div className="mt-2 space-y-1 text-[11px]">
+                            {/* Cards for mobile */}
+                            <div className="block md:hidden space-y-3">
+                                {pieData.map((entry, i) => (
+                                    <div key={i} className="bg-gray-50 rounded-lg p-4 border flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <span className="h-4 w-4 rounded-full" style={{ backgroundColor: entry.color }} />
+                                            <span className="font-medium text-gray-800">{entry.name}</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-gray-700">{entry.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Legend for md and up */}
+                            <div className="hidden md:block mt-2 space-y-1 text-[11px]">
                                 {pieData.map((entry, i) => (
                                     <div key={i} className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -1196,7 +1233,7 @@ const Hero = ({
                                         <div className="flex items-center gap-3">
                                             <FileText className="h-5 w-5 text-blue-500" />
                                             <div>
-                                                <div className="font-medium text-[14px]">Export as CSV</div>
+                                                <div className="font-medium text-[14px]">Export as CSV</div> 
                                                 <div className="text-[12px] text-slate-500">Comma-separated values</div>
                                             </div>
                                         </div>

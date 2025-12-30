@@ -12,7 +12,7 @@ const HeroSection = () => {
     };
 
     return (
-        <div className="relative h-[600px]">
+        <div className="relative h-[700px] lg:h-[600px]">
             <img src={bg} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-[#000000B8]" />
             <div className="absolute inset-0 flex items-center">
@@ -50,13 +50,13 @@ const HeroSection = () => {
                             <div className="figtree mt-20 lg:gap-7 gap-5 flex flex-col md:flex-row w-full text-[12px] md:text-[16px] font-[700]">
                                 <Link
                                     href="/couriers/create"
-                                    className="bg-[#0955AC] text-white rounded-lg transition duration-300  w-[100px] h-[25px] md:w-[202px] md:h-[56px] flex justify-center items-center"
+                                    className="bg-[#0955AC] text-white rounded-lg transition duration-300  w-[100px] h-[40px] md:w-[202px] md:h-[56px] flex justify-center items-center"
                                 >
                                     Send a package
                                 </Link>
                                 <button
                                     onClick={handleTrackingClick}
-                                    className="bg-[#FFFFFF82] border-[2px] border-[#0955AC] text-[#0955AC] rounded-lg transition duration-300 w-[100px] h-[25px] md:w-[202px] md:h-[56px] flex justify-center items-center hover:bg-[#FFFFFF] cursor-pointer"
+                                    className="bg-[#FFFFFF82] border-[2px] border-[#0955AC] text-[#0955AC] rounded-lg transition duration-300 w-[100px] h-[40px] md:w-[202px] md:h-[56px] flex justify-center items-center hover:bg-[#FFFFFF] cursor-pointer"
                                 >
                                     Track Parcel
                                 </button>

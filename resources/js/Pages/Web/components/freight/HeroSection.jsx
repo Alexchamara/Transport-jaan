@@ -100,21 +100,21 @@ const HeroSection = () => {
       <div style={{ position: "relative", zIndex: 2 }}>
         {/* headline */}
         <div className="flex flex-col items-center">
-          <div className="container mx-auto px-10 pt-20">
+          <div className="container mx-auto xl:px-10 xl:pt-20 p-5 pt-10">
             <div className="w-[125px] h-[5px] bg-[#FFFFFF] mb-6 rounded-sm"></div>
-            <h1 className="bebas-neue text-[78px]/[70px] font-[400] mb-4 text-[#FFFFFF]">
+            <h1 className="bebas-neue text-[58px]/[50px] xl:text-[78px]/[70px] font-[400] mb-4 text-[#FFFFFF]">
               Speed Up Logistics with <br /> Smarter Freight Planning.
             </h1>
-            <p className="poppins py-5 text-[12px]/[20px] md:text-[14px]/[33px] font-[400] text-[#FFFFFF] text-justify mb-10 md:mb-20">
+            <p className="poppins py-5 text-[12px]/[20px] md:text-[14px]/[33px] font-[400] text-[#FFFFFF] text-justify">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit...
             </p>
           </div>
         </div>
 
         {/* tabs + form */}
-        <div className="flex flex-col justify-center items-center">
+        <div className="flex flex-col justify-center items-center px-5 py-5">
           <div>
-            <div className="flex flex-row justify-center items-center gap-5 w-auto xl:w-[600px] h-[80px] bg-[#FFFFFF] rounded-tl-[15px] rounded-tr-[15px] px-5 text-[16px] font-[700]">
+            <div className="flex flex-row justify-center items-center gap-5 w-auto xl:w-[600px] h-[80px] bg-[#FFFFFF] rounded-tl-[15px] rounded-tr-[15px] px-5 text-[12px] xl:text-[16px] font-[700]">
               <div
                 className={`flex justify-center items-center h-[60px] xl:w-[263px] rounded-[10px] p-5 cursor-pointer transition-all duration-200 ${
                   selectedTab === "quote"
@@ -133,7 +133,7 @@ const HeroSection = () => {
               </div>
 
               <div
-                className={`flex justify-center items-center h-[60px] xl:w-[263px] rounded-[10px] p-5 cursor-pointer transition-all duration-200 ${
+                className={`flex justify-center items-center xl:h-[60px] xl:w-[263px] rounded-[10px] p-5 cursor-pointer transition-all duration-200 ${
                   selectedTab === "track"
                     ? "bg-[#0955AC] text-white"
                     : "text-[#0955AC] bg-transparent"
@@ -176,7 +176,7 @@ const HeroSection = () => {
             {selectedTab === "quote" && (
               <form
                 onSubmit={submitForm}
-                className="w-auto h-auto bg-[#FFFFFF] rounded-b-[15px] xl:rounded-tr-[15px] text-[16px] text-[#286BB6] font-[400] px-10 py-10 flex flex-col gap-6"
+                className="w-auto h-auto bg-[#FFFFFF] rounded-b-[15px] xl:rounded-tr-[15px] text-[12px] xl:text-[16px] text-[#286BB6] font-[400] px-5 py-10 flex flex-col gap-6"
               >
                 {/* row 1 */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -192,7 +192,7 @@ const HeroSection = () => {
                       />
                     </div>
                     {errors.origin && (
-                      <p className="text-red-600 text-sm">{errors.origin}</p>
+                      <p className="text-red-600 text-xs xl:text-sm">{errors.origin}</p>
                     )}
                   </div>
 
@@ -208,7 +208,7 @@ const HeroSection = () => {
                       />
                     </div>
                     {errors.destination && (
-                      <p className="text-red-600 text-sm">
+                      <p className="text-red-600 text-xs xl:text-sm">
                         {errors.destination}
                       </p>
                     )}
@@ -236,7 +236,7 @@ const HeroSection = () => {
                       </select>
                     </div>
                     {errors.load_type && (
-                      <p className="text-red-600 text-sm">{errors.load_type}</p>
+                      <p className="text-red-600 text-xs xl:text-sm">{errors.load_type}</p>
                     )}
                   </div>
 
@@ -255,7 +255,7 @@ const HeroSection = () => {
                       <option value="Road">Road</option>
                     </select>
                     {errors.preferred_method && (
-                      <p className="text-red-600 text-sm">
+                      <p className="text-red-600 text-xs xl:text-sm">
                         {errors.preferred_method}
                       </p>
                     )}
@@ -268,7 +268,7 @@ const HeroSection = () => {
                   <div className="flex items-start gap-2">
                     <img src={goods} alt="" className="mt-3" />
                     <textarea
-                      className={`${inputBase} h-[120px]`}
+                      className={`${inputBase} xl:h-[120px]`}
                       placeholder="e.g., 500 cartons of tea, 10,000 kg total weight"
                       value={data.goods_description}
                       onChange={(e) =>
@@ -277,7 +277,7 @@ const HeroSection = () => {
                     />
                   </div>
                   {errors.goods_description && (
-                    <p className="text-red-600 text-sm">
+                    <p className="text-red-600 text-xs xl:text-sm">
                       {errors.goods_description}
                     </p>
                   )}
@@ -318,7 +318,7 @@ const HeroSection = () => {
                       type="number"
                       min="0"
                       step="0.01"
-                      className="col-span-2 xl:col-span-2 w-full h-[56px] border border-[#0000001A] rounded-[8px] px-3 text-[16px] text-[#286BB6] placeholder:text-[#286BB6] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                      className="col-span-2 xl:col-span-2 w-full h-[56px] border border-[#0000001A] rounded-[8px] px-3 text-[12px] xl:text-[16px] text-[#286BB6] placeholder:text-[#286BB6] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
                       placeholder="Total Weight (kg)"
                       value={data.total_weight_kg}
                       onChange={(e) => setData("total_weight_kg", e.target.value)}
@@ -328,7 +328,7 @@ const HeroSection = () => {
                     errors.width_cm ||
                     errors.height_cm ||
                     errors.total_weight_kg) && (
-                    <p className="text-red-600 text-sm">
+                    <p className="text-red-600 text-xs xl:text-sm">
                       {errors.length_cm ||
                         errors.width_cm ||
                         errors.height_cm ||
@@ -348,7 +348,7 @@ const HeroSection = () => {
                       onChange={(e) => setData("shipping_date", e.target.value)}
                     />
                     {errors.shipping_date && (
-                      <p className="text-red-600 text-sm">{errors.shipping_date}</p>
+                      <p className="text-red-600 text-xs xl:text-sm">{errors.shipping_date}</p>
                     )}
                   </div>
                 </div>
@@ -380,12 +380,12 @@ const HeroSection = () => {
 
             {/* TRACK TAB (placeholder) */}
             {selectedTab === "track" && (
-              <div className="w-auto xl:h-[175px] bg-[#FFFFFF] rounded-b-[15px] text-[16px] text-[#286BB6] font-[400] px-10 py-10 flex flex-col md:flex-row gap-5 md:gap-0 justify-evenly items-center">
+              <div className="w-auto xl:h-[175px] bg-[#FFFFFF] rounded-b-[15px] text-[12px] xl:text-[16px] text-[#286BB6] font-[400] px-10 py-10 flex flex-col md:flex-row gap-5 md:gap-0 justify-evenly items-center">
                 <div className="flex flex-col gap-2">
                   <label>Tracking Number</label>
                   <div className="xl:w-[268px] xl:h-[56px] border-[1px] border-[#0000001A] rounded-[8px] flex flex-row justify-center items-center p-2">
                     <input
-                      className="w-full text-[16px] focus:outline-none focus:ring-0 border-none placeholder:text-[#286BB6] placeholder:text-[16px]"
+                      className="w-full text-[12px] xl:text-[16px] focus:outline-none focus:ring-0 border-none placeholder:text-[#286BB6] xl:placeholder:text-[16px] placeholder:text-[12px]"
                       placeholder="Enter your tracking number"
                     />
                   </div>

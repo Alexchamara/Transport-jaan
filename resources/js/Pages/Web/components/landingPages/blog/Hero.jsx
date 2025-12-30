@@ -10,7 +10,7 @@ const Hero = () => {
     return (
         <div className="flex md:flex-row flex-col">
             <div
-                className="w-full h-[594px] bg-cover bg-center flex flex-col justify-end items-start px-20 py-10"
+                className="w-full xl:h-[594px] bg-cover bg-center flex flex-col justify-end items-start px-5 xl:px-20 py-10"
                 style={{ backgroundImage: `url(${bg1})` }}
             >
                 <div className="w-[114px] h-[26px] bg-[#286BB6] rounded-[3px] flex justify-center items-center text-[11px] font-[600] cursor-pointer">
@@ -43,7 +43,7 @@ const Hero = () => {
                 </div>
             </div>
             <div
-                className="w-full h-[594px] bg-cover bg-center flex flex-col justify-end items-start px-20 py-10"
+                className="w-full xl:h-[594px] bg-cover bg-center flex flex-col justify-end items-start px-5 xl:px-20 py-10"
                 style={{ backgroundImage: `url(${bg2})` }}
             >
                 <div className="w-[114px] h-[26px] bg-[#286BB6] rounded-[3px] flex justify-center items-center text-[11px] font-[600] cursor-pointer">

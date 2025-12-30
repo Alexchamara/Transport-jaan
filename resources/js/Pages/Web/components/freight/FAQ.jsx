@@ -28,7 +28,7 @@ const FAQ = () => {
     ];
 
     return (
-        <div className="h-auto flex flex-col justify-center items-center px-20 py-20">
+        <div className="h-auto flex flex-col justify-center items-center p-5 xl:px-20 xl:py-20">
             <h1 className="bebas-neue text-[40px] font-[400]">FAQ</h1>
             <p className="text-[14px] font-[14px]/[33px] lg:w-[763px] text-center">
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
@@ -41,7 +41,7 @@ const FAQ = () => {
                 {faqs.map((faq, idx) => (
                     <div key={idx}>
                         <div
-                            className="xl:w-[1214px] xl:h-[75px] bg-[#0955AC33] rounded-[10px] flex flex-col md:flex-row justify-between items-center px-20 py-5 cursor-pointer"
+                            className="xl:w-[1214px] xl:h-[75px] bg-[#0955AC33] rounded-[10px] flex flex-col md:flex-row justify-between items-center p-5 xl:px-20 xl:py-5 cursor-pointer"
                             onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
                         >
                             <h1>{faq.question}</h1>
@@ -51,7 +51,7 @@ const FAQ = () => {
                             />
                         </div>
                         {openIndex === idx && (
-                            <h1 className="xl:w-[1214px] px-20 py-2 flex justify-center items-center text-justify">
+                            <h1 className="xl:w-[1214px] p-5 xl:px-20 xl:py-2 flex justify-center items-center text-justify">
                                 {faq.answer}
                             </h1>
                         )}

@@ -256,10 +256,10 @@ const Settings = ({ user = {} }) => {
   /* ------------------------------------------------------------------ */
   return (
     <div className="bg-[#E5E5E5] poppins w-full">
-      <div className="w-full h-auto pr-5 py-10">
+      <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
         {/* Header */}
-        <div className="flex flex-row gap-5 justify-between items-center">
-          <h1 className="figtree text-[35px] font-[700]">Multimodal Profile</h1>
+        <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
+          <h1 className="figtree text-[35px] font-[700] text-center">Multimodal Profile</h1>
           <div className="flex flex-row gap-5 relative items-center">
             <UserDropdown settingsRoute={safeRoute("multimodal.settingsPage")} />
           </div>

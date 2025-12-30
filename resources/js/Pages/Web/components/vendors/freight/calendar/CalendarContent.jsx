@@ -219,7 +219,7 @@ const CalendarContent = () => {
     };
 
     return (
-        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-5 md:py-10">
+        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
                 <h1 className="figtree text-[25px] md:text-[35px] font-[700] text-wrap">

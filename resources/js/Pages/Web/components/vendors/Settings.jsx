@@ -253,10 +253,10 @@ const Settings = () => {
   /* ------------------------------------------------------------------ */
   return (
     <div className="bg-[#E5E5E5] poppins w-full min-h-screen">
-      <div className="w-full h-auto px-5 py-10">
+      <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-between items-start sm:items-center">
-          <h1 className="figtree text-[28px] sm:text-[35px] font-[700]">
+          <h1 className="figtree text-[28px] sm:text-[35px] font-[700] text-center">
             Vendor Profile Settings
           </h1>
           <div className="flex flex-row gap-3 sm:gap-5 relative items-center w-full sm:w-auto justify-center xl:justify-end">

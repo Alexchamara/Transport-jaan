@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     Ship,
@@ -190,11 +190,28 @@ const pieData = [
     { name: "Air", value: monthly.reduce((a, b) => a + b.air, 0) },
 ];
 
+const totalFCL = monthly.reduce((a, b) => a + b.fcl, 0);
+const totalLCL = monthly.reduce((a, b) => a + b.lcl, 0);
+const totalAir = monthly.reduce((a, b) => a + b.air, 0);
+const totalBookings = totalFCL + totalLCL + totalAir;
+
+const fclPercent = ((totalFCL / totalBookings) * 100).toFixed(1);
+const lclPercent = ((totalLCL / totalBookings) * 100).toFixed(1);
+const airPercent = ((totalAir / totalBookings) * 100).toFixed(1);
+
 const Hero = () => {
     const [mode, setMode] = useState("all");
     const [q, setQ] = useState("");
     const [origin, setOrigin] = useState("all");
     const [sort, setSort] = useState("popular");
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const filteredServices = useMemo(() => {
         const pool =
@@ -225,7 +242,7 @@ const Hero = () => {
     );
 
     return (
-        <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+        <div className="min-h-screen w-full bg-[#E5E5E5] p-10 md:p-20 poppins">
             <div className="mx-auto max-w-[1300px]">
                 {/* Header */}
                 <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
@@ -316,125 +333,151 @@ const Hero = () => {
                                 </button>
                             </div>
                         </div>
-                        <div className="px-10 pb-10 pt-10">
-                            <div
-                                className="h-[350px] w-full focus:outline-none"
-                                style={{
-                                    WebkitTapHighlightColor: "transparent",
-                                    outline: "none",
-                                }}
-                            >
-                                <ResponsiveContainer
-                                    width="100%"
-                                    height="100%"
-                                    className="focus:outline-none"
-                                    tabIndex={-1}
+                        <div className="px-10 pb-10">
+                            {isMobile ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <Ship className="h-5 w-5 text-blue-600" />
+                                            <span className="font-medium text-blue-700">FCL</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-blue-700">{totalFCL}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 bg-[#0955AC] bg-opacity-10 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <Boxes className="h-5 w-5 text-[#0955AC]" />
+                                            <span className="font-medium text-[#0955AC]">LCL</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-[#0955AC]">{totalLCL}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <Plane className="h-5 w-5 text-indigo-600" />
+                                            <span className="font-medium text-indigo-700">Air</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-indigo-700">{totalAir}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div
+                                    className="h-[350px] w-full focus:outline-none"
                                     style={{
                                         WebkitTapHighlightColor: "transparent",
                                         outline: "none",
                                     }}
                                 >
-                                    <AreaChart
-                                        data={monthly}
-                                        margin={{ left: 8, right: 8, top: 10 }}
+                                    <ResponsiveContainer
+                                        width="100%"
+                                        height="100%"
+                                        className="focus:outline-none"
+                                        tabIndex={-1}
+                                        style={{
+                                            WebkitTapHighlightColor: "transparent",
+                                            outline: "none",
+                                        }}
                                     >
-                                        <defs>
-                                            <linearGradient
-                                                id="gFCL"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#3b82f6"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#3b82f6"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                            <linearGradient
-                                                id="gLCL"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#0955AC"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#0955AC"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                            <linearGradient
-                                                id="gAir"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#6366f1"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#6366f1"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid
-                                            vertical={false}
-                                            horizontal={true}
-                                        />
-                                        <XAxis
-                                            dataKey="month"
-                                            tickLine={false}
-                                            axisLine={false}
-                                        />
-                                        <YAxis
-                                            tickLine={false}
-                                            axisLine={false}
-                                        />
-                                        <RTooltip />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="fcl"
-                                            name="FCL"
-                                            stroke="#3b82f6"
-                                            fill="url(#gFCL)"
-                                            strokeWidth={4}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="lcl"
-                                            name="LCL"
-                                            stroke="#0955AC"
-                                            fill="url(#gLCL)"
-                                            strokeWidth={4}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="air"
-                                            name="Air"
-                                            stroke="#6366f1"
-                                            fill="url(#gAir)"
-                                            strokeWidth={4}
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
+                                        <AreaChart
+                                            data={monthly}
+                                            margin={{ left: 8, right: 8, top: 10 }}
+                                        >
+                                            <defs>
+                                                <linearGradient
+                                                    id="gFCL"
+                                                    x1="0"
+                                                    y1="0"
+                                                    x2="0"
+                                                    y2="1"
+                                                >
+                                                    <stop
+                                                        offset="5%"
+                                                        stopColor="#3b82f6"
+                                                        stopOpacity={0.35}
+                                                    />
+                                                    <stop
+                                                        offset="95%"
+                                                        stopColor="#3b82f6"
+                                                        stopOpacity={0.02}
+                                                    />
+                                                </linearGradient>
+                                                <linearGradient
+                                                    id="gLCL"
+                                                    x1="0"
+                                                    y1="0"
+                                                    x2="0"
+                                                    y2="1"
+                                                >
+                                                    <stop
+                                                        offset="5%"
+                                                        stopColor="#0955AC"
+                                                        stopOpacity={0.35}
+                                                    />
+                                                    <stop
+                                                        offset="95%"
+                                                        stopColor="#0955AC"
+                                                        stopOpacity={0.02}
+                                                    />
+                                                </linearGradient>
+                                                <linearGradient
+                                                    id="gAir"
+                                                    x1="0"
+                                                    y1="0"
+                                                    x2="0"
+                                                    y2="1"
+                                                >
+                                                    <stop
+                                                        offset="5%"
+                                                        stopColor="#6366f1"
+                                                        stopOpacity={0.35}
+                                                    />
+                                                    <stop
+                                                        offset="95%"
+                                                        stopColor="#6366f1"
+                                                        stopOpacity={0.02}
+                                                    />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid
+                                                vertical={false}
+                                                horizontal={true}
+                                            />
+                                            <XAxis
+                                                dataKey="month"
+                                                tickLine={false}
+                                                axisLine={false}
+                                            />
+                                            <YAxis
+                                                tickLine={false}
+                                                axisLine={false}
+                                            />
+                                            <RTooltip />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="fcl"
+                                                name="FCL"
+                                                stroke="#3b82f6"
+                                                fill="url(#gFCL)"
+                                                strokeWidth={4}
+                                            />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="lcl"
+                                                name="LCL"
+                                                stroke="#0955AC"
+                                                fill="url(#gLCL)"
+                                                strokeWidth={4}
+                                            />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="air"
+                                                name="Air"
+                                                stroke="#6366f1"
+                                                fill="url(#gAir)"
+                                                strokeWidth={4}
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -449,64 +492,92 @@ const Hero = () => {
                             </p>
                         </div>
                         <div className="px-10 pb-10">
-                            <div
-                                className="h-[350px] w-full"
-                                style={{
-                                    WebkitTapHighlightColor: "transparent",
-                                    outline: "none",
-                                }}
-                            >
-                                <ResponsiveContainer
-                                    width="100%"
-                                    height="100%"
-                                    className="focus:outline-none"
-                                    tabIndex={-1}
-                                    style={{
-                                        WebkitTapHighlightColor: "transparent",
-                                        outline: "none",
-                                    }}
-                                >
-                                    <PieChart>
-                                        <Pie
-                                            data={pieData}
-                                            innerRadius={90}
-                                            outerRadius={140}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cornerRadius={8}
+                            {isMobile ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <Ship className="h-5 w-5 text-blue-600" />
+                                            <span className="font-medium text-blue-700">FCL</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-blue-700">{fclPercent}%</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 bg-[#0955AC] bg-opacity-10 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <Boxes className="h-5 w-5 text-[#0955AC]" />
+                                            <span className="font-medium text-[#0955AC]">LCL</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-[#0955AC]">{lclPercent}%</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <Plane className="h-5 w-5 text-indigo-600" />
+                                            <span className="font-medium text-indigo-700">Air</span>
+                                        </div>
+                                        <span className="text-lg font-bold text-indigo-700">{airPercent}%</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div
+                                        className="h-[350px] w-full"
+                                        style={{
+                                            WebkitTapHighlightColor: "transparent",
+                                            outline: "none",
+                                        }}
+                                    >
+                                        <ResponsiveContainer
+                                            width="100%"
+                                            height="100%"
+                                            className="focus:outline-none"
+                                            tabIndex={-1}
+                                            style={{
+                                                WebkitTapHighlightColor: "transparent",
+                                                outline: "none",
+                                            }}
                                         >
-                                            {pieData.map((_, i) => (
-                                                <Cell
-                                                    key={i}
-                                                    fill={
-                                                        [
-                                                            "#3b82f6",
-                                                            "#0955AC",
-                                                            "#6366f1",
-                                                        ][i]
-                                                    }
-                                                />
-                                            ))}
-                                        </Pie>
-                                        <RTooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
-                                <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-[#3b82f6]" />{" "}
-                                    FCL
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-[#0955AC]" />{" "}
-                                    LCL
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-indigo-500" />{" "}
-                                    Air
-                                </div>
-                            </div>
+                                            <PieChart>
+                                                <Pie
+                                                    data={pieData}
+                                                    innerRadius={90}
+                                                    outerRadius={140}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                    nameKey="name"
+                                                    cornerRadius={8}
+                                                >
+                                                    {pieData.map((_, i) => (
+                                                        <Cell
+                                                            key={i}
+                                                            fill={
+                                                                [
+                                                                    "#3b82f6",
+                                                                    "#0955AC",
+                                                                    "#6366f1",
+                                                                ][i]
+                                                            }
+                                                        />
+                                                    ))}
+                                                </Pie>
+                                                <RTooltip />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
+                                        <div className="flex items-center gap-2">
+                                            <span className="h-5 w-5 rounded-full bg-[#3b82f6]" />{" "}
+                                            FCL
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="h-5 w-5 rounded-full bg-[#0955AC]" />{" "}
+                                            LCL
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="h-5 w-5 rounded-full bg-indigo-500" />{" "}
+                                            Air
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

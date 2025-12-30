@@ -220,7 +220,7 @@ function BookingBarChart() {
   }, []);
 
   return (
-    <div className="w-full h-full flex flex-col xl:w-[500px] relative px-8 pt-8 pb-4">
+    <div className="w-full h-full flex flex-col md:w-[500px] xl:w-[500px] relative px-8 pt-8 pb-4">
       {/* Header */}
       <div className="flex xl:flex-row flex-col justify-between items-center mb-6">
         <div className="flex flex-col items-center gap-2">

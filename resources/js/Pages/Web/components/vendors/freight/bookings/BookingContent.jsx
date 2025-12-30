@@ -327,12 +327,12 @@ const BookingContent = () => {
                 <div className="flex flex-col gap-8 w-full">
                     {/* card 1 */}
                     <div
-                        className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-5 py-2"
+                        className="w-full h-auto bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-3 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
+                        <div className="flex flex-row xl:gap-5 gap-3 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                                 <img src={icon1} alt="Upcoming Bookings" />
                             </div>
@@ -343,8 +343,8 @@ const BookingContent = () => {
                                 <h1 className="xl:text-[26px] text-[20px] font-[700]">145</h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+                            <div className="xl:w-[81px] xl:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
                                     className="size-[19px]"
@@ -358,13 +358,13 @@ const BookingContent = () => {
                     {/* end of card 1 */}
                     {/* card 2 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-5 py-2"
+                        className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-3 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                        <div className="flex flex-row xl:gap-5 gap-3 justify-center items-center">
+                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center p-2">
                                 <img src={icon2} alt="Pending Bookings" />
                             </div>
                             <div>
@@ -374,8 +374,8 @@ const BookingContent = () => {
                                 <h1 className="xl:text-[26px] text-[20px] font-[700]">234</h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+                            <div className="xl:w-[81px] xl:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
                                     className="size-[19px]"
@@ -389,12 +389,12 @@ const BookingContent = () => {
                     {/* end of card 2 */}
                     {/* card 3 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-5 py-2"
+                        className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-3 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
+                        <div className="flex flex-row xl:gap-5 gap-3 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                                 <img src={icon3} alt="Cancelled Bookings" />
                             </div>
@@ -405,8 +405,8 @@ const BookingContent = () => {
                                 <h1 className="xl:text-[26px] text-[20px] font-[700]">24</h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+                            <div className="xl:w-[81px] xl:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
                                     className="size-[19px]"
@@ -420,12 +420,12 @@ const BookingContent = () => {
                     {/* end of card 3 */}
                     {/* card 4 */}
                     <div
-                        className="w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-5 py-2"
+                        className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex flex-row justify-between items-center gap-2 px-3 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center">
+                        <div className="flex flex-row xl:gap-5 gap-3 justify-center items-center">
                             <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
                                 <img src={icon4} alt="Completed Bookings" />
                             </div>
@@ -436,8 +436,8 @@ const BookingContent = () => {
                                 <h1 className="xl:text-[26px] text-[20px] font-[700]">145</h1>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
+                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+                            <div className="xl:w-[81px] xl:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
                                     className="size-[19px]"

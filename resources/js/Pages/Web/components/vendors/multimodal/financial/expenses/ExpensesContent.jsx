@@ -347,7 +347,7 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto px-5 py-5 xl:pr-5 xl:px-0 xl:py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-5 lg:pr-5 lg:px-0 py-10">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[24px] md:text-[35px] font-[700]">
@@ -393,13 +393,13 @@ const ExpensesContent = () => {
                             <img src={wallet} />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Balance
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$8,450</h1>
+                            <h1 className="text-[20px] font-[700]">$8,450</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <img src={upArrow} className="size-[19px]" />
                             <h1 className="">+2.86%</h1>
@@ -421,13 +421,13 @@ const ExpensesContent = () => {
                             <img src={income} />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Income
                             </h1>
-                            <h1 className="text-[26px] font-[700]">$25,700</h1>
+                            <h1 className="text-[20px] font-[700]">$25,700</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                             <img src={upArrow} className="size-[19px]" />
                             <h1 className="">+1.73%</h1>
@@ -449,15 +449,15 @@ const ExpensesContent = () => {
                             <img src={expenses} />
                         </div>
                         <div>
-                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Expenses
                             </h1>
-                            <h1 className="text-[26px] font-[700]">
+                            <h1 className="text-[20px] font-[700]">
                                 $14,756
                             </h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                             <img
                                 src={upArrow}
@@ -516,7 +516,7 @@ const ExpensesContent = () => {
                     )}
                 </div>
                 <div
-                    className="w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-10 py-5"
+                    className="w-full min-h-[426px] bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] px-5 py-5"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
@@ -689,7 +689,7 @@ const ExpensesContent = () => {
                                 boxShadow: "4px 4px 4px #0000001A",
                             }}
                         >
-                            <div className="flex justify-between items-start mb-2">
+                            <div className="flex flex-col gap-3 justify-between items-start mb-2">
                                 <div className="flex items-center gap-2">
                                     <input
                                         type="checkbox"
@@ -794,7 +794,7 @@ const ExpensesContent = () => {
                 {/* end */}
 
                 {/* Pagination Controls and Results per page inline */}
-                <div className="flex justify-between items-center gap-2 mt-20">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-2 mt-20">
                     {/* Left: Results per page */}
                     <div className="flex items-center">
                         <span className="mr-3 text-[#00000080] text-[15px]">

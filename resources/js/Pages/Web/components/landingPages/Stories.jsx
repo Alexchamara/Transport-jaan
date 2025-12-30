@@ -34,7 +34,6 @@ et, fermentum eget nisl. Fusce vel placerat libero.
 Integer convallis sodales libero, vitae tristique
 massa hendrerit in.`,
     },
-    
 ];
 
 const Stories = () => {
@@ -65,15 +64,15 @@ const Stories = () => {
                 {/* heading */}
                 <div className="flex flex-row justify-center items-center gap-5">
                     <div className="xl:w-[112px] w-[50px] h-[1.8px] bg-[#FF7003]" />
-                    <h1 className="text-[#FF7003] text-[40px] font-[600] text-center uppercase">
+                    <h1 className="text-[#FF7003] text-[20px] xl:text-[40px] font-[600] text-center uppercase">
                         Stories form our clinets
                     </h1>
                     <div className="xl:w-[112px] w-[50px] h-[1.8px] bg-[#FF7003]" />
                 </div>
 
-                <div className="flex flex-row gap-10 justify-center items-center py-10 px-20">
+                <div className="flex flex-col xl:flex-row gap-10 justify-center items-center py-10 xl:px-20">
                     <button
-                        className="size-[38px] rounded-full hidden md:flex justify-center items-center"
+                        className="hidden xl:flex size-[38px] rounded-full justify-center items-center"
                         style={{ backgroundColor: leftButtonColor }}
                         onClick={handlePrev}
                         aria-label="Previous review"
@@ -87,18 +86,20 @@ const Stories = () => {
                             className="w-[90px] h-[90px]"
                             alt={review.name}
                         />
-                        <p className="xl:w-[875px] text-center">
+                        <p className="xl:w-[875px] text-[12px] xl:text-[22px] text-center">
                             {review.text}
                         </p>
-                        <div className="flex flex-col md:items-center items-start">
-                            <h1 className="text-[22px] font-[600]">
+                        <div className="flex flex-col items-center">
+                            <h1 className="text-[18px] xl:text-[22px] font-[600]">
                                 {review.name}
                             </h1>
-                            <h1 className="text-[14px]">{review.title}</h1>
+                            <h1 className="text-[12px] xl:text-[14px]">
+                                {review.title}
+                            </h1>
                         </div>
                     </div>
                     <button
-                        className="size-[38px] rounded-full hidden md:flex justify-center items-center rotate-180"
+                        className="size-[38px] rounded-full hidden xl:flex justify-center items-center rotate-180"
                         style={{ backgroundColor: rightButtonColor }}
                         onClick={handleNext}
                         aria-label="Next review"
@@ -106,6 +107,28 @@ const Stories = () => {
                     >
                         <img src={leftArrow} alt="Next" />
                     </button>
+
+                    <div className="flex flex-row gap-5">
+                        <button
+                            className="size-[38px] rounded-full xl:hidden flex justify-center items-center"
+                            style={{ backgroundColor: leftButtonColor }}
+                            onClick={handlePrev}
+                            aria-label="Previous review"
+                            disabled={current === 0}
+                        >
+                            <img src={leftArrow} alt="Previous" />
+                        </button>
+
+                        <button
+                            className="size-[38px] rounded-full xl:hidden flex justify-center items-center rotate-180"
+                            style={{ backgroundColor: rightButtonColor }}
+                            onClick={handleNext}
+                            aria-label="Next review"
+                            disabled={current === reviews.length - 1}
+                        >
+                            <img src={leftArrow} alt="Next" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -9,16 +9,16 @@ import logo3 from "../../assets/freight/logo3.svg";
 
 const AboutUs = () => {
     return (
-        <div className="flex flex-row items-start justify-between relative px-20 pt-20 pb-[100px]">
-            <div className="xl:flex hidden flex-row gap-10">
-                <img src={img1} />
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 items-start justify-between relative xl:px-20 xl:pt-20 xl:pb-[100px] px-5">
+            <div className="xl:flex hidden flex-row gap-5">
+                <img src={img1} className="w-[300px]" />
                 <img
-                    className=""
+                    className="w-[200px]"
                     src={img2}
                 />
             </div>
 
-            <div className="poppins xl:w-[600px] flex flex-col gap-10 mt-20">
+            <div className="poppins flex flex-col gap-10 mt-20">
                 <h1 className="figtree text-[#0955AC] text-[24px] font-[700]">
                     About Us
                 </h1>
@@ -44,7 +44,7 @@ const AboutUs = () => {
                         Quisque facilisis laoreet feugiat.
                     </p>
                 </div>
-                <div className="flex flex-col md:flex-row justify-center items-center md:w-[599px] md:h-[148px] bg-[#000000] rounded-[20px] text-[#FFFFFF] font-[700] figtree px-10 py-10">
+                <div className="flex flex-col md:flex-row gap-10 md:gap-0 justify-center items-center w-full md:h-[148px] bg-[#000000] rounded-[20px] text-[#FFFFFF] font-[700] figtree px-10 py-10">
                     <div className="flex flex-row items-start justify-center gap-3 md:border-r-[1.5px] border-[#FFFFFFB2] px-10">
                         <img src={logo1} className="w-[25px] h-[33px]" />
                         <div>
