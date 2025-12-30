@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import BookingReferenceDisplay from '../../../Components/BookingReferenceDisplay';
-import BookingReferenceInput from '../../../Components/BookingReferenceInput';
+import BookingReferenceDisplay from '../../Components/BookingReferenceDisplay';
+import BookingReferenceInput from '../../Components/BookingReferenceInput';
 
 /**
  * Booking Reference Components Demo Page
