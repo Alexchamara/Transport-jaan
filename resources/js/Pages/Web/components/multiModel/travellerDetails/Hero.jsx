@@ -264,9 +264,9 @@ const Hero = () => {
                         </div>
 
                         <div className="flex flex-row justify-center items-center gap-5 mt-5">
-                            <div className="md:w-[139px] md:h-[28px] bg-[#0955AC] rounded-[4px] text-[#FFFFFF] text-[10px] font-[700] flex justify-center items-center  cursor-pointer px-2 py-2">
+                            <Link href="/multiModel/available-vehicles" className="md:w-[139px] md:h-[28px] bg-[#0955AC] rounded-[4px] text-[#FFFFFF] text-[10px] font-[700] flex justify-center items-center  cursor-pointer px-2 py-2">
                                 Edit Journey
-                            </div>
+                            </Link>
                         </div>
                     </div>
                 </div>
