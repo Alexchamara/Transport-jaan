@@ -8,7 +8,12 @@ use App\Models\TrainSchedule;
 use App\Models\TrainStation;
 use App\Models\Train;
 use App\Models\TrainBooking;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
+use App\Services\CancellationPolicyService;
 
 class TrainController extends Controller
 {
@@ -155,7 +160,7 @@ class TrainController extends Controller
     public function preview(Request $request)
     {
         // Check if the user is logged in
-        if (!auth()->check()) {
+        if (!Auth::check()) {
             return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
         }
 
@@ -228,7 +233,7 @@ class TrainController extends Controller
     public function store(Request $request)
     {
         // Check if the user is logged in
-        if (!auth()->check()) {
+        if (!Auth::check()) {
             return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
         }
 
@@ -242,37 +247,91 @@ class TrainController extends Controller
             'infants' => 'nullable|integer|min:0',
         ]);
 
-        $schedule = TrainSchedule::findOrFail($request->train_schedule_id);
+        try {
+            // Use database transaction with row locking to prevent race conditions
+            $booking = DB::transaction(function () use ($request) {
+                // Lock the schedule row for update to prevent concurrent modifications
+                $schedule = TrainSchedule::where('id', $request->train_schedule_id)
+                    ->lockForUpdate()
+                    ->first();
 
-        $adults = $request->adults;
-        $children = $request->children ?? 0;
-        $infants = $request->infants ?? 0;
-        $totalPassengers = $adults + $children + $infants;
+                if (!$schedule) {
+                    throw ValidationException::withMessages([
+                        'schedule' => ['Schedule not found.']
+                    ]);
+                }
 
-        // Calculate total amount
-        $totalAmount = ($schedule->price * $adults) + ($schedule->price * 0.5 * $children);
+                // Check if schedule is active
+                if ($schedule->status !== 'active') {
+                    throw ValidationException::withMessages([
+                        'schedule' => ['This schedule is not currently available for booking.']
+                    ]);
+                }
 
-        $booking = TrainBooking::create([
-            'user_id' => auth()->id(),
-            'train_schedule_id' => $request->train_schedule_id,
-            'passenger_name' => $request->passenger_name,
-            'passenger_email' => $request->passenger_email,
-            'passenger_phone' => $request->passenger_phone,
-            'adults' => $adults,
-            'children' => $children,
-            'infants' => $infants,
-            'total_passengers' => $totalPassengers,
-            'total_amount' => $totalAmount,
-            'status' => 'confirmed',
-            'payment_status' => 'pending',
-        ]);
+                // Check if booking date is not in the past
+                if (Carbon::parse($schedule->date)->isPast()) {
+                    throw ValidationException::withMessages([
+                        'schedule' => ['Cannot book a schedule in the past.']
+                    ]);
+                }
 
-        // Update available seats
-        $schedule->update([
-            'available_seats' => $schedule->available_seats - $totalPassengers
-        ]);
+                $adults = $request->adults;
+                $children = $request->children ?? 0;
+                $infants = $request->infants ?? 0;
+                $totalPassengers = $adults + $children + $infants;
 
-        return redirect()->route('train.booking.success', $booking->booking_reference);
+                // Check seat availability (atomic check within transaction)
+                if ($schedule->available_seats < $totalPassengers) {
+                    throw ValidationException::withMessages([
+                        'seats' => ["Only {$schedule->available_seats} seat(s) available. You requested {$totalPassengers} passengers."]
+                    ]);
+                }
+
+                // Calculate total amount from database (never trust client-side calculations)
+                $totalAmount = ($schedule->price * $adults) + ($schedule->price * 0.5 * $children);
+
+                // Create the booking
+                $booking = TrainBooking::create([
+                    'user_id' => Auth::id(),
+                    'train_schedule_id' => $request->train_schedule_id,
+                    'passenger_name' => $request->passenger_name,
+                    'passenger_email' => $request->passenger_email,
+                    'passenger_phone' => $request->passenger_phone,
+                    'adults' => $adults,
+                    'children' => $children,
+                    'infants' => $infants,
+                    'total_passengers' => $totalPassengers,
+                    'total_amount' => $totalAmount,
+                    'status' => 'pending', // Start as pending until payment
+                    'payment_status' => 'pending',
+                    'expires_at' => now()->addMinutes(15) // Booking expires in 15 minutes
+                ]);
+
+                // Atomically decrement available seats
+                $schedule->decrement('available_seats', $totalPassengers);
+
+                Log::info('Train booking created successfully', [
+                    'booking_id' => $booking->id,
+                    'reference' => $booking->booking_reference,
+                    'seats_remaining' => $schedule->fresh()->available_seats
+                ]);
+
+                return $booking;
+            });
+
+            return redirect()->route('train.booking.success', $booking->booking_reference)
+                ->with('success', 'Train booking confirmed successfully!');
+
+        } catch (ValidationException $e) {
+            Log::warning('Train booking validation failed', ['errors' => $e->errors()]);
+            return back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            Log::error('Train booking failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withErrors(['error' => 'An error occurred while processing your booking. Please try again.'])->withInput();
+        }
     }
 
     public function bookingSuccess($reference)
@@ -327,5 +386,133 @@ class TrainController extends Controller
             return sprintf('%dh %dm', $hours, $mins);
         }
         return sprintf('%dm', $mins);
+    }
+
+    /**
+     * Get cancellation policy for a train booking
+     */
+    public function getCancellationPolicy($reference)
+    {
+        if (!Auth::check()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Please log in.'], 401);
+            }
+            return redirect()->route('signin')->with('message', 'Please log in to view cancellation policy.');
+        }
+
+        $booking = TrainBooking::with(['trainSchedule'])
+            ->where('booking_reference', $reference)
+            ->firstOrFail();
+
+        if ($booking->user_id !== Auth::id()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403, 'Unauthorized access.');
+        }
+
+        try {
+            $cancellationService = app(CancellationPolicyService::class);
+            
+            if (!$cancellationService->canCancel('train', $booking)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This booking cannot be cancelled.',
+                    'can_cancel' => false
+                ]);
+            }
+
+            $refundDetails = $cancellationService->calculateRefund('train', $booking);
+
+            return response()->json([
+                'success' => true,
+                'can_cancel' => true,
+                'refund_details' => $refundDetails
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get cancellation policy', [
+                'reference' => $reference,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve cancellation policy.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel a train booking
+     */
+    public function cancelBooking(Request $request, $reference)
+    {
+        if (!Auth::check()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Please log in.'], 401);
+            }
+            return redirect()->route('signin')->with('message', 'Please log in to cancel your booking.');
+        }
+
+        $booking = TrainBooking::where('booking_reference', $reference)->firstOrFail();
+
+        if ($booking->user_id !== Auth::id()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403, 'Unauthorized access.');
+        }
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            $cancellationService = app(CancellationPolicyService::class);
+            
+            $result = $cancellationService->cancelBooking(
+                'train',
+                $reference,
+                Auth::id(),
+                $validated['reason'] ?? null
+            );
+
+            if ($result['success']) {
+                Log::info('Train booking cancelled successfully', [
+                    'reference' => $reference,
+                    'user_id' => Auth::id()
+                ]);
+
+                if (request()->expectsJson()) {
+                    return response()->json($result);
+                }
+
+                return redirect()->route('dashboard')
+                    ->with('success', $result['message']);
+            } else {
+                if (request()->expectsJson()) {
+                    return response()->json($result, 400);
+                }
+
+                return back()->withErrors(['error' => $result['message']]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Train booking cancellation failed', [
+                'reference' => $reference,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to cancel booking. Please try again.'
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => 'Failed to cancel booking. Please try again.']);
+        }
     }
 }

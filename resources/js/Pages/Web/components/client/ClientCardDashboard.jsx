@@ -59,7 +59,7 @@ const ClientCardDashboard = () => {
       route: '/cargo-freight',
       subOptions: [
         { name: 'Get Quote', route: '/freight-home' },
-        { name: 'Book Freight', route: '/cargo-freight' },
+        // { name: 'Book Freight', route: '/cargo-freight' },
         { name: 'My Freight Bookings', route: '/freightBookingDashboard' }
       ]
     },

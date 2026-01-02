@@ -7,7 +7,10 @@ use App\Mail\FlightBookingConfirmation;
 use App\Models\FlightBooking;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+use App\Services\CancellationPolicyService;
 
 class FlightBookingController extends Controller
 {
@@ -35,18 +38,28 @@ class FlightBookingController extends Controller
     public function store(StoreFlightBookingRequest $request)
     {
         // Check if the user is logged in
-        if (!auth()->check()) {
+        if (!Auth::check()) {
             return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
         }
 
         try {
-            // Associate the booking with the authenticated user
-            $data = $request->validated();
-            $data['user_id'] = auth()->id();
+            // Use database transaction for data consistency
+            $flightBooking = DB::transaction(function () use ($request) {
+                // Associate the booking with the authenticated user
+                $data = $request->validated();
+                $data['user_id'] = Auth::id();
 
-            $flightBooking = FlightBooking::create($data);
+                $flightBooking = FlightBooking::create($data);
 
-            // Send confirmation email
+                Log::info('Flight booking created successfully', [
+                    'booking_id' => $flightBooking->id,
+                    'user_id' => Auth::id()
+                ]);
+
+                return $flightBooking;
+            });
+
+            // Send confirmation email (outside transaction to avoid blocking)
             try {
                 Mail::to($flightBooking->email)->send(new FlightBookingConfirmation($flightBooking));
             } catch (\Exception $e) {
@@ -106,5 +119,145 @@ class FlightBookingController extends Controller
         return response()->json([
             'message' => 'Flight booking deleted successfully.'
         ]);
+    }
+
+    /**
+     * Get cancellation policy for a flight booking
+     */
+    public function getCancellationPolicy($reference)
+    {
+        if (!Auth::check()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Please log in.'], 401);
+            }
+            return redirect()->route('signin')->with('message', 'Please log in to view cancellation policy.');
+        }
+
+        // Flight bookings might use 'id' as reference since they don't have booking_reference field
+        $booking = FlightBooking::where('id', $reference)
+            ->orWhere('email', Auth::user()->email)
+            ->firstOrFail();
+
+        // Verify ownership - check by user_id if exists, otherwise by email
+        $isOwner = (isset($booking->user_id) && $booking->user_id === Auth::id()) || 
+                   ($booking->email === Auth::user()->email);
+        
+        if (!$isOwner) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403, 'Unauthorized access.');
+        }
+
+        try {
+            $cancellationService = app(CancellationPolicyService::class);
+            
+            if (!$cancellationService->canCancel('flight', $booking)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This booking cannot be cancelled.',
+                    'can_cancel' => false
+                ]);
+            }
+
+            $refundDetails = $cancellationService->calculateRefund('flight', $booking);
+
+            return response()->json([
+                'success' => true,
+                'can_cancel' => true,
+                'refund_details' => $refundDetails
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get cancellation policy', [
+                'reference' => $reference,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve cancellation policy.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel a flight booking
+     */
+    public function cancelBooking(Request $request, $reference)
+    {
+        if (!Auth::check()) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Please log in.'], 401);
+            }
+            return redirect()->route('signin')->with('message', 'Please log in to cancel your booking.');
+        }
+
+        // Flight bookings might use 'id' as reference since they don't have booking_reference field
+        $booking = FlightBooking::where('id', $reference)
+            ->orWhere('email', Auth::user()->email)
+            ->firstOrFail();
+
+        // Verify ownership
+        $isOwner = (isset($booking->user_id) && $booking->user_id === Auth::id()) || 
+                   ($booking->email === Auth::user()->email);
+        
+        if (!$isOwner) {
+            if (request()->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+            abort(403, 'Unauthorized access.');
+        }
+
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            $cancellationService = app(CancellationPolicyService::class);
+            
+            $result = $cancellationService->cancelBooking(
+                'flight',
+                $reference,
+                Auth::id(),
+                $validated['reason'] ?? null
+            );
+
+            if ($result['success']) {
+                Log::info('Flight booking cancelled successfully', [
+                    'reference' => $reference,
+                    'user_id' => Auth::id()
+                ]);
+
+                if (request()->expectsJson()) {
+                    return response()->json($result);
+                }
+
+                return redirect()->route('dashboard')
+                    ->with('success', $result['message']);
+            } else {
+                if (request()->expectsJson()) {
+                    return response()->json($result, 400);
+                }
+
+                return back()->withErrors(['error' => $result['message']]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Flight booking cancellation failed', [
+                'reference' => $reference,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to cancel booking. Please try again.'
+                ], 500);
+            }
+
+            return back()->withErrors(['error' => 'Failed to cancel booking. Please try again.']);
+        }
     }
 }

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from '@inertiajs/react';
 import Header from '../../layouts/Header';
 import Footer from '../../layouts/Footer';
+import BookingReferenceDisplay from '../../../../Components/BookingReferenceDisplay';
 
 const BusBookingSuccess = ({ booking }) => {
     return (
@@ -21,11 +22,14 @@ const BusBookingSuccess = ({ booking }) => {
 
                     {/* Booking reference */}
                     <div className="border-b px-6 py-4">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-gray-600">Booking Reference</h2>
-                            <span className="text-xl font-bold text-[#0955AC]">{booking.reference}</span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-2">
+                        <h2 className="text-lg font-semibold text-gray-600 mb-3">Booking Reference</h2>
+                        <BookingReferenceDisplay 
+                            reference={booking.reference}
+                            size="large"
+                            showCopy={true}
+                            showValidation={true}
+                        />
+                        <p className="text-sm text-gray-500 mt-3">
                             Please save this reference number for your records. You'll need it for any booking inquiries.
                         </p>
                     </div>
@@ -120,18 +124,55 @@ const BusBookingSuccess = ({ booking }) => {
                     {/* Actions */}
                     <div className="px-6 py-6 flex flex-wrap gap-4 justify-between">
                         <div className="space-x-4">
-                            <button className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium">
-                                Print Ticket
-                            </button>
-                            <button className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium">
-                                Email Ticket
+                            <a 
+                                href={`/bus-ticket/download/${booking.reference}`}
+                                className="inline-block bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors"
+                                target="_blank"
+                            >
+                                📄 Download Ticket
+                            </a>
+                            <a 
+                                href={`/bus-ticket/view/${booking.reference}`}
+                                className="inline-block bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors"
+                                target="_blank"
+                            >
+                                👁️ View Ticket
+                            </a>
+                            <button 
+                                onClick={() => {
+                                    if (confirm('Send ticket to ' + (booking.passengerEmail || 'your email') + '?')) {
+                                        fetch(`/bus-ticket/email/${booking.reference}`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                                                'Accept': 'application/json'
+                                            }
+                                        })
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                alert(data.message);
+                                            } else {
+                                                alert('Failed to send email. Please try again.');
+                                            }
+                                        })
+                                        .catch(err => {
+                                            console.error(err);
+                                            alert('Failed to send email. Please try again.');
+                                        });
+                                    }
+                                }}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-medium transition-colors"
+                            >
+                                📧 Email Ticket
                             </button>
                         </div>
 
                         <div>
                             <Link
                                 href="/flight-booking"
-                                className="bg-[#0955AC] hover:bg-[#074489] text-white px-6 py-2 rounded-lg font-medium"
+                                className="inline-block bg-[#0955AC] hover:bg-[#074489] text-white px-6 py-2 rounded-lg font-medium transition-colors"
                             >
                                 Back to Home
                             </Link>

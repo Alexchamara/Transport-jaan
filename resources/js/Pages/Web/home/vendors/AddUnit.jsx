@@ -170,9 +170,11 @@ const AddUnit = () => {
       u.searchParams.set("per_page", "50");
       u.searchParams.set("sort", "full_name");
       u.searchParams.set("dir", "asc");
+      u.searchParams.set("status", "Active"); // Filter by Active status
       const q = driverQuery?.trim();
-      // If your API supports a dedicated status param, prefer: u.searchParams.set("status","Active");
-      u.searchParams.set("q", q ? `${q} Active` : "Active");
+      if (q) {
+        u.searchParams.set("q", q); // Search query separate from status
+      }
       const data = await getJson(u.toString());
       setDrivers(Array.isArray(data?.data) ? data.data : []);
     } finally {

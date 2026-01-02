@@ -3,7 +3,7 @@ import { Link } from "@inertiajs/react";
 import Header from "./ClientHeader";
 import Hero from "../../components/client/ticketBooking/Hero";
 
-const ClientTicketBookingDashboard = () => {
+const ClientTicketBookingDashboard = ({ bookings, monthlyData }) => {
     return (
         <div className="bg-[#E5E5E5] min-h-screen">
             <Header />
@@ -21,7 +21,7 @@ const ClientTicketBookingDashboard = () => {
                 </Link>
             </div>
 
-            <Hero />
+            <Hero bookings={bookings} monthlyData={monthlyData} />
         </div>
     );
 };

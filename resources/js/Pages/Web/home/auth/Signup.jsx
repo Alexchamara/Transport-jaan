@@ -66,7 +66,7 @@ const Signup = () => {
                                         />
                                     </div>
                                     {errors.email && (
-                                        <div className="text-red-500 text-sm px-10 mt-1">
+                                        <div className="text-red-500 text-sm px-10 mt-1 max-md:px-4 max-md:text-xs">
                                             {errors.email}
                                         </div>
                                     )}
@@ -93,7 +93,7 @@ const Signup = () => {
                                         />
                                     </div>
                                     {errors.password && (
-                                        <div className="text-red-500 text-sm px-10 mt-1">
+                                        <div className="text-red-500 text-sm px-10 mt-1 max-md:px-4 max-md:text-xs">
                                             {errors.password}
                                         </div>
                                     )}

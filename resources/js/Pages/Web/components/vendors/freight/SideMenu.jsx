@@ -96,7 +96,7 @@ const SideMenu = () => {
                         </div>
 
                         {/* Units */}
-                        <div
+                        {/* <div
                             className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
                                 currentPath === "/vendors/freight/units" ||
                                 currentPath === "/freight/units"
@@ -113,7 +113,7 @@ const SideMenu = () => {
                                 alt="Units"
                             />
                             <span>Units</span>
-                        </div>
+                        </div> */}
 
                         {/* Calendar */}
                         <div

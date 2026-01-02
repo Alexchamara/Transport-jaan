@@ -25,11 +25,18 @@ class FlightBooking extends Model
         'departure_airport',
         'arriving_airport',
         'status',
+        'cancelled_at',
+        'cancellation_reason',
+        'refund_amount',
+        'cancellation_fee'
     ];
 
     protected $casts = [
         'departure_date' => 'date',
         'return_date' => 'date',
+        'cancelled_at' => 'datetime',
+        'refund_amount' => 'decimal:2',
+        'cancellation_fee' => 'decimal:2',
     ];
 
     protected $attributes = [

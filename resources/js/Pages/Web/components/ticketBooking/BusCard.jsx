@@ -64,7 +64,6 @@ const BusCard = () => {
                             required
                         >
                             <option value="" disabled>
-                                Enter your departure station
                             </option>
                             {stationOptions.map((s) => (
                                 <option key={s} value={s}>
@@ -85,7 +84,6 @@ const BusCard = () => {
                             required
                         >
                             <option value="" disabled>
-                                Enter your arrival station
                             </option>
                             {stationOptions.map((s) => (
                                 <option key={s} value={s}>
