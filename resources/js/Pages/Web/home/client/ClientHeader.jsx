@@ -5,9 +5,6 @@ import proPic from "../../assets/header/profilePic.svg";
 import bell from "../../assets/header/bell.svg";
 import search from "../../assets/header/search.svg";
 import { ArrowLeft } from "lucide-react";
-{
-    /* ← Only new import */
-}
 
 const ClientHeader = () => {
     const { auth } = usePage().props;

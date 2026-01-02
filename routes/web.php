@@ -142,7 +142,27 @@ Route::get('/freight-booking/create', [WebController::class, 'freightHomepage'])
 
 // multi - model (client-side)
 Route::get('/multiModel', [WebController::class, 'multiModelHomepage'])->name('multiModelHomepage.home');
+Route::get('/multiModel/plan-journey', [WebController::class, 'multiModelPlanJourney'])->name('multiModelPlanJourney.planJourney');
+Route::get('/multiModel/available-vehicles', [WebController::class, 'multiModelAvailableVehicles'])->name('multiModelAvailableVehicles.availableVehicles');
+Route::get('/multiModel/reviewJourney', [WebController::class, 'ReviewJourney'])->name('ReviewJourney.reviewJourney');
+Route::get('/multiModel/travellerDetails', [WebController::class, 'TravellerDetails'])->name('TravellerDetails.travellerDetails');
+Route::get('/multiModel/payment', [WebController::class, 'Payment'])->name('Payment.payment');
+Route::get('/multiModel/vehicleDetails', [WebController::class, 'MultimodelVehicleDetails'])->name('MultimodelVehicleDetails.multimodelVehicleDetails');
 
+// bus section
+Route::get('/multiModel/bus/busDetails', [WebController::class, 'BusDetails'])->name('BusDetails.busDetails');
+Route::get('/multiModel/bus/payment', [WebController::class, 'BusPayment'])->name('BusPayment.busPayment');
+Route::get('/multiModel/bus/confirmPayment', [WebController::class, 'BusConfirmPayment'])->name('BusConfirmPayment.busConfirmPayment');
+
+// train section
+Route::get('/multiModel/train/trainDetails', [WebController::class, 'TrainDetails'])->name('TrainDetails.trainDetails');
+Route::get('/multiModel/train/payment', [WebController::class, 'TrainPayment'])->name('TrainPayment.trainPayment');
+Route::get('/multiModel/train/confirmPayment', [WebController::class, 'TrainConfirmPayment'])->name('TrainConfirmPayment.trainConfirmPayment');
+
+// yatch section
+Route::get('/multiModel/yatch/yatchDetails', [WebController::class, 'YatchDetails'])->name('YatchDetails.yatchDetails');
+Route::get('/multiModel/yatch/payment', [WebController::class, 'YatchPayment'])->name('YatchPayment.yatchPayment');
+Route::get('/multiModel/yatch/confirmPayment', [WebController::class, 'YatchConfirmPayment'])->name('YatchConfirmPayment.yatchConfirmPayment');
 
 
 

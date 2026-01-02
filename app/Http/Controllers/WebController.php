@@ -132,6 +132,86 @@ class WebController extends Controller
         return Inertia::render('Web/home/multiModel/HomePage');
     }
 
+    public function multiModelPlanJourney()
+    {
+        return Inertia::render('Web/home/multiModel/PlanJourney');
+    }
+
+    public function multiModelAvailableVehicles()
+    {
+        return Inertia::render('Web/home/multiModel/AvailableVehicles');
+    }
+
+    public function ReviewJourney()
+    {
+        return Inertia::render('Web/home/multiModel/ReviewJourney');
+    }
+
+    public function TravellerDetails()
+    {
+        return Inertia::render('Web/home/multiModel/TravellerDetails');
+    }
+
+
+    public function Payment()
+    {
+        return Inertia::render('Web/home/multiModel/Payment');
+    }
+
+    
+
+    public function MultimodelVehicleDetails()
+    {
+        return Inertia::render('Web/home/multiModel/VehicleDetails');
+    }
+
+    // bus section
+    public function BusDetails()
+    {
+        return Inertia::render('Web/home/multiModel/bus/BusDetails');
+    }
+
+    public function BusPayment()
+    {
+        return Inertia::render('Web/home/multiModel/bus/Payment');
+    }
+
+    public function BusConfirmPayment()
+    {
+        return Inertia::render('Web/home/multiModel/bus/ConfirmPayment');
+    }
+
+    // train section
+    public function TrainDetails()
+    {
+        return Inertia::render('Web/home/multiModel/train/TrainDetails');
+    }
+
+    public function TrainPayment()
+    {
+        return Inertia::render('Web/home/multiModel/train/Payment');
+    }
+
+    public function TrainConfirmPayment()
+    {
+        return Inertia::render('Web/home/multiModel/train/ConfirmPayment');
+    }
+
+    // yatch section
+    public function YatchDetails()
+    {
+        return Inertia::render('Web/home/multiModel/yatch/YatchDetails');
+    }
+
+    public function YatchPayment()
+    {
+        return Inertia::render('Web/home/multiModel/yatch/Payment');
+    }
+
+    public function YatchConfirmPayment()
+    {
+        return Inertia::render('Web/home/multiModel/yatch/ConfirmPayment');
+    }
 
 
 

@@ -8,7 +8,7 @@ import heartB from "../../assets/landVehicleDetails/sug/heartB.svg";
 
 const Suggestions = () => {
     return (
-        <div className="w-auto h-auto md:w-[440px] min-h-[643px] bg-[#F4F3F3] rounded-[19px] px-10 xl:px-20 py-10">
+        <div className="w-auto h-auto md:w-[440px] min-h-[643px] bg-[#F4F3F3] rounded-[19px] px-10 py-10">
             <h1 className="bebas-neue text-[30px]">
                 you <span className="text-[#0955AC]">also</span> might{" "}
                 <span className="text-[#0955AC]">like</span> this

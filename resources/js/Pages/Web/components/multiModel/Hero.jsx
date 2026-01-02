@@ -14,6 +14,9 @@ import icon5 from "../../assets/multiModel/icon5.svg";
 import downArrow from "../../assets/multiModel/downArrow.svg";
 import calendar from "../../assets/multiModel/calendar.svg";
 
+import { Link } from "@inertiajs/react";
+
+
 const HERO_BACKGROUNDS = [bg, bg2, bg3, bg4, bg5, bg6];
 
 const TAB_CONFIG = [
@@ -22,8 +25,16 @@ const TAB_CONFIG = [
         label: "Car",
         icon: icon1,
         fields: [
-            { id: "pickup", label: "Pick-up Location", placeholder: "Colombo, Bandaranaike Airport" },
-            { id: "dropoff", label: "Drop-off Location", placeholder: "Hotel / Destination" },
+            {
+                id: "pickup",
+                label: "Pick-up Location",
+                placeholder: "Colombo, Bandaranaike Airport",
+            },
+            {
+                id: "dropoff",
+                label: "Drop-off Location",
+                placeholder: "Hotel / Destination",
+            },
             { id: "date", label: "Date", placeholder: "Select date" },
         ],
     },
@@ -57,7 +68,11 @@ const TAB_CONFIG = [
             { id: "from", label: "From", placeholder: "Colombo (CMB)" },
             { id: "to", label: "To", placeholder: "Destination" },
             { id: "depart", label: "Depart", placeholder: "Select date" },
-            { id: "passengers", label: "Travellers", placeholder: "1 Adult, Economy" },
+            {
+                id: "passengers",
+                label: "Travellers",
+                placeholder: "1 Adult, Economy",
+            },
         ],
     },
     {
@@ -65,8 +80,16 @@ const TAB_CONFIG = [
         label: "Yatch",
         icon: icon5,
         fields: [
-            { id: "pickup", label: "Pick-up Marina", placeholder: "Pick a marina" },
-            { id: "duration", label: "Duration", placeholder: "Half day / Full day" },
+            {
+                id: "pickup",
+                label: "Pick-up Marina",
+                placeholder: "Pick a marina",
+            },
+            {
+                id: "duration",
+                label: "Duration",
+                placeholder: "Half day / Full day",
+            },
             { id: "date", label: "Date", placeholder: "Select date" },
             { id: "guests", label: "Guests", placeholder: "1-8 Guests" },
         ],
@@ -88,13 +111,15 @@ const Hero = () => {
     return (
         <div className="flex flex-col justify-center items-center px-4 sm:px-6 lg:px-0">
             <div className="max-w-[1400px] w-full py-10 px-0 sm:px-4 lg:px-10">
-                <div
-                    className="relative overflow-hidden w-full min-h-[550px] sm:min-h-[650px] lg:min-h-[789px] rounded-[25px] flex flex-col justify-between items-center px-5 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-10 sm:py-14 lg:py-[90px]"
-                >
+                <div className="relative overflow-hidden w-full min-h-[550px] sm:min-h-[650px] lg:min-h-[789px] rounded-[25px] flex flex-col justify-between items-center px-5 sm:px-8 md:px-12 lg:px-16 xl:px-20 py-10 sm:py-14 lg:py-[90px]">
                     {HERO_BACKGROUNDS.map((bgImage, idx) => (
                         <div
                             key={idx}
-                            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out rounded-[25px] ${idx === activeBgIndex ? "opacity-100" : "opacity-0"}`}
+                            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out rounded-[25px] ${
+                                idx === activeBgIndex
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                            }`}
                             style={{ backgroundImage: `url(${bgImage})` }}
                         />
                     ))}
@@ -111,7 +136,17 @@ const Hero = () => {
                                 your hotel or next adventure, we ensure your
                                 journey flows smoothly, quickly, and without the
                                 usual travel stress.
-                            </p>
+                            </p>{" "}
+                            <div className="mt-6 sm:mt-8">
+                                <Link
+                                    href="/multiModel/plan-journey"
+                                    className="md:max-w-[320px] md:h-[54px] rounded-[4px] bg-[#0955AC] flex justify-center items-center cursor-pointer px-4 py-2"
+                                >
+                                    <h1 className="text-white text-[20px] font-[700]">
+                                        Plan Your Awesome Journey
+                                    </h1>
+                                </Link>
+                            </div>{" "}
                         </div>
                         <div className="hidden lg:flex flex-col gap-5">
                             {HERO_BACKGROUNDS.map((_, idx) => {
@@ -133,9 +168,9 @@ const Hero = () => {
                         </div>
                     </div>
 
-                    <div className="poppins w-full mt-10 xl:mt-0 relative z-20">
-                        {/* tabs section */}
-                        <div className="flex flex-row overflow-x-auto scrollbar-thin scrollbar-thumb-white/30">
+                    {/* <div className="poppins w-full mt-10 xl:mt-0 relative z-20"> */}
+                    {/* tabs section */}
+                    {/* <div className="flex flex-row overflow-x-auto scrollbar-thin scrollbar-thumb-white/30">
                             {TAB_CONFIG.map((tab) => {
                                 const isActive = tab.key === activeTab;
                                 return (
@@ -162,10 +197,10 @@ const Hero = () => {
                                     </button>
                                 );
                             })}
-                        </div>
+                        </div> */}
 
-                        {/* form section */}
-                        <div className="w-full flex flex-col xl:h-[200px] gap-5 sm:gap-6 md:flex-row md:justify-between md:items-center px-4 sm:px-6 md:px-8 py-5 sm:py-6 bg-white/95 backdrop-blur-md rounded-b-[15px] sm:rounded-tr-[15px] relative z-20 text-[15px] font-[600] text-[#286BB6] shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
+                    {/* form section */}
+                    {/* <div className="w-full flex flex-col xl:h-[200px] gap-5 sm:gap-6 md:flex-row md:justify-between md:items-center px-4 sm:px-6 md:px-8 py-5 sm:py-6 bg-white/95 backdrop-blur-md rounded-b-[15px] sm:rounded-tr-[15px] relative z-20 text-[15px] font-[600] text-[#286BB6] shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
                             <div className="flex flex-wrap gap-4 sm:gap-5 md:gap-6 items-end w-full">
                                 {currentTab?.fields?.map((field) => (
                                     <div key={field.id} className="flex flex-col gap-2 w-full sm:w-[48%] lg:w-auto min-w-[200px] lg:min-w-[260px]">
@@ -177,7 +212,7 @@ const Hero = () => {
                                                         type="date"
                                                         className="w-full text-[15px] font-[500] border-none focus:ring-0 text-[#18395f] h-full outline-none bg-transparent"
                                                     />
-                                                    {/* <img src={calendar} className="w-5 h-5" /> */}
+                                                    
                                                 </>
                                             ) : field.id === "passengers" || field.id === "duration" || field.id === "class" ? (
                                                 <>
@@ -188,7 +223,7 @@ const Hero = () => {
                                                         <option value="3">3</option>
                                                         <option value="4+">4+</option>
                                                     </select>
-                                                    {/* <img src={downArrow} className="w-4 h-4" /> */}
+                                                    
                                                 </>
                                             ) : (
                                                 <>
@@ -207,8 +242,8 @@ const Hero = () => {
                                     SEARCH
                                 </button>
                             </div>
-                        </div>
-                    </div>
+                        </div> */}
+                    {/* </div> */}
                 </div>
             </div>
         </div>
