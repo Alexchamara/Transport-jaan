@@ -15,7 +15,7 @@ import plus from "../../../assets/multiModel/planJourney/plus.svg";
 import leftArrow from "../../../assets/multiModel/planJourney/leftArrow.svg";
 import alert from "../../../assets/multiModel/planJourney/alert.svg";
 
-const JourneyPlanner = ({ transportMode = "car" }) => {
+const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, addedStops, setAddedStops, endJourney, setEndJourney }) => {
     const [activeView, setActiveView] = useState("journey");
     const [showPopup, setShowPopup] = useState(false);
     const [stopData, setStopData] = useState({
@@ -25,7 +25,6 @@ const JourneyPlanner = ({ transportMode = "car" }) => {
         returnDate: "",
         returnTime: "",
     });
-    const [addedStops, setAddedStops] = useState([]);
     const [editingStopId, setEditingStopId] = useState(null);
     const [editScheduleData, setEditScheduleData] = useState({
         departureDate: "",
@@ -33,45 +32,6 @@ const JourneyPlanner = ({ transportMode = "car" }) => {
         returnDate: "",
         returnTime: "",
     });
-
-    const [startJourney, setStartJourney] = useState({
-        location: "",
-        startDate: "",
-        startTime: "",
-    });
-
-    const [endJourney, setEndJourney] = useState({
-        location: "",
-        returnDate: "",
-        returnTime: "",
-    });
-
-    useEffect(() => {
-        const savedStart = localStorage.getItem("journeyStart");
-        if (savedStart) {
-            setStartJourney(JSON.parse(savedStart));
-        }
-        const savedStops = localStorage.getItem("journeyStops");
-        if (savedStops) {
-            setAddedStops(JSON.parse(savedStops));
-        }
-        const savedEnd = localStorage.getItem("journeyEnd");
-        if (savedEnd) {
-            setEndJourney(JSON.parse(savedEnd));
-        }
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem("journeyStart", JSON.stringify(startJourney));
-    }, [startJourney]);
-
-    useEffect(() => {
-        localStorage.setItem("journeyStops", JSON.stringify(addedStops));
-    }, [addedStops]);
-
-    useEffect(() => {
-        localStorage.setItem("journeyEnd", JSON.stringify(endJourney));
-    }, [endJourney]);
 
     const handleAddStop = () => {
         setShowPopup(true);

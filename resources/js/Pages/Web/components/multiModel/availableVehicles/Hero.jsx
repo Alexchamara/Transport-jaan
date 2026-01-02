@@ -588,6 +588,37 @@ const Hero = () => {
     const [yachtPage, setYachtPage] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
 
+    const [startJourney, setStartJourney] = useState({ location: "", startDate: "", startTime: "" });
+    const [addedStops, setAddedStops] = useState([]);
+    const [endJourney, setEndJourney] = useState({ location: "", returnDate: "", returnTime: "" });
+
+    useEffect(() => {
+        const savedStart = localStorage.getItem("journeyStart");
+        if (savedStart) {
+            setStartJourney(JSON.parse(savedStart));
+        }
+        const savedStops = localStorage.getItem("journeyStops");
+        if (savedStops) {
+            setAddedStops(JSON.parse(savedStops));
+        }
+        const savedEnd = localStorage.getItem("journeyEnd");
+        if (savedEnd) {
+            setEndJourney(JSON.parse(savedEnd));
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem("journeyStart", JSON.stringify(startJourney));
+    }, [startJourney]);
+
+    useEffect(() => {
+        localStorage.setItem("journeyStops", JSON.stringify(addedStops));
+    }, [addedStops]);
+
+    useEffect(() => {
+        localStorage.setItem("journeyEnd", JSON.stringify(endJourney));
+    }, [endJourney]);
+
     const handleSectionChange = (newSection) => {
         if (newSection !== activeSection && !isTransitioning) {
             setIsTransitioning(true);
@@ -668,7 +699,7 @@ const Hero = () => {
     return (
         <div className="grid grid-cols-1 xl:grid-cols-3 px-5 sm:px-10 py-10 gap-10">
             <div className="xl:col-span-1">
-                <JourneyPlanner transportMode={activeSection} />
+                <JourneyPlanner transportMode={activeSection} startJourney={startJourney} setStartJourney={setStartJourney} addedStops={addedStops} setAddedStops={setAddedStops} endJourney={endJourney} setEndJourney={setEndJourney} />
             </div>
             <div className="xl:col-span-2 flex flex-col gap-10">
                 <div className="w-full xl:h-[295px] bg-[#F4F3F3] mt-10 xl:mt-0 shadow-lg rounded-[20px]">
@@ -684,18 +715,25 @@ const Hero = () => {
                     <div className="relative flex flex-col items-center justify-center">
                         <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
                         <h3 className="absolute top-6">From</h3>
+                        {startJourney.location && <h4 className="absolute top-10 text-[8px] text-center">{startJourney.location}</h4>}
                     </div>
 
-                    <div className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]">
-                        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col justify-center items-center gap-1">
-                            <div className=" size-[16px] bg-[#C6C6C6] rounded-full" />
-                            <h3 className="absolute top-6 text-nowrap">Stop 1</h3>
+                    {addedStops.length > 0 ? addedStops.map((stop, index) => (
+                        <div key={stop.id} className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]">
+                            <div className="absolute left-1/2 -translate-x-1/2 flex flex-col justify-center items-center gap-1">
+                                <div className=" size-[16px] bg-[#C6C6C6] rounded-full" />
+                                <h3 className="absolute top-6 text-nowrap">Stop {index + 1}</h3>
+                                {stop.destination && <h4 className="absolute top-10 text-[8px] text-center">{stop.destination}</h4>}
+                            </div>
                         </div>
-                    </div>
+                    )) : (
+                        <div className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]"></div>
+                    )}
 
                     <div className="relative flex flex-col items-center justify-center">
                         <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
                         <h3 className="absolute top-6">To</h3>
+                        {endJourney.location && <h4 className="absolute top-10 text-[8px] text-center">{endJourney.location}</h4>}
                     </div>
                 </div>
 
