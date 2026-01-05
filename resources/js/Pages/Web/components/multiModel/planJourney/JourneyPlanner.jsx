@@ -109,7 +109,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
     return (
         <>
-            <div className="relative w-full h-full rounded-b-[0px] xl:rounded-bl-[20px] xl:rounded-br-[0px] bg-[#F4F3F3] flex flex-col justify-center items-center shadow-lg rounded-[20px] p-5">
+            <div className="relative w-full h-full rounded-b-[0px] xl:rounded-bl-[20px] xl:rounded-br-[0px] bg-[#F4F3F3] flex flex-col justify-start items-center shadow-lg rounded-[20px] p-5">
                 <div className="w-full flex flex-row gap-2 justify-start items-start mb-5">
                     <img
                         src={leftArrow}
@@ -128,7 +128,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                 </div>
 
                 <div
-                    className="text-[#0955AC] poopins flex flex-col h-[570px] overflow-y-auto w-full gap-5"
+                    className="text-[#0955AC] poopins flex flex-col h-[580px] overflow-y-auto w-full gap-5"
                     style={{
                         scrollbarWidth: "none",
                         msOverflowStyle: "none",
@@ -138,13 +138,15 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                         <>
                             <div className="w-full h-auto border-[1.5px] border-[#B9F8CF] bg-[#F0FDF4] rounded-[14px] p-5">
                                 <div className="flex flex-col gap-5 w-full">
-                                    <label className="text-[16px]/[24px] font-[400]">
+                                    <label htmlFor="startLocation" className="text-[16px]/[24px] font-[400]">
                                         Start of Journey
                                     </label>
                                     <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <img src={location} />
                                         <input
                                             type="text"
+                                            id="startLocation"
+                                            name="startLocation"
                                             value={startJourney.location}
                                             onChange={(e) =>
                                                 setStartJourney((prev) => ({
@@ -160,14 +162,16 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                         />
                                     </div>
 
-                                    <div className="flex flex-col md:flex-row gap-5">
-                                        <div>
-                                            <label className="text-[14px]/[24px] font-[400] mb-1">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="w-full">
+                                            <label htmlFor="startDate" className="text-[14px]/[24px] font-[400] mb-1">
                                                 Start Date
                                             </label>
-                                            <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
+                                            <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] flex flex-row items-center gap-3">
                                                 <input
-                                                    type="text"
+                                                    type="date"
+                                                    id="startDate"
+                                                    name="startDate"
                                                     value={
                                                         startJourney.startDate
                                                     }
@@ -181,22 +185,24 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                             })
                                                         )
                                                     }
-                                                    className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                                    className="text-[#000000] placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
                                                 />
-                                                <img
+                                                {/* <img
                                                     src={calander}
                                                     className="ml-auto"
-                                                />
+                                                /> */}
                                             </div>
                                         </div>
 
-                                        <div>
-                                            <label className="text-[14px]/[24px] font-[400] mb-1">
+                                        <div className="w-full">
+                                            <label htmlFor="startTime" className="text-[14px]/[24px] font-[400] mb-1">
                                                 Start Time
                                             </label>
-                                            <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
+                                            <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] flex flex-row items-center gap-3">
                                                 <input
-                                                    type="text"
+                                                    type="time"
+                                                    id="startTime"
+                                                    name="startTime"
                                                     value={
                                                         startJourney.startTime
                                                     }
@@ -210,12 +216,12 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                             })
                                                         )
                                                     }
-                                                    className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                                    className="text-[#000000] placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
                                                 />
-                                                <img
+                                                {/* <img
                                                     src={clock}
                                                     className="ml-auto"
-                                                />
+                                                /> */}
                                             </div>
                                         </div>
                                     </div>
@@ -227,14 +233,17 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                     key={stop.id}
                                     className="w-full bg-[#F9FAFB] rounded-[14px] flex flex-col gap-5 border-[1.5px] border-[#E5E7EB] p-5"
                                 >
-                                    <label className="text-[16px]/[24px] font-[400]">
+                                    <label htmlFor={`stop-destination-${stop.id}`} className="text-[16px]/[24px] font-[400]">
                                         Stop {index + 1}
                                     </label>
                                     <div className="flex flex-row gap-2 items-start">
                                         <img src={dots} className="mr-3" />
                                         <input
                                             type="text"
+                                            id={`stop-destination-${stop.id}`}
+                                            name="stopDestination"
                                             value={stop.destination || ""}
+                                            aria-label="Stop destination"
                                             className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 placeholder:text-[#00000033] focus:ring-0 focus:outline-none placeholder:text-[12px]"
                                             readOnly
                                         />
@@ -292,13 +301,15 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                             ))}
                             <div className="w-full h-auto text-[#155DFC] bg-[#FEF2F2] rounded-[14px] border-[1.5px] border-[#FFC9C9] p-5">
                                 <div className="flex flex-col gap-5 w-full">
-                                    <label className="text-[16px]/[24px] font-[400]">
+                                    <label htmlFor="endLocation" className="text-[16px]/[24px] font-[400]">
                                         End of Journey
                                     </label>
                                     <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <img src={locationRed} />
                                         <input
                                             type="text"
+                                            id="endLocation"
+                                            name="endLocation"
                                             value={endJourney.location}
                                             onChange={(e) =>
                                                 setEndJourney((prev) => ({
@@ -314,14 +325,16 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                         />
                                     </div>
 
-                                    <div className="flex flex-col md:flex-row gap-5">
-                                        <div>
-                                            <label className="text-[14px]/[24px] font-[400] mb-1">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="w-full">
+                                            <label htmlFor="returnDate" className="text-[14px]/[24px] font-[400] mb-1">
                                                 Return Date
                                             </label>
-                                            <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
+                                            <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] flex flex-row items-center gap-3">
                                                 <input
-                                                    type="text"
+                                                    type="date"
+                                                    id="returnDate"
+                                                    name="returnDate"
                                                     value={
                                                         endJourney.returnDate
                                                     }
@@ -335,22 +348,24 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                             })
                                                         )
                                                     }
-                                                    className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                                    className="text-[#000000] placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
                                                 />
-                                                <img
+                                                {/* <img
                                                     src={calander}
                                                     className="ml-auto"
-                                                />
+                                                /> */}
                                             </div>
                                         </div>
 
-                                        <div>
-                                            <label className="text-[14px]/[24px] font-[400] mb-1">
+                                        <div className="w-full">
+                                            <label htmlFor="returnTime" className="text-[14px]/[24px] font-[400] mb-1">
                                                 Return Time
                                             </label>
-                                            <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
+                                            <div className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] flex flex-row items-center gap-3">
                                                 <input
-                                                    type="text"
+                                                    type="time"
+                                                    id="returnTime"
+                                                    name="returnTime"
                                                     value={
                                                         endJourney.returnTime
                                                     }
@@ -364,12 +379,12 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                             })
                                                         )
                                                     }
-                                                    className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                                    className="text-[#000000] placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
                                                 />
-                                                <img
+                                                {/* <img
                                                     src={clock}
                                                     className="ml-auto"
-                                                />
+                                                /> */}
                                             </div>
                                         </div>
                                     </div>
@@ -395,15 +410,17 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                 <div className="space-y-6 text-[#000000] text-[14px]">
                                     {/* Get Price Alerts Toggle */}
                                     <div className="flex items-center justify-between py-3 border-b border-gray-200">
-                                        <div className="flex items-center gap-2">
+                                        <label htmlFor="priceAlerts" className="flex items-center gap-2 cursor-pointer">
                                             <img src={alert} />
                                             <span className="text-[14px] font-[500]">
                                                 Get Price Alerts
                                             </span>
-                                        </div>
+                                        </label>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input
                                                 type="checkbox"
+                                                id="priceAlerts"
+                                                name="priceAlerts"
                                                 className="sr-only peer"
                                             />
                                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -437,6 +454,8 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     <div className="flex items-center gap-3 w-full">
                                                         <input
                                                             type="checkbox"
+                                                            id={`yacht-${type.name.replace(/\s+/g, '-').toLowerCase()}`}
+                                                            name="yachtType"
                                                             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                                                         />
                                                         <div className="flex flex-col">
@@ -463,15 +482,17 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                             {/* Outbound */}
                                             <div>
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-[12px] text-gray-600">
+                                                    <label htmlFor="outboundTime" className="text-[12px] text-gray-600">
                                                         Outbound
-                                                    </span>
+                                                    </label>
                                                     <span className="text-[12px] text-gray-500">
                                                         00:00 - 23:35
                                                     </span>
                                                 </div>
                                                 <input
                                                     type="range"
+                                                    id="outboundTime"
+                                                    name="outboundTime"
                                                     min="0"
                                                     max="1435"
                                                     className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
@@ -480,15 +501,17 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                             {/* Return */}
                                             <div>
                                                 <div className="flex justify-between items-center mb-2">
-                                                    <span className="text-[12px] text-gray-600">
+                                                    <label htmlFor="returnTimeRange" className="text-[12px] text-gray-600">
                                                         Return
-                                                    </span>
+                                                    </label>
                                                     <span className="text-[12px] text-gray-500">
                                                         00:00 - 23:35
                                                     </span>
                                                 </div>
                                                 <input
                                                     type="range"
+                                                    id="returnTimeRange"
+                                                    name="returnTimeRange"
                                                     min="0"
                                                     max="1435"
                                                     className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
@@ -499,15 +522,17 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
                                     {/* Journey Duration */}
                                     <div className="space-y-3">
-                                        <h3 className="text-[14px] font-[500]">
+                                        <label htmlFor="journeyDuration" className="text-[14px] font-[500]">
                                             Journey duration
-                                        </h3>
+                                        </label>
                                         <div className="flex items-center justify-between text-[12px] text-gray-500">
                                             <span>0 hours</span>
                                             <span>24 hours</span>
                                         </div>
                                         <input
                                             type="range"
+                                            id="journeyDuration"
+                                            name="journeyDuration"
                                             min="0"
                                             max="24"
                                             className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
@@ -517,9 +542,9 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                     {/* Charter Companies */}
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <h3 className="text-[14px] font-[500]">
+                                            <label htmlFor="yachtCompany" className="text-[14px] font-[500]">
                                                 Charter Companies
-                                            </h3>
+                                            </label>
                                             <div className="flex gap-2 text-[12px]">
                                                 <button className="text-blue-600 hover:underline">
                                                     Select all
@@ -552,6 +577,8 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     <div className="flex items-center gap-3 w-full">
                                                         <input
                                                             type="checkbox"
+                                                            id={`yacht-${company.name.replace(/\s+/g, '-').toLowerCase()}`}
+                                                            name="yachtCompany"
                                                             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                                                         />
                                                         <div className="flex flex-col">
@@ -574,15 +601,17 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                 <div className="space-y-6 text-[#000000] text-[14px]">
                                 {/* Get Price Alerts Toggle */}
                                 <div className="flex items-center justify-between py-3 border-b border-gray-200">
-                                    <div className="flex items-center gap-2">
+                                    <label htmlFor="carPriceAlerts" className="flex items-center gap-2 cursor-pointer">
                                         <img src={alert} />
                                         <span className="text-[14px] font-[500]">
                                             Get Price Alerts
                                         </span>
-                                    </div>
+                                    </label>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input
                                             type="checkbox"
+                                            id="carPriceAlerts"
+                                            name="carPriceAlerts"
                                             className="sr-only peer"
                                         />
                                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -591,15 +620,17 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
                                 {/* Price Range */}
                                 <div className="space-y-3">
-                                    <h3 className="text-[14px] font-[500]">
+                                    <label htmlFor="priceRange" className="text-[14px] font-[500]">
                                         Price Range (per day)
-                                    </h3>
+                                    </label>
                                     <div className="flex items-center justify-between text-[12px] text-gray-500">
                                         <span>Rs 0</span>
                                         <span>Rs 500</span>
                                     </div>
                                     <input
                                         type="range"
+                                        id="priceRange"
+                                        name="priceRange"
                                         min="0"
                                         max="500"
                                         className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
@@ -651,6 +682,8 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                 <div className="flex items-center gap-3">
                                                     <input
                                                         type="checkbox"
+                                                        id={`car-${type.name.replace(/\s+/g, '-').toLowerCase()}`}
+                                                        name="carType"
                                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                                                     />
                                                     <div className="flex flex-col">
@@ -687,6 +720,8 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                 <div className="flex items-center gap-3">
                                                     <input
                                                         type="checkbox"
+                                                        id={`transmission-${trans.name.toLowerCase()}`}
+                                                        name="transmission"
                                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                                                     />
                                                     <span className="text-[14px] font-[400]">
@@ -720,6 +755,8 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                 <div className="flex items-center gap-3">
                                                     <input
                                                         type="checkbox"
+                                                        id={`fuel-${fuel.name.toLowerCase()}`}
+                                                        name="fuelType"
                                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                                                     />
                                                     <span className="text-[14px] font-[400]">
@@ -754,6 +791,8 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                 <div className="flex items-center gap-3">
                                                     <input
                                                         type="checkbox"
+                                                        id={`seating-${seat.name.replace(/\s+/g, '-').toLowerCase()}`}
+                                                        name="seatingCapacity"
                                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                                                     />
                                                     <span className="text-[14px] font-[400]">
@@ -771,9 +810,9 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                 {/* Rental Companies */}
                                 <div className="space-y-3">
                                     <div className="flex flex-col items-start justify-between">
-                                        <h3 className="text-[14px] font-[500]">
+                                        <label htmlFor="rentalCompany" className="text-[14px] font-[500]">
                                             Rental Companies
-                                        </h3>
+                                        </label>
                                         <div className="flex gap-3 text-[12px] mt-2">
                                             <button className="text-blue-600 hover:underline">
                                                 Select all
@@ -813,6 +852,8 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                 <div className="flex items-center gap-3 w-full">
                                                     <input
                                                         type="checkbox"
+                                                        id={`rental-${company.name.replace(/\s+/g, '-').toLowerCase()}`}
+                                                        name="rentalCompany"
                                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                                                     />
                                                     <div className="flex flex-col">
@@ -869,15 +910,15 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
             {/* Add Stop Popup */}
             {showPopup && (
-                <div className="fixed inset-0 text-[#286BB6] bg-black bg-opacity-50 flex justify-center items-center z-50">
-                    <div className="bg-white rounded-[20px] p-6 w-full max-w-md mx-4">
+                <div className="fixed inset-0 text-[#286BB6] bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white rounded-[20px] p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-[20px] font-[600] text-[#0955AC]">
+                            <h2 className="text-[18px] sm:text-[20px] font-[600] text-[#0955AC]">
                                 Add New Stop
                             </h2>
                             <img
                                 src={close}
-                                className="cursor-pointer w-6 h-6"
+                                className="cursor-pointer w-5 h-5 sm:w-6 sm:h-6"
                                 onClick={handleClosePopup}
                                 alt="Close"
                             />
@@ -886,13 +927,15 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                         <div className="space-y-4">
                             {/* Destination */}
                             <div>
-                                <label className="block text-[14px] font-[400] mb-2">
+                                <label htmlFor="stopDestination" className="block text-[14px] font-[400] mb-2">
                                     Destination
                                 </label>
                                 <div className="w-full h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
-                                    <img src={location} className="w-5 h-5" />
+                                    <img src={location} className="w-4 h-4 sm:w-5 sm:h-5" />
                                     <input
                                         type="text"
+                                        id="stopDestination"
+                                        name="stopDestination"
                                         value={stopData.destination}
                                         onChange={(e) =>
                                             handleInputChange(
@@ -900,21 +943,23 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                 e.target.value
                                             )
                                         }
-                                        className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                        className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full text-[14px]"
                                         placeholder="Enter destination"
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex flex-row gap-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                                 {/* Departure Date */}
                                 <div className="w-full">
-                                    <label className="block text-[14px] font-[400] mb-2">
+                                    <label htmlFor="stopDepartureDate" className="block text-[14px] font-[400] mb-2">
                                         Departure Date
                                     </label>
                                     <div className="w-full h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <input
                                             type="date"
+                                            id="stopDepartureDate"
+                                            name="stopDepartureDate"
                                             value={stopData.departureDate}
                                             onChange={(e) =>
                                                 handleInputChange(
@@ -922,7 +967,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     e.target.value
                                                 )
                                             }
-                                            className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                            className="placeholder:text-[#00000033] text-[#000000] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full text-[14px]"
                                         />
                                         {/* <img
                                             src={calander}
@@ -933,12 +978,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
                                 {/* Departure Time */}
                                 <div className="w-full">
-                                    <label className="block text-[14px] font-[400] mb-2">
+                                    <label htmlFor="stopDepartureTime" className="block text-[14px] font-[400] mb-2">
                                         Departure Time
                                     </label>
                                     <div className="w-full h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <input
                                             type="time"
+                                            id="stopDepartureTime"
+                                            name="stopDepartureTime"
                                             value={stopData.departureTime}
                                             onChange={(e) =>
                                                 handleInputChange(
@@ -946,7 +993,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     e.target.value
                                                 )
                                             }
-                                            className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                            className="placeholder:text-[#00000033] text-[#000000] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full text-[14px]"
                                         />
                                         {/* <img
                                             src={clock}
@@ -956,15 +1003,17 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                 </div>
                             </div>
 
-                            <div className="flex flex-row gap-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                                 {/* Return Date */}
                                 <div className="w-full">
-                                    <label className="block text-[14px] font-[400] mb-2">
+                                    <label htmlFor="stopReturnDate" className="block text-[14px] font-[400] mb-2">
                                         Return Date
                                     </label>
                                     <div className="w-full h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <input
                                             type="date"
+                                            id="stopReturnDate"
+                                            name="stopReturnDate"
                                             value={stopData.returnDate}
                                             onChange={(e) =>
                                                 handleInputChange(
@@ -972,7 +1021,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     e.target.value
                                                 )
                                             }
-                                            className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                            className="placeholder:text-[#00000033] text-[#000000] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full text-[14px]"
                                         />
                                         {/* <img
                                             src={calander}
@@ -983,12 +1032,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
                                 {/* Return Time */}
                                 <div className="w-full">
-                                    <label className="block text-[14px] font-[400] mb-2">
+                                    <label htmlFor="stopReturnTime" className="block text-[14px] font-[400] mb-2">
                                         Return Time
                                     </label>
                                     <div className="w-full h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <input
                                             type="time"
+                                            id="stopReturnTime"
+                                            name="stopReturnTime"
                                             value={stopData.returnTime}
                                             onChange={(e) =>
                                                 handleInputChange(
@@ -996,7 +1047,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     e.target.value
                                                 )
                                             }
-                                            className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                            className="placeholder:text-[#00000033] text-[#000000] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full text-[14px]"
                                         />
                                         {/* <img
                                             src={clock}
@@ -1010,7 +1061,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                         <div className="w-full mt-5">
                             <button
                                 onClick={handleSaveStop}
-                                className="w-full h-[43px] bg-[#0955AC] text-white rounded-[10px] font-[500] hover:bg-[#074a8a] transition-colors"
+                                className="w-full h-[43px] bg-[#0955AC] text-white rounded-[10px] font-[500] hover:bg-[#074a8a] transition-colors text-[14px] sm:text-[16px]"
                             >
                                 Confirm
                             </button>
@@ -1021,30 +1072,32 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
             {/* Edit Schedule Popup */}
             {editingStopId && (
-                <div className="fixed inset-0 text-[#286BB6] bg-black bg-opacity-50 flex justify-center items-center z-50">
-                    <div className="bg-white rounded-[20px] p-6 w-full max-w-md mx-4">
+                <div className="fixed inset-0 text-[#286BB6] bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white rounded-[20px] p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-[20px] font-[600] text-[#0955AC]">
+                            <h2 className="text-[18px] sm:text-[20px] font-[600] text-[#0955AC]">
                                 Edit Schedule
                             </h2>
                             <img
                                 src={close}
-                                className="cursor-pointer w-6 h-6"
+                                className="cursor-pointer w-5 h-5 sm:w-6 sm:h-6"
                                 onClick={handleCloseEditPopup}
                                 alt="Close"
                             />
                         </div>
 
                         <div className="space-y-4">
-                            <div className="flex flex-row gap-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                                 {/* Departure Date */}
                                 <div className="w-full">
-                                    <label className="block text-[14px] font-[400] mb-2">
+                                    <label htmlFor="editDepartureDate" className="block text-[14px] font-[400] mb-2">
                                         Departure Date
                                     </label>
                                     <div className="w-full h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <input
                                             type="date"
+                                            id="editDepartureDate"
+                                            name="editDepartureDate"
                                             value={
                                                 editScheduleData.departureDate
                                             }
@@ -1054,7 +1107,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     e.target.value
                                                 )
                                             }
-                                            className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                            className="placeholder:text-[#00000033] text-[#000000] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full text-[14px]"
                                         />
                                         {/* <img
                                             src={calander}
@@ -1065,12 +1118,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
                                 {/* Departure Time */}
                                 <div className="w-full">
-                                    <label className="block text-[14px] font-[400] mb-2">
+                                    <label htmlFor="editDepartureTime" className="block text-[14px] font-[400] mb-2">
                                         Departure Time
                                     </label>
                                     <div className="w-full h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <input
                                             type="time"
+                                            id="editDepartureTime"
+                                            name="editDepartureTime"
                                             value={
                                                 editScheduleData.departureTime
                                             }
@@ -1080,7 +1135,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     e.target.value
                                                 )
                                             }
-                                            className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                            className="placeholder:text-[#00000033] text-[#000000] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full text-[14px]"
                                         />
                                         {/* <img
                                             src={clock}
@@ -1090,15 +1145,17 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                 </div>
                             </div>
 
-                            <div className="flex flex-row gap-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                                 {/* Return Date */}
                                 <div className="w-full">
-                                    <label className="block text-[14px] font-[400] mb-2">
+                                    <label htmlFor="editReturnDate" className="block text-[14px] font-[400] mb-2">
                                         Return Date
                                     </label>
                                     <div className="w-full h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <input
                                             type="date"
+                                            id="editReturnDate"
+                                            name="editReturnDate"
                                             value={editScheduleData.returnDate}
                                             onChange={(e) =>
                                                 handleEditInputChange(
@@ -1106,7 +1163,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     e.target.value
                                                 )
                                             }
-                                            className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                            className="placeholder:text-[#00000033] text-[#000000] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full text-[14px]"
                                         />
                                         {/* <img
                                             src={calander}
@@ -1117,12 +1174,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
                                 {/* Return Time */}
                                 <div className="w-full">
-                                    <label className="block text-[14px] font-[400] mb-2">
+                                    <label htmlFor="editReturnTime" className="block text-[14px] font-[400] mb-2">
                                         Return Time
                                     </label>
                                     <div className="w-full h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 flex flex-row items-center gap-3">
                                         <input
                                             type="time"
+                                            id="editReturnTime"
+                                            name="editReturnTime"
                                             value={editScheduleData.returnTime}
                                             onChange={(e) =>
                                                 handleEditInputChange(
@@ -1130,7 +1189,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     e.target.value
                                                 )
                                             }
-                                            className="placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
+                                            className="placeholder:text-[#00000033] text-[#000000] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full text-[14px]"
                                         />
                                         {/* <img
                                             src={clock}
@@ -1144,7 +1203,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                         <div className="mt-5">
                             <button
                                 onClick={handleSaveEditSchedule}
-                                className="w-full h-[43px] bg-[#0955AC] text-white rounded-[10px] font-[500] hover:bg-[#074a8a] transition-colors"
+                                className="w-full h-[43px] bg-[#0955AC] text-white rounded-[10px] font-[500] hover:bg-[#074a8a] transition-colors text-[14px] sm:text-[16px]"
                             >
                                 Confirm
                             </button>

@@ -382,8 +382,8 @@ const Hero = () => {
                 </div>
 
                 {showPopup && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50">
-                        <div className="w-[768px] h-[697px] bg-[#FFFFFF] shadow-lg rounded-[16px] py-5 text-[#0A0A0A]">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+                        <div className="w-full max-w-[768px] h-auto xl:h-[697px] max-h-[90vh] bg-[#FFFFFF] shadow-lg rounded-[16px] py-5 text-[#0A0A0A] overflow-y-auto">
                     <div className="flex flex-row justify-between border-b-[1px] border-[#E5E7EB] pb-5 items-center px-5">
                         <div className="flex flex-col">
                             <h1 className="text-[20px] font-[400]">

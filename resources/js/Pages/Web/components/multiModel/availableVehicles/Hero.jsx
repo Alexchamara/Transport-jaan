@@ -454,124 +454,148 @@ const vehicleData = {
     yacht: [
         {
             icon: yatch,
-            name: "Highway Express",
-            route: "Route 501",
-            frequency: "Every Hour",
-            departure: { date: "Dec 23", time: "7:00 AM", location: "Colombo" },
-            arrival: { date: "Dec 23", time: "9:00 AM", location: "Galle" },
-            duration: "2 hrs",
-            classes: [
-                {
-                    name: "AC Luxury",
-                    price: "Rs 850",
-                    seats: "28 seats",
-                    color: "#00BC7D",
-                },
-                {
-                    name: "AC Luxury",
-                    price: "Rs 850",
-                    seats: "28 seats",
-                    color: "#FE9A00",
-                },
-                {
-                    name: "AC Luxury",
-                    price: "Rs 850",
-                    seats: "28 seats",
-                    color: "#00A6F4",
-                },
-            ],
-        },
-        {
-            icon: yatch,
-            name: "Highway Express",
-            route: "Route 501",
-            frequency: "Every Hour",
-            departure: { date: "Dec 23", time: "7:00 AM", location: "Colombo" },
-            arrival: { date: "Dec 23", time: "9:00 AM", location: "Galle" },
-            duration: "2 hrs",
-            classes: [
-                {
-                    name: "AC Luxury",
-                    price: "Rs 850",
-                    seats: "28 seats",
-                    color: "#00BC7D",
-                },
-                {
-                    name: "AC Luxury",
-                    price: "Rs 850",
-                    seats: "28 seats",
-                    color: "#FE9A00",
-                },
-                {
-                    name: "AC Luxury",
-                    price: "Rs 850",
-                    seats: "28 seats",
-                    color: "#00A6F4",
-                },
-            ],
-        },
-        {
-            icon: yatch,
-            name: "Luxury Cruiser",
-            route: "Colombo-Mirissa",
-            frequency: "Daily Tours",
+            name: "Sea Pearl",
+            route: "Coastal Express",
+            frequency: "Daily",
             departure: {
                 date: "Dec 23",
-                time: "10:00 AM",
-                location: "Colombo",
+                time: "7:00 AM",
+                location: "Colombo Harbor",
             },
-            arrival: { date: "Dec 23", time: "2:00 PM", location: "Mirissa" },
-            duration: "4 hrs",
+            arrival: {
+                date: "Dec 23",
+                time: "9:00 AM",
+                location: "Trincomalee",
+            },
+            duration: "2 hrs",
             classes: [
                 {
-                    name: "VIP Suite",
-                    price: "Rs 15000",
-                    seats: "6 seats",
+                    name: "Luxury",
+                    price: "Rs 125,000",
+                    seats: "28 seats",
                     color: "#00BC7D",
                 },
                 {
                     name: "Premium",
-                    price: "Rs 12000",
-                    seats: "12 seats",
+                    price: "Rs 85,000",
+                    seats: "28 seats",
                     color: "#FE9A00",
                 },
                 {
                     name: "Standard",
-                    price: "Rs 8000",
-                    seats: "20 seats",
+                    price: "Rs 45,000",
+                    seats: "28 seats",
                     color: "#00A6F4",
                 },
             ],
         },
         {
             icon: yatch,
-            name: "Island Hopper",
-            route: "Colombo-Trinco",
-            frequency: "Weekly",
-            departure: { date: "Dec 23", time: "8:00 AM", location: "Colombo" },
+            name: "Sea Pearl",
+            route: "Coastal Express",
+            frequency: "Daily",
+            departure: {
+                date: "Dec 23",
+                time: "7:00 AM",
+                location: "Colombo Harbor",
+            },
             arrival: {
-                date: "Dec 24",
-                time: "6:00 PM",
+                date: "Dec 23",
+                time: "9:00 AM",
                 location: "Trincomalee",
             },
-            duration: "34 hrs",
+            duration: "2 hrs",
             classes: [
                 {
-                    name: "Master Suite",
-                    price: "Rs 25000",
-                    seats: "4 seats",
+                    name: "Luxury",
+                    price: "Rs 125,000",
+                    seats: "28 seats",
                     color: "#00BC7D",
                 },
                 {
-                    name: "Deluxe",
-                    price: "Rs 18000",
-                    seats: "8 seats",
+                    name: "Premium",
+                    price: "Rs 85,000",
+                    seats: "28 seats",
                     color: "#FE9A00",
                 },
                 {
-                    name: "Comfort",
-                    price: "Rs 12000",
-                    seats: "16 seats",
+                    name: "Standard",
+                    price: "Rs 45,000",
+                    seats: "28 seats",
+                    color: "#00A6F4",
+                },
+            ],
+        },
+        {
+            icon: yatch,
+            name: "Sea Pearl",
+            route: "Coastal Express",
+            frequency: "Daily",
+            departure: {
+                date: "Dec 23",
+                time: "7:00 AM",
+                location: "Colombo Harbor",
+            },
+            arrival: {
+                date: "Dec 23",
+                time: "9:00 AM",
+                location: "Trincomalee",
+            },
+            duration: "2 hrs",
+            classes: [
+                {
+                    name: "Luxury",
+                    price: "Rs 125,000",
+                    seats: "28 seats",
+                    color: "#00BC7D",
+                },
+                {
+                    name: "Premium",
+                    price: "Rs 85,000",
+                    seats: "28 seats",
+                    color: "#FE9A00",
+                },
+                {
+                    name: "Standard",
+                    price: "Rs 45,000",
+                    seats: "28 seats",
+                    color: "#00A6F4",
+                },
+            ],
+        },
+        {
+            icon: yatch,
+            name: "Sea Pearl",
+            route: "Coastal Express",
+            frequency: "Daily",
+            departure: {
+                date: "Dec 23",
+                time: "7:00 AM",
+                location: "Colombo Harbor",
+            },
+            arrival: {
+                date: "Dec 23",
+                time: "9:00 AM",
+                location: "Trincomalee",
+            },
+            duration: "2 hrs",
+            classes: [
+                {
+                    name: "Luxury",
+                    price: "Rs 125,000",
+                    seats: "28 seats",
+                    color: "#00BC7D",
+                },
+                {
+                    name: "Premium",
+                    price: "Rs 85,000",
+                    seats: "28 seats",
+                    color: "#FE9A00",
+                },
+                {
+                    name: "Standard",
+                    price: "Rs 45,000",
+                    seats: "28 seats",
                     color: "#00A6F4",
                 },
             ],
@@ -588,9 +612,17 @@ const Hero = () => {
     const [yachtPage, setYachtPage] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
 
-    const [startJourney, setStartJourney] = useState({ location: "", startDate: "", startTime: "" });
+    const [startJourney, setStartJourney] = useState({
+        location: "",
+        startDate: "",
+        startTime: "",
+    });
     const [addedStops, setAddedStops] = useState([]);
-    const [endJourney, setEndJourney] = useState({ location: "", returnDate: "", returnTime: "" });
+    const [endJourney, setEndJourney] = useState({
+        location: "",
+        returnDate: "",
+        returnTime: "",
+    });
 
     useEffect(() => {
         const savedStart = localStorage.getItem("journeyStart");
@@ -699,7 +731,15 @@ const Hero = () => {
     return (
         <div className="grid grid-cols-1 xl:grid-cols-3 px-5 sm:px-10 py-10 gap-10">
             <div className="xl:col-span-1">
-                <JourneyPlanner transportMode={activeSection} startJourney={startJourney} setStartJourney={setStartJourney} addedStops={addedStops} setAddedStops={setAddedStops} endJourney={endJourney} setEndJourney={setEndJourney} />
+                <JourneyPlanner
+                    transportMode={activeSection}
+                    startJourney={startJourney}
+                    setStartJourney={setStartJourney}
+                    addedStops={addedStops}
+                    setAddedStops={setAddedStops}
+                    endJourney={endJourney}
+                    setEndJourney={setEndJourney}
+                />
             </div>
             <div className="xl:col-span-2 flex flex-col gap-10">
                 <div className="w-full xl:h-[295px] bg-[#F4F3F3] mt-10 xl:mt-0 shadow-lg rounded-[20px]">
@@ -715,25 +755,44 @@ const Hero = () => {
                     <div className="relative flex flex-col items-center justify-center">
                         <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
                         <h3 className="absolute top-6">From</h3>
-                        {startJourney.location && <h4 className="absolute top-10 text-[8px] text-center">{startJourney.location}</h4>}
+                        {startJourney.location && (
+                            <h4 className="absolute top-10 text-[8px] text-center">
+                                {startJourney.location}
+                            </h4>
+                        )}
                     </div>
 
-                    {addedStops.length > 0 ? addedStops.map((stop, index) => (
-                        <div key={stop.id} className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]">
-                            <div className="absolute left-1/2 -translate-x-1/2 flex flex-col justify-center items-center gap-1">
-                                <div className=" size-[16px] bg-[#C6C6C6] rounded-full" />
-                                <h3 className="absolute top-6 text-nowrap">Stop {index + 1}</h3>
-                                {stop.destination && <h4 className="absolute top-10 text-[8px] text-center">{stop.destination}</h4>}
+                    {addedStops.length > 0 ? (
+                        addedStops.map((stop, index) => (
+                            <div
+                                key={stop.id}
+                                className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]"
+                            >
+                                <div className="absolute left-1/2 -translate-x-1/2 flex flex-col justify-center items-center gap-1">
+                                    <div className=" size-[16px] bg-[#C6C6C6] rounded-full" />
+                                    <h3 className="absolute top-6 text-nowrap">
+                                        Stop {index + 1}
+                                    </h3>
+                                    {stop.destination && (
+                                        <h4 className="absolute top-10 text-[8px] text-center">
+                                            {stop.destination}
+                                        </h4>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )) : (
+                        ))
+                    ) : (
                         <div className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]"></div>
                     )}
 
                     <div className="relative flex flex-col items-center justify-center">
                         <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
                         <h3 className="absolute top-6">To</h3>
-                        {endJourney.location && <h4 className="absolute top-10 text-[8px] text-center">{endJourney.location}</h4>}
+                        {endJourney.location && (
+                            <h4 className="absolute top-10 text-[8px] text-center">
+                                {endJourney.location}
+                            </h4>
+                        )}
                     </div>
                 </div>
 
@@ -937,153 +996,179 @@ const Hero = () => {
                                 }`}
                             >
                                 {vehicleData.bus.map((vehicle, index) => (
-                                    <Link
+                                    <div
                                         key={index}
-                                        href="/multiModel/bus/busDetails"
-                                        className="w-full sm:w-[382px] shadow-lg rounded-[12px] h-auto bg-[#FFFFFF] border-[0.8px] border-[#F3F4F6] transition-all duration-300 ease-in-out hover:scale-95 transform block"
+                                        className="relative w-full sm:w-[382px] shadow-lg rounded-[12px] h-auto bg-[#FFFFFF] border-[0.8px] border-[#F3F4F6] transition-all duration-300 ease-in-out hover:scale-95 transform block"
                                     >
-                                        <div className="flex flex-row justify-center items-center gap-3 w-full py-4 px-5">
-                                            <div className="size-[36px] bg-[#FAF5FF] rounded-[10px] flex justify-center items-center p-2">
-                                                <img
-                                                    src={vehicle.icon}
-                                                    className=""
-                                                />
+                                        <div className="blur-sm pointer-events-none">
+                                            <div className="flex flex-row justify-center items-center gap-3 w-full py-4 px-5">
+                                                <div className="size-[36px] bg-[#FAF5FF] rounded-[10px] flex justify-center items-center p-2">
+                                                    <img
+                                                        src={vehicle.icon}
+                                                        className=""
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <h1 className="text-[#101828] text-[14px]">
+                                                        {vehicle.name}
+                                                    </h1>
+                                                    <h1 className="text-[#6A7282] text-[12px]">
+                                                        {vehicle.route}
+                                                    </h1>
+                                                </div>
+                                                <div className="w-[64px] h-auto bg-[#F0FDF4] rounded-[8px] text-[#008236] text-[10px] flex justify-center items-center ml-auto p-1">
+                                                    <h1>{vehicle.frequency}</h1>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h1 className="text-[#101828] text-[14px]">
-                                                    {vehicle.name}
-                                                </h1>
-                                                <h1 className="text-[#6A7282] text-[12px]">
-                                                    {vehicle.route}
-                                                </h1>
-                                            </div>
-                                            <div className="w-[64px] h-auto bg-[#F0FDF4] rounded-[8px] text-[#008236] text-[10px] flex justify-center items-center ml-auto p-1">
-                                                <h1>{vehicle.frequency}</h1>
-                                            </div>
-                                        </div>
-                                        <div className="border-[#F3F4F6] border-y-[0.8px] w-full py-5 px-5">
-                                            <div className="flex flex-row justify-between items-center">
-                                                <div className="flex flex-col">
-                                                    <div className="flex flex-row gap-2">
-                                                        <img
-                                                            src={calanderGrey}
-                                                            className=""
-                                                        />
-                                                        <h1 className="text-[10px] text-[#6A7282]">
+                                            <div className="border-[#F3F4F6] border-y-[0.8px] w-full py-5 px-5">
+                                                <div className="flex flex-row justify-between items-center">
+                                                    <div className="flex flex-col">
+                                                        <div className="flex flex-row gap-2">
+                                                            <img
+                                                                src={
+                                                                    calanderGrey
+                                                                }
+                                                                className=""
+                                                            />
+                                                            <h1 className="text-[10px] text-[#6A7282]">
+                                                                {
+                                                                    vehicle
+                                                                        .departure
+                                                                        .date
+                                                                }
+                                                            </h1>
+                                                        </div>
+                                                        <h1 className="text-[#101828] text-[14px]">
                                                             {
                                                                 vehicle
                                                                     .departure
-                                                                    .date
+                                                                    .time
+                                                            }
+                                                        </h1>
+                                                        <h1 className="text-[#4A5565] text-[12px]">
+                                                            {
+                                                                vehicle
+                                                                    .departure
+                                                                    .location
                                                             }
                                                         </h1>
                                                     </div>
-                                                    <h1 className="text-[#101828] text-[14px]">
-                                                        {vehicle.departure.time}
-                                                    </h1>
-                                                    <h1 className="text-[#4A5565] text-[12px]">
-                                                        {
-                                                            vehicle.departure
-                                                                .location
-                                                        }
-                                                    </h1>
-                                                </div>
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <div className="flex flex-row gap-1 items-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <div className="flex flex-row gap-1 items-center">
+                                                            <img
+                                                                src={clockGrey}
+                                                                className="clock"
+                                                            />
+                                                            <h1 className="text-[#6A7282] text-[9px]">
+                                                                {
+                                                                    vehicle.duration
+                                                                }
+                                                            </h1>
+                                                        </div>
                                                         <img
-                                                            src={clockGrey}
-                                                            className="clock"
+                                                            src={rightArrow}
+                                                            className="size-[16px]"
                                                         />
-                                                        <h1 className="text-[#6A7282] text-[9px]">
-                                                            {vehicle.duration}
-                                                        </h1>
                                                     </div>
-                                                    <img
-                                                        src={rightArrow}
-                                                        className="size-[16px]"
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col text-end">
-                                                    <div className="flex flex-row gap-2">
-                                                        <img
-                                                            src={calanderGrey}
-                                                            className=""
-                                                        />
-                                                        <h1 className="text-[10px] text-[#6A7282]">
+                                                    <div className="flex flex-col text-end">
+                                                        <div className="flex flex-row gap-2">
+                                                            <img
+                                                                src={
+                                                                    calanderGrey
+                                                                }
+                                                                className=""
+                                                            />
+                                                            <h1 className="text-[10px] text-[#6A7282]">
+                                                                {
+                                                                    vehicle
+                                                                        .arrival
+                                                                        .date
+                                                                }
+                                                            </h1>
+                                                        </div>
+                                                        <h1 className="text-[#101828] text-[14px]">
                                                             {
                                                                 vehicle.arrival
-                                                                    .date
+                                                                    .time
+                                                            }
+                                                        </h1>
+                                                        <h1 className="text-[#4A5565] text-[12px]">
+                                                            {
+                                                                vehicle.arrival
+                                                                    .location
                                                             }
                                                         </h1>
                                                     </div>
-                                                    <h1 className="text-[#101828] text-[14px]">
-                                                        {vehicle.arrival.time}
-                                                    </h1>
-                                                    <h1 className="text-[#4A5565] text-[12px]">
-                                                        {
-                                                            vehicle.arrival
-                                                                .location
-                                                        }
-                                                    </h1>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="mt-5 px-5 pb-3">
-                                            <h1 className="text-[10px] text-[#6A7282]">
-                                                Select Class
-                                            </h1>
+                                            <div className="mt-5 px-5 pb-3">
+                                                <h1 className="text-[10px] text-[#6A7282]">
+                                                    Select Class
+                                                </h1>
 
-                                            <div className="flex flex-col sm:flex-row justify-between items-center">
-                                                {vehicle.classes.map(
-                                                    (cls, clsIndex) => (
-                                                        <div
-                                                            key={clsIndex}
-                                                            className="w-[111px] h-[82px] border-[0.8px] bg-gradient-to-t rounded-[10px] mt-3 p-3"
-                                                            style={{
-                                                                borderColor:
-                                                                    cls.color,
-                                                                background: `linear-gradient(to top, ${cls.color}20, ${cls.color}10)`,
-                                                            }}
-                                                        >
-                                                            <h1
-                                                                className="text-[10px] font-[400]"
+                                                <div className="flex flex-col sm:flex-row justify-between items-center">
+                                                    {vehicle.classes.map(
+                                                        (cls, clsIndex) => (
+                                                            <div
+                                                                key={clsIndex}
+                                                                className="w-[111px] h-[82px] border-[0.8px] bg-gradient-to-t rounded-[10px] mt-3 p-3"
                                                                 style={{
-                                                                    color: cls.color,
+                                                                    borderColor:
+                                                                        cls.color,
+                                                                    background: `linear-gradient(to top, ${cls.color}20, ${cls.color}10)`,
                                                                 }}
                                                             >
-                                                                {cls.name}
-                                                            </h1>
-                                                            <h1
-                                                                className="text-[12px] font-[400]"
-                                                                style={{
-                                                                    color: cls.color,
-                                                                }}
-                                                            >
-                                                                {cls.price}
-                                                            </h1>
-                                                            <div className="flex flex-row items-center gap-2">
-                                                                <div
-                                                                    className="size-[6px] rounded-full"
-                                                                    style={{
-                                                                        backgroundColor:
-                                                                            cls.color,
-                                                                    }}
-                                                                />
                                                                 <h1
-                                                                    className="text-[9px] font-[400]"
+                                                                    className="text-[10px] font-[400]"
                                                                     style={{
                                                                         color: cls.color,
                                                                     }}
                                                                 >
-                                                                    {cls.seats}
+                                                                    {cls.name}
                                                                 </h1>
+                                                                <h1
+                                                                    className="text-[12px] font-[400]"
+                                                                    style={{
+                                                                        color: cls.color,
+                                                                    }}
+                                                                >
+                                                                    {cls.price}
+                                                                </h1>
+                                                                <div className="flex flex-row items-center gap-2">
+                                                                    <div
+                                                                        className="size-[6px] rounded-full"
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                cls.color,
+                                                                        }}
+                                                                    />
+                                                                    <h1
+                                                                        className="text-[9px] font-[400]"
+                                                                        style={{
+                                                                            color: cls.color,
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            cls.seats
+                                                                        }
+                                                                    </h1>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )
-                                                )}
+                                                        )
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </Link>
+                                        <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 rounded-[12px]">
+                                            <span className="text-[30px] figtree font-[700] text-gray-600">
+                                                Coming{" "}
+                                                <span className="text-[#0955AC]">
+                                                    Soon
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         </div>
@@ -1108,148 +1193,175 @@ const Hero = () => {
                                 {vehicleData.train.map((vehicle, index) => (
                                     <div
                                         key={index}
-                                        className="w-full sm:w-[382px] shadow-lg rounded-[12px] h-auto bg-[#FFFFFF] border-[0.8px] border-[#F3F4F6] transition-all duration-300 ease-in-out hover:scale-95 transform"
+                                        className="relative w-full sm:w-[382px] shadow-lg rounded-[12px] h-auto bg-[#FFFFFF] border-[0.8px] border-[#F3F4F6] transition-all duration-300 ease-in-out hover:scale-95 transform"
                                     >
-                                        <div className="flex flex-row justify-center items-center gap-3 w-full py-4 px-5">
-                                            <div className="size-[36px] bg-[#FAF5FF] rounded-[10px] flex justify-center items-center p-2">
-                                                <img
-                                                    src={vehicle.icon}
-                                                    className=""
-                                                />
+                                        <div className="blur-sm pointer-events-none">
+                                            <div className="flex flex-row justify-center items-center gap-3 w-full py-4 px-5">
+                                                <div className="size-[36px] bg-[#FAF5FF] rounded-[10px] flex justify-center items-center p-2">
+                                                    <img
+                                                        src={vehicle.icon}
+                                                        className=""
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <h1 className="text-[#101828] text-[14px]">
+                                                        {vehicle.name}
+                                                    </h1>
+                                                    <h1 className="text-[#6A7282] text-[12px]">
+                                                        {vehicle.route}
+                                                    </h1>
+                                                </div>
+                                                <div className="w-[64px] h-[23px] bg-[#F0FDF4] rounded-[8px] text-[#008236] text-[10px] flex justify-center items-center ml-auto p-1">
+                                                    <h1>{vehicle.frequency}</h1>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h1 className="text-[#101828] text-[14px]">
-                                                    {vehicle.name}
-                                                </h1>
-                                                <h1 className="text-[#6A7282] text-[12px]">
-                                                    {vehicle.route}
-                                                </h1>
-                                            </div>
-                                            <div className="w-[64px] h-[23px] bg-[#F0FDF4] rounded-[8px] text-[#008236] text-[10px] flex justify-center items-center ml-auto p-1">
-                                                <h1>{vehicle.frequency}</h1>
-                                            </div>
-                                        </div>
-                                        <div className="border-[#F3F4F6] border-y-[0.8px] w-full py-5 px-5">
-                                            <div className="flex flex-row justify-between items-center">
-                                                <div className="flex flex-col">
-                                                    <div className="flex flex-row gap-2">
-                                                        <img
-                                                            src={calanderGrey}
-                                                            className=""
-                                                        />
-                                                        <h1 className="text-[10px] text-[#6A7282]">
+                                            <div className="border-[#F3F4F6] border-y-[0.8px] w-full py-5 px-5">
+                                                <div className="flex flex-row justify-between items-center">
+                                                    <div className="flex flex-col">
+                                                        <div className="flex flex-row gap-2">
+                                                            <img
+                                                                src={
+                                                                    calanderGrey
+                                                                }
+                                                                className=""
+                                                            />
+                                                            <h1 className="text-[10px] text-[#6A7282]">
+                                                                {
+                                                                    vehicle
+                                                                        .departure
+                                                                        .date
+                                                                }
+                                                            </h1>
+                                                        </div>
+                                                        <h1 className="text-[#101828] text-[14px]">
                                                             {
                                                                 vehicle
                                                                     .departure
-                                                                    .date
+                                                                    .time
+                                                            }
+                                                        </h1>
+                                                        <h1 className="text-[#4A5565] text-[12px]">
+                                                            {
+                                                                vehicle
+                                                                    .departure
+                                                                    .location
                                                             }
                                                         </h1>
                                                     </div>
-                                                    <h1 className="text-[#101828] text-[14px]">
-                                                        {vehicle.departure.time}
-                                                    </h1>
-                                                    <h1 className="text-[#4A5565] text-[12px]">
-                                                        {
-                                                            vehicle.departure
-                                                                .location
-                                                        }
-                                                    </h1>
-                                                </div>
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <div className="flex flex-row gap-1 items-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <div className="flex flex-row gap-1 items-center">
+                                                            <img
+                                                                src={clockGrey}
+                                                                className="clock"
+                                                            />
+                                                            <h1 className="text-[#6A7282] text-[9px]">
+                                                                {
+                                                                    vehicle.duration
+                                                                }
+                                                            </h1>
+                                                        </div>
                                                         <img
-                                                            src={clockGrey}
-                                                            className="clock"
+                                                            src={rightArrow}
+                                                            className="size-[16px]"
                                                         />
-                                                        <h1 className="text-[#6A7282] text-[9px]">
-                                                            {vehicle.duration}
-                                                        </h1>
                                                     </div>
-                                                    <img
-                                                        src={rightArrow}
-                                                        className="size-[16px]"
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col text-end">
-                                                    <div className="flex flex-row gap-2">
-                                                        <img
-                                                            src={calanderGrey}
-                                                            className=""
-                                                        />
-                                                        <h1 className="text-[10px] text-[#6A7282]">
+                                                    <div className="flex flex-col text-end">
+                                                        <div className="flex flex-row gap-2">
+                                                            <img
+                                                                src={
+                                                                    calanderGrey
+                                                                }
+                                                                className=""
+                                                            />
+                                                            <h1 className="text-[10px] text-[#6A7282]">
+                                                                {
+                                                                    vehicle
+                                                                        .arrival
+                                                                        .date
+                                                                }
+                                                            </h1>
+                                                        </div>
+                                                        <h1 className="text-[#101828] text-[14px]">
                                                             {
                                                                 vehicle.arrival
-                                                                    .date
+                                                                    .time
+                                                            }
+                                                        </h1>
+                                                        <h1 className="text-[#4A5565] text-[12px]">
+                                                            {
+                                                                vehicle.arrival
+                                                                    .location
                                                             }
                                                         </h1>
                                                     </div>
-                                                    <h1 className="text-[#101828] text-[14px]">
-                                                        {vehicle.arrival.time}
-                                                    </h1>
-                                                    <h1 className="text-[#4A5565] text-[12px]">
-                                                        {
-                                                            vehicle.arrival
-                                                                .location
-                                                        }
-                                                    </h1>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="mt-5 px-5 pb-3">
-                                            <h1 className="text-[10px] text-[#6A7282]">
-                                                Select Class
-                                            </h1>
+                                            <div className="mt-5 px-5 pb-3">
+                                                <h1 className="text-[10px] text-[#6A7282]">
+                                                    Select Class
+                                                </h1>
 
-                                            <div className="flex flex-col sm:flex-row justify-between items-center">
-                                                {vehicle.classes.map(
-                                                    (cls, clsIndex) => (
-                                                        <div
-                                                            key={clsIndex}
-                                                            className="w-[111px] h-[82px] border-[0.8px] bg-gradient-to-t rounded-[10px] mt-3 p-3"
-                                                            style={{
-                                                                borderColor:
-                                                                    cls.color,
-                                                                background: `linear-gradient(to top, ${cls.color}20, ${cls.color}10)`,
-                                                            }}
-                                                        >
-                                                            <h1
-                                                                className="text-[10px] font-[400]"
+                                                <div className="flex flex-col sm:flex-row justify-between items-center">
+                                                    {vehicle.classes.map(
+                                                        (cls, clsIndex) => (
+                                                            <div
+                                                                key={clsIndex}
+                                                                className="w-[111px] h-[82px] border-[0.8px] bg-gradient-to-t rounded-[10px] mt-3 p-3"
                                                                 style={{
-                                                                    color: cls.color,
+                                                                    borderColor:
+                                                                        cls.color,
+                                                                    background: `linear-gradient(to top, ${cls.color}20, ${cls.color}10)`,
                                                                 }}
                                                             >
-                                                                {cls.name}
-                                                            </h1>
-                                                            <h1
-                                                                className="text-[12px] font-[400]"
-                                                                style={{
-                                                                    color: cls.color,
-                                                                }}
-                                                            >
-                                                                {cls.price}
-                                                            </h1>
-                                                            <div className="flex flex-row items-center gap-2">
-                                                                <div
-                                                                    className="size-[6px] rounded-full"
-                                                                    style={{
-                                                                        backgroundColor:
-                                                                            cls.color,
-                                                                    }}
-                                                                />
                                                                 <h1
-                                                                    className="text-[9px] font-[400]"
+                                                                    className="text-[10px] font-[400]"
                                                                     style={{
                                                                         color: cls.color,
                                                                     }}
                                                                 >
-                                                                    {cls.seats}
+                                                                    {cls.name}
                                                                 </h1>
+                                                                <h1
+                                                                    className="text-[12px] font-[400]"
+                                                                    style={{
+                                                                        color: cls.color,
+                                                                    }}
+                                                                >
+                                                                    {cls.price}
+                                                                </h1>
+                                                                <div className="flex flex-row items-center gap-2">
+                                                                    <div
+                                                                        className="size-[6px] rounded-full"
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                cls.color,
+                                                                        }}
+                                                                    />
+                                                                    <h1
+                                                                        className="text-[9px] font-[400]"
+                                                                        style={{
+                                                                            color: cls.color,
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            cls.seats
+                                                                        }
+                                                                    </h1>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )
-                                                )}
+                                                        )
+                                                    )}
+                                                </div>
                                             </div>
+                                        </div>
+                                        <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 rounded-[12px]">
+                                            <span className="text-[30px] figtree font-[700] text-gray-600">
+                                                Coming{" "}
+                                                <span className="text-[#0955AC]">
+                                                    Soon
+                                                </span>
+                                            </span>
                                         </div>
                                     </div>
                                 ))}
@@ -1276,148 +1388,175 @@ const Hero = () => {
                                 {vehicleData.plane.map((vehicle, index) => (
                                     <div
                                         key={index}
-                                        className="w-full sm:w-[382px] shadow-lg rounded-[12px] h-auto bg-[#FFFFFF] border-[0.8px] border-[#F3F4F6] transition-all duration-300 ease-in-out hover:scale-95 transform"
+                                        className="relative w-full sm:w-[382px] shadow-lg rounded-[12px] h-auto bg-[#FFFFFF] border-[0.8px] border-[#F3F4F6] transition-all duration-300 ease-in-out hover:scale-95 transform"
                                     >
-                                        <div className="flex flex-row justify-center items-center gap-3 w-full py-4 px-5">
-                                            <div className="size-[36px] bg-[#FAF5FF] rounded-[10px] flex justify-center items-center p-2">
-                                                <img
-                                                    src={vehicle.icon}
-                                                    className=""
-                                                />
+                                        <div className="blur-sm pointer-events-none">
+                                            <div className="flex flex-row justify-center items-center gap-3 w-full py-4 px-5">
+                                                <div className="size-[36px] bg-[#FAF5FF] rounded-[10px] flex justify-center items-center p-2">
+                                                    <img
+                                                        src={vehicle.icon}
+                                                        className=""
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <h1 className="text-[#101828] text-[14px]">
+                                                        {vehicle.name}
+                                                    </h1>
+                                                    <h1 className="text-[#6A7282] text-[12px]">
+                                                        {vehicle.route}
+                                                    </h1>
+                                                </div>
+                                                <div className="w-[64px] h-[23px] bg-[#F0FDF4] rounded-[8px] text-[#008236] text-[10px] flex justify-center items-center ml-auto p-1">
+                                                    <h1>{vehicle.frequency}</h1>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h1 className="text-[#101828] text-[14px]">
-                                                    {vehicle.name}
-                                                </h1>
-                                                <h1 className="text-[#6A7282] text-[12px]">
-                                                    {vehicle.route}
-                                                </h1>
-                                            </div>
-                                            <div className="w-[64px] h-[23px] bg-[#F0FDF4] rounded-[8px] text-[#008236] text-[10px] flex justify-center items-center ml-auto p-1">
-                                                <h1>{vehicle.frequency}</h1>
-                                            </div>
-                                        </div>
-                                        <div className="border-[#F3F4F6] border-y-[0.8px] w-full py-5 px-5">
-                                            <div className="flex flex-row justify-between items-center">
-                                                <div className="flex flex-col">
-                                                    <div className="flex flex-row gap-2">
-                                                        <img
-                                                            src={calanderGrey}
-                                                            className=""
-                                                        />
-                                                        <h1 className="text-[10px] text-[#6A7282]">
+                                            <div className="border-[#F3F4F6] border-y-[0.8px] w-full py-5 px-5">
+                                                <div className="flex flex-row justify-between items-center">
+                                                    <div className="flex flex-col">
+                                                        <div className="flex flex-row gap-2">
+                                                            <img
+                                                                src={
+                                                                    calanderGrey
+                                                                }
+                                                                className=""
+                                                            />
+                                                            <h1 className="text-[10px] text-[#6A7282]">
+                                                                {
+                                                                    vehicle
+                                                                        .departure
+                                                                        .date
+                                                                }
+                                                            </h1>
+                                                        </div>
+                                                        <h1 className="text-[#101828] text-[14px]">
                                                             {
                                                                 vehicle
                                                                     .departure
-                                                                    .date
+                                                                    .time
+                                                            }
+                                                        </h1>
+                                                        <h1 className="text-[#4A5565] text-[12px]">
+                                                            {
+                                                                vehicle
+                                                                    .departure
+                                                                    .location
                                                             }
                                                         </h1>
                                                     </div>
-                                                    <h1 className="text-[#101828] text-[14px]">
-                                                        {vehicle.departure.time}
-                                                    </h1>
-                                                    <h1 className="text-[#4A5565] text-[12px]">
-                                                        {
-                                                            vehicle.departure
-                                                                .location
-                                                        }
-                                                    </h1>
-                                                </div>
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <div className="flex flex-row gap-1 items-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <div className="flex flex-row gap-1 items-center">
+                                                            <img
+                                                                src={clockGrey}
+                                                                className="clock"
+                                                            />
+                                                            <h1 className="text-[#6A7282] text-[9px]">
+                                                                {
+                                                                    vehicle.duration
+                                                                }
+                                                            </h1>
+                                                        </div>
                                                         <img
-                                                            src={clockGrey}
-                                                            className="clock"
+                                                            src={rightArrow}
+                                                            className="size-[16px]"
                                                         />
-                                                        <h1 className="text-[#6A7282] text-[9px]">
-                                                            {vehicle.duration}
-                                                        </h1>
                                                     </div>
-                                                    <img
-                                                        src={rightArrow}
-                                                        className="size-[16px]"
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col text-end">
-                                                    <div className="flex flex-row gap-2">
-                                                        <img
-                                                            src={calanderGrey}
-                                                            className=""
-                                                        />
-                                                        <h1 className="text-[10px] text-[#6A7282]">
+                                                    <div className="flex flex-col text-end">
+                                                        <div className="flex flex-row gap-2">
+                                                            <img
+                                                                src={
+                                                                    calanderGrey
+                                                                }
+                                                                className=""
+                                                            />
+                                                            <h1 className="text-[10px] text-[#6A7282]">
+                                                                {
+                                                                    vehicle
+                                                                        .arrival
+                                                                        .date
+                                                                }
+                                                            </h1>
+                                                        </div>
+                                                        <h1 className="text-[#101828] text-[14px]">
                                                             {
                                                                 vehicle.arrival
-                                                                    .date
+                                                                    .time
+                                                            }
+                                                        </h1>
+                                                        <h1 className="text-[#4A5565] text-[12px]">
+                                                            {
+                                                                vehicle.arrival
+                                                                    .location
                                                             }
                                                         </h1>
                                                     </div>
-                                                    <h1 className="text-[#101828] text-[14px]">
-                                                        {vehicle.arrival.time}
-                                                    </h1>
-                                                    <h1 className="text-[#4A5565] text-[12px]">
-                                                        {
-                                                            vehicle.arrival
-                                                                .location
-                                                        }
-                                                    </h1>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="mt-5 px-5 pb-3">
-                                            <h1 className="text-[10px] text-[#6A7282]">
-                                                Select Class
-                                            </h1>
+                                            <div className="mt-5 px-5 pb-3">
+                                                <h1 className="text-[10px] text-[#6A7282]">
+                                                    Select Class
+                                                </h1>
 
-                                            <div className="flex flex-col sm:flex-row justify-between items-center">
-                                                {vehicle.classes.map(
-                                                    (cls, clsIndex) => (
-                                                        <div
-                                                            key={clsIndex}
-                                                            className="w-[111px] h-[82px] border-[0.8px] bg-gradient-to-t rounded-[10px] mt-3 p-3"
-                                                            style={{
-                                                                borderColor:
-                                                                    cls.color,
-                                                                background: `linear-gradient(to top, ${cls.color}20, ${cls.color}10)`,
-                                                            }}
-                                                        >
-                                                            <h1
-                                                                className="text-[10px] font-[400]"
+                                                <div className="flex flex-col sm:flex-row justify-between items-center">
+                                                    {vehicle.classes.map(
+                                                        (cls, clsIndex) => (
+                                                            <div
+                                                                key={clsIndex}
+                                                                className="w-[111px] h-[82px] border-[0.8px] bg-gradient-to-t rounded-[10px] mt-3 p-3"
                                                                 style={{
-                                                                    color: cls.color,
+                                                                    borderColor:
+                                                                        cls.color,
+                                                                    background: `linear-gradient(to top, ${cls.color}20, ${cls.color}10)`,
                                                                 }}
                                                             >
-                                                                {cls.name}
-                                                            </h1>
-                                                            <h1
-                                                                className="text-[12px] font-[400]"
-                                                                style={{
-                                                                    color: cls.color,
-                                                                }}
-                                                            >
-                                                                {cls.price}
-                                                            </h1>
-                                                            <div className="flex flex-row items-center gap-2">
-                                                                <div
-                                                                    className="size-[6px] rounded-full"
-                                                                    style={{
-                                                                        backgroundColor:
-                                                                            cls.color,
-                                                                    }}
-                                                                />
                                                                 <h1
-                                                                    className="text-[9px] font-[400]"
+                                                                    className="text-[10px] font-[400]"
                                                                     style={{
                                                                         color: cls.color,
                                                                     }}
                                                                 >
-                                                                    {cls.seats}
+                                                                    {cls.name}
                                                                 </h1>
+                                                                <h1
+                                                                    className="text-[12px] font-[400]"
+                                                                    style={{
+                                                                        color: cls.color,
+                                                                    }}
+                                                                >
+                                                                    {cls.price}
+                                                                </h1>
+                                                                <div className="flex flex-row items-center gap-2">
+                                                                    <div
+                                                                        className="size-[6px] rounded-full"
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                cls.color,
+                                                                        }}
+                                                                    />
+                                                                    <h1
+                                                                        className="text-[9px] font-[400]"
+                                                                        style={{
+                                                                            color: cls.color,
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            cls.seats
+                                                                        }
+                                                                    </h1>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )
-                                                )}
+                                                        )
+                                                    )}
+                                                </div>
                                             </div>
+                                        </div>
+                                        <div className="absolute inset-0 flex justify-center items-center bg-white bg-opacity-75 rounded-[12px]">
+                                            <span className="text-[30px] figtree font-[700] text-gray-600">
+                                                Coming{" "}
+                                                <span className="text-[#0955AC]">
+                                                    Soon
+                                                </span>
+                                            </span>
                                         </div>
                                     </div>
                                 ))}
@@ -1443,8 +1582,8 @@ const Hero = () => {
                             >
                                 {vehicleData.yacht.map((vehicle, index) => (
                                     <Link
-                                    key={index}
-                                    href="/multiModel/yatch/yatchDetails"
+                                        key={index}
+                                        href="/multiModel/yatch/yatchDetails"
                                         className="w-full sm:w-[382px] shadow-lg rounded-[12px] h-auto bg-[#FFFFFF] border-[0.8px] border-[#F3F4F6] transition-all duration-300 ease-in-out hover:scale-95 transform"
                                     >
                                         <div className="flex flex-row justify-center items-center gap-3 w-full py-4 px-5">

@@ -20,30 +20,42 @@ const Footer = () => {
             <div className="container mx-auto px-4 sm:px-6 mt-6 sm:mt-10">
                 <div className="figtree grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8">
                     {/* Links Section */}
-                    <div className="figtree md:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 text-[16px] sm:text-[18px] font-[400]">
+                    <div className="figtree md:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 text-[16px] sm:text-[18px] font-[400] text-[#F8F8F8]">
                         {/* Products Section */}
                         <div>
                             <h3 className="text-[18px] sm:text-[20px] font-[700] mb-3 sm:mb-4">
                                 Products
                             </h3>
-                            <ul className="space-y-2">
+                            <ul className="space-y-4">
                                 <li>
-                                    <Link href="/clientRent" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="/clientRent"
+                                        className="hover:text-blue-400 transition-colors duration-200"
+                                    >
                                         Vehicle Rental
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/ticketBooking" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="/ticketBooking"
+                                        className="hover:text-blue-400 transition-colors duration-200"
+                                    >
                                         Ticket Booking
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/courier-service" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="/courier-service"
+                                        className="hover:text-blue-400 transition-colors duration-200"
+                                    >
                                         Courier Service
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/drivers-home" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="/drivers-home"
+                                        className="hover:text-blue-400 transition-colors duration-200"
+                                    >
                                         Drivers
                                     </Link>
                                 </li>
@@ -55,7 +67,7 @@ const Footer = () => {
                             <h3 className="text-[18px] sm:text-[20px] font-[700] mb-3 sm:mb-4">
                                 Information
                             </h3>
-                            <ul className="space-y-2">
+                            <ul className="space-y-4">
                                 <li>
                                     <Link
                                         href="#faq"
@@ -69,7 +81,10 @@ const Footer = () => {
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/landingPage/blog" className="hover:text-blue-400 transition-colors duration-200">
+                                    <Link
+                                        href="/landingPage/blog"
+                                        className="hover:text-blue-400 transition-colors duration-200"
+                                    >
                                         Blog
                                     </Link>
                                 </li>
@@ -93,7 +108,7 @@ const Footer = () => {
                             <h3 className="text-[18px] sm:text-[20px] font-[700] mb-3 sm:mb-4">
                                 Company
                             </h3>
-                            <ul className="space-y-2">
+                            <ul className="space-y-4">
                                 <li>
                                     <Link
                                         href="#about"
@@ -138,7 +153,7 @@ const Footer = () => {
                             <h3 className="text-[18px] sm:text-[20px] font-[700] mb-3 sm:mb-4">
                                 Privacy & Legal
                             </h3>
-                            <ul className="space-y-2">
+                            <ul className="space-y-4">
                                 <li>
                                     <Link
                                         href="#privacy"
@@ -180,7 +195,7 @@ const Footer = () => {
                     </div>
 
                     {/* Subscribe and Description Section */}
-                    <div className="md:col-span-4 bg-blue-950 p-6 sm:p-10 h-auto">
+                    <div className="md:col-span-4 bg-[#FFFFFF] bg-opacity-10 p-6 sm:p-10 h-auto">
                         {/* Subscribe Section */}
                         <div>
                             <h4 className="text-[16px] font-[700] mb-2">
@@ -211,26 +226,29 @@ const Footer = () => {
                             </div>
                         </div>
 
-        {/* Company Description */}
-        <div className="mt-6 sm:mt-10">
-            <p className="text-[#F8F8F8B5] text-justify text-sm sm:text-base">
-                Hello. we are "Company Name". Our goal is to
-                translate the positive effects from
-                revolutionizing how companies engage with their
-                clients & their team.
-            </p>
-        </div>
-    </div>
+                        {/* Company Description */}
+                        <div className="mt-6 sm:mt-10">
+                            <p className="text-[#F8F8F8B5] text-justify text-sm sm:text-base">
+                                Hello. we are "Company Name". Our goal is to
+                                translate the positive effects from
+                                revolutionizing how companies engage with their
+                                clients & their team.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Copyright, Logo, and Social Icons */}
                 <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-gray-700 flex flex-col md:flex-row items-center justify-between gap-4">
                     {/* Logo */}
-                    <div className="text-center md:text-left">
-                        <Link href="/" className="text-xl sm:text-2xl font-bold hover:text-blue-400 transition-colors duration-200">
+                    <div className="text-center md:text-center">
+                        <Link
+                            href="/"
+                            className="text-xl sm:text-2xl font-[700] hover:text-blue-400 transition-colors duration-200 poppins"
+                        >
                             COMPANY
                             <br />
-                            LOGO
+                            <span className="text-[#0955AC]">LOGO</span>
                         </Link>
                     </div>
                     {/* Copyright */}

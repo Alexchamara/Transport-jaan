@@ -8,7 +8,7 @@ const VehicleSearch = () => {
     const [showQuoteModal, setShowQuoteModal] = useState(false);
     useScrollLock(showQuoteModal);
     return (
-        <div className="">
+        <div className="p-5 md:p-0">
             <QuoteModal
                 open={showQuoteModal}
                 onClose={() => setShowQuoteModal(false)}
@@ -144,10 +144,11 @@ const VehicleSearch = () => {
                             <input
                                 type="text"
                                 id="pickupLocation"
+                                name="pickupLocation"
                                 // value={formData.pickupLocation}
                                 // onChange={handleInputChange}
                                 placeholder="Hudson Rd, Colombo 03"
-                                className="appearance-none w-full h-[35px] border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9] placeholder:text-[12px] placeholder:font-[600]"
+                                className="appearance-none w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9] placeholder:font-[600]"
                             />
                         </div>
                         {/* Pick-up Date */}
@@ -162,6 +163,7 @@ const VehicleSearch = () => {
                                 <input
                                     type="text"
                                     id="pickupDate"
+                                    name="pickupDate"
                                     // value={formData.pickupDate}
                                     // onChange={handleInputChange}
                                     placeholder="23 / 07 / 2025"
@@ -179,18 +181,19 @@ const VehicleSearch = () => {
                                 </label>
                                 <input
                                     type="text"
-                                    id="pickupDate"
+                                    id="pickupTime"
+                                    name="pickupTime"
                                     // value={formData.pickupDate}
                                     // onChange={handleInputChange}
                                     placeholder="10 : 00 AM"
                                     className="w-full relative border-[1px] border-[#00000042] bg-transparent rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
-                                    onFocus={(e) => (e.target.type = "text")}
+                                    onFocus={(e) => (e.target.type = "time")}
                                     onBlur={(e) => (e.target.type = "text")}
                                 />
-                                <img
+                                {/* <img
                                     src={clock}
                                     className="hidden sm:block absolute top-11 left-40 z-10"
-                                />
+                                /> */}
                             </div>
                         </div>
                     </div>
@@ -207,6 +210,7 @@ const VehicleSearch = () => {
                             <input
                                 type="text"
                                 id="dropoffLocation"
+                                name="dropoffLocation"
                                 // value={formData.dropoffLocation}
                                 // onChange={handleInputChange}
                                 placeholder="Hudson Rd, Colombo 03"
@@ -225,6 +229,7 @@ const VehicleSearch = () => {
                                 <input
                                     type="text"
                                     id="dropoffDate"
+                                    name="dropoffDate"
                                     // value={formData.dropoffDate}
                                     // onChange={handleInputChange}
                                     placeholder="23 / 07 / 2025"
@@ -235,25 +240,26 @@ const VehicleSearch = () => {
                             </div>
                             <div className="relative">
                                 <label
-                                    htmlFor="pickupTime"
+                                    htmlFor="dropoffTime"
                                     className="block mb-3"
                                 >
                                     Drop-off Time
                                 </label>
                                 <input
                                     type="text"
-                                    id="pickupTime"
+                                    id="dropoffTime"
+                                    name="dropoffTime"
                                     // value={formData.pickupDate}
                                     // onChange={handleInputChange}
                                     placeholder="10 : 00 AM"
                                     className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
-                                    onFocus={(e) => (e.target.type = "text")}
+                                    onFocus={(e) => (e.target.type = "time")}
                                     onBlur={(e) => (e.target.type = "text")}
                                 />
-                                <img
+                                {/* <img
                                     src={clock}
                                     className="hidden sm:block absolute top-11 left-40 z-10"
-                                />
+                                /> */}
                             </div>
                         </div>
                     </div>
@@ -310,8 +316,8 @@ const VehicleSearch = () => {
                             <div className="flex flex-row justify-center items-center gap-4">
                                 <input
                                     type="checkbox"
-                                    id="#"
-                                    name="vehicleType"
+                                    id="gpsNavigation"
+                                    name="gpsNavigation"
                                     value=""
                                     className=" size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
                                 />
@@ -323,8 +329,8 @@ const VehicleSearch = () => {
                             <div className="flex flex-row justify-center items-center gap-4">
                                 <input
                                     type="checkbox"
-                                    id="#"
-                                    name="vehicleType"
+                                    id="childSeat"
+                                    name="childSeat"
                                     value=""
                                     className=" size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
                                 />
@@ -336,8 +342,8 @@ const VehicleSearch = () => {
                             <div className="flex flex-row justify-center items-center gap-4">
                                 <input
                                     type="checkbox"
-                                    id="#"
-                                    name="vehicleType"
+                                    id="wifi"
+                                    name="wifi"
                                     value=""
                                     className=" size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
                                 />
@@ -349,8 +355,8 @@ const VehicleSearch = () => {
                             <div className="flex flex-row justify-center items-center gap-4">
                                 <input
                                     type="checkbox"
-                                    id="#"
-                                    name="vehicleType"
+                                    id="insuranceCoverage"
+                                    name="insuranceCoverage"
                                     value=""
                                     className=" size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
                                 />
@@ -403,8 +409,9 @@ const VehicleSearch = () => {
 
                     <div className="flex justify-center items-center">
                         <div
-                            className=" w-auto xl:w-[261px] xl:h-[29px] px-4 py-2 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] cursor-pointer"
+                            className=" w-auto xl:w-[261px] xl:h-[29px] px-4 py-2 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] text-center cursor-pointer"
                             // onClick={() => setShowQuoteModal(true)}
+                            onClick={() => router.visit("/multiModel/payment")}
                         >
                             SELECT FOR WHOLE JOURNEY
                         </div>
@@ -413,9 +420,7 @@ const VehicleSearch = () => {
                     <div className="flex justify-center items-center">
                         <div
                             className="w-auto xl:w-[261px] xl:h-[29px] bg-[#0955AC] px-4 py-2 rounded-[5px] mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer"
-                            onClick={() =>
-                                router.visit("/multiModel/available-vehicles")
-                            }
+                            onClick={() => router.visit("/multiModel/payment")}
                         >
                             SELECT FOR STOP
                         </div>

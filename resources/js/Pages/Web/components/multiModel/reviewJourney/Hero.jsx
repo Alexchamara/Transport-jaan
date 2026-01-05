@@ -6,7 +6,7 @@ import tram from "../../../assets/multiModel/reviewJourney/miniTram.svg";
 import map from "../../../assets/multiModel/reviewJourney/map.svg";
 
 import line from "../../../assets/multiModel/reviewJourney/line.svg";
-
+import leftArrow from "../../../assets/multiModel/payment/leftArrow.svg";
 import { Link } from "@inertiajs/react";
 
 const Hero = () => {
@@ -15,14 +15,20 @@ const Hero = () => {
             <div className="grid xl:grid-cols-3 grid-cols-1 gap-10">
                 {/* left side */}
                 <div className="xl:col-span-2">
-                    <div>
-                        <h1 className="bebas-neue text-[50px]/[100%]">
-                            Review <span className="text-[#0955AC]">Your</span>{" "}
-                            Journey
-                        </h1>
-                        <h3 className="text-[14px] font-[500] text-[#00000080]">
-                            From Colombo to Nuwara Eliya
-                        </h3>
+                    <div className="flex flex-col md:flex-row items-start gap-5">
+                        <Link href="/multiModel/available-vehicles">
+                            <img src={leftArrow} />
+                        </Link>
+                        <div>
+                            <h1 className="bebas-neue text-[50px]/[100%]">
+                                Review{" "}
+                                <span className="text-[#0955AC]">Your</span>{" "}
+                                Journey
+                            </h1>
+                            <h3 className="text-[14px] font-[500] text-[#00000080]">
+                                From Colombo to Nuwara Eliya
+                            </h3>
+                        </div>
                     </div>
 
                     <h1 className="text-[25px] font-[600] figtree py-10">
@@ -225,7 +231,10 @@ const Hero = () => {
                         </div>
 
                         <div className="flex flex-row justify-center items-center gap-5 mt-5">
-                            <Link href="/multiModel/available-vehicles" className="md:w-[139px] md:h-[28px] bg-[#0955AC] rounded-[4px] text-[#FFFFFF] text-[10px] font-[700] flex justify-center items-center  cursor-pointer px-2 py-2">
+                            <Link
+                                href="/multiModel/available-vehicles"
+                                className="md:w-[139px] md:h-[28px] bg-[#0955AC] rounded-[4px] text-[#FFFFFF] text-[10px] font-[700] flex justify-center items-center  cursor-pointer px-2 py-2"
+                            >
                                 Edit Journey
                             </Link>
                             <Link

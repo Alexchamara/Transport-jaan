@@ -44,7 +44,7 @@ const Hero = () => {
                     <div className="xl:col-span-2">
                         <div className="w-full h-auto bg-[#F4F3F3] shadow-lg rounded-[20px] p-5 xl:p-8">
                             <div className="xl:w-auto rounded-[22px]">
-                                <div className="relative flex flex-col xl:flex-row justify-center gap-[8px] items-center">
+                                <div className="relative flex flex-col md:flex-row justify-center gap-[8px] items-center">
                                     <div className="absolute -top-3 -left-3 flex justify-center items-center bg-[#F4F3F3] rounded-[10px] size-[65px]">
                                         <Link
                                             href="/multiModel/available-vehicles"
@@ -56,22 +56,23 @@ const Hero = () => {
                                             />
                                         </Link>
                                     </div>
+                                    
                                     <img
                                         src={imgOne}
-                                        className="w-full rounded-[22px] xl:rounded-[0px] xl:h-[320px] max-w-[412px] xl:w-[400px]"
+                                        className="w-full rounded-[22px] md:rounded-[0px] md:h-[280px] lg:h-[310px] xl:h-[280px] xl:w-full"
                                     />
-                                    <div className="hidden xl:flex flex-row xl:flex-col gap-[8px] justify-center">
-                                        <img src={imgTwo} className="w-[70px] xl:w-[150px]" />
-                                        <img src={imgThree} className="w-[70px] xl:w-[150px]" />
+                                    <div className="hidden md:flex flex-row md:flex-col gap-[8px] justify-center">
+                                        <img src={imgTwo} className="w-full xl:w-full" />
+                                        <img src={imgThree} className="w-full xl:w-full" />
                                     </div>
-                                    <div className="hidden xl:flex flex-row xl:flex-col gap-[8px] justify-center">
-                                        <img src={imgFour} className="w-[70px] xl:w-[150px]" />
-                                        <img src={imgFive} className="w-[70px] xl:w-[150px]" />
+                                    <div className="hidden md:flex flex-row md:flex-col gap-[8px] justify-center">
+                                        <img src={imgFour} className="w-full xl:w-full" />
+                                        <img src={imgFive} className="w-full xl:w-full" />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex flex-row justify-between items-start mt-10">
+                            <div className="flex flex-col gap-2 sm:flex-row justify-between items-start mt-10">
                                 <div className="flex flex-col">
                                     <h1 className="bebas-neue text-[24px] xl:text-[30px] text-[#0A0A0A]">
                                         SEA PEARL{" "}
@@ -116,7 +117,7 @@ const Hero = () => {
                                             8:00 AM Departure
                                         </h1>
                                     </div>
-                                    <div className="flex flex-col items-end">
+                                    <div className="flex flex-col items-end text-end">
                                         <h1>Trincomalee Harbor</h1>
                                         <h1 className="text-[12px] text-[#6A7282]">
                                             1:00 PM Arrival
@@ -126,7 +127,7 @@ const Hero = () => {
 
                                 <div className="w-full xl:h-[52px] bg-[#F9FAFB] rounded-[10px] mt-3 flex flex-row justify-between items-center px-5 py-2 text-[14px] text-[#0A0A0A]">
                                     <h1>Voyage Duration</h1>
-                                    <h1 className="text-[#4A5565]">
+                                    <h1 className="text-[#4A5565] text-end">
                                         5 hours (180 km)
                                     </h1>
                                 </div>
@@ -178,7 +179,7 @@ const Hero = () => {
                                             8:00 AM - 6:00 PM (10 hours)
                                         </h1>
                                     </div>
-                                    <div className="flex flex-col items-end">
+                                    <div className="flex flex-col items-end text-end">
                                         <h1>Rs 200,000</h1>
                                     </div>
                                 </div>
@@ -190,7 +191,7 @@ const Hero = () => {
                                             9:00 AM - 2:00 PM (5 hours)
                                         </h1>
                                     </div>
-                                    <div className="flex flex-col items-end">
+                                    <div className="flex flex-col items-end text-end">
                                         <h1>Rs 125,000</h1>
                                     </div>
                                 </div>
@@ -202,7 +203,7 @@ const Hero = () => {
                                             4:00 PM - 7:00 PM (3 hours)
                                         </h1>
                                     </div>
-                                    <div className="flex flex-col items-end">
+                                    <div className="flex flex-col items-end text-end">
                                         <h1>Rs 85,000</h1>
                                     </div>
                                 </div>
@@ -263,11 +264,13 @@ const Hero = () => {
 
                             <div className="mt-5 flex flex-col gap-5 border-b-[1px] border-[#E5E7EB] pb-5">
                                 <div>
-                                    <label className="text-[12px] text-[#4A5565]">
+                                    <label htmlFor="departurePoint" className="text-[12px] text-[#4A5565]">
                                         Departure Point
                                     </label>
                                     <input
                                         type="text"
+                                        id="departurePoint"
+                                        name="departurePoint"
                                         className="w-full h-[40px] bg-transparent focus:ring-0 rounded-[10px] border border-[#D1D5DC] mt-2 px-3 placeholder:text-[12px]"
                                         placeholder="Colombo Central Bus Stand"
                                     />
@@ -275,31 +278,37 @@ const Hero = () => {
 
                                 <div className="flex flex-col sm:flex-row items-center justify-center gap-5 w-full">
                                     <div className="w-full">
-                                        <label className="text-[12px] text-[#4A5565]">
+                                        <label htmlFor="travelDate" className="text-[12px] text-[#4A5565]">
                                             Travel Date
                                         </label>
                                         <input
                                             type="date"
+                                            id="travelDate"
+                                            name="travelDate"
                                             className="w-full h-[40px] bg-transparent focus:ring-0 rounded-[10px] border border-[#D1D5DC] mt-2 px-3"
                                         />
                                     </div>
                                     <div className="w-full">
-                                        <label className="text-[12px] text-[#4A5565]">
+                                        <label htmlFor="travelTime" className="text-[12px] text-[#4A5565]">
                                             Travel Time
                                         </label>
                                         <input
                                             type="time"
+                                            id="travelTime"
+                                            name="travelTime"
                                             className="w-full h-[40px] bg-transparent focus:ring-0 rounded-[10px] border border-[#D1D5DC] mt-2 px-3"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col">
-                                    <label className="text-[12px] text-[#4A5565]">
+                                    <label htmlFor="passengers" className="text-[12px] text-[#4A5565]">
                                         Number of Passengers
                                     </label>
                                     <input
                                         type="number"
+                                        id="passengers"
+                                        name="passengers"
                                         className="w-[50px] h-[50px] bg-transparent focus:ring-0 rounded-[10px] border border-[#D1D5DC] mt-2 px-3"
                                         placeholder="1"
                                     />
@@ -347,7 +356,7 @@ const Hero = () => {
                                 <div className="grid grid-cols-2 justify-center items-center mt-5 text-[12px] pt-5 border-t-[1px] border-[#E5E7EB]">
                                     <div className="flex flex-col">
                                         <h1>Deposit (30%)</h1>
-                                        <h1 className="text-[12px] text-[#6A7282] text-nowrap">
+                                        <h1 className="text-[12px] text-[#6A7282] xl:text-nowrap">
                                             Balance due 7 days before departure
                                         </h1>
                                     </div>
@@ -361,7 +370,7 @@ const Hero = () => {
                                         <h1 className="text-[14px]">
                                             Total Charter Fee
                                         </h1>
-                                        <h1 className="text-[12px] text-[#6A7282] text-nowrap">
+                                        <h1 className="text-[12px] text-[#6A7282] xl:text-nowrap">
                                             Refundable deposit: Rs 10,000
                                         </h1>
                                     </div>

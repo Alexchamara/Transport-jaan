@@ -22,7 +22,7 @@ const Hero = () => {
                 <div className="xl:col-span-2 flex flex-col justify-start items-center">
                     <div className="flex flex-col md:flex-row justify-between gap-2 md:items-center w-full">
                         <div className="flex flex-col md:flex-row items-start gap-5">
-                            <Link href="/multiModel/bus/busDetails">
+                            <Link href="/multiModel/yatch/yatchDetails">
                                 <img src={leftArrow} />
                             </Link>
                             <div>
@@ -248,7 +248,7 @@ const Hero = () => {
                             <div className="flex flex-col text-center justify-center items-center gap-5">
                                 <Link
                                     href="/multiModel/yatch/confirmPayment"
-                                    className="md:w-[400px] md:h-[42px] bg-[#0955AC] rounded-[10px] text-[#FFFFFF] text-[14px] font-[400] flex justify-center items-center  cursor-pointer px-2 py-2"
+                                    className="xl:w-[300px] md:h-[42px] bg-[#0955AC] rounded-[10px] text-[#FFFFFF] text-[14px] font-[400] flex justify-center items-center  cursor-pointer px-4 py-2"
                                 >
                                     BOOK NOW
                                 </Link>

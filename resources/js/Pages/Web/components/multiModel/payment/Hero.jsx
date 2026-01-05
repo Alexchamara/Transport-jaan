@@ -9,6 +9,8 @@ import logo3 from "../../../assets/multiModel/payment/logo3.svg";
 import logo4 from "../../../assets/multiModel/payment/logo4.svg";
 
 import line2 from "../../../assets/multiModel/reviewJourney/line.svg";
+import tick from "../../../assets/multiModel/yatchDetails/tick.svg";
+
 
 import save from "../../../assets/multiModel/payment/save.svg";
 import { Link, router } from "@inertiajs/react";
@@ -30,7 +32,7 @@ const Hero = () => {
                 <div className="xl:col-span-2 flex flex-col justify-start items-center">
                     <div className="flex flex-col md:flex-row justify-between gap-2 md:items-center w-full">
                         <div className="flex flex-col md:flex-row items-start gap-5">
-                            <Link href="/multiModel/travellerDetails">
+                            <Link href="/multiModel/vehicleDetails">
                                 <img src={leftArrow} />
                             </Link>
                             <div>
@@ -90,17 +92,21 @@ const Hero = () => {
 
                             <div className="poppins text-[14px] font-[600]">
                                 <div className="flex flex-col w-full mt-5">
-                                    <label>Cardholder’s name</label>
+                                    <label htmlFor="cardholderName">Cardholder's name</label>
                                     <input
                                         type="text"
+                                        id="cardholderName"
+                                        name="cardholderName"
                                         className="w-full xl:h-[50px] border border-[#0000004D] rounded-[10px] px-3 placeholder:text-[#00000033] placeholder:font-[400] bg-transparent mt-2"
                                         placeholder="Kasun Kalhara"
                                     />
                                 </div>
                                 <div className="flex flex-col w-full mt-5">
-                                    <label>Card Number</label>
+                                    <label htmlFor="cardNumber">Card Number</label>
                                     <input
                                         type="text"
+                                        id="cardNumber"
+                                        name="cardNumber"
                                         className="w-full xl:h-[50px] border border-[#0000004D] rounded-[10px] px-3 placeholder:text-[#00000033] placeholder:font-[400] bg-transparent mt-2"
                                         placeholder="123 - 456 - 789"
                                     />
@@ -108,17 +114,21 @@ const Hero = () => {
 
                                 <div className="flex flex-row gap-10">
                                     <div className="flex flex-col w-full mt-5">
-                                        <label>Expire Date</label>
+                                        <label htmlFor="expireDate">Expire Date</label>
                                         <input
                                             type="text"
+                                            id="expireDate"
+                                            name="expireDate"
                                             className="w-full xl:h-[50px] border border-[#0000004D] rounded-[10px] px-3 placeholder:text-[#00000033] placeholder:font-[400] bg-transparent mt-2"
                                             placeholder="20/23"
                                         />
                                     </div>
                                     <div className="flex flex-col w-full mt-5">
-                                        <label>CVC</label>
+                                        <label htmlFor="cvc">CVC</label>
                                         <input
                                             type="text"
+                                            id="cvc"
+                                            name="cvc"
                                             className="w-full xl:h-[50px] border border-[#0000004D] rounded-[10px] px-3 placeholder:text-[#00000033] placeholder:font-[400] bg-transparent mt-2"
                                             placeholder="654"
                                         />
@@ -131,10 +141,12 @@ const Hero = () => {
                     <div className="flex flex-row gap-3 items-center w-full poppins text-[10px] font-[400] mt-10">
                         <input
                             type="checkbox"
+                            id="termsAgreement"
+                            name="termsAgreement"
                             className="size-[20px] border-[0.5px] border-[#0955AC] bg-[#FFFFFF] rounded-[4px]"
                         />
 
-                        <h1>
+                        <label htmlFor="termsAgreement">
                             I agree to the{" "}
                             <span className="text-[#0955AC]">
                                 {" "}
@@ -145,11 +157,11 @@ const Hero = () => {
                                 rivacy Policy
                             </span>
                             .
-                        </h1>
+                        </label>
                     </div>
                 </div>
                 <div className="xl:col-span-1">
-                    <div className="w-full min-h-[794px] bg-[#F4F3F3] rounded-[12px] shadow-lg py-5 poppins">
+                    <div className="w-full max-h-[794px] overflow-y-auto bg-[#F4F3F3] rounded-[12px] shadow-lg py-5 poppins">
                         <div className="px-5">
                             <div className="w-full h-auto md:h-[184px] border-[3px] border-dashed border-[#0955AC] rounded-[20px] bg-[#FFFFFF] p-5 text-[16px] font-[500]">
                                 <h1 className="text-[24px] font-[500] text-[#0955AC]">
@@ -175,88 +187,81 @@ const Hero = () => {
                                         Apply Code
                                     </h1>
                                 </div>
-                                <input
-                                    type="text"
-                                    className="w-full xl:w-auto border-b-[1px] border-[#80808080] border-[0px] focus:ring-0 placeholder:text-[12px] placeholder:text-[#80808080] p-0"
-                                    placeholder="Enter Code"
-                                />
+                                <div className="flex flex-col">
+                                    <label htmlFor="promoCode" className="sr-only">Promo Code</label>
+                                    <input
+                                        type="text"
+                                        id="promoCode"
+                                        name="promoCode"
+                                        className="w-full xl:w-auto border-b-[1px] border-[#80808080] border-[0px] focus:ring-0 placeholder:text-[12px] placeholder:text-[#80808080] p-0"
+                                        placeholder="Enter Code"
+                                    />
+                                </div>
                             </div>
                         </div>
 
                         <div className="h-auto bg-[#F4F3F3] py-5">
                             <h1 className="text-[#333843] text-[20px] font-[600] w-full p-5 rounded-t-[12px]">
-                                Trip Summary
+                                Booking Summary
                             </h1>
-                            <div className="flex flex-row justify-between text-[14px] font-[600] bg-[#FAFAFA] py-4 px-4 text-[#333843] mt-5">
-                                <h1>Total</h1>
-                                <h1>$135.00 Incl. VAT</h1>
-                            </div>
 
-                            <div className="bg-[#0955AC1A] mx-2 mt-5 rounded-[10px]">
-                                <div className="px-5 py-5 flex flex-row gap-2">
-                                    <div className="flex flex-col">
-                                        <div className="size-[12px] bg-[#0955AC] rounded-full" />
-                                        <img
-                                            src={line2}
-                                            alt="line"
-                                            className="w-[1px] ml-[5px]"
-                                        />
-                                        <div className="size-[12px] bg-[#0955AC] rounded-full" />
-                                        <img
-                                            src={line2}
-                                            alt="line"
-                                            className="w-[1px] ml-[5px]"
-                                        />
-                                        <div className="size-[12px] bg-[#0955AC] rounded-full" />
-                                    </div>
+                            <div className="grid grid-cols-2 border-b-[0.8px] border-[#E5E7EB] mx-5 text-[14px] py-5">
+                                <div className="flex flex-col gap-2 items-start text-[#4A5565]">
+                                    <h1>Daily Rate</h1>
+                                    <h1>Number of Days</h1>
+                                    <h1>Subtotal</h1>
+                                    <h1>Insurance</h1>
+                                </div>
 
-                                    <div className="flex flex-col text-[14px]/[14px] gap-2 font-[600] w-full">
-                                        <h1>Car</h1>
-                                        <div className="flex flex-row justify-between items-center w-full">
-                                            <h1 className="font-[400] text-[#667085]">
-                                                Amount
-                                            </h1>
-                                            <h1 className="font-[500] text-[#333843] text-[14px]">
-                                                $90.00
-                                            </h1>
-                                        </div>
-
-                                        <h1 className="mt-5">Train</h1>
-                                        <div className="flex flex-row justify-between items-center w-full">
-                                            <h1 className="font-[400] text-[#667085]">
-                                                Amount
-                                            </h1>
-                                            <h1 className="font-[500] text-[#333843] text-[14px]">
-                                                $20.00
-                                            </h1>
-                                        </div>
-
-                                        <h1 className="mt-5">Bus</h1>
-                                        <div className="flex flex-row justify-between items-center w-full">
-                                            <h1 className="font-[400] text-[#667085]">
-                                                Amount
-                                            </h1>
-                                            <h1 className="font-[500] text-[#333843] text-[14px]">
-                                                $15.00
-                                            </h1>
-                                        </div>
-                                    </div>
+                                <div className="flex flex-col gap-2 items-end text-[#0A0A0A]">
+                                    <h1>Rs 125,000</h1>
+                                    <h1>Rs 4,050</h1>
+                                    <h1>Rs 125,000</h1>
+                                    <h1>Rs 4,050</h1>
                                 </div>
                             </div>
 
-                            <div className="flex flex-row justify-center items-center gap-5 mt-5">
-                                <div 
-                                    onClick={handleConfirmPayment}
-                                    className="md:w-[139px] md:h-[28px] bg-[#0955AC] rounded-[4px] text-[#FFFFFF] text-[10px] font-[700] flex justify-center items-center  cursor-pointer px-2 py-2"
+                            <div className="grid grid-cols-2 mx-5 border-t-[0.8px] border-b-[0.8px] py-5 border-[#E5E7EB]">
+                                <div className="flex flex-col gap-2 items-start text-[#333843] font-[400] text-[16px]">
+                                    <h1>Total</h1>
+                                </div>
+
+                                <div className="flex flex-col gap-2 text-end items-end text-[#0A0A0A] font-[400] text-[16px] md:text-[24px]">
+                                    <h1>Rs 129,050</h1>
+                                </div>
+                            </div>
+
+                            <div className="px-5 text-[12px] text-[#4A5565] flex flex-col gap-2 justify-center items-start py-5">
+                                <div className="flex flex-row gap-2 items-center">
+                                    <img src={tick} />
+                                    <h1>Instant confirmation</h1>
+                                </div>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <img src={tick} />
+                                    <h1>Free cancellation up to 24 hours</h1>
+                                </div>
+                                <div className="flex flex-row gap-2 items-center">
+                                    <img src={tick} />
+                                    <h1>Secure payment processing</h1>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col text-center justify-center items-center gap-5">
+                                <div onClick={handleConfirmPayment}
+                                   
+                                    className="xl:w-[300px] md:h-[42px] bg-[#0955AC] rounded-[10px] text-[#FFFFFF] text-[14px] font-[400] flex justify-center items-center  cursor-pointer px-4 py-2"
                                 >
-                                    Confirm Payment
+                                    BOOK NOW
                                 </div>
 
-                                <div className="md:w-[139px] md:h-[28px] bg-[#0955AC] rounded-[4px] text-[#FFFFFF] text-[10px] font-[700] flex justify-center items-center  cursor-pointer px-2 py-2">
-                                    Edit Journey
-                                </div>
+                                <h1 className="text-[12px] text-[#6A7282]">
+                                    By clicking "Pay", you agree to our terms
+                                    and conditions
+                                </h1>
                             </div>
                         </div>
+
+           
                     </div>
                 </div>
             </div>
@@ -264,11 +269,11 @@ const Hero = () => {
             {/* Payment Success Modal */}
             {showSuccessModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-                    <div className="bg-white rounded-[20px] shadow-2xl max-w-md w-full p-8 flex flex-col items-center animate-fade-in">
-                        <h2 className="text-[32px] font-[700] text-[#333843] text-center figtree">
+                    <div className="bg-[#F4F3F3] rounded-[20px] shadow-2xl max-w-2xl w-full p-8 flex flex-col items-center animate-fade-in">
+                        <h2 className="text-[32px] font-[700] text-[#222222] text-center figtree">
                             Payment success
                         </h2>
-                        <p className="text-[16px] text-[#667085] text-center mt-2 poppins">
+                        <p className="text-[16px] text-[#6B6B6B] text-center mt-2 poppins">
                             Congrats! You have successfully booked your journey!
                         </p>
                         
@@ -284,7 +289,7 @@ const Hero = () => {
 
                         <button
                             onClick={handleGoHome}
-                            className="w-full h-[50px] bg-[#0955AC] hover:bg-[#073d7a] text-white rounded-[10px] text-[16px] font-[700] transition-colors figtree"
+                            className="max-w-md w-full h-[50px] bg-[#0955AC] hover:bg-[#073d7a] text-white rounded-[10px] text-[16px] font-[700] transition-colors figtree"
                         >
                             Home
                         </button>

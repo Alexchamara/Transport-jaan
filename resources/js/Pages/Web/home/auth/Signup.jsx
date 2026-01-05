@@ -36,7 +36,7 @@ const Signup = () => {
                     style={{ backgroundImage: `url(${bg})` }}
                 >
                     <div
-                        className="xl:w-[548px] bg-white/5 rounded-[30px] backdrop-blur-lg px-10 py-10 flex flex-col items-center relative"
+                        className="xl:w-[548px] bg-white/5 rounded-[30px] backdrop-blur-lg px-5 md:px-10 py-10 flex flex-col items-center relative"
                         style={{
                             boxShadow: "4px 4px 4px 0px rgba(0, 0, 0, 0.25)",
                         }}
@@ -49,13 +49,13 @@ const Signup = () => {
                             account
                         </p>
                         <form onSubmit={handleSubmit} className="flex flex-col items-center w-full">
-                            <div className="flex flex-col gap-0 py-5">
+                            <div className="flex flex-col gap-0 py-5 w-full items-center">
                                 {/* username */}
-                                <div className="flex flex-col gap-2 mb-6">
+                                <div className="flex flex-col gap-2 mb-6 w-full">
                                     <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-2 xl:px-10">
                                         Email Address
                                     </label>
-                                    <div className="xl:w-[397px] xl:h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center xl:px-12 px-3 py-2">
+                                    <div className="w-full xl:h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center xl:px-12 px-3 py-2">
                                         <input
                                             type="email"
                                             value={data.email}
@@ -72,11 +72,11 @@ const Signup = () => {
                                     )}
                                 </div>
                                 {/* password */}
-                                <div className="flex flex-col gap-2 mb-6">
+                                <div className="flex flex-col gap-2 mb-6 w-full">
                                     <label className="text-[14px] text-[#FFFFFFB2] font-[500] xl:px-10 px-2">
                                         Password
                                     </label>
-                                    <div className="xl:w-[397px] xl:h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center xl:px-10 px-3 py-2">
+                                    <div className="w-full xl:h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center xl:px-10 px-3 py-2">
                                         <input
                                             type={showPassword ? "text" : "password"}
                                             value={data.password}
@@ -116,7 +116,7 @@ const Signup = () => {
                             <button 
                                 type="submit"
                                 disabled={processing}
-                                className="xl:w-[397px] xl:h-[56px] bg-[#2E6099] rounded-[100px] xl:text-[16px] text-[12px] font-[600] flex justify-center items-center cursor-pointer disabled:opacity-50 px-6 py-2"
+                                className="xl:w-[397px] w-full xl:h-[56px] bg-[#2E6099] rounded-[100px] xl:text-[16px] text-[12px] font-[600] flex justify-center items-center cursor-pointer disabled:opacity-50 px-6 py-2"
                             >
                                 {processing ? 'Logging in...' : 'Login'}
                             </button>
@@ -140,7 +140,7 @@ const Signup = () => {
                             <div className="xl:w-[174px] w-[20px] h-[1px] bg-[#FFFFFF80]" />
                         </div>
 
-                        <div className="xl:w-[397px] xl:h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] xl:text-[16px] text-[12px] font-[600] flex flex-row gap-2 xl:gap-5 justify-center items-center cursor-pointer px-4 py-2">
+                        <div className="xl:w-[397px] w-full xl:h-[56px] border-[1.5px] border-[#0955AC] rounded-[100px] xl:text-[16px] text-[12px] font-[600] flex flex-row gap-2 xl:gap-5 justify-center items-center cursor-pointer px-4 py-2">
                             <img src={google} className="size-3 xl:size-auto" />
                             <h1>Continue with Google</h1>
                         </div>

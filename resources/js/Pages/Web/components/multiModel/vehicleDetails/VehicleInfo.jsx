@@ -51,12 +51,12 @@ const VehicleInfo = () => {
             </div>
 
             <div className="py-10">
-                <div className="flex flex-row xl:gap-20 gap-5 xl:px-20 text-[12px] font-[600] text-[#00000080] border-b-[2px] border-[#0000001F]">
+                <div className="flex flex-row xl:gap-20 gap-5 xl:px-20 text-[10px] font-[600] text-[#00000080] border-b-[2px] border-[#0000001F]">
                     <h1
                         className={`border-b-[2px] pb-5 xl:w-[92px] flex justify-center items-center cursor-pointer ${
                             selectedTab === "car-details"
                                 ? "border-[#0955AC] text-[#0955AC]"
-                                : ""
+                                : "border-transparent"
                         }`}
                         onClick={() => setSelectedTab("car-details")}
                     >
@@ -66,7 +66,7 @@ const VehicleInfo = () => {
                         className={`border-b-[2px] pb-5 xl:w-[92px] flex justify-center items-center cursor-pointer ${
                             selectedTab === "policies"
                                 ? "border-[#0955AC] text-[#0955AC]"
-                                : ""
+                                : "border-transparent"
                         }`}
                         onClick={() => setSelectedTab("policies")}
                     >
@@ -76,7 +76,7 @@ const VehicleInfo = () => {
                         className={`border-b-[2px] pb-5 xl:w-[92px] flex justify-center items-center cursor-pointer ${
                             selectedTab === "reviews"
                                 ? "border-[#0955AC] text-[#0955AC]"
-                                : ""
+                                : "border-transparent"
                         }`}
                         onClick={() => setSelectedTab("reviews")}
                     >
@@ -86,7 +86,7 @@ const VehicleInfo = () => {
                         className={`border-b-[2px] pb-5 xl:w-[92px] flex justify-center items-center cursor-pointer ${
                             selectedTab === "gallery"
                                 ? "border-[#0955AC] text-[#0955AC]"
-                                : ""
+                                : "border-transparent"
                         }`}
                         onClick={() => setSelectedTab("gallery")}
                     >
