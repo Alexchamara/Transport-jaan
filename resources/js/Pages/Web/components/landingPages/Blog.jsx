@@ -27,10 +27,7 @@ const Blog = () => {
 
                 <div className="flex justify-center items-center py-10">
                     <h1 className="text-[12px] xl:text-[17px] font-[300] text-[#F5B7877D] xl:w-[930px] text-center">
-                        FLorem ipsum dolor sit amet, consectetur adipiscing
-                        elit. Donec semper eu risus ut ornare. In bibendum
-                        tempus sapien, tristique consectetur purus pellentesque
-                        ac.
+                        Discover the latest insights, tips, and stories from the world of transportation. From air travel hacks to freight logistics updates, our blog keeps you informed and inspired for your journeys.
                     </h1>
                 </div>
 
@@ -46,13 +43,10 @@ const Blog = () => {
                     >
                         <div className="px-[5px]">
                             <h1 className="text-[24px] font-[700]">
-                                Lorem Ipsum Dolor Sit Amet
+                                Top 10 Air Travel Tips for 2024
                             </h1>
                             <p className="text-[10px] xl:text-[12px]/[23px] font-[400] text-justify mt-3">
-                                Lorem ipsum dolor sit amet, consectetur
-                                adipiscing elit. Donec semper eu risus ut
-                                ornare. In bibendum tempus sapien, tristique
-                                consectetu
+                                Planning your next flight? Discover essential tips to make your air travel experience smoother and more enjoyable. From packing efficiently to navigating airport security, we've got you covered.
                             </p>
                             <div className="flex md:flex-row flex-col gap-3 justify-between items-center mt-20">
                                 <h1 className="text-[12px] font-[500]">
@@ -75,13 +69,10 @@ const Blog = () => {
                     >
                         <div className="px-[5px]">
                             <h1 className="text-[24px] font-[700]">
-                                Lorem Ipsum Dolor Sit Amet
+                                Exploring Scenic Bus Routes Across the Country
                             </h1>
                             <p className="text-[10px] xl:text-[12px]/[23px] font-[400] text-justify mt-3">
-                                Lorem ipsum dolor sit amet, consectetur
-                                adipiscing elit. Donec semper eu risus ut
-                                ornare. In bibendum tempus sapien, tristique
-                                consectetu
+                                Experience the beauty of overland travel with our curated bus routes. Discover hidden gems, breathtaking landscapes, and comfortable journeys that connect you to new destinations.
                             </p>
                             <div className="flex md:flex-row flex-col gap-3 justify-between items-center mt-20">
                                 <h1 className="text-[12px] font-[500]">
@@ -104,13 +95,10 @@ const Blog = () => {
                     >
                         <div className="px-[5px]">
                             <h1 className="text-[24px] font-[700]">
-                                Lorem Ipsum Dolor Sit Amet
+                                Freight Logistics: Optimizing Your Supply Chain
                             </h1>
                             <p className="text-[10px] xl:text-[12px]/[23px] font-[400] text-justify mt-3">
-                                Lorem ipsum dolor sit amet, consectetur
-                                adipiscing elit. Donec semper eu risus ut
-                                ornare. In bibendum tempus sapien, tristique
-                                consectetu
+                                Learn how efficient freight services can transform your business operations. From cost-effective shipping solutions to real-time tracking, discover the keys to successful logistics management.
                             </p>
                             <div className="flex md:flex-row gap-3 flex-col justify-between items-center mt-20">
                                 <h1 className="text-[12px] font-[500]">

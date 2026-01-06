@@ -39,24 +39,30 @@ const About = () => {
 
                     <div>
                         <p>
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                            elit. Donec semper eu risus ut ornare. In bibendum
-                            tempus sapien, tristique consectetur purus
-                            pellentesque ac. Quisque facilisis laoreet feugiat.
-                            Sed dapibus volutpat ex, eget iaculis nunc tincidunt
-                            sit amet. Quisque congue sapien nec aliquet
-                            faucibus. Morbi lectus eros, accumsan eget malesuada
-                            et, fermentum eget nisl. Fusce vel placerat libero.
-                            Integer convallis sodales libero, vitae tristique .
+                            We are a comprehensive multimodal transport and
+                            logistics booking platform designed to simplify how
+                            goods and services move across local and global
+                            networks. Our platform seamlessly connects customers
+                            with verified logistics vendors, offering land, air,
+                            sea, courier, and warehousing solutions within one
+                            secure digital ecosystem. By integrating multiple
+                            transport modes into a single interface, we
+                            eliminate complexity, improve efficiency, and
+                            provide complete visibility throughout the logistics
+                            journey. Whether managing urgent courier deliveries,
+                            large-scale freight movements, or long-term storage
+                            requirements, users can search, compare, book, and
+                            track services with confidence.
                         </p>
                         <p>
-                            Lorem ipsum dolor sit amet, consectetur adipiscing
-                            elit. Donec semper eu risus ut ornare. In bibendum
-                            tempus sapien, tristique consectetur purus
-                            pellentesque ac. Quisque facilisis laoreet feugiat.
-                            Sed dapibus volutpat ex, eget iaculis nunc tincidunt
-                            sit amet. Quisque congue sapien nec aliquet
-                            faucibus. Morbi lectus eros,
+                            For logistics providers, our platform serves as a
+                            powerful marketplace to showcase capabilities, reach
+                            new customers, and streamline operations through
+                            technology-driven tools. Built with reliability,
+                            transparency, and scalability at its core, we aim to
+                            transform traditional logistics into a smarter,
+                            faster, and more connected experience for businesses
+                            and individuals alike.
                         </p>
                     </div>
 

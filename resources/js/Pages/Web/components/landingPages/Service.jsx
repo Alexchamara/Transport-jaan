@@ -64,10 +64,10 @@ const Service = () => {
                                     Vehicle Rental
                                 </h1>
                                 <p className="text-[12px]/[33px] font-[500] text-justify">
-                                    Lorem ipsum dolor sit amet, consectetur
-                                    adipiscing elit. Donec semper eu risus ut
-                                    ornare. In.Lorem ipsum dolor sit amet,
-                                    consectetur{" "}
+                                    Book cars, vans, and trucks easily for
+                                    personal or business use with flexible
+                                    rental options and trusted service
+                                    providers.
                                 </p>
                                 <div className="size-[38px] bg-[#0955AC87] rounded-full flex justify-center items-center cursor-pointer mt-10">
                                     <img src={rightArrow} />
@@ -119,10 +119,9 @@ const Service = () => {
                                     Ticket Booking
                                 </h1>
                                 <p className="text-[12px]/[33px] font-[500] text-justify">
-                                    Lorem ipsum dolor sit amet, consectetur
-                                    adipiscing elit. Donec semper eu risus ut
-                                    ornare. In.Lorem ipsum dolor sit amet,
-                                    consectetur{" "}
+                                    Book land, air, and sea travel tickets
+                                    quickly with clear pricing, secure payments,
+                                    and instant booking confirmation.
                                 </p>
                                 <div className="size-[38px] bg-[#0955AC87] rounded-full flex justify-center items-center cursor-pointer mt-10">
                                     <img src={rightArrow} />
@@ -174,10 +173,9 @@ const Service = () => {
                                     Courier booking
                                 </h1>
                                 <p className="text-[12px]/[33px] font-[500] text-justify">
-                                    Lorem ipsum dolor sit amet, consectetur
-                                    adipiscing elit. Donec semper eu risus ut
-                                    ornare. In.Lorem ipsum dolor sit amet,
-                                    consectetur{" "}
+                                    Send documents and parcels locally or
+                                    internationally with fast pickup, reliable
+                                    delivery, and real-time tracking.
                                 </p>
                                 <div className="size-[38px] bg-[#0955AC87] rounded-full flex justify-center items-center cursor-pointer mt-10">
                                     <img src={rightArrow} />
@@ -229,10 +227,9 @@ const Service = () => {
                                     Warehouse booking
                                 </h1>
                                 <p className="text-[12px]/[33px] font-[500] text-justify">
-                                    Lorem ipsum dolor sit amet, consectetur
-                                    adipiscing elit. Donec semper eu risus ut
-                                    ornare. In.Lorem ipsum dolor sit amet,
-                                    consectetur{" "}
+                                    Reserve safe and flexible warehouse space
+                                    for short-term or long-term storage based on
+                                    your business needs.
                                 </p>
                                 <div className="size-[38px] bg-[#0955AC87] rounded-full flex justify-center items-center cursor-pointer mt-10">
                                     <img src={rightArrow} />
@@ -284,10 +281,9 @@ const Service = () => {
                                     Freight Module
                                 </h1>
                                 <p className="text-[12px]/[33px] font-[500] text-justify">
-                                    Lorem ipsum dolor sit amet, consectetur
-                                    adipiscing elit. Donec semper eu risus ut
-                                    ornare. In.Lorem ipsum dolor sit amet,
-                                    consectetur{" "}
+                                    Manage freight shipments efficiently with
+                                    transparent pricing, multiple transport
+                                    options, and end-to-end shipment visibility.
                                 </p>
                                 <div className="size-[38px] bg-[#0955AC87] rounded-full flex justify-center items-center cursor-pointer mt-10">
                                     <img src={rightArrow} />
@@ -297,7 +293,7 @@ const Service = () => {
                     </div>
                 </div>
 
-                 {/* Card 6 */}
+                {/* Card 6 */}
                 <div
                     className="w-[305px] h-[740px] relative group overflow-hidden"
                     onClick={() => (window.location.href = "/multimodal")}
@@ -310,9 +306,7 @@ const Service = () => {
                         <h1 className="text-[40px] text-[#DF6203] font-[600]">
                             06
                         </h1>
-                        <h1 className="text-[21px] font-[600]">
-                            Multimodal
-                        </h1>
+                        <h1 className="text-[21px] font-[600]">Multimodal</h1>
                         <div className="size-[38px] bg-[#D9D9D982] rounded-full flex justify-center items-center cursor-pointer mt-20">
                             <img src={rightArrow} />
                         </div>
@@ -340,10 +334,9 @@ const Service = () => {
                                     Multimodal
                                 </h1>
                                 <p className="text-[12px]/[33px] font-[500] text-justify">
-                                    Lorem ipsum dolor sit amet, consectetur
-                                    adipiscing elit. Donec semper eu risus ut
-                                    ornare. In.Lorem ipsum dolor sit amet,
-                                    consectetur{" "}
+                                    Combine land, air, and sea transport into
+                                    one optimized booking for faster delivery
+                                    and cost-effective logistics solutions.
                                 </p>
                                 <div className="size-[38px] bg-[#0955AC87] rounded-full flex justify-center items-center cursor-pointer mt-10">
                                     <img src={rightArrow} />

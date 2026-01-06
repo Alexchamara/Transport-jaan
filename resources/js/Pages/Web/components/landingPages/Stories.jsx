@@ -8,31 +8,19 @@ const reviews = [
         name: "Steve Gibson",
         title: "Businessman",
         image: proPic1,
-        text: `Lorem ipsum dolor sit amet, consectetur adipiscing
-elit. Donec semper eu risus ut ornare. In bibendum
-tempus sapien, tristique consectetur purus
-pellentesque ac. Quisque facilisis laoreet feugiat.
-Sed dapibus volutpat ex, eget iaculis nunc tincidunt
-sit amet. Quisque congue sapien nec aliquet
-faucibus. Morbi lectus eros, accumsan eget malesuada
-et, fermentum eget nisl. Fusce vel placerat libero.
-Integer convallis sodales libero, vitae tristique
-massa hendrerit in.`,
+        text: `Their flight booking system is incredibly user-friendly, and I always get the best deals on last-minute tickets. The customer support team is responsive and helped me reschedule a flight during a tight deadline. Highly recommend for business travelers.`,
     },
     {
         name: "Maria Lopez",
         title: "Designer",
         image: proPic1,
-        text: `Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Etiam at dictum ex. Etiam euismod, urna eu tincidunt consectetur, nisi nisl aliquam nunc, nec dictum massa erat at dui.`,
+        text: `As someone who travels for inspiration, I appreciate how they connect me to scenic bus routes across the country. The booking process is seamless, and their app keeps me updated on schedules. My recent trip through the mountains was unforgettable thanks to their reliable service.`,
     },
     {
         name: "John Smith",
         title: "Developer",
         image: proPic1,
-        text: `Curabitur non nulla sit amet nisl tempus convallis quis ac lectus. Nulla porttitor accumsan tincidunt. Pellentesque in ipsum id orci porta dapibus. Morbi lectus eros, accumsan eget malesuada
-et, fermentum eget nisl. Fusce vel placerat libero.
-Integer convallis sodales libero, vitae tristique
-massa hendrerit in.`,
+        text: `Shipping my equipment for conferences used to be a nightmare until I found their freight services. Their tracking system is top-notch, and my packages always arrive on time and in perfect condition. The pricing is competitive, and their logistics team handles everything professionally.`,
     },
 ];
 

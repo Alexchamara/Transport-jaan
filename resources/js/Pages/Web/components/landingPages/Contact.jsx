@@ -20,13 +20,12 @@ const Contact = () => {
                         </div>
                         <div>
                             <p className="text-[12px] xl:text-[14px]/[33px] text-center xl:text-justify lg:w-[553px]">
-                                Lorem ipsum dolor sit amet, consectetur
-                                adipiscing elit. Donec semper eu risus ut
-                                ornare. In bibendum tempus sapien, tristique
-                                consectetur purus pellentesque ac. Quisque
-                                facilisis laoreet feugiat. Sed dapibus volutpat
-                                ex, eget iaculis nunc tincidunt sit
-                                amet. Quisque{" "}
+                                Get in touch with us for bookings, inquiries, or
+                                support related to our transport and logistics
+                                services. Our team is ready to assist you with
+                                vehicle rentals, ticket bookings, courier
+                                services, freight solutions, and warehouse
+                                storage needs.
                             </p>
                         </div>
                         <div className="flex flex-col gap-10 text-[12px] xl:text-[14px] font-[500] xl:px-10">

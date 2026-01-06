@@ -6,58 +6,48 @@ import "./landingPages.css";
 // FAQ data array
 const faqData = [
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "What services does your platform offer?",
+        answer: "We provide an all-in-one transport solution including vehicle rental, ticket booking, courier services, warehouse booking, freight management, and multimodal transport options.",
     },
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "How do I book a vehicle or transport service?",
+        answer: "Simply select the service you need, enter your pickup and destination details, choose your preferred option, and confirm the booking online within minutes.",
     },
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "Are the prices shown on the website final?",
+        answer: "Yes, all prices are displayed transparently. Any additional charges, if applicable, will be clearly shown before you confirm your booking",
     },
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "Can I track my courier or freight shipment?",
+        answer: "Yes. Real-time tracking is available for courier and freight shipments, allowing you to monitor the status from pickup to final delivery.",
     },
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "What types of vehicles are available for rental?",
+        answer: "We offer cars, vans, pickups, and trucks suitable for personal use, business travel, and commercial transportation.",
     },
 ];
 
 // FAQ data array
 const faqDataTwo = [
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "Do you support international shipments?",
+        answer: "Yes. Our courier and freight services support both domestic and international shipments via air and sea transport.",
     },
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "Is warehouse storage available for short-term use?",
+        answer: "Absolutely. You can book warehouse space for short-term or long-term storage based on your business requirements.",
     },
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "What payment methods are accepted?",
+        answer: "We accept secure online payments including cards, bank transfers, and other supported digital payment methods.",
     },
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "Can I combine multiple transport modes in one booking?",
+        answer: "Yes. Our multimodal service allows you to combine land, air, and sea transport into a single optimized booking.",
     },
     {
-        question:
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper?",
-        answer: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec semper eu risus ut ornare. In bibendum tempus sapien, tristique consectetur purus pellentesque ac. Quisque facilisis laoreet feugiat. Sed dapibus volutpat ex, eget iaculis nunc tincidunt sit.",
+        question: "How can I get customer support if I need help?",
+        answer: "Our support team is available via phone, email, or live chat to assist you with bookings, tracking, and general inquiries.",
     },
 ];
 
@@ -89,23 +79,35 @@ const FAQ = () => {
                 </div>
                 <div className="flex justify-center items-center py-10">
                     <h1 className="text-[12px] xl:text-[17px] font-[300] text-[#F5B7877D] xl:w-[930px] text-center">
-                        FLorem ipsum dolor sit amet, consectetur adipiscing
-                        elit. Donec semper eu risus ut ornare. In bibendum
-                        tempus sapien, tristique consectetur purus pellentesque
-                        ac.
+                        Have questions? We’ve answered the most common ones to
+                        help you book and manage your transport services with
+                        ease.
                     </h1>
                 </div>
 
-                <div className="flex md:flex-row flex-col justify-center gap-5 py-10">
+                <div className="flex md:flex-row flex-col justify-center items-center gap-5 py-10">
                     {/* FAQ section */}
                     <div className="flex flex-col gap-5">
                         {faqData.map((faq, idx) => (
-                            <div key={idx} className={`w-auto text-justify ${openIndex === idx ? 'border-[1px] border-[#0955AC] rounded-[10px]' : ''}`}>
+                            <div
+                                key={idx}
+                                className={`w-auto text-justify ${
+                                    openIndex === idx
+                                        ? "border-[1px] border-[#0955AC] rounded-[10px]"
+                                        : ""
+                                }`}
+                            >
                                 <div
-                                    className={`2xl:w-[628px] xl:w-[500px] w-auto xl:h-[63px] ${openIndex === idx ? '' : 'border-[1px] border-[#0955AC] rounded-[10px] box-shadow'} flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
+                                    className={`2xl:w-[628px] xl:w-[500px] w-auto xl:h-[63px] ${
+                                        openIndex === idx
+                                            ? ""
+                                            : "border-[1px] border-[#0955AC] rounded-[10px] box-shadow"
+                                    } flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
                                     onClick={() => handleToggle(idx)}
                                 >
-                                    <h1 className="text-[12px] xl:text-[16px]">{faq.question}</h1>
+                                    <h1 className="text-[12px] xl:text-[16px]">
+                                        {faq.question}
+                                    </h1>
                                     <img
                                         src={upArrow}
                                         alt="Toggle FAQ"
@@ -128,12 +130,25 @@ const FAQ = () => {
                     {/* FAQ section two */}
                     <div className="flex flex-col gap-5">
                         {faqDataTwo.map((faq, idx) => (
-                            <div key={idx} className={`w-auto text-justify ${openIndexTwo === idx ? 'border-[1px] border-[#0955AC] rounded-[10px]' : ''}`}>
+                            <div
+                                key={idx}
+                                className={`w-auto text-justify ${
+                                    openIndexTwo === idx
+                                        ? "border-[1px] border-[#0955AC] rounded-[10px]"
+                                        : ""
+                                }`}
+                            >
                                 <div
-                                    className={`2xl:w-[628px] xl:w-[500px] w-auto xl:h-[63px] ${openIndexTwo === idx ? '' : 'border-[1px] border-[#0955AC] rounded-[10px] box-shadow'} flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
+                                    className={`2xl:w-[628px] xl:w-[500px] w-auto xl:h-[63px] ${
+                                        openIndexTwo === idx
+                                            ? ""
+                                            : "border-[1px] border-[#0955AC] rounded-[10px] box-shadow"
+                                    } flex flex-row gap-5 items-center justify-between py-2 px-4 cursor-pointer`}
                                     onClick={() => handleToggleTwo(idx)}
                                 >
-                                    <h1 className="text-[12px] xl:text-[16px]">{faq.question}</h1>
+                                    <h1 className="text-[12px] xl:text-[16px]">
+                                        {faq.question}
+                                    </h1>
                                     <img
                                         src={upArrow}
                                         alt="Toggle FAQ"
