@@ -480,6 +480,22 @@ const SideMenu = () => {
                     >
                         Cancellation Settings
                     </Link>
+
+                    <Link
+                        href="/SuperAdmin/payments"
+                        className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
+                            activeSubsection === "Payments"
+                                ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                : hoveredSection === "Payments"
+                                ? "text-white bg-[#181A2A] border-l-transparent"
+                                : "text-[#AEB9E1] border-l-transparent"
+                        }`}
+                        onClick={() => setActiveSubsection("Payments")}
+                        onMouseEnter={() => setHoveredSection("Payments")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                    >
+                        Payments
+                    </Link>
                 </div>
 
                 {/* Account Settings */}

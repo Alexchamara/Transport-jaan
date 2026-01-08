@@ -361,6 +361,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::get('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'edit'])->name('cancellation.edit');
         Route::put('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'update'])->name('cancellation.update');
     });
+
+    // Payments Routes
+    Route::get('/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])->name('payments');
+    Route::get('/payments/stats', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'getPaymentStats'])->name('payments.stats');
 });
 
 
@@ -463,6 +467,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admi
 
     Route::get('/unitDetails', fn() => Inertia::render('Web/home/vendors/warehouse/UnitDetails'))->name('unitDetails');
 });
+
+// Payments page (Legacy route for backward compatibility)
+Route::get('/SuperAdmin/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])->name('payments.index');
 
 // Backward-compat: if any UI still links to /warehouse/*, redirect to /vendors/warehouse/* (protect with same middleware)
 Route::middleware(['auth', 'vendor.verified'])->get('/warehouse/{path}', function (string $path) {
@@ -878,7 +885,6 @@ Route::get('/warehouse/settingsPage', function () {
 })->name('warehouse.settingsPage');
 
 // vendor dashboard - warehouse (all protected under auth + role:vendor in group above)
-
 
 // vendor dashboard - ticket booking
 Route::get('/ticketBooking/bookings', function () {
