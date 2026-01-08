@@ -63,6 +63,12 @@ Route::get('/dashboard-redirect', [WebController::class, 'signin.signin'])->name
 Route::get('/landingPage/blog', [WebController::class, 'blog'])->name('landingPage.blog');
 Route::get('/landingPage/blogExample', [WebController::class, 'blogExample'])->name('landingPage.blogExample');
 
+Route::get('/landingPage/terms-and-conditions', [WebController::class, 'termsAndConditions'])->name('landingPage.termsAndConditions');
+
+Route::get('/landingPage/privacy-policy', [WebController::class, 'privacyPolicy'])->name('landingPage.privacyPolicy');
+
+Route::get('/landingPage/return-policy', [WebController::class, 'returnPolicy'])->name('landingPage.returnPolicy');
+
 Route::get('/courier-service', [WebController::class, 'courierService'])->name('courier.service');
 Route::prefix('couriers')->name('couriers.')->group(function () {
     Route::get('/create', [ClientCourierController::class, 'create'])->name('create');
