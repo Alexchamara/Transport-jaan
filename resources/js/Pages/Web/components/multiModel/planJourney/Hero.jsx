@@ -19,6 +19,8 @@ const Hero = () => {
     const [routePreference, setRoutePreference] = useState('balanced');
     const [showAlternatives, setShowAlternatives] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [routeDuration, setRouteDuration] = useState(0);
+    const [segmentDurations, setSegmentDurations] = useState([]);
 
     useEffect(() => {
         const savedStart = localStorage.getItem("journeyStart");
@@ -74,6 +76,13 @@ const Hero = () => {
                 coordinates: locationData.coordinates
             };
             setAddedStops(newStops);
+        }
+    };
+
+    const handleRouteCalculated = (duration, segments) => {
+        setRouteDuration(duration);
+        if (segments && segments.length > 0) {
+            setSegmentDurations(segments);
         }
     };
 
@@ -176,7 +185,9 @@ const Hero = () => {
                         addedStops={addedStops} 
                         setAddedStops={setAddedStops} 
                         endJourney={endJourney} 
-                        setEndJourney={setEndJourney} 
+                        setEndJourney={setEndJourney}
+                        routeDuration={routeDuration}
+                        segmentDurations={segmentDurations}
                     />
                 </div>
                 <div className="xl:col-span-2 flex flex-col gap-10">
@@ -194,6 +205,7 @@ const Hero = () => {
                             stops={addedStops}
                             onMapReady={handleMapReady}
                             onLocationUpdate={handleLocationUpdate}
+                            onRouteCalculated={handleRouteCalculated}
                             showAlternatives={showAlternatives}
                             routePreference={routePreference}
                         />

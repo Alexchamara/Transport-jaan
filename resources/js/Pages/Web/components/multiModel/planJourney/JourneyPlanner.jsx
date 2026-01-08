@@ -17,7 +17,7 @@ import alert from "../../../assets/multiModel/planJourney/alert.svg";
 
 import LocationSearch from "./LocationSearch";
 
-const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, addedStops, setAddedStops, endJourney, setEndJourney }) => {
+const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, addedStops, setAddedStops, endJourney, setEndJourney, routeDuration = 0 }) => {
     const [activeView, setActiveView] = useState("journey");
     const [showPopup, setShowPopup] = useState(false);
     const [draggedStop, setDraggedStop] = useState(null);
@@ -148,6 +148,31 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
         );
     };
 
+    // Check if start date and time are filled
+    const isStartDateTimeFilled = () => {
+        return startJourney.location && startJourney.startDate && startJourney.startTime;
+    };
+
+    // Calculate estimated end time based on start time and route duration
+    useEffect(() => {
+        if (isStartDateTimeFilled() && routeDuration > 0 && endJourney.coordinates) {
+            const startDateTime = new Date(`${startJourney.startDate}T${startJourney.startTime}`);
+            const endDateTime = new Date(startDateTime.getTime() + routeDuration * 60000); // routeDuration is in minutes
+            
+            const endDate = endDateTime.toISOString().split('T')[0];
+            const endTime = endDateTime.toTimeString().slice(0, 5);
+            
+            // Only update if not manually set
+            if (!endJourney.returnDate || !endJourney.returnTime) {
+                setEndJourney(prev => ({
+                    ...prev,
+                    returnDate: endDate,
+                    returnTime: endTime
+                }));
+            }
+        }
+    }, [startJourney.startDate, startJourney.startTime, routeDuration, endJourney.coordinates]);
+
     return (
         <>
             <div className="relative w-full h-full rounded-b-[0px] xl:rounded-bl-[20px] xl:rounded-br-[0px] bg-[#F4F3F3] flex flex-col justify-start items-center shadow-lg rounded-[20px] p-5">
@@ -268,6 +293,21 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                 </div>
                             </div>
 
+                            {/* Warning message if start date/time not filled */}
+                            {!isStartDateTimeFilled() && (
+                                <div className="w-full bg-[#FEF2F2] border-[1.5px] border-[#FCA5A5] rounded-[14px] p-4 flex items-start gap-3">
+                                    <svg className="w-5 h-5 text-[#DC2626] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <div>
+                                        <h4 className="text-[14px] font-[600] text-[#DC2626] mb-1">Complete Start Information</h4>
+                                        <p className="text-[12px] text-[#991B1B]">
+                                            Please fill in Start of Journey location, date, and time before adding stops or end destination.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {addedStops.map((stop, index) => (
                                 <div
                                     key={stop.id}
@@ -360,7 +400,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                     </div>
                                 </div>
                             ))}
-                            <div className="w-full h-auto text-[#155DFC] bg-[#FEF2F2] rounded-[14px] border-[1.5px] border-[#FFC9C9] p-5">
+                            <div className={`w-full h-auto text-[#155DFC] bg-[#FEF2F2] rounded-[14px] border-[1.5px] border-[#FFC9C9] p-5 ${!isStartDateTimeFilled() ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div className="flex flex-col gap-5 w-full">
                                     <LocationSearch
                                         value={endJourney.location}
@@ -383,6 +423,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                         downArrow={downArrow}
                                         label="End of Journey"
                                         inputId="endLocation"
+                                        disabled={!isStartDateTimeFilled()}
                                     />
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -453,8 +494,10 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
                             <div className="flex justify-center items-center">
                                 <div
-                                    className="w-[151px] h-[51px] rounded-[30px] border-[1px] border-[#155DFC] mt-5 flex flex-row justify-center items-center gap-2 cursor-pointer px-4 py-2"
-                                    onClick={handleAddStop}
+                                    className={`w-[151px] h-[51px] rounded-[30px] border-[1px] border-[#155DFC] mt-5 flex flex-row justify-center items-center gap-2 px-4 py-2 ${
+                                        isStartDateTimeFilled() ? 'cursor-pointer hover:bg-[#155DFC] hover:text-white transition-colors' : 'opacity-50 cursor-not-allowed'
+                                    }`}
+                                    onClick={isStartDateTimeFilled() ? handleAddStop : null}
                                 >
                                     <img src={plus} />
                                     <h1 className="text-[16px] text-[#155DFC] font-[500]">

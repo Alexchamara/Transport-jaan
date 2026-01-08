@@ -1,187 +1,297 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 
 const MapComponent = ({ 
     startLocation, 
     endLocation, 
-    stops, 
+    stops = [], 
     onMapReady,
     onLocationUpdate,
+    onRouteCalculated,
     showAlternatives = false,
-    routePreference = 'balanced' // 'fastest', 'shortest', 'balanced'
+    routePreference = 'balanced'
 }) => {
     const mapRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const routingControlRef = useRef(null);
+    const markersRef = useRef([]);
+    const routingTimeoutRef = useRef(null);
+    const lastRouteRequestRef = useRef(0);
+    const lastLocationHashRef = useRef('');
+    const isUpdatingRouteRef = useRef(false);
+    
     const [mapLoaded, setMapLoaded] = useState(false);
+    const [isMapReady, setIsMapReady] = useState(false);
     const [routeInfo, setRouteInfo] = useState({
         totalDistance: 0,
         totalDuration: 0,
         segments: []
     });
-    const [currentRoute, setCurrentRoute] = useState(null);
-    const [alternativeRoutes, setAlternativeRoutes] = useState([]);
-    const markersRef = useRef([]);
-    const routingControlRef = useRef(null);
+    const [hasRoutingError, setHasRoutingError] = useState(false);
 
+    // Load Leaflet libraries
     useEffect(() => {
-        // Load Leaflet CSS and JS
         if (!document.getElementById("leaflet-css")) {
             const link = document.createElement("link");
             link.id = "leaflet-css";
             link.rel = "stylesheet";
-            link.href =
-                "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+            link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
             document.head.appendChild(link);
         }
 
         if (!window.L) {
             const script = document.createElement("script");
-            script.src =
-                "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+            script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
             script.onload = () => {
-                // Load Leaflet Routing Machine after Leaflet is loaded
                 const routingScript = document.createElement("script");
-                routingScript.src =
-                    "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js";
+                routingScript.src = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js";
                 routingScript.onload = () => setMapLoaded(true);
                 document.head.appendChild(routingScript);
 
                 const routingCSS = document.createElement("link");
                 routingCSS.rel = "stylesheet";
-                routingCSS.href =
-                    "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css";
+                routingCSS.href = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css";
                 document.head.appendChild(routingCSS);
             };
             document.head.appendChild(script);
-        } else {
+        } else if (window.L.Routing) {
             setMapLoaded(true);
+        } else {
+            const routingScript = document.createElement("script");
+            routingScript.src = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js";
+            routingScript.onload = () => setMapLoaded(true);
+            document.head.appendChild(routingScript);
         }
+
+        const style = document.createElement('style');
+        style.id = 'leaflet-custom-styles';
+        style.innerHTML = `
+            .leaflet-routing-container {
+                display: none !important;
+            }
+            .leaflet-routing-alternatives-container {
+                display: none !important;
+            }
+            .custom-popup .leaflet-popup-content-wrapper {
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+        `;
+        if (!document.getElementById('leaflet-custom-styles')) {
+            document.head.appendChild(style);
+        }
+
+        return () => {
+            const existingStyle = document.getElementById('leaflet-custom-styles');
+            if (existingStyle && existingStyle.parentNode) {
+                existingStyle.parentNode.removeChild(existingStyle);
+            }
+        };
     }, []);
 
+    // Initialize map
     useEffect(() => {
-        if (!mapLoaded || !mapRef.current) return;
+        if (!mapLoaded || !mapRef.current || mapInstanceRef.current) return;
 
-        // Initialize map with advanced options
-        const map = window.L.map(mapRef.current, {
-            center: [7.8731, 80.7718], // Center of Sri Lanka
-            zoom: 8,
-            zoomControl: true,
-            maxZoom: 19,
-            minZoom: 6,
-            wheelPxPerZoomLevel: 120,
-            zoomAnimation: true,
-            markerZoomAnimation: true,
-        });
-
-        // Add OpenStreetMap tiles
-        window.L.tileLayer(
-            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-            {
-                attribution:
-                    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        try {
+            const map = window.L.map(mapRef.current, {
+                center: [7.8731, 80.7718],
+                zoom: 8,
+                zoomControl: true,
                 maxZoom: 19,
-            }
-        ).addTo(map);
+                minZoom: 6,
+                zoomAnimation: true,
+                markerZoomAnimation: true,
+            });
 
-        // Clear previous route and markers function
-        const clearRouteAndMarkers = () => {
-            if (routingControlRef.current) {
-                map.removeControl(routingControlRef.current);
+            window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19,
+            }).addTo(map);
+
+            mapInstanceRef.current = map;
+
+            map.whenReady(() => {
+                setTimeout(() => {
+                    map.invalidateSize();
+                    setIsMapReady(true);
+                    if (onMapReady) onMapReady(map);
+                }, 200);
+            });
+        } catch (error) {
+            console.error('Map initialization error:', error);
+        }
+
+        return () => {
+            if (routingTimeoutRef.current) {
+                clearTimeout(routingTimeoutRef.current);
+                routingTimeoutRef.current = null;
+            }
+
+            if (routingControlRef.current && mapInstanceRef.current) {
+                try {
+                    mapInstanceRef.current.removeControl(routingControlRef.current);
+                } catch (e) {
+                    console.warn('Error removing routing control:', e);
+                }
                 routingControlRef.current = null;
             }
-            markersRef.current.forEach((marker) => map.removeLayer(marker));
+
+            markersRef.current.forEach((marker) => {
+                try {
+                    if (marker && mapInstanceRef.current) {
+                        mapInstanceRef.current.removeLayer(marker);
+                    }
+                } catch (e) {
+                    console.warn('Error removing marker:', e);
+                }
+            });
             markersRef.current = [];
+
+            if (mapInstanceRef.current) {
+                try {
+                    mapInstanceRef.current.remove();
+                } catch (e) {
+                    console.warn('Error removing map:', e);
+                }
+                mapInstanceRef.current = null;
+            }
+        };
+    }, [mapLoaded, onMapReady]);
+
+    // Clear route and markers helper
+    const clearRouteAndMarkers = useCallback(() => {
+        if (!mapInstanceRef.current) return;
+
+        const map = mapInstanceRef.current;
+
+        if (routingControlRef.current) {
+            try {
+                map.removeControl(routingControlRef.current);
+            } catch (e) {
+                console.warn('Error removing routing control:', e);
+            }
+            routingControlRef.current = null;
+        }
+
+        markersRef.current.forEach((marker) => {
+            try {
+                if (marker && marker._map) {
+                    map.removeLayer(marker);
+                }
+            } catch (e) {
+                console.warn('Error removing marker:', e);
+            }
+        });
+        markersRef.current = [];
+    }, []);
+
+    // Update route effect
+    useEffect(() => {
+        if (!isMapReady || !mapInstanceRef.current) return;
+        if (isUpdatingRouteRef.current) return;
+
+        const locationHash = JSON.stringify({
+            start: startLocation?.coordinates,
+            end: endLocation?.coordinates,
+            stops: stops?.map(s => s.coordinates)
+        });
+
+        if (lastLocationHashRef.current === locationHash) return;
+
+        lastLocationHashRef.current = locationHash;
+
+        if (routingTimeoutRef.current) {
+            clearTimeout(routingTimeoutRef.current);
+        }
+
+        const now = Date.now();
+        const timeSinceLastRequest = now - lastRouteRequestRef.current;
+        const minDelay = 2000;
+
+        const executeUpdate = () => {
+            if (isUpdatingRouteRef.current) return;
+            isUpdatingRouteRef.current = true;
+            lastRouteRequestRef.current = Date.now();
+            updateRoute();
         };
 
-        const updateRoute = async () => {
-            clearRouteAndMarkers();
+        if (timeSinceLastRequest < minDelay) {
+            routingTimeoutRef.current = setTimeout(executeUpdate, minDelay - timeSinceLastRequest);
+        } else {
+            executeUpdate();
+        }
 
-            // If we have both start and end locations, show the route
-            if (
-                startLocation?.coordinates &&
-                endLocation?.coordinates
-            ) {
+        return () => {
+            if (routingTimeoutRef.current) {
+                clearTimeout(routingTimeoutRef.current);
+            }
+        };
+    }, [isMapReady, startLocation, endLocation, stops]);
+
+    // Update route function
+    const updateRoute = useCallback(() => {
+        if (!mapInstanceRef.current || hasRoutingError) {
+            isUpdatingRouteRef.current = false;
+            return;
+        }
+
+        const map = mapInstanceRef.current;
+        clearRouteAndMarkers();
+
+        try {
+            if (startLocation?.coordinates && endLocation?.coordinates) {
                 const waypoints = [
-                    window.L.latLng(
-                        startLocation.coordinates.lat,
-                        startLocation.coordinates.lng
-                    ),
+                    window.L.latLng(startLocation.coordinates.lat, startLocation.coordinates.lng)
                 ];
 
-                // Add stops as waypoints
                 if (stops && stops.length > 0) {
                     stops.forEach((stop) => {
                         if (stop.coordinates) {
-                            waypoints.push(
-                                window.L.latLng(
-                                    stop.coordinates.lat,
-                                    stop.coordinates.lng
-                                )
-                            );
+                            waypoints.push(window.L.latLng(stop.coordinates.lat, stop.coordinates.lng));
                         }
                     });
                 }
 
-                waypoints.push(
-                    window.L.latLng(
-                        endLocation.coordinates.lat,
-                        endLocation.coordinates.lng
-                    )
-                );
+                waypoints.push(window.L.latLng(endLocation.coordinates.lat, endLocation.coordinates.lng));
 
-                // Create routing control with advanced options
-                routingControlRef.current = window.L.Routing.control({
+                const routingControl = window.L.Routing.control({
                     waypoints: waypoints,
-                    routeWhileDragging: true,
+                    routeWhileDragging: false,
                     addWaypoints: false,
-                    draggableWaypoints: true, // Enable dragging
+                    draggableWaypoints: false,
                     fitSelectedRoutes: true,
-                    showAlternatives: showAlternatives,
-                    altLineOptions: {
-                        styles: [
-                            {
-                                color: '#888888',
-                                opacity: 0.5,
-                                weight: 4,
-                            }
-                        ]
-                    },
+                    showAlternatives: false,
                     lineOptions: {
-                        styles: [
-                            {
-                                color: "#0955AC",
-                                opacity: 0.8,
-                                weight: 6,
-                            },
-                        ],
+                        styles: [{
+                            color: "#0955AC",
+                            opacity: 0.8,
+                            weight: 6,
+                        }],
                         extendToWaypoints: true,
                         missingRouteTolerance: 1
                     },
-                    show: true,
+                    show: false,
                     router: window.L.Routing.osrmv1({
                         serviceUrl: 'https://router.project-osrm.org/route/v1',
-                        profile: routePreference === 'fastest' ? 'driving' : 'driving',
-                        timeout: 30 * 1000,
-                        suppressDemoServerWarning: true
+                        profile: 'driving',
+                        timeout: 30000,
+                        suppressDemoServerWarning: true,
                     }),
                     createMarker: function (i, waypoint, n) {
-                        let markerIcon;
-                        let markerColor;
-                        let label;
+                        let markerColor, label;
 
                         if (i === 0) {
-                            // Start marker - Green
                             markerColor = "#22C55E";
-                            label = "Start";
+                            label = "S";
                         } else if (i === n - 1) {
-                            // End marker - Red
                             markerColor = "#EF4444";
-                            label = "End";
+                            label = "E";
                         } else {
-                            // Stop marker - Blue
                             markerColor = "#0955AC";
-                            label = `Stop ${i}`;
+                            label = i.toString();
                         }
 
-                        markerIcon = window.L.divIcon({
+                        const markerIcon = window.L.divIcon({
                             className: "custom-marker",
                             html: `
                                 <div style="
@@ -201,7 +311,7 @@ const MapComponent = ({
                                         color: white;
                                         font-weight: bold;
                                         font-size: 14px;
-                                    ">${i === 0 ? "S" : i === n - 1 ? "E" : i}</span>
+                                    ">${label}</span>
                                 </div>
                             `,
                             iconSize: [30, 30],
@@ -210,8 +320,7 @@ const MapComponent = ({
 
                         const marker = window.L.marker(waypoint.latLng, {
                             icon: markerIcon,
-                            draggable: true,
-                            autoPan: true
+                            draggable: false,
                         });
 
                         const locationName = i === 0
@@ -222,227 +331,219 @@ const MapComponent = ({
 
                         marker.bindPopup(`
                             <div style="min-width: 150px;">
-                                <b style="color: ${markerColor}; font-size: 14px;">${label}</b><br>
-                                <span style="font-size: 12px; color: #666;">${locationName}</span><br>
-                                <button onclick="window.dispatchEvent(new CustomEvent('removeWaypoint', {detail: ${i}}))" 
-                                    style="margin-top: 8px; padding: 4px 8px; background: #EF4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">
-                                    Remove
-                                </button>
+                                <b style="color: ${markerColor}; font-size: 14px;">
+                                    ${i === 0 ? "Start" : i === n - 1 ? "End" : `Stop ${i}`}
+                                </b><br>
+                                <span style="font-size: 12px; color: #666;">${locationName}</span>
                             </div>
                         `, {
                             maxWidth: 200,
                             className: 'custom-popup'
                         });
 
-                        // Handle marker drag
-                        marker.on('dragend', function(e) {
-                            const newLatLng = e.target.getLatLng();
-                            if (onLocationUpdate) {
-                                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${newLatLng.lat}&lon=${newLatLng.lng}`)
-                                    .then(res => res.json())
-                                    .then(data => {
-                                        onLocationUpdate(i, {
-                                            name: data.display_name,
-                                            coordinates: {
-                                                lat: newLatLng.lat,
-                                                lng: newLatLng.lng
-                                            }
-                                        });
-                                    });
-                            }
-                        });
-
                         markersRef.current.push(marker);
                         return marker;
                     },
-                }).addTo(map);
+                });
 
-                // Handle route found event
-                routingControlRef.current.on('routesfound', function(e) {
+                routingControl.on('routesfound', function(e) {
                     const routes = e.routes;
                     const mainRoute = routes[0];
-                    
-                    // Calculate total distance and time
-                    const totalDistance = (mainRoute.summary.totalDistance / 1000).toFixed(2); // km
-                    const totalDuration = Math.round(mainRoute.summary.totalTime / 60); // minutes
-                    
-                    // Calculate segments
+
+                    const totalDistance = (mainRoute.summary.totalDistance / 1000).toFixed(2);
+                    const totalDuration = Math.round(mainRoute.summary.totalTime / 60);
+
                     const segments = [];
-                    for (let i = 0; i < mainRoute.coordinates.length - 1; i++) {
-                        if (mainRoute.instructions[i]) {
+                    const segmentDurations = [];
+                    let currentSegmentDuration = 0;
+                    let waypointIndex = 0;
+
+                    for (let i = 0; i < mainRoute.instructions.length; i++) {
+                        const instruction = mainRoute.instructions[i];
+
+                        if (instruction.type === 'WaypointReached' && waypointIndex < mainRoute.waypoints.length - 1) {
+                            segmentDurations.push(Math.round(currentSegmentDuration / 60));
+                            currentSegmentDuration = 0;
+                            waypointIndex++;
+                        } else {
+                            currentSegmentDuration += instruction.time || 0;
+                        }
+
+                        if (instruction.distance) {
                             segments.push({
-                                distance: (mainRoute.instructions[i].distance / 1000).toFixed(2),
-                                duration: Math.round(mainRoute.instructions[i].time / 60),
-                                instruction: mainRoute.instructions[i].text
+                                distance: (instruction.distance / 1000).toFixed(2),
+                                duration: Math.round(instruction.time / 60),
+                                instruction: instruction.text
                             });
                         }
                     }
-                    
+
+                    if (currentSegmentDuration > 0) {
+                        segmentDurations.push(Math.round(currentSegmentDuration / 60));
+                    }
+
                     setRouteInfo({
                         totalDistance: totalDistance,
                         totalDuration: totalDuration,
                         segments: segments
                     });
-                    
-                    setCurrentRoute(mainRoute);
-                    
-                    // Handle alternative routes
-                    if (routes.length > 1) {
-                        setAlternativeRoutes(routes.slice(1));
+
+                    if (onRouteCalculated) {
+                        onRouteCalculated(totalDuration, segmentDurations);
                     }
-                    
-                    // Fit map to show entire route
-                    const bounds = window.L.latLngBounds(mainRoute.coordinates);
-                    map.fitBounds(bounds, { padding: [50, 50] });
-                });
-                
-                // Ensure routing control is visible
-                routingControlRef.current.on('routingerror', function(e) {
-                    console.error('Routing error:', e.error);
+
+                    setHasRoutingError(false);
+                    isUpdatingRouteRef.current = false;
                 });
 
-                // Customize routing container
-                const routingContainer = routingControlRef.current.getContainer();
-                if (routingContainer) {
-                    routingContainer.style.display = "none";
-                }
+                routingControl.on('routingerror', function(e) {
+                    console.error('Routing error:', e);
+                    setHasRoutingError(true);
+                    isUpdatingRouteRef.current = false;
+
+                    if (routingControlRef.current && map) {
+                        try {
+                            map.removeControl(routingControlRef.current);
+                            routingControlRef.current = null;
+                        } catch (err) {
+                            console.warn('Error removing failed routing control:', err);
+                        }
+                    }
+
+                    const errorStatus = e?.error?.status || e?.error?.target?.status;
+                    if (errorStatus === 429) {
+                        try {
+                            const errorPopup = window.L.popup({
+                                closeButton: true,
+                                closeOnClick: true
+                            })
+                            .setLatLng(map.getCenter())
+                            .setContent(`
+                                <div style="padding: 10px; max-width: 250px;">
+                                    <strong style="color: #DC2626;">Routing Temporarily Unavailable</strong>
+                                    <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">
+                                        Too many requests. Please wait before trying again.
+                                    </p>
+                                </div>
+                            `)
+                            .openOn(map);
+
+                            setTimeout(() => {
+                                try {
+                                    map.closePopup(errorPopup);
+                                } catch (err) {}
+                                setHasRoutingError(false);
+                            }, 5000);
+                        } catch (popupError) {
+                            console.warn('Error showing popup:', popupError);
+                            setTimeout(() => setHasRoutingError(false), 5000);
+                        }
+                    } else {
+                        setTimeout(() => setHasRoutingError(false), 3000);
+                    }
+                });
+
+                routingControl.addTo(map);
+                routingControlRef.current = routingControl;
+
             } else if (startLocation?.coordinates) {
-                // Show only start marker
-                const startMarker = window.L.marker([
-                    startLocation.coordinates.lat,
-                    startLocation.coordinates.lng,
-                ], {
-                    icon: window.L.divIcon({
-                        className: "custom-marker",
-                        html: `
-                            <div style="
-                                background-color: #22C55E;
-                                width: 30px;
-                                height: 30px;
-                                border-radius: 50% 50% 50% 0;
-                                transform: rotate(-45deg);
-                                border: 3px solid white;
-                                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                            ">
-                                <span style="
-                                    transform: rotate(45deg);
-                                    color: white;
-                                    font-weight: bold;
-                                    font-size: 14px;
-                                ">S</span>
-                            </div>
-                        `,
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 30],
-                    }),
-                }).addTo(map);
+                const startMarker = window.L.marker(
+                    [startLocation.coordinates.lat, startLocation.coordinates.lng],
+                    {
+                        icon: window.L.divIcon({
+                            className: "custom-marker",
+                            html: `
+                                <div style="
+                                    background-color: #22C55E;
+                                    width: 30px;
+                                    height: 30px;
+                                    border-radius: 50% 50% 50% 0;
+                                    transform: rotate(-45deg);
+                                    border: 3px solid white;
+                                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                ">
+                                    <span style="
+                                        transform: rotate(45deg);
+                                        color: white;
+                                        font-weight: bold;
+                                        font-size: 14px;
+                                    ">S</span>
+                                </div>
+                            `,
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 30],
+                        }),
+                    }
+                ).addTo(map);
+
                 startMarker.bindPopup(`
                     <div style="min-width: 150px;">
                         <b style="color: #22C55E; font-size: 14px;">Start</b><br>
                         <span style="font-size: 12px; color: #666;">${startLocation.name}</span>
                     </div>
-                `, {
-                    maxWidth: 200
-                });
-                startMarker.setOpacity(0.9);
-                markersRef.current.push(startMarker);
+                `);
 
-                map.setView(
-                    [
-                        startLocation.coordinates.lat,
-                        startLocation.coordinates.lng,
-                    ],
-                    13
-                );
+                markersRef.current.push(startMarker);
+                map.setView([startLocation.coordinates.lat, startLocation.coordinates.lng], 13);
+                isUpdatingRouteRef.current = false;
+
             } else if (endLocation?.coordinates) {
-                // Show only end marker
-                const endMarker = window.L.marker([
-                    endLocation.coordinates.lat,
-                    endLocation.coordinates.lng,
-                ], {
-                    icon: window.L.divIcon({
-                        className: "custom-marker",
-                        html: `
-                            <div style="
-                                background-color: #EF4444;
-                                width: 30px;
-                                height: 30px;
-                                border-radius: 50% 50% 50% 0;
-                                transform: rotate(-45deg);
-                                border: 3px solid white;
-                                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                                display: flex;
-                                align-items: center;
-                                justify-content: center;
-                            ">
-                                <span style="
-                                    transform: rotate(45deg);
-                                    color: white;
-                                    font-weight: bold;
-                                    font-size: 14px;
-                                ">E</span>
-                            </div>
-                        `,
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 30],
-                    }),
-                }).addTo(map);
+                const endMarker = window.L.marker(
+                    [endLocation.coordinates.lat, endLocation.coordinates.lng],
+                    {
+                        icon: window.L.divIcon({
+                            className: "custom-marker",
+                            html: `
+                                <div style="
+                                    background-color: #EF4444;
+                                    width: 30px;
+                                    height: 30px;
+                                    border-radius: 50% 50% 50% 0;
+                                    transform: rotate(-45deg);
+                                    border: 3px solid white;
+                                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                ">
+                                    <span style="
+                                        transform: rotate(45deg);
+                                        color: white;
+                                        font-weight: bold;
+                                        font-size: 14px;
+                                    ">E</span>
+                                </div>
+                            `,
+                            iconSize: [30, 30],
+                            iconAnchor: [15, 30],
+                        }),
+                    }
+                ).addTo(map);
+
                 endMarker.bindPopup(`
                     <div style="min-width: 150px;">
                         <b style="color: #EF4444; font-size: 14px;">End</b><br>
                         <span style="font-size: 12px; color: #666;">${endLocation.name}</span>
                     </div>
-                `, {
-                    maxWidth: 200
-                });
-                endMarker.setOpacity(0.9);
+                `);
+
                 markersRef.current.push(endMarker);
-
-                map.setView(
-                    [endLocation.coordinates.lat, endLocation.coordinates.lng],
-                    13
-                );
+                map.setView([endLocation.coordinates.lat, endLocation.coordinates.lng], 13);
+                isUpdatingRouteRef.current = false;
+            } else {
+                isUpdatingRouteRef.current = false;
             }
-        };
 
-        updateRoute();
-
-        if (onMapReady) {
-            onMapReady(map);
+        } catch (error) {
+            console.error('Error updating route:', error);
+            isUpdatingRouteRef.current = false;
+            setHasRoutingError(true);
+            setTimeout(() => setHasRoutingError(false), 3000);
         }
-
-        // Add custom styles for route animation
-        const style = document.createElement('style');
-        style.innerHTML = `
-            .leaflet-routing-container {
-                display: none !important;
-            }
-            .leaflet-routing-alternatives-container {
-                display: none !important;
-            }
-            .leaflet-interactive {
-                pointer-events: auto;
-            }
-            path.leaflet-interactive {
-                stroke-linecap: round;
-                stroke-linejoin: round;
-            }
-            .custom-popup .leaflet-popup-content-wrapper {
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            }
-        `;
-        document.head.appendChild(style);
-
-        return () => {
-            clearRouteAndMarkers();
-            map.remove();
-            document.head.removeChild(style);
-        };
-    }, [mapLoaded, startLocation, endLocation, stops, showAlternatives, routePreference]);
+    }, [startLocation, endLocation, stops, hasRoutingError, clearRouteAndMarkers, onRouteCalculated]);
 
     return (
         <div className="relative w-full h-full">
@@ -451,8 +552,16 @@ const MapComponent = ({
                 className="w-full h-full rounded-[20px]"
                 style={{ minHeight: "295px" }}
             />
-            
-            {/* Route Information Overlay */}
+
+            {!isMapReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 rounded-[20px] z-10">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600 font-medium">Loading map...</p>
+                    </div>
+                </div>
+            )}
+
             {routeInfo.totalDistance > 0 && (
                 <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 z-[1000] max-w-[250px]">
                     <div className="flex items-center gap-2 mb-2">
@@ -473,6 +582,12 @@ const MapComponent = ({
                             </span>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {hasRoutingError && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg shadow-lg z-[1000] text-sm">
+                    Unable to calculate route. Please try again.
                 </div>
             )}
         </div>
