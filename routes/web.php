@@ -252,34 +252,39 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::post('/bookings/{booking}/confirm', [ClientBookingController::class, 'confirm'])->name('bookings.confirm');
         Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])->name('bookings.summary');
         Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])->name('bookings.cancel');
+        
+        // Vehicle booking cancellation routes
+        Route::get('/bookings/{booking}/cancellation-policy', [ClientBookingController::class, 'getCancellationPolicy'])->name('bookings.cancellation-policy');
+        Route::post('/bookings/{booking}/cancel-booking', [ClientBookingController::class, 'cancelBooking'])->name('bookings.cancel-booking');
+        Route::get('/bookings/{booking}/vendor/cancellation-policy', [ClientBookingController::class, 'getVendorCancellationPolicy'])->name('bookings.vendor.cancellation-policy');
+        Route::post('/bookings/{booking}/vendor/cancel-booking', [ClientBookingController::class, 'cancelBookingAsVendor'])->name('bookings.vendor.cancel-booking');
 
         Route::get('/airBookings/quote', [ClientBookingController::class, 'airVehicleQuote'])->name('airBookings.quote');
         Route::get('/airBookings/checkout', [ClientBookingController::class, 'showAirVehicleCheckout'])->name('airBookings.checkout');
         Route::post('/airBookings', [ClientBookingController::class, 'airVehicleStore'])->name('airBookings.store');
-    // Use a consistent route parameter name so Laravel's route-model binding
-    // can inject the AirVehicleBookings model into controller methods.
-    Route::get('/airBookings/{airVehicleBooking}/payments', [ClientBookingController::class, 'airVehiclePayments'])->name('airBookings.payments');
-    Route::post('/airBookings/{airVehicleBooking}/confirm', [ClientBookingController::class, 'airVehicleConfirm'])->name('airBookings.confirm');
-    Route::get('/airBookings/{airVehicleBooking}/summary', [ClientBookingController::class, 'airVehicleSummary'])->name('airBookings.summary');
-    Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
+        // Use a consistent route parameter name so Laravel's route-model binding
+        // can inject the AirVehicleBookings model into controller methods.
+        Route::get('/airBookings/{airVehicleBooking}/payments', [ClientBookingController::class, 'airVehiclePayments'])->name('airBookings.payments');
+        Route::post('/airBookings/{airVehicleBooking}/confirm', [ClientBookingController::class, 'airVehicleConfirm'])->name('airBookings.confirm');
+        Route::get('/airBookings/{airVehicleBooking}/summary', [ClientBookingController::class, 'airVehicleSummary'])->name('airBookings.summary');
+        Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
 
-    // Sea Vehicle Booking Routes
-    Route::get('/seaBookings/quote', [ClientBookingController::class, 'seaVehicleQuote'])->name('seaBookings.quote');
-    Route::get('/seaBookings/checkout', [ClientBookingController::class, 'showSeaVehicleCheckout'])->name('seaBookings.checkout');
-    Route::post('/seaBookings', [ClientBookingController::class, 'seaVehicleStore'])->name('seaBookings.store');
-    // Use a consistent route parameter name so Laravel's route-model binding
-    // can inject the SeaVehicleBookings model into controller methods.
-    Route::get('/seaBookings/{seaVehicleBooking}/payments', [ClientBookingController::class, 'seaVehiclePayments'])->name('seaBookings.payments');
-    Route::post('/seaBookings/{seaVehicleBooking}/confirm', [ClientBookingController::class, 'seaVehicleConfirm'])->name('seaBookings.confirm');
-    Route::get('/seaBookings/{seaVehicleBooking}/summary', [ClientBookingController::class, 'seaVehicleSummary'])->name('seaBookings.summary');
-    Route::post('/seaBookings/{seaVehicleBooking}/cancel', [ClientBookingController::class, 'seaVehicleCancel'])->name('seaBookings.cancel');
+        // Sea Vehicle Booking Routes
+        Route::get('/seaBookings/quote', [ClientBookingController::class, 'seaVehicleQuote'])->name('seaBookings.quote');
+        Route::get('/seaBookings/checkout', [ClientBookingController::class, 'showSeaVehicleCheckout'])->name('seaBookings.checkout');
+        Route::post('/seaBookings', [ClientBookingController::class, 'seaVehicleStore'])->name('seaBookings.store');
+        // Use a consistent route parameter name so Laravel's route-model binding
+        // can inject the SeaVehicleBookings model into controller methods.
+        Route::get('/seaBookings/{seaVehicleBooking}/payments', [ClientBookingController::class, 'seaVehiclePayments'])->name('seaBookings.payments');
+        Route::post('/seaBookings/{seaVehicleBooking}/confirm', [ClientBookingController::class, 'seaVehicleConfirm'])->name('seaBookings.confirm');
+        Route::get('/seaBookings/{seaVehicleBooking}/summary', [ClientBookingController::class, 'seaVehicleSummary'])->name('seaBookings.summary');
+        Route::post('/seaBookings/{seaVehicleBooking}/cancel', [ClientBookingController::class, 'seaVehicleCancel'])->name('seaBookings.cancel');
 
 
 
         Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');
         Route::get('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'index'])->name('vehicles.reviews.index');
         Route::post('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'store'])->name('vehicles.reviews.store');
-
         Route::get('/vehicles/{vehicle}/policy/preview', [ClientVehicleController::class, 'policyPreview'])->name('vehicles.policy.preview');
 
         Route::get('/warehouses/dashboard-data', [WarehouseBookingController::class, 'dashboardData'])->name('warehouses.dashboard-data');
@@ -521,6 +526,10 @@ Route::middleware(['auth', 'vendor.verified'])
 
         // Payment page with actual transaction data
         Route::get('/payment', [VendorBookingController::class, 'payments'])->name('payment');
+
+        // Vendor booking cancellation API routes
+        Route::get('/bookings/{booking}/vendor/cancellation-policy', [ClientBookingController::class, 'getVendorCancellationPolicy'])->name('bookings.vendor.cancellation-policy');
+        Route::post('/bookings/{booking}/vendor/cancel-booking', [ClientBookingController::class, 'cancelBookingAsVendor'])->name('bookings.vendor.cancel-booking');
 
         // Other pages (shells)
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@inertiajs/react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import BookingCancellationModal from "./BookingCancellationModal";
 import {
     Car,
     Plane,
@@ -119,6 +120,8 @@ const Hero = ({
     const [showExportModal, setShowExportModal] = useState(false);
     const [selectedBookingDetails, setSelectedBookingDetails] = useState(null);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
+    const [showCancellationModal, setShowCancellationModal] = useState(false);
+    const [bookingToCancell, setBookingToCancell] = useState(null);
     const receiptRef = useRef(null);
 
     // Calculate comprehensive KPI metrics
@@ -953,6 +956,18 @@ const Hero = ({
                                                         <button className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-slate-200 text-slate-700 text-[12px] sm:text-[13px] font-medium hover:bg-slate-50 inline-flex items-center gap-2 touch-manipulation">
                                                             <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                                             <span className="hidden sm:inline">Manage</span>
+                                                        </button>
+                                                    )}
+                                                    {booking.booking_type === 'vehicle' && ['confirmed', 'paid', 'active'].includes(booking.status?.toLowerCase()) && (
+                                                        <button 
+                                                            onClick={() => {
+                                                                setBookingToCancell(booking);
+                                                                setShowCancellationModal(true);
+                                                            }}
+                                                            className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-red-200 text-red-600 text-[12px] sm:text-[13px] font-medium hover:bg-red-50 inline-flex items-center gap-2 touch-manipulation"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                                            <span className="hidden sm:inline">Booking Cancel</span>
                                                         </button>
                                                     )}
                                                     <button 
@@ -2536,6 +2551,20 @@ const Hero = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                {/* Booking Cancellation Modal */}
+                <BookingCancellationModal
+                    booking={bookingToCancell}
+                    isOpen={showCancellationModal}
+                    onClose={() => {
+                        setShowCancellationModal(false);
+                        setBookingToCancell(null);
+                    }}
+                    onSuccess={(data) => {
+                        // Refresh the page or update booking status
+                        window.location.reload();
+                    }}
+                />
             </div>
         </div>
     );
