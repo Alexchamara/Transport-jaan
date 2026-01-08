@@ -23,6 +23,7 @@ const SideMenu = () => {
     const [activeSubsection, setActiveSubsection] = useState("Reports"); // Default active
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [isModelsOpen, setIsModelsOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [hoveredSection, setHoveredSection] = useState(null); // Track hovered section
     const [showLogoutModal, setShowLogoutModal] = useState(false); // State for logout modal
@@ -57,11 +58,14 @@ const SideMenu = () => {
         } else if (window.location.pathname === "/SuperAdmin/Models/Multimodel") {
             setActiveSubsection("Multimodel");
             setIsModelsOpen(true);
-        } else if (window.location.pathname === "/superadmin/Vender") {
+        } else if (window.location.pathname === "/superadmin/Vender" || window.location.pathname === "/SuperAdmin/Vender") {
             setActiveSubsection("Vender");
         } else if (window.location.pathname === "/SuperAdmin/AccountSettings") {
             setActiveSubsection("AccountSettings");
             setIsAccountOpen(true);
+        } else if (window.location.pathname === "/superadmin/settings/cancellation" || window.location.pathname === "/SuperAdmin/settings/cancellation") {
+            setActiveSubsection("CancellationSettings");
+            setIsSettingsOpen(true);
         }
     }, [window.location.pathname]);
 
@@ -71,18 +75,27 @@ const SideMenu = () => {
         if (menu === "Dashboard") {
             setIsDashboardOpen((prev) => !prev); // toggle open/close
             setIsModelsOpen(false);
+            setIsSettingsOpen(false);
             setIsAccountOpen(false);
         } else if (menu === "Models") {
             setIsModelsOpen((prev) => !prev); // toggle open/close
             setIsDashboardOpen(false);
+            setIsSettingsOpen(false);
+            setIsAccountOpen(false);
+        } else if (menu === "Settings") {
+            setIsSettingsOpen((prev) => !prev); // toggle open/close
+            setIsDashboardOpen(false);
+            setIsModelsOpen(false);
             setIsAccountOpen(false);
         } else if (menu === "AccountSettings") {
             setIsAccountOpen((prev) => !prev); // toggle open/close
             setIsDashboardOpen(false);
             setIsModelsOpen(false);
+            setIsSettingsOpen(false);
         } else {
             setIsDashboardOpen(false);
             setIsModelsOpen(false);
+            setIsSettingsOpen(false);
             setIsAccountOpen(false);
         }
     };
@@ -412,7 +425,9 @@ const SideMenu = () => {
                 {/* Settings */}
                 <div
                     className={`w-full h-[42px] flex flex-row justify-between items-center px-4 my-[15px] cursor-pointer rounded-md ${
-                        hoveredSection === "Settings" ? "bg-[#181A2A]" : "hover:bg-[#181A2A]"
+                        activeSubsection === "Settings" || activeSubsection === "CancellationSettings"
+                            ? "bg-[#181A2A]"
+                            : "hover:bg-[#181A2A]"
                     }`}
                     onClick={() => handleMenuClick("Settings")}
                     onMouseEnter={() => setHoveredSection("Settings")}
@@ -422,14 +437,14 @@ const SideMenu = () => {
                         <img
                             src={settings}
                             className={`size-[14px] ${
-                                hoveredSection === "Settings" || activeSubsection === "Settings"
+                                hoveredSection === "Settings" || activeSubsection === "Settings" || activeSubsection === "CancellationSettings"
                                     ? "filter brightness-0 invert"
                                     : ""
                             }`}
                         />
                         <h1
                             className={`font-[500] text-[18px] ${
-                                activeSubsection === "Settings" || hoveredSection === "Settings"
+                                activeSubsection === "Settings" || hoveredSection === "Settings" || activeSubsection === "CancellationSettings"
                                     ? "text-white"
                                     : "text-[#AEB9E1]"
                             }`}
@@ -437,7 +452,34 @@ const SideMenu = () => {
                             Settings
                         </h1>
                     </div>
-                    <img src={dropl} className="size-[12px]" alt="Expand" />
+                    <img
+                        src={isSettingsOpen ? drop : dropl}
+                        className="size-[12px] transition-transform duration-300"
+                        alt={isSettingsOpen ? "Collapse" : "Expand"}
+                    />
+                </div>
+
+                {/* Settings Dropdown */}
+                <div
+                    className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
+                        isSettingsOpen ? "max-h-[200px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
+                    }`}
+                >
+                    <Link
+                        href="/SuperAdmin/settings/cancellation"
+                        className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
+                            activeSubsection === "CancellationSettings"
+                                ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                : hoveredSection === "CancellationSettings"
+                                ? "text-white bg-[#181A2A] border-l-transparent"
+                                : "text-[#AEB9E1] border-l-transparent"
+                        }`}
+                        onClick={() => setActiveSubsection("CancellationSettings")}
+                        onMouseEnter={() => setHoveredSection("CancellationSettings")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                    >
+                        Cancellation Settings
+                    </Link>
                 </div>
 
                 {/* Account Settings */}
