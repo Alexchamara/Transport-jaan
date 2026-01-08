@@ -25,7 +25,7 @@ class VehicleMedia extends Model
     ];
 
     // Expose a browser-usable URL in JSON responses
-    protected $appends = ['url'];
+    protected $appends = ['url', 'full_url'];
 
     public function vehicle()
     {
@@ -34,20 +34,67 @@ class VehicleMedia extends Model
 
     public function getUrlAttribute(): ?string
     {
-        $path = $this->path;
-        if (!$path) return null;
+        return $this->getFullUrlAttribute();
+    }
 
-        // Already absolute or root-relative?
-        if (Str::startsWith($path, ['http://', 'https://', '/'])) {
+    public function getFullUrlAttribute(): ?string
+    {
+        $path = $this->path;
+        if (!$path) {
+            return asset('images/default-vehicle.jpg');
+        }
+
+        // Already absolute URL?
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
             return $path;
         }
 
-        // Normalize common saved prefixes
-        $path = ltrim($path, '/');
-        if (Str::startsWith($path, 'public/'))  $path = substr($path, 7);
-        if (Str::startsWith($path, 'storage/')) $path = substr($path, 8);
+        // Already starts with http/https?
+        if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
 
-        // Force public disk so we always emit /storage/...
-        return Storage::disk('public')->url($path);
+        // Root-relative path starting with /?
+        if (Str::startsWith($path, '/')) {
+            return asset(ltrim($path, '/'));
+        }
+
+        // Normalize common saved prefixes
+        $cleanPath = ltrim($path, '/');
+        if (Str::startsWith($cleanPath, 'public/')) {
+            $cleanPath = substr($cleanPath, 7);
+        }
+        if (Str::startsWith($cleanPath, 'storage/')) {
+            $cleanPath = substr($cleanPath, 8);
+        }
+
+        // Check if file exists in public storage
+        if (Storage::disk('public')->exists($cleanPath)) {
+            return Storage::disk('public')->url($cleanPath);
+        }
+
+        // Check if file exists in public directory
+        if (file_exists(public_path($cleanPath))) {
+            return asset($cleanPath);
+        }
+
+        // Return default image if file doesn't exist
+        return asset('images/default-vehicle.jpg');
+    }
+
+    /**
+     * Scope to get primary image
+     */
+    public function scopePrimary($query)
+    {
+        return $query->where('is_primary', 1)->orderBy('sort_order');
+    }
+
+    /**
+     * Scope to get images only
+     */
+    public function scopeImages($query)
+    {
+        return $query->where('media_type', 'image')->orderBy('sort_order');
     }
 }

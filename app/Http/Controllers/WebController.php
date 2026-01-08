@@ -25,8 +25,8 @@ class WebController extends Controller
 
     public function vehicleList(Request $request)
     {
-        $query = \App\Models\Vehicle::with(['images', 'land', 'vendor'])
-            ->where('category', 'land');
+        $query = \App\Models\Vehicle::with(['images', 'landSpec', 'provider'])
+            ->where('type', 'land');
 
         if ($request->has('brand')) {
             $query->where('manufacturer', 'like', '%' . $request->brand . '%');
@@ -43,8 +43,8 @@ class WebController extends Controller
                 'id' => $vehicle->id,
                 'name' => $vehicle->model,
                 'brand' => $vehicle->manufacturer,
-                'price' => 89,
-                'image' => $vehicle->images->first() ? asset('storage/' . $vehicle->images->first()->image_path) : null,
+                'price' => $vehicle->rental_price_per_day ?? 89,
+                'image' => $vehicle->primary_image_url,
                 'bodyType' => $vehicle->landSpec ? $vehicle->landSpec->body_type : null,
                 'vendor' => $vehicle->provider ? [
                     'id' => $vehicle->provider->id,

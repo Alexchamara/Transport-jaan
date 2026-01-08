@@ -63,7 +63,7 @@ class Vehicle extends Model
     ];
 
     // Expose primary image URL in JSON
-    protected $appends = ['primary_image_url'];
+    protected $appends = ['primary_image_url', 'all_images_data', 'front_view_image', 'interior_view_image'];
 
     /* -------- Relations -------- */
 
@@ -195,7 +195,65 @@ class Vehicle extends Model
             ->where('is_primary', true)
             ->first();
 
-        return $primary?->url; // uses VehicleMedia::getUrlAttribute()
+        if ($primary) {
+            return $primary->url;
+        }
+
+        // Fallback to first image
+        $firstImage = $this->media()
+            ->where('media_type', 'image')
+            ->orderBy('sort_order')
+            ->first();
+
+        return $firstImage ? $firstImage->url : asset('images/default-vehicle.jpg');
+    }
+
+    /**
+     * Get all images as array
+     */
+    public function getAllImagesDataAttribute(): array
+    {
+        return $this->media()
+            ->where('media_type', 'image')
+            ->orderBy('is_primary', 'desc')
+            ->orderBy('sort_order')
+            ->get()
+            ->map(function ($media) {
+                return [
+                    'id' => $media->id,
+                    'url' => $media->url,
+                    'full_url' => $media->full_url,
+                    'title' => $media->title,
+                    'is_primary' => $media->is_primary,
+                    'sort_order' => $media->sort_order,
+                ];
+            })->toArray();
+    }
+
+    /**
+     * Get front view image URL
+     */
+    public function getFrontViewImageAttribute(): ?string
+    {
+        $frontView = $this->media()
+            ->where('media_type', 'image')
+            ->where('title', 'LIKE', '%Front%')
+            ->first();
+
+        return $frontView ? $frontView->url : $this->primary_image_url;
+    }
+
+    /**
+     * Get interior view image URL
+     */
+    public function getInteriorViewImageAttribute(): ?string
+    {
+        $interiorView = $this->media()
+            ->where('media_type', 'image')
+            ->where('title', 'LIKE', '%Interior%')
+            ->first();
+
+        return $interiorView ? $interiorView->url : $this->primary_image_url;
     }
 
     public function getAverageRatingAttribute(): float

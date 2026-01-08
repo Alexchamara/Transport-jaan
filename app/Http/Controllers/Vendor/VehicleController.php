@@ -81,8 +81,6 @@ class VehicleController extends Controller
         $paginator = $query->paginate($perPage);
 
         $transformed = $paginator->getCollection()->map(function (Vehicle $v) {
-            $images = $v->media->pluck('path')->values()->all();
-
             $isApproved  = strtolower((string) $v->approval_status) === 'approved';
             $isActive    = in_array(strtolower((string) $v->status), ['active','available'], true);
             $statusLabel = $isApproved && $isActive ? 'Available'
@@ -102,8 +100,8 @@ class VehicleController extends Controller
                 'transmission' => $transmission ? ucfirst($transmission) : null,
                 'capacity'     => $v->passenger_capacity ? ($v->passenger_capacity . ' Person') : null,
                 'fuel_type'    => $fuel ? ucfirst($fuel) : null,
-                'image'        => $images[0] ?? null,
-                'images'       => $images,
+                'image'        => $v->primary_image_url,
+                'images'       => $v->all_images_data,
             ];
         });
 
@@ -306,7 +304,7 @@ class VehicleController extends Controller
             ->values()
             ->all();
 
-        $imageEntries = $v->media->map(fn($m) => ['id' => $m->id, 'url' => $m->path])->values()->all();
+        $imageEntries = $v->media->map(fn($m) => ['id' => $m->id, 'url' => $m->full_url])->values()->all();
 
         // 🔻 Policy URLs (safe even if table not migrated yet)
         $policyStreamUrl = null;

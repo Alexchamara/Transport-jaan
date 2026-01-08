@@ -361,6 +361,10 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                                         src={vehicle.image || carImg}
                                         alt="car image"
                                         className="mx-auto"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = carImg;
+                                        }}
                                     />
 
                                     <div className="flex flex-col justify-center items-center">
@@ -836,6 +840,10 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                                         src={vehicle.image || carImg}
                                         alt="yacht image"
                                         className="mx-auto w-full h-[150px] object-cover rounded-lg"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = carImg;
+                                        }}
                                     />
 
                                     <div className="flex flex-col justify-center items-center w-full">
