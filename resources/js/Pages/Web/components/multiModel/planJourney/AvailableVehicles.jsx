@@ -210,7 +210,7 @@ const vehicleData = {
     ],
 };
 
-const AvailableVehicles = ({ onVehicleSelect, onBackToJourney }) => {
+const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [], availableYachts = [] }) => {
     const [activeSection, setActiveSection] = useState("car");
     const [carPage, setCarPage] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
@@ -322,7 +322,8 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney }) => {
                                 : "opacity-100 transform scale-100"
                         }`}
                     >
-                        {vehicleData.car.map((vehicle, index) => (
+                        {availableCars.length > 0 ? (
+                            availableCars.map((vehicle, index) => (
                             <Link
                                 key={`${carPage}-${index}`}
                                 href="/multiModel/vehicleDetails"
@@ -332,46 +333,46 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney }) => {
                                     <div className="flex flex-col justify-center items-center gap-1">
                                         <img src={miter} />
                                         <h1 className="text-[8px] font-[500] text-[#00000040]">
-                                            {vehicle.mileage}
+                                            {vehicle.year || 'N/A'}
                                         </h1>
                                     </div>
                                     <div className="flex flex-col justify-center items-center gap-1">
                                         <img src={gear} />
                                         <h1 className="text-[8px] font-[500] text-[#00000040]">
-                                            {vehicle.transmission}
+                                            {vehicle.specs?.transmission || 'Auto'}
                                         </h1>
                                     </div>
                                     <div className="flex flex-col justify-center items-center gap-1">
                                         <img src={person} />
                                         <h1 className="text-[8px] font-[500] text-[#00000040]">
-                                            {vehicle.seats}
+                                            {vehicle.passengerCapacity || 4} Person
                                         </h1>
                                     </div>
                                     <div className="flex flex-col justify-center items-center gap-1">
                                         <img src={gas} />
                                         <h1 className="text-[8px] font-[500] text-[#00000040]">
-                                            {vehicle.fuel}
+                                            {vehicle.specs?.fuelType || 'Petrol'}
                                         </h1>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col justify-center items-center gap-2">
                                     <img
-                                        src={vehicle.image}
+                                        src={vehicle.image || carImg}
                                         alt="car image"
                                         className="mx-auto"
                                     />
 
                                     <div className="flex flex-col justify-center items-center">
                                         <h1 className="bebas-neue text-[20px] font-[400]">
-                                            {vehicle.name.split(" ")[0]}{" "}
+                                            {vehicle.manufacturer}{" "}
                                             <span className="text-[#0955AC]">
-                                                {vehicle.name.split(" ")[1]}
+                                                {vehicle.name}
                                             </span>{" "}
                                         </h1>
 
                                         <h1 className="text-[25px]/[24px] font-[700]">
-                                            {vehicle.price}{" "}
+                                            ${vehicle.price}{" "}
                                             <span className="text-[10px] text-[#00000080] font-[600]">
                                                 /day
                                             </span>
@@ -389,7 +390,12 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney }) => {
                                     </div>
                                 </div>
                             </Link>
-                        ))}
+                        ))
+                        ) : (
+                            <div className="text-center py-10">
+                                <p className="text-gray-500">No cars available for the selected dates</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -818,115 +824,68 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney }) => {
                                 : "opacity-100 transform scale-100"
                         }`}
                     >
-                        {vehicleData.yacht.map((vehicle, index) => (
+                        {availableYachts.length > 0 ? (
+                            availableYachts.map((vehicle, index) => (
                             <Link
                                 key={index}
                                 href="/multiModel/yatch/yatchDetails"
-                                className="w-full sm:w-[382px] shadow-lg rounded-[12px] h-auto bg-[#FFFFFF] border-[0.8px] border-[#F3F4F6] transition-all duration-300 ease-in-out hover:scale-95 transform cursor-pointer"
+                                className="min-w-[217px] min-h-[295px] bg-[#F4F3F3] rounded-[10px] shadow-lg p-5 transition-all duration-300 ease-in-out hover:scale-95 transform cursor-pointer"
                             >
-                                <div className="flex flex-row justify-center items-center gap-3 w-full py-4 px-5">
-                                    <div className="size-[36px] bg-[#FAF5FF] rounded-[10px] flex justify-center items-center p-2">
-                                        <img src={vehicle.icon} className="" />
-                                    </div>
-                                    <div>
-                                        <h1 className="text-[#101828] text-[14px]">
-                                            {vehicle.name}
-                                        </h1>
-                                        <h1 className="text-[#6A7282] text-[12px]">
-                                            {vehicle.route}
-                                        </h1>
-                                    </div>
-                                    <div className="w-[64px] h-[23px] bg-[#F0FDF4] rounded-[8px] text-[#008236] text-[10px] flex justify-center items-center ml-auto p-1">
-                                        <h1>{vehicle.frequency}</h1>
-                                    </div>
-                                </div>
-                                <div className="border-[#F3F4F6] border-y-[0.8px] w-full py-5 px-5">
-                                    <div className="flex flex-row justify-between items-center">
-                                        <div className="flex flex-col">
-                                            <div className="flex flex-row gap-2">
-                                                <img src={calanderGrey} className="" />
-                                                <h1 className="text-[10px] text-[#6A7282]">
-                                                    {vehicle.departure.date}
-                                                </h1>
-                                            </div>
-                                            <h1 className="text-[#101828] text-[14px]">
-                                                {vehicle.departure.time}
-                                            </h1>
-                                            <h1 className="text-[#4A5565] text-[12px]">
-                                                {vehicle.departure.location}
-                                            </h1>
-                                        </div>
-                                        <div className="flex flex-col items-center gap-1">
-                                            <div className="flex flex-row gap-1 items-center">
-                                                <img src={clockGrey} className="clock" />
-                                                <h1 className="text-[#6A7282] text-[9px]">
-                                                    {vehicle.duration}
-                                                </h1>
-                                            </div>
-                                            <img src={rightArrow} className="size-[16px]" />
-                                        </div>
-                                        <div className="flex flex-col text-end">
-                                            <div className="flex flex-row gap-2">
-                                                <img src={calanderGrey} className="" />
-                                                <h1 className="text-[10px] text-[#6A7282]">
-                                                    {vehicle.arrival.date}
-                                                </h1>
-                                            </div>
-                                            <h1 className="text-[#101828] text-[14px]">
-                                                {vehicle.arrival.time}
-                                            </h1>
-                                            <h1 className="text-[#4A5565] text-[12px]">
-                                                {vehicle.arrival.location}
-                                            </h1>
-                                        </div>
-                                    </div>
-                                </div>
+                                <div className="flex flex-col justify-center items-center gap-2">
+                                    <img
+                                        src={vehicle.image || carImg}
+                                        alt="yacht image"
+                                        className="mx-auto w-full h-[150px] object-cover rounded-lg"
+                                    />
 
-                                <div className="mt-5 px-5 pb-3">
-                                    <h1 className="text-[10px] text-[#6A7282]">Select Class</h1>
+                                    <div className="flex flex-col justify-center items-center w-full">
+                                        <h1 className="bebas-neue text-[20px] font-[400]">
+                                            {vehicle.manufacturer}{" "}
+                                            <span className="text-[#0955AC]">
+                                                {vehicle.name}
+                                            </span>{" "}
+                                        </h1>
 
-                                    <div className="flex flex-col sm:flex-row justify-between items-center">
-                                        {vehicle.classes.map((cls, clsIndex) => (
-                                            <div
-                                                key={clsIndex}
-                                                className="w-[111px] h-[82px] border-[0.8px] bg-gradient-to-t rounded-[10px] mt-3 p-3"
-                                                style={{
-                                                    borderColor: cls.color,
-                                                    background: `linear-gradient(to top, ${cls.color}20, ${cls.color}10)`,
-                                                }}
-                                            >
-                                                <h1
-                                                    className="text-[10px] font-[400]"
-                                                    style={{ color: cls.color }}
-                                                >
-                                                    {cls.name}
-                                                </h1>
-                                                <h1
-                                                    className="text-[12px] font-[400]"
-                                                    style={{ color: cls.color }}
-                                                >
-                                                    {cls.price}
-                                                </h1>
-                                                <div className="flex flex-row items-center gap-2">
-                                                    <div
-                                                        className="size-[6px] rounded-full"
-                                                        style={{
-                                                            backgroundColor: cls.color,
-                                                        }}
-                                                    />
-                                                    <h1
-                                                        className="text-[9px] font-[400]"
-                                                        style={{ color: cls.color }}
-                                                    >
-                                                        {cls.seats}
-                                                    </h1>
-                                                </div>
+                                        <div className="flex flex-row justify-around w-full text-[10px] text-gray-600 my-2">
+                                            <div className="flex flex-col items-center">
+                                                <span className="font-bold">{vehicle.specs?.length || 'N/A'}</span>
+                                                <span>Length</span>
                                             </div>
-                                        ))}
+                                            <div className="flex flex-col items-center">
+                                                <span className="font-bold">{vehicle.specs?.cabins || 'N/A'}</span>
+                                                <span>Cabins</span>
+                                            </div>
+                                            <div className="flex flex-col items-center">
+                                                <span className="font-bold">{vehicle.passengerCapacity || 'N/A'}</span>
+                                                <span>Guests</span>
+                                            </div>
+                                        </div>
+
+                                        <h1 className="text-[25px]/[24px] font-[700]">
+                                            ${vehicle.price}{" "}
+                                            <span className="text-[10px] text-[#00000080] font-[600]">
+                                                /day
+                                            </span>
+                                        </h1>
+
+                                        <div className="flex flex-row gap-2 justify-between mt-2">
+                                            <div className="w-[127px] h-[22px] rounded-[4px] bg-[#0955AC] flex justify-center items-center text-[10px] font-[700] text-[#FFFFFF] mx-auto p-1 cursor-pointer">
+                                                More Details
+                                            </div>
+
+                                            <div className="size-[22px] border-[1px] rounded-[4px] border-[#0955AC] flex justify-center items-center p-1 cursor-pointer">
+                                                <img src={heart} className="mx-auto" />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </Link>
-                        ))}
+                        ))
+                        ) : (
+                            <div className="text-center py-10">
+                                <p className="text-gray-500">No yachts available for the selected dates</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

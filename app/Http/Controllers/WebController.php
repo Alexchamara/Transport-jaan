@@ -137,9 +137,117 @@ class WebController extends Controller
         return Inertia::render('Web/home/multiModel/PlanJourney');
     }
 
-    public function multiModelAvailableVehicles()
+    public function multiModelAvailableVehicles(Request $request)
     {
+        // If this is an API call to fetch vehicles
+        if ($request->ajax() || $request->wantsJson()) {
+            return $this->fetchAvailableVehicles($request);
+        }
+        
+        // Otherwise, render the page
         return Inertia::render('Web/home/multiModel/AvailableVehicles');
+    }
+
+    /**
+     * Fetch available vehicles based on date/time range
+     */
+    public function fetchAvailableVehicles(Request $request)
+    {
+        $request->validate([
+            'startDate' => 'required|date',
+            'startTime' => 'required',
+            'endDate' => 'required|date',
+            'endTime' => 'required',
+            'vehicleType' => 'required|in:land,sea,air'
+        ]);
+
+        // Parse the date and time into Carbon instances
+        $startDateTime = \Carbon\Carbon::parse($request->startDate . ' ' . $request->startTime);
+        $endDateTime = \Carbon\Carbon::parse($request->endDate . ' ' . $request->endTime);
+
+        // Determine the model type based on vehicle type
+        $vehicleType = $request->vehicleType;
+
+        if ($vehicleType === 'land') {
+            // Fetch land vehicles (cars)
+            $vehicles = Vehicle::where('type', 'land')
+                ->where('status', 'active')
+                ->where('approval_status', 'approved')
+                ->with(['landSpec', 'images', 'reviews'])
+                ->get()
+                ->filter(function ($vehicle) use ($startDateTime, $endDateTime) {
+                    return $vehicle->isAvailable($startDateTime, $endDateTime);
+                })
+                ->map(function ($vehicle) {
+                    $primaryImage = $vehicle->images->first();
+                    return [
+                        'id' => $vehicle->id,
+                        'name' => $vehicle->model,
+                        'manufacturer' => $vehicle->manufacturer,
+                        'year' => $vehicle->year,
+                        'price' => $vehicle->rental_price_per_day,
+                        'passengerCapacity' => $vehicle->passenger_capacity,
+                        'rating' => $vehicle->reviews->avg('rating') ?? 0,
+                        'totalReviews' => $vehicle->reviews->count(),
+                        'image' => $primaryImage ? $primaryImage->url : null,
+                        'specs' => $vehicle->landSpec ? [
+                            'bodyType' => $vehicle->landSpec->body_type,
+                            'transmission' => $vehicle->landSpec->transmission,
+                            'fuelType' => $vehicle->landSpec->fuel_type,
+                            'seatingCapacity' => $vehicle->landSpec->seating_capacity,
+                        ] : null,
+                    ];
+                })
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'vehicles' => $vehicles
+            ]);
+
+        } else if ($vehicleType === 'sea') {
+            // Fetch sea vehicles (yachts)
+            $vehicles = Vehicle::where('type', 'sea')
+                ->where('status', 'active')
+                ->where('approval_status', 'approved')
+                ->with(['seaSpec', 'images', 'reviews'])
+                ->get()
+                ->filter(function ($vehicle) use ($startDateTime, $endDateTime) {
+                    return $vehicle->isAvailable($startDateTime, $endDateTime);
+                })
+                ->map(function ($vehicle) {
+                    $primaryImage = $vehicle->images->first();
+                    return [
+                        'id' => $vehicle->id,
+                        'name' => $vehicle->model,
+                        'manufacturer' => $vehicle->manufacturer,
+                        'year' => $vehicle->year,
+                        'price' => $vehicle->rental_price_per_day,
+                        'passengerCapacity' => $vehicle->passenger_capacity,
+                        'rating' => $vehicle->reviews->avg('rating') ?? 0,
+                        'totalReviews' => $vehicle->reviews->count(),
+                        'image' => $primaryImage ? $primaryImage->url : null,
+                        'specs' => $vehicle->seaSpec ? [
+                            'length' => $vehicle->seaSpec->length,
+                            'beam' => $vehicle->seaSpec->beam,
+                            'draft' => $vehicle->seaSpec->draft,
+                            'cabins' => $vehicle->seaSpec->cabins,
+                            'engineType' => $vehicle->seaSpec->engine_type,
+                        ] : null,
+                    ];
+                })
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'vehicles' => $vehicles
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid vehicle type'
+        ], 400);
     }
 
     public function ReviewJourney()

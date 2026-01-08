@@ -23,6 +23,9 @@ const Hero = () => {
     const [routeDuration, setRouteDuration] = useState(0);
     const [segmentDurations, setSegmentDurations] = useState([]);
     const [showVehicles, setShowVehicles] = useState(false);
+    const [availableCars, setAvailableCars] = useState([]);
+    const [availableYachts, setAvailableYachts] = useState([]);
+    const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
 
     useEffect(() => {
         const savedStart = localStorage.getItem("journeyStart");
@@ -85,6 +88,74 @@ const Hero = () => {
         setRouteDuration(duration);
         if (segments && segments.length > 0) {
             setSegmentDurations(segments);
+        }
+    };
+
+    const fetchAvailableVehicles = async () => {
+        setIsLoadingVehicles(true);
+        
+        // Determine the date range for fetching vehicles
+        // Use start date/time to first stop (or end date/time if no stops)
+        const startDate = startJourney.startDate;
+        const startTime = startJourney.startTime;
+        let endDate = endJourney.returnDate;
+        let endTime = endJourney.returnTime;
+
+        // If there are stops, use the first stop's departure date/time as the end
+        if (addedStops.length > 0) {
+            endDate = addedStops[0].departureDate;
+            endTime = addedStops[0].departureTime;
+        }
+
+        try {
+            // Fetch land vehicles (cars)
+            const carsResponse = await fetch('/multiModel/fetch-available-vehicles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    startDate,
+                    startTime,
+                    endDate,
+                    endTime,
+                    vehicleType: 'land'
+                })
+            });
+
+            const carsData = await carsResponse.json();
+            if (carsData.success) {
+                setAvailableCars(carsData.vehicles);
+            }
+
+            // Fetch sea vehicles (yachts)
+            const yachtsResponse = await fetch('/multiModel/fetch-available-vehicles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    startDate,
+                    startTime,
+                    endDate,
+                    endTime,
+                    vehicleType: 'sea'
+                })
+            });
+
+            const yachtsData = await yachtsResponse.json();
+            if (yachtsData.success) {
+                setAvailableYachts(yachtsData.vehicles);
+            }
+
+            setShowVehicles(true);
+        } catch (error) {
+            console.error('Error fetching vehicles:', error);
+            alert('Failed to fetch available vehicles. Please try again.');
+        } finally {
+            setIsLoadingVehicles(false);
         }
     };
 
@@ -190,7 +261,8 @@ const Hero = () => {
                         setEndJourney={setEndJourney}
                         routeDuration={routeDuration}
                         segmentDurations={segmentDurations}
-                        onFindVehicles={() => setShowVehicles(true)}
+                        onFindVehicles={fetchAvailableVehicles}
+                        isLoadingVehicles={isLoadingVehicles}
                     />
                 </div>
                 <div className="xl:col-span-2 flex flex-col gap-10">
@@ -320,6 +392,8 @@ const Hero = () => {
                                 console.log("Selected vehicle:", vehicleData);
                                 // Handle vehicle selection here
                             }}
+                            availableCars={availableCars}
+                            availableYachts={availableYachts}
                         />
                     )}
                 </div>

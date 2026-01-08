@@ -144,6 +144,7 @@ Route::get('/freight-booking/create', [WebController::class, 'freightHomepage'])
 Route::get('/multiModel', [WebController::class, 'multiModelHomepage'])->name('multiModelHomepage.home');
 Route::get('/multiModel/plan-journey', [WebController::class, 'multiModelPlanJourney'])->name('multiModelPlanJourney.planJourney');
 Route::get('/multiModel/available-vehicles', [WebController::class, 'multiModelAvailableVehicles'])->name('multiModelAvailableVehicles.availableVehicles');
+Route::post('/multiModel/fetch-available-vehicles', [WebController::class, 'fetchAvailableVehicles'])->name('fetchAvailableVehicles');
 Route::get('/multiModel/reviewJourney', [WebController::class, 'ReviewJourney'])->name('ReviewJourney.reviewJourney');
 Route::get('/multiModel/travellerDetails', [WebController::class, 'TravellerDetails'])->name('TravellerDetails.travellerDetails');
 Route::get('/multiModel/payment', [WebController::class, 'Payment'])->name('Payment.payment');
