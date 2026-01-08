@@ -10,6 +10,7 @@ import badgeCheck from "../../../assets/multiModel/planJourney/badgeCheck.svg";
 
 import JourneyPlanner from "./JourneyPlanner";
 import MapComponent from "./MapComponent";
+import AvailableVehicles from "./AvailableVehicles";
 
 const Hero = () => {
     const [startJourney, setStartJourney] = useState({ location: "", startDate: "", startTime: "", coordinates: null });
@@ -21,6 +22,7 @@ const Hero = () => {
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [routeDuration, setRouteDuration] = useState(0);
     const [segmentDurations, setSegmentDurations] = useState([]);
+    const [showVehicles, setShowVehicles] = useState(false);
 
     useEffect(() => {
         const savedStart = localStorage.getItem("journeyStart");
@@ -188,6 +190,7 @@ const Hero = () => {
                         setEndJourney={setEndJourney}
                         routeDuration={routeDuration}
                         segmentDurations={segmentDurations}
+                        onFindVehicles={() => setShowVehicles(true)}
                     />
                 </div>
                 <div className="xl:col-span-2 flex flex-col gap-10">
@@ -237,8 +240,9 @@ const Hero = () => {
                     </div>
                 </div>
 
-                    {/* 1st tab */}
-                    <div className="relative w-full md:h-[400px] shadow-lg bg-[#F4F3F3] rounded-[20px] pb-20 md:pb-0 p-5 md:p-10 poppins flex flex-col gap-5">
+                    {!showVehicles ? (
+                        // Available Vehicles Card
+                        <div className="relative w-full md:h-[400px] shadow-lg bg-[#F4F3F3] rounded-[20px] pb-20 md:pb-0 p-5 md:p-10 poppins flex flex-col gap-5">
                         <div>
                             <h1 className="bebas-neue text-[50px]/[100%]">
                                 Available Vehicles
@@ -249,7 +253,7 @@ const Hero = () => {
                         </div>
 
                         <div className="text-[18px] text-[#0955AC] font-[700] figtree mt-5 flex flex-col md:flex-row justify-between gap-5 items-center w-full">
-                            <Link href="/multiModel/available-vehicles">
+                            <div href="/multiModel/available-vehicles">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={car} alt="car icon" />
                                     <h1>Car</h1>
@@ -257,9 +261,9 @@ const Hero = () => {
                                         145
                                     </div>
                                 </div>
-                            </Link>
+                            </div>
 
-                            <Link href="/multiModel/available-vehicles">
+                            <div href="/multiModel/available-vehicles">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={bus} alt="bus icon" />
                                     <h1>Bus</h1>
@@ -267,9 +271,9 @@ const Hero = () => {
                                         10
                                     </div>
                                 </div>
-                            </Link>
+                            </div>
 
-                            <Link href="/multiModel/available-vehicles">
+                            <div href="/multiModel/available-vehicles">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={tram} alt="tram icon" />
                                     <h1>Train</h1>
@@ -277,9 +281,9 @@ const Hero = () => {
                                         3
                                     </div>
                                 </div>
-                            </Link>
+                            </div>
 
-                            <Link href="/multiModel/available-vehicles">
+                            <div href="/multiModel/available-vehicles">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={plane} alt="plane icon" />
                                     <h1>Plane</h1>
@@ -287,9 +291,9 @@ const Hero = () => {
                                         1
                                     </div>
                                 </div>
-                            </Link>
+                            </div>
 
-                            <Link href="/multiModel/available-vehicles">
+                            <div href="/multiModel/available-vehicles">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={ship} alt="ship icon" />
                                     <h1>Yatch</h1>
@@ -297,7 +301,7 @@ const Hero = () => {
                                         1
                                     </div>
                                 </div>
-                            </Link>
+                            </div>
                         </div>
                         <div className="absolute md:bottom-5 bottom-2 right-5 flex flex-row gap-2 text-[15px] font-[500] text-[#000000] items-center">
                             <img src={badgeCheck} alt="badge check icon" />
@@ -309,6 +313,15 @@ const Hero = () => {
                             </h1>
                         </div>
                     </div>
+                    ) : (
+                        <AvailableVehicles 
+                            onBackToJourney={() => setShowVehicles(false)}
+                            onVehicleSelect={(vehicleData) => {
+                                console.log("Selected vehicle:", vehicleData);
+                                // Handle vehicle selection here
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         </>

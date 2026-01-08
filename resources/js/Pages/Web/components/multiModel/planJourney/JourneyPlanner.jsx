@@ -17,7 +17,7 @@ import alert from "../../../assets/multiModel/planJourney/alert.svg";
 
 import LocationSearch from "./LocationSearch";
 
-const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, addedStops, setAddedStops, endJourney, setEndJourney, routeDuration = 0 }) => {
+const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, addedStops, setAddedStops, endJourney, setEndJourney, routeDuration = 0, onFindVehicles }) => {
     const [activeView, setActiveView] = useState("journey");
     const [showPopup, setShowPopup] = useState(false);
     const [draggedStop, setDraggedStop] = useState(null);
@@ -978,14 +978,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                         </>
                     )}
                 </div>
-                <Link
-                    href="/multiModel/available-vehicles"
-                    className="w-full h-[43px] flex justify-center items-center bg-[#0955AC] mt-5 text-[16px] text-white font-[700] rounded-[10px] cursor-pointer px-4 py-2"
+                <button
+                    onClick={onFindVehicles}
+                    className="w-full h-[43px] flex justify-center items-center bg-[#0955AC] hover:bg-[#074a8a] mt-5 text-[16px] text-white font-[700] rounded-[10px] cursor-pointer px-4 py-2 transition-colors"
                 >
                     {activeView === "journey"
                         ? "Find Vehicles"
                         : "Apply Filters"}
-                </Link>
+                </button>
 
                 <div className="absolute w-full xl:w-auto xl:-right-[100px] xl:bottom-12 -bottom-[52px] xl:-rotate-90 grid grid-cols-2 z-10 figtree font-[600] text-[14px]">
                     <div
