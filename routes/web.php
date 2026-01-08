@@ -355,6 +355,12 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::post('/{user}/unblock', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'unblock'])->name('unblock');
         Route::post('/{user}/reject', [\App\Http\Controllers\SuperAdmin\VendorUserController::class, 'reject'])->name('reject');
     });
+
+    // Settings Routes
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'edit'])->name('cancellation.edit');
+        Route::put('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'update'])->name('cancellation.update');
+    });
 });
 
 
@@ -688,6 +694,7 @@ Route::redirect('/SuperAdmin/LandVehicleDetails', '/superadmin/LandVehicleDetail
 Route::redirect('/SuperAdmin/SeaVehicleDetails', '/superadmin/SeaVehicleDetails')->name('SuperAdmin.SeaVehicleDetails.legacy');
 Route::redirect('/SuperAdmin/AirVehicleDetails', '/superadmin/AirVehicleDetails')->name('SuperAdmin.AirVehicleDetails.legacy');
 Route::redirect('/SuperAdmin/Vender', '/superadmin/Vender')->name('SuperAdmin.NewVender.legacy');
+Route::redirect('/SuperAdmin/settings/cancellation', '/superadmin/settings/cancellation')->name('SuperAdmin.settings.cancellation.legacy');
 // Route::get('/mainDashboard', function () {
 //     return Inertia::render('Web/home/vendors/MainDashboard');
 // })->name('mainDashboard');
