@@ -20,6 +20,7 @@ import LocationSearch from "./LocationSearch";
 const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, addedStops, setAddedStops, endJourney, setEndJourney }) => {
     const [activeView, setActiveView] = useState("journey");
     const [showPopup, setShowPopup] = useState(false);
+    const [draggedStop, setDraggedStop] = useState(null);
     const [stopData, setStopData] = useState({
         destination: "",
         departureDate: "",
@@ -111,6 +112,42 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
         setAddedStops((prev) => prev.filter((stop) => stop.id !== stopId));
     };
 
+    const handleDragStart = (e, index) => {
+        setDraggedStop(index);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e, index) => {
+        e.preventDefault();
+        if (draggedStop === null || draggedStop === index) return;
+        
+        const newStops = [...addedStops];
+        const draggedItem = newStops[draggedStop];
+        newStops.splice(draggedStop, 1);
+        newStops.splice(index, 0, draggedItem);
+        
+        setAddedStops(newStops);
+        setDraggedStop(index);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedStop(null);
+    };
+
+    const handleStopLocationUpdate = (stopId, locationData) => {
+        setAddedStops((prev) =>
+            prev.map((stop) =>
+                stop.id === stopId
+                    ? {
+                        ...stop,
+                        destination: locationData.name,
+                        coordinates: locationData.coordinates,
+                    }
+                    : stop
+            )
+        );
+    };
+
     return (
         <>
             <div className="relative w-full h-full rounded-b-[0px] xl:rounded-bl-[20px] xl:rounded-br-[0px] bg-[#F4F3F3] flex flex-col justify-start items-center shadow-lg rounded-[20px] p-5">
@@ -148,6 +185,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                             setStartJourney((prev) => ({
                                                 ...prev,
                                                 location: value,
+                                                coordinates: value === '' ? null : prev.coordinates,
                                             }))
                                         }
                                         onLocationSelect={(locationData) =>
@@ -233,29 +271,50 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                             {addedStops.map((stop, index) => (
                                 <div
                                     key={stop.id}
-                                    className="w-full bg-[#F9FAFB] rounded-[14px] flex flex-col gap-5 border-[1.5px] border-[#E5E7EB] p-5"
+                                    draggable={true}
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                    className={`w-full bg-[#F9FAFB] rounded-[14px] flex flex-col gap-5 border-[1.5px] border-[#E5E7EB] p-5 cursor-move transition-all ${
+                                        draggedStop === index ? 'opacity-50 scale-95' : 'opacity-100'
+                                    }`}
                                 >
-                                    <label htmlFor={`stop-destination-${stop.id}`} className="text-[16px]/[24px] font-[400]">
-                                        Stop {index + 1}
-                                    </label>
-                                    <div className="flex flex-row gap-2 items-start">
-                                        <img src={dots} className="mr-3" />
-                                        <input
-                                            type="text"
-                                            id={`stop-destination-${stop.id}`}
-                                            name="stopDestination"
-                                            value={stop.destination || ""}
-                                            aria-label="Stop destination"
-                                            className="w-full xl:h-[49px] bg-[#FFFFFF] border border-[#D1D5DC] rounded-[10px] px-3 placeholder:text-[#00000033] focus:ring-0 focus:outline-none placeholder:text-[12px]"
-                                            readOnly
-                                        />
+                                    <div className="flex items-center justify-between">
+                                        <label htmlFor={`stop-destination-${stop.id}`} className="text-[16px]/[24px] font-[400]">
+                                            Stop {index + 1}
+                                        </label>
                                         <img
                                             src={close}
-                                            className="ml-auto cursor-pointer"
-                                            onClick={() =>
-                                                handleRemoveStop(stop.id)
-                                            }
+                                            className="cursor-pointer"
+                                            onClick={() => handleRemoveStop(stop.id)}
                                         />
+                                    </div>
+                                    <div className="flex flex-row gap-2 items-start">
+                                        <img src={dots} className="mr-3 cursor-grab active:cursor-grabbing" />
+                                        <div className="w-full">
+                                            <LocationSearch
+                                                value={stop.destination || ""}
+                                                onChange={(value) => {
+                                                    if (value === '') {
+                                                        setAddedStops((prev) =>
+                                                            prev.map((s) =>
+                                                                s.id === stop.id
+                                                                    ? { ...s, destination: '', coordinates: null }
+                                                                    : s
+                                                            )
+                                                        );
+                                                    }
+                                                }}
+                                                onLocationSelect={(locationData) =>
+                                                    handleStopLocationUpdate(stop.id, locationData)
+                                                }
+                                                placeholder="Search stop destination..."
+                                                icon={location}
+                                                downArrow={downArrow}
+                                                label=""
+                                                inputId={`stop-destination-${stop.id}`}
+                                            />
+                                        </div>
                                     </div>
                                     <div
                                         className="w-full h-[51px] border-[1.6px] border-[#155DFC] rounded-[4px] flex flex-row justify-center items-center gap-2 cursor-pointer px-4 py-2"
@@ -309,6 +368,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                             setEndJourney((prev) => ({
                                                 ...prev,
                                                 location: value,
+                                                coordinates: value === '' ? null : prev.coordinates,
                                             }))
                                         }
                                         onLocationSelect={(locationData) =>
@@ -910,7 +970,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
             {/* Add Stop Popup */}
             {showPopup && (
-                <div className="fixed inset-0 text-[#286BB6] bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                <div className="fixed inset-0 text-[#286BB6] bg-black bg-opacity-50 flex justify-center items-center z-[9999] p-4">
                     <div className="bg-white rounded-[20px] p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-[18px] sm:text-[20px] font-[600] text-[#0955AC]">
@@ -1068,7 +1128,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
 
             {/* Edit Schedule Popup */}
             {editingStopId && (
-                <div className="fixed inset-0 text-[#286BB6] bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                <div className="fixed inset-0 text-[#286BB6] bg-black bg-opacity-50 flex justify-center items-center z-[9999] p-4">
                     <div className="bg-white rounded-[20px] p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-[18px] sm:text-[20px] font-[600] text-[#0955AC]">

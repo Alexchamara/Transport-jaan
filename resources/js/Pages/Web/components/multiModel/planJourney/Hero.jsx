@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "@inertiajs/react";
 import car from "../../../assets/multiModel/planJourney/car-icon.svg";
 import bus from "../../../assets/multiModel/planJourney/bus-icon.svg";
@@ -47,9 +47,11 @@ const Hero = () => {
         localStorage.setItem("journeyEnd", JSON.stringify(endJourney));
     }, [endJourney]);
 
-    const handleMapReady = (map) => {
-        setMapInstance(map);
-    };
+    const handleMapReady = useCallback((map) => {
+        if (!mapInstance) {
+            setMapInstance(map);
+        }
+    }, [mapInstance]);
 
     const handleLocationUpdate = (waypointIndex, locationData) => {
         if (waypointIndex === 0) {
@@ -178,83 +180,7 @@ const Hero = () => {
                     />
                 </div>
                 <div className="xl:col-span-2 flex flex-col gap-10">
-                    {/* Map Controls */}
-                    <div className="flex flex-wrap gap-3 items-center justify-between mt-10 xl:mt-0">
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setShowAlternatives(!showAlternatives)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                    showAlternatives
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                                }`}
-                            >
-                                {showAlternatives ? '✓ ' : ''}Alternative Routes
-                            </button>
-                            <select
-                                value={routePreference}
-                                onChange={(e) => setRoutePreference(e.target.value)}
-                                className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                            >
-                                <option value="balanced">⚖️ Balanced</option>
-                                <option value="fastest">⚡ Fastest</option>
-                                <option value="shortest">📏 Shortest</option>
-                            </select>
-                        </div>
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowExportMenu(!showExportMenu)}
-                                className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center gap-2"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                                </svg>
-                                Export & Share
-                            </button>
-                            {showExportMenu && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                                    <button
-                                        onClick={() => {
-                                            handlePrintJourney();
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                        </svg>
-                                        Print Journey
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            handleShareJourney();
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                                        </svg>
-                                        Share Link
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            handleExportJSON();
-                                            setShowExportMenu(false);
-                                        }}
-                                        className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-b-lg"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        Export JSON
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    
-                    <div className="w-full xl:h-[295px] bg-[#F4F3F3] shadow-lg rounded-[20px] overflow-hidden">
+                    <div className="w-full xl:h-[295px] bg-[#F4F3F3] shadow-lg rounded-[20px] overflow-hidden mt-10 xl:mt-0">
                         {/* OpenStreetMap Component */}
                         <MapComponent
                             startLocation={startJourney.coordinates ? {
@@ -273,11 +199,11 @@ const Hero = () => {
                         />
                     </div>
 
-                    <div className="flex flex-row items-center text-[#6F6F6F] text-[10px] font-[500] latto">
+                    <div className="flex flex-row items-center text-[#6F6F6F] text-[10px] font-[500] latto mb-16">
                     <div className="relative flex flex-col items-center justify-center">
                         <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
                         <h3 className="absolute top-6">From</h3>
-                        {startJourney.location && <h4 className="absolute top-10 text-[8px] text-center">{startJourney.location}</h4>}
+                        {startJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{startJourney.location}</h4>}
                     </div>
 
                     {addedStops.length > 0 ? addedStops.map((stop, index) => (
@@ -285,7 +211,7 @@ const Hero = () => {
                             <div className="absolute left-1/2 -translate-x-1/2 flex flex-col justify-center items-center gap-1">
                                 <div className=" size-[16px] bg-[#C6C6C6] rounded-full" />
                                 <h3 className="absolute top-6 text-nowrap">Stop {index + 1}</h3>
-                                {stop.destination && <h4 className="absolute top-10 text-[8px] text-center">{stop.destination}</h4>}
+                                {stop.destination && <h4 className="absolute top-10 text-[8px] text-center w-24">{stop.destination}</h4>}
                             </div>
                         </div>
                     )) : (
@@ -295,7 +221,7 @@ const Hero = () => {
                     <div className="relative flex flex-col items-center justify-center">
                         <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
                         <h3 className="absolute top-6">To</h3>
-                        {endJourney.location && <h4 className="absolute top-10 text-[8px] text-center">{endJourney.location}</h4>}
+                        {endJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{endJourney.location}</h4>}
                     </div>
                 </div>
 

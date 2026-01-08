@@ -148,18 +148,19 @@ const MapComponent = ({
                         styles: [
                             {
                                 color: "#0955AC",
-                                opacity: 0.9,
-                                weight: 7,
-                                className: 'animated-route'
+                                opacity: 0.8,
+                                weight: 6,
                             },
                         ],
                         extendToWaypoints: true,
                         missingRouteTolerance: 1
                     },
+                    show: true,
                     router: window.L.Routing.osrmv1({
                         serviceUrl: 'https://router.project-osrm.org/route/v1',
                         profile: routePreference === 'fastest' ? 'driving' : 'driving',
-                        timeout: 30 * 1000
+                        timeout: 30 * 1000,
+                        suppressDemoServerWarning: true
                     }),
                     createMarker: function (i, waypoint, n) {
                         let markerIcon;
@@ -289,6 +290,15 @@ const MapComponent = ({
                     if (routes.length > 1) {
                         setAlternativeRoutes(routes.slice(1));
                     }
+                    
+                    // Fit map to show entire route
+                    const bounds = window.L.latLngBounds(mainRoute.coordinates);
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                });
+                
+                // Ensure routing control is visible
+                routingControlRef.current.on('routingerror', function(e) {
+                    console.error('Routing error:', e.error);
                 });
 
                 // Customize routing container
@@ -407,13 +417,18 @@ const MapComponent = ({
         // Add custom styles for route animation
         const style = document.createElement('style');
         style.innerHTML = `
-            .animated-route {
-                animation: dash 20s linear infinite;
+            .leaflet-routing-container {
+                display: none !important;
             }
-            @keyframes dash {
-                to {
-                    stroke-dashoffset: -100;
-                }
+            .leaflet-routing-alternatives-container {
+                display: none !important;
+            }
+            .leaflet-interactive {
+                pointer-events: auto;
+            }
+            path.leaflet-interactive {
+                stroke-linecap: round;
+                stroke-linejoin: round;
             }
             .custom-popup .leaflet-popup-content-wrapper {
                 border-radius: 8px;
@@ -458,16 +473,6 @@ const MapComponent = ({
                             </span>
                         </div>
                     </div>
-                </div>
-            )}
-            
-            {/* Drag Hint */}
-            {markersRef.current.length > 0 && (
-                <div className="absolute bottom-4 left-4 bg-blue-600 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-[1000] flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" />
-                    </svg>
-                    <span>Drag markers to adjust route</span>
                 </div>
             )}
         </div>
