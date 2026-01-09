@@ -60,12 +60,19 @@ class WarehouseBooking extends Model
         'insurance_required',
         'notes',
         'documents',
+        
+        // Cancellation Fields
+        'cancelled_by',
+        'cancelled_at',
+        'refund_percentage',
+        'refund_amount',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'payment_date' => 'datetime',
+        'cancelled_at' => 'datetime',
         'terms_accepted' => 'boolean',
         'insurance_required' => 'boolean',
         'required_space' => 'decimal:2',
@@ -76,6 +83,8 @@ class WarehouseBooking extends Model
         'total_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'final_amount' => 'decimal:2',
+        'refund_percentage' => 'decimal:2',
+        'refund_amount' => 'decimal:2',
         'special_requirements' => 'json',
         'amenities' => 'json',
         'documents' => 'json',
@@ -98,6 +107,14 @@ class WarehouseBooking extends Model
     }
 
     /**
+     * Get the cancellation record for this booking
+     */
+    public function cancellation()
+    {
+        return $this->hasOne(\App\Models\WarehouseBookingCancellation::class);
+    }
+
+    /**
      * Get the formatted status
      */
     public function getFormattedStatusAttribute()
@@ -114,11 +131,24 @@ class WarehouseBooking extends Model
     }
 
     /**
+     * Check if booking is cancelled
+     */
+    public function isCancelled()
+    {
+        return $this->status === 'cancelled';
+    }
+
+    /**
      * Check if booking can be cancelled
      */
     public function canBeCancelled()
     {
-        return in_array($this->status, ['pending', 'confirmed']) && 
-               $this->start_date > now()->addDays(1);
+        // Cannot cancel if already cancelled
+        if ($this->isCancelled()) {
+            return false;
+        }
+        
+        // Can cancel if status is pending, confirmed, or active
+        return in_array($this->status, ['pending', 'confirmed', 'active']);
     }
 }

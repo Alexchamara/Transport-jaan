@@ -194,7 +194,10 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
         // User's booking management
         Route::get('/my-bookings', [WarehouseBookingController::class, 'list'])->name('list');
         Route::get('/booking/{id}', [WarehouseBookingController::class, 'show'])->name('show');
-        Route::patch('/booking/{id}/cancel', [WarehouseBookingController::class, 'cancel'])->name('cancel');
+        
+        // Cancellation routes
+        Route::get('/booking/{id}/cancel-preview', [\App\Http\Controllers\WarehouseBookingCancellationController::class, 'preview'])->name('cancel-preview');
+        Route::post('/booking/{id}/cancel', [\App\Http\Controllers\WarehouseBookingCancellationController::class, 'cancel'])->name('cancel');
     });
 });
 
