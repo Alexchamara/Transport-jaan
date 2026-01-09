@@ -196,7 +196,7 @@ const FlightCard = () => {
         <div className="bg-white/95 rounded-[20px] shadow-xl ring-1 ring-[#0955AC]/15 overflow-hidden">
             {/* Header (UI only, no field changes) */}
             <div className="bg-[#0955AC] text-yellow-400 font-bold text-lg py-5 text-center">
-                Find Your Flights1
+                Find Your Flights
             </div>
 
             {/* Form body — inputs kept exactly as before */}

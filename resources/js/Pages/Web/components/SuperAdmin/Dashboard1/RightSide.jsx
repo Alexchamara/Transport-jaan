@@ -16,7 +16,7 @@ const RightSide = ({ userStats }) => {
             {/* Header */}
             <div className="xl:w-[1125px] xl:h-[42px] flex flex-row justify-between items-center px-4 md:px-12 lg:px-47 my-6 md:my-10 lg:my-[25px]">
                 <h1 className="text-white text-base md:text-lg lg:text-[24px] font-poppins">
-                    Welcome back, 123
+                    Welcome back,
                 </h1>
 
                 <div className="flex flex-row gap-2 md:gap-4">
