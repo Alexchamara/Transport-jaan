@@ -260,7 +260,7 @@ class ClientBookingController extends Controller
                 ->exists();
 
             if ($overlap) {
-                abort(422, 'Vehicle is not available for the selected dates.');
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Vehicle is not available for the selected dates.');
             }
 
             $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
@@ -804,7 +804,7 @@ class ClientBookingController extends Controller
                 ->exists();
 
             if ($overlap) {
-                abort(422, 'Vehicle is not available for the selected dates.');
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Vehicle is not available for the selected dates.');
             }
 
             $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
@@ -1138,7 +1138,7 @@ class ClientBookingController extends Controller
                 ->exists();
 
             if ($overlap) {
-                abort(422, 'Vehicle is not available for the selected dates.');
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Vehicle is not available for the selected dates.');
             }
 
             $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
