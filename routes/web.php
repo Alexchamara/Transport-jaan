@@ -368,6 +368,19 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'edit'])->name('cancellation.edit');
         Route::put('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'update'])->name('cancellation.update');
+        
+        Route::get('/commission', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'edit'])->name('commission.edit');
+    });
+
+    // Commission API Routes
+    Route::prefix('commissions')->name('commissions.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'store'])->name('store');
+        Route::get('/{commission}', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'show'])->name('show');
+        Route::put('/{commission}', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'update'])->name('update');
+        Route::delete('/{commission}', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'destroy'])->name('destroy');
+        Route::patch('/{commission}/status', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'updateStatus'])->name('updateStatus');
+        Route::post('/bulk-delete', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'bulkDelete'])->name('bulkDelete');
     });
 
     // Payments Routes
