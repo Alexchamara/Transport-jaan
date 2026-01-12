@@ -286,6 +286,7 @@ const SideMenu = () => {
                         >
                             Warehouse
                         </Link>
+                        {/* ❌ COURIER - Hidden by user request
                         <Link
                             href="/SuperAdmin/Models/Courier"
                             className={`text-[14px] font-[500] px-4 py-2 ${
@@ -301,6 +302,8 @@ const SideMenu = () => {
                         >
                             Courier
                         </Link>
+                        */}
+                        {/* ❌ FREIGHT - Hidden by user request
                         <Link
                             href="/SuperAdmin/Models/Freight"
                             className={`text-[14px] font-[500] px-4 py-2 ${
@@ -316,6 +319,8 @@ const SideMenu = () => {
                         >
                             Freight
                         </Link>
+                        */}
+                        {/* ❌ TICKET BOOKING - Hidden by user request
                         <Link
                             href="/SuperAdmin/Models/TicketBooking"
                             className={`text-[14px] font-[500] px-4 py-2 ${
@@ -331,6 +336,8 @@ const SideMenu = () => {
                         >
                             Ticket booking
                         </Link>
+                        */}
+                        {/* ❌ MULTIMODEL - Hidden by user request
                         <Link
                             href="/SuperAdmin/Models/Multimodel"
                             className={`text-[14px] font-[500] px-4 py-2 ${
@@ -346,6 +353,7 @@ const SideMenu = () => {
                         >
                             Multimodel
                         </Link>
+                        */}
                     </div>
 
                     {/* Users */}
