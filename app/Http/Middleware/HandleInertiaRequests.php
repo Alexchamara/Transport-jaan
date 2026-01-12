@@ -32,11 +32,11 @@ class HandleInertiaRequests extends Middleware
                     'role' => $user->role,
                     'vendor_type' => $user->vendor_type,
                     'status' => $user->status,
+                    // Only include these when needed - reduces data size
                     'phone' => $user->phone,
-                    'address' => $user->address,
-                    'country' => $user->country,
-                    'date_of_birth' => $user->date_of_birth,
                     'image' => $user->image ? asset('storage/' . $user->image) : null,
+                    // Note: Removed address, country, date_of_birth from default share
+                    // to reduce cookie size. Add them back individually on pages that need them.
                 ] : null,
             ],
             // expose Laravel flash messages to the front end

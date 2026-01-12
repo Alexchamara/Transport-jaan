@@ -96,12 +96,14 @@ class WarehouseBookingController extends Controller
             ->values();
 
         $recentActivity = (clone $baseQuery)
-            ->with(['warehouseUnit'])
+            ->with(['warehouseUnit', 'cancellation'])
             ->orderByDesc('created_at')
             ->limit(25)
             ->get()
             ->map(function (WarehouseBooking $booking) {
                 $unit = $booking->warehouseUnit;
+                $cancellation = $booking->cancellation;
+                
                 return [
                     'id' => $booking->id,
                     'reference' => $booking->booking_reference,
@@ -110,6 +112,14 @@ class WarehouseBookingController extends Controller
                     'end_date' => optional($booking->end_date)?->toDateTimeString(),
                     'created_at' => optional($booking->created_at)?->toDateTimeString(),
                     'amount' => $booking->final_amount ?? $booking->total_amount,
+                    'final_amount' => $booking->final_amount,
+                    'total_amount' => $booking->total_amount,
+                    'cancelled_by' => $booking->cancelled_by,
+                    'cancelled_at' => optional($booking->cancelled_at)?->toDateTimeString(),
+                    'refund_percentage' => $booking->refund_percentage,
+                    'refund_amount' => $booking->refund_amount,
+                    'cancellation_reason' => $cancellation ? $cancellation->cancellation_reason : null,
+                    'refund_status' => $cancellation ? $cancellation->refund_status : null,
                     'warehouse' => $unit ? [
                         'id' => $unit->id,
                         'name' => $unit->name,

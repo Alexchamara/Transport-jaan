@@ -383,11 +383,19 @@ class WarehouseReservationController extends Controller
                 ], 404);
             }
             
-            // Validate reservation status
-            if (!in_array($reservation->status, ['pending', 'confirmed'])) {
+            // Check if already cancelled
+            if ($reservation->status === 'cancelled') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Only pending or confirmed reservations can be cancelled. Current status: ' . $reservation->status
+                    'message' => 'This reservation has already been cancelled'
+                ], 400);
+            }
+            
+            // Validate reservation status
+            if (!in_array($reservation->status, ['pending', 'confirmed', 'active'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only pending, confirmed, or active reservations can be cancelled. Current status: ' . $reservation->status
                 ], 400);
             }
             
@@ -396,42 +404,76 @@ class WarehouseReservationController extends Controller
             try {
                 $cancellationReason = $request->cancellation_reason;
                 
-                // Update reservation
+                // Calculate 100% refund (vendor cancellation always gives full refund)
+                $originalAmount = $reservation->final_amount ?? $reservation->total_amount ?? 0;
+                $refundPercentage = 100;
+                $refundAmount = $originalAmount;
+                
+                // Update reservation with cancellation and refund details
                 $reservation->update([
                     'status' => 'cancelled',
-                    'notes' => ($reservation->notes ?? '') . "\n\nCancelled on " . now()->format('M j, Y g:i A') . "\nReason: " . $cancellationReason,
-                    'cancelled_at' => now()
+                    'cancelled_by' => 'vendor',
+                    'cancelled_at' => now(),
+                    'refund_percentage' => $refundPercentage,
+                    'refund_amount' => $refundAmount,
+                    'notes' => ($reservation->notes ?? '') . "\n\nCancelled by Vendor on " . now()->format('M j, Y g:i A') . "\nReason: " . $cancellationReason . "\nRefund: 100% (LKR " . number_format($refundAmount, 2) . ")",
                 ]);
                 
-                // Create notification
+                // Create cancellation audit record
+                if (class_exists(\App\Models\WarehouseBookingCancellation::class)) {
+                    \App\Models\WarehouseBookingCancellation::create([
+                        'warehouse_booking_id' => $reservation->id,
+                        'user_id' => $user->id,
+                        'cancelled_by' => 'vendor',
+                        'cancellation_reason' => $cancellationReason,
+                        'booking_start_date' => $reservation->start_date,
+                        'cancellation_date' => now()->toDateString(),
+                        'days_before_booking' => Carbon::parse($reservation->start_date)->diffInDays(now(), false),
+                        'allowed_cancellation_days' => 0, // N/A for vendor cancellations
+                        'refund_percentage' => $refundPercentage,
+                        'original_amount' => $originalAmount,
+                        'refund_amount' => $refundAmount,
+                        'refund_status' => 'pending',
+                    ]);
+                }
+                
+                // Create notification for customer
                 $this->createNotification(
                     $reservation->user_id,
                     'warehouse_reservation_cancelled',
                     [
-                        'title' => 'Warehouse Reservation Cancelled',
-                        'message' => "Your warehouse reservation (Ref: {$reservation->booking_reference}) has been cancelled.",
+                        'title' => 'Warehouse Reservation Cancelled by Vendor',
+                        'message' => "Your warehouse reservation (Ref: {$reservation->booking_reference}) has been cancelled by the vendor. You will receive a 100% refund of LKR " . number_format($refundAmount, 2) . ".",
                         'unit_name' => $reservation->warehouseUnit->name ?? 'N/A',
                         'reservation_id' => $reservation->booking_reference,
                         'cancellation_reason' => $cancellationReason,
+                        'refund_percentage' => $refundPercentage,
+                        'refund_amount' => $refundAmount,
                     ],
                     $reservation->id
                 );
                 
                 DB::commit();
                 
-                Log::info('Reservation cancelled', [
+                Log::info('Reservation cancelled by vendor', [
                     'reservation_id' => $reservationId,
                     'vendor_id' => $user->id,
+                    'customer_id' => $reservation->user_id,
                     'cancellation_reason' => $cancellationReason,
+                    'refund_percentage' => $refundPercentage,
+                    'refund_amount' => $refundAmount,
                     'cancelled_at' => now()
                 ]);
                 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Reservation cancelled successfully',
-                    'reservation' => [
-                        'id' => $reservation->booking_reference,
-                        'status' => $reservation->status
+                    'message' => 'Reservation cancelled successfully. Customer will receive 100% refund.',
+                    'data' => [
+                        'reservation_id' => $reservation->booking_reference,
+                        'status' => $reservation->status,
+                        'cancelled_by' => 'vendor',
+                        'refund_percentage' => $refundPercentage,
+                        'refund_amount' => number_format($refundAmount, 2),
                     ]
                 ]);
                 

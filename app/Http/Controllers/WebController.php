@@ -286,12 +286,7 @@ class WebController extends Controller
         return Inertia::render('Web/home/ticketBooking/TicketBooking');
     }    public function ticketBooking()
     {
-        // Check if the user is logged in
-        if (!Auth::check()) {
-            // If not logged in, redirect to login with a message
-            return redirect()->route('signin')->with('message', 'Please log in to make a booking.');
-        }
-
+        // Allow unauthenticated users to access the page
         return Inertia::render('Web/home/ticketBooking/TicketBooking');
     }
 
