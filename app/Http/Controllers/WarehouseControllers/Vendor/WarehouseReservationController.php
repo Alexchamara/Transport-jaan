@@ -732,7 +732,9 @@ class WarehouseReservationController extends Controller
             'user_id' => $userId,
             'type' => $type,
             'data' => $data,
-            'booking_id' => $reservationId,
+            // Leave booking_id null because this controller works with warehouse_bookings,
+            // which are not linked to the bookings table behind this foreign key.
+            'booking_id' => null,
             'read_at' => null
         ]);
     }
