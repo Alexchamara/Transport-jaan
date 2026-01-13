@@ -23,14 +23,8 @@ class WarehouseController extends Controller
             $typeFilter = $request->get('type_filter');
             $statusFilter = $request->get('status_filter');
 
-            // Build query for warehouse units with their approvals and owner info
-            $query = WarehouseUnit::with([
-                'owner:id,name,email',
-                'currentApproval',
-                'activeImages' => function($q) {
-                    $q->take(1); // Get only first image for listing
-                }
-            ]);
+            // Build query for warehouse units
+            $query = WarehouseUnit::query();
 
             // Apply search filter
             if ($search) {
@@ -46,7 +40,7 @@ class WarehouseController extends Controller
 
             // Apply type filter
             if ($typeFilter && $typeFilter !== 'all') {
-                $query->where('type', $typeFilter);
+                $query->where('type', '=', trim($typeFilter));
             }
 
             // Apply status filter based on approval status
@@ -54,15 +48,21 @@ class WarehouseController extends Controller
                 $query->where(function ($q) use ($statusFilter) {
                     // Check warehouses with approval records
                     $q->whereHas('currentApproval', function ($subQ) use ($statusFilter) {
-                        $subQ->where('status', $statusFilter);
+                        $subQ->where('status', trim($statusFilter));
                     });
 
                     // If filtering for pending, also include warehouses without approval records
-                    if ($statusFilter === 'pending') {
+                    if (trim($statusFilter) === 'pending') {
                         $q->orWhereDoesntHave('approvals');
                     }
                 });
             }
+
+            // Add relationships after filters to avoid query issues
+            $query->with([
+                'owner:id,name,email',
+                'currentApproval'
+            ]);
 
             // Get paginated results
             $warehouses = $query->latest()
@@ -71,14 +71,17 @@ class WarehouseController extends Controller
 
             // Transform data for frontend
             $warehouses->getCollection()->transform(function ($warehouse) {
+                // Get status from currentApproval if it exists, otherwise default to 'pending'
+                $status = $warehouse->currentApproval ? $warehouse->currentApproval->status : 'pending';
+                
                 return [
                     'id' => $warehouse->id,
                     'name' => $warehouse->name,
                     'location' => $warehouse->address ?? 'N/A',
                     'capacity' => number_format($warehouse->capacity ?? 0, 0),
                     'total_area' => number_format($warehouse->total_area ?? 0, 0),
-                    'type' => $warehouse->formatted_type ?? $warehouse->type,
-                    'status' => $warehouse->current_status,
+                    'type' => $warehouse->type,
+                    'status' => $status,
                     'owner_name' => $warehouse->owner->name ?? 'N/A',
                     'owner_email' => $warehouse->owner->email ?? 'N/A',
                     'is_active' => $warehouse->is_active,
@@ -185,8 +188,7 @@ class WarehouseController extends Controller
                     'capacity' => $warehouse->capacity,
                     'capacity_unit' => $warehouse->capacity_unit,
                     'type' => $warehouse->type,
-                    'formatted_type' => $warehouse->formatted_type,
-                    'status' => $warehouse->current_status,
+                    'status' => $warehouse->currentApproval ? $warehouse->currentApproval->status : 'pending',
                     'is_active' => $warehouse->is_active,
                     'is_available' => $warehouse->is_available,
                     'owner' => $warehouse->owner,
