@@ -29,34 +29,28 @@ class WarehouseUnitController extends Controller
         }
 
         // Add status filter
-        if ($request->filled('status')) {
-            $status = $request->get('status');
-            if ($status === 'Available') {
-                $query->where('is_active', true)
-                      ->where('is_available', true)
-                      ->where(function ($q) {
-                          $q->whereHas('currentApproval', function($subQ) {
-                              $subQ->where('status', 'approved');
-                          })
-                          // Handle legacy data without approval records
-                          ->orWhereDoesntHave('approvals');
-                      });
-            } elseif ($status === 'Occupied') {
-                // You might need to add booking logic here
-                $query->where('is_active', true)
-                      ->where('is_available', false);
-            } elseif ($status === 'Pending') {
+        if ($request->filled('status_filter')) {
+            $status = $request->get('status_filter');
+            if ($status === 'approved') {
+                $query->whereHas('currentApproval', function($q) {
+                    $q->where('status', 'approved');
+                });
+            } elseif ($status === 'pending') {
                 $query->whereHas('currentApproval', function($q) {
                     $q->where('status', 'pending');
                 });
-            } elseif ($status === 'Inactive') {
+            } elseif ($status === 'rejected') {
+                $query->whereHas('currentApproval', function($q) {
+                    $q->where('status', 'rejected');
+                });
+            } elseif ($status === 'suspended') {
                 $query->where('is_active', false);
             }
         }
 
         // Add type filter
-        if ($request->filled('type')) {
-            $query->where('type', $request->get('type'));
+        if ($request->filled('type_filter')) {
+            $query->where('type', $request->get('type_filter'));
         }
 
         // Order by latest first

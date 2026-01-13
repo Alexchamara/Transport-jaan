@@ -558,7 +558,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                     <div className="lg:col-span-2">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-[20px] font-[600]">
-                                My Booked Vehiclesdcfvb
+                                My Booked Vehicles
                             </h2>
 
                             {/* Tabs → simple buttons */}

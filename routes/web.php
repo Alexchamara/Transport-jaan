@@ -850,9 +850,7 @@ Route::get('/SuperAdmin/Vehicles', function () {
     return Inertia::render('Web/home/SuperAdmin/Vehicles');
 })->name('SuperAdmin.Vehicles');
 
-Route::get('/SuperAdmin/Warehouse', function () {
-    return Inertia::render('Web/home/SuperAdmin/Warehouse');
-})->name('SuperAdmin.Warehouse');
+Route::get('/superadmin/Warehouse', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'index'])->name('superadmin.Warehouse');
 
 // Route::get('/SuperAdmin/LandVehicleDetails', function () {
 //     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
