@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\CancellationSetting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -10,17 +11,12 @@ use Exception;
 class VehicleBookingCancellationService
 {
     /**
-     * Cancellation policy threshold (7 days)
-     */
-    private const CANCELLATION_DAYS_THRESHOLD = 7;
-
-    /**
-     * Full refund percentage (before 7 days)
+     * Full refund percentage (on or after threshold)
      */
     private const FULL_REFUND_PERCENTAGE = 100;
 
     /**
-     * Partial refund percentage (after 7 days)
+     * Partial refund percentage (before threshold)
      */
     private const PARTIAL_REFUND_PERCENTAGE = 50;
 
@@ -39,9 +35,12 @@ class VehicleBookingCancellationService
             throw new Exception('Cannot calculate refund: booking has no pickup date');
         }
 
+        // Get the cancellation policy threshold from database
+        $cancellationThreshold = CancellationSetting::getDaysForContext('vehicle');
+
         // Determine refund percentage based on days remaining
-        // Using >= 7 to include the boundary day
-        $refundPercentage = $daysUntilPickup >= (self::CANCELLATION_DAYS_THRESHOLD - 0.01)
+        // Using >= threshold to include the boundary day
+        $refundPercentage = $daysUntilPickup >= ($cancellationThreshold - 0.01)
             ? self::FULL_REFUND_PERCENTAGE 
             : self::PARTIAL_REFUND_PERCENTAGE;
 
@@ -53,7 +52,8 @@ class VehicleBookingCancellationService
         $policyMessage = $this->getPolicyMessage(
             $daysUntilPickup, 
             $refundPercentage, 
-            $cancelledBy
+            $cancelledBy,
+            $cancellationThreshold
         );
 
         // Vendor commission handling
@@ -76,14 +76,15 @@ class VehicleBookingCancellationService
      * @param float $daysUntilPickup
      * @param int $refundPercentage
      * @param string $cancelledBy
+     * @param int $cancellationThreshold
      * @return string
      */
-    private function getPolicyMessage(float $daysUntilPickup, int $refundPercentage, string $cancelledBy): string
+    private function getPolicyMessage(float $daysUntilPickup, int $refundPercentage, string $cancelledBy, int $cancellationThreshold): string
     {
         $actor = $cancelledBy === 'client' ? 'You' : 'Vendor';
-        $days = $daysUntilPickup >= self::CANCELLATION_DAYS_THRESHOLD 
-            ? "more than 7 days before pickup" 
-            : "less than 7 days before pickup";
+        $days = $daysUntilPickup >= $cancellationThreshold 
+            ? "more than {$cancellationThreshold} days before pickup" 
+            : "less than {$cancellationThreshold} days before pickup";
 
         if ($refundPercentage === 100) {
             return "$actor are cancelling $days and will receive 100% refund.";
