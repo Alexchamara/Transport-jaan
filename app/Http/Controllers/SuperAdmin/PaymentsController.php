@@ -16,26 +16,34 @@ class PaymentsController extends Controller
     {
         // Fetch booking payments
         $bookingPayments = DB::table('booking_payments')
-            ->select('id', 'method', 'amount_paid', 'status', 'created_at')
+            ->select('id', 'method', 'option', 'amount_paid', 'status', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Fetch air vehicle payments
         $airVehiclePayments = DB::table('air_vehicle_booking_payments')
-            ->select('id', 'method', 'amount_paid', 'status', 'created_at')
+            ->select('id', 'method', 'option', 'amount_paid', 'status', 'created_at')
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Fetch sea vehicle payments
         $seaVehiclePayments = DB::table('sea_vehicle_booking_payments')
-            ->select('id', 'method', 'amount_paid', 'status', 'created_at')
+            ->select('id', 'method', 'option', 'amount_paid', 'status', 'created_at')
             ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Fetch warehouse booking payments
+        $warehousePayments = DB::table('warehouse_bookings')
+            ->select('id', 'payment_method as method', 'payment_option as option', 'final_amount as amount_paid', 'payment_status as status', 'payment_date as created_at', 'booking_reference', 'company_name')
+            ->whereNotNull('payment_status')
+            ->orderBy('payment_date', 'desc')
             ->get();
 
         return Inertia::render('Web/home/SuperAdmin/Payments', [
             'bookingPayments' => $bookingPayments->toArray(),
             'airVehiclePayments' => $airVehiclePayments->toArray(),
-            'seaVehiclePayments' => $seaVehiclePayments->toArray()
+            'seaVehiclePayments' => $seaVehiclePayments->toArray(),
+            'warehousePayments' => $warehousePayments->toArray()
         ]);
     }
 

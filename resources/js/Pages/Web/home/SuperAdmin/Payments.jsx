@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
 
-const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePayments = [] }) => {
+const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePayments = [], warehousePayments = [] }) => {
     const getStatusBadge = (status) => {
         const statusConfig = {
             paid: 'bg-green-600 text-white',
@@ -21,7 +21,7 @@ const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePay
         }
     };
 
-    const PaymentTable = ({ title, payments, emptyMessage = "No payments found" }) => (
+    const PaymentTable = ({ title, payments, emptyMessage = "No payments found", showCompanyName = false }) => (
         <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 text-white">{title}</h2>
             <div className="bg-[#0A1330] border border-gray-700 rounded-lg overflow-hidden">
@@ -31,8 +31,10 @@ const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePay
                             <tr className="bg-[#1E40AF] text-white">
                                 <th className="px-4 py-3 text-left font-semibold rounded-tl-lg">ID</th>
                                 <th className="px-4 py-3 text-left font-semibold">Method</th>
+                                <th className="px-4 py-3 text-left font-semibold">Option</th>
                                 <th className="px-4 py-3 text-left font-semibold">Amount Paid</th>
                                 <th className="px-4 py-3 text-left font-semibold">Status</th>
+                                {showCompanyName && <th className="px-4 py-3 text-left font-semibold">Company</th>}
                                 <th className="px-4 py-3 text-left font-semibold rounded-tr-lg">Created At</th>
                             </tr>
                         </thead>
@@ -45,14 +47,16 @@ const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePay
                                     >
                                         <td className="px-4 py-3 text-white">{payment.id}</td>
                                         <td className="px-4 py-3 text-gray-300">{payment.method || 'N/A'}</td>
+                                        <td className="px-4 py-3 text-gray-300">{payment.option || 'N/A'}</td>
                                         <td className="px-4 py-3 text-green-400 font-semibold">
-                                            ${typeof payment.amount_paid === 'number' ? payment.amount_paid.toFixed(2) : parseFloat(payment.amount_paid || 0).toFixed(2)}
+                                            LKR {typeof payment.amount_paid === 'number' ? payment.amount_paid.toFixed(2) : parseFloat(payment.amount_paid || 0).toFixed(2)}
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(payment.status)}`}>
                                                 {payment.status ? payment.status.charAt(0).toUpperCase() + payment.status.slice(1) : 'Unknown'}
                                             </span>
                                         </td>
+                                        {showCompanyName && <td className="px-4 py-3 text-gray-300">{payment.company_name || 'N/A'}</td>}
                                         <td className="px-4 py-3 text-gray-400">
                                             {formatDate(payment.created_at)}
                                         </td>
@@ -60,7 +64,7 @@ const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePay
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="5" className="px-4 py-8 text-center text-gray-400">
+                                    <td colSpan={showCompanyName ? "7" : "6"} className="px-4 py-8 text-center text-gray-400">
                                         {emptyMessage}
                                     </td>
                                 </tr>
@@ -92,7 +96,7 @@ const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePay
                         {/* Payment Tables */}
                         <div id="payments-section" className="space-y-8">
                             <PaymentTable 
-                                title="Booking Payments" 
+                                title="Land Booking Payments" 
                                 payments={bookingPayments}
                                 emptyMessage="No booking payments found"
                             />
@@ -108,14 +112,21 @@ const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePay
                                 payments={seaVehiclePayments}
                                 emptyMessage="No sea vehicle payments found"
                             />
+
+                            <PaymentTable 
+                                title="Warehouse Booking Payments" 
+                                payments={warehousePayments}
+                                emptyMessage="No warehouse payments found"
+                                showCompanyName={true}
+                            />
                         </div>
 
                         {/* Usage Information */}
                         <div className='mt-8 bg-[#0A1330] border border-gray-700 rounded-lg p-6'>
                             <h3 className='text-lg font-semibold text-white mb-3'>Payment Statistics</h3>
-                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                            <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
                                 <div className='space-y-1'>
-                                    <h4 className='text-sm font-medium text-blue-400'>Booking Payments</h4>
+                                    <h4 className='text-sm font-medium text-blue-400'>Land Booking Payments</h4>
                                     <p className='text-sm text-gray-300'>
                                         Total: {bookingPayments?.length || 0} transactions
                                     </p>
@@ -130,6 +141,12 @@ const Payments = ({ bookingPayments = [], airVehiclePayments = [], seaVehiclePay
                                     <h4 className='text-sm font-medium text-purple-400'>Sea Vehicle Payments</h4>
                                     <p className='text-sm text-gray-300'>
                                         Total: {seaVehiclePayments?.length || 0} transactions
+                                    </p>
+                                </div>
+                                <div className='space-y-1'>
+                                    <h4 className='text-sm font-medium text-orange-400'>Warehouse Payments</h4>
+                                    <p className='text-sm text-gray-300'>
+                                        Total: {warehousePayments?.length || 0} transactions
                                     </p>
                                 </div>
                             </div>
