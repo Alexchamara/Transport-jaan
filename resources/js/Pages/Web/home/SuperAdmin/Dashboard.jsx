@@ -2,7 +2,13 @@ import React from 'react'
 import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
 import RightSide from '../../components/SuperAdmin/Dashboard1/RightSide';
 
-const Dashboard = ({ userStats }) => {
+const Dashboard = ({ 
+  userStats, 
+  landBookings = [], 
+  airBookings = [], 
+  seaBookings = [], 
+  warehouseBookings = [] 
+}) => {
   // Removed the auto-refresh logic that was causing large header issues
   // with nginx by triggering multiple page reloads
 
@@ -12,7 +18,13 @@ const Dashboard = ({ userStats }) => {
         <SideMenu />
       </div>
       <div className='sm:w-full md:w-auto lg:w-auto'>
-        <RightSide userStats={userStats} />
+        <RightSide 
+          userStats={userStats}
+          landBookings={landBookings}
+          airBookings={airBookings}
+          seaBookings={seaBookings}
+          warehouseBookings={warehouseBookings}
+        />
       </div>
     </div>
   )

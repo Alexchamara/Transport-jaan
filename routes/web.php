@@ -383,6 +383,15 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::post('/bulk-delete', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'bulkDelete'])->name('bulkDelete');
     });
 
+    // Commission Earnings Routes
+    Route::prefix('commission-earnings')->name('commission-earnings.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'index'])->name('index');
+        Route::get('/report', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'report'])->name('report');
+        Route::get('/export', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'export'])->name('export');
+        Route::get('/service/{serviceType}', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'byServiceType'])->name('byServiceType');
+        Route::get('/vendor/{vendorId}', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'vendorEarnings'])->name('vendorEarnings');
+    });
+
     // Payments Routes
     Route::get('/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])->name('payments');
     Route::get('/payments/stats', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'getPaymentStats'])->name('payments.stats');
