@@ -68,6 +68,19 @@ class SeaVehicleBookings extends Model
         return $d ? Carbon::parse($d) : null;
     }
 
+    /**
+     * Get the number of days until pickup date
+     */
+    public function getDaysUntilPickup(): ?float
+    {
+        $pickupDate = $this->schedule?->pickup_at;
+        if (!$pickupDate) {
+            return null;
+        }
+        
+        return Carbon::now()->diffInDays(Carbon::parse($pickupDate), false);
+    }
+
     public function scopeForVendor(Builder $q, int $vendorId, string $ownerKey = self::VEHICLE_OWNER_KEY): Builder
     {
         return $q->whereHas('vehicle', fn($v) => $v->where($ownerKey, $vendorId));
