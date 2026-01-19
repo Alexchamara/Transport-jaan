@@ -541,6 +541,26 @@ class WebController extends Controller
         return Inertia::render('Web/home/landingPages/BlogExample');
     }
 
+    public function termsAndConditions()
+    {
+        return Inertia::render('Web/home/landingPages/TermsAndConditions');
+    }
+
+    public function privacyPolicy()
+    {
+        return Inertia::render('Web/home/landingPages/PrivacyPolicyPage');
+    }
+
+    public function returnPolicy()
+    {
+        return Inertia::render('Web/home/landingPages/ReturnPolicyPage');
+    }
+
+
+
+
+    
+
     public function signin()
     {
         return Inertia::render('Web/home/auth/Signup');

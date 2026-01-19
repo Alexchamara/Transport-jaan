@@ -325,7 +325,7 @@ const Hero = () => {
                         </div>
 
                         <div className="text-[18px] text-[#0955AC] font-[700] figtree mt-5 flex flex-col md:flex-row justify-between gap-5 items-center w-full">
-                            <div href="/multiModel/available-vehicles">
+                            <Link href="/multiModel/available-vehicles" className="w-full">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={car} alt="car icon" />
                                     <h1>Car</h1>
@@ -333,9 +333,9 @@ const Hero = () => {
                                         145
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
 
-                            <div href="/multiModel/available-vehicles">
+                            <Link href="/multiModel/available-vehicles" className="w-full">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={bus} alt="bus icon" />
                                     <h1>Bus</h1>
@@ -343,9 +343,9 @@ const Hero = () => {
                                         10
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
 
-                            <div href="/multiModel/available-vehicles">
+                            <Link href="/multiModel/available-vehicles" className="w-full">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={tram} alt="tram icon" />
                                     <h1>Train</h1>
@@ -353,9 +353,9 @@ const Hero = () => {
                                         3
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
 
-                            <div href="/multiModel/available-vehicles">
+                            <Link href="/multiModel/available-vehicles" className="w-full">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={plane} alt="plane icon" />
                                     <h1>Plane</h1>
@@ -363,9 +363,9 @@ const Hero = () => {
                                         1
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
 
-                            <div href="/multiModel/available-vehicles">
+                            <Link href="/multiModel/available-vehicles" className="w-full">
                                 <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
                                     <img src={ship} alt="ship icon" />
                                     <h1>Yatch</h1>
@@ -373,7 +373,7 @@ const Hero = () => {
                                         1
                                     </div>
                                 </div>
-                            </div>
+                            </Link>
                         </div>
                         <div className="absolute md:bottom-5 bottom-2 right-5 flex flex-row gap-2 text-[15px] font-[500] text-[#000000] items-center">
                             <img src={badgeCheck} alt="badge check icon" />
