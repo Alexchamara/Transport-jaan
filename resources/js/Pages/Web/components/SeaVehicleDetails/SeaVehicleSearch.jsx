@@ -196,7 +196,8 @@ const SeaVehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) =>
     }
 
     try {
-      await axios.get(route("client.seaBookings.checkout"), {
+      // Check availability using the quote endpoint
+      await axios.get(route("client.seaBookings.quote"), {
         params: {
           vehicle_id: vehicleId,
           pickup_date: pickupDate,

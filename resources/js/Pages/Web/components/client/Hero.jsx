@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "@inertiajs/react";
+import BookingCancellationModal from "./allBooking/BookingCancellationModal";
 import {
     Car,
     Plane,
@@ -57,6 +58,8 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     const [q, setQ] = useState("");
     const [location, setLocation] = useState("all");
     const [sort, setSort] = useState("popular");
+    const [showCancellationModal, setShowCancellationModal] = useState(false);
+    const [bookingToCancell, setBookingToCancell] = useState(null);
 
     // Group booked vehicles by type
     const fleets = useMemo(() => {
@@ -174,6 +177,13 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
 
     const handleNewBooking = () => {
         window.location.href = '/clientRent';
+    };
+
+    const handleCancellationSuccess = () => {
+        setShowCancellationModal(false);
+        setBookingToCancell(null);
+        // Reload the page to show updated bookings
+        window.location.reload();
     };
 
     // const handleExport = () => {
@@ -649,13 +659,26 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                                     Ref: {f.bookingCode}
                                                 </div>
                                             </div>
-                                            <Link
-                                                href={`/client/bookings/${f.id}/summary`}
-                                                className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0744a0]"
-                                            >
-                                                View Details{" "}
-                                                <ChevronRight className="ml-1 h-4 w-4 inline-block" />
-                                            </Link>
+                                            <div className="flex gap-2">
+                                                <Link
+                                                    href={`/client/bookings/${f.id}/summary`}
+                                                    className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0744a0]"
+                                                >
+                                                    View Details{" "}
+                                                    <ChevronRight className="ml-1 h-4 w-4 inline-block" />
+                                                </Link>
+                                                {['confirmed', 'pending', 'paid'].includes(f.status?.toLowerCase()) && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setBookingToCancell(f);
+                                                            setShowCancellationModal(true);
+                                                        }}
+                                                        className="h-10 px-4 rounded-xl bg-rose-500 text-white text-[14px] font-medium hover:bg-rose-600 transition"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -865,6 +888,19 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                     © {new Date().getFullYear()} Rental Portal · Land • Air •
                     Sea
                 </div>
+
+                {/* Booking Cancellation Modal */}
+                {bookingToCancell && (
+                    <BookingCancellationModal
+                        booking={bookingToCancell}
+                        isOpen={showCancellationModal}
+                        onClose={() => {
+                            setShowCancellationModal(false);
+                            setBookingToCancell(null);
+                        }}
+                        onSuccess={handleCancellationSuccess}
+                    />
+                )}
             </div>
         </div>
     );

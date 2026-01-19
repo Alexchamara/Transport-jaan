@@ -24,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\RefreshSessionOnAuth::class,
         ]);
 
+        // Exclude specific URIs from CSRF verification
+        $middleware->validateCsrfTokens(except: [
+            'logout-alt',
+            'csrf-token',
+        ]);
+
         // Add CORS middleware to API routes
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,

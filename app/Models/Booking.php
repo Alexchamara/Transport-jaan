@@ -25,6 +25,12 @@ class Booking extends Model
         'addons_snapshot',
         'vehicle_snapshot',
         'notes',
+        'cancelled_at',
+        'cancellation_reason',
+        'refund_amount',
+        'cancellation_fee',
+        'cancelled_by',
+        'vendor_commission_refund',
     ];
 
     protected $casts = [
@@ -36,9 +42,13 @@ class Booking extends Model
         'deposit_amount'   => 'float',
         'advance_amount'   => 'float',
         'total_amount'     => 'float',
+        'refund_amount'    => 'float',
+        'cancellation_fee' => 'float',
+        'vendor_commission_refund' => 'float',
         'rental_days'      => 'integer',
         'created_at'       => 'datetime',
         'updated_at'       => 'datetime',
+        'cancelled_at'     => 'datetime',
     ];
 
     protected $with    = ['schedule'];
@@ -81,5 +91,31 @@ class Booking extends Model
                   $ov->where('pickup_at', '<=', $start)->where('dropoff_at', '>=', $end);
               });
         });
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->cancelled_at !== null;
+    }
+
+    public function canBeCancelled(): bool
+    {
+        return $this->status === 'confirmed' || $this->status === 'paid';
+    }
+
+    public function getDaysUntilPickup(): ?float
+    {
+        if (!$this->start_date) {
+            return null;
+        }
+        return Carbon::now()->diffInDays($this->start_date, false);
+    }
+
+    public function getHoursUntilPickup(): ?float
+    {
+        if (!$this->start_date) {
+            return null;
+        }
+        return Carbon::now()->diffInHours($this->start_date, false);
     }
 }

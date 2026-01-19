@@ -195,7 +195,10 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
         // User's booking management
         Route::get('/my-bookings', [WarehouseBookingController::class, 'list'])->name('list');
         Route::get('/booking/{id}', [WarehouseBookingController::class, 'show'])->name('show');
-        Route::patch('/booking/{id}/cancel', [WarehouseBookingController::class, 'cancel'])->name('cancel');
+        
+        // Cancellation routes
+        Route::get('/booking/{id}/cancel-preview', [\App\Http\Controllers\WarehouseBookingCancellationController::class, 'preview'])->name('cancel-preview');
+        Route::post('/booking/{id}/cancel', [\App\Http\Controllers\WarehouseBookingCancellationController::class, 'cancel'])->name('cancel');
     });
 });
 
@@ -253,34 +256,39 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::post('/bookings/{booking}/confirm', [ClientBookingController::class, 'confirm'])->name('bookings.confirm');
         Route::get('/bookings/{booking}/summary', [ClientBookingController::class, 'summary'])->name('bookings.summary');
         Route::post('/bookings/{booking}/cancel', [ClientBookingController::class, 'cancel'])->name('bookings.cancel');
+        
+        // Vehicle booking cancellation routes
+        Route::get('/bookings/{booking}/cancellation-policy', [ClientBookingController::class, 'getCancellationPolicy'])->name('bookings.cancellation-policy');
+        Route::post('/bookings/{booking}/cancel-booking', [ClientBookingController::class, 'cancelBooking'])->name('bookings.cancel-booking');
+        Route::get('/bookings/{booking}/vendor/cancellation-policy', [ClientBookingController::class, 'getVendorCancellationPolicy'])->name('bookings.vendor.cancellation-policy');
+        Route::post('/bookings/{booking}/vendor/cancel-booking', [ClientBookingController::class, 'cancelBookingAsVendor'])->name('bookings.vendor.cancel-booking');
 
         Route::get('/airBookings/quote', [ClientBookingController::class, 'airVehicleQuote'])->name('airBookings.quote');
         Route::get('/airBookings/checkout', [ClientBookingController::class, 'showAirVehicleCheckout'])->name('airBookings.checkout');
         Route::post('/airBookings', [ClientBookingController::class, 'airVehicleStore'])->name('airBookings.store');
-    // Use a consistent route parameter name so Laravel's route-model binding
-    // can inject the AirVehicleBookings model into controller methods.
-    Route::get('/airBookings/{airVehicleBooking}/payments', [ClientBookingController::class, 'airVehiclePayments'])->name('airBookings.payments');
-    Route::post('/airBookings/{airVehicleBooking}/confirm', [ClientBookingController::class, 'airVehicleConfirm'])->name('airBookings.confirm');
-    Route::get('/airBookings/{airVehicleBooking}/summary', [ClientBookingController::class, 'airVehicleSummary'])->name('airBookings.summary');
-    Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
+        // Use a consistent route parameter name so Laravel's route-model binding
+        // can inject the AirVehicleBookings model into controller methods.
+        Route::get('/airBookings/{airVehicleBooking}/payments', [ClientBookingController::class, 'airVehiclePayments'])->name('airBookings.payments');
+        Route::post('/airBookings/{airVehicleBooking}/confirm', [ClientBookingController::class, 'airVehicleConfirm'])->name('airBookings.confirm');
+        Route::get('/airBookings/{airVehicleBooking}/summary', [ClientBookingController::class, 'airVehicleSummary'])->name('airBookings.summary');
+        Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
 
-    // Sea Vehicle Booking Routes
-    Route::get('/seaBookings/quote', [ClientBookingController::class, 'seaVehicleQuote'])->name('seaBookings.quote');
-    Route::get('/seaBookings/checkout', [ClientBookingController::class, 'showSeaVehicleCheckout'])->name('seaBookings.checkout');
-    Route::post('/seaBookings', [ClientBookingController::class, 'seaVehicleStore'])->name('seaBookings.store');
-    // Use a consistent route parameter name so Laravel's route-model binding
-    // can inject the SeaVehicleBookings model into controller methods.
-    Route::get('/seaBookings/{seaVehicleBooking}/payments', [ClientBookingController::class, 'seaVehiclePayments'])->name('seaBookings.payments');
-    Route::post('/seaBookings/{seaVehicleBooking}/confirm', [ClientBookingController::class, 'seaVehicleConfirm'])->name('seaBookings.confirm');
-    Route::get('/seaBookings/{seaVehicleBooking}/summary', [ClientBookingController::class, 'seaVehicleSummary'])->name('seaBookings.summary');
-    Route::post('/seaBookings/{seaVehicleBooking}/cancel', [ClientBookingController::class, 'seaVehicleCancel'])->name('seaBookings.cancel');
+        // Sea Vehicle Booking Routes
+        Route::get('/seaBookings/quote', [ClientBookingController::class, 'seaVehicleQuote'])->name('seaBookings.quote');
+        Route::get('/seaBookings/checkout', [ClientBookingController::class, 'showSeaVehicleCheckout'])->name('seaBookings.checkout');
+        Route::post('/seaBookings', [ClientBookingController::class, 'seaVehicleStore'])->name('seaBookings.store');
+        // Use a consistent route parameter name so Laravel's route-model binding
+        // can inject the SeaVehicleBookings model into controller methods.
+        Route::get('/seaBookings/{seaVehicleBooking}/payments', [ClientBookingController::class, 'seaVehiclePayments'])->name('seaBookings.payments');
+        Route::post('/seaBookings/{seaVehicleBooking}/confirm', [ClientBookingController::class, 'seaVehicleConfirm'])->name('seaBookings.confirm');
+        Route::get('/seaBookings/{seaVehicleBooking}/summary', [ClientBookingController::class, 'seaVehicleSummary'])->name('seaBookings.summary');
+        Route::post('/seaBookings/{seaVehicleBooking}/cancel', [ClientBookingController::class, 'seaVehicleCancel'])->name('seaBookings.cancel');
 
 
 
         Route::post('/vehicle-like/toggle', [VehicleLikeController::class, 'toggle'])->name('vehicle.like.toggle');
         Route::get('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'index'])->name('vehicles.reviews.index');
         Route::post('/vehicles/{vehicle}/reviews', [VehicleReviewController::class, 'store'])->name('vehicles.reviews.store');
-
         Route::get('/vehicles/{vehicle}/policy/preview', [ClientVehicleController::class, 'policyPreview'])->name('vehicles.policy.preview');
 
         Route::get('/warehouses/dashboard-data', [WarehouseBookingController::class, 'dashboardData'])->name('warehouses.dashboard-data');
@@ -361,7 +369,33 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'edit'])->name('cancellation.edit');
         Route::put('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'update'])->name('cancellation.update');
+        
+        Route::get('/commission', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'edit'])->name('commission.edit');
     });
+
+    // Commission API Routes
+    Route::prefix('commissions')->name('commissions.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'store'])->name('store');
+        Route::get('/{commission}', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'show'])->name('show');
+        Route::put('/{commission}', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'update'])->name('update');
+        Route::delete('/{commission}', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'destroy'])->name('destroy');
+        Route::patch('/{commission}/status', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'updateStatus'])->name('updateStatus');
+        Route::post('/bulk-delete', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'bulkDelete'])->name('bulkDelete');
+    });
+
+    // Commission Earnings Routes
+    Route::prefix('commission-earnings')->name('commission-earnings.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'index'])->name('index');
+        Route::get('/report', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'report'])->name('report');
+        Route::get('/export', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'export'])->name('export');
+        Route::get('/service/{serviceType}', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'byServiceType'])->name('byServiceType');
+        Route::get('/vendor/{vendorId}', [\App\Http\Controllers\SuperAdmin\CommissionEarningsController::class, 'vendorEarnings'])->name('vendorEarnings');
+    });
+
+    // Payments Routes
+    Route::get('/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])->name('payments');
+    Route::get('/payments/stats', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'getPaymentStats'])->name('payments.stats');
 });
 
 
@@ -465,6 +499,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/warehouse')->name('admi
     Route::get('/unitDetails', fn() => Inertia::render('Web/home/vendors/warehouse/UnitDetails'))->name('unitDetails');
 });
 
+// Payments page (Legacy route for backward compatibility)
+Route::get('/SuperAdmin/payments', [\App\Http\Controllers\SuperAdmin\PaymentsController::class, 'index'])->name('payments.index');
+
 // Backward-compat: if any UI still links to /warehouse/*, redirect to /vendors/warehouse/* (protect with same middleware)
 Route::middleware(['auth', 'vendor.verified'])->get('/warehouse/{path}', function (string $path) {
     return redirect('/vendors/warehouse/' . ltrim($path, '/'));
@@ -528,6 +565,10 @@ Route::middleware(['auth', 'vendor.verified'])
 
         // Payment page with actual transaction data
         Route::get('/payment', [VendorBookingController::class, 'payments'])->name('payment');
+
+        // Vendor booking cancellation API routes
+        Route::get('/bookings/{booking}/vendor/cancellation-policy', [ClientBookingController::class, 'getVendorCancellationPolicy'])->name('bookings.vendor.cancellation-policy');
+        Route::post('/bookings/{booking}/vendor/cancel-booking', [ClientBookingController::class, 'cancelBookingAsVendor'])->name('bookings.vendor.cancel-booking');
 
         // Other pages (shells)
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
@@ -819,9 +860,7 @@ Route::get('/SuperAdmin/Vehicles', function () {
     return Inertia::render('Web/home/SuperAdmin/Vehicles');
 })->name('SuperAdmin.Vehicles');
 
-Route::get('/SuperAdmin/Warehouse', function () {
-    return Inertia::render('Web/home/SuperAdmin/Warehouse');
-})->name('SuperAdmin.Warehouse');
+Route::get('/superadmin/Warehouse', [\App\Http\Controllers\SuperAdmin\WarehouseController::class, 'index'])->name('superadmin.Warehouse');
 
 // Route::get('/SuperAdmin/LandVehicleDetails', function () {
 //     return Inertia::render('Web/home/SuperAdmin/LandVehicleDetails');
@@ -879,7 +918,6 @@ Route::get('/warehouse/settingsPage', function () {
 })->name('warehouse.settingsPage');
 
 // vendor dashboard - warehouse (all protected under auth + role:vendor in group above)
-
 
 // vendor dashboard - ticket booking
 Route::get('/ticketBooking/bookings', function () {

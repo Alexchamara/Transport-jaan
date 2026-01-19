@@ -66,6 +66,9 @@ const SideMenu = () => {
         } else if (window.location.pathname === "/superadmin/settings/cancellation" || window.location.pathname === "/SuperAdmin/settings/cancellation") {
             setActiveSubsection("CancellationSettings");
             setIsSettingsOpen(true);
+        } else if (window.location.pathname === "/superadmin/settings/commission" || window.location.pathname === "/SuperAdmin/settings/commission") {
+            setActiveSubsection("CommissionSettings");
+            setIsSettingsOpen(true);
         }
     }, [window.location.pathname]);
 
@@ -189,7 +192,7 @@ const SideMenu = () => {
                         >
                             Reports
                         </Link>
-                        <Link
+                        {/* <Link
                             href="/SuperAdmin/Analytics"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "Analytics"
@@ -203,7 +206,7 @@ const SideMenu = () => {
                             onMouseLeave={() => setHoveredSection(null)}
                         >
                             Analytics
-                        </Link>
+                        </Link> */}
                     </div>
 
                     {/* Models */}
@@ -283,6 +286,7 @@ const SideMenu = () => {
                         >
                             Warehouse
                         </Link>
+                        {/* ❌ COURIER - Hidden by user request
                         <Link
                             href="/SuperAdmin/Models/Courier"
                             className={`text-[14px] font-[500] px-4 py-2 ${
@@ -298,6 +302,8 @@ const SideMenu = () => {
                         >
                             Courier
                         </Link>
+                        */}
+                        {/* ❌ FREIGHT - Hidden by user request
                         <Link
                             href="/SuperAdmin/Models/Freight"
                             className={`text-[14px] font-[500] px-4 py-2 ${
@@ -313,6 +319,8 @@ const SideMenu = () => {
                         >
                             Freight
                         </Link>
+                        */}
+                        {/* ❌ TICKET BOOKING - Hidden by user request
                         <Link
                             href="/SuperAdmin/Models/TicketBooking"
                             className={`text-[14px] font-[500] px-4 py-2 ${
@@ -328,6 +336,8 @@ const SideMenu = () => {
                         >
                             Ticket booking
                         </Link>
+                        */}
+                        {/* ❌ MULTIMODEL - Hidden by user request
                         <Link
                             href="/SuperAdmin/Models/Multimodel"
                             className={`text-[14px] font-[500] px-4 py-2 ${
@@ -343,6 +353,7 @@ const SideMenu = () => {
                         >
                             Multimodel
                         </Link>
+                        */}
                     </div>
 
                     {/* Users */}
@@ -479,6 +490,38 @@ const SideMenu = () => {
                         onMouseLeave={() => setHoveredSection(null)}
                     >
                         Cancellation Settings
+                    </Link>
+
+                    <Link
+                        href="/SuperAdmin/payments"
+                        className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
+                            activeSubsection === "Payments"
+                                ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                : hoveredSection === "Payments"
+                                ? "text-white bg-[#181A2A] border-l-transparent"
+                                : "text-[#AEB9E1] border-l-transparent"
+                        }`}
+                        onClick={() => setActiveSubsection("Payments")}
+                        onMouseEnter={() => setHoveredSection("Payments")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                    >
+                        Payments
+                    </Link>
+
+                    <Link
+                        href="/superadmin/settings/commission"
+                        className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
+                            activeSubsection === "CommissionSettings"
+                                ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                : hoveredSection === "CommissionSettings"
+                                ? "text-white bg-[#181A2A] border-l-transparent"
+                                : "text-[#AEB9E1] border-l-transparent"
+                        }`}
+                        onClick={() => setActiveSubsection("CommissionSettings")}
+                        onMouseEnter={() => setHoveredSection("CommissionSettings")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                    >
+                        Commission Settings
                     </Link>
                 </div>
 

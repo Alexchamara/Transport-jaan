@@ -7,6 +7,22 @@ import { Menu } from "lucide-react"; // simple clean icon
 
 const Dashboard = () => {
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Extract props from Inertia
+  const { props } = usePage();
+  const {
+    cards,
+    bookingOverview,
+    earningSummary,
+    realStatus,
+    carTypes,
+    bookings,
+    bookings_meta,
+    filters,
+    vendorUser,
+    recentActivities,
+    unreadNotifications
+  } = props;
 
   return (
     <div className="bg-[#E5E5E5] h-auto min-h-screen">
@@ -30,7 +46,19 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <div className="flex-1 bg-[#E5E5E5]">
-          <DashContent />
+          <DashContent
+            cards={cards}
+            bookingOverview={bookingOverview}
+            earningSummary={earningSummary}
+            realStatus={realStatus}
+            carTypes={carTypes}
+            bookings={bookings}
+            bookingsMeta={bookings_meta}
+            filters={filters}
+            vendorUser={vendorUser}
+            recentActivities={recentActivities}
+            unreadNotifications={unreadNotifications}
+          />
         </div>
       </div>
     </div>

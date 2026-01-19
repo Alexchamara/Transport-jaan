@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
+import { Trash2 } from "lucide-react";
+import VendorCancellationModal from "./VendorCancellationModal";
 
 /** Hide the plate chip if it's empty or just a dash */
 const hasRealPlate = (p) => {
@@ -32,6 +34,10 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
   const [newPayment, setNewPayment] = useState("");
   const [newPaymentStatus, setNewPaymentStatus] = useState("");
   const [newStatus, setNewStatus] = useState("");
+
+  // Cancellation Modal
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState(null);
 
   const goToPage = (p) => {
     if (p < 1 || p > totalPages) return;
@@ -92,9 +98,9 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
     <div className="py-6 sm:py-10">
       {/* Desktop Table View - Hidden on mobile */}
       <div className="hidden lg:block overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-        <div className="min-w-[800px] lg:min-w-[1000px]">
+        <div className="min-w-[800px] lg:min-w-[1100px]">
           {/* headings */}
-          <div className="grid grid-cols-8 bg-[#D8E4F2] h-[42px] items-center rounded-[8px] text-[12px] sm:text-[14px] font-[600] px-4 sm:px-10">
+          <div className="grid grid-cols-9 bg-[#D8E4F2] h-[42px] items-center rounded-[8px] text-[12px] sm:text-[14px] font-[600] px-4 sm:px-10">
             {[
               "Book id",
               "Booking Date",
@@ -104,6 +110,7 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
               "Date",
               "Payment",
               "Status",
+              "Actions",
             ].map((h, i) => (
               <div key={i} className={`flex items-center gap-2 ${i === 6 ? "sm:ml-10" : ""}`}>
                 <span>{h}</span>
@@ -119,17 +126,16 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
       {currentBookings.map((booking, idx) => (
         <div
           key={startIdx + idx}
-          className={`grid grid-cols-8 ${
+          className={`grid grid-cols-9 ${
             startIdx + idx !== bookings.length - 1 ? "border-b-[1.5px] border-[#00000033]" : ""
-          } h-[100px] items-center text-[13px] sm:text-[15px] font-[500] px-4 sm:px-10 cursor-pointer hover:bg-gray-100`}
-          onClick={() => handleRowClick(booking, idx)}
+          } h-[100px] items-center text-[13px] sm:text-[15px] font-[500] px-4 sm:px-10 hover:bg-gray-100`}
         >
-          <div>{booking.id}</div>
-          <div>{booking.bookingDate}</div>
-          <div>{booking.clientName}</div>
+          <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.id}</div>
+          <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.bookingDate}</div>
+          <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.clientName}</div>
 
           {/* Car Model (no blank space if plate is missing) */}
-          <div className="flex flex-col">
+          <div className="flex flex-col cursor-pointer" onClick={() => handleRowClick(booking, idx)}>
             {booking.carModel ? <div>{booking.carModel}</div> : null}
 
             {hasRealPlate(booking.carPlate) && (
@@ -141,9 +147,9 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
             )}
           </div>
 
-          <div>{booking.plan}</div>
+          <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.plan}</div>
 
-          <div className="text-[12px] sm:text-[14px] font-[500] text-[#939392]">
+          <div className="text-[12px] sm:text-[14px] font-[500] text-[#939392] cursor-pointer" onClick={() => handleRowClick(booking, idx)}>
             <div className="flex gap-2 items-center">
               <span>Start</span>
               <div className="w-[80px] sm:w-[92px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[10px] sm:text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
@@ -158,7 +164,7 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
             </div>
           </div>
 
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center cursor-pointer" onClick={() => handleRowClick(booking, idx)}>
             <div>{booking.payment}</div>
             <div
               className="w-[70px] sm:w-[80px] h-[20px] border rounded-[4px] text-[10px] sm:text-[11px] text-[#00000099] font-[600] flex justify-center items-center"
@@ -169,10 +175,27 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
           </div>
 
           <div
-            className="w-[76px] sm:w-[86px] h-[22px] border rounded-[4px] flex justify-center items-center text-[10px] sm:text-[11px] font-[700]"
+            className="w-[76px] sm:w-[86px] h-[22px] border rounded-[4px] flex justify-center items-center text-[10px] sm:text-[11px] font-[700] cursor-pointer"
             style={{ background: booking.statusBg, borderColor: "#0000004D", color: booking.statusText }}
+            onClick={() => handleRowClick(booking, idx)}
           >
             {booking.status}
+          </div>
+
+          {/* Actions Column */}
+          <div className="flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
+            {booking.status !== "Cancelled" && (
+              <button
+                onClick={() => {
+                  setBookingToCancel(booking);
+                  setShowCancellationModal(true);
+                }}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Cancel booking"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </div>
       ))}
@@ -262,6 +285,28 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
               >
                 {booking.paymentStatus}
               </div>
+            </div>
+
+            {/* Mobile Action Buttons */}
+            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => handleRowClick(booking, idx)}
+                className="flex-1 py-2 px-3 bg-[#0955AC] text-white rounded-lg text-[13px] font-[600] hover:bg-[#0744a0] transition-colors"
+              >
+                View Details
+              </button>
+              {booking.status !== "Cancelled" && (
+                <button
+                  onClick={() => {
+                    setBookingToCancel(booking);
+                    setShowCancellationModal(true);
+                  }}
+                  className="flex-1 py-2 px-3 bg-red-600 text-white rounded-lg text-[13px] font-[600] hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Cancel
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -380,6 +425,19 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
           </button>
         </div>
       </div>
+
+      {/* Cancellation Modal */}
+      <VendorCancellationModal
+        booking={bookingToCancel}
+        isOpen={showCancellationModal}
+        onClose={() => {
+          setShowCancellationModal(false);
+          setBookingToCancel(null);
+        }}
+        onSuccess={() => {
+          window.location.reload();
+        }}
+      />
     </div>
   );
 };

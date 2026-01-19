@@ -23,6 +23,7 @@ import {
     Star,
     TrendingUp,
     X,
+    XCircle,
 } from "lucide-react";
 
 const statusStyles = {
@@ -93,6 +94,14 @@ const Hero = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedBooking, setSelectedBooking] = useState(null);
+    const [cancelModalOpen, setCancelModalOpen] = useState(false);
+    const [bookingToCancel, setBookingToCancel] = useState(null);
+    const [cancellationPreview, setCancellationPreview] = useState(null);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelling, setCancelling] = useState(false);
+    const [cancelSuccess, setCancelSuccess] = useState(null);
+    const [isViewCancellationModalOpen, setIsViewCancellationModalOpen] = useState(false);
+    const [cancellationToView, setCancellationToView] = useState(null);
     const [filters, setFilters] = useState({
         search: "",
         status: "all",
@@ -249,6 +258,64 @@ const Hero = () => {
         }
     };
 
+    const handleCancelClick = async (booking) => {
+        setBookingToCancel(booking);
+        setCancelModalOpen(true);
+        setCancellationPreview(null);
+        setCancelReason('');
+        setCancelSuccess(null);
+
+        // Fetch cancellation preview
+        try {
+            const { data } = await axios.get(`/warehouse-bookings/booking/${booking.id}/cancel-preview`);
+            if (data.success) {
+                setCancellationPreview(data.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch cancellation preview:', err);
+        }
+    };
+
+    const handleViewCancellationClick = (booking) => {
+        setCancellationToView(booking);
+        setIsViewCancellationModalOpen(true);
+    };
+
+    const closeViewCancellationModal = () => {
+        setIsViewCancellationModalOpen(false);
+        setCancellationToView(null);
+    };
+
+    const handleConfirmCancel = async () => {
+        if (!bookingToCancel) return;
+
+        setCancelling(true);
+        try {
+            const { data } = await axios.post(`/warehouse-bookings/booking/${bookingToCancel.id}/cancel`, {
+                reason: cancelReason || 'Customer requested cancellation'
+            });
+
+            if (data.success) {
+                setCancelSuccess(data);
+                // Refresh dashboard data
+                setTimeout(() => {
+                    fetchDashboard();
+                    setCancelModalOpen(false);
+                    setBookingToCancel(null);
+                    setCancellationPreview(null);
+                    setCancelReason('');
+                    // Show success message briefly
+                    setTimeout(() => setCancelSuccess(null), 5000);
+                }, 2000);
+            }
+        } catch (err) {
+            console.error('Cancellation failed:', err);
+            alert(err.response?.data?.message || 'Failed to cancel booking. Please try again.');
+        } finally {
+            setCancelling(false);
+        }
+    };
+
     const handleViewDetails = (warehouse) => {
         router.visit("/warehouseDetails", {
             method: "get",
@@ -389,13 +456,50 @@ const Hero = () => {
                             >
                                 View details
                             </button>
-                            <button
-                                onClick={() => router.visit(route("warehouse-bookings.summary", { bookingId: booking.id }))}
-                                className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#0955AC] text-sm font-semibold text-white transition hover:bg-[#084a97]"
-                            >
-                                Manage
-                                <ChevronRight className="ml-2 h-4 w-4" />
-                            </button>
+                            
+                            {booking.status !== 'cancelled' && booking.status !== 'completed' ? (
+                                <>
+                                    <button
+                                        onClick={() => handleCancelClick(booking)}
+                                        className="inline-flex h-11 items-center justify-center rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                                        title="Cancel booking"
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => router.visit(route("warehouse-bookings.summary", { bookingId: booking.id }))}
+                                        className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#0955AC] text-sm font-semibold text-white transition hover:bg-[#084a97]"
+                                    >
+                                        Manage
+                                        <ChevronRight className="ml-2 h-4 w-4" />
+                                    </button>
+                                </>
+                            ) : booking.status === 'cancelled' ? (
+                                <>
+                                    <button
+                                        onClick={() => handleViewCancellationClick(booking)}
+                                        className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                                    >
+                                        View Cancellation
+                                        <FileText className="ml-2 h-4 w-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => router.visit(route("warehouse-bookings.summary", { bookingId: booking.id }))}
+                                        className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#0955AC] text-sm font-semibold text-white transition hover:bg-[#084a97]"
+                                    >
+                                        Details
+                                        <ChevronRight className="ml-2 h-4 w-4" />
+                                    </button>
+                                </>
+                            ) : (
+                                <button
+                                    onClick={() => router.visit(route("warehouse-bookings.summary", { bookingId: booking.id }))}
+                                    className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#0955AC] text-sm font-semibold text-white transition hover:bg-[#084a97]"
+                                >
+                                    View Details
+                                    <ChevronRight className="ml-2 h-4 w-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1272,6 +1376,402 @@ const Hero = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+            
+            {/* Cancellation Modal */}
+            {cancelModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="relative max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl"
+                    >
+                        {/* Modal Header */}
+                        <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-900">Cancel Booking</h2>
+                                <p className="text-sm text-slate-500 mt-1">
+                                    Review refund details before confirming
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setCancelModalOpen(false);
+                                    setBookingToCancel(null);
+                                    setCancellationPreview(null);
+                                    setCancelSuccess(null);
+                                }}
+                                className="rounded-full p-2 hover:bg-slate-100 transition"
+                            >
+                                <X className="h-5 w-5 text-slate-500" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 space-y-6">
+                            {cancelSuccess ? (
+                                <div className="text-center py-8">
+                                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                                        <ShieldCheck className="h-8 w-8 text-green-600" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-slate-900 mb-2">
+                                        Booking Cancelled Successfully
+                                    </h3>
+                                    <p className="text-slate-600 mb-4">
+                                        Booking #{bookingToCancel?.reference} has been cancelled
+                                    </p>
+                                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+                                        <div className="text-sm font-semibold text-green-900 mb-1">
+                                            Refund: {cancelSuccess.data?.refund_percentage}%
+                                        </div>
+                                        <div className="text-2xl font-bold text-green-700">
+                                            LKR {cancelSuccess.data?.refund_amount}
+                                        </div>
+                                        <div className="text-xs text-green-600 mt-2">
+                                            {cancelSuccess.data?.refund_info}
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-slate-500">
+                                        Refund will be processed within 5-7 business days
+                                    </p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Booking Info */}
+                                    <div className="bg-slate-50 rounded-xl p-4">
+                                        <h3 className="font-semibold text-slate-900 mb-2">
+                                            {bookingToCancel?.warehouse?.name || 'Warehouse'}
+                                        </h3>
+                                        <div className="text-sm text-slate-600 space-y-1">
+                                            <div>Booking Ref: #{bookingToCancel?.reference}</div>
+                                            <div>Start Date: {formatDate(bookingToCancel?.start_date)}</div>
+                                            <div>Amount: {formatCurrency(bookingToCancel?.amount || 0)}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Cancellation Preview */}
+                                    {cancellationPreview ? (
+                                        <div className="space-y-4">
+                                            {/* Refund Info */}
+                                            <div className={`rounded-xl p-6 ${
+                                                cancellationPreview.refund_percentage >= 100 
+                                                    ? 'bg-green-50 border border-green-200' 
+                                                    : 'bg-amber-50 border border-amber-200'
+                                            }`}>
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div>
+                                                        <div className="text-sm font-semibold text-slate-700">Refund Amount</div>
+                                                        <div className={`text-3xl font-bold ${
+                                                            cancellationPreview.refund_percentage >= 100 
+                                                                ? 'text-green-700' 
+                                                                : 'text-amber-700'
+                                                        }`}>
+                                                            LKR {cancellationPreview.refund_amount}
+                                                        </div>
+                                                    </div>
+                                                    <div className={`text-right px-4 py-2 rounded-lg ${
+                                                        cancellationPreview.refund_percentage >= 100 
+                                                            ? 'bg-green-100' 
+                                                            : 'bg-amber-100'
+                                                    }`}>
+                                                        <div className="text-xs font-semibold text-slate-600">Refund</div>
+                                                        <div className={`text-2xl font-bold ${
+                                                            cancellationPreview.refund_percentage >= 100 
+                                                                ? 'text-green-700' 
+                                                                : 'text-amber-700'
+                                                        }`}>
+                                                            {cancellationPreview.refund_percentage}%
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-sm text-slate-600">
+                                                    {cancellationPreview.reason}
+                                                </div>
+                                            </div>
+
+                                            {/* Policy Details */}
+                                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <AlertTriangle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                                    <div className="text-sm text-blue-900">
+                                                        <div className="font-semibold mb-1">Cancellation Policy</div>
+                                                        <div>{cancellationPreview.policy_text}</div>
+                                                        <div className="mt-2 text-xs">
+                                                            Days before booking: {cancellationPreview.days_before_booking} days
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Cancellation Reason */}
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                                    Reason for Cancellation (Optional)
+                                                </label>
+                                                <textarea
+                                                    value={cancelReason}
+                                                    onChange={(e) => setCancelReason(e.target.value)}
+                                                    placeholder="Please let us know why you're cancelling..."
+                                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    rows={3}
+                                                    maxLength={500}
+                                                />
+                                                <div className="text-xs text-slate-500 mt-1 text-right">
+                                                    {cancelReason.length}/500
+                                                </div>
+                                            </div>
+
+                                            {/* Warning */}
+                                            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                                    <div className="text-sm text-red-900">
+                                                        <div className="font-semibold mb-1">Important</div>
+                                                        <div>This action cannot be undone. Once cancelled, you'll need to make a new booking if you change your mind.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8">
+                                            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-3" />
+                                            <p className="text-sm text-slate-500">Loading cancellation details...</p>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+                        {/* Modal Footer */}
+                        {!cancelSuccess && cancellationPreview && (
+                            <div className="sticky bottom-0 bg-white border-t border-slate-200 p-6 flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setCancelModalOpen(false);
+                                        setBookingToCancel(null);
+                                        setCancellationPreview(null);
+                                    }}
+                                    className="flex-1 h-12 rounded-xl border border-slate-200 font-semibold text-slate-700 hover:bg-slate-100 transition"
+                                    disabled={cancelling}
+                                >
+                                    Keep Booking
+                                </button>
+                                <button
+                                    onClick={handleConfirmCancel}
+                                    disabled={cancelling}
+                                    className="flex-1 h-12 rounded-xl bg-red-600 font-semibold text-white hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {cancelling ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Cancelling...
+                                        </>
+                                    ) : (
+                                        'Confirm Cancellation'
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                    </motion.div>
+                </div>
+            )}
+
+            {/* Success Toast */}
+            {cancelSuccess && !cancelModalOpen && (
+                <div className="fixed bottom-4 right-4 z-50">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        className="bg-green-600 text-white px-6 py-4 rounded-xl shadow-lg flex items-center gap-3"
+                    >
+                        <ShieldCheck className="h-5 w-5" />
+                        <div>
+                            <div className="font-semibold">Booking Cancelled</div>
+                            <div className="text-sm opacity-90">Refund: {cancelSuccess.data?.refund_percentage}% (LKR {cancelSuccess.data?.refund_amount})</div>
+                        </div>
+                        <button
+                            onClick={() => setCancelSuccess(null)}
+                            className="ml-4 p-1 hover:bg-green-700 rounded"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* View Cancellation Details Modal */}
+            {isViewCancellationModalOpen && cancellationToView && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl"
+                    >
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 text-white">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-2xl font-bold">Cancellation Details</h3>
+                                    <p className="mt-1 text-sm text-blue-100">
+                                        Booking ID: {cancellationToView.id}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={closeViewCancellationModal}
+                                    className="p-2 hover:bg-white/20 rounded-lg transition"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-6">
+                            {/* Cancellation Info Alert */}
+                            <div className={`rounded-xl border-2 p-5 ${
+                                cancellationToView.cancelled_by === 'vendor' 
+                                    ? 'bg-orange-50 border-orange-200' 
+                                    : 'bg-blue-50 border-blue-200'
+                            }`}>
+                                <div className="flex items-start gap-4">
+                                    <div className={`p-3 rounded-full ${
+                                        cancellationToView.cancelled_by === 'vendor' 
+                                            ? 'bg-orange-100' 
+                                            : 'bg-blue-100'
+                                    }`}>
+                                        <AlertTriangle className={`h-6 w-6 ${
+                                            cancellationToView.cancelled_by === 'vendor' 
+                                                ? 'text-orange-600' 
+                                                : 'text-blue-600'
+                                        }`} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className={`text-lg font-bold mb-2 ${
+                                            cancellationToView.cancelled_by === 'vendor' 
+                                                ? 'text-orange-900' 
+                                                : 'text-blue-900'
+                                        }`}>
+                                            Cancelled by: {cancellationToView.cancelled_by === 'vendor' ? 'Vendor' : 'You (Customer)'}
+                                        </h4>
+                                        <div className="space-y-1.5">
+                                            <div className={`flex items-center gap-2 text-sm ${
+                                                cancellationToView.cancelled_by === 'vendor' 
+                                                    ? 'text-orange-800' 
+                                                    : 'text-blue-800'
+                                            }`}>
+                                                <Calendar className="h-4 w-4" />
+                                                <span className="font-semibold">Cancelled on:</span>
+                                                <span>{cancellationToView.cancelled_at ? new Date(cancellationToView.cancelled_at).toLocaleString('en-US', { 
+                                                    dateStyle: 'medium', 
+                                                    timeStyle: 'short' 
+                                                }) : 'N/A'}</span>
+                                            </div>
+                                            <div className={`flex items-center gap-2 text-sm ${
+                                                cancellationToView.cancelled_by === 'vendor' 
+                                                    ? 'text-orange-800' 
+                                                    : 'text-blue-800'
+                                            }`}>
+                                                <CreditCard className="h-4 w-4" />
+                                                <span className="font-semibold">Refund:</span>
+                                                <span className="font-bold">{cancellationToView.refund_percentage || 0}% - Rs {parseFloat(cancellationToView.refund_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Booking Details */}
+                            <div className="bg-slate-50 rounded-xl p-5">
+                                <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                    <Building2 className="h-5 w-5 text-slate-600" />
+                                    Booking Details
+                                </h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Warehouse</p>
+                                        <p className="font-semibold text-slate-900">{cancellationToView.warehouse?.name || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Location</p>
+                                        <p className="font-semibold text-slate-900">{cancellationToView.warehouse?.address || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Storage Type</p>
+                                        <p className="font-semibold text-slate-900">{cancellationToView.warehouse?.type || cancellationToView.storage_type || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Space Required</p>
+                                        <p className="font-semibold text-slate-900">{cancellationToView.required_space ? `${cancellationToView.required_space} sq ft` : 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Start Date</p>
+                                        <p className="font-semibold text-slate-900">{cancellationToView.start_date ? new Date(cancellationToView.start_date).toLocaleDateString() : 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">End Date</p>
+                                        <p className="font-semibold text-slate-900">{cancellationToView.end_date ? new Date(cancellationToView.end_date).toLocaleDateString() : 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <p className="text-xs text-slate-500 mb-1">Booking Amount</p>
+                                    <p className="text-2xl font-bold text-slate-900">
+                                        Rs {parseFloat(cancellationToView.final_amount || cancellationToView.total_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Cancellation Reason */}
+                            {cancellationToView.cancellation_reason && (
+                                <div className="bg-slate-50 rounded-xl p-5">
+                                    <h4 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <FileText className="h-5 w-5 text-slate-600" />
+                                        Cancellation Reason
+                                    </h4>
+                                    <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                        {cancellationToView.cancellation_reason}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Refund Status */}
+                            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-green-100 rounded-full">
+                                        <ShieldCheck className="h-6 w-6 text-green-600" />
+                                    </div>
+                                    <h4 className="text-lg font-bold text-green-900">Refund Information</h4>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-green-800">Refund Percentage:</span>
+                                        <span className="font-bold text-green-900">{cancellationToView.refund_percentage || 0}%</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-green-800">Refund Amount:</span>
+                                        <span className="font-bold text-green-900">Rs {parseFloat(cancellationToView.refund_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t border-green-200">
+                                        <span className="text-sm text-green-800">Status:</span>
+                                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full">
+                                            {cancellationToView.refund_status || 'Pending'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 bg-slate-50 rounded-b-2xl flex justify-end">
+                            <button
+                                onClick={closeViewCancellationModal}
+                                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </motion.div>
                 </div>
             )}
         </div>

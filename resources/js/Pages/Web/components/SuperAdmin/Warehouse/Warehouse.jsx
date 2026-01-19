@@ -258,6 +258,11 @@ const Warehouse = ({ typeFilter, warehouses: initialWarehouses = [] }) => {
                         </h1>
                     </div>
                     <div>
+                        <h1 className="text-white text-[10px] font-400 w-[150px]">
+                            User Name
+                        </h1>
+                    </div>
+                    <div>
                         <h1 className="text-white text-[10px] font-400"></h1>
                     </div>
                 </div>
@@ -322,6 +327,11 @@ const Warehouse = ({ typeFilter, warehouses: initialWarehouses = [] }) => {
                                         {warehouse.type}
                                     </h1>
                                 </div>
+                            </div>
+                            <div>
+                                <h1 className="text-[#0955AC] text-[10px] font-500 w-[150px]">
+                                    {warehouse.owner_name || 'N/A'}
+                                </h1>
                             </div>
                             <div className="w-[20px]">
                                 <button onClick={() => openModal(warehouse)}>

@@ -12,6 +12,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleFeaturePricing;
 use App\Models\BookingCustomer;
 use App\Models\AirVehicleBookingCustomer;
+use App\Services\VehicleBookingCancellationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -259,7 +260,7 @@ class ClientBookingController extends Controller
                 ->exists();
 
             if ($overlap) {
-                abort(422, 'Vehicle is not available for the selected dates.');
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Vehicle is not available for the selected dates.');
             }
 
             $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
@@ -803,7 +804,7 @@ class ClientBookingController extends Controller
                 ->exists();
 
             if ($overlap) {
-                abort(422, 'Vehicle is not available for the selected dates.');
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Vehicle is not available for the selected dates.');
             }
 
             $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
@@ -1137,7 +1138,7 @@ class ClientBookingController extends Controller
                 ->exists();
 
             if ($overlap) {
-                abort(422, 'Vehicle is not available for the selected dates.');
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Vehicle is not available for the selected dates.');
             }
 
             $calc = $this->calculateTotals($vehicle, $pickup , $dropoff, $addonsReq);
@@ -1343,6 +1344,98 @@ class ClientBookingController extends Controller
         return Inertia::render('Web/home/seaVehicle/Summary', [
             'booking' => $seaVehicleBooking,
         ]);
+    }
+
+    /**
+     * Get cancellation policy and refund preview for a booking
+     * GET /bookings/{id}/cancellation-policy
+     */
+    public function getCancellationPolicy(Booking $booking)
+    {
+        $this->authorizeBooking($booking);
+
+        $cancellationService = app(VehicleBookingCancellationService::class);
+        return response()->json($cancellationService->getRefundPreview($booking, 'client'));
+    }
+
+    /**
+     * Cancel a vehicle booking (client-initiated)
+     * POST /bookings/{id}/cancel
+     */
+    public function cancelBooking(Request $request, Booking $booking)
+    {
+        $this->authorizeBooking($booking);
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $cancellationService = app(VehicleBookingCancellationService::class);
+        
+        $result = $cancellationService->cancelBooking(
+            $booking,
+            'client',
+            $validated['reason'] ?? null,
+            Auth::id()
+        );
+
+        if (!$result['success']) {
+            return response()->json($result, 422);
+        }
+
+        return response()->json($result);
+    }
+
+    /**
+     * Vendor: Get cancellation policy for a booking
+     * GET /bookings/{id}/vendor/cancellation-policy
+     */
+    public function getVendorCancellationPolicy(Booking $booking)
+    {
+        $this->authorizeBookingVendor($booking);
+
+        $cancellationService = app(VehicleBookingCancellationService::class);
+        return response()->json($cancellationService->getRefundPreview($booking, 'vendor'));
+    }
+
+    /**
+     * Vendor: Cancel a vehicle booking (vendor-initiated)
+     * POST /bookings/{id}/vendor/cancel
+     */
+    public function cancelBookingAsVendor(Request $request, Booking $booking)
+    {
+        $this->authorizeBookingVendor($booking);
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $cancellationService = app(VehicleBookingCancellationService::class);
+        
+        $result = $cancellationService->cancelBooking(
+            $booking,
+            'vendor',
+            $validated['reason'] ?? null,
+            Auth::id()
+        );
+
+        if (!$result['success']) {
+            return response()->json($result, 422);
+        }
+
+        return response()->json($result);
+    }
+
+    /**
+     * Authorize that the user is the booking's vendor
+     */
+    private function authorizeBookingVendor(Booking $booking)
+    {
+        $booking->load('vehicle');
+        
+        if ($booking->vehicle->provider_id !== Auth::id()) {
+            abort(403, 'Unauthorized');
+        }
     }
 
 
