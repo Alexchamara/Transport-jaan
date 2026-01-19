@@ -27,7 +27,9 @@ const FooterTwo = () => {
     return (
         <div className="md:px-20 px-10 py-10">
             <div className="relative border-t-[1px] border-b-[2px] flex flex-col items-center justify-center py-20">
-                <h1 className="text-[25px] font-[700] uppercase">Company Logo</h1>
+                <h1 className="text-[25px] font-[700] uppercase">
+                    Company Logo
+                </h1>
 
                 <div className="mt-40 flex flex-col justify-center items-center">
                     <h1 className="text-[50px] font-[700] uppercase">
@@ -58,7 +60,7 @@ const FooterTwo = () => {
                                 key={item.id}
                                 href={`#${item.id}`}
                                 onClick={(e) => {
-                                    e.preventDefault();          // stop Inertia navigation
+                                    e.preventDefault(); // stop Inertia navigation
                                     handleScroll(item.id);
                                 }}
                                 className="cursor-pointer hover:text-[#FF7003] transition-colors"
@@ -71,18 +73,30 @@ const FooterTwo = () => {
             </div>
 
             {/* Copyright & legal links */}
-            <div className="flex flex-col md:flex-row justify-between items-center mt-5 md:text-[17px] text-[10px] font-[400]">
+            <div className="flex flex-col md:flex-row justify-between items-center mt-5 md:text-[15px] text-[10px] font-[400]">
                 <h1 className="order-2 md:order-1 mt-3 md:mt-0 ">
                     © {currentYear} JAAN Network (Pvt) Ltd. | All rights
                     reserved.
                 </h1>
                 <div className="flex flex-row gap-10 order-1 md:order-2">
-                    <h1 className="cursor-pointer hover:text-[#FF7003]">
+                    <Link
+                        href="/landingPage/return-policy"
+                        className="cursor-pointer hover:text-[#FF7003]"
+                    >
+                        Return Policy
+                    </Link>
+                    <Link
+                        href="/landingPage/privacy-policy"
+                        className="cursor-pointer hover:text-[#FF7003]"
+                    >
                         Privacy Policy
-                    </h1>
-                    <h1 className="cursor-pointer hover:text-[#FF7003]">
+                    </Link>
+                    <Link
+                        href="/landingPage/terms-and-conditions"
+                        className="cursor-pointer hover:text-[#FF7003]"
+                    >
                         Terms of Service
-                    </h1>
+                    </Link>
                 </div>
             </div>
         </div>
