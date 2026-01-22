@@ -181,6 +181,12 @@ Route::prefix('multiModel')->name('multiModel.')->group(function () {
         Route::post('/confirm', [MultiModelBookingController::class, 'confirmBooking'])->name('booking.confirm');
         Route::get('/booking/{id}/summary', [MultiModelBookingController::class, 'showSummary'])->name('booking.summary');
     });
+    
+    // Vendor approval endpoints (protected - requires vendor role)
+    Route::middleware(['auth', 'vendor.verified'])->group(function () {
+        Route::post('/vendor/booking/approve/{bookingId}/{bookingType}', [MultiModelBookingController::class, 'approveBooking'])->name('vendor.booking.approve');
+        Route::post('/vendor/booking/reject/{bookingId}/{bookingType}', [MultiModelBookingController::class, 'rejectBooking'])->name('vendor.booking.reject');
+    });
 });
 
 // bus section
@@ -592,6 +598,9 @@ Route::middleware(['auth', 'vendor.verified'])
 
         // Bookings page with DB-fed props (table + chart)
         Route::get('/bookings', [VendorBookingController::class, 'page'])->name('bookings');
+        
+        // API endpoint to update booking
+        Route::patch('/api/bookings/{bookingId}', [VendorBookingController::class, 'update'])->name('api.bookings.update');
 
         // Clients page with actual booking data filtered by vehicle type
         Route::get('/clients', [VendorBookingController::class, 'clients'])->name('clients');

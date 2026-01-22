@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('vehicle_type'); // land, sea, air
             $table->foreignId('vehicle_id')->nullable()->constrained()->nullOnDelete();
             $table->json('vehicle_snapshot')->nullable();
-            $table->string('status')->default('pending'); // pending, confirmed, in_progress, completed, cancelled
+            $table->string('status')->default('pending'); // pending, confirmed, completed, cancelled
             $table->timestamps();
 
             $table->index(['multi_model_journey_id', 'leg_order']);

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('reference')->unique();
-            $table->string('status')->default('pending'); // pending, confirmed, in_progress, completed, cancelled
+            $table->string('status')->default('pending'); // pending, confirmed, completed, cancelled
             $table->integer('total_legs')->default(0);
             $table->decimal('total_amount', 10, 2)->default(0);
             $table->decimal('deposit_amount', 10, 2)->default(0);

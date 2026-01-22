@@ -21,8 +21,11 @@ const paymentStatusColors = {
     Pending: { color: "#FF6060", bg: "#FF60608C" },
 };
 const statusColors = {
+    Pending: { bg: "#FF9800", text: "#FFFFFF" },
+    Confirmed: { bg: "#FFCD29", text: "#000000" },
     Ongoing: { bg: "#FFCD29", text: "#000000" },
-    Returned: { bg: "#3B8F31", text: "#FFCD29" },
+    Completed: { bg: "#3B8F31", text: "#FFFFFF" },
+    Returned: { bg: "#3B8F31", text: "#FFFFFF" },
     Cancelled: { bg: "#FF6060", text: "#FFFFFF" },
 };
 
@@ -32,8 +35,8 @@ const decorateBooking = (b) => ({
     paymentStatusColor:
         paymentStatusColors[b.paymentStatus]?.color ?? "#7B7B7A",
     paymentStatusBg: paymentStatusColors[b.paymentStatus]?.bg ?? "#E8E8EF",
-    statusBg: statusColors[b.status]?.bg ?? "#FFCD29",
-    statusText: statusColors[b.status]?.text ?? "#000000",
+    statusBg: statusColors[b.status]?.bg ?? "#FF9800",
+    statusText: statusColors[b.status]?.text ?? "#FFFFFF",
 });
 
 const BookingContent = ({

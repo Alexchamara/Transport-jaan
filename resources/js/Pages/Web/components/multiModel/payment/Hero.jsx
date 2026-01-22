@@ -285,44 +285,6 @@ const Hero = ({ cart = {}, pricing = {} }) => {
                 </div>
                 <div className="xl:col-span-1">
                     <div className="w-full max-h-[794px] overflow-y-auto bg-[#F4F3F3] rounded-[12px] shadow-lg py-5 poppins">
-                        <div className="px-5">
-                            <div className="w-full h-auto md:h-[184px] border-[3px] border-dashed border-[#0955AC] rounded-[20px] bg-[#FFFFFF] p-5 text-[16px] font-[500]">
-                                <h1 className="text-[24px] font-[500] text-[#0955AC]">
-                                    Offers
-                                </h1>
-                                <div className="flex flex-row gap-2 items-center mt-5">
-                                    <img src={save} />
-                                    <h1>
-                                        50% off up to $15 | Use code BOOKNOW
-                                    </h1>
-                                </div>
-
-                                <div className="flex flex-row gap-2 items-center mt-5">
-                                    <img src={save} />
-                                    <h1>20% off | Use code FIRSTTIME</h1>
-                                </div>
-                            </div>
-
-                            <div className="w-full h-auto md:h-[117px] bg-[#FFFFFF] border-[1px] border-[#80808080] rounded-[10px] p-5 flex md:flex-row flex-col gap-5 justify-between mt-4">
-                                <div className="flex flex-row justify-center items-center gap-2">
-                                    <img src={save} className="size-[30px]" />
-                                    <h1 className="text-[18px] font-[500]">
-                                        Apply Code
-                                    </h1>
-                                </div>
-                                <div className="flex flex-col">
-                                    <label htmlFor="promoCode" className="sr-only">Promo Code</label>
-                                    <input
-                                        type="text"
-                                        id="promoCode"
-                                        name="promoCode"
-                                        className="w-full xl:w-auto border-b-[1px] border-[#80808080] border-[0px] focus:ring-0 placeholder:text-[12px] placeholder:text-[#80808080] p-0"
-                                        placeholder="Enter Code"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
                         <div className="h-auto bg-[#F4F3F3] py-5">
                             <h1 className="text-[#333843] text-[20px] font-[600] w-full p-5 rounded-t-[12px]">
                                 Booking Summary
