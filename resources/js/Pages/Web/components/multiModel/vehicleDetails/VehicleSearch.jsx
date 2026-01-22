@@ -3,10 +3,172 @@ import { router } from "@inertiajs/react";
 import clock from "../../../assets/landVehicleDetails/clock.svg";
 import QuoteModal from "./QuoteModal";
 import useScrollLock from "./useScrollLock";
+import axios from "axios";
 
-const VehicleSearch = () => {
+const VehicleSearch = ({ vehicle, journey, legIndex, onVehicleSelected }) => {
     const [showQuoteModal, setShowQuoteModal] = useState(false);
+    const [extras, setExtras] = useState({
+        gpsNavigation: false,
+        childSeat: false,
+        wifi: false,
+        insuranceCoverage: false
+    });
+    const [isSelecting, setIsSelecting] = useState(false);
+    
     useScrollLock(showQuoteModal);
+    
+    const pricePerDay = vehicle?.price || vehicle?.pricePerDay || 620;
+    const numberOfDays = journey?.days || vehicle?.days || 7;
+    
+    // Calculate rental price
+    const rentalPrice = pricePerDay * numberOfDays;
+    
+    // Calculate discount (10% for 3+ days, 15% for 7+ days)
+    const discountPercentage = numberOfDays >= 7 ? 15 : numberOfDays >= 3 ? 10 : 0;
+    const discount = (rentalPrice * discountPercentage) / 100;
+    
+    // Refundable deposit
+    const refundableDeposit = 500;
+    
+    // Extra prices
+    const extraPrices = {
+        gpsNavigation: 155,
+        childSeat: 155,
+        wifi: 155,
+        insuranceCoverage: 155
+    };
+    
+    // Calculate total extras
+    const totalExtras = Object.keys(extras).reduce((sum, key) => {
+        return sum + (extras[key] ? extraPrices[key] : 0);
+    }, 0);
+    
+    // Calculate subtotal before deposit
+    const subtotal = rentalPrice - discount + totalExtras;
+    
+    // Calculate advance payment (20%)
+    const advancePayment = Math.round((subtotal * 0.2) * 100) / 100;
+    
+    // Calculate total price due
+    const totalPriceDue = subtotal - refundableDeposit;
+    
+    // Handle checkbox changes
+    const handleExtraChange = (extraName) => {
+        setExtras(prev => ({
+            ...prev,
+            [extraName]: !prev[extraName]
+        }));
+    };
+
+    // Handle vehicle selection for single leg
+    const handleSelectForStop = async () => {
+        if (isSelecting || legIndex === undefined) return;
+
+        setIsSelecting(true);
+        try {
+            const selectedAddons = Object.keys(extras)
+                .filter(key => extras[key])
+                .map(key => ({
+                    name: key.replace(/([A-Z])/g, ' $1').trim(),
+                    qty: 1
+                }));
+
+            console.log('Selecting vehicle for leg:', legIndex);
+            console.log('Vehicle ID:', vehicle.id);
+            console.log('Selection type: single_leg');
+            console.log('Addons:', selectedAddons);
+
+            const response = await axios.post(`/multiModel/leg/${legIndex}/select-vehicle`, {
+                vehicle_id: vehicle.id,
+                selection_type: 'single_leg',
+                addons: selectedAddons
+            });
+
+            console.log('Selection response:', response.data);
+
+            if (response.data.success) {
+                // Call parent callback if provided
+                if (onVehicleSelected) {
+                    onVehicleSelected(legIndex, 'single_leg', response.data.cart);
+                }
+                
+                // Navigate back to plan journey to add more trips
+                alert('Vehicle selected successfully for this leg! You can now add another trip or review your journey.');
+                router.visit('/multiModel/plan-journey', {
+                    method: 'get',
+                    data: {
+                        message: 'Vehicle selected for leg ' + (legIndex + 1),
+                        vehicleSelected: true
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error selecting vehicle:', error);
+            console.error('Error response:', error.response?.data);
+            const errorMsg = error.response?.data?.message || 'Failed to select vehicle. Please try again.';
+            alert(errorMsg + '\n\nPlease plan your journey first from the Plan Journey page.');
+        } finally {
+            setIsSelecting(false);
+        }
+    };
+
+    // Handle vehicle selection for whole journey
+    const handleSelectForWholeJourney = async () => {
+        if (isSelecting || legIndex === undefined) return;
+
+        setIsSelecting(true);
+        try {
+            const selectedAddons = Object.keys(extras)
+                .filter(key => extras[key])
+                .map(key => ({
+                    name: key.replace(/([A-Z])/g, ' $1').trim(),
+                    qty: 1
+                }));
+
+            console.log('Selecting vehicle for whole journey starting from leg:', legIndex);
+            console.log('Vehicle ID:', vehicle.id);
+            console.log('Selection type: whole_journey');
+            console.log('Addons:', selectedAddons);
+
+            const response = await axios.post(`/multiModel/leg/${legIndex}/select-vehicle`, {
+                vehicle_id: vehicle.id,
+                selection_type: 'whole_journey',
+                addons: selectedAddons
+            });
+
+            console.log('Selection response:', response.data);
+
+            if (response.data.success) {
+                // Call parent callback if provided
+                if (onVehicleSelected) {
+                    onVehicleSelected(legIndex, 'whole_journey', response.data.cart);
+                }
+                
+                const message = response.data.assigned_legs?.length > 1 
+                    ? `Vehicle assigned to ${response.data.assigned_legs.length} legs!`
+                    : 'Vehicle selected successfully!';
+                    
+                alert(message + ' You can now add another trip or review your complete journey.');
+                
+                // Navigate back to plan journey
+                router.visit('/multiModel/plan-journey', {
+                    method: 'get',
+                    data: {
+                        message: 'Vehicle selected for whole journey',
+                        vehicleSelected: true
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error selecting vehicle:', error);
+            console.error('Error response:', error.response?.data);
+            const errorMsg = error.response?.data?.message || 'Failed to select vehicle for whole journey. Some legs may not be available.';
+            alert(errorMsg + '\n\nPlease plan your journey first from the Plan Journey page.');
+        } finally {
+            setIsSelecting(false);
+        }
+    };
+    
     return (
         <div className="p-5 md:p-0">
             <QuoteModal
@@ -121,7 +283,7 @@ const VehicleSearch = () => {
             <div className="poppins w-auto h-auto xl:w-[440px] xl:h-auto bg-[#F4F3F3] rounded-[19px] flex flex-col gap-10 py-10 px-5 md:px-10">
                 <div className="text-[25px] font-[700]">
                     <h1>
-                        $620{" "}
+                        ${pricePerDay}{" "}
                         <span className="text-[10px] text-[#00000080]">
                             /day
                         </span>
@@ -131,139 +293,6 @@ const VehicleSearch = () => {
                     </h1>
                     <div className=" w-auto md:w-[346px] h-[1px] bg-[#0000001F]" />
                 </div>
-                <form className="text-[10px] text-[#00000080] font-[600]">
-                    <div>
-                        {/* Pick-up Location */}
-                        <div>
-                            <label
-                                htmlFor="pickupLocation"
-                                className="block mb-3"
-                            >
-                                Pick-up Location
-                            </label>
-                            <input
-                                type="text"
-                                id="pickupLocation"
-                                name="pickupLocation"
-                                // value={formData.pickupLocation}
-                                // onChange={handleInputChange}
-                                placeholder="Hudson Rd, Colombo 03"
-                                className="appearance-none w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9] placeholder:font-[600]"
-                            />
-                        </div>
-                        {/* Pick-up Date */}
-                        <div className="flex flex-row gap-5">
-                            <div>
-                                <label
-                                    htmlFor="pickupDate"
-                                    className="block mb-3"
-                                >
-                                    Pick-up Date
-                                </label>
-                                <input
-                                    type="text"
-                                    id="pickupDate"
-                                    name="pickupDate"
-                                    // value={formData.pickupDate}
-                                    // onChange={handleInputChange}
-                                    placeholder="23 / 07 / 2025"
-                                    className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
-                                    onFocus={(e) => (e.target.type = "date")}
-                                    onBlur={(e) => (e.target.type = "text")}
-                                />
-                            </div>
-                            <div className="relative">
-                                <label
-                                    htmlFor="pickupTime"
-                                    className="block mb-3"
-                                >
-                                    Pick-up Time
-                                </label>
-                                <input
-                                    type="text"
-                                    id="pickupTime"
-                                    name="pickupTime"
-                                    // value={formData.pickupDate}
-                                    // onChange={handleInputChange}
-                                    placeholder="10 : 00 AM"
-                                    className="w-full relative border-[1px] border-[#00000042] bg-transparent rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
-                                    onFocus={(e) => (e.target.type = "time")}
-                                    onBlur={(e) => (e.target.type = "text")}
-                                />
-                                {/* <img
-                                    src={clock}
-                                    className="hidden sm:block absolute top-11 left-40 z-10"
-                                /> */}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        {/* Drop-off Location */}
-                        <div>
-                            <label
-                                htmlFor="dropoffLocation"
-                                className="block mb-3"
-                            >
-                                Drop-off Location
-                            </label>
-                            <input
-                                type="text"
-                                id="dropoffLocation"
-                                name="dropoffLocation"
-                                // value={formData.dropoffLocation}
-                                // onChange={handleInputChange}
-                                placeholder="Hudson Rd, Colombo 03"
-                                className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
-                            />
-                        </div>
-                        {/* Drop-off Date */}
-                        <div className="flex flex-row gap-5">
-                            <div>
-                                <label
-                                    htmlFor="dropoffDate"
-                                    className="block mb-3"
-                                >
-                                    Drop-off Date
-                                </label>
-                                <input
-                                    type="text"
-                                    id="dropoffDate"
-                                    name="dropoffDate"
-                                    // value={formData.dropoffDate}
-                                    // onChange={handleInputChange}
-                                    placeholder="23 / 07 / 2025"
-                                    className="border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3  w-full leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
-                                    onFocus={(e) => (e.target.type = "date")}
-                                    onBlur={(e) => (e.target.type = "text")}
-                                />
-                            </div>
-                            <div className="relative">
-                                <label
-                                    htmlFor="dropoffTime"
-                                    className="block mb-3"
-                                >
-                                    Drop-off Time
-                                </label>
-                                <input
-                                    type="text"
-                                    id="dropoffTime"
-                                    name="dropoffTime"
-                                    // value={formData.pickupDate}
-                                    // onChange={handleInputChange}
-                                    placeholder="10 : 00 AM"
-                                    className="w-full border-[1px] border-[#00000042] bg-[#F4F3F3] rounded-[5px] mb-3 py-3 leading-tight focus:outline-none focus:shadow-outline placeholder:text-[#000000D9]"
-                                    onFocus={(e) => (e.target.type = "time")}
-                                    onBlur={(e) => (e.target.type = "text")}
-                                />
-                                {/* <img
-                                    src={clock}
-                                    className="hidden sm:block absolute top-11 left-40 z-10"
-                                /> */}
-                            </div>
-                        </div>
-                    </div>
-                </form>
 
                 <div className="poppins text-[12px] w-full h-auto bg-[#0955AC0D] rounded-[5px] flex flex-col py-10 px-5 md:px-10">
                     <h1 className="font-[600] mb-5 text-[#000000D9]">
@@ -274,24 +303,26 @@ const VehicleSearch = () => {
                         <div>
                             <h1 className="text-[#000000CC]">Rental Price</h1>
                             <div className="flex flex-row gap-3 text-[#00000061]">
-                                <h1>$620/day</h1>
-                                <h1 className="text-[#0955AC]">(x7 days)</h1>
+                                <h1>${pricePerDay}/day</h1>
+                                <h1 className="text-[#0955AC]">(x{numberOfDays} days)</h1>
                             </div>
                         </div>
-                        <div className="text-[#000000CC]">$3450</div>
+                        <div className="text-[#000000CC]">${rentalPrice.toFixed(2)}</div>
                     </div>
-                    <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
-                        <div>
-                            <h1 className="text-[#000000CC]">
-                                3+ day discount
-                            </h1>
-                            <div className="flex flex-row gap-3 text-[#00000061]">
-                                <h1>Extended trip scount</h1>
-                                <h1 className="text-[#0955AC]">(50%)</h1>
+                    {discountPercentage > 0 && (
+                        <div className="flex flex-col md:flex-row justify-between w-full px-5 font-[500]">
+                            <div>
+                                <h1 className="text-[#000000CC]">
+                                    {numberOfDays >= 7 ? '7+' : '3+'} day discount
+                                </h1>
+                                <div className="flex flex-row gap-3 text-[#00000061]">
+                                    <h1>Extended trip discount</h1>
+                                    <h1 className="text-[#0955AC]">({discountPercentage}%)</h1>
+                                </div>
                             </div>
+                            <div className="text-[#000000CC]">-${discount.toFixed(2)}</div>
                         </div>
-                        <div className="text-[#000000CC]">-$345</div>
-                    </div>
+                    )}
                     <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
                         <div>
                             <h1 className="text-[#000000CC]">
@@ -302,7 +333,7 @@ const VehicleSearch = () => {
                                 <h1 className="text-[#0955AC]">Oct 14th</h1>
                             </div>
                         </div>
-                        <div className="text-[#000000CC]">-$500</div>
+                        <div className="text-[#000000CC]">-${refundableDeposit.toFixed(2)}</div>
                     </div>
                     <div className="w-full h-[1px] bg-[#CDD0D4]" />
 
@@ -318,12 +349,13 @@ const VehicleSearch = () => {
                                     type="checkbox"
                                     id="gpsNavigation"
                                     name="gpsNavigation"
-                                    value=""
-                                    className=" size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
+                                    checked={extras.gpsNavigation}
+                                    onChange={() => handleExtraChange('gpsNavigation')}
+                                    className="size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px] cursor-pointer"
                                 />
-                                <h1>GPS Navigation System</h1>
+                                <label htmlFor="gpsNavigation" className="cursor-pointer">GPS Navigation System</label>
                             </div>
-                            <h1>$155</h1>
+                            <h1>${extraPrices.gpsNavigation}</h1>
                         </div>
                         <div className="flex flex-row justify-between w-full px-5">
                             <div className="flex flex-row justify-center items-center gap-4">
@@ -331,12 +363,13 @@ const VehicleSearch = () => {
                                     type="checkbox"
                                     id="childSeat"
                                     name="childSeat"
-                                    value=""
-                                    className=" size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
+                                    checked={extras.childSeat}
+                                    onChange={() => handleExtraChange('childSeat')}
+                                    className="size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px] cursor-pointer"
                                 />
-                                <h1>Child Seat</h1>
+                                <label htmlFor="childSeat" className="cursor-pointer">Child Seat</label>
                             </div>
-                            <h1>$155</h1>
+                            <h1>${extraPrices.childSeat}</h1>
                         </div>
                         <div className="flex flex-row justify-between w-full px-5 py-5">
                             <div className="flex flex-row justify-center items-center gap-4">
@@ -344,12 +377,13 @@ const VehicleSearch = () => {
                                     type="checkbox"
                                     id="wifi"
                                     name="wifi"
-                                    value=""
-                                    className=" size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
+                                    checked={extras.wifi}
+                                    onChange={() => handleExtraChange('wifi')}
+                                    className="size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px] cursor-pointer"
                                 />
-                                <h1>Wi-fi</h1>
+                                <label htmlFor="wifi" className="cursor-pointer">Wi-fi</label>
                             </div>
-                            <h1>$155</h1>
+                            <h1>${extraPrices.wifi}</h1>
                         </div>
                         <div className="flex flex-row justify-between w-full px-5">
                             <div className="flex flex-row justify-center items-center gap-4">
@@ -357,16 +391,28 @@ const VehicleSearch = () => {
                                     type="checkbox"
                                     id="insuranceCoverage"
                                     name="insuranceCoverage"
-                                    value=""
-                                    className=" size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px]"
+                                    checked={extras.insuranceCoverage}
+                                    onChange={() => handleExtraChange('insuranceCoverage')}
+                                    className="size-[15px] border-[1px] border-[#0955AC] rounded-[2.8px] cursor-pointer"
                                 />
-                                <h1>Insurance Coverage </h1>
+                                <label htmlFor="insuranceCoverage" className="cursor-pointer">Insurance Coverage</label>
                             </div>
-                            <h1>$155</h1>
+                            <h1>${extraPrices.insuranceCoverage}</h1>
                         </div>
                     </div>
 
                     <div className="w-full h-[1px] bg-[#CDD0D4] mt-5" />
+
+                    {totalExtras > 0 && (
+                        <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
+                            <div>
+                                <h1 className="text-[#000000CC]">
+                                    Total Extras
+                                </h1>
+                            </div>
+                            <div className="text-[#000000CC]">${totalExtras.toFixed(2)}</div>
+                        </div>
+                    )}
 
                     <div className="flex flex-col md:flex-row justify-between w-full px-5 py-5 font-[500]">
                         <div>
@@ -379,7 +425,7 @@ const VehicleSearch = () => {
                             </div>
                         </div>
                         <div className="text-[#000000CC] text-[12px] font-[500]">
-                            $1567
+                            ${advancePayment.toFixed(2)}
                         </div>
                     </div>
 
@@ -389,12 +435,12 @@ const VehicleSearch = () => {
                                 Total Price Due
                             </h1>
                             <div className="flex flex-row gap-3 text-[#00000061] mt-3">
-                                <h1>$500 Refunded by</h1>
+                                <h1>${refundableDeposit} Refunded by</h1>
                                 <h1 className="text-[#0955AC]">July 27th</h1>
                             </div>
                         </div>
                         <div className="text-[#000000CC] text-[16px] font-[700]">
-                            $4567
+                            ${totalPriceDue.toFixed(2)}
                         </div>
                     </div>
 
@@ -409,20 +455,23 @@ const VehicleSearch = () => {
 
                     <div className="flex justify-center items-center">
                         <div
-                            className=" w-auto xl:w-[261px] xl:h-[29px] px-4 py-2 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] text-center cursor-pointer"
-                            // onClick={() => setShowQuoteModal(true)}
-                            onClick={() => router.visit("/multiModel/payment")}
+                            className=" w-auto xl:w-[261px] xl:h-[29px] px-4 py-2 bg-[#E8EBEF] border-[1.5px] border-[#0955AC] rounded-[5px] mt-10 flex items-center justify-center text-[12px] font-[700] text-[#0955AC] text-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={handleSelectForWholeJourney}
+                            disabled={isSelecting}
+                            style={{ opacity: isSelecting ? 0.5 : 1, cursor: isSelecting ? 'not-allowed' : 'pointer' }}
                         >
-                            SELECT FOR WHOLE JOURNEY
+                            {isSelecting ? 'SELECTING...' : 'SELECT FOR WHOLE JOURNEY'}
                         </div>
                     </div>
 
                     <div className="flex justify-center items-center">
                         <div
-                            className="w-auto xl:w-[261px] xl:h-[29px] bg-[#0955AC] px-4 py-2 rounded-[5px] mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer"
-                            onClick={() => router.visit("/multiModel/payment")}
+                            className="w-auto xl:w-[261px] xl:h-[29px] bg-[#0955AC] px-4 py-2 rounded-[5px] mt-5 flex items-center justify-center text-[12px] font-[700] text-[#FFFFFF] text-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={handleSelectForStop}
+                            disabled={isSelecting}
+                            style={{ opacity: isSelecting ? 0.5 : 1, cursor: isSelecting ? 'not-allowed' : 'pointer' }}
                         >
-                            SELECT FOR STOP
+                            {isSelecting ? 'SELECTING...' : 'SELECT FOR STOP'}
                         </div>
                     </div>
                 </div>

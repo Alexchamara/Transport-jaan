@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "@inertiajs/react";
+import axios from "axios";
 import car from "../../../assets/multiModel/planJourney/car-icon.svg";
 import bus from "../../../assets/multiModel/planJourney/bus-icon.svg";
 import ship from "../../../assets/multiModel/planJourney/ship-icon.svg";
@@ -16,6 +17,15 @@ const Hero = () => {
     const [startJourney, setStartJourney] = useState({ location: "", startDate: "", startTime: "", coordinates: null });
     const [addedStops, setAddedStops] = useState([]);
     const [endJourney, setEndJourney] = useState({ location: "", returnDate: "", returnTime: "", coordinates: null });
+    const [trips, setTrips] = useState([
+        {
+            id: Date.now(),
+            startJourney: { location: "", startDate: "", startTime: "", coordinates: null },
+            endJourney: { location: "", returnDate: "", returnTime: "", coordinates: null },
+            stops: []
+        }
+    ]);
+    const [currentTripIndex, setCurrentTripIndex] = useState(0);
     const [mapInstance, setMapInstance] = useState(null);
     const [routePreference, setRoutePreference] = useState('balanced');
     const [showAlternatives, setShowAlternatives] = useState(false);
@@ -26,6 +36,25 @@ const Hero = () => {
     const [availableCars, setAvailableCars] = useState([]);
     const [availableYachts, setAvailableYachts] = useState([]);
     const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
+    const [hasSelectedVehicles, setHasSelectedVehicles] = useState(false);
+
+    // Check cart status on component mount and when returning to page
+    useEffect(() => {
+        checkCartStatus();
+    }, []);
+
+    const checkCartStatus = async () => {
+        try {
+            const response = await axios.get('/multiModel/cart');
+            if (response.data.success) {
+                const hasVehicles = response.data.cart?.selections?.length > 0;
+                setHasSelectedVehicles(hasVehicles);
+            }
+        } catch (error) {
+            console.log('Cart check:', error.response?.data?.message || 'No vehicles selected yet');
+            setHasSelectedVehicles(false);
+        }
+    };
 
     useEffect(() => {
         const savedStart = localStorage.getItem("journeyStart");
@@ -39,6 +68,10 @@ const Hero = () => {
         const savedEnd = localStorage.getItem("journeyEnd");
         if (savedEnd) {
             setEndJourney(JSON.parse(savedEnd));
+        }
+        const savedTrips = localStorage.getItem("journeyTrips");
+        if (savedTrips) {
+            setTrips(JSON.parse(savedTrips));
         }
     }, []);
 
@@ -54,6 +87,10 @@ const Hero = () => {
         localStorage.setItem("journeyEnd", JSON.stringify(endJourney));
     }, [endJourney]);
 
+    useEffect(() => {
+        localStorage.setItem("journeyTrips", JSON.stringify(trips));
+    }, [trips]);
+
     const handleMapReady = useCallback((map) => {
         if (!mapInstance) {
             setMapInstance(map);
@@ -61,27 +98,41 @@ const Hero = () => {
     }, [mapInstance]);
 
     const handleLocationUpdate = (waypointIndex, locationData) => {
+        const currentTrip = trips[currentTripIndex];
+        const newTrips = [...trips];
+        
         if (waypointIndex === 0) {
-            setStartJourney(prev => ({
-                ...prev,
-                location: locationData.name,
-                coordinates: locationData.coordinates
-            }));
-        } else if (waypointIndex === (addedStops.length + 1)) {
-            setEndJourney(prev => ({
-                ...prev,
-                location: locationData.name,
-                coordinates: locationData.coordinates
-            }));
+            newTrips[currentTripIndex] = {
+                ...currentTrip,
+                startJourney: {
+                    ...currentTrip.startJourney,
+                    location: locationData.name,
+                    coordinates: locationData.coordinates
+                }
+            };
+        } else if (waypointIndex === (currentTrip.stops.length + 1)) {
+            newTrips[currentTripIndex] = {
+                ...currentTrip,
+                endJourney: {
+                    ...currentTrip.endJourney,
+                    location: locationData.name,
+                    coordinates: locationData.coordinates
+                }
+            };
         } else {
-            const newStops = [...addedStops];
+            const newStops = [...currentTrip.stops];
             newStops[waypointIndex - 1] = {
                 ...newStops[waypointIndex - 1],
                 destination: locationData.name,
                 coordinates: locationData.coordinates
             };
-            setAddedStops(newStops);
+            newTrips[currentTripIndex] = {
+                ...currentTrip,
+                stops: newStops
+            };
         }
+        
+        setTrips(newTrips);
     };
 
     const handleRouteCalculated = (duration, segments) => {
@@ -91,20 +142,129 @@ const Hero = () => {
         }
     };
 
+    const storeJourneyInSession = async () => {
+        // Build legs array from ALL trips
+        const legs = [];
+        
+        // Process all trips, not just current one
+        for (let tripIndex = 0; tripIndex < trips.length; tripIndex++) {
+            const trip = trips[tripIndex];
+            
+            // Validate minimum requirements for each trip
+            if (!trip.startJourney.location || !trip.startJourney.startDate || !trip.startJourney.startTime) {
+                alert(`Please fill in start location, date, and time for Trip ${tripIndex + 1}.`);
+                return false;
+            }
+            
+            if (!trip.endJourney.location || !trip.endJourney.returnDate || !trip.endJourney.returnTime) {
+                alert(`Please fill in end location, date, and time for Trip ${tripIndex + 1}.`);
+                return false;
+            }
+        
+        // Create first leg: start → first stop (or end if no stops)
+        if (trip.stops && trip.stops.length > 0) {
+            // First leg: start → first stop
+            legs.push({
+                from_location: trip.startJourney.location,
+                to_location: trip.stops[0].destination || trip.endJourney.location,
+                start_date: trip.startJourney.startDate,
+                start_time: trip.startJourney.startTime,
+                end_date: trip.stops[0].departureDate || trip.endJourney.returnDate,
+                end_time: trip.stops[0].departureTime || trip.endJourney.returnTime,
+                vehicle_type: 'land', // Default, can be made dynamic later
+                trip_id: tripIndex // Add trip identifier
+            });
+            
+            // Middle legs: stop to stop
+            for (let i = 0; i < trip.stops.length - 1; i++) {
+                legs.push({
+                    from_location: trip.stops[i].destination,
+                    to_location: trip.stops[i + 1].destination,
+                    start_date: trip.stops[i].departureDate || trip.stops[i].returnDate,
+                    start_time: trip.stops[i].departureTime || trip.stops[i].returnTime,
+                    end_date: trip.stops[i + 1].departureDate || trip.stops[i + 1].returnDate,
+                    end_time: trip.stops[i + 1].departureTime || trip.stops[i + 1].returnTime,
+                    vehicle_type: 'land',
+                    trip_id: tripIndex // Add trip identifier
+                });
+            }
+            
+            // Last leg: last stop → end
+            const lastStop = trip.stops[trip.stops.length - 1];
+            legs.push({
+                from_location: lastStop.destination,
+                to_location: trip.endJourney.location,
+                start_date: lastStop.returnDate || lastStop.departureDate,
+                start_time: lastStop.returnTime || lastStop.departureTime,
+                end_date: trip.endJourney.returnDate,
+                end_time: trip.endJourney.returnTime,
+                vehicle_type: 'land',
+                trip_id: tripIndex // Add trip identifier
+            });
+        } else {
+            // Single leg: start → end (no stops)
+            legs.push({
+                from_location: trip.startJourney.location,
+                to_location: trip.endJourney.location,
+                start_date: trip.startJourney.startDate,
+                start_time: trip.startJourney.startTime,
+                end_date: trip.endJourney.returnDate,
+                end_time: trip.endJourney.returnTime,
+                vehicle_type: 'land',
+                trip_id: tripIndex // Add trip identifier
+            });
+        }
+        } // End of trip loop
+        
+        try {
+            const response = await fetch('/multiModel/journey/store', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ legs })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                console.log('✅ Journey stored in session successfully');
+                return true;
+            } else {
+                console.error('❌ Failed to store journey:', data.message);
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error storing journey:', error);
+            return false;
+        }
+    };
+
     const fetchAvailableVehicles = async () => {
         setIsLoadingVehicles(true);
         
-        // Determine the date range for fetching vehicles
-        // Use start date/time to first stop (or end date/time if no stops)
-        const startDate = startJourney.startDate;
-        const startTime = startJourney.startTime;
-        let endDate = endJourney.returnDate;
-        let endTime = endJourney.returnTime;
+        // FIRST: Store ALL trips in session
+        const stored = await storeJourneyInSession();
+        if (!stored) {
+            alert('Failed to store journey. Please check your journey details and try again.');
+            setIsLoadingVehicles(false);
+            return;
+        }
+        
+        // Get current trip data
+        const currentTrip = trips[currentTripIndex];
+        console.log('Fetching vehicles for Trip', currentTripIndex + 1, 'of', trips.length);
+        
+        // Determine the date range for fetching vehicles (first leg)
+        const startDate = currentTrip.startJourney.startDate;
+        const startTime = currentTrip.startJourney.startTime;
+        let endDate = currentTrip.endJourney.returnDate;
+        let endTime = currentTrip.endJourney.returnTime;
 
-        // If there are stops, use the first stop's departure date/time as the end
-        if (addedStops.length > 0) {
-            endDate = addedStops[0].departureDate;
-            endTime = addedStops[0].departureTime;
+        // If there are stops, use the first stop's date/time as the end of first leg
+        if (currentTrip.stops && currentTrip.stops.length > 0) {
+            endDate = currentTrip.stops[0].departureDate || currentTrip.endJourney.returnDate;
+            endTime = currentTrip.stops[0].departureTime || currentTrip.endJourney.returnTime;
         }
 
         try {
@@ -259,6 +419,10 @@ const Hero = () => {
                         setAddedStops={setAddedStops} 
                         endJourney={endJourney} 
                         setEndJourney={setEndJourney}
+                        trips={trips}
+                        setTrips={setTrips}
+                        currentTripIndex={currentTripIndex}
+                        setCurrentTripIndex={setCurrentTripIndex}
                         routeDuration={routeDuration}
                         segmentDurations={segmentDurations}
                         onFindVehicles={fetchAvailableVehicles}
@@ -269,15 +433,15 @@ const Hero = () => {
                     <div className="w-full xl:h-[295px] bg-[#F4F3F3] shadow-lg rounded-[20px] overflow-hidden mt-10 xl:mt-0">
                         {/* OpenStreetMap Component */}
                         <MapComponent
-                            startLocation={startJourney.coordinates ? {
-                                name: startJourney.location,
-                                coordinates: startJourney.coordinates
+                            startLocation={trips[currentTripIndex]?.startJourney.coordinates ? {
+                                name: trips[currentTripIndex].startJourney.location,
+                                coordinates: trips[currentTripIndex].startJourney.coordinates
                             } : null}
-                            endLocation={endJourney.coordinates ? {
-                                name: endJourney.location,
-                                coordinates: endJourney.coordinates
+                            endLocation={trips[currentTripIndex]?.endJourney.coordinates ? {
+                                name: trips[currentTripIndex].endJourney.location,
+                                coordinates: trips[currentTripIndex].endJourney.coordinates
                             } : null}
-                            stops={addedStops}
+                            stops={trips[currentTripIndex]?.stops || []}
                             onMapReady={handleMapReady}
                             onLocationUpdate={handleLocationUpdate}
                             onRouteCalculated={handleRouteCalculated}
@@ -290,10 +454,10 @@ const Hero = () => {
                     <div className="relative flex flex-col items-center justify-center">
                         <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
                         <h3 className="absolute top-6">From</h3>
-                        {startJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{startJourney.location}</h4>}
+                        {trips[currentTripIndex]?.startJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{trips[currentTripIndex].startJourney.location}</h4>}
                     </div>
 
-                    {addedStops.length > 0 ? addedStops.map((stop, index) => (
+                    {trips[currentTripIndex]?.stops.length > 0 ? trips[currentTripIndex].stops.map((stop, index) => (
                         <div key={stop.id} className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]">
                             <div className="absolute left-1/2 -translate-x-1/2 flex flex-col justify-center items-center gap-1">
                                 <div className=" size-[16px] bg-[#C6C6C6] rounded-full" />
@@ -308,9 +472,28 @@ const Hero = () => {
                     <div className="relative flex flex-col items-center justify-center">
                         <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
                         <h3 className="absolute top-6">To</h3>
-                        {endJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{endJourney.location}</h4>}
+                        {trips[currentTripIndex]?.endJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{trips[currentTripIndex].endJourney.location}</h4>}
                     </div>
                 </div>
+
+                    {/* Review Journey Button */}
+                    <div className="flex justify-center items-center mt-5">
+                        {hasSelectedVehicles ? (
+                            <Link
+                                href="/multiModel/reviewJourney"
+                                className="w-full max-w-[400px] h-[50px] bg-[#0955AC] hover:bg-[#073d80] rounded-[10px] flex justify-center items-center text-[16px] font-[700] text-[#FFFFFF] transition-colors shadow-lg"
+                            >
+                                📋 Review Journey & Proceed to Checkout
+                            </Link>
+                        ) : (
+                            <div
+                                className="w-full max-w-[400px] h-[50px] bg-gray-400 rounded-[10px] flex justify-center items-center text-[16px] font-[700] text-[#FFFFFF] cursor-not-allowed opacity-60"
+                                title="Please select at least one vehicle first"
+                            >
+                                📋 Review Journey & Proceed to Checkout
+                            </div>
+                        )}
+                    </div>
 
                     {!showVehicles ? (
                         // Available Vehicles Card
@@ -388,6 +571,8 @@ const Hero = () => {
                     ) : (
                         <AvailableVehicles 
                             onBackToJourney={() => setShowVehicles(false)}
+                            currentTripIndex={currentTripIndex}
+                            trips={trips}
                             onVehicleSelect={(vehicleData) => {
                                 console.log("Selected vehicle:", vehicleData);
                                 // Handle vehicle selection here

@@ -210,10 +210,30 @@ const vehicleData = {
     ],
 };
 
-const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [], availableYachts = [] }) => {
+const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [], availableYachts = [], currentTripIndex = 0, trips = [] }) => {
     const [activeSection, setActiveSection] = useState("car");
     const [carPage, setCarPage] = useState(0);
     const [isTransitioning, setIsTransitioning] = useState(false);
+
+    // Calculate the starting leg index for the current trip
+    const getFirstLegIndexForCurrentTrip = () => {
+        let legIndex = 0;
+        for (let i = 0; i < currentTripIndex; i++) {
+            const trip = trips[i];
+            // Count legs for this trip
+            if (trip.stops && trip.stops.length > 0) {
+                // Has stops: start → stop1, stop1 → stop2, ..., lastStop → end
+                legIndex += trip.stops.length + 1;
+            } else {
+                // No stops: just start → end
+                legIndex += 1;
+            }
+        }
+        return legIndex;
+    };
+
+    const currentLegIndex = getFirstLegIndexForCurrentTrip();
+    console.log(`Current Trip: ${currentTripIndex + 1}, First Leg Index: ${currentLegIndex}, Total Trips: ${trips.length}`);
 
     const handleSectionChange = (newSection) => {
         if (newSection !== activeSection && !isTransitioning) {
@@ -324,9 +344,8 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                     >
                         {availableCars.length > 0 ? (
                             availableCars.map((vehicle, index) => (
-                            <Link
+                            <div
                                 key={`${carPage}-${index}`}
-                                href="/multiModel/vehicleDetails"
                                 className="min-w-[217px] min-h-[295px] bg-[#F4F3F3] rounded-[10px] shadow-lg p-5 transition-all duration-300 ease-in-out hover:scale-95 transform cursor-pointer"
                             >
                                 <div className="flex flex-row justify-between items-center">
@@ -383,9 +402,12 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                                         </h1>
 
                                         <div className="flex flex-row gap-2 justify-between">
-                                            <div className="w-[127px] h-[22px] rounded-[4px] bg-[#0955AC] flex justify-center items-center text-[10px] font-[700] text-[#FFFFFF] mx-auto p-1 cursor-pointer">
+                                            <Link
+                                                href={`/multiModel/vehicleDetails/${vehicle.id}?legIndex=${currentLegIndex}`}
+                                                className="w-[127px] h-[22px] rounded-[4px] bg-[#0955AC] flex justify-center items-center text-[10px] font-[700] text-[#FFFFFF] mx-auto p-1 cursor-pointer"
+                                            >
                                                 More Details
-                                            </div>
+                                            </Link>
 
                                             <div className="size-[22px] border-[1px] rounded-[4px] border-[#0955AC] flex justify-center items-center p-1 cursor-pointer">
                                                 <img src={heart} className="mx-auto" />
@@ -393,7 +415,7 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                                         </div>
                                     </div>
                                 </div>
-                            </Link>
+                            </div>
                         ))
                         ) : (
                             <div className="text-center py-10">
@@ -830,9 +852,8 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                     >
                         {availableYachts.length > 0 ? (
                             availableYachts.map((vehicle, index) => (
-                            <Link
+                            <div
                                 key={index}
-                                href="/multiModel/yatch/yatchDetails"
                                 className="min-w-[217px] min-h-[295px] bg-[#F4F3F3] rounded-[10px] shadow-lg p-5 transition-all duration-300 ease-in-out hover:scale-95 transform cursor-pointer"
                             >
                                 <div className="flex flex-col justify-center items-center gap-2">
@@ -877,9 +898,12 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                                         </h1>
 
                                         <div className="flex flex-row gap-2 justify-between mt-2">
-                                            <div className="w-[127px] h-[22px] rounded-[4px] bg-[#0955AC] flex justify-center items-center text-[10px] font-[700] text-[#FFFFFF] mx-auto p-1 cursor-pointer">
+                                            <Link
+                                                href={`/multiModel/vehicleDetails/${vehicle.id}?legIndex=${currentLegIndex}`}
+                                                className="w-[127px] h-[22px] rounded-[4px] bg-[#0955AC] flex justify-center items-center text-[10px] font-[700] text-[#FFFFFF] mx-auto p-1 cursor-pointer"
+                                            >
                                                 More Details
-                                            </div>
+                                            </Link>
 
                                             <div className="size-[22px] border-[1px] rounded-[4px] border-[#0955AC] flex justify-center items-center p-1 cursor-pointer">
                                                 <img src={heart} className="mx-auto" />
@@ -887,7 +911,7 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                                         </div>
                                     </div>
                                 </div>
-                            </Link>
+                            </div>
                         ))
                         ) : (
                             <div className="text-center py-10">

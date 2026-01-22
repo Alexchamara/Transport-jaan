@@ -3,7 +3,7 @@ import car from "../../../assets/multiModel/reviewJourney/miniCar.svg";
 import bus from "../../../assets/multiModel/reviewJourney/miniBus.svg";
 import tram from "../../../assets/multiModel/reviewJourney/miniTram.svg";
 
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 
 import map from "../../../assets/multiModel/reviewJourney/map.svg";
 
@@ -21,12 +21,24 @@ import bg5 from "../../../assets/multiModel/bg5.jpg";
 import bg6 from "../../../assets/multiModel/bg6.jpg";
 
 import leftArrow from "../../../assets/multiModel/payment/leftArrow.svg";
-
+import axios from "axios";
 
 const HERO_BACKGROUNDS = [bg, bg2, bg3, bg4, bg5, bg6];
 
 const Hero = () => {
     const [activeBgIndex, setActiveBgIndex] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState({});
+    
+    const [leadPassenger, setLeadPassenger] = useState({
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        country_code: "+94"
+    });
+    
+    const [additionalPassengers, setAdditionalPassengers] = useState([]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -34,6 +46,84 @@ const Hero = () => {
         }, 6000);
         return () => clearInterval(interval);
     }, []);
+
+    const handleLeadPassengerChange = (field, value) => {
+        setLeadPassenger(prev => ({ ...prev, [field]: value }));
+        if (errors[field]) {
+            setErrors(prev => ({ ...prev, [field]: null }));
+        }
+    };
+
+    const addPassenger = () => {
+        setAdditionalPassengers(prev => [
+            ...prev,
+            { first_name: "", last_name: "" }
+        ]);
+    };
+
+    const removePassenger = (index) => {
+        setAdditionalPassengers(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAdditionalPassengerChange = (index, field, value) => {
+        setAdditionalPassengers(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            return updated;
+        });
+    };
+
+    const validateForm = () => {
+        const newErrors = {};
+        
+        if (!leadPassenger.first_name.trim()) {
+            newErrors.first_name = "First name is required";
+        }
+        if (!leadPassenger.last_name.trim()) {
+            newErrors.last_name = "Last name is required";
+        }
+        if (!leadPassenger.email.trim()) {
+            newErrors.email = "Email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadPassenger.email)) {
+            newErrors.email = "Invalid email format";
+        }
+        if (!leadPassenger.phone.trim()) {
+            newErrors.phone = "Phone number is required";
+        } else if (!/^\d{7,15}$/.test(leadPassenger.phone.replace(/\s/g, ''))) {
+            newErrors.phone = "Phone number must be 7-15 digits";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleContinue = async () => {
+        if (!validateForm()) {
+            return;
+        }
+
+        setLoading(true);
+        
+        try {
+            const response = await axios.post('/multiModel/personal-info', {
+                ...leadPassenger,
+                phone: `${leadPassenger.country_code}${leadPassenger.phone}`,
+            });
+
+            if (response.data.success) {
+                router.visit('/multiModel/payment');
+            }
+        } catch (error) {
+            console.error('Error saving passenger info:', error);
+            if (error.response?.data?.errors) {
+                setErrors(error.response.data.errors);
+            } else {
+                alert('Failed to save passenger information. Please try again.');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="px-10 py-10">
@@ -77,7 +167,10 @@ const Hero = () => {
                                             type="text"
                                             className="w-full xl:w-[350px] xl:h-[50px] border border-[#C4C4C4] rounded-[5px] px-3 placeholder:text-[#00000033] placeholder:text-[12px]"
                                             placeholder="Enter first name"
+                                            value={leadPassenger.first_name}
+                                            onChange={(e) => handleLeadPassengerChange('first_name', e.target.value)}
                                         />
+                                        {errors.first_name && <span className="text-red-500 text-xs mt-1">{errors.first_name}</span>}
                                     </div>
                                     <div className="flex flex-col w-full">
                                         <label className="text-[10px]/[24px] font-[600]">
@@ -87,7 +180,10 @@ const Hero = () => {
                                             type="text"
                                             className="w-full xl:w-[350px] xl:h-[50px] border border-[#C4C4C4] rounded-[5px] px-3 placeholder:text-[#00000033] placeholder:text-[12px]"
                                             placeholder="Enter last name"
+                                            value={leadPassenger.last_name}
+                                            onChange={(e) => handleLeadPassengerChange('last_name', e.target.value)}
                                         />
+                                        {errors.last_name && <span className="text-red-500 text-xs mt-1">{errors.last_name}</span>}
                                     </div>
                                 </div>
 
@@ -100,7 +196,10 @@ const Hero = () => {
                                             type="email"
                                             className="w-full xl:w-[350px] xl:h-[50px] border border-[#C4C4C4] rounded-[5px] px-3 placeholder:text-[#00000033] placeholder:text-[12px]"
                                             placeholder="Enter email address"
+                                            value={leadPassenger.email}
+                                            onChange={(e) => handleLeadPassengerChange('email', e.target.value)}
                                         />
+                                        {errors.email && <span className="text-red-500 text-xs mt-1">{errors.email}</span>}
                                     </div>
                                     <div className="flex flex-col w-full">
                                         <label className="text-[10px]/[24px] font-[600]">
@@ -110,15 +209,20 @@ const Hero = () => {
                                             <input
                                                 type="text"
                                                 className="w-[35px] md:w-[65px] xl:h-[50px] border border-[#C4C4C4] rounded-[5px] px-3 placeholder:text-[#00000033] placeholder:text-[12px] mr-3"
-                                                placeholder="+1"
+                                                placeholder="+94"
+                                                value={leadPassenger.country_code}
+                                                onChange={(e) => handleLeadPassengerChange('country_code', e.target.value)}
                                             />
 
                                             <input
                                                 type="text"
                                                 className="w-full xl:w-[273px] xl:h-[50px] border border-[#C4C4C4] rounded-[5px] px-3 placeholder:text-[#00000033] placeholder:text-[12px]"
                                                 placeholder="Enter phone number"
+                                                value={leadPassenger.phone}
+                                                onChange={(e) => handleLeadPassengerChange('phone', e.target.value)}
                                             />
                                         </div>
+                                        {errors.phone && <span className="text-red-500 text-xs mt-1">{errors.phone}</span>}
                                     </div>
                                 </div>
                             </div>
@@ -161,17 +265,67 @@ const Hero = () => {
                             </div>
                         </div>
 
-                        <div className="xl:w-[259px] shadow-lg xl:min-h-[44px] bg-[#0955AC] rounded-[4px] text-[16px] text-[#FFFFFF] font-[700] flex items-center justify-center gap-2 cursor-pointer px-4 py-2">
+                        {additionalPassengers.map((passenger, index) => (
+                            <div key={index} className="w-full min-h-[181px] shadow-lg bg-[#F4F3F3] rounded-[10px] px-5 md:px-10 py-5 mt-5">
+                                <div className="flex flex-col md:flex-row md:justify-between items-start gap-3">
+                                    <h1 className="text-[20px] font-[700]">
+                                        Additional Passenger {index + 1}
+                                    </h1>
+                                    <button 
+                                        onClick={() => removePassenger(index)}
+                                        className="flex flex-row justify-center items-center gap-1 cursor-pointer"
+                                    >
+                                        <img src={trash} className="size-[12px]" />
+                                        <h1 className="text-[#FF0000] font-[700] text-[12px]">
+                                            Remove
+                                        </h1>
+                                    </button>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row justify-between gap-5 md:gap-10 poppins mt-5">
+                                    <div className="flex flex-col w-full">
+                                        <label className="text-[10px]/[24px] font-[600]">
+                                            First Name:
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="w-full xl:w-[360px] h-[50px] border border-[#C4C4C4] rounded-[5px] px-3 placeholder:text-[#00000033] placeholder:text-[12px]"
+                                            placeholder="Enter first name"
+                                            value={passenger.first_name}
+                                            onChange={(e) => handleAdditionalPassengerChange(index, 'first_name', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="flex flex-col w-full">
+                                        <label className="text-[10px]/[24px] font-[600]">
+                                            Last Name:
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="w-full xl:w-[360px] h-[50px] border border-[#C4C4C4] rounded-[5px] px-3 placeholder:text-[#00000033] placeholder:text-[12px]"
+                                            placeholder="Enter last name"
+                                            value={passenger.last_name}
+                                            onChange={(e) => handleAdditionalPassengerChange(index, 'last_name', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        <button
+                            onClick={addPassenger}
+                            className="xl:w-[259px] shadow-lg xl:min-h-[44px] bg-[#0955AC] hover:bg-[#073d7a] rounded-[4px] text-[16px] text-[#FFFFFF] font-[700] flex items-center justify-center gap-2 cursor-pointer px-4 py-2 transition-colors mt-5"
+                        >
                             <img src={plus} />
                             <h1>Add another passenger</h1>
-                        </div>
+                        </button>
 
-                        <Link
-                            href="/multiModel/payment"
-                            className="w-full shadow-lg xl:min-h-[49px] bg-[#0955AC] rounded-[4px] text-[16px] text-[#FFFFFF] font-[700] flex items-center justify-center gap-2 cursor-pointer px-4 py-2"
+                        <button
+                            onClick={handleContinue}
+                            disabled={loading}
+                            className="w-full shadow-lg xl:min-h-[49px] bg-[#0955AC] hover:bg-[#073d7a] disabled:bg-gray-400 disabled:cursor-not-allowed rounded-[4px] text-[16px] text-[#FFFFFF] font-[700] flex items-center justify-center gap-2 cursor-pointer px-4 py-2 transition-colors mt-5"
                         >
-                            Continue to Payment
-                        </Link>
+                            {loading ? 'Saving...' : 'Continue to Payment'}
+                        </button>
                     </div>
                 </div>
                 {/* right side */}

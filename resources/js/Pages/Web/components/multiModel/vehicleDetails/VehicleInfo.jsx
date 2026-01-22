@@ -11,18 +11,18 @@ import GalleryTab from "./GalleryTab";
 
 import heartB2 from "../../../assets/landVehicleDetails/heartB2.svg"
 
-const VehicleInfo = () => {
+const VehicleInfo = ({ vehicle }) => {
     const [selectedTab, setSelectedTab] = useState("car-details");
     return (
         <div className="poppins w-full h-auto p-10 xl:p-0">
             <h1 className="text-[12px] font-[600] text-[#00000080]">
-                Lamborghini
+                {vehicle?.manufacturer || 'Vehicle'}
             </h1>
             <div className="flex flex-col md:flex-row justify-between">
                 <div className="flex flex-col md:flex-row gap-5">
                     <h1 className="bebas-neue text-[30px]">
-                        Lamborghini <span className="text-[#0955AC]">urus</span>{" "}
-                        (2020)
+                        {vehicle?.manufacturer || 'Vehicle'} <span className="text-[#0955AC]">{vehicle?.name || 'Model'}</span>{" "}
+                        ({vehicle?.year || '2020'})
                     </h1>
 
                     <div className="flex flex-row items-center gap-2">
@@ -46,8 +46,8 @@ const VehicleInfo = () => {
 
             <div className="flex flex-row gap-5 text-[12px] font-[600]">
                 <img src={star} />
-                <h1>4.8</h1>
-                <h1 className="underline">44 Reviews</h1>
+                <h1>{vehicle?.rating ? vehicle.rating.toFixed(1) : '0.0'}</h1>
+                <h1 className="underline">{vehicle?.totalReviews || 0} Reviews</h1>
             </div>
 
             <div className="py-10">
@@ -96,10 +96,10 @@ const VehicleInfo = () => {
             </div>
 
             {/* Tab Content */}
-            {selectedTab === "car-details" && <CarDetailsTab />}
-            {selectedTab === "policies" && <PoliciesTab />}
-            {selectedTab === "reviews" && <ReviewsTab />}
-            {selectedTab === "gallery" && <GalleryTab />}
+            {selectedTab === "car-details" && <CarDetailsTab vehicle={vehicle} />}
+            {selectedTab === "policies" && <PoliciesTab vehicle={vehicle} />}
+            {selectedTab === "reviews" && <ReviewsTab vehicle={vehicle} />}
+            {selectedTab === "gallery" && <GalleryTab vehicle={vehicle} />}
         </div>
     );
 };

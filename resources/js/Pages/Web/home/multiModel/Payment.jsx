@@ -2,11 +2,11 @@ import React from 'react'
 import Header from "./HeaderTwo";
 import Hero from '../../components/multiModel/payment/Hero.jsx';
 
-const Payment = () => {
+const Payment = ({ cart, pricing, journey, personal_info }) => {
   return (
     <div>
      <Header />
-     <Hero />
+     <Hero cart={cart} pricing={pricing} journey={journey} personalInfo={personal_info} />
     </div>
   )
 }

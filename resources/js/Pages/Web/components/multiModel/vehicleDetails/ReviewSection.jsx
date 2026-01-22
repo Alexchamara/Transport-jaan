@@ -72,8 +72,16 @@ const ReviewSection = () => {
         },
     ];
 
-    // Show only first 2 reviews initially, show all when expanded
+    // Show only first 4 reviews initially, show all when expanded
     const displayedReviews = showMore ? reviews : reviews.slice(0, 4);
+
+    if (reviews.length === 0) {
+        return (
+            <div className="plus-jakarta-sans w-auto h-auto xl:h-auto rounded-[10px] py-5">
+                <p className="text-[14px] text-[#90A3BF] text-center">No reviews yet for this vehicle.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="plus-jakarta-sans w-auto h-auto xl:h-auto rounded-[10px] py-5 ">
@@ -87,21 +95,25 @@ const ReviewSection = () => {
                             <img src={proPic} alt="Profile" />
                             <div className="flex flex-col items-start gap-2">
                                 <h1 className="text-[14px] font-[700]">
-                                    {review.name}
+                                    {review.user_name || 'Anonymous'}
                                 </h1>
                                 <h1 className="text-[#90A3BF]">
-                                    {review.location}
+                                    Verified Customer
                                 </h1>
                             </div>
                         </div>
                         <div className="flex flex-col items-start lg:items-end gap-2">
-                            <h1 className="text-[#90A3BF]">{review.date}</h1>
-                            <img src={stars} alt="Rating" />
+                            <h1 className="text-[#90A3BF]">{review.created_at}</h1>
+                            <div className="flex flex-row gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                    <span key={i} className={`text-[16px] ${i < review.rating ? 'text-[#FFC107]' : 'text-[#D3D3D3]'}`}>★</span>
+                                ))}
+                            </div>
                         </div>
                     </div>
                     <div>
                         <p className="font-[400] text-[12px]/[33px] text-justify">
-                            {review.comment}
+                            {review.comment || 'No comment provided.'}
                         </p>
                     </div>
                 </div>

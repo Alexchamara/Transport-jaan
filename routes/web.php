@@ -17,6 +17,7 @@ use App\Http\Controllers\WarehouseControllers\Client\WarehouseBookingController;
 use App\Http\Controllers\User\UserDashboardController;
 use Illuminate\Foundation\Application;
 use App\Http\Controllers\WarehouseControllers\Vendor\WarehouseUnitController;
+use App\Http\Controllers\MultiModel\MultiModelBookingController;
 
 // Vendor controllers
 use App\Http\Controllers\Vendor\VehicleController;
@@ -154,7 +155,33 @@ Route::post('/multiModel/fetch-available-vehicles', [WebController::class, 'fetc
 Route::get('/multiModel/reviewJourney', [WebController::class, 'ReviewJourney'])->name('ReviewJourney.reviewJourney');
 Route::get('/multiModel/travellerDetails', [WebController::class, 'TravellerDetails'])->name('TravellerDetails.travellerDetails');
 Route::get('/multiModel/payment', [WebController::class, 'Payment'])->name('Payment.payment');
-Route::get('/multiModel/vehicleDetails', [WebController::class, 'MultimodelVehicleDetails'])->name('MultimodelVehicleDetails.multimodelVehicleDetails');
+Route::get('/multiModel/vehicleDetails/{vehicle}', [WebController::class, 'MultimodelVehicleDetails'])->name('MultimodelVehicleDetails.multimodelVehicleDetails');
+
+// Multi-Model Booking API Routes
+Route::prefix('multiModel')->name('multiModel.')->group(function () {
+    // Journey management
+    Route::post('/journey/store', [MultiModelBookingController::class, 'storeJourneyPlan'])->name('journey.store');
+    Route::get('/journey/get', [MultiModelBookingController::class, 'getJourneyPlan'])->name('journey.get');
+    
+    // Vehicle selection for legs
+    Route::post('/leg/{legIndex}/available-vehicles', [MultiModelBookingController::class, 'getAvailableVehiclesForLeg'])->name('leg.vehicles');
+    Route::post('/leg/{legIndex}/select-vehicle', [MultiModelBookingController::class, 'selectVehicleForLeg'])->name('leg.select');
+    Route::delete('/leg/{legIndex}/remove-vehicle', [MultiModelBookingController::class, 'removeVehicleFromLeg'])->name('leg.remove');
+    
+    // Cart management
+    Route::get('/cart', [MultiModelBookingController::class, 'getCart'])->name('cart.get');
+    
+    // Personal info (no auth required - stores in session)
+    Route::post('/personal-info', [MultiModelBookingController::class, 'storePersonalInfo'])->name('personalInfo.store');
+    
+    // Checkout and payment (protected)
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/checkout', [MultiModelBookingController::class, 'showCheckout'])->name('checkout');
+        Route::get('/payment-page', [MultiModelBookingController::class, 'showPayment'])->name('payment.show');
+        Route::post('/confirm', [MultiModelBookingController::class, 'confirmBooking'])->name('booking.confirm');
+        Route::get('/booking/{id}/summary', [MultiModelBookingController::class, 'showSummary'])->name('booking.summary');
+    });
+});
 
 // bus section
 Route::get('/multiModel/bus/busDetails', [WebController::class, 'BusDetails'])->name('BusDetails.busDetails');

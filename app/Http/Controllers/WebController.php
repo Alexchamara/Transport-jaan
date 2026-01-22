@@ -263,14 +263,152 @@ class WebController extends Controller
 
     public function Payment()
     {
-        return Inertia::render('Web/home/multiModel/Payment');
+        $journey = session('multimodel_journey');
+        $cart = session('multimodel_cart', ['selections' => []]);
+        $personalInfo = session('multimodel_personal');
+
+        // Calculate totals
+        $subtotal = 0;
+        $totalDeposit = 0;
+        $totalAdvance = 0;
+
+        if (isset($cart['selections']) && is_array($cart['selections'])) {
+            foreach ($cart['selections'] as $selection) {
+                $subtotal += $selection['total_amount'] ?? 0;
+                $totalDeposit += $selection['deposit_amount'] ?? 0;
+                $totalAdvance += $selection['advance_amount'] ?? 0;
+            }
+        }
+
+        return Inertia::render('Web/home/multiModel/Payment', [
+            'journey' => $journey,
+            'cart' => $cart,
+            'personal_info' => $personalInfo,
+            'pricing' => [
+                'subtotal' => $subtotal,
+                'deposit' => $totalDeposit,
+                'advance' => $totalAdvance,
+                'total' => $subtotal,
+            ]
+        ]);
     }
 
     
 
-    public function MultimodelVehicleDetails()
+    public function MultimodelVehicleDetails(Request $request, $vehicleId)
     {
-        return Inertia::render('Web/home/multiModel/VehicleDetails');
+        // Fetch the vehicle with its relationships
+        $vehicle = Vehicle::with(['landSpec', 'seaSpec', 'airSpec', 'images', 'reviews.user', 'provider'])
+            ->where('id', $vehicleId)
+            ->where('status', 'active')
+            ->where('approval_status', 'approved')
+            ->firstOrFail();
+
+        // Get leg index from request (defaults to 0 if not provided)
+        $legIndex = $request->query('legIndex', 0);
+
+        // Get journey data from session if available
+        $journeyData = session('multimodel_journey', null);
+        
+        // If no journey exists, create a temporary one for testing
+        if (!$journeyData) {
+            $journeyData = [
+                'legs' => [
+                    [
+                        'from_location' => 'Colombo',
+                        'to_location' => 'Kandy',
+                        'start_date' => now()->addDays(1)->format('Y-m-d'),
+                        'start_time' => '09:00',
+                        'end_date' => now()->addDays(2)->format('Y-m-d'),
+                        'end_time' => '18:00',
+                        'vehicle_type' => $vehicle->type,
+                    ]
+                ]
+            ];
+            session(['multimodel_journey' => $journeyData]);
+        }
+
+        // Get primary image
+        $primaryImage = $vehicle->images->first();
+
+        // Prepare vehicle data
+        $vehicleData = [
+            'id' => $vehicle->id,
+            'name' => $vehicle->model,
+            'manufacturer' => $vehicle->manufacturer,
+            'year' => $vehicle->year,
+            'type' => $vehicle->type,
+            'price' => $vehicle->rental_price_per_day,
+            'passengerCapacity' => $vehicle->passenger_capacity,
+            'location' => $vehicle->location,
+            'description' => $vehicle->description,
+            'rating' => $vehicle->reviews->avg('rating') ?? 0,
+            'totalReviews' => $vehicle->reviews->count(),
+            'image' => $primaryImage ? $primaryImage->url : null,
+            'images' => $vehicle->images->map(function($img) {
+                return [
+                    'id' => $img->id,
+                    'url' => $img->url,
+                    'type' => $img->type
+                ];
+            }),
+            'specs' => null,
+            'provider' => $vehicle->provider ? [
+                'id' => $vehicle->provider->id,
+                'name' => $vehicle->provider->name,
+                'email' => $vehicle->provider->email,
+                'phone' => $vehicle->provider->phone,
+                'business_name' => $vehicle->provider->business_name
+            ] : null,
+            'reviews' => $vehicle->reviews->map(function($review) {
+                return [
+                    'id' => $review->id,
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                    'user_name' => $review->user ? $review->user->name : 'Anonymous',
+                    'created_at' => $review->created_at->format('Y-m-d')
+                ];
+            })
+        ];
+
+        // Add type-specific specs
+        if ($vehicle->type === 'land' && $vehicle->landSpec) {
+            $vehicleData['specs'] = [
+                'bodyType' => $vehicle->landSpec->body_type,
+                'transmission' => $vehicle->landSpec->transmission,
+                'fuelType' => $vehicle->landSpec->fuel_type,
+                'seatingCapacity' => $vehicle->landSpec->seating_capacity,
+                'doors' => $vehicle->landSpec->doors,
+                'engineCapacity' => $vehicle->landSpec->engine_capacity,
+                'color' => $vehicle->landSpec->color
+            ];
+        } else if ($vehicle->type === 'sea' && $vehicle->seaSpec) {
+            $vehicleData['specs'] = [
+                'length' => $vehicle->seaSpec->length,
+                'beam' => $vehicle->seaSpec->beam,
+                'draft' => $vehicle->seaSpec->draft,
+                'cabins' => $vehicle->seaSpec->cabins,
+                'engineType' => $vehicle->seaSpec->engine_type,
+                'maxSpeed' => $vehicle->seaSpec->max_speed
+            ];
+        } else if ($vehicle->type === 'air' && $vehicle->airSpec) {
+            $vehicleData['specs'] = [
+                'aircraftType' => $vehicle->airSpec->aircraft_type,
+                'maxAltitude' => $vehicle->airSpec->max_altitude,
+                'range' => $vehicle->airSpec->range,
+                'cruiseSpeed' => $vehicle->airSpec->cruise_speed,
+                'engineType' => $vehicle->airSpec->engine_type
+            ];
+        }
+
+        // Get journey data from session if available
+        $journeyData = session('multimodel_journey', null);
+
+        return Inertia::render('Web/home/multiModel/VehicleDetails', [
+            'vehicle' => $vehicleData,
+            'journey' => $journeyData,
+            'legIndex' => $legIndex
+        ]);
     }
 
     // bus section

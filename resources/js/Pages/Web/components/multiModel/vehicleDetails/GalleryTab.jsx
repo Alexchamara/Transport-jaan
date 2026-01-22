@@ -19,7 +19,7 @@ import img16 from "../../../assets/landVehicleDetails/gallery/img16.svg";
 import leftArrow from "../../../assets/landVehicleDetails/gallery/leftArrow.svg";
 import rightArrow from "../../../assets/landVehicleDetails/gallery/rightArrow.svg";
 
-const images = [
+const defaultImages = [
     img1,
     img2,
     img3,
@@ -38,7 +38,9 @@ const images = [
     img16,
 ];
 
-const GalleryTab = () => {
+const GalleryTab = ({ vehicle }) => {
+    const vehicleImages = vehicle?.images || [];
+    const images = vehicleImages.length > 0 ? vehicleImages.map(img => img.url) : defaultImages;
     const [selectedImg, setSelectedImg] = useState(null);
     const [selectedIdx, setSelectedIdx] = useState(null);
 

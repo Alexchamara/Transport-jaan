@@ -17,7 +17,7 @@ import alert from "../../../assets/multiModel/planJourney/alert.svg";
 
 import LocationSearch from "./LocationSearch";
 
-const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, addedStops, setAddedStops, endJourney, setEndJourney, routeDuration = 0, onFindVehicles, isLoadingVehicles = false }) => {
+const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, addedStops, setAddedStops, endJourney, setEndJourney, trips, setTrips, currentTripIndex, setCurrentTripIndex, routeDuration = 0, segmentDurations = [], onFindVehicles, isLoadingVehicles = false }) => {
     const [activeView, setActiveView] = useState("journey");
     const [showPopup, setShowPopup] = useState(false);
     const [draggedStop, setDraggedStop] = useState(null);
@@ -36,6 +36,43 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
         returnDate: "",
         returnTime: "",
     });
+
+    // Trip management handlers
+    const handleAddTrip = () => {
+        // Get the previous trip's end destination as the new trip's start
+        const previousTrip = trips[trips.length - 1];
+        const previousEndLocation = previousTrip.endJourney.location || "";
+        const previousEndCoordinates = previousTrip.endJourney.coordinates || null;
+        const previousEndDate = previousTrip.endJourney.returnDate || "";
+        const previousEndTime = previousTrip.endJourney.returnTime || "";
+        
+        const newTrip = {
+            id: Date.now(),
+            startJourney: { 
+                location: previousEndLocation, 
+                startDate: previousEndDate, 
+                startTime: previousEndTime, 
+                coordinates: previousEndCoordinates 
+            },
+            endJourney: { location: "", returnDate: "", returnTime: "", coordinates: null },
+            stops: []
+        };
+        setTrips([...trips, newTrip]);
+        setCurrentTripIndex(trips.length);
+    };
+
+    const handleRemoveTrip = (tripIndex) => {
+        if (trips.length === 1) return; // Don't allow removing the last trip
+        const newTrips = trips.filter((_, index) => index !== tripIndex);
+        setTrips(newTrips);
+        if (currentTripIndex >= newTrips.length) {
+            setCurrentTripIndex(newTrips.length - 1);
+        }
+    };
+
+    const handleSelectTrip = (tripIndex) => {
+        setCurrentTripIndex(tripIndex);
+    };
 
     const handleAddStop = () => {
         setShowPopup(true);
@@ -61,14 +98,63 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
     };
 
     const handleSaveStop = () => {
-        // Here you can handle saving the stop data
-        console.log("Stop data:", stopData);
-        setAddedStops((prev) => [...prev, { ...stopData, id: Date.now() }]);
+        const currentTrip = trips[currentTripIndex];
+        const newTrips = [...trips];
+        
+        // Auto-estimate times if not manually set
+        let estimatedDepartureDate = stopData.departureDate;
+        let estimatedDepartureTime = stopData.departureTime;
+        let estimatedReturnDate = stopData.returnDate;
+        let estimatedReturnTime = stopData.returnTime;
+        
+        if (!estimatedDepartureDate || !estimatedDepartureTime) {
+            // Determine the previous location's date/time
+            let previousDateTime;
+            
+            if (currentTrip.stops.length > 0) {
+                // Use the last stop's return date/time
+                const lastStop = currentTrip.stops[currentTrip.stops.length - 1];
+                if (lastStop.returnDate && lastStop.returnTime) {
+                    previousDateTime = new Date(`${lastStop.returnDate}T${lastStop.returnTime}`);
+                }
+            } else if (currentTrip.startJourney.startDate && currentTrip.startJourney.startTime) {
+                // Use start journey date/time
+                previousDateTime = new Date(`${currentTrip.startJourney.startDate}T${currentTrip.startJourney.startTime}`);
+            }
+            
+            if (previousDateTime) {
+                // Add estimated travel time (default 2 hours if no route data)
+                const estimatedTravelMinutes = 120; // 2 hours default
+                const arrivalDateTime = new Date(previousDateTime.getTime() + estimatedTravelMinutes * 60000);
+                
+                estimatedDepartureDate = arrivalDateTime.toISOString().split('T')[0];
+                estimatedDepartureTime = arrivalDateTime.toTimeString().slice(0, 5);
+                
+                // If return date/time not set, add 1 hour stay time
+                if (!estimatedReturnDate || !estimatedReturnTime) {
+                    const departureDateTime = new Date(arrivalDateTime.getTime() + 60 * 60000); // 1 hour later
+                    estimatedReturnDate = departureDateTime.toISOString().split('T')[0];
+                    estimatedReturnTime = departureDateTime.toTimeString().slice(0, 5);
+                }
+            }
+        }
+        
+        const newStop = {
+            ...stopData,
+            departureDate: estimatedDepartureDate,
+            departureTime: estimatedDepartureTime,
+            returnDate: estimatedReturnDate,
+            returnTime: estimatedReturnTime,
+            id: Date.now()
+        };
+        
+        newTrips[currentTripIndex].stops.push(newStop);
+        setTrips(newTrips);
         handleClosePopup();
     };
 
     const handleEditSchedule = (stopId) => {
-        const stop = addedStops.find((s) => s.id === stopId);
+        const stop = trips[currentTripIndex].stops.find((s) => s.id === stopId);
         if (stop) {
             setEditingStopId(stopId);
             setEditScheduleData({
@@ -98,18 +184,20 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
     };
 
     const handleSaveEditSchedule = () => {
-        setAddedStops((prev) =>
-            prev.map((stop) =>
-                stop.id === editingStopId
-                    ? { ...stop, ...editScheduleData }
-                    : stop
-            )
+        const newTrips = [...trips];
+        newTrips[currentTripIndex].stops = newTrips[currentTripIndex].stops.map((stop) =>
+            stop.id === editingStopId
+                ? { ...stop, ...editScheduleData }
+                : stop
         );
+        setTrips(newTrips);
         handleCloseEditPopup();
     };
 
     const handleRemoveStop = (stopId) => {
-        setAddedStops((prev) => prev.filter((stop) => stop.id !== stopId));
+        const newTrips = [...trips];
+        newTrips[currentTripIndex].stops = newTrips[currentTripIndex].stops.filter((stop) => stop.id !== stopId);
+        setTrips(newTrips);
     };
 
     const handleDragStart = (e, index) => {
@@ -121,12 +209,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
         e.preventDefault();
         if (draggedStop === null || draggedStop === index) return;
         
-        const newStops = [...addedStops];
+        const newTrips = [...trips];
+        const newStops = [...newTrips[currentTripIndex].stops];
         const draggedItem = newStops[draggedStop];
         newStops.splice(draggedStop, 1);
         newStops.splice(index, 0, draggedItem);
         
-        setAddedStops(newStops);
+        newTrips[currentTripIndex].stops = newStops;
+        setTrips(newTrips);
         setDraggedStop(index);
     };
 
@@ -135,43 +225,142 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
     };
 
     const handleStopLocationUpdate = (stopId, locationData) => {
-        setAddedStops((prev) =>
-            prev.map((stop) =>
-                stop.id === stopId
-                    ? {
-                        ...stop,
-                        destination: locationData.name,
-                        coordinates: locationData.coordinates,
-                    }
-                    : stop
-            )
+        const newTrips = [...trips];
+        newTrips[currentTripIndex].stops = newTrips[currentTripIndex].stops.map((stop) =>
+            stop.id === stopId
+                ? {
+                    ...stop,
+                    destination: locationData.name,
+                    coordinates: locationData.coordinates,
+                }
+                : stop
         );
+        setTrips(newTrips);
     };
 
     // Check if start date and time are filled
     const isStartDateTimeFilled = () => {
-        return startJourney.location && startJourney.startDate && startJourney.startTime;
+        const currentTrip = trips[currentTripIndex];
+        return currentTrip.startJourney.location && currentTrip.startJourney.startDate && currentTrip.startJourney.startTime;
     };
 
-    // Calculate estimated end time based on start time and route duration
+    // Calculate estimated times for stops and end destination based on route segments
     useEffect(() => {
-        if (isStartDateTimeFilled() && routeDuration > 0 && endJourney.coordinates) {
-            const startDateTime = new Date(`${startJourney.startDate}T${startJourney.startTime}`);
-            const endDateTime = new Date(startDateTime.getTime() + routeDuration * 60000); // routeDuration is in minutes
+        const currentTrip = trips[currentTripIndex];
+        if (!isStartDateTimeFilled() || !routeDuration || routeDuration <= 0) {
+            return;
+        }
+
+        const startDateTime = new Date(`${currentTrip.startJourney.startDate}T${currentTrip.startJourney.startTime}`);
+        const newTrips = [...trips];
+        let cumulativeTime = 0;
+        let needsUpdate = false;
+
+        // If we have segment durations, use them for more accurate estimates
+        if (segmentDurations && segmentDurations.length > 0) {
+            // Update stops with segment-based durations
+            currentTrip.stops.forEach((stop, index) => {
+                if (segmentDurations[index]) {
+                    cumulativeTime += segmentDurations[index]; // segmentDurations in minutes
+                    const arrivalDateTime = new Date(startDateTime.getTime() + cumulativeTime * 60000);
+                    
+                    const arrivalDate = arrivalDateTime.toISOString().split('T')[0];
+                    const arrivalTime = arrivalDateTime.toTimeString().slice(0, 5);
+                    
+                    // Auto-fill departure date/time if not manually set
+                    if (!stop.departureDate || !stop.departureTime) {
+                        newTrips[currentTripIndex].stops[index] = {
+                            ...stop,
+                            departureDate: arrivalDate,
+                            departureTime: arrivalTime,
+                        };
+                        needsUpdate = true;
+                    }
+                    
+                    // If return date/time not set, add 1 hour stay time as default
+                    if (!stop.returnDate || !stop.returnTime) {
+                        const departureDateTime = new Date(arrivalDateTime.getTime() + 60 * 60000); // 1 hour later
+                        newTrips[currentTripIndex].stops[index] = {
+                            ...newTrips[currentTripIndex].stops[index],
+                            returnDate: departureDateTime.toISOString().split('T')[0],
+                            returnTime: departureDateTime.toTimeString().slice(0, 5),
+                        };
+                        needsUpdate = true;
+                    }
+                }
+            });
+
+            // Calculate end destination time
+            if (currentTrip.endJourney.coordinates) {
+                const finalSegmentDuration = segmentDurations[segmentDurations.length - 1] || 0;
+                cumulativeTime += finalSegmentDuration;
+                const endDateTime = new Date(startDateTime.getTime() + cumulativeTime * 60000);
+                
+                const endDate = endDateTime.toISOString().split('T')[0];
+                const endTime = endDateTime.toTimeString().slice(0, 5);
+                
+                if (!currentTrip.endJourney.returnDate || !currentTrip.endJourney.returnTime) {
+                    newTrips[currentTripIndex].endJourney = {
+                        ...newTrips[currentTripIndex].endJourney,
+                        returnDate: endDate,
+                        returnTime: endTime
+                    };
+                    needsUpdate = true;
+                }
+            }
+        } else {
+            // Fallback: distribute time evenly if no segment data
+            const totalSegments = currentTrip.stops.length + 1;
+            const segmentDuration = routeDuration / totalSegments;
             
-            const endDate = endDateTime.toISOString().split('T')[0];
-            const endTime = endDateTime.toTimeString().slice(0, 5);
-            
-            // Only update if not manually set
-            if (!endJourney.returnDate || !endJourney.returnTime) {
-                setEndJourney(prev => ({
-                    ...prev,
-                    returnDate: endDate,
-                    returnTime: endTime
-                }));
+            currentTrip.stops.forEach((stop, index) => {
+                cumulativeTime += segmentDuration;
+                const arrivalDateTime = new Date(startDateTime.getTime() + cumulativeTime * 60000);
+                
+                const arrivalDate = arrivalDateTime.toISOString().split('T')[0];
+                const arrivalTime = arrivalDateTime.toTimeString().slice(0, 5);
+                
+                if (!stop.departureDate || !stop.departureTime) {
+                    newTrips[currentTripIndex].stops[index] = {
+                        ...stop,
+                        departureDate: arrivalDate,
+                        departureTime: arrivalTime,
+                    };
+                    needsUpdate = true;
+                }
+                
+                if (!stop.returnDate || !stop.returnTime) {
+                    const departureDateTime = new Date(arrivalDateTime.getTime() + 60 * 60000);
+                    newTrips[currentTripIndex].stops[index] = {
+                        ...newTrips[currentTripIndex].stops[index],
+                        returnDate: departureDateTime.toISOString().split('T')[0],
+                        returnTime: departureDateTime.toTimeString().slice(0, 5),
+                    };
+                    needsUpdate = true;
+                }
+            });
+
+            // End destination
+            if (currentTrip.endJourney.coordinates) {
+                const endDateTime = new Date(startDateTime.getTime() + routeDuration * 60000);
+                const endDate = endDateTime.toISOString().split('T')[0];
+                const endTime = endDateTime.toTimeString().slice(0, 5);
+                
+                if (!currentTrip.endJourney.returnDate || !currentTrip.endJourney.returnTime) {
+                    newTrips[currentTripIndex].endJourney = {
+                        ...newTrips[currentTripIndex].endJourney,
+                        returnDate: endDate,
+                        returnTime: endTime
+                    };
+                    needsUpdate = true;
+                }
             }
         }
-    }, [startJourney.startDate, startJourney.startTime, routeDuration, endJourney.coordinates]);
+
+        if (needsUpdate) {
+            setTrips(newTrips);
+        }
+    }, [trips, currentTripIndex, routeDuration, segmentDurations]);
 
     return (
         <>
@@ -182,7 +371,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                         onClick={() => window.history.back()}
                         className="cursor-pointer"
                     />
-                    <div>
+                    <div className="flex-1">
                         <h1 className="bebas-neue text-[50px]/[100%]">
                             Plan <span className="text-[#0955AC]">Your</span>{" "}
                             Journey
@@ -190,6 +379,49 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                         <h3 className="text-[14px] font-[500] text-[#00000080]">
                             Planning your multi - stop journey
                         </h3>
+                    </div>
+                </div>
+
+                {/* Trip Selector */}
+                <div className="w-full mb-4">
+                    <div className="flex items-center gap-3 mb-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin" }}>
+                        {trips.map((trip, index) => (
+                            <div
+                                key={trip.id}
+                                className={`relative flex items-center gap-2 px-4 py-2 rounded-[10px] cursor-pointer transition-all whitespace-nowrap ${
+                                    currentTripIndex === index
+                                        ? "bg-[#0955AC] text-white"
+                                        : "bg-white text-[#0955AC] border border-[#0955AC]"
+                                }`}
+                                onClick={() => handleSelectTrip(index)}
+                            >
+                                <span className="text-[14px] font-[500]">
+                                    Trip {index + 1}
+                                </span>
+                                {trips.length > 1 && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRemoveTrip(index);
+                                        }}
+                                        className={`ml-2 ${
+                                            currentTripIndex === index
+                                                ? "text-white hover:text-red-200"
+                                                : "text-[#0955AC] hover:text-red-600"
+                                        }`}
+                                    >
+                                        ×
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        <button
+                            onClick={handleAddTrip}
+                            className="flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#E8F3FF] text-[#0955AC] border border-[#0955AC] border-dashed hover:bg-[#0955AC] hover:text-white transition-all whitespace-nowrap"
+                        >
+                            <img src={plus} className="w-4 h-4" />
+                            <span className="text-[14px] font-[500]">Add Trip</span>
+                        </button>
                     </div>
                 </div>
 
@@ -205,21 +437,25 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                             <div className="w-full h-auto border-[1.5px] border-[#B9F8CF] bg-[#F0FDF4] rounded-[14px] p-5">
                                 <div className="flex flex-col gap-5 w-full">
                                     <LocationSearch
-                                        value={startJourney.location}
-                                        onChange={(value) =>
-                                            setStartJourney((prev) => ({
-                                                ...prev,
+                                        value={trips[currentTripIndex].startJourney.location}
+                                        onChange={(value) => {
+                                            const newTrips = [...trips];
+                                            newTrips[currentTripIndex].startJourney = {
+                                                ...newTrips[currentTripIndex].startJourney,
                                                 location: value,
-                                                coordinates: value === '' ? null : prev.coordinates,
-                                            }))
-                                        }
-                                        onLocationSelect={(locationData) =>
-                                            setStartJourney((prev) => ({
-                                                ...prev,
+                                                coordinates: value === '' ? null : newTrips[currentTripIndex].startJourney.coordinates,
+                                            };
+                                            setTrips(newTrips);
+                                        }}
+                                        onLocationSelect={(locationData) => {
+                                            const newTrips = [...trips];
+                                            newTrips[currentTripIndex].startJourney = {
+                                                ...newTrips[currentTripIndex].startJourney,
                                                 location: locationData.name,
                                                 coordinates: locationData.coordinates,
-                                            }))
-                                        }
+                                            };
+                                            setTrips(newTrips);
+                                        }}
                                         placeholder="Search start location..."
                                         icon={location}
                                         downArrow={downArrow}
@@ -237,25 +473,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     type="date"
                                                     id="startDate"
                                                     name="startDate"
-                                                    value={
-                                                        startJourney.startDate
-                                                    }
-                                                    onChange={(e) =>
-                                                        setStartJourney(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                startDate:
-                                                                    e.target
-                                                                        .value,
-                                                            })
-                                                        )
-                                                    }
+                                                    value={trips[currentTripIndex].startJourney.startDate}
+                                                    onChange={(e) => {
+                                                        const newTrips = [...trips];
+                                                        newTrips[currentTripIndex].startJourney.startDate = e.target.value;
+                                                        setTrips(newTrips);
+                                                    }}
                                                     className="text-[#000000] placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
                                                 />
-                                                {/* <img
-                                                    src={calander}
-                                                    className="ml-auto"
-                                                /> */}
                                             </div>
                                         </div>
 
@@ -268,25 +493,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     type="time"
                                                     id="startTime"
                                                     name="startTime"
-                                                    value={
-                                                        startJourney.startTime
-                                                    }
-                                                    onChange={(e) =>
-                                                        setStartJourney(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                startTime:
-                                                                    e.target
-                                                                        .value,
-                                                            })
-                                                        )
-                                                    }
+                                                    value={trips[currentTripIndex].startJourney.startTime}
+                                                    onChange={(e) => {
+                                                        const newTrips = [...trips];
+                                                        newTrips[currentTripIndex].startJourney.startTime = e.target.value;
+                                                        setTrips(newTrips);
+                                                    }}
                                                     className="text-[#000000] placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
                                                 />
-                                                {/* <img
-                                                    src={clock}
-                                                    className="ml-auto"
-                                                /> */}
                                             </div>
                                         </div>
                                     </div>
@@ -308,7 +522,7 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                 </div>
                             )}
 
-                            {addedStops.map((stop, index) => (
+                            {trips[currentTripIndex].stops.map((stop, index) => (
                                 <div
                                     key={stop.id}
                                     draggable={true}
@@ -336,13 +550,13 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                 value={stop.destination || ""}
                                                 onChange={(value) => {
                                                     if (value === '') {
-                                                        setAddedStops((prev) =>
-                                                            prev.map((s) =>
-                                                                s.id === stop.id
-                                                                    ? { ...s, destination: '', coordinates: null }
-                                                                    : s
-                                                            )
+                                                        const newTrips = [...trips];
+                                                        newTrips[currentTripIndex].stops = newTrips[currentTripIndex].stops.map((s) =>
+                                                            s.id === stop.id
+                                                                ? { ...s, destination: '', coordinates: null }
+                                                                : s
                                                         );
+                                                        setTrips(newTrips);
                                                     }
                                                 }}
                                                 onLocationSelect={(locationData) =>
@@ -403,21 +617,25 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                             <div className={`w-full h-auto text-[#155DFC] bg-[#FEF2F2] rounded-[14px] border-[1.5px] border-[#FFC9C9] p-5 ${!isStartDateTimeFilled() ? 'opacity-50 pointer-events-none' : ''}`}>
                                 <div className="flex flex-col gap-5 w-full">
                                     <LocationSearch
-                                        value={endJourney.location}
-                                        onChange={(value) =>
-                                            setEndJourney((prev) => ({
-                                                ...prev,
+                                        value={trips[currentTripIndex].endJourney.location}
+                                        onChange={(value) => {
+                                            const newTrips = [...trips];
+                                            newTrips[currentTripIndex].endJourney = {
+                                                ...newTrips[currentTripIndex].endJourney,
                                                 location: value,
-                                                coordinates: value === '' ? null : prev.coordinates,
-                                            }))
-                                        }
-                                        onLocationSelect={(locationData) =>
-                                            setEndJourney((prev) => ({
-                                                ...prev,
+                                                coordinates: value === '' ? null : newTrips[currentTripIndex].endJourney.coordinates,
+                                            };
+                                            setTrips(newTrips);
+                                        }}
+                                        onLocationSelect={(locationData) => {
+                                            const newTrips = [...trips];
+                                            newTrips[currentTripIndex].endJourney = {
+                                                ...newTrips[currentTripIndex].endJourney,
                                                 location: locationData.name,
                                                 coordinates: locationData.coordinates,
-                                            }))
-                                        }
+                                            };
+                                            setTrips(newTrips);
+                                        }}
                                         placeholder="Search end location..."
                                         icon={locationRed}
                                         downArrow={downArrow}
@@ -436,25 +654,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     type="date"
                                                     id="returnDate"
                                                     name="returnDate"
-                                                    value={
-                                                        endJourney.returnDate
-                                                    }
-                                                    onChange={(e) =>
-                                                        setEndJourney(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                returnDate:
-                                                                    e.target
-                                                                        .value,
-                                                            })
-                                                        )
-                                                    }
+                                                    value={trips[currentTripIndex].endJourney.returnDate}
+                                                    onChange={(e) => {
+                                                        const newTrips = [...trips];
+                                                        newTrips[currentTripIndex].endJourney.returnDate = e.target.value;
+                                                        setTrips(newTrips);
+                                                    }}
                                                     className="text-[#000000] placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
                                                 />
-                                                {/* <img
-                                                    src={calander}
-                                                    className="ml-auto"
-                                                /> */}
                                             </div>
                                         </div>
 
@@ -467,25 +674,14 @@ const JourneyPlanner = ({ transportMode = "car", startJourney, setStartJourney, 
                                                     type="time"
                                                     id="returnTime"
                                                     name="returnTime"
-                                                    value={
-                                                        endJourney.returnTime
-                                                    }
-                                                    onChange={(e) =>
-                                                        setEndJourney(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                returnTime:
-                                                                    e.target
-                                                                        .value,
-                                                            })
-                                                        )
-                                                    }
+                                                    value={trips[currentTripIndex].endJourney.returnTime}
+                                                    onChange={(e) => {
+                                                        const newTrips = [...trips];
+                                                        newTrips[currentTripIndex].endJourney.returnTime = e.target.value;
+                                                        setTrips(newTrips);
+                                                    }}
                                                     className="text-[#000000] placeholder:text-[#00000033] border-none focus:ring-0 bg-transparent focus:outline-none placeholder:text-[12px] w-full"
                                                 />
-                                                {/* <img
-                                                    src={clock}
-                                                    className="ml-auto"
-                                                /> */}
                                             </div>
                                         </div>
                                     </div>
