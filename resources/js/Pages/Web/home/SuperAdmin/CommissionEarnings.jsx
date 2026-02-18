@@ -103,7 +103,7 @@ const CommissionEarnings = ({ earnings = [], adminSummary = {}, breakdown = [] }
                         {/* Header */}
                         <div className='mb-8'>
                             <h1 className='text-3xl font-bold text-white mb-2'>Commission Earnings</h1>
-                            <p className='text-gray-400'>Track admin and vendor commission earnings across all bookings</p>
+                            <p className='text-gray-400'>Track admin and service provider commission earnings across all bookings</p>
                         </div>
 
                         {/* Summary Cards */}
@@ -143,7 +143,7 @@ const CommissionEarnings = ({ earnings = [], adminSummary = {}, breakdown = [] }
                                                 <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Avg Commission %</th>
                                                 <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Total Commission</th>
                                                 <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Admin Share</th>
-                                                <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Vendor Share</th>
+                                                <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Service Provider Share</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -241,11 +241,11 @@ const CommissionEarnings = ({ earnings = [], adminSummary = {}, breakdown = [] }
                                             <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Booking ID</th>
                                             <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Type</th>
                                             <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Service</th>
-                                            <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Vendor</th>
+                                            <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Service Provider</th>
                                             <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Booking Amount</th>
                                             <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Commission %</th>
                                             <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Admin Amount</th>
-                                            <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Vendor Amount</th>
+                                            <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Service Provider Amount</th>
                                             <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Status</th>
                                             <th className='px-4 py-3 text-left text-sm font-semibold text-gray-300'>Paid Date</th>
                                         </tr>

@@ -73,7 +73,7 @@ const RightSide = ({ newVendors = [], verifiedVendors = [], blockedVendors = [],
             <div className="w-[1125px] h-[42px] flex flex-row justify-between items-center px-4 md:px-12 lg:px-47 my-6 md:my-10 lg:my-[25px]">
                 <div className="flex flex-row justify-center items-center gap-6">
                     <h1 className="text-white text-base md:text-lg lg:text-[24px] font-poppins">
-                        Vendors
+                        Service Providers
                     </h1>
                 </div>
             </div>

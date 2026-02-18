@@ -103,7 +103,7 @@ export default function Register({ countries = [] }) {
                                             required
                                         >
                                             <option value="client">Client</option>
-                                            <option value="vendor">Vendor</option>
+                                            <option value="vendor">Service Provider</option>
                                         </select>
                                         <InputError message={errors.role_type} className="mt-2" />
                                     </div>

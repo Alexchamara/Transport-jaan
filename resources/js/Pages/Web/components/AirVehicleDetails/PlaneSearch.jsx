@@ -293,7 +293,7 @@ const PlaneSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
         <div ref={quoteRef}>
           <div className="flex flex-row justify-between items-center">
             <div className="figtree text-[16px] font-[600]">
-              <h1>{vehicle?.provider?.name || vehicle?.provider?.company_name || 'Vendor name'}</h1>
+              <h1>{vehicle?.provider?.name || vehicle?.provider?.company_name || 'Service Provider name'}</h1>
               <h1>{vehicle?.provider?.address || vehicle?.provider?.city || ''}</h1>
               <h1>{vehicle?.provider?.phone || vehicle?.provider?.phone_number || ''}</h1>
               <h1>{vehicle?.provider?.email || ''}</h1>

@@ -5,13 +5,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilePdf } from '@fortawesome/free-solid-svg-icons';
 
 function handleApprove(id) {
-    if (confirm('Are you sure you want to approve this vendor?')) {
+    if (confirm('Are you sure you want to approve this service provider?')) {
         router.post(`/vendors/${id}/approve`);
     }
 }
 
 function handleDelete(id) {
-    if (confirm('Are you sure you want to reject this vendor?')) {
+    if (confirm('Are you sure you want to reject this service provider?')) {
         router.post(`/vendors/${id}/reject`);
     }
 }
@@ -30,37 +30,37 @@ export default function VendorList({ vendor_lists }) {
 
     return (
         <AuthenticatedLayout>
-            <Head title="Vendor List" />
+            <Head title="Service Provider List" />
 
             <div className="py-12 max-w-7xl mx-auto sm:px-6 lg:px-8">
                 <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold">Vendor List</h2>
+                        <h2 className="text-xl font-bold">Service Provider List</h2>
 
                         <div className="flex space-x-2">
                             <button
                                 onClick={() => setFilter('all')}
                                 className={`px-4 py-2 rounded ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
                             >
-                                All Vendors
+                                All Service Providers
                             </button>
                             <button
                                 onClick={() => setFilter('pending')}
                                 className={`px-4 py-2 rounded ${filter === 'pending' ? 'bg-yellow-500 text-white' : 'bg-gray-200'}`}
                             >
-                                Pending Vendors
+                                Pending Service Providers
                             </button>
                             <button
                                 onClick={() => setFilter('accepted')}
                                 className={`px-4 py-2 rounded ${filter === 'accepted' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}
                             >
-                                Accepted Vendors
+                                Accepted Service Providers
                             </button>
                             <button
                                 onClick={() => setFilter('rejected')}
                                 className={`px-4 py-2 rounded ${filter === 'rejected' ? 'bg-red-600 text-white' : 'bg-gray-200'}`}
                             >
-                                Rejected Vendors
+                                Rejected Service Providers
                             </button>
                         </div>
                     </div>
@@ -187,7 +187,7 @@ export default function VendorList({ vendor_lists }) {
                                 ) : (
                                     <tr>
                                         <td colSpan="11" className="px-4 py-6 text-center text-gray-500">
-                                            No vendors found matching the selected filter
+                                            No service providers found matching the selected filter
                                         </td>
                                     </tr>
                                 )}

@@ -29,7 +29,7 @@ const HeroSection = () => {
                                 Say goodbye to delays, inefficiencies, and
                                 disconnected freight systems. Our all-in-one
                                 logistics platform lets you <br/> manage your entire
-                                freight process seamlessly — from vendor
+                                freight process seamlessly — from service provider
                                 selection and transport mode booking to customs<br/>
                                 documentation and real-time shipment tracking.
                                 Simplify complex logistics with smart freight

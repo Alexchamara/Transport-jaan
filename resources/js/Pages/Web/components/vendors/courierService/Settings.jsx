@@ -243,7 +243,7 @@ const Settings = ({ user = {} }) => {
                                 Steve Gibson
                             </h1>
                             <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                                Vendor
+                                Service Provider
                             </h1>
                         </div>
                     </div>

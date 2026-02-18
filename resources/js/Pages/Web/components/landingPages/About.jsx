@@ -43,7 +43,7 @@ const About = () => {
                             logistics booking platform designed to simplify how
                             goods and services move across local and global
                             networks. Our platform seamlessly connects customers
-                            with verified logistics vendors, offering land, air,
+                            with verified logistics service providers, offering land, air,
                             sea, courier, and warehousing solutions within one
                             secure digital ecosystem. By integrating multiple
                             transport modes into a single interface, we

@@ -189,7 +189,7 @@ const CarDetailsTab = ({ warehouseData = {} }) => {
                             <div className="text-[#7B7B7A] text-[14px]">
                                 <div className="text-4xl mb-4">📄</div>
                                 <h3 className="font-semibold mb-2">No Terms & Conditions Available</h3>
-                                <p>The vendor hasn't provided terms and conditions for this warehouse unit yet.</p>
+                                <p>The service provider hasn't provided terms and conditions for this warehouse unit yet.</p>
                             </div>
                         </div>
                     )}
@@ -204,7 +204,7 @@ const CarDetailsTab = ({ warehouseData = {} }) => {
                         <img src={proPic} />
                         <div className="flex flex-col items-start justify-center">
                             <div className="flex flex-row gap-2 justify-center items-center">
-                                <h1 className="text-[15px] font-[700]">{user?.name || 'Vendor'}</h1>
+                                <h1 className="text-[15px] font-[700]">{user?.name || 'Service Provider'}</h1>
                                 <img src={tag} />
                             </div>
                             <div>

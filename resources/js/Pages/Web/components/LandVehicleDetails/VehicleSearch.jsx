@@ -254,10 +254,10 @@ const VehicleSearch = ({ vehicleId: vehicleIdProp, vehicle: vehicleProp }) => {
         <div ref={quoteRef}>
           <div className="flex flex-row justify-between items-center">
             <div className="figtree text-[16px] font-[600]">
-              <h1>Vendor name: {provider?.name}</h1>
-              <h1>Vendor Address: {provider?.address}</h1>
-              <h1>Vendor Contact Number: {provider?.phone}</h1>
-              <h1>Vendor Email: {provider?.email}</h1>
+              <h1>Service Provider name: {provider?.name}</h1>
+              <h1>Service Provider Address: {provider?.address}</h1>
+              <h1>Service Provider Contact Number: {provider?.phone}</h1>
+              <h1>Service Provider Email: {provider?.email}</h1>
             </div>
 
             <div className="text-center poppins text-[25px] font-[700] uppercase">

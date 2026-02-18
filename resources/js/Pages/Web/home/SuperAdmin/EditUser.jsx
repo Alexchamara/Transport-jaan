@@ -109,7 +109,7 @@ const EditUser = ({ user }) => {
                                         required
                                     >
                                         <option value="client">Client</option>
-                                        <option value="vendor">Vendor</option>
+                                        <option value="vendor">Service Provider</option>
                                         <option value="freight">Freight User</option>
                                     </select>
                                     {errors.role && <p className="text-red-500 text-sm mt-1">{errors.role}</p>}

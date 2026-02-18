@@ -1653,7 +1653,7 @@ const Hero = () => {
                                                 ? 'text-orange-900' 
                                                 : 'text-blue-900'
                                         }`}>
-                                            Cancelled by: {cancellationToView.cancelled_by === 'vendor' ? 'Vendor' : 'You (Customer)'}
+                                            Cancelled by: {cancellationToView.cancelled_by === 'vendor' ? 'Service Provider' : 'You (Customer)'}
                                         </h4>
                                         <div className="space-y-1.5">
                                             <div className={`flex items-center gap-2 text-sm ${

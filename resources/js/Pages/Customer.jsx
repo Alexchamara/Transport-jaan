@@ -86,7 +86,7 @@ const CustomerForm = ({ vehicle_types = [], vendors = [] }) =>{
                     <InputError message={errors.vehicle_type_id} className="mt-2" />
                 </div>
                 <div>
-                  <InputLabel htmlFor="vendor_id" value="Vendor"/>
+                  <InputLabel htmlFor="vendor_id" value="Service Provider"/>
                     <select
                         id="vendor_id"
                         name="vendor_id"
@@ -95,7 +95,7 @@ const CustomerForm = ({ vehicle_types = [], vendors = [] }) =>{
                         onChange={(e) => setData('vendor_id', e.target.value)}
                         required
                     >
-                        <option value="">Select Vendor </option>
+                        <option value="">Select Service Provider </option>
                             {vendors.map((cat) => (
                                 <option key={cat.id} value={cat.id}>
                                     {cat.business_name}

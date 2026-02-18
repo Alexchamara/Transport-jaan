@@ -1956,11 +1956,11 @@ const Hero = ({
                                             </div>
                                         </div>
 
-                                        {/* Vendor Information - Always visible */}
+                                        {/* Service Provider Information - Always visible */}
                                         <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
                                             <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
                                                 <Package className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
-                                                Vendor / Provider Information
+                                                Service Provider Information
                                             </h3>
                                             <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
                                                 <div className="flex justify-between gap-2">

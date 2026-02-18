@@ -183,7 +183,7 @@ const Summary = () => {
                   </h1>
 
                   <p className="text-[13px] mt-1 text-[#13790A] font-[600]">
-                    After vendor approval, a confirmation email will be sent to you.
+                    After service provider approval, a confirmation email will be sent to you.
                   </p>
                 </div>
               </div>
@@ -366,10 +366,10 @@ const Summary = () => {
           {/* HEADER */}
           <div className="flex flex-row justify-between items-center">
             <div className="figtree text-[16px] font-[600]">
-              <h1>Vendor name: {provider?.name || "-"}</h1>
-              <h1>Vendor address: {provider?.address || ""}</h1>
-              <h1>Vendor phone: {provider?.phone || ""}</h1>
-              <h1>Vendor email: {provider?.email || ""}</h1>
+              <h1>Service Provider name: {provider?.name || "-"}</h1>
+              <h1>Service Provider address: {provider?.address || ""}</h1>
+              <h1>Service Provider phone: {provider?.phone || ""}</h1>
+              <h1>Service Provider email: {provider?.email || ""}</h1>
             </div>
 
             <div className="text-center poppins text-[25px] font-[700] uppercase">
