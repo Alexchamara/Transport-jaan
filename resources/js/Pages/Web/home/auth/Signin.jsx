@@ -94,34 +94,6 @@ const Signin = () => {
                                     className="size-[16px] rounded-full border-[0.5px] border-[#FFFFFFA8] bg-transparent focus:outline-none focus:ring-0 focus:border-none"
                                 />
                             </div>
-
-                            {/* freight */}
-                            <div
-                                className="xl:w-[426px] xl:h-[74px] border-[0.7px] border-[#FFFFFFBF] rounded-[9px] my-10 flex flex-col md:flex-row gap-5 justify-between items-center px-5 py-5"
-                                onClick={() =>
-                                    (window.location.href = "/registerNew")
-                                }
-                            >
-                                <div className="flex flex-col md:flex-row gap-5 justify-center items-center md:items-start">
-                                    <div className="flex flex-row items-center">
-                                        <img src={proPic1} className="-mr-4" />
-                                        <img src={proPic2} className="z-[50]" />
-                                        <img src={proPic3} className="-ml-4" />
-                                    </div>
-                                    <div className="flex flex-col justify-between md:text-start text-center">
-                                        <h1 className="text-[14px] font-[700]">
-                                            I’m a Freight user{" "}
-                                        </h1>
-                                        <h1 className="text-[14px] font-[400]">
-                                            I’m a Freight user.
-                                        </h1>
-                                    </div>
-                                </div>
-                                <input
-                                    type="checkbox"
-                                    className="size-[16px] rounded-full border-[0.5px] border-[#FFFFFFA8] bg-transparent focus:outline-none focus:ring-0 focus:border-none"
-                                />
-                            </div>
                         </div>
 
                         <h1 className="text-[12px] font-[500] absolute bottom-10">
