@@ -18,11 +18,11 @@ const Signin = () => {
                 </h1>
 
                 <div
-                    className="h-auto w-full bg-cover bg-center py-[100px] px-5 xl:px-20 flex justify-center items-center"
+                    className="h-auto xl:min-h-screen w-full bg-cover bg-center bg-no-repeat py-[100px] px-5 xl:px-20 flex justify-center items-center"
                     style={{ backgroundImage: `url(${bg})` }}
                 >
                     <div
-                        className="xl:w-[548px] h-auto bg-white/5 rounded-[30px] backdrop-blur-sm px-10 py-20 flex flex-col items-center relative"
+                        className="w-auto xl:w-auto h-auto bg-white/5 rounded-[30px] backdrop-blur-lg px-10 py-20 flex flex-col items-center relative"
                         style={{
                             boxShadow: "4px 4px 4px 0px rgba(0, 0, 0, 0.25)",
                         }}
