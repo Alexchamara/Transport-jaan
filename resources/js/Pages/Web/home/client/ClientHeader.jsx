@@ -9,6 +9,7 @@ import { ArrowLeft } from "lucide-react";
 const ClientHeader = () => {
     const { auth } = usePage().props;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     const [openDropdown, setOpenDropdown] = useState({
         vehicle: false,
@@ -160,19 +161,61 @@ const ClientHeader = () => {
                             alt="Notifications"
                         />
                     </div>
-                    <div className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center">
-                        {auth?.user?.image ? (
-                            <img
-                                src={auth.user.image}
-                                className="size-[18px] md:size-[55px] object-cover"
-                                alt="Profile"
-                            />
-                        ) : (
-                            <img
-                                src={proPic}
-                                className="size-[18px] md:size-[55px]"
-                                alt="Profile"
-                            />
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsProfileOpen((prev) => !prev)}
+                            className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center focus:outline-none"
+                        >
+                            {auth?.user?.image ? (
+                                <img
+                                    src={auth.user.image}
+                                    className="size-[27px] md:size-[55px] object-cover"
+                                    alt="Profile"
+                                />
+                            ) : (
+                                <img
+                                    src={proPic}
+                                    className="size-[18px] md:size-[30px]"
+                                    alt="Profile"
+                                />
+                            )}
+                        </button>
+
+                        {isProfileOpen && (
+                            <>
+                                {/* backdrop */}
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setIsProfileOpen(false)}
+                                />
+                                <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+                                    {auth?.user && (
+                                        <div className="px-4 py-3 border-b border-gray-100">
+                                            <p className="text-sm font-semibold text-gray-800 truncate">{auth.user.name}</p>
+                                            <p className="text-xs text-gray-500 truncate">{auth.user.email}</p>
+                                        </div>
+                                    )}
+                                    <Link
+                                        href="/clientDashboardSettings"
+                                        onClick={() => setIsProfileOpen(false)}
+                                        className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        My Profile
+                                    </Link>
+                                    <button
+                                        onClick={(e) => { setIsProfileOpen(false); handleLogout(e); }}
+                                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                        Logout
+                                    </button>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
