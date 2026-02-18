@@ -381,12 +381,12 @@ const Header = () => {
                                     >
                                         Register
                                     </Link>
-                                    <Link
+                                    {/* <Link
                                         href="/freight/register"
                                         className="rounded bg-[#0955AC] border-2 border-[#0955AC] px-3 py-2 text-white text-[12px] font-bold text-center h-[50px] flex justify-center items-center"
                                     >
                                         Register as Freight
-                                    </Link>
+                                    </Link> */}
                                 </>
                             )}
                         </div>
