@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useForm, router } from "@inertiajs/react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 import bg from "../../assets/landingPages/bg.svg";
 import eye from "../../assets/auth/eye.svg";
 import google from "../../assets/auth/google.svg";
@@ -142,19 +144,52 @@ const Register = ({ role = "client" }) => {
                                         <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                             Phone Number
                                         </label>
-                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
-                                            <input
-                                                type="tel"
-                                                value={data.phone}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "phone",
-                                                        e.target.value
-                                                    )
+                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-4 py-2">
+                                            <style>{`
+                                                .custom-phone-input {
+                                                    width: 100%;
                                                 }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                .custom-phone-input .form-control {
+                                                    width: 100% !important;
+                                                    background: transparent !important;
+                                                    border: none !important;
+                                                    color: white !important;
+                                                    font-size: 14px !important;
+                                                    padding-left: 48px !important;
+                                                    height: 40px !important;
+                                                }
+                                                .custom-phone-input .form-control::placeholder {
+                                                    color: #9CA3AF !important;
+                                                }
+                                                .custom-phone-input .form-control:focus {
+                                                    outline: none !important;
+                                                    box-shadow: none !important;
+                                                }
+                                                .custom-phone-input .flag-dropdown {
+                                                    background: transparent !important;
+                                                    border: none !important;
+                                                }
+                                                .custom-phone-input .selected-flag {
+                                                    background: transparent !important;
+                                                    padding: 0 0 0 8px !important;
+                                                }
+                                                .custom-phone-input .selected-flag:hover,
+                                                .custom-phone-input .selected-flag:focus {
+                                                    background: transparent !important;
+                                                }
+                                            `}</style>
+                                            <PhoneInput
+                                                country={'lk'}
+                                                value={data.phone}
+                                                onChange={(phone) => setData('phone', phone)}
+                                                containerClass="custom-phone-input"
+                                                inputClass="form-control"
+                                                buttonClass="flag-dropdown"
+                                                dropdownClass="text-gray-800 bg-white"
+                                                searchClass="text-gray-800"
+                                                preferredCountries={['lk', 'in', 'us', 'gb', 'ca', 'au']}
+                                                enableSearch={true}
                                                 placeholder="Enter your phone number"
-                                                required
                                             />
                                         </div>
                                         {errors.phone && (
