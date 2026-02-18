@@ -16,7 +16,6 @@ const Register = ({ role = "client" }) => {
         password_confirmation: "",
         role_type: role,
         vendor_type: "",
-        date_of_birth: "",
         remember: false,
     });
 
@@ -164,6 +163,35 @@ const Register = ({ role = "client" }) => {
                                             </div>
                                         )}
                                     </div>
+                                </div>
+
+                                <div className="flex flex-col items-center justify-start gap-0">
+                                    {/* username */}
+                                    <div className="flex flex-col gap-2 mb-6">
+                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                            Email Address
+                                        </label>
+                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                            <input
+                                                type="email"
+                                                value={data.email}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        "email",
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                placeholder="Enter your email address"
+                                                required
+                                            />
+                                        </div>
+                                        {errors.email && (
+                                            <div className="text-red-500 text-sm px-10 mt-1">
+                                                {errors.email}
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {/* password */}
                                     <div className="flex flex-col gap-2 mb-6">
@@ -205,105 +233,48 @@ const Register = ({ role = "client" }) => {
                                         )}
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="flex flex-col items-center justify-start gap-0">
-                                    {/* username */}
-                                    <div className="flex flex-col gap-2 mb-6">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Email Address
-                                        </label>
-                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
-                                            <input
-                                                type="email"
-                                                value={data.email}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "email",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                placeholder="Enter your email address"
-                                                required
-                                            />
-                                        </div>
-                                        {errors.email && (
-                                            <div className="text-red-500 text-sm px-10 mt-1">
-                                                {errors.email}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* date of birth */}
-                                    <div className="flex flex-col gap-2 mb-6">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Date of Birth
-                                        </label>
-                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
-                                            <input
-                                                type="date"
-                                                value={data.date_of_birth}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "date_of_birth",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                required
-                                            />
-                                        </div>
-                                        {errors.date_of_birth && (
-                                            <div className="text-red-500 text-sm px-10 mt-1">
-                                                {errors.date_of_birth}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                   
-
-                                    {/* password */}
-                                    <div className="flex flex-col gap-2 mb-6">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Confirm Password
-                                        </label>
-                                        <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
-                                            <input
-                                                type={
-                                                    showConfirmPassword
-                                                        ? "text"
-                                                        : "password"
-                                                }
-                                                value={
-                                                    data.password_confirmation
-                                                }
-                                                onChange={(e) =>
-                                                    setData(
-                                                        "password_confirmation",
-                                                        e.target.value
-                                                    )
-                                                }
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                placeholder="Confirm your password"
-                                                required
-                                            />
-                                            <img
-                                                src={eye}
-                                                onClick={() =>
-                                                    setShowConfirmPassword(
-                                                        !showConfirmPassword
-                                                    )
-                                                }
-                                                className="cursor-pointer"
-                                            />
-                                        </div>
-                                        {errors.password_confirmation && (
-                                            <div className="text-red-500 text-sm px-10 mt-1">
-                                                {errors.password_confirmation}
-                                            </div>
-                                        )}
-                                    </div>
+                            {/* confirm password - centered */}
+                            <div className="flex flex-col gap-2 mb-6 w-full md:w-[397px]">
+                                <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                    Confirm Password
+                                </label>
+                                <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-10 py-2">
+                                    <input
+                                        type={
+                                            showConfirmPassword
+                                                ? "text"
+                                                : "password"
+                                        }
+                                        value={
+                                            data.password_confirmation
+                                        }
+                                        onChange={(e) =>
+                                            setData(
+                                                "password_confirmation",
+                                                e.target.value
+                                            )
+                                        }
+                                        className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                        placeholder="Confirm your password"
+                                        required
+                                    />
+                                    <img
+                                        src={eye}
+                                        onClick={() =>
+                                            setShowConfirmPassword(
+                                                !showConfirmPassword
+                                            )
+                                        }
+                                        className="cursor-pointer"
+                                    />
                                 </div>
+                                {errors.password_confirmation && (
+                                    <div className="text-red-500 text-sm px-10 mt-1">
+                                        {errors.password_confirmation}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex items-center gap-3 self-start px-10 mt-4">
