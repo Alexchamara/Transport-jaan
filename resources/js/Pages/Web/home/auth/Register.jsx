@@ -73,11 +73,11 @@ const Register = ({ role = "client" }) => {
                             onSubmit={handleSubmit}
                             className="flex flex-col items-center"
                         >
-                             {/* vendor type - only show for vendors */}
+                             {/* Service Provider type - only show for vendors */}
                                     {role === "vendor" && (
                                         <div className="flex flex-col gap-2 mb-6">
                                             <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                                Vendor Type
+                                                Service Provider Type
                                             </label>
                                             <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                                 <select
@@ -92,7 +92,7 @@ const Register = ({ role = "client" }) => {
                                                     required
                                                 >
                                                     <option value="" className="bg-gray-800 text-white">
-                                                        Select vendor type
+                                                        Select Service Provider type
                                                     </option>
                                                     <option value="individual" className="bg-gray-800 text-white">
                                                         Individual

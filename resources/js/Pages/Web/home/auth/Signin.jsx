@@ -82,10 +82,10 @@ const Signin = () => {
                                     </div>
                                     <div className="flex flex-col justify-between md:text-start text-center">
                                         <h1 className="text-[14px] font-[700]">
-                                            I’m a vendor{" "}
+                                            I’m a Service Provider{" "}
                                         </h1>
                                         <h1 className="text-[14px] font-[400]">
-                                            I’m a vendor offering services.
+                                            I’m a Service Provider offering services.
                                         </h1>
                                     </div>
                                 </div>
