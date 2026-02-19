@@ -145,7 +145,7 @@ const Register = ({ role = "client" }) => {
 
                                         <div className="flex flex-col gap-2 mb-6">
                                             <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                                Full Name
+                                                {data.vendor_type === "business" ? "Company Name" : "Full Name"}
                                             </label>
                                             <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                                 <input
@@ -153,7 +153,7 @@ const Register = ({ role = "client" }) => {
                                                     value={data.name}
                                                     onChange={(e) => setData("name", e.target.value)}
                                                     className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                    placeholder="Enter your full name"
+                                                    placeholder={data.vendor_type === "business" ? "Enter your company name" : "Enter your full name"}
                                                     required
                                                 />
                                             </div>
@@ -306,7 +306,7 @@ const Register = ({ role = "client" }) => {
 
                                         <div className="flex flex-col gap-2 mb-6">
                                             <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                                Full Name
+                                                {data.vendor_type === "business" ? "Company Name" : "Full Name"}
                                             </label>
                                             <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                                 <input
@@ -314,7 +314,7 @@ const Register = ({ role = "client" }) => {
                                                     value={data.name}
                                                     onChange={(e) => setData("name", e.target.value)}
                                                     className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                    placeholder="Enter your full name"
+                                                    placeholder={data.vendor_type === "business" ? "Enter your company name" : "Enter your full name"}
                                                     required
                                                 />
                                             </div>
