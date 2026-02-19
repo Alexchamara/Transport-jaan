@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 import { Trash2 } from "lucide-react";
@@ -66,28 +67,47 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
     setIsPopupOpen(true);
   };
 
-  const handlePopupSubmit = () => {
+  const handlePopupSubmit = async () => {
     if (!selectedBooking) return;
-    const updated = [...bookings];
-    const paymentStatusColors = {
-      Paid: { color: "#3B8F31", bg: "#ACE199" },
-      Pending: { color: "#FF6060", bg: "#FF60608C" },
-    };
+    
+    try {
+      // Map UI status to backend status
+      const backendStatus = newStatus.toLowerCase();
+      
+      // Call backend API to update booking
+      const response = await axios.patch(`/vendors/api/bookings/${selectedBooking.id}`, {
+        status: backendStatus,
+        payment_status: newPaymentStatus.toLowerCase(),
+        total_amount: parseFloat(newPayment)
+      });
+      
+      if (response.data.success) {
+        const updated = [...bookings];
+        const paymentStatusColors = {
+          Paid: { color: "#3B8F31", bg: "#ACE199" },
+          Pending: { color: "#FF6060", bg: "#FF60608C" },
+        };
 
-    updated[selectedBooking.index] = {
-      ...selectedBooking,
-      payment: newPayment,
-      paymentStatus: newPaymentStatus,
-      paymentStatusColor: paymentStatusColors[newPaymentStatus]?.color || "#7B7B7A",
-      paymentStatusBg: paymentStatusColors[newPaymentStatus]?.bg || "#E8E8EF",
-      status: newStatus,
-      statusBg: statusColors?.[newStatus]?.bg || "#FFCD29",
-      statusText: statusColors?.[newStatus]?.text || "#000000",
-    };
+        updated[selectedBooking.index] = {
+          ...selectedBooking,
+          payment: newPayment,
+          paymentStatus: newPaymentStatus,
+          paymentStatusColor: paymentStatusColors[newPaymentStatus]?.color || "#7B7B7A",
+          paymentStatusBg: paymentStatusColors[newPaymentStatus]?.bg || "#E8E8EF",
+          status: newStatus,
+          statusBg: statusColors?.[newStatus]?.bg || "#FF9800",
+          statusText: statusColors?.[newStatus]?.text || "#FFFFFF",
+        };
 
-    setBookings(updated);
-    setIsPopupOpen(false);
-    setSelectedBooking(null);
+        setBookings(updated);
+        setIsPopupOpen(false);
+        setSelectedBooking(null);
+      }
+    } catch (error) {
+      console.error('Failed to update booking:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to update booking. Please try again.';
+      alert(errorMessage);
+    }
   };
 
   useEffect(() => {
@@ -318,13 +338,29 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
           <div className="bg-white p-4 sm:p-6 rounded-lg w-full max-w-[420px] shadow-lg">
             <h2 className="text-[16px] sm:text-[18px] font-[700] mb-4">Edit Booking</h2>
 
+            {/* Show cancellation reason if booking is cancelled */}
+            {selectedBooking?.status === 'Cancelled' && selectedBooking?.cancellationReason && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-[5px]">
+                <div className="text-[12px] font-[600] text-red-700 mb-1">BOOKING CANCELLED</div>
+                <div className="text-[13px] text-red-600">
+                  <span className="font-[500]">Reason:</span> {selectedBooking.cancellationReason}
+                </div>
+                {selectedBooking.cancelledAt && (
+                  <div className="text-[11px] text-red-500 mt-1">
+                    Cancelled at: {selectedBooking.cancelledAt}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="mb-4">
               <label className="block text-[13px] sm:text-[14px] font-[500] mb-1">Payment Amount</label>
               <input
                 type="text"
                 value={newPayment}
                 onChange={(e) => setNewPayment(e.target.value)}
-                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0 text-[14px]"
+                disabled={selectedBooking?.status === 'Cancelled'}
+                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0 text-[14px] disabled:opacity-50 disabled:cursor-not-allowed"
                 placeholder="Enter payment amount"
               />
             </div>
@@ -334,7 +370,8 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
               <select
                 value={newPaymentStatus}
                 onChange={(e) => setNewPaymentStatus(e.target.value)}
-                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0 text-[14px]"
+                disabled={selectedBooking?.status === 'Cancelled'}
+                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0 text-[14px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="Paid">Paid</option>
                 <option value="Pending">Pending</option>
@@ -346,10 +383,12 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
               <select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
-                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0 text-[14px]"
+                disabled={selectedBooking?.status === 'Cancelled'}
+                className="w-full p-2 bg-[#F7F7F7] rounded-[5px] outline-none border-0 focus:ring-0 text-[14px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="Ongoing">Ongoing</option>
-                <option value="Returned">Returned</option>
+                <option value="Pending">Pending</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
               </select>
             </div>
@@ -359,14 +398,16 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
                 onClick={() => setIsPopupOpen(false)}
                 className="px-3 sm:px-4 py-2 bg-gray-200 rounded-[5px] text-[13px] sm:text-[14px] font-[700]"
               >
-                Cancel
+                {selectedBooking?.status === 'Cancelled' ? 'Close' : 'Cancel'}
               </button>
-              <button
-                onClick={handlePopupSubmit}
-                className="px-3 sm:px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[13px] sm:text-[14px] font-[700]"
-              >
-                Save
-              </button>
+              {selectedBooking?.status !== 'Cancelled' && (
+                <button
+                  onClick={handlePopupSubmit}
+                  className="px-3 sm:px-4 py-2 bg-[#0955AC] text-white rounded-[5px] text-[13px] sm:text-[14px] font-[700]"
+                >
+                  Save
+                </button>
+              )}
             </div>
           </div>
         </div>

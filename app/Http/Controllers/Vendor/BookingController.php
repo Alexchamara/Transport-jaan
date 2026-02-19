@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Throwable;
@@ -57,19 +58,20 @@ class BookingController extends Controller
                 $paid          = (float) $b->payments->sum('amount');
                 $paymentStatus = ($total > 0 && $paid >= $total) ? 'Paid' : 'Pending';
 
-                // Normalize status to UI labels
+                // Normalize status to UI labels - match enum values with proper capitalization
                 $map = [
-                    'confirmed' => 'Ongoing',
-                    'active'    => 'Ongoing',
-                    'ongoing'   => 'Ongoing',
-                    'completed' => 'Returned',
-                    'finished'  => 'Returned',
-                    'returned'  => 'Returned',
+                    'pending'   => 'Pending',
+                    'confirmed' => 'Confirmed',
+                    'active'    => 'Confirmed',
+                    'ongoing'   => 'Confirmed',
+                    'completed' => 'Completed',
+                    'finished'  => 'Completed',
+                    'returned'  => 'Completed',
                     'cancelled' => 'Cancelled',
                     'canceled'  => 'Cancelled',
                 ];
                 $statusKey = strtolower((string) $b->status);
-                $status    = $map[$statusKey] ?? 'Ongoing';
+                $status    = $map[$statusKey] ?? 'Pending';
 
                 return [
                     'id'            => $b->id,
@@ -83,6 +85,9 @@ class BookingController extends Controller
                     'payment'       => number_format($total, 2),
                     'paymentStatus' => $paymentStatus,
                     'status'        => $status,
+                    'cancellationReason' => $b->cancellation_reason,
+                    'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
+                    'cancelledBy'   => $b->cancelled_by,
                 ];
             })->values();
 
@@ -306,7 +311,9 @@ class BookingController extends Controller
                 $client = $booking->client ?? $booking->customer;
 
                 // Get vehicle model/name
-                $vehicleSnap = $booking->vehicle_snapshot ? json_decode($booking->vehicle_snapshot, true) : [];
+                $vehicleSnap = is_array($booking->vehicle_snapshot) 
+                    ? $booking->vehicle_snapshot 
+                    : ($booking->vehicle_snapshot ? json_decode($booking->vehicle_snapshot, true) : []);
                 $vehicleName = $vehicle
                     ? trim(($vehicle->manufacturer ?? '') . ' ' . ($vehicle->model ?? ''))
                     : ($vehicleSnap['model'] ?? 'N/A');
@@ -554,6 +561,114 @@ class BookingController extends Controller
                 ],
                 'server_error' => 'Failed to load calendar data. Check logs.',
             ]);
+        }
+    }
+
+    /**
+     * Update booking status and payment information
+     */
+    public function update(Request $request, $bookingId)
+    {
+        try {
+            $validated = $request->validate([
+                'status' => 'required|in:pending,confirmed,completed,cancelled',
+                'payment_status' => 'required|in:paid,pending',
+                'total_amount' => 'required|numeric|min:0',
+            ]);
+
+            $vendor = Auth::user();
+            $vendorId = $vendor?->id;
+
+            // Find the booking
+            $booking = Booking::with('vehicle')->find($bookingId);
+
+            if (!$booking) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking not found'
+                ], 404);
+            }
+
+            // Prevent updating cancelled bookings
+            if ($booking->status === 'cancelled' || $booking->cancelled_at) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot update a cancelled booking. Cancellation reason: ' . ($booking->cancellation_reason ?? 'Not provided')
+                ], 403);
+            }
+
+            // Check vendor ownership
+            $ownerCol = collect(['provider_id', 'vendor_id', 'owner_id', 'user_id'])
+                ->first(fn ($col) => Schema::hasColumn('vehicles', $col));
+
+            if ($ownerCol && $vendorId && $booking->vehicle) {
+                if ($booking->vehicle->$ownerCol != $vendorId) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You do not have permission to update this booking'
+                    ], 403);
+                }
+            }
+
+            // Update the booking
+            DB::beginTransaction();
+            
+            $booking->status = $validated['status'];
+            $booking->total_amount = $validated['total_amount'];
+            $booking->save();
+
+            // Update payment status
+            $paymentStatusValue = $validated['payment_status']; // 'paid' or 'pending'
+            
+            if ($booking->payments()->exists()) {
+                // Update all existing payment records' status
+                $booking->payments()->update([
+                    'status' => $paymentStatusValue,
+                ]);
+                
+                // If status is paid, set paid_at timestamp on the latest payment
+                if ($paymentStatusValue === 'paid') {
+                    $latestPayment = $booking->payments()->latest()->first();
+                    if ($latestPayment && !$latestPayment->paid_at) {
+                        $latestPayment->update(['paid_at' => now()]);
+                    }
+                }
+            } else {
+                // No payment records exist, create one
+                $booking->payments()->create([
+                    'amount' => $validated['total_amount'],
+                    'payment_method' => 'manual',
+                    'status' => $paymentStatusValue,
+                    'paid_at' => $paymentStatusValue === 'paid' ? now() : null,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking updated successfully',
+                'booking' => $booking->fresh(['vehicle', 'customer', 'payments'])
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Booking update failed', [
+                'booking_id' => $bookingId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update booking: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

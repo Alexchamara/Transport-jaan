@@ -8,6 +8,7 @@ import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
 
 import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
+import { Download } from "lucide-react"; // ← NEW
 
 const PAGE_SIZE = 8;
 
@@ -171,6 +172,49 @@ export default function Driver() {
       setLoading(false);
     }
   };
+
+      
+      
+// Export functionality
+    const handleExport = () => {
+        // Combine all clients from different categories
+        const allClients = [
+            ...(clientsData?.land || []),
+            ...(clientsData?.air || []),
+            ...(clientsData?.sea || [])
+        ];
+
+        if (allClients.length === 0) {
+            alert("No clients to export");
+            return;
+        }
+
+        const headers = ["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"];
+        const data = allClients.map(client => [
+            client.name || "",
+            client.email || "",
+            client.phone || "",
+            client.type || "Rental",
+            client.totalBookings || 0,
+            client.totalSpent || "LKR 0",
+            client.joinDate || ""
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...data.map(row => row.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `clients-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
   useEffect(() => {
     fetchData(1);
@@ -705,6 +749,13 @@ export default function Driver() {
                   <span>Results</span>
                   <span className="text-[#0955AC]">• {meta.total}</span>
                 </div>
+                <button
+                            onClick={handleExport}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#3B8F31] text-white rounded-[6px] hover:bg-[#2d6b25] transition text-[14px] sm:text-[16px]"
+                        >
+                            <Download size={18} />
+                            <span>Export</span>
+                        </button>
               </div>
 
               <div className="h-0 md:h-auto" />

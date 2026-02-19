@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('multi_model_journey_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('vehicle_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('status')->default('confirmed'); // confirmed, in_progress, completed, cancelled
+            $table->string('status')->default('pending'); // pending, confirmed, completed, cancelled
             $table->integer('rental_days')->default(1);
             $table->decimal('price_per_day', 10, 2)->default(0);
             $table->decimal('addons_total', 10, 2)->default(0);

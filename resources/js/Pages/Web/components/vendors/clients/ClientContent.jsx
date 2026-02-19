@@ -12,8 +12,9 @@ import ClientTable from "./ClientTable";
 import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
 
 const ClientContent = () => {
-    const { auth, unreadNotifications = 0 } = usePage().props;
+    const { auth, unreadNotifications = 0, clients: clientsData } = usePage().props;
     const user = auth?.user;
+
 
     return (
         <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
@@ -21,10 +22,8 @@ const ClientContent = () => {
             <div className="flex flex-col sm:flex-row gap-5 justify-between lg:items-start items-center">
                 <h1 className="figtree text-[25px] sm:text-[35px] font-[700]">Vehicle Rental Clients</h1>
 
-                <div className="flex flex-row gap-5 relative items-center">
-                    <div className="flex flex-row gap-5 relative items-center">
+                <div className="flex flex-row gap-3 sm:gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
-                </div>
                 </div>
             </div>
 
@@ -35,6 +34,8 @@ const ClientContent = () => {
                     boxShadow: "4px 4px 4px #0000001A",
                 }}
             >
+                 <div className="flex flex-row gap-3 sm:gap-5 relative items-center ml-100">
+                    </div>
                 <ClientTable />
             </div>
         </div>

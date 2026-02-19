@@ -8,6 +8,18 @@ use App\Models\MultiModel\MultiModelLeg;
 use App\Models\MultiModel\MultiModelBooking;
 use App\Models\Vehicle;
 use App\Models\VehicleFeaturePricing;
+use App\Models\Booking;
+use App\Models\BookingSchedule;
+use App\Models\BookingCustomer;
+use App\Models\BookingPayment;
+use App\Models\AirVehicleBookings;
+use App\Models\AirVehicleBookingSchedule;
+use App\Models\AirVehicleBookingCustomer;
+use App\Models\AirVehicleBookingPayment;
+use App\Models\SeaVehicleBookings;
+use App\Models\SeaVehicleBookingSchedule;
+use App\Models\SeaVehicleBookingCustomer;
+use App\Models\SeaVehicleBookingPayment;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -414,7 +426,7 @@ class MultiModelBookingController extends Controller
             $multiModelJourney = MultiModelJourney::create([
                 'user_id' => $userId,
                 'reference' => 'MMJ-' . strtoupper(uniqid()),
-                'status' => 'confirmed',
+                'status' => 'pending',
                 'total_legs' => count($journey['legs']),
                 'total_amount' => $totalAmount,
                 'deposit_amount' => $totalDeposit,
@@ -428,21 +440,28 @@ class MultiModelBookingController extends Controller
                 'customer_data' => $personalInfo,
             ]);
 
-            // Create legs
+            // Create legs and bookings in existing tables
             foreach ($cart['selections'] as $legIndex => $selection) {
                 $legData = $journey['legs'][$legIndex];
+                $vehicle = Vehicle::find($selection['vehicle_id']);
+
+                // Parse datetimes with fallback for missing time fields
+                $startTime = $legData['start_time'] ?? '00:00';
+                $endTime = $legData['end_time'] ?? '23:59';
+                $startDatetime = Carbon::parse($legData['start_date'] . ' ' . $startTime, 'Asia/Colombo')->utc();
+                $endDatetime = Carbon::parse($legData['end_date'] . ' ' . $endTime, 'Asia/Colombo')->utc();
 
                 $leg = MultiModelLeg::create([
                     'multi_model_journey_id' => $multiModelJourney->id,
                     'leg_order' => $legIndex + 1,
                     'from_location' => $legData['from_location'],
                     'to_location' => $legData['to_location'],
-                    'start_datetime' => Carbon::parse($legData['start_date'] . ' ' . $legData['start_time'], 'Asia/Colombo')->utc(),
-                    'end_datetime' => Carbon::parse($legData['end_date'] . ' ' . $legData['end_time'], 'Asia/Colombo')->utc(),
+                    'start_datetime' => $startDatetime,
+                    'end_datetime' => $endDatetime,
                     'vehicle_type' => $legData['vehicle_type'],
                     'vehicle_id' => $selection['vehicle_id'],
                     'vehicle_snapshot' => $selection['vehicle_data'],
-                    'status' => 'confirmed',
+                    'status' => 'pending',
                 ]);
 
                 // Create individual booking for this leg
@@ -451,7 +470,7 @@ class MultiModelBookingController extends Controller
                     'multi_model_journey_id' => $multiModelJourney->id,
                     'user_id' => $userId,
                     'vehicle_id' => $selection['vehicle_id'],
-                    'status' => 'confirmed',
+                    'status' => 'pending',
                     'rental_days' => $selection['rental_days'],
                     'price_per_day' => $selection['price_per_day'],
                     'addons_total' => $selection['addons_total'],
@@ -463,6 +482,116 @@ class MultiModelBookingController extends Controller
                     'addons_snapshot' => $selection['addons_lines'],
                     'vehicle_snapshot' => $selection['vehicle_data'],
                 ]);
+
+                // Create booking in existing vehicle rental tables based on vehicle type
+                $vehicleCategory = strtolower($vehicle->vehicle_category ?? 'land');
+                $startDate = Carbon::parse($legData['start_date'], 'Asia/Colombo');
+                $endDate = Carbon::parse($legData['end_date'], 'Asia/Colombo');
+
+                $bookingData = [
+                    'client_id' => $userId,
+                    'vehicle_id' => $selection['vehicle_id'],
+                    'status' => 'pending',
+                    'price_per_day' => $selection['price_per_day'],
+                    'rental_days' => $selection['rental_days'],
+                    'addons_total' => $selection['addons_total'],
+                    'subtotal' => $selection['subtotal'],
+                    'deposit_amount' => $selection['deposit_amount'],
+                    'advance_amount' => $selection['advance_amount'],
+                    'total_amount' => $selection['total_amount'],
+                    'currency' => $selection['currency'],
+                    'addons_snapshot' => $selection['addons_lines'],
+                    'vehicle_snapshot' => $selection['vehicle_data'],
+                    'notes' => "Multi-Model Journey: {$multiModelJourney->reference} (Leg " . ($legIndex + 1) . "/{$multiModelJourney->total_legs})",
+                ];
+
+                if ($vehicleCategory === 'air') {
+                    // Create Air Vehicle Booking
+                    $airBooking = \App\Models\AirVehicleBookings::create($bookingData);
+                    
+                    // Create schedule
+                    \App\Models\AirVehicleBookingSchedule::create([
+                        'air_vehicle_booking_id' => $airBooking->id,
+                        'pickup_location' => $legData['from_location'],
+                        'pickup_at' => $startDatetime,
+                        'dropoff_location' => $legData['to_location'],
+                        'dropoff_at' => $endDatetime,
+                    ]);
+
+                    // Create customer
+                    \App\Models\AirVehicleBookingCustomer::create([
+                        'air_vehicle_booking_id' => $airBooking->id,
+                        'name' => $personalInfo['first_name'] . ' ' . $personalInfo['last_name'],
+                        'email' => $personalInfo['email'],
+                        'phone' => $personalInfo['phone'],
+                    ]);
+
+                    // Create payment record
+                    \App\Models\AirVehicleBookingPayment::create([
+                        'air_vehicle_booking_id' => $airBooking->id,
+                        'payment_method' => $validated['payment_method'],
+                        'status' => 'paid',
+                        'amount' => $payNow,
+                    ]);
+
+                } elseif ($vehicleCategory === 'sea') {
+                    // Create Sea Vehicle Booking
+                    $seaBooking = SeaVehicleBookings::create($bookingData);
+                    
+                    // Create schedule
+                    \App\Models\SeaVehicleBookingSchedule::create([
+                        'sea_vehicle_booking_id' => $seaBooking->id,
+                        'pickup_location' => $legData['from_location'],
+                        'pickup_at' => $startDatetime,
+                        'dropoff_location' => $legData['to_location'],
+                        'dropoff_at' => $endDatetime,
+                    ]);
+
+                    // Create customer
+                    \App\Models\SeaVehicleBookingCustomer::create([
+                        'sea_vehicle_booking_id' => $seaBooking->id,
+                        'name' => $personalInfo['first_name'] . ' ' . $personalInfo['last_name'],
+                        'email' => $personalInfo['email'],
+                        'phone' => $personalInfo['phone'],
+                    ]);
+
+                    // Create payment record
+                    \App\Models\SeaVehicleBookingPayment::create([
+                        'sea_vehicle_booking_id' => $seaBooking->id,
+                        'payment_method' => $validated['payment_method'],
+                        'status' => 'paid',
+                        'amount' => $payNow,
+                    ]);
+
+                } else {
+                    // Create Land Vehicle Booking
+                    $landBooking = Booking::create($bookingData);
+                    
+                    // Create schedule
+                    \App\Models\BookingSchedule::create([
+                        'booking_id' => $landBooking->id,
+                        'pickup_location' => $legData['from_location'],
+                        'pickup_at' => $startDatetime,
+                        'dropoff_location' => $legData['to_location'],
+                        'dropoff_at' => $endDatetime,
+                    ]);
+
+                    // Create customer
+                    \App\Models\BookingCustomer::create([
+                        'booking_id' => $landBooking->id,
+                        'name' => $personalInfo['first_name'] . ' ' . $personalInfo['last_name'],
+                        'email' => $personalInfo['email'],
+                        'phone' => $personalInfo['phone'],
+                    ]);
+
+                    // Create payment record
+                    \App\Models\BookingPayment::create([
+                        'booking_id' => $landBooking->id,
+                        'payment_method' => $validated['payment_method'],
+                        'status' => 'paid',
+                        'amount' => $payNow,
+                    ]);
+                }
             }
 
             return $multiModelJourney;
@@ -494,6 +623,157 @@ class MultiModelBookingController extends Controller
         return Inertia::render('Web/home/multiModel/Summary', [
             'journey' => $multiModelJourney
         ]);
+    }
+
+    /**
+     * Approve a multi-model booking (Vendor only)
+     * POST /multiModel/vendor/booking/approve/{bookingId}/{bookingType}
+     */
+    public function approveBooking($bookingId, $bookingType)
+    {
+        $vendorId = Auth::id();
+        
+        try {
+            DB::transaction(function () use ($bookingId, $bookingType, $vendorId) {
+                $booking = null;
+                
+                // Find the booking based on type
+                if ($bookingType === 'land') {
+                    $booking = Booking::with('vehicle')->findOrFail($bookingId);
+                } elseif ($bookingType === 'air') {
+                    $booking = AirVehicleBookings::with('vehicle')->findOrFail($bookingId);
+                } elseif ($bookingType === 'sea') {
+                    $booking = SeaVehicleBookings::with('vehicle')->findOrFail($bookingId);
+                }
+                
+                if (!$booking) {
+                    throw new \Exception('Booking not found');
+                }
+                
+                // Check if vendor owns this vehicle
+                if ($booking->vehicle->provider_id !== $vendorId) {
+                    throw new \Exception('Unauthorized: You do not own this vehicle');
+                }
+                
+                // Check if booking is pending
+                if ($booking->status !== 'pending') {
+                    throw new \Exception('Booking is not in pending status');
+                }
+                
+                // Update booking status to confirmed
+                $booking->update(['status' => 'confirmed']);
+                
+                // Update related multi_model_booking and leg status if exists
+                $multiModelBooking = MultiModelBooking::where('vehicle_id', $booking->vehicle_id)
+                    ->where('user_id', $booking->client_id)
+                    ->where('status', 'pending')
+                    ->whereHas('leg', function($q) use ($booking) {
+                        $q->where('vehicle_id', $booking->vehicle_id);
+                    })
+                    ->first();
+                    
+                if ($multiModelBooking) {
+                    $multiModelBooking->update(['status' => 'confirmed']);
+                    $multiModelBooking->leg->update(['status' => 'confirmed']);
+                    
+                    // Check if all bookings in journey are confirmed
+                    $journey = $multiModelBooking->journey;
+                    $allConfirmed = $journey->bookings()->where('status', '!=', 'confirmed')->count() === 0;
+                    
+                    if ($allConfirmed) {
+                        $journey->update(['status' => 'confirmed']);
+                    }
+                }
+            });
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking approved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+    /**
+     * Reject a multi-model booking (Vendor only)
+     * POST /multiModel/vendor/booking/reject/{bookingId}/{bookingType}
+     */
+    public function rejectBooking(Request $request, $bookingId, $bookingType)
+    {
+        $vendorId = Auth::id();
+        
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+        
+        try {
+            DB::transaction(function () use ($bookingId, $bookingType, $vendorId, $validated) {
+                $booking = null;
+                
+                // Find the booking based on type
+                if ($bookingType === 'land') {
+                    $booking = Booking::with('vehicle')->findOrFail($bookingId);
+                } elseif ($bookingType === 'air') {
+                    $booking = AirVehicleBookings::with('vehicle')->findOrFail($bookingId);
+                } elseif ($bookingType === 'sea') {
+                    $booking = SeaVehicleBookings::with('vehicle')->findOrFail($bookingId);
+                }
+                
+                if (!$booking) {
+                    throw new \Exception('Booking not found');
+                }
+                
+                // Check if vendor owns this vehicle
+                if ($booking->vehicle->provider_id !== $vendorId) {
+                    throw new \Exception('Unauthorized: You do not own this vehicle');
+                }
+                
+                // Check if booking is pending
+                if ($booking->status !== 'pending') {
+                    throw new \Exception('Booking is not in pending status');
+                }
+                
+                // Update booking status to cancelled
+                $booking->update([
+                    'status' => 'cancelled',
+                    'notes' => ($booking->notes ?? '') . "\n\nRejection reason: " . $validated['reason']
+                ]);
+                
+                // Update related multi_model_booking and leg status if exists
+                $multiModelBooking = MultiModelBooking::where('vehicle_id', $booking->vehicle_id)
+                    ->where('user_id', $booking->client_id)
+                    ->where('status', 'pending')
+                    ->whereHas('leg', function($q) use ($booking) {
+                        $q->where('vehicle_id', $booking->vehicle_id);
+                    })
+                    ->first();
+                    
+                if ($multiModelBooking) {
+                    $multiModelBooking->update(['status' => 'cancelled']);
+                    $multiModelBooking->leg->update(['status' => 'cancelled']);
+                    
+                    // Update journey status
+                    $journey = $multiModelBooking->journey;
+                    $journey->update(['status' => 'cancelled']);
+                }
+            });
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Booking rejected successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
     /* ------------ Private Helper Methods ------------ */
