@@ -387,14 +387,50 @@ const Hero = ({
                 {/* Header */}
                 <div className="mb-6 flex flex-col gap-4 md:mb-10">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="flex flex-col gap-2">
-                            <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
-                                <span className="text-[#0955AC]">All Bookings</span>{" "}
-                                Dashboard
-                            </h1>
-                            <p className="text-slate-600 text-[14px]">
-                                Manage all your bookings: Vehicles, Tickets, Warehouse, Courier & Freight
-                            </p>
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
+                                    <span className="text-[#0955AC]">All Bookings</span>{" "}
+                                    Dashboard
+                                </h1>
+                                <p className="text-slate-600 text-[14px]">
+                                    Manage all your bookings: Vehicles, Tickets, Warehouse, Courier & Freight
+                                </p>
+                            </div>
+                            
+                            {/* Service Buttons */}
+                            <div className="flex flex-wrap gap-3">
+                                <Link
+                                    href="/clientVehicleDashboard"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-lg text-[13px] font-medium transition-colors"
+                                >
+                                    <Car className="w-4 h-4" /> Vehicle Rental
+                                </Link>
+                                <Link
+                                    href="/clientTicketBookingDashboard"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-lg text-[13px] font-medium transition-colors"
+                                >
+                                    <Plane className="w-4 h-4" /> Ticket Booking
+                                </Link>
+                                <Link
+                                    href="/courierBookingDashboard"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 rounded-lg text-[13px] font-medium transition-colors"
+                                >
+                                    <Package className="w-4 h-4" /> Courier Service
+                                </Link>
+                                <Link
+                                    href="/warehouseBookingDashboard"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 rounded-lg text-[13px] font-medium transition-colors"
+                                >
+                                    <Warehouse className="w-4 h-4" /> Warehouse Services
+                                </Link>
+                                <Link
+                                    href="/freightBookingDashboard"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg text-[13px] font-medium transition-colors"
+                                >
+                                    <Truck className="w-4 h-4" /> Freight Services
+                                </Link>
+                            </div>
                         </div>
                         <div className="flex gap-2 justify-center items-center flex-wrap">
                             <button 
@@ -405,6 +441,12 @@ const Hero = ({
                             >
                                 <Filter className="mr-2 h-4 w-4" /> Filters
                             </button>
+                            {/* <Link
+                                href="/clientAllBookings"
+                                className="inline-flex items-center h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0744a0]"
+                            >
+                                <Calendar className="mr-2 h-4 w-4" /> New Booking
+                            </Link> */}
                             <button 
                                 onClick={() => setShowExportModal(true)}
                                 className="inline-flex items-center h-10 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
@@ -417,12 +459,7 @@ const Hero = ({
                             >
                                 <RefreshCw className="h-4 w-4" />
                             </button>
-                            <Link
-                                href="/client/dashboard"
-                                className="inline-flex items-center h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0744a0]"
-                            >
-                                <Calendar className="mr-2 h-4 w-4" /> New Booking
-                            </Link>
+                            {/*  */}
                         </div>
                     </div>
 
@@ -1956,11 +1993,11 @@ const Hero = ({
                                             </div>
                                         </div>
 
-                                        {/* Vendor Information - Always visible */}
+                                        {/* Service Provider Information - Always visible */}
                                         <div className="bg-slate-50 rounded-xl p-4 sm:p-5 border border-slate-200">
                                             <h3 className="font-bold text-[15px] sm:text-[16px] mb-3 sm:mb-4 flex items-center gap-2 text-slate-800">
                                                 <Package className="h-4 w-4 sm:h-5 sm:w-5 text-[#0955AC]" />
-                                                Vendor / Provider Information
+                                                Service Provider Information
                                             </h3>
                                             <div className="space-y-2 sm:space-y-3 text-[13px] sm:text-[14px]">
                                                 <div className="flex justify-between gap-2">

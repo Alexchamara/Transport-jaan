@@ -27,7 +27,6 @@ class User extends Authenticatable
         'phone',
         'address',
         'country',
-        'date_of_birth',
         'image',
         // Extended profile fields
         'first_name',

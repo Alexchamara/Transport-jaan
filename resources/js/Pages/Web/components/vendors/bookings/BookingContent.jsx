@@ -42,7 +42,7 @@ const decorateBooking = (b) => ({
 const BookingContent = ({
     initialBookings = [],
     bookingData = [], // [{name:'Jan', done:120, cancelled:12}, ...]
-    vendorUser = { name: "Vendor", role: "Vendor" },
+    vendorUser = { name: "Service Provider", role: "Service Provider" },
     unreadNotifications = 0, // NEW
 }) => {
     const [bookings, setBookings] = useState(() =>

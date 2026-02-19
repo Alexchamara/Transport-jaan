@@ -157,7 +157,7 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
                                                 <p>{warehouse.capacity}</p>
                                             </div>
                                             <div>
-                                                <h3 className="text-gray-600 font-medium">Vendor</h3>
+                                                <h3 className="text-gray-600 font-medium">Service Provider</h3>
                                                 <p>{warehouse.vendor.company_name}</p>
                                             </div>
                                             <div>
@@ -314,7 +314,7 @@ export default function Show({ auth, warehouse, previewPrice, previewDuration, d
                                                             <h3 className="text-sm font-medium text-yellow-800">Important Notice</h3>
                                                             <div className="mt-2 text-sm text-yellow-700">
                                                                 <p>
-                                                                    Booking requests are subject to approval by the vendor.
+                                                                    Booking requests are subject to approval by the service provider.
                                                                     You will be notified once your request is processed.
                                                                 </p>
                                                             </div>

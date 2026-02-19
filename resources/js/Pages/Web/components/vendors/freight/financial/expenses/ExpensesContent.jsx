@@ -330,9 +330,9 @@ const ExpensesContent = () => {
                         <img src={proPic} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Service Provider'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
+                            Service Provider
                         </h1>
                     </div>
                 </div> */}

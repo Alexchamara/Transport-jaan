@@ -573,7 +573,7 @@ const ReservationContent = () => {
                                                                     ? 'bg-orange-100 text-orange-700' 
                                                                     : 'bg-blue-100 text-blue-700'
                                                             }`}>
-                                                                By: {reservation.cancelled_by === 'vendor' ? 'Vendor' : 'Customer'}
+                                                                By: {reservation.cancelled_by === 'vendor' ? 'Service Provider' : 'Customer'}
                                                             </span>
                                                         )}
                                                         {reservation.status?.toLowerCase() === 'cancelled' && reservation.refund_percentage !== undefined && (
@@ -725,7 +725,7 @@ const ReservationContent = () => {
                                                                     ? 'bg-orange-100 text-orange-700' 
                                                                     : 'bg-blue-100 text-blue-700'
                                                             }`}>
-                                                                By: {reservation.cancelled_by === 'vendor' ? 'Vendor' : 'Customer'}
+                                                                By: {reservation.cancelled_by === 'vendor' ? 'Service Provider' : 'Customer'}
                                                             </span>
                                                         )}
                                                         {reservation.refund_percentage !== undefined && (
@@ -1044,7 +1044,7 @@ const ReservationContent = () => {
                                                             ? 'bg-orange-100 text-orange-700' 
                                                             : 'bg-blue-100 text-blue-700'
                                                     }`}>
-                                                        {selectedReservation.cancelled_by === 'vendor' ? 'Vendor' : 'Customer'}
+                                                        {selectedReservation.cancelled_by === 'vendor' ? 'Service Provider' : 'Customer'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1289,7 +1289,7 @@ const ReservationContent = () => {
                                                 ? 'text-orange-800' 
                                                 : 'text-blue-800'
                                         }`}>
-                                            Cancelled by: {cancellationToView.cancelled_by === 'vendor' ? 'Vendor' : 'Customer'}
+                                            Cancelled by: {cancellationToView.cancelled_by === 'vendor' ? 'Service Provider' : 'Customer'}
                                         </p>
                                         <div className="space-y-1">
                                             <p className={`text-[13px] ${

@@ -346,7 +346,7 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                             availableCars.map((vehicle, index) => (
                             <div
                                 key={`${carPage}-${index}`}
-                                className="min-w-[217px] min-h-[295px] bg-[#F4F3F3] rounded-[10px] shadow-lg p-5 transition-all duration-300 ease-in-out hover:scale-95 transform cursor-pointer"
+                                className="w-[217px] h-[295px] bg-[#F4F3F3] rounded-[10px] shadow-lg p-5 transition-all duration-300 ease-in-out hover:scale-95 transform cursor-pointer"
                             >
                                 <div className="flex flex-row justify-between items-center">
                                     <div className="flex flex-col justify-center items-center gap-1">
@@ -854,7 +854,7 @@ const AvailableVehicles = ({ onVehicleSelect, onBackToJourney, availableCars = [
                             availableYachts.map((vehicle, index) => (
                             <div
                                 key={index}
-                                className="min-w-[217px] min-h-[295px] bg-[#F4F3F3] rounded-[10px] shadow-lg p-5 transition-all duration-300 ease-in-out hover:scale-95 transform cursor-pointer"
+                                className="w-[217px] h-[295px] bg-[#F4F3F3] rounded-[10px] shadow-lg p-5 transition-all duration-300 ease-in-out hover:scale-95 transform cursor-pointer"
                             >
                                 <div className="flex flex-col justify-center items-center gap-2">
                                     <img

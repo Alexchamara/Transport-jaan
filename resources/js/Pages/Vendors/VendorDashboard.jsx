@@ -137,7 +137,7 @@ export default function VendorDashboard() {
                       </svg>
                     </div>
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-indigo-800 to-purple-800 bg-clip-text text-transparent">
-                      Vendor Dashboard
+                      Service Provider Dashboard
                     </h1>
                   </div>
                   <p className="text-lg text-gray-600 max-w-2xl">

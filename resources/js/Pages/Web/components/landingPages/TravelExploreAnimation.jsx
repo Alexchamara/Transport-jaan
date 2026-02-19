@@ -247,7 +247,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                                 ))}
                                             {isClient && (
                                                 <Link
-                                                    href="/client/dashboard"
+                                                    href="/clientAllBookings"
                                                     className="bg-yellow-600 px-3 py-2 rounded text-white text-[18px] font-medium"
                                                 >
                                                     Dashboard
@@ -378,7 +378,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                                     ))}
                                                 {isClient && (
                                                     <Link
-                                                        href="/client/dashboard"
+                                                        href="/clientAllBookings"
                                                         className="bg-yellow-600 px-3 py-2 rounded text-white text-[12px] font-medium"
                                                     >
                                                         Dashboard

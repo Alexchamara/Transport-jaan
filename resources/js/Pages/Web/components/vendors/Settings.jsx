@@ -257,7 +257,7 @@ const Settings = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-between items-start sm:items-center">
           <h1 className="figtree text-[28px] sm:text-[35px] font-[700] text-center">
-            Vendor Profile Settings
+            Service Provider Profile Settings
           </h1>
           <div className="flex flex-row gap-3 sm:gap-5 relative items-center w-full sm:w-auto justify-center xl:justify-end">
             <UserDropdown settingsRoute={route("settingsPage")} />

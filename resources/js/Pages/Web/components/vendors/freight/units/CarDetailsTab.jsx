@@ -149,7 +149,7 @@ const CarDetailsTab = () => (
                     <div className="flex flex-col items-start justify-center">
                         <div className="flex flex-row gap-2 justify-center items-center">
                             {" "}
-                            <h1 className="text-[15px] font-[700]">{user?.name || 'Vendor'}</h1>
+                            <h1 className="text-[15px] font-[700]">{user?.name || 'Service Provider'}</h1>
                             <img src={tag} />
                         </div>
                         <div>

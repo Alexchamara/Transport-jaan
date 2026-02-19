@@ -140,7 +140,7 @@ const WarehouseDetailsTab = ({ warehouse }) => {
 
       {/* Contact Information */}
       <div className="poppins py-5">
-        <h1 className="text-[20px] font-[600] mb-5">Vendor Contact Information</h1>
+        <h1 className="text-[20px] font-[600] mb-5">Service Provider Contact Information</h1>
         <div className="bg-gray-50 p-4 rounded-lg">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {specs.contactInfo.company !== "—" && (
@@ -185,7 +185,7 @@ const WarehouseDetailsTab = ({ warehouse }) => {
             </div>
             {specs.contactInfo.address !== "—" && specs.contactInfo.address !== warehouse?.address && (
               <div className="md:col-span-2">
-                <h4 className="font-semibold text-gray-700 mb-2">Vendor Address</h4>
+                <h4 className="font-semibold text-gray-700 mb-2">Service Provider Address</h4>
                 <p className="text-gray-600">{specs.contactInfo.address}</p>
               </div>
             )}

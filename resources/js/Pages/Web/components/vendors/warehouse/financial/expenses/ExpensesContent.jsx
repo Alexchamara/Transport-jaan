@@ -363,9 +363,9 @@ const ExpensesContent = () => {
                         <img src={proPic} />
                     </div>
                     <div className="figtree flex flex-col justify-center items-start">
-                        <h1 className="text-[20px] font-[700]">{user?.name || 'Vendor'}</h1>
+                        <h1 className="text-[20px] font-[700]">{user?.name || 'Service Provider'}</h1>
                         <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                            Vendor
+                            Service Provider
                         </h1>
                     </div>
                 </div> */}
@@ -545,7 +545,7 @@ const ExpensesContent = () => {
                             <input
                                 type="text"
                                 className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] text-sm"
-                                placeholder="Search vendor, item, etc."
+                                placeholder="Search service provider, item, etc."
                             />
                         </div>
                         <div className="flex flex-row gap-2 sm:gap-3">

@@ -40,7 +40,7 @@ class RegisterController extends Controller
             'phone' => 'required|string|max:20',
             'address' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:100',
-            'date_of_birth' => 'required|date|before:today',
+            'date_of_birth' => 'nullable|date|before:today',
             'role_type' => 'required|in:client,vendor',
             'vendor_type' => 'required_if:role_type,vendor|nullable|in:individual,business',
         ], [
@@ -55,7 +55,6 @@ class RegisterController extends Controller
             'password.symbols' => 'Include symbols.',
             'password.confirmed' => 'Passwords don\'t match.',
             'phone.required' => 'Phone is required.',
-            'date_of_birth.required' => 'Date of birth required.',
             'date_of_birth.before' => 'Invalid date.',
             'role_type.required' => 'Role is required.',
             'vendor_type.required_if' => 'Vendor type required.',
@@ -71,7 +70,6 @@ class RegisterController extends Controller
                 'phone' => $validated['phone'],
                 'address' => $validated['address'] ?? null,
                 'country' => $validated['country'] ?? null,
-                'date_of_birth' => $validated['date_of_birth'],
                 'vendor_type' => $validated['role_type'] === 'vendor' ? $validated['vendor_type'] : null,
             ]);
         } catch (\Exception $e) {

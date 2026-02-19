@@ -18,11 +18,11 @@ const Signin = () => {
                 </h1>
 
                 <div
-                    className="h-auto w-full bg-cover bg-center py-[100px] px-5 xl:px-20 flex justify-center items-center"
+                    className="h-auto xl:min-h-screen w-full bg-cover bg-center bg-no-repeat py-[100px] px-5 xl:px-20 flex justify-center items-center"
                     style={{ backgroundImage: `url(${bg})` }}
                 >
                     <div
-                        className="xl:w-[548px] h-auto bg-white/5 rounded-[30px] backdrop-blur-sm px-10 py-20 flex flex-col items-center relative"
+                        className="w-auto xl:w-auto h-auto bg-white/5 rounded-[30px] backdrop-blur-lg px-10 py-20 flex flex-col items-center relative"
                         style={{
                             boxShadow: "4px 4px 4px 0px rgba(0, 0, 0, 0.25)",
                         }}
@@ -82,38 +82,10 @@ const Signin = () => {
                                     </div>
                                     <div className="flex flex-col justify-between md:text-start text-center">
                                         <h1 className="text-[14px] font-[700]">
-                                            I’m a vendor{" "}
+                                            I’m a Service Provider{" "}
                                         </h1>
                                         <h1 className="text-[14px] font-[400]">
-                                            I’m a vendor offering services.
-                                        </h1>
-                                    </div>
-                                </div>
-                                <input
-                                    type="checkbox"
-                                    className="size-[16px] rounded-full border-[0.5px] border-[#FFFFFFA8] bg-transparent focus:outline-none focus:ring-0 focus:border-none"
-                                />
-                            </div>
-
-                            {/* freight */}
-                            <div
-                                className="xl:w-[426px] xl:h-[74px] border-[0.7px] border-[#FFFFFFBF] rounded-[9px] my-10 flex flex-col md:flex-row gap-5 justify-between items-center px-5 py-5"
-                                onClick={() =>
-                                    (window.location.href = "/registerNew")
-                                }
-                            >
-                                <div className="flex flex-col md:flex-row gap-5 justify-center items-center md:items-start">
-                                    <div className="flex flex-row items-center">
-                                        <img src={proPic1} className="-mr-4" />
-                                        <img src={proPic2} className="z-[50]" />
-                                        <img src={proPic3} className="-ml-4" />
-                                    </div>
-                                    <div className="flex flex-col justify-between md:text-start text-center">
-                                        <h1 className="text-[14px] font-[700]">
-                                            I’m a Freight user{" "}
-                                        </h1>
-                                        <h1 className="text-[14px] font-[400]">
-                                            I’m a Freight user.
+                                            I’m a Service Provider offering services.
                                         </h1>
                                     </div>
                                 </div>

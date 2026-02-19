@@ -50,12 +50,12 @@ export default function VendorDashboard({ user, vehicleCategories }) {
         <AuthenticatedLayout
             header={
                 <>
-                    <h2 className="text-xl font-semibold text-gray-800">Vendor Dashboard</h2>
-                    <p>Welcome, {user.name}! This is your vendor panel.</p>
+                    <h2 className="text-xl font-semibold text-gray-800">Service Provider Dashboard</h2>
+                    <p>Welcome, {user.name}! This is your service provider panel.</p>
                 </>
             }
         >
-            <Head title="Vendor Dashboard" />
+            <Head title="Service Provider Dashboard" />
 
             {/* Flash message */}
             {flash?.success && (
@@ -138,7 +138,7 @@ export default function VendorDashboard({ user, vehicleCategories }) {
                                 className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
                                 disabled={processing}
                             >
-                                {processing ? 'Submitting...' : 'Submit Vendor Info'}
+                                {processing ? 'Submitting...' : 'Submit Service Provider Info'}
                             </button>
                         </div>
                     </form>

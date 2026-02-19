@@ -42,7 +42,7 @@ const Why = () => {
                         <div className="xl:w-[370px] h-[300px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-10 py-5 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
                             <img src={box} className="size-[56px]" />
                             <h1 className="text-[22px] font-[600]">
-                                Trusted Vendors
+                                Trusted Service Providers
                             </h1>
                             <p className="text-[10px] xl:text-[12px]/[33px] text-[#FFFFFFA6] font-[500] text-justify">
                                 We work only with verified and reliable service

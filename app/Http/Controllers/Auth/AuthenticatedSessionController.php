@@ -45,7 +45,7 @@ class AuthenticatedSessionController extends Controller
 
         $redirectTo = match($role) {
             'SuperAdmin' => route('superadmin.dashboard'),
-            'client' => route('client.mainDashboard'),
+            'client' => route('clientAllBookings'),
             'vendor' => route('vendors.mainDashboard'),
             'admin' => route('landingPage.home'),
             default => route('landingPage.home'),

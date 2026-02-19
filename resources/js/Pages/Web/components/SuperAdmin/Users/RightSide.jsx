@@ -215,7 +215,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                             </div>
                             <div>
                                 <h1 className="text-white text-[16px] font-500">
-                                    Vendors
+                                    Service Providers
                                 </h1>
                                 <h2 className="text-[#AEB9E1] text-[12px] font-400">
                                     {counts.vendors || 0}
@@ -256,7 +256,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                     >
                         <option value="all">All Roles</option>
                         <option value="client">Clients</option>
-                        <option value="vendor">Vendors</option>
+                        <option value="vendor">Service Providers</option>
                         <option value="freight">Freight Users</option>
                     </select>
 

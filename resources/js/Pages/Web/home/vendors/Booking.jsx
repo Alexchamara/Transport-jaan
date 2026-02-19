@@ -10,7 +10,7 @@ const Booking = () => {
   const {
     initialBookings = [],
     bookingData = [],
-    vendorUser = { name: "Vendor", role: "Vendor" },
+    vendorUser = { name: "Service Provider", role: "Service Provider" },
     server_error = null,
   } = usePage().props || {};
 
