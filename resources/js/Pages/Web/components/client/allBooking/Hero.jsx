@@ -693,7 +693,7 @@ const Hero = ({
                                 <h2 className="text-[18px] sm:text-[20px] font-[600]">
                                     All Bookings ({filteredBookings.length})
                                 </h2>
-                                <div className="flex items-center gap-1 sm:gap-2">
+                                {/* <div className="flex items-center gap-1 sm:gap-2">
                                     <button
                                         onClick={() => setViewMode('card')}
                                         className={`p-2 rounded-lg border ${viewMode === 'card' ? 'bg-[#0955AC] text-white border-[#0955AC]' : 'border-slate-200 hover:bg-slate-50'}`}
@@ -706,7 +706,7 @@ const Hero = ({
                                     >
                                         <FileText className="h-4 w-4" />
                                     </button>
-                                </div>
+                                </div> */}
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-[12px] text-slate-600">
