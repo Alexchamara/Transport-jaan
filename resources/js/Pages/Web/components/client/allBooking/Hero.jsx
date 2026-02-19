@@ -728,64 +728,8 @@ const Hero = ({
                             </div>
                         </div>
 
-                        {/* Bulk Actions Toolbar */}
-                        <AnimatePresence>
-                            {selectedBookings.length > 0 && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    className="mb-3 md:mb-4 p-3 sm:p-4 bg-[#0955AC] text-white rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-                                >
-                                    <div className="flex items-center gap-2 sm:gap-3">
-                                        <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        <span className="font-medium text-[13px] sm:text-[14px]">
-                                            {selectedBookings.length} booking{selectedBookings.length > 1 ? 's' : ''} selected
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                                        <button
-                                            onClick={() => handleBulkAction('export')}
-                                            className="px-4 py-2 bg-white text-[#0955AC] rounded-lg text-[13px] font-medium hover:bg-slate-100 inline-flex items-center gap-2"
-                                        >
-                                            <Download className="h-4 w-4" /> Export
-                                        </button>
-                                        <button
-                                            onClick={() => handleBulkAction('cancel')}
-                                            className="px-4 py-2 bg-red-500 text-white rounded-lg text-[13px] font-medium hover:bg-red-600 inline-flex items-center gap-2"
-                                        >
-                                            <X className="h-4 w-4" /> Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => setSelectedBookings([])}
-                                            className="p-2 hover:bg-white/20 rounded-lg"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
                         {/* Bookings Cards */}
                         <div className="space-y-4">
-                            {/* Select All */}
-                            {paginatedBookings.length > 0 && (
-                                <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-lg">
-                                    <button
-                                        onClick={handleSelectAll}
-                                        className="flex items-center gap-2 text-[13px] font-medium text-slate-700 hover:text-[#0955AC]"
-                                    >
-                                        {selectedBookings.length === paginatedBookings.length ? (
-                                            <CheckSquare className="h-5 w-5 text-[#0955AC]" />
-                                        ) : (
-                                            <Square className="h-5 w-5" />
-                                        )}
-                                        Select All on Page
-                                    </button>
-                                </div>
-                            )}
-
                             {paginatedBookings.length > 0 ? (
                                 paginatedBookings.map((booking) => (
                                     <motion.div
@@ -794,23 +738,9 @@ const Hero = ({
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ duration: 0.25 }}
                                     >
-                                        <div className={`group rounded-xl md:rounded-2xl bg-white border shadow-sm hover:shadow-md transition-all ${
-                                            selectedBookings.includes(booking.id) ? 'border-[#0955AC] ring-2 ring-[#0955AC]/20' : 'border-slate-200'
-                                        }`}>
+                                        <div className="group rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all">
                                             <div className="p-4 sm:p-6">
                                                 <div className="flex items-start gap-2 sm:gap-4 mb-3 sm:mb-4">
-                                                    {/* Checkbox */}
-                                                    <button
-                                                        onClick={() => handleSelectBooking(booking.id)}
-                                                        className="mt-1 flex-shrink-0 touch-manipulation"
-                                                    >
-                                                        {selectedBookings.includes(booking.id) ? (
-                                                            <CheckSquare className="h-5 w-5 text-[#0955AC]" />
-                                                        ) : (
-                                                            <Square className="h-5 w-5 text-slate-400 hover:text-[#0955AC]" />
-                                                        )}
-                                                    </button>
-
                                                     <div className="flex flex-col sm:flex-row items-start justify-between flex-1 gap-3">
                                                         <div className="flex items-start gap-2 sm:gap-4 flex-1 w-full">
                                                             <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-slate-50 flex-shrink-0">
