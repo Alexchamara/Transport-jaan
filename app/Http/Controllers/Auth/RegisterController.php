@@ -42,7 +42,7 @@ class RegisterController extends Controller
             'country' => 'nullable|string|max:100',
             'date_of_birth' => 'nullable|date|before:today',
             'role_type' => 'required|in:client,vendor',
-            'vendor_type' => 'required_if:role_type,vendor|nullable|in:individual,business',
+            'vendor_type' => 'required_if:role_type,client,vendor|in:individual,business',
         ], [
             'name.required' => 'Name is required.',
             'email.required' => 'Email is required.',
@@ -70,7 +70,7 @@ class RegisterController extends Controller
                 'phone' => $validated['phone'],
                 'address' => $validated['address'] ?? null,
                 'country' => $validated['country'] ?? null,
-                'vendor_type' => $validated['role_type'] === 'vendor' ? $validated['vendor_type'] : null,
+                'vendor_type' => $validated['vendor_type'],
             ]);
         } catch (\Exception $e) {
             return back()->withErrors([
