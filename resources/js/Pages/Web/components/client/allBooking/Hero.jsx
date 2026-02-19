@@ -382,8 +382,8 @@ const Hero = ({
     };
 
     return (
-        <div className="min-h-screen w-full bg-[#E5E5E5] px-3 sm:px-6 md:p-20 poppins">
-            <div className="mx-auto max-w-[1400px]">
+        <div className="min-h-screen w-full bg-[#E5E5E5]">
+            <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8 sm:py-10 md:py-12 poppins">
                 {/* Header */}
                 <div className="mb-6 flex flex-col gap-4 md:mb-10">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -431,35 +431,6 @@ const Hero = ({
                                     <Truck className="w-4 h-4" /> Freight Services
                                 </Link>
                             </div>
-                        </div>
-                        <div className="flex gap-2 justify-center items-center flex-wrap">
-                            <button 
-                                onClick={() => setShowFilters(!showFilters)}
-                                className={`inline-flex items-center h-10 px-4 rounded-xl border text-[14px] font-medium transition-colors ${
-                                    showFilters ? 'bg-[#0955AC] text-white border-[#0955AC]' : 'border-slate-200 hover:bg-slate-50'
-                                }`}
-                            >
-                                <Filter className="mr-2 h-4 w-4" /> Filters
-                            </button>
-                            {/* <Link
-                                href="/clientAllBookings"
-                                className="inline-flex items-center h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0744a0]"
-                            >
-                                <Calendar className="mr-2 h-4 w-4" /> New Booking
-                            </Link> */}
-                            <button 
-                                onClick={() => setShowExportModal(true)}
-                                className="inline-flex items-center h-10 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
-                            >
-                                <Download className="mr-2 h-4 w-4" /> Export
-                            </button>
-                            <button 
-                                onClick={() => window.location.reload()}
-                                className="inline-flex items-center h-10 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
-                            >
-                                <RefreshCw className="h-4 w-4" />
-                            </button>
-                            {/*  */}
                         </div>
                     </div>
 
@@ -551,127 +522,38 @@ const Hero = ({
                     </div>
                 </div>
 
-                {/* Charts Row */}
-                <div className="mb-6 md:mb-8 grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
-                    {/* Bar Chart */}
-                    <div className="lg:col-span-2 bg-white rounded-xl shadow-sm">
-                        <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-4 md:pb-5">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                        Monthly Booking Trends
-                                    </h3>
-                                    <p className="text-[14px] text-slate-500 pt-1">
-                                        Vehicles • Tickets • Logistics (year to date)
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="px-4 sm:px-6 md:px-10 pb-6 md:pb-10">
-                            {/* Chart for md and up */}
-                            <div className="hidden md:block h-[250px] sm:h-[300px] md:h-[350px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData} margin={{ left: 0, right: 0, top: 10 }}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                        <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                                        <YAxis tickLine={false} axisLine={false} />
-                                        <RTooltip />
-                                        <Legend />
-                                        <Bar dataKey="vehicle" name="Vehicles" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                                        <Bar dataKey="tickets" name="Tickets" fill="#0955AC" radius={[8, 8, 0, 0]} />
-                                        <Bar dataKey="logistics" name="Logistics" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                            {/* Cards for mobile */}
-                            <div className="block md:hidden space-y-3">
-                                {chartData.map((item, index) => (
-                                    <div key={index} className="bg-gray-50 rounded-lg p-4 border">
-                                        <h4 className="font-semibold text-gray-800 mb-2">{item.month}</h4>
-                                        <div className="space-y-1 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-blue-600">Vehicles:</span>
-                                                <span className="font-medium">{item.vehicle}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-[#0955AC]">Tickets:</span>
-                                                <span className="font-medium">{item.tickets}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-purple-600">Logistics:</span>
-                                                <span className="font-medium">{item.logistics}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pie Chart */}
-                    <div className="bg-white rounded-xl shadow-sm">
-                        <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-10">
-                            <h3 className="font-semibold leading-none tracking-tight text-[15px] md:text-[16px]">
-                                Booking Distribution
-                            </h3>
-                            <p className="text-[13px] md:text-[14px] text-slate-500 mt-1">
-                                By service type
-                            </p>
-                        </div>
-                        <div className="px-4 sm:px-6 md:px-10 pb-6 md:pb-10">
-                            {/* Chart for md and up */}
-                            <div className="hidden md:block h-[250px] sm:h-[280px] md:h-[300px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={pieData}
-                                            innerRadius={60}
-                                            outerRadius={100}
-                                            paddingAngle={3}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cornerRadius={6}
-                                        >
-                                            {pieData.map((entry, i) => (
-                                                <Cell key={i} fill={entry.color} />
-                                            ))}
-                                        </Pie>
-                                        <RTooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                            {/* Cards for mobile */}
-                            <div className="block md:hidden space-y-3">
-                                {pieData.map((entry, i) => (
-                                    <div key={i} className="bg-gray-50 rounded-lg p-4 border flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <span className="h-4 w-4 rounded-full" style={{ backgroundColor: entry.color }} />
-                                            <span className="font-medium text-gray-800">{entry.name}</span>
-                                        </div>
-                                        <span className="text-lg font-bold text-gray-700">{entry.value}</span>
-                                    </div>
-                                ))}
-                            </div>
-                            {/* Legend for md and up */}
-                            <div className="hidden md:block mt-2 space-y-1 text-[11px]">
-                                {pieData.map((entry, i) => (
-                                    <div key={i} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: entry.color }} />
-                                            <span className="text-slate-600">{entry.name}</span>
-                                        </div>
-                                        <span className="font-semibold text-slate-700">{entry.value}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                
 
                 {/* Search & Filters */}
                 <div className="mb-6 md:mb-8 rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm">
                     <div className="px-4 sm:px-6 py-4 sm:py-5">
-                        <div className="grid items-center gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-5 font-[600]">
+                        <div className="flex flex-col gap-4">
+                            {/* Action Buttons Row */}
+                            <div className="flex gap-2 justify-end items-center flex-wrap">
+                                <button 
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className={`inline-flex items-center h-10 px-4 rounded-xl border text-[14px] font-medium transition-colors ${
+                                        showFilters ? 'bg-[#0955AC] text-white border-[#0955AC]' : 'border-slate-200 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <Filter className="mr-2 h-4 w-4" /> Filters
+                                </button>
+                                <button 
+                                    onClick={() => setShowExportModal(true)}
+                                    className="inline-flex items-center h-10 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
+                                >
+                                    <Download className="mr-2 h-4 w-4" /> Export
+                                </button>
+                                <button 
+                                    onClick={() => window.location.reload()}
+                                    className="inline-flex items-center h-10 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
+                                >
+                                    <RefreshCw className="h-4 w-4" />
+                                </button>
+                            </div>
+                            
+                            {/* Filter Inputs Row */}
+                            <div className="grid items-center gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-5 font-[600]">
                             {/* Search */}
                             <div className="relative lg:col-span-2">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -797,11 +679,13 @@ const Hero = ({
                                 </motion.div>
                             )}
                         </AnimatePresence>
+                        </div>
                     </div>
                 </div>
 
                 {/* Main Content Grid */}
-                <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-4">
+                <div className="mt-6 md:mt-8">
+                    <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-4">
                     {/* Bookings List */}
                     <div className="lg:col-span-3">
                         <div className="mb-3 md:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1023,7 +907,7 @@ const Hero = ({
                                 ))
                             ) : (
                                 <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white">
-                                    <div className="px-4 py-16 text-center">
+                                    <div className="px-4 py-40 text-center">
                                         <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                                         <p className="text-slate-500 text-[16px] font-medium">No bookings found</p>
                                         <p className="text-slate-400 text-[13px] mt-1">Try adjusting your filters or make a new booking</p>
@@ -1090,71 +974,8 @@ const Hero = ({
                         )}
                     </div>
 
-                    {/* Sidebar: Upcoming + Quick Actions */}
+                    {/* Sidebar: Quick Actions */}
                     <div className="space-y-4 md:space-y-6">
-                        {/* Upcoming Bookings */}
-                        <div className="rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm">
-                            <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
-                                <h3 className="font-semibold leading-none tracking-tight text-[18px]">
-                                    Upcoming Bookings
-                                </h3>
-                                <p className="text-[13px] text-slate-500 mt-1">
-                                    Next {upcomingBookings.length} upcoming
-                                </p>
-                            </div>
-                            <div className="px-6 pb-6 space-y-3 text-[13px]">
-                                {upcomingBookings.length > 0 ? (
-                                    upcomingBookings.slice(0, 5).map((booking) => (
-                                        <div
-                                            key={booking.id}
-                                            className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50 transition-colors"
-                                        >
-                                            <div className="flex items-start justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <BookingTypeIcon 
-                                                        type={booking.booking_type} 
-                                                        className="h-5 w-5 text-[#0955AC]" 
-                                                    />
-                                                    <span className="font-medium text-slate-700">
-                                                        {booking.service_name || booking.vehicle_name || 'Booking'}
-                                                    </span>
-                                                </div>
-                                                <span
-                                                    className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
-                                                        statusMap[booking.status?.toLowerCase()]?.tone || statusMap.pending.tone
-                                                    }`}
-                                                >
-                                                    {statusMap[booking.status?.toLowerCase()]?.label || booking.status}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-[12px] text-slate-600 mb-2">
-                                                <Calendar className="h-3.5 w-3.5" />
-                                                <span>
-                                                    {new Date(booking.start_date || booking.departure_date || booking.pickup_date).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[13px] font-bold text-[#0955AC]">
-                                                    ${(parseFloat(booking.total_amount || booking.amount || 0) || 0).toFixed(2)}
-                                                </span>
-                                                <button
-                                                    onClick={() => handleViewDetails(booking)}
-                                                    className="text-[11px] text-slate-600 hover:text-[#0955AC] font-medium"
-                                                >
-                                                    View →
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 text-slate-500">
-                                        <Calendar className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                                        <p className="text-[13px]">No upcoming bookings</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
                         {/* Quick Actions */}
                         <div className="rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm">
                             <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
@@ -1218,6 +1039,67 @@ const Hero = ({
                             </div>
                         </div>
                     </div>
+                </div>
+                </div>
+
+                {/* Charts Row */}
+                <div className="mt-6 md:mt-8">
+                    <div className="grid grid-cols-1 gap-4 md:gap-6">
+                    {/* Bar Chart */}
+                    <div className="bg-white rounded-xl shadow-sm">
+                        <div className="px-4 sm:px-6 md:px-10 pt-6 md:pt-10 pb-4 md:pb-5">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="font-semibold leading-none tracking-tight text-[16px]">
+                                        Monthly Booking Trends
+                                    </h3>
+                                    <p className="text-[14px] text-slate-500 pt-1">
+                                        Vehicles • Tickets • Logistics (year to date)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-4 sm:px-6 md:px-10 pb-6 md:pb-10">
+                            {/* Chart for md and up */}
+                            <div className="hidden md:block h-[250px] sm:h-[300px] md:h-[350px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData} margin={{ left: 0, right: 0, top: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                                        <YAxis tickLine={false} axisLine={false} />
+                                        <RTooltip />
+                                        <Legend />
+                                        <Bar dataKey="vehicle" name="Vehicles" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                                        <Bar dataKey="tickets" name="Tickets" fill="#0955AC" radius={[8, 8, 0, 0]} />
+                                        <Bar dataKey="logistics" name="Logistics" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            {/* Cards for mobile */}
+                            <div className="block md:hidden space-y-3">
+                                {chartData.map((item, index) => (
+                                    <div key={index} className="bg-gray-50 rounded-lg p-4 border">
+                                        <h4 className="font-semibold text-gray-800 mb-2">{item.month}</h4>
+                                        <div className="space-y-1 text-sm">
+                                            <div className="flex justify-between">
+                                                <span className="text-blue-600">Vehicles:</span>
+                                                <span className="font-medium">{item.vehicle}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-[#0955AC]">Tickets:</span>
+                                                <span className="font-medium">{item.tickets}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-purple-600">Logistics:</span>
+                                                <span className="font-medium">{item.logistics}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 </div>
 
                 {/* Export Modal */}
