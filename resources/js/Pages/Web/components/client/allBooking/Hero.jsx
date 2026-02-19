@@ -709,7 +709,7 @@ const Hero = ({
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-[13px] text-slate-600">
+                                <span className="text-[12px] text-slate-600">
                                     Page {currentPage} of {totalPages}
                                 </span>
                                 <select
@@ -718,7 +718,7 @@ const Hero = ({
                                         setItemsPerPage(Number(e.target.value));
                                         setCurrentPage(1);
                                     }}
-                                    className="h-9 px-3 rounded-lg border border-slate-300 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                    className="h-10 px-3 rounded-lg border border-slate-300 text-[12px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] min-w-[120px]"
                                 >
                                     <option value={5}>5 per page</option>
                                     <option value={10}>10 per page</option>
@@ -978,7 +978,7 @@ const Hero = ({
                     <div className="space-y-4 md:space-y-6">
                         {/* Quick Actions */}
                         <div className="rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm">
-                            <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+                            <div className="px-4 sm:px-6 pt-5 sm:pt-7 pb-4 sm:pb-5">
                                 <h3 className="font-semibold leading-none tracking-tight text-[16px] sm:text-[18px]">
                                     Quick Actions
                                 </h3>
@@ -986,7 +986,7 @@ const Hero = ({
                                     Book new services
                                 </p>
                             </div>
-                            <div className="px-4 sm:px-6 pb-4 sm:pb-6 space-y-2 font-medium">
+                            <div className="px-4 sm:px-6 pb-6 sm:pb-8 space-y-2 font-medium">
                                 <Link
                                     href="/clientRent?type=land"
                                     className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
