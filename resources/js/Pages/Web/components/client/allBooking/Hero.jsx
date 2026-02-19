@@ -720,6 +720,7 @@ const Hero = ({
                                     }}
                                     className="h-10 px-3 rounded-lg border border-slate-300 text-[12px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] min-w-[120px]"
                                 >
+                                    <option value={2}>2 per page</option>
                                     <option value={5}>5 per page</option>
                                     <option value={10}>10 per page</option>
                                     <option value={20}>20 per page</option>
