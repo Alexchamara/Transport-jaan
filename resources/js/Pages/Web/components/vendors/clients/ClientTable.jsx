@@ -5,6 +5,11 @@ import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
 import miniDown from "../../../assets/vendors/dashboard/icons/miniDown.svg";
 import file from "../../../assets/vendors/clients/file.svg";
 import proPic from "../../../assets/vendors/clients/proPic.svg";
+import { Download, ChevronDown as DropdownIcon } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+
 
 const ClientTable = () => {
     const { clients: clientsData, currentFilter, stats } = usePage().props;
@@ -13,6 +18,7 @@ const ClientTable = () => {
     const [activeFilter, setActiveFilter] = useState(currentFilter || 'all');
     const [searchTerm, setSearchTerm] = useState('');
     const [isMobile, setIsMobile] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -31,6 +37,140 @@ const ClientTable = () => {
             ];
         }
         return clientsData?.[activeFilter] || [];
+    };
+
+    // Export functionality
+    const exportToCSV = () => {
+        // Combine all clients from different categories
+        const allClients = [
+            ...(clientsData?.land || []),
+            ...(clientsData?.air || []),
+            ...(clientsData?.sea || [])
+        ];
+
+        if (allClients.length === 0) {
+            alert("No clients to export");
+            return;
+        }
+
+        const headers = ["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"];
+        const data = allClients.map(client => [
+            client.name || "",
+            client.email || "",
+            client.phone || "",
+            client.type || "Rental",
+            client.totalBookings || 0,
+            client.totalSpent || "LKR 0",
+            client.joinDate || ""
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...data.map(row => row.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `clients-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setShowExportMenu(false);
+    };
+
+    const exportToPDF = () => {
+        // Combine all clients from different categories
+        const allClients = [
+            ...(clientsData?.land || []),
+            ...(clientsData?.air || []),
+            ...(clientsData?.sea || [])
+        ];
+
+        if (allClients.length === 0) {
+            alert("No clients to export");
+            return;
+        }
+
+        const doc = new jsPDF();
+        const headers = [["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"]];
+        const data = allClients.map(client => [
+            client.name || "",
+            client.email || "",
+            client.phone || "",
+            client.type || "Rental",
+            client.totalBookings || 0,
+            client.totalSpent || "LKR 0",
+            client.joinDate || ""
+        ]);
+
+        doc.setFontSize(16);
+        doc.text("Clients Report", 14, 10);
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
+
+        autoTable(doc, {
+            head: headers,
+            body: data,
+            startY: 25,
+            margin: { top: 20, right: 10, bottom: 10, left: 10 },
+            headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [230, 240, 250] },
+            didDrawPage: (data) => {
+                const pageCount = doc.internal.getPages().length;
+                doc.setFontSize(9);
+                doc.text(
+                    `Page ${data.pageNumber} of ${pageCount}`,
+                    doc.internal.pageSize.getWidth() / 2,
+                    doc.internal.pageSize.getHeight() - 10,
+                    { align: 'center' }
+                );
+            }
+        });
+
+        doc.save(`clients-${new Date().toISOString().slice(0, 10)}.pdf`);
+        setShowExportMenu(false);
+    };
+
+    const exportToXLSX = () => {
+        try {
+            // Combine all clients from different categories
+            const allClients = [
+                ...(clientsData?.land || []),
+                ...(clientsData?.air || []),
+                ...(clientsData?.sea || [])
+            ];
+
+            if (allClients.length === 0) {
+                alert("No clients to export");
+                return;
+            }
+
+            const data = [
+                ["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"],
+                ...allClients.map(client => [
+                    client.name || "",
+                    client.email || "",
+                    client.phone || "",
+                    client.type || "Rental",
+                    client.totalBookings || 0,
+                    client.totalSpent || "LKR 0",
+                    client.joinDate || ""
+                ])
+            ];
+
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Clients");
+
+            XLSX.writeFile(workbook, `clients-${new Date().toISOString().slice(0, 10)}.xlsx`);
+        } catch (error) {
+            console.error("Error exporting to XLSX:", error);
+            alert("Error exporting to XLSX. Please try again.");
+        }
+        setShowExportMenu(false);
     };
 
     const [clients, setClients] = useState(getFilteredClients());
@@ -152,6 +292,40 @@ const ClientTable = () => {
                 >
                     ⛵ Sea
                 </button>
+                 <div className="flex flex-row gap-3 sm:gap-5 relative items-center">
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#3B8F31] text-white rounded-[6px] hover:bg-[#2d6b25] transition text-[14px] sm:text-[16px]"
+                        >
+                            <Download size={18} />
+                            <span>Export</span>
+                            <DropdownIcon size={14} />
+                        </button>
+                        {showExportMenu && (
+                            <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
+                                <button
+                                    onClick={exportToCSV}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                >
+                                    Export to CSV
+                                </button>
+                                <button
+                                    onClick={exportToPDF}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                >
+                                    Export to PDF
+                                </button>
+                                <button
+                                    onClick={exportToXLSX}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px]"
+                                >
+                                    Export to XLSX
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                                    </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">

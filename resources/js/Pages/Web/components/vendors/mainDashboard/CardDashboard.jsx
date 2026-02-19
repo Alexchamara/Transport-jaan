@@ -9,7 +9,7 @@ const CardDashboard = () => {
       // subOptions: ['Land', 'Air', 'Sea']   //  Added sub options
     },
     { title: 'Ticket Booking', description: 'Book tickets for travel and events.' },
-    // { title: 'Courier Service', description: 'Send and track packages efficiently.' },
+    { title: 'Courier Service', description: 'Send and track packages efficiently.' },
     { title: 'Warehouse Rental', description: 'Rent warehouse space for storage.' },
     { title: 'Freight', description: 'Manage freight shipments and logistics.' },
     { title: 'Multimodal', description: 'Handle multimodal transportation solutions.' },

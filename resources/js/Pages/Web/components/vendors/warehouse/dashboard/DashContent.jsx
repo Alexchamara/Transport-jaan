@@ -17,7 +17,12 @@ import {
     Users,
     RefreshCw,
     AlertCircle,
+    Download,
+    ChevronDown as DropdownIcon,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import axios from "axios";
 import { API_BASE_URL } from "../../../../../../config/api";
 import { PieChart, Pie, Cell } from "recharts";
@@ -77,6 +82,15 @@ const DashContent = () => {
     const [selectedPeriod, setSelectedPeriod] = useState("Last 8 months");
     const [statusFilter, setStatusFilter] = useState("This Week");
     const [activeFilter, setActiveFilter] = useState("all");
+    
+    // Warehouse bookings filter state
+    const [showWarehouseFilters, setShowWarehouseFilters] = useState(false);
+    const [showWarehouseExportMenu, setShowWarehouseExportMenu] = useState(false);
+    const [warehouseSearchQuery, setWarehouseSearchQuery] = useState("");
+    const [warehouseStatusFilter, setWarehouseStatusFilter] = useState("All");
+    const [warehousePaymentFilter, setWarehousePaymentFilter] = useState("All");
+    const [warehouseDateFromFilter, setWarehouseDateFromFilter] = useState("");
+    const [warehouseDateToFilter, setWarehouseDateToFilter] = useState("");
 
     // Real-time update state
     const autoRefresh = true;
@@ -190,9 +204,46 @@ const DashContent = () => {
                 );
             }
 
+            // Apply warehouse-specific filters
+            if (warehouseSearchQuery.trim()) {
+                const searchTerm = warehouseSearchQuery.toLowerCase();
+                filtered = filtered.filter(
+                    (booking) =>
+                        booking.booking_reference?.toLowerCase().includes(searchTerm) ||
+                        booking.contact_person?.toLowerCase().includes(searchTerm) ||
+                        booking.company_name?.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (warehouseStatusFilter !== "All") {
+                filtered = filtered.filter(
+                    (booking) => booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase()
+                );
+            }
+
+            if (warehousePaymentFilter !== "All") {
+                filtered = filtered.filter(
+                    (booking) => booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase()
+                );
+            }
+
+            if (warehouseDateFromFilter) {
+                const fromDate = new Date(warehouseDateFromFilter);
+                filtered = filtered.filter(
+                    (booking) => new Date(booking.start_date) >= fromDate
+                );
+            }
+
+            if (warehouseDateToFilter) {
+                const toDate = new Date(warehouseDateToFilter);
+                filtered = filtered.filter(
+                    (booking) => new Date(booking.start_date) <= toDate
+                );
+            }
+
             setBookings(filtered);
         },
-        [activeFilter, searchQuery]
+        [activeFilter, searchQuery, warehouseSearchQuery, warehouseStatusFilter, warehousePaymentFilter, warehouseDateFromFilter, warehouseDateToFilter]
     );
 
     // Fetch dashboard statistics with real-time updates
@@ -847,6 +898,173 @@ const DashContent = () => {
         }
     }, [liveMode, showNotification]);
 
+    // Export warehouse bookings to CSV
+    const exportWarehouseToCSV = () => {
+        const filteredData = bookings.filter((booking) => {
+            const matchesSearch = !warehouseSearchQuery || 
+                booking.booking_reference?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
+                booking.contact_person?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
+                booking.company_name?.toLowerCase().includes(warehouseSearchQuery.toLowerCase());
+            
+            const matchesStatus = warehouseStatusFilter === "All" || booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase();
+            
+            const matchesPayment = warehousePaymentFilter === "All" || booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase();
+            
+            const bookingDate = new Date(booking.start_date);
+            const matchesFromDate = !warehouseDateFromFilter || bookingDate >= new Date(warehouseDateFromFilter);
+            const matchesToDate = !warehouseDateToFilter || bookingDate <= new Date(warehouseDateToFilter);
+            
+            return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
+        });
+
+        const csvContent = [
+            ["Booking ID", "Client", "Company", "Unit", "Start Date", "End Date", "Status", "Payment", "Price"],
+            ...filteredData.map((booking) => [
+                booking.booking_reference || "N/A",
+                booking.contact_person || "N/A",
+                booking.company_name || "N/A",
+                booking.unit_type || "N/A",
+                new Date(booking.start_date).toLocaleDateString() || "N/A",
+                new Date(booking.end_date).toLocaleDateString() || "N/A",
+                booking.status || "N/A",
+                booking.payment_status || "N/A",
+                `LKR ${booking.total_price?.toLocaleString() || 0}`,
+            ]),
+        ]
+            .map((row) => row.map((cell) => `"${cell}"`).join(","))
+            .join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `warehouse-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setShowWarehouseExportMenu(false);
+    };
+
+    // Export warehouse bookings to PDF
+    const exportWarehouseToPDF = () => {
+        const filteredData = bookings.filter((booking) => {
+            const matchesSearch = !warehouseSearchQuery || 
+                booking.booking_reference?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
+                booking.contact_person?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
+                booking.company_name?.toLowerCase().includes(warehouseSearchQuery.toLowerCase());
+            
+            const matchesStatus = warehouseStatusFilter === "All" || booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase();
+            
+            const matchesPayment = warehousePaymentFilter === "All" || booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase();
+            
+            const bookingDate = new Date(booking.start_date);
+            const matchesFromDate = !warehouseDateFromFilter || bookingDate >= new Date(warehouseDateFromFilter);
+            const matchesToDate = !warehouseDateToFilter || bookingDate <= new Date(warehouseDateToFilter);
+            
+            return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
+        });
+
+        const doc = new jsPDF();
+        const data = filteredData.map((booking) => [
+            booking.booking_reference || "N/A",
+            booking.contact_person || "N/A",
+            booking.company_name || "N/A",
+            booking.unit_type || "N/A",
+            new Date(booking.start_date).toLocaleDateString() || "N/A",
+            new Date(booking.end_date).toLocaleDateString() || "N/A",
+            booking.status || "N/A",
+            booking.payment_status || "N/A",
+            `LKR ${booking.total_price?.toLocaleString() || 0}`,
+        ]);
+
+        const headers = [["Booking ID", "Client", "Company", "Unit", "Start Date", "End Date", "Status", "Payment", "Price"]];
+
+        doc.setFontSize(16);
+        doc.text("Warehouse Bookings Report", 14, 10);
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
+
+        autoTable(doc, {
+            head: headers,
+            body: data,
+            startY: 25,
+            margin: { top: 20, right: 10, bottom: 10, left: 10 },
+            headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [230, 240, 250] },
+            didDrawPage: (data) => {
+                const pageCount = doc.internal.getPages().length;
+                doc.setFontSize(9);
+                doc.text(
+                    `Page ${data.pageNumber} of ${pageCount}`,
+                    doc.internal.pageSize.getWidth() / 2,
+                    doc.internal.pageSize.getHeight() - 10,
+                    { align: 'center' }
+                );
+            }
+        });
+
+        doc.save(`warehouse-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
+        setShowWarehouseExportMenu(false);
+    };
+
+    // Export warehouse bookings to XLSX
+    const exportWarehouseToXLSX = () => {
+        try {
+            const filteredData = bookings.filter((booking) => {
+                const matchesSearch = !warehouseSearchQuery || 
+                    booking.booking_reference?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
+                    booking.contact_person?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
+                    booking.company_name?.toLowerCase().includes(warehouseSearchQuery.toLowerCase());
+                
+                const matchesStatus = warehouseStatusFilter === "All" || booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase();
+                
+                const matchesPayment = warehousePaymentFilter === "All" || booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase();
+                
+                const bookingDate = new Date(booking.start_date);
+                const matchesFromDate = !warehouseDateFromFilter || bookingDate >= new Date(warehouseDateFromFilter);
+                const matchesToDate = !warehouseDateToFilter || bookingDate <= new Date(warehouseDateToFilter);
+                
+                return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
+            });
+
+            const data = [
+                ["Booking ID", "Client", "Company", "Unit", "Start Date", "End Date", "Status", "Payment", "Price"],
+                ...filteredData.map((booking) => [
+                    booking.booking_reference || "N/A",
+                    booking.contact_person || "N/A",
+                    booking.company_name || "N/A",
+                    booking.unit_type || "N/A",
+                    new Date(booking.start_date).toLocaleDateString() || "N/A",
+                    new Date(booking.end_date).toLocaleDateString() || "N/A",
+                    booking.status || "N/A",
+                    booking.payment_status || "N/A",
+                    `LKR ${booking.total_price?.toLocaleString() || 0}`,
+                ])
+            ];
+
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Warehouse Bookings");
+
+            XLSX.writeFile(workbook, `warehouse-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
+        } catch (error) {
+            console.error("Error exporting to XLSX:", error);
+            alert("Error exporting to XLSX. Please try again.");
+        }
+        setShowWarehouseExportMenu(false);
+    };
+
+    // Reset warehouse bookings filters
+    const handleResetWarehouseFilters = useCallback(() => {
+        setWarehouseSearchQuery("");
+        setWarehouseStatusFilter("All");
+        setWarehousePaymentFilter("All");
+        setWarehouseDateFromFilter("");
+        setWarehouseDateToFilter("");
+        setShowWarehouseFilters(false);
+        showNotification("Filters reset", "success");
+    }, [showNotification]);
+
     // Inline BookingOverviewBarChart Component
     const BookingOverviewBarChart = ({ data = [] }) => {
         const bookingData = data;
@@ -1342,272 +1560,161 @@ const DashContent = () => {
                         </div>
 
                         {/* end of 4 mini cards */}
-
-                        {/* booking chart */}
-                        <div
-                            className="hidden md:block md:w-full md:min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10 overflow-hidden"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            {/* Occupancy Overview header and dropdown */}
-                            <div className="flex flex-row items-center justify-between mb-16 w-full">
-                                <h1 className="text-[24px] font-[700]">
-                                    Occupancy Overview
-                                </h1>
-                                <div className="relative">
-                                    <select
-                                        value={selectedPeriod}
-                                        onChange={(e) => {
-                                            setSelectedPeriod(e.target.value);
-                                            setIsSearching(true);
-                                        }}
-                                        className="w-[140px] h-[33px] bg-[#D9D9D94F] rounded-[6px] text-[#00000080] font-[600] text-[14px] border-none outline-none cursor-pointer appearance-none px-3 pr-8"
-                                        disabled={isSearching}
-                                    >
-                                        <option value="Last 3 months">
-                                            Last 3 months
-                                        </option>
-                                        <option value="Last 6 months">
-                                            Last 6 months
-                                        </option>
-                                        <option value="Last 8 months">
-                                            Last 8 months
-                                        </option>
-                                        <option value="Last 12 months">
-                                            Last 12 months
-                                        </option>
-                                        <option value="This year">
-                                            This Year
-                                        </option>
-                                    </select>
-                                    {/* <ChevronDown
-                                        size={16}
-                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[#00000080]"
-                                    /> */}
-                                    {isSearching && (
-                                        <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
-                                            <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            {/* Booking Overview Bar Chart */}
-                            {isSearching &&
-                                chartData.bookingOverview.length === 0 ? (
-                                <div className="xl:w-[600px] h-[217px] flex items-center justify-center text-gray-500">
-                                    <div className="flex flex-col items-center gap-3">
-                                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                        <span>Loading chart data...</span>
-                                    </div>
-                                </div>
-                            ) : isMobile ? (
-                                <div className="flex flex-col gap-2">
-                                    {(chartData.bookingOverview ?? []).map((item, index) => (
-                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
-                                            <span className="font-medium text-gray-700">{item.name}</span>
-                                            <span className="font-bold text-blue-600">{item.bookings} bookings</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <BookingOverviewBarChart
-                                    data={chartData.bookingOverview}
-                                />
-                            )}
-                        </div>
-
-                        <div
-                            className="w-full md:min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10 overflow-hidden"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-col xl:flex-row items-center justify-between mb-12 w-full">
-                                <h1 className="text-[24px] font-[700]">
-                                    Earnings Summary
-                                </h1>
-                                <div className="relative">
-                                    <select
-                                        value={selectedPeriod}
-                                        onChange={(e) =>
-                                            handlePeriodChange(e.target.value)
-                                        }
-                                        className="w-[140px] h-[33px] bg-[#D9D9D94F] rounded-[6px] text-[#00000080] font-[600] text-[14px] border-none outline-none cursor-pointer appearance-none px-3 pr-8"
-                                        disabled={isSearching}
-                                    >
-                                        <option value="Last 3 months">
-                                            Last 3 months
-                                        </option>
-                                        <option value="Last 6 months">
-                                            Last 6 months
-                                        </option>
-                                        <option value="Last 8 months">
-                                            Last 8 months
-                                        </option>
-                                        <option value="Last 12 months">
-                                            Last 12 months
-                                        </option>
-                                        <option value="This year">
-                                            This Year
-                                        </option>
-                                    </select>
-                                    {isSearching && (
-                                        <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
-                                            <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            {isMobile ? (
-                                <div className="flex flex-col gap-2">
-                                    {(chartData.earningSummary ?? []).map((item, index) => (
-                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
-                                            <span className="font-medium text-gray-700">{item.name}</span>
-                                            <span className="font-bold text-green-600">${Number(item.value || 0).toLocaleString()}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <EarningSummaryChart
-                                    data={chartData.earningSummary}
-                                />
-                            )}
-                        </div>
-                    </div>
-                    {/* mini right section */}
-
-                </div>
-
-                {/* vendors section */}
+ {/* vendors section */}
 
                 <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-10"
+                    className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-15 px-3 md:px-10"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div className="flex flex-col">
-                            <h1 className="text-[24px] font-[700]">
+                    <div className="flex flex-col gap-4 w-full">
+                        {/* Header and Buttons */}
+                        <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 w-full">
+                            <h1 className="text-[20px] md:text-[24px] font-[700]">
                                 Warehouse Clients
                             </h1>
-                            {(searchQuery || activeFilter !== "all") && (
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-sm text-gray-600">
-                                        {searchQuery &&
-                                            `Search: "${searchQuery}"`}
-                                        {searchQuery &&
-                                            activeFilter !== "all" &&
-                                            " • "}
-                                        {activeFilter !== "all" &&
-                                            `Filter: ${activeFilter
-                                                .charAt(0)
-                                                .toUpperCase() +
-                                            activeFilter.slice(1)
-                                            }`}
-                                    </span>
-                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                        {bookings.length} results
-                                    </span>
-                                    <button
-                                        onClick={() => {
-                                            clearSearch();
-                                            setActiveFilter("all");
-                                        }}
-                                        className="text-xs text-blue-600 hover:text-blue-800 underline"
-                                    >
-                                        Clear all
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-5 w-full sm:w-auto">
-                            <div className="relative w-full sm:w-auto">
-                                <div
-                                    className={`w-full sm:w-[280px] h-[35px] rounded-[6px] flex flex-row items-center py-2 px-5 transition-all duration-200 ${searchQuery
-                                        ? "bg-blue-50 border border-blue-200"
-                                        : "bg-[#F3F3F3]"
-                                        }`}
-                                >
-                                    <Search
-                                        size={16}
-                                        className={`transition-colors ${searchQuery
-                                            ? "text-blue-500"
-                                            : "text-gray-400"
-                                            }`}
-                                    />
+
+                            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
+                                    <Search size={16} className="shrink-0" />
                                     <input
-                                        id="globalSearch"
                                         type="text"
-                                        value={searchQuery}
-                                        onChange={handleSearchChange}
-                                        className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] ml-2"
-                                        placeholder="Search clients, companies, IDs..."
+                                        value={warehouseSearchQuery}
+                                        onChange={(e) => setWarehouseSearchQuery(e.target.value)}
+                                        className="w-full outline-none bg-transparent placeholder:text-[#7B7B7ACC] border-0 focus:ring-0 text-sm ml-2"
+                                        placeholder="Search client name, company, etc."
                                     />
-                                    {searchQuery && (
-                                        <button
-                                            onClick={clearSearch}
-                                            className="ml-2 p-1 rounded-full hover:bg-gray-200 transition-colors"
-                                            title="Clear search"
-                                        >
-                                            <svg
-                                                width="12"
-                                                height="12"
-                                                viewBox="0 0 12 12"
-                                                className="text-gray-500"
+                                </div>
+
+                                <button onClick={() => setShowWarehouseFilters(!showWarehouseFilters)} 
+                                    className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] border border-gray-300">
+                                    <Filter size={14} className="shrink-0" />
+                                    <span>Filter</span>
+                                </button>
+
+                                <div className="relative">
+                                    <button 
+                                        onClick={() => setShowWarehouseExportMenu(!showWarehouseExportMenu)} 
+                                        className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] border border-gray-300">    
+                                        <Download size={14} className="shrink-0" />
+                                        <span>Export</span>
+                                        <DropdownIcon size={12} />
+                                    </button>
+                                    {showWarehouseExportMenu && (
+                                        <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
+                                            <button
+                                                onClick={exportWarehouseToCSV}
+                                                className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
                                             >
-                                                <path
-                                                    d="M9 3L3 9M3 3l6 6"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                            </svg>
-                                        </button>
+                                                Export to CSV
+                                            </button>
+                                            <button
+                                                onClick={exportWarehouseToPDF}
+                                                className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                            >
+                                                Export to PDF
+                                            </button>
+                                            <button
+                                                onClick={exportWarehouseToXLSX}
+                                                className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px]"
+                                            >
+                                                Export to XLSX
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
-                                {searchQuery && (
-                                    <div className="static sm:absolute sm:top-10 sm:left-0 sm:right-0 bg-white border border-gray-200 rounded-lg shadow-lg sm:z-10 p-2">
-                                        <div className="text-xs text-gray-600">
-                                            {isSearching ? (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                                    Searching...
-                                                </div>
-                                            ) : (
-                                                <span>
-                                                    Found {bookings.length}{" "}
-                                                    results
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="relative w-full sm:w-auto">
-                                <select
-                                    value={activeFilter}
-                                    onChange={(e) =>
-                                        setActiveFilter(e.target.value)
-                                    }
-                                    className="w-full sm:w-[140px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#7B7B7ACC] border-none outline-none cursor-pointer appearance-none px-3 pr-8 mt-2 sm:mt-0"
-                                >
-                                    <option value="all">All Bookings</option>
-                                    <option value="active">Active</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                                {/* <Filter
-                                    size={12}
-                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none"
-                                />
-                                <ChevronDown
-                                    size={16}
-                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none"
-                                /> */}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Warehouse Booking Table */}
-                    <div className="py-10 w-full">
+                        {/* Filter Panel */}
+                        {showWarehouseFilters && (
+                            <div className="border border-gray-300 rounded-[8px] p-4 bg-gray-50 w-full">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-[600] text-[16px]">Filters</h3>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleResetWarehouseFilters}
+                                            className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-gray-100 transition font-[500]"
+                                        >
+                                            Reset Filters
+                                        </button>
+                                        <button
+                                            onClick={() => setShowWarehouseFilters(false)}
+                                            className="text-gray-500 hover:text-gray-700 text-[24px] font-bold"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                                    {/* Search */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[12px] font-[600] text-gray-700">Search</label>
+                                        <input
+                                            type="text"
+                                            value={warehouseSearchQuery}
+                                            onChange={(e) => setWarehouseSearchQuery(e.target.value)}
+                                            placeholder="Booking ID, Client..."
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        />
+                                    </div>
+
+                                    {/* Status Filter */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[12px] font-[600] text-gray-700">Status</label>
+                                        <select
+                                            value={warehouseStatusFilter}
+                                            onChange={(e) => setWarehouseStatusFilter(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        >
+                                            <option value="All">All</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Completed">Completed</option>
+                                            <option value="Cancelled">Cancelled</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Payment Status Filter */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[12px] font-[600] text-gray-700">Payment Status</label>
+                                        <select
+                                            value={warehousePaymentFilter}
+                                            onChange={(e) => setWarehousePaymentFilter(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        >
+                                            <option value="All">All</option>
+                                            <option value="Paid">Paid</option>
+                                            <option value="Pending">Pending</option>
+                                        </select>
+                                    </div>
+
+                                    {/* From Date */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[12px] font-[600] text-gray-700">From Date</label>
+                                        <input
+                                            type="date"
+                                            value={warehouseDateFromFilter}
+                                            onChange={(e) => setWarehouseDateFromFilter(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        />
+                                    </div>
+
+                                    {/* To Date */}
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[12px] font-[600] text-gray-700">To Date</label>
+                                        <input
+                                            type="date"
+                                            value={warehouseDateToFilter}
+                                            onChange={(e) => setWarehouseDateToFilter(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="py-10 w-full">
                         {/* DESKTOP/TABLET TABLE */}
                         <div className="hidden md:block overflow-auto">
                             {/* table headings */}
@@ -1975,9 +2082,140 @@ const DashContent = () => {
                             )}
                         </div>
                     </div>
+                    </div>
 
                 </div>
                 {/* end */}
+                        {/* booking chart */}
+                        <div
+                            className="hidden md:block md:w-full md:min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10 overflow-hidden"
+                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        >
+                            {/* Occupancy Overview header and dropdown */}
+                            <div className="flex flex-row items-center justify-between mb-16 w-full">
+                                <h1 className="text-[24px] font-[700]">
+                                    Occupancy Overview
+                                </h1>
+                                <div className="relative">
+                                    <select
+                                        value={selectedPeriod}
+                                        onChange={(e) => {
+                                            setSelectedPeriod(e.target.value);
+                                            setIsSearching(true);
+                                        }}
+                                        className="w-[140px] h-[33px] bg-[#D9D9D94F] rounded-[6px] text-[#00000080] font-[600] text-[14px] border-none outline-none cursor-pointer appearance-none px-3 pr-8"
+                                        disabled={isSearching}
+                                    >
+                                        <option value="Last 3 months">
+                                            Last 3 months
+                                        </option>
+                                        <option value="Last 6 months">
+                                            Last 6 months
+                                        </option>
+                                        <option value="Last 8 months">
+                                            Last 8 months
+                                        </option>
+                                        <option value="Last 12 months">
+                                            Last 12 months
+                                        </option>
+                                        <option value="This year">
+                                            This Year
+                                        </option>
+                                    </select>
+                                    {/* <ChevronDown
+                                        size={16}
+                                        className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none text-[#00000080]"
+                                    /> */}
+                                    {isSearching && (
+                                        <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+                                            <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            {/* Booking Overview Bar Chart */}
+                            {isSearching &&
+                                chartData.bookingOverview.length === 0 ? (
+                                <div className="xl:w-[600px] h-[217px] flex items-center justify-center text-gray-500">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Loading chart data...</span>
+                                    </div>
+                                </div>
+                            ) : isMobile ? (
+                                <div className="flex flex-col gap-2">
+                                    {(chartData.bookingOverview ?? []).map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                            <span className="font-bold text-blue-600">{item.bookings} bookings</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <BookingOverviewBarChart
+                                    data={chartData.bookingOverview}
+                                />
+                            )}
+                        </div>
+
+                        <div
+                            className="w-full md:min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10 overflow-hidden"
+                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        >
+                            <div className="flex flex-col xl:flex-row items-center justify-between mb-12 w-full">
+                                <h1 className="text-[24px] font-[700]">
+                                    Earnings Summary
+                                </h1>
+                                <div className="relative">
+                                    <select
+                                        value={selectedPeriod}
+                                        onChange={(e) =>
+                                            handlePeriodChange(e.target.value)
+                                        }
+                                        className="w-[140px] h-[33px] bg-[#D9D9D94F] rounded-[6px] text-[#00000080] font-[600] text-[14px] border-none outline-none cursor-pointer appearance-none px-3 pr-8"
+                                        disabled={isSearching}
+                                    >
+                                        <option value="Last 3 months">
+                                            Last 3 months
+                                        </option>
+                                        <option value="Last 6 months">
+                                            Last 6 months
+                                        </option>
+                                        <option value="Last 8 months">
+                                            Last 8 months
+                                        </option>
+                                        <option value="Last 12 months">
+                                            Last 12 months
+                                        </option>
+                                        <option value="This year">
+                                            This Year
+                                        </option>
+                                    </select>
+                                    {isSearching && (
+                                        <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+                                            <div className="w-3 h-3 border border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            {isMobile ? (
+                                <div className="flex flex-col gap-2">
+                                    {(chartData.earningSummary ?? []).map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
+                                            <span className="font-medium text-gray-700">{item.name}</span>
+                                            <span className="font-bold text-green-600">${Number(item.value || 0).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <EarningSummaryChart
+                                    data={chartData.earningSummary}
+                                />
+                            )}
+                        </div>
+                    </div>
+                    {/* mini right section */}
+                </div>
             </div>
         </div>
     );

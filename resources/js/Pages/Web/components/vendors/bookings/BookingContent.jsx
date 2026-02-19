@@ -1,4 +1,8 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
+import { Download, Search, Filter, X, ChevronDown as DropdownIcon } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 import bell from "../../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
@@ -53,6 +57,15 @@ const BookingContent = ({
     const wrapperRef = useRef(null);
     const [isMobile, setIsMobile] = useState(false);
 
+    // Filter state
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState("All");
+    const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
+    const [dateFromFilter, setDateFromFilter] = useState("");
+    const [dateToFilter, setDateToFilter] = useState("");
+    const [showFilters, setShowFilters] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
         checkMobile();
@@ -106,6 +119,178 @@ const BookingContent = ({
 
         return { upcoming, pending, cancelled, completed };
     }, [bookings]);
+
+    // Filtered bookings based on search and filter criteria
+    const filteredBookings = useMemo(() => {
+        let filtered = bookings;
+
+        // Status filter
+        if (statusFilter !== "All") {
+            filtered = filtered.filter(b => b.status === statusFilter);
+        }
+
+        // Payment status filter
+        if (paymentStatusFilter !== "All") {
+            filtered = filtered.filter(b => b.paymentStatus === paymentStatusFilter);
+        }
+
+        // Date range filter
+        if (dateFromFilter) {
+            const fromDate = new Date(dateFromFilter);
+            filtered = filtered.filter(b => {
+                const startDate = new Date(b.startDate);
+                return startDate >= fromDate;
+            });
+        }
+
+        if (dateToFilter) {
+            const toDate = new Date(dateToFilter);
+            toDate.setHours(23, 59, 59, 999);
+            filtered = filtered.filter(b => {
+                const startDate = new Date(b.startDate);
+                return startDate <= toDate;
+            });
+        }
+
+        // Search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(b =>
+                b.customerName?.toLowerCase().includes(query) ||
+                b.vehicleName?.toLowerCase().includes(query) ||
+                b.bookingRef?.toLowerCase().includes(query) ||
+                b.email?.toLowerCase().includes(query) ||
+                b.phone?.includes(query)
+            );
+        }
+
+        return filtered;
+    }, [bookings, statusFilter, paymentStatusFilter, dateFromFilter, dateToFilter, searchQuery]);
+
+    // Export to CSV function
+    const exportToCSV = () => {
+        if (filteredBookings.length === 0) {
+            alert("No bookings to export");
+            return;
+        }
+
+        const headers = ["Booking Ref", "Customer", "Vehicle", "Start Date", "End Date", "Status", "Payment Status", "Total Price"];
+        const data = filteredBookings.map(b => [
+            b.bookingRef || "",
+            b.customerName || "",
+            b.vehicleName || "",
+            b.startDate || "",
+            b.endDate || "",
+            b.status || "",
+            b.paymentStatus || "",
+            b.totalPrice || ""
+        ]);
+
+        const csvContent = [
+            headers.join(","),
+            ...data.map(row => row.map(cell => `"${cell}"`).join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `car-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setShowExportMenu(false);
+    };
+
+    const exportToPDF = () => {
+        if (filteredBookings.length === 0) {
+            alert("No bookings to export");
+            return;
+        }
+
+        const doc = new jsPDF();
+        const headers = [["Booking Ref", "Customer", "Vehicle", "Start Date", "End Date", "Status", "Payment Status", "Total Price"]];
+        const data = filteredBookings.map(b => [
+            b.bookingRef || "",
+            b.customerName || "",
+            b.vehicleName || "",
+            b.startDate || "",
+            b.endDate || "",
+            b.status || "",
+            b.paymentStatus || "",
+            b.totalPrice || ""
+        ]);
+
+        doc.setFontSize(16);
+        doc.text("Car Bookings Report", 14, 10);
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
+
+        autoTable(doc, {
+            head: headers,
+            body: data,
+            startY: 25,
+            margin: { top: 20, right: 10, bottom: 10, left: 10 },
+            headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [230, 240, 250] },
+            didDrawPage: (data) => {
+                const pageCount = doc.internal.getPages().length;
+                doc.setFontSize(9);
+                doc.text(
+                    `Page ${data.pageNumber} of ${pageCount}`,
+                    doc.internal.pageSize.getWidth() / 2,
+                    doc.internal.pageSize.getHeight() - 10,
+                    { align: 'center' }
+                );
+            }
+        });
+
+        doc.save(`car-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
+        setShowExportMenu(false);
+    };
+
+    const exportToXLSX = () => {
+        try {
+            if (filteredBookings.length === 0) {
+                alert("No bookings to export");
+                return;
+            }
+
+            const data = [
+                ["Booking Ref", "Customer", "Vehicle", "Start Date", "End Date", "Status", "Payment Status", "Total Price"],
+                ...filteredBookings.map(b => [
+                    b.bookingRef || "",
+                    b.customerName || "",
+                    b.vehicleName || "",
+                    b.startDate || "",
+                    b.endDate || "",
+                    b.status || "",
+                    b.paymentStatus || "",
+                    b.totalPrice || ""
+                ])
+            ];
+
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Car Bookings");
+
+            XLSX.writeFile(workbook, `car-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
+        } catch (error) {
+            console.error("Error exporting to XLSX:", error);
+            alert("Error exporting to XLSX. Please try again.");
+        }
+        setShowExportMenu(false);
+    };
+
+    // Reset filters
+    const handleResetFilters = () => {
+        setSearchQuery("");
+        setStatusFilter("All");
+        setPaymentStatusFilter("All");
+        setDateFromFilter("");
+        setDateToFilter("");
+    };
 
     return (
         <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
@@ -309,14 +494,159 @@ const BookingContent = ({
                 className="w-full bg-white rounded-[8px] sm:rounded-[10px] py-4 sm:py-6 lg:py-10 px-3 sm:px-4 lg:px-10 overflow-x-auto mt-6 sm:mt-0"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
-                <div className="flex flex-row justify-between mb-3 sm:mb-4">
-                    <h2 className="text-[16px] sm:text-[18px] lg:text-[24px] font-[700]">
-                        Car Booking
-                    </h2>
+                <div className="flex flex-col gap-4">
+                    {/* Header and Export */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h2 className="text-[16px] sm:text-[18px] lg:text-[24px] font-[700]">
+                            Car Booking
+                        </h2>
+                        <div className="flex flex-row gap-2">
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#0955AC] text-white rounded-[6px] hover:bg-[#073a7a] transition"
+                            >
+                                <Filter size={18} />
+                                <span className="hidden sm:inline">Filter</span>
+                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowExportMenu(!showExportMenu)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#3B8F31] text-white rounded-[6px] hover:bg-[#2d6b25] transition"
+                                >
+                                    <Download size={18} />
+                                    <span className="hidden sm:inline">Export</span>
+                                    <DropdownIcon size={14} />
+                                </button>
+                                {showExportMenu && (
+                                    <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
+                                        <button
+                                            onClick={exportToCSV}
+                                            className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                        >
+                                            Export to CSV
+                                        </button>
+                                        <button
+                                            onClick={exportToPDF}
+                                            className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                        >
+                                            Export to PDF
+                                        </button>
+                                        <button
+                                            onClick={exportToXLSX}
+                                            className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px]"
+                                        >
+                                            Export to XLSX
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Filter Panel */}
+                    {showFilters && (
+                        <div className="border border-gray-200 rounded-[8px] p-4 bg-gray-50">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-[600] text-[16px]">Filters</h3>
+                                <button
+                                    onClick={() => setShowFilters(false)}
+                                    className="text-gray-500 hover:text-gray-700"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                                {/* Search */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[12px] font-[600] text-gray-700">Search</label>
+                                    <div className="relative">
+                                        <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Customer, vehicle, ref..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Status Filter */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[12px] font-[600] text-gray-700">Status</label>
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                    >
+                                        <option value="All">All</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Confirmed">Confirmed</option>
+                                        <option value="Ongoing">Ongoing</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Returned">Returned</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+
+                                {/* Payment Status Filter */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[12px] font-[600] text-gray-700">Payment</label>
+                                    <select
+                                        value={paymentStatusFilter}
+                                        onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                    >
+                                        <option value="All">All</option>
+                                        <option value="Paid">Paid</option>
+                                        <option value="Pending">Pending</option>
+                                    </select>
+                                </div>
+
+                                {/* Date From */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[12px] font-[600] text-gray-700">From Date</label>
+                                    <input
+                                        type="date"
+                                        value={dateFromFilter}
+                                        onChange={(e) => setDateFromFilter(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                    />
+                                </div>
+
+                                {/* Date To */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[12px] font-[600] text-gray-700">To Date</label>
+                                    <input
+                                        type="date"
+                                        value={dateToFilter}
+                                        onChange={(e) => setDateToFilter(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Reset Button */}
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                                <button
+                                    onClick={handleResetFilters}
+                                    className="px-4 py-2 text-[14px] text-gray-600 hover:text-gray-900 border border-gray-300 rounded-[6px] hover:bg-gray-100 transition"
+                                >
+                                    Reset Filters
+                                </button>
+                            </div>
+
+                            {/* Results count */}
+                            <div className="mt-3 text-[12px] text-gray-500">
+                                Showing {filteredBookings.length} of {bookings.length} bookings
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <CarBookingTableTwo
-                    bookings={Array.isArray(bookings) ? bookings : []}
+                    bookings={Array.isArray(filteredBookings) ? filteredBookings : []}
                     setBookings={setBookings}
                     statusColors={statusColors}
                 />
