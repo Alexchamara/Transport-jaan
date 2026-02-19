@@ -228,7 +228,7 @@ const ClientHeader = () => {
                         <div className="flex justify-between items-center mb-8">
                             {/* Back to Dashboard Button */}
                             <Link
-                                href={route("client.mainDashboard")}
+                                href={route("clientAllBookings")}
                                 onClick={toggleMenu}
                                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                                 title="Back to Dashboard"

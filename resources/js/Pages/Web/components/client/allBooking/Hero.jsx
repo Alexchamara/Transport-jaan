@@ -418,7 +418,7 @@ const Hero = ({
                                 <RefreshCw className="h-4 w-4" />
                             </button>
                             <Link
-                                href="/client/dashboard"
+                                href="/clientAllBookings"
                                 className="inline-flex items-center h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0744a0]"
                             >
                                 <Calendar className="mr-2 h-4 w-4" /> New Booking

@@ -97,7 +97,7 @@ const Hero = ({ auth }) => {
                 )}
                 {auth.user.role === "client" && (
                   <Link
-                    href="/client/dashboard"
+                    href="/clientAllBookings"
                     className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[18px] font-medium"
                   >
                     Dashboard
@@ -208,7 +208,7 @@ const Hero = ({ auth }) => {
                     )}
                     {auth.user.role === "client" && (
                       <Link
-                        href="/client/dashboard"
+                        href="/clientAllBookings"
                         className="bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded text-white text-[12px] font-medium"
                       >
                         Dashboard

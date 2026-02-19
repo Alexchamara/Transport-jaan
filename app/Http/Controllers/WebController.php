@@ -935,7 +935,7 @@ class WebController extends Controller
 
         switch ($user->role) {
             case 'client':
-                return redirect()->route('client.mainDashboard');
+                return redirect()->route('clientAllBookings');
             case 'vendor':
                 return redirect()->route('vendor.dashboard');
             case 'SuperAdmin':
