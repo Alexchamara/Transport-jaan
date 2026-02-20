@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, router } from '@inertiajs/react';
+import jsPDF from "jspdf";
 import {
     Package,
     FileText,
@@ -176,10 +177,144 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
         setShowExportModal(true);
     };
 
+    const formatExportDate = (value) => {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return date.toISOString().split("T")[0];
+    };
+
+    const escapeCsvValue = (value) => {
+        const text = String(value ?? "");
+        if (/[",\n]/.test(text)) {
+            return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+    };
+
+    const downloadTextFile = (content, fileName, mimeType) => {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const downloadCsv = (rows, fileName) => {
+        if (rows.length === 0) {
+            alert("No shipments to export for the selected filters.");
+            return;
+        }
+        const headers = Object.keys(rows[0]);
+        const csvLines = [
+            headers.join(","),
+            ...rows.map((row) =>
+                headers.map((key) => escapeCsvValue(row[key])).join(",")
+            ),
+        ];
+        downloadTextFile(
+            `${csvLines.join("\n")}\n`,
+            fileName,
+            "text/csv;charset=utf-8;"
+        );
+    };
+
+    const downloadPdf = (rows, fileName) => {
+        if (rows.length === 0) {
+            alert("No shipments to export for the selected filters.");
+            return;
+        }
+
+        const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+        const margin = 36;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const lineHeight = 16;
+
+        const columns = [
+            { key: "Code", label: "Code", width: 120 },
+            { key: "From", label: "From", width: 170 },
+            { key: "To", label: "To", width: 170 },
+            { key: "Status", label: "Status", width: 80 },
+            { key: "Pickup", label: "Pickup", width: 90 },
+            { key: "Packages", label: "Packages", width: 80 },
+            { key: "Weight", label: "Weight", width: 80 },
+            { key: "Cost", label: "Cost", width: 70 },
+            { key: "Currency", label: "Currency", width: 60 },
+        ];
+
+        const maxWidth = pageWidth - margin * 2;
+        const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
+        const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
+        columns.forEach((col) => {
+            col.width = col.width * scale;
+        });
+
+        let y = margin;
+
+        const drawHeader = () => {
+            pdf.setFontSize(11);
+            let x = margin;
+            columns.forEach((col) => {
+                pdf.text(col.label, x, y);
+                x += col.width;
+            });
+            y += lineHeight;
+            pdf.setDrawColor(220);
+            pdf.line(margin, y - 10, margin + maxWidth, y - 10);
+        };
+
+        const drawRow = (row) => {
+            pdf.setFontSize(9);
+            let x = margin;
+            columns.forEach((col) => {
+                const value = String(row[col.key] ?? "");
+                const clipped = value.length > 32 ? `${value.slice(0, 29)}...` : value;
+                pdf.text(clipped, x, y);
+                x += col.width;
+            });
+            y += lineHeight;
+            if (y > pageHeight - margin) {
+                pdf.addPage();
+                y = margin;
+                drawHeader();
+            }
+        };
+
+        drawHeader();
+        rows.forEach(drawRow);
+        pdf.save(fileName);
+    };
+
     // Handle export format
     const handleExportFormat = (format) => {
-        console.log(`Exporting shipments as ${format}`);
-        alert(`Exporting ${filteredShipments.length} shipments as ${format}`);
+        const rows = filteredShipments.map((shipment) => ({
+            Code: shipment.code || shipment.id || "",
+            From: shipment.from?.full || shipment.from?.city || "",
+            To: shipment.to?.full || shipment.to?.city || "",
+            Status: shipment.status || "",
+            Pickup: formatExportDate(shipment.pickupDate),
+            Packages: shipment.packages?.length ?? 0,
+            Weight: Number(shipment.totalWeight || 0).toFixed(2),
+            Cost: Number(shipment.totalCost || 0).toFixed(2),
+            Currency: "USD",
+        }));
+
+        const dateStamp = new Date().toISOString().split("T")[0];
+        const baseName = `courier-shipments-${dateStamp}`;
+
+        if (format === "PDF") {
+            downloadPdf(rows, `${baseName}.pdf`);
+        } else if (format === "Excel") {
+            downloadCsv(rows, `${baseName}.xlsx`);
+        } else {
+            downloadCsv(rows, `${baseName}.csv`);
+        }
+
         setShowExportModal(false);
     };
 

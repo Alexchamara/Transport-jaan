@@ -313,13 +313,167 @@ const Hero = ({
         setShowBulkActions(false);
     };
 
+    const formatExportDate = (value) => {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return date.toISOString().split("T")[0];
+    };
+
+    const getExportRows = (bookings) => {
+        return bookings.map((booking) => {
+            const amount = parseFloat(booking.total_amount ?? booking.amount ?? 0) || 0;
+            return {
+                Type: booking.booking_type || "booking",
+                Service:
+                    booking.service_name ||
+                    booking.vehicle_name ||
+                    booking.title ||
+                    booking.item ||
+                    "Booking",
+                Status: booking.status || "",
+                Amount: amount.toFixed(2),
+                Currency: booking.currency || "LKR",
+                Created: formatExportDate(booking.created_at || booking.booking_date),
+                Start: formatExportDate(
+                    booking.start_date ||
+                        booking.departure_date ||
+                        booking.pickup_date
+                ),
+                Reference:
+                    booking.booking_code ||
+                    booking.reference_number ||
+                    booking.tracking_reference ||
+                    booking.id ||
+                    "",
+            };
+        });
+    };
+
+    const escapeCsvValue = (value) => {
+        const text = String(value ?? "");
+        if (/[",\n]/.test(text)) {
+            return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+    };
+
+    const downloadTextFile = (content, fileName, mimeType) => {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const downloadCsv = (rows, fileName) => {
+        if (rows.length === 0) {
+            alert("No bookings to export for the selected filters.");
+            return;
+        }
+        const headers = Object.keys(rows[0]);
+        const csvLines = [
+            headers.join(","),
+            ...rows.map((row) =>
+                headers.map((key) => escapeCsvValue(row[key])).join(",")
+            ),
+        ];
+        downloadTextFile(
+            `${csvLines.join("\n")}\n`,
+            fileName,
+            "text/csv;charset=utf-8;"
+        );
+    };
+
+    const downloadPdf = (rows, fileName) => {
+        if (rows.length === 0) {
+            alert("No bookings to export for the selected filters.");
+            return;
+        }
+
+        const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+        const margin = 36;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const lineHeight = 16;
+
+        const columns = [
+            { key: "Type", label: "Type", width: 80 },
+            { key: "Service", label: "Service", width: 220 },
+            { key: "Status", label: "Status", width: 80 },
+            { key: "Amount", label: "Amount", width: 70 },
+            { key: "Currency", label: "Currency", width: 60 },
+            { key: "Created", label: "Created", width: 80 },
+            { key: "Start", label: "Start", width: 80 },
+            { key: "Reference", label: "Reference", width: 140 },
+        ];
+
+        const maxWidth = pageWidth - margin * 2;
+        const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
+        const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
+        columns.forEach((col) => {
+            col.width = col.width * scale;
+        });
+
+        let y = margin;
+
+        const drawHeader = () => {
+            pdf.setFontSize(11);
+            let x = margin;
+            columns.forEach((col) => {
+                pdf.text(col.label, x, y);
+                x += col.width;
+            });
+            y += lineHeight;
+            pdf.setDrawColor(220);
+            pdf.line(margin, y - 10, margin + maxWidth, y - 10);
+        };
+
+        const drawRow = (row) => {
+            pdf.setFontSize(9);
+            let x = margin;
+            columns.forEach((col) => {
+                const value = String(row[col.key] ?? "");
+                const clipped = value.length > 32 ? `${value.slice(0, 29)}...` : value;
+                pdf.text(clipped, x, y);
+                x += col.width;
+            });
+            y += lineHeight;
+            if (y > pageHeight - margin) {
+                pdf.addPage();
+                y = margin;
+                drawHeader();
+            }
+        };
+
+        drawHeader();
+        rows.forEach(drawRow);
+        pdf.save(fileName);
+    };
+
     const handleExport = (format) => {
         const dataToExport = selectedBookings.length > 0 
             ? filteredBookings.filter(b => selectedBookings.includes(b.id))
             : filteredBookings;
-        
-        console.log(`Exporting ${dataToExport.length} bookings as ${format}`);
-        alert(`Exporting ${dataToExport.length} bookings as ${format}`);
+
+        const rows = getExportRows(dataToExport);
+        const dateStamp = new Date().toISOString().split("T")[0];
+        const baseName = selectedBookings.length > 0
+            ? `selected-bookings-${dateStamp}`
+            : `filtered-bookings-${dateStamp}`;
+
+        if (format === "PDF") {
+            downloadPdf(rows, `${baseName}.pdf`);
+        } else if (format === "Excel") {
+            downloadCsv(rows, `${baseName}.xlsx`);
+        } else {
+            downloadCsv(rows, `${baseName}.csv`);
+        }
+
         setShowExportModal(false);
     };
 
