@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@inertiajs/react";
 import BookingCancellationModal from "./allBooking/BookingCancellationModal";
 import {
@@ -16,6 +16,12 @@ import {
     Star,
     CreditCard,
     Clock,
+    RefreshCw,
+    X,
+    Info,
+    FileText,
+    File,
+    ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import {
     AreaChart,
@@ -60,6 +66,32 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     const [sort, setSort] = useState("popular");
     const [showCancellationModal, setShowCancellationModal] = useState(false);
     const [bookingToCancell, setBookingToCancell] = useState(null);
+    const [statusFilterMain, setStatusFilterMain] = useState("all");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
+
+    const handleClearFilters = () => {
+        setQ("");
+        setMode("all");
+        setStatusFilterMain("all");
+        setSort("popular");
+        setStartDate("");
+        setEndDate("");
+    };
+
+    const handleRefresh = () => {
+        window.location.reload();
+    };
+
+    const handleExportFormat = (format) => {
+        // Export logic based on format
+        console.log(`Exporting as ${format}`);
+        // You can implement actual export logic here
+        alert(`Exporting bookings as ${format}`);
+        setShowExportModal(false);
+    };
 
     // Group booked vehicles by type
     const fleets = useMemo(() => {
@@ -269,267 +301,71 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                     </div>
                 </div>
 
-                {/* Top Row: Filters + Charts */}
-                <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* Area chart card */}
-                    <div className="lg:col-span-2 bg-white rounded-[10px] shadow-sm">
-                        <div className="px-10 pt-10 pb-5">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                        Bookings by Month
-                                    </h3>
-                                    <p className="text-[14px] text-slate-500 pt-1">
-                                        Land • Air • Sea (year to date)
-                                    </p>
-                                </div>
-                                {/* Placeholder view control */}
-                                <button className="inline-flex items-center h-10 px-3 rounded-xl border border-slate-200 text-[12px] font-[600] hover:bg-slate-100">
-                                    <Filter className="mr-2 h-4 w-4" />
-                                    View
-                                </button>
-                            </div>
-                        </div>
-                        <div className="px-10 pb-10 pt-10">
-                            <div
-                                className="h-[350px] w-full focus:outline-none focus:border-none"
-                                style={{
-                                    WebkitTapHighlightColor: "transparent",
-                                    outline: "none",
-                                }}
-                            >
-                                <ResponsiveContainer
-                                    width="100%"
-                                    height="100%"
-                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
-                                    tabIndex={-1}
-                                    style={{
-                                        WebkitTapHighlightColor: "transparent",
-                                        outline: "none",
-                                    }}
-                                >
-                                    <AreaChart
-                                        data={chartData}
-                                        margin={{ left: 8, right: 8, top: 10 }}
-                                    >
-                                        <defs>
-                                            <linearGradient
-                                                id="gLand"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#3b82f6"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#3b82f6"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                            <linearGradient
-                                                id="gAir"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#0955AC"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#0955AC"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                            <linearGradient
-                                                id="gSea"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <stop
-                                                    offset="5%"
-                                                    stopColor="#6366f1"
-                                                    stopOpacity={0.35}
-                                                />
-                                                <stop
-                                                    offset="95%"
-                                                    stopColor="#6366f1"
-                                                    stopOpacity={0.02}
-                                                />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid
-                                            vertical={false}
-                                            horizontal={true}
-                                        />
-                                        <XAxis
-                                            dataKey="month"
-                                            tickLine={false}
-                                            axisLine={false}
-                                        />
-                                        <YAxis
-                                            tickLine={false}
-                                            axisLine={false}
-                                        />
-                                        <RTooltip />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="land"
-                                            name="Land"
-                                            stroke="#3b82f6"
-                                            fill="url(#gLand)"
-                                            strokeWidth={4}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="air"
-                                            name="Air"
-                                            stroke="#0955AC"
-                                            fill="url(#gAir)"
-                                            strokeWidth={4}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="sea"
-                                            name="Sea"
-                                            stroke="#6366f1"
-                                            fill="url(#gSea)"
-                                            strokeWidth={4}
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pie card */}
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-10 pt-10">
-                            <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                Mode Mix
-                            </h3>
-                            <p className="text-[14px] text-slate-500 mt-1">
-                                Share of total bookings
-                            </p>
-                        </div>
-                        <div className="px-10 pb-10">
-                            <div
-                                className="h-[350px] w-full"
-                                style={{
-                                    WebkitTapHighlightColor: "transparent",
-                                    outline: "none",
-                                }}
-                            >
-                                <ResponsiveContainer
-                                    width="100%"
-                                    height="100%"
-                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
-                                    tabIndex={-1}
-                                    style={{
-                                        WebkitTapHighlightColor: "transparent",
-                                        outline: "none",
-                                    }}
-                                >
-                                    <PieChart>
-                                        <Pie
-                                            data={pieData}
-                                            innerRadius={90}
-                                            outerRadius={140}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cornerRadius={8}
-                                        >
-                                            {pieData.map((_, i) => (
-                                                <Cell
-                                                    key={i}
-                                                    fill={
-                                                        [
-                                                            "#3b82f6",
-                                                            "#3CD0FF",
-                                                            "#6366f1",
-                                                        ][i]
-                                                    }
-                                                />
-                                            ))}
-                                        </Pie>
-                                        <RTooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
-                                <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-[#3b82f6]" />{" "}
-                                    Land
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-[#3CD0FF]" />{" "}
-                                    Air
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-indigo-500" />{" "}
-                                    Sea
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Search & Filters */}
-                <div className="mb-8 rounded-2xl">
-                    <div className="px-4 pb-4 pt-6">
-                        <div className="grid items-center gap-3 md:grid-cols-2 lg:grid-cols-4 font-[600]">
+                <div className="mb-8 bg-white rounded-2xl shadow-sm">
+                    <div className="px-6 py-6">
+                        {/* First Row - Action Buttons Only */}
+                        <div className="flex items-center justify-end gap-2 mb-4">
+                            <button 
+                                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                                className={`inline-flex items-center h-12 px-4 rounded-xl text-[14px] font-medium transition whitespace-nowrap ${
+                                    showAdvancedFilters 
+                                        ? "bg-[#0955AC] text-white border-[#0955AC]" 
+                                        : "border border-slate-200 hover:bg-slate-50"
+                                }`}>
+                                <Filter className="mr-2 h-4 w-4" /> Filters
+                            </button>
+                            <button 
+                                onClick={() => setShowExportModal(true)}
+                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
+                                <Download className="mr-2 h-4 w-4" /> Export
+                            </button>
+                            <button 
+                                onClick={handleRefresh}
+                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                                <RefreshCw className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        {/* Second Row - Search + Filters */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                             {/* Search */}
                             <div className="relative">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
                                     value={q}
                                     onChange={(e) => setQ(e.target.value)}
-                                    placeholder="Search vehicles, aircraft, boats…"
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    placeholder="Search bookings, reference numbers..."
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
                                 />
                             </div>
 
-                            {/* Mode select */}
+                            {/* Service/Mode select */}
                             <div>
                                 <select
                                     value={mode}
                                     onChange={(e) => setMode(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
                                 >
-                                    <option value="all">All Modes</option>
+                                    <option value="all">All Services</option>
                                     <option value="land">Land</option>
                                     <option value="air">Air</option>
                                     <option value="sea">Sea</option>
                                 </select>
                             </div>
 
-                            {/* Location select */}
+                            {/* Status select */}
                             <div>
                                 <select
-                                    value={location}
-                                    onChange={(e) =>
-                                        setLocation(e.target.value)
-                                    }
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    value={statusFilterMain}
+                                    onChange={(e) => setStatusFilterMain(e.target.value)}
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
                                 >
-                                    {locations.map((loc) => (
-                                        <option key={loc} value={loc}>
-                                            {loc === "all"
-                                                ? "All Locations"
-                                                : loc}
-                                        </option>
-                                    ))}
+                                    <option value="all">All Statuses</option>
+                                    <option value="confirmed">Confirmed</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="cancelled">Cancelled</option>
                                 </select>
                             </div>
 
@@ -538,23 +374,72 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                 <select
                                     value={sort}
                                     onChange={(e) => setSort(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none focus:ring-0 focus:border-slate-300"
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
                                 >
-                                    <option value="popular">
-                                        Most Popular
-                                    </option>
+                                    <option value="popular">Most Recent</option>
                                     <option value="price">Price (Asc)</option>
-                                    <option value="rating">
-                                        Rating (Desc)
-                                    </option>
+                                    <option value="rating">Rating (Desc)</option>
                                 </select>
                             </div>
                         </div>
+
+                        {/* Third Row - Date Filters (Collapsible) */}
+                        <AnimatePresence>
+                            {showAdvancedFilters && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                                        {/* Start Date */}
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Start Date</label>
+                                            <input
+                                                type="date"
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
+                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                            />
+                                        </div>
+
+                                        {/* End Date */}
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">End Date</label>
+                                            <input
+                                                type="date"
+                                                value={endDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                            />
+                                        </div>
+
+                                        {/* Clear Filters Button */}
+                                        <div className="flex items-end">
+                                            <button
+                                                onClick={handleClearFilters}
+                                                className="h-12 w-full inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition"
+                                            >
+                                                <X className="mr-2 h-4 w-4" /> Clear Filters
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Showing count */}
+                                    <div className="mt-4 flex items-center gap-2 text-[14px] text-slate-600">
+                                        <Info className="h-4 w-4" />
+                                        <span>Showing {filteredFleets.length} of {bookings.length} bookings</span>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
 
                 {/* Fleets & Upcoming */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-[20px] font-[600]">
@@ -801,7 +686,6 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                         </div>
                     </div>
                 </div>
-
                 {/* History Table */}
                 <div className="mt-8 rounded-2xl bg-white shadow-sm">
                     <div className="px-10 pt-10 pb-5">
@@ -883,6 +767,224 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                     </div>
                 </div>
 
+
+                {/* Charts Section */}
+                <div className="mt-8 mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    {/* Area chart card */}
+                    <div className="lg:col-span-2 bg-white rounded-[10px] shadow-sm">
+                        <div className="px-10 pt-10 pb-5">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="font-semibold leading-none tracking-tight text-[16px]">
+                                        Bookings by Month
+                                    </h3>
+                                    <p className="text-[14px] text-slate-500 pt-1">
+                                        Land • Air • Sea (year to date)
+                                    </p>
+                                </div>
+                                {/* Placeholder view control */}
+                                <button className="inline-flex items-center h-10 px-3 rounded-xl border border-slate-200 text-[12px] font-[600] hover:bg-slate-100">
+                                    <Filter className="mr-2 h-4 w-4" />
+                                    View
+                                </button>
+                            </div>
+                        </div>
+                        <div className="px-10 pb-10 pt-10">
+                            <div
+                                className="h-[350px] w-full focus:outline-none focus:border-none"
+                                style={{
+                                    WebkitTapHighlightColor: "transparent",
+                                    outline: "none",
+                                }}
+                            >
+                                <ResponsiveContainer
+                                    width="100%"
+                                    height="100%"
+                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
+                                    tabIndex={-1}
+                                    style={{
+                                        WebkitTapHighlightColor: "transparent",
+                                        outline: "none",
+                                    }}
+                                >
+                                    <AreaChart
+                                        data={chartData}
+                                        margin={{ left: 8, right: 8, top: 10 }}
+                                    >
+                                        <defs>
+                                            <linearGradient
+                                                id="gLand"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <stop
+                                                    offset="5%"
+                                                    stopColor="#3b82f6"
+                                                    stopOpacity={0.35}
+                                                />
+                                                <stop
+                                                    offset="95%"
+                                                    stopColor="#3b82f6"
+                                                    stopOpacity={0.02}
+                                                />
+                                            </linearGradient>
+                                            <linearGradient
+                                                id="gAir"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <stop
+                                                    offset="5%"
+                                                    stopColor="#0955AC"
+                                                    stopOpacity={0.35}
+                                                />
+                                                <stop
+                                                    offset="95%"
+                                                    stopColor="#0955AC"
+                                                    stopOpacity={0.02}
+                                                />
+                                            </linearGradient>
+                                            <linearGradient
+                                                id="gSea"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <stop
+                                                    offset="5%"
+                                                    stopColor="#6366f1"
+                                                    stopOpacity={0.35}
+                                                />
+                                                <stop
+                                                    offset="95%"
+                                                    stopColor="#6366f1"
+                                                    stopOpacity={0.02}
+                                                />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid
+                                            vertical={false}
+                                            horizontal={true}
+                                        />
+                                        <XAxis
+                                            dataKey="month"
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+                                        <YAxis
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+                                        <RTooltip />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="land"
+                                            name="Land"
+                                            stroke="#3b82f6"
+                                            fill="url(#gLand)"
+                                            strokeWidth={4}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="air"
+                                            name="Air"
+                                            stroke="#0955AC"
+                                            fill="url(#gAir)"
+                                            strokeWidth={4}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="sea"
+                                            name="Sea"
+                                            stroke="#6366f1"
+                                            fill="url(#gSea)"
+                                            strokeWidth={4}
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Pie card */}
+                    <div className="bg-white rounded-2xl shadow-sm">
+                        <div className="px-10 pt-10">
+                            <h3 className="font-semibold leading-none tracking-tight text-[16px]">
+                                Mode Mix
+                            </h3>
+                            <p className="text-[14px] text-slate-500 mt-1">
+                                Share of total bookings
+                            </p>
+                        </div>
+                        <div className="px-10 pb-10">
+                            <div
+                                className="h-[350px] w-full"
+                                style={{
+                                    WebkitTapHighlightColor: "transparent",
+                                    outline: "none",
+                                }}
+                            >
+                                <ResponsiveContainer
+                                    width="100%"
+                                    height="100%"
+                                    className="focus:outline-none focus:ring-0 outline-none focus-visible:outline-none"
+                                    tabIndex={-1}
+                                    style={{
+                                        WebkitTapHighlightColor: "transparent",
+                                        outline: "none",
+                                    }}
+                                >
+                                    <PieChart>
+                                        <Pie
+                                            data={pieData}
+                                            innerRadius={90}
+                                            outerRadius={140}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            cornerRadius={8}
+                                        >
+                                            {pieData.map((_, i) => (
+                                                <Cell
+                                                    key={i}
+                                                    fill={
+                                                        [
+                                                            "#3b82f6",
+                                                            "#3CD0FF",
+                                                            "#6366f1",
+                                                        ][i]
+                                                    }
+                                                />
+                                            ))}
+                                        </Pie>
+                                        <RTooltip />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
+                                <div className="flex items-center gap-2">
+                                    <span className="h-5 w-5 rounded-full bg-[#3b82f6]" />{" "}
+                                    Land
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="h-5 w-5 rounded-full bg-[#3CD0FF]" />{" "}
+                                    Air
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="h-5 w-5 rounded-full bg-indigo-500" />{" "}
+                                    Sea
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
                 {/* Footer */}
                 <div className="mt-8 text-center text-xs text-slate-400">
                     © {new Date().getFullYear()} Rental Portal · Land • Air •
@@ -901,6 +1003,96 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                         onSuccess={handleCancellationSuccess}
                     />
                 )}
+
+                {/* Export Modal */}
+                <AnimatePresence>
+                    {showExportModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                            onClick={() => setShowExportModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white rounded-2xl shadow-xl max-w-md w-full"
+                            >
+                                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
+                                    <h2 className="text-[18px] font-semibold text-slate-900">Export Bookings</h2>
+                                    <button
+                                        onClick={() => setShowExportModal(false)}
+                                        className="text-slate-400 hover:text-slate-600 transition"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+
+                                <div className="px-6 py-4">
+                                    <p className="text-[14px] text-slate-600 mb-4">
+                                        Export all {filteredFleets.length} filtered bookings
+                                    </p>
+
+                                    <div className="space-y-2">
+                                        {/* PDF Option */}
+                                        <button
+                                            onClick={() => handleExportFormat('PDF')}
+                                            className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                                                    <FileText className="h-5 w-5 text-red-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-[14px] font-medium text-slate-900">Export as PDF</p>
+                                                    <p className="text-[12px] text-slate-500">Printable document format</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                                        </button>
+
+                                        {/* Excel Option */}
+                                        <button
+                                            onClick={() => handleExportFormat('Excel')}
+                                            className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                                                    <File className="h-5 w-5 text-green-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-[14px] font-medium text-slate-900">Export as Excel</p>
+                                                    <p className="text-[12px] text-slate-500">Spreadsheet format (.xlsx)</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                                        </button>
+
+                                        {/* CSV Option */}
+                                        <button
+                                            onClick={() => handleExportFormat('CSV')}
+                                            className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                                                    <FileText className="h-5 w-5 text-blue-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-[14px] font-medium text-slate-900">Export as CSV</p>
+                                                    <p className="text-[12px] text-slate-500">Comma-separated values</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
