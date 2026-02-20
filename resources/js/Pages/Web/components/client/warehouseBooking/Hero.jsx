@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { router } from "@inertiajs/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     AlertTriangle,
     BookmarkCheck,
@@ -17,6 +17,7 @@ import {
     MapPin,
     Plus,
     RefreshCcw,
+    RefreshCw,
     Search,
     ShieldCheck,
     Snowflake,
@@ -108,6 +109,10 @@ const Hero = () => {
         location: "all",
         sort: "dateDesc",
     });
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [showExportModal, setShowExportModal] = useState(false);
     const [liked, setLiked] = useState(new Set());
 
     const fetchDashboard = async () => {
@@ -324,6 +329,28 @@ const Hero = () => {
             },
             preserveState: true,
         });
+    };
+
+    const handleClearFilters = () => {
+        setFilters({
+            search: "",
+            status: "all",
+            location: "all",
+            sort: "dateDesc",
+        });
+        setStartDate("");
+        setEndDate("");
+    };
+
+    const handleExportFormat = (format) => {
+        const count = filteredBookings.length;
+        console.log(`Exporting ${count} bookings as ${format.toUpperCase()}`);
+        alert(`Exporting ${count} bookings in ${format.toUpperCase()} format`);
+        setShowExportModal(false);
+    };
+
+    const handleRefresh = () => {
+        fetchDashboard();
     };
 
     const quickActions = [
@@ -693,22 +720,10 @@ const Hero = () => {
                             ) : null}
                         </p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <button
-                            onClick={fetchDashboard}
-                            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                        >
-                            <RefreshCcw className="mr-2 h-4 w-4" /> Refresh
-                        </button>
-                        {/* <button
-                            onClick={() => router.visit(route("warehouse-bookings.list"))}
-                            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                        >
-                            <Download className="mr-2 h-4 w-4" /> Download statement
-                        </button> */}
+                    <div className="flex flex-wrap items-center justify-end gap-3">
                         <button
                             onClick={() => router.visit(route("warehouse.list"))}
-                            className="inline-flex h-11 items-center justify-center rounded-xl bg-[#0955AC] px-6 text-sm font-semibold text-white transition hover:bg-[#084a97]"
+                            className="inline-flex h-12 items-center justify-center rounded-xl bg-[#0955AC] px-6 text-sm font-semibold text-white transition hover:bg-[#084a97]"
                         >
                             <Plus className="mr-2 h-4 w-4" /> New booking
                         </button>
@@ -742,10 +757,36 @@ const Hero = () => {
                     })}
                 </div>
 
-                <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-sm">
-                        <div className="mb-6 flex flex-wrap gap-4">
-                            <div className="relative flex-1 min-w-[220px]">
+                {/* Search & Filters */}
+                <div className="mb-10 bg-white rounded-2xl shadow-sm">
+                    <div className="px-6 py-6">
+                        {/* First Row - Action Buttons Only */}
+                        <div className="flex items-center justify-end gap-2 mb-4">
+                            <button 
+                                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                                className={`inline-flex items-center h-12 px-6 rounded-xl text-[14px] font-medium transition whitespace-nowrap ${
+                                    showAdvancedFilters 
+                                        ? "bg-[#0955AC] text-white border-[#0955AC]" 
+                                        : "border border-slate-200 bg-white hover:bg-slate-50"
+                                }`}>
+                                <Filter className="mr-2 h-4 w-4" /> Filters
+                            </button>
+                            <button 
+                                onClick={() => setShowExportModal(true)}
+                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
+                                <Download className="mr-2 h-4 w-4" /> Export
+                            </button>
+                            <button 
+                                onClick={handleRefresh}
+                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                                <RefreshCw className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        {/* Second Row - Search + Filters */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                            {/* Search */}
+                            <div className="relative">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
                                     value={filters.search}
@@ -756,61 +797,121 @@ const Hero = () => {
                                         }))
                                     }
                                     placeholder="Search warehouses, cities or types"
-                                    className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
                                 />
                             </div>
-                            <select
-                                value={filters.status}
-                                onChange={(event) =>
-                                    setFilters((prev) => ({
-                                        ...prev,
-                                        status: event.target.value,
-                                    }))
-                                }
-                                className="h-11 w-[120px] rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
-                            >
-                                <option value="all">All status</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="active">Active</option>
-                                <option value="paid">Paid</option>
-                                <option value="pending">Pending</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                            <select
-                                value={filters.location}
-                                onChange={(event) =>
-                                    setFilters((prev) => ({
-                                        ...prev,
-                                        location: event.target.value,
-                                    }))
-                                }
-                                className="h-11 w-[125px] rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
-                            >
-                                <option value="all">All locations</option>
-                                {filtersData.locations.map((city) => (
-                                    <option key={city} value={city.toLowerCase()}>
-                                        {city}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
-                                value={filters.sort}
-                                onChange={(event) =>
-                                    setFilters((prev) => ({
-                                        ...prev,
-                                        sort: event.target.value,
-                                    }))
-                                }
-                                className="h-11 w-[140px] rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:outline-none"
-                            >
-                                <option value="dateDesc">Latest first</option>
-                                <option value="dateAsc">Oldest first</option>
-                                <option value="priceAsc">Price (low → high)</option>
-                                <option value="priceDesc">Price (high → low)</option>
-                            </select>
+
+                            {/* Status select */}
+                            <div>
+                                <select
+                                    value={filters.status}
+                                    onChange={(event) =>
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            status: event.target.value,
+                                        }))
+                                    }
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                >
+                                    <option value="all">All status</option>
+                                    <option value="confirmed">Confirmed</option>
+                                    <option value="active">Active</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="cancelled">Cancelled</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                            </div>
+
+                            {/* Location select */}
+                            <div>
+                                <select
+                                    value={filters.location}
+                                    onChange={(event) =>
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            location: event.target.value,
+                                        }))
+                                    }
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                >
+                                    <option value="all">All locations</option>
+                                    {filtersData.locations.map((city) => (
+                                        <option key={city} value={city.toLowerCase()}>
+                                            {city}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Sort select */}
+                            <div>
+                                <select
+                                    value={filters.sort}
+                                    onChange={(event) =>
+                                        setFilters((prev) => ({
+                                            ...prev,
+                                            sort: event.target.value,
+                                        }))
+                                    }
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                >
+                                    <option value="dateDesc">Latest first</option>
+                                    <option value="dateAsc">Oldest first</option>
+                                    <option value="priceAsc">Price (low → high)</option>
+                                    <option value="priceDesc">Price (high → low)</option>
+                                </select>
+                            </div>
                         </div>
 
+                        {/* Third Row - Date Filters + Clear Button */}
+                        <AnimatePresence>
+                            {showAdvancedFilters && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Start Date</label>
+                                            <input
+                                                type="date"
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
+                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">End Date</label>
+                                            <input
+                                                type="date"
+                                                value={endDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                            />
+                                        </div>
+
+                                        <div className="flex items-end">
+                                            <button
+                                                onClick={handleClearFilters}
+                                                className="h-12 w-full inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition"
+                                            >
+                                                <X className="mr-2 h-4 w-4" /> Clear Filters
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
+
+                <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-sm">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-xl font-semibold text-slate-900">
                                 My Booked Warehouses
@@ -1769,6 +1870,83 @@ const Hero = () => {
                                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition"
                             >
                                 Close
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* Export Modal */}
+            {showExportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="w-full max-w-md rounded-2xl bg-white shadow-xl"
+                    >
+                        <div className="border-b border-slate-200 px-6 py-5">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-900">Export Bookings</h3>
+                                    <p className="mt-1 text-sm text-slate-500">Choose your preferred format</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowExportModal(false)}
+                                    className="rounded-lg p-1 hover:bg-slate-100 transition"
+                                >
+                                    <X className="h-5 w-5 text-slate-500" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-6 space-y-3">
+                            <button
+                                onClick={() => handleExportFormat("pdf")}
+                                className="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-4 hover:bg-slate-50 transition"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-red-50 p-3">
+                                        <FileText className="h-5 w-5 text-red-600" />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-semibold text-slate-900">PDF Document</div>
+                                        <div className="text-xs text-slate-500">Professional format</div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-[#0955AC]" />
+                            </button>
+
+                            <button
+                                onClick={() => handleExportFormat("excel")}
+                                className="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-4 hover:bg-slate-50 transition"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-green-50 p-3">
+                                        <FileText className="h-5 w-5 text-green-600" />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-semibold text-slate-900">Excel Sheet</div>
+                                        <div className="text-xs text-slate-500">Spreadsheet format</div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-[#0955AC]" />
+                            </button>
+
+                            <button
+                                onClick={() => handleExportFormat("csv")}
+                                className="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-4 hover:bg-slate-50 transition"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="rounded-lg bg-blue-50 p-3">
+                                        <FileText className="h-5 w-5 text-blue-600" />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-semibold text-slate-900">CSV File</div>
+                                        <div className="text-xs text-slate-500">Universal format</div>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-[#0955AC]" />
                             </button>
                         </div>
                     </motion.div>
