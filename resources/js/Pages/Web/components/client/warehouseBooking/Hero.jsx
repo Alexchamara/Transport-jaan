@@ -12,6 +12,7 @@ import {
     Download,
     FileText,
     Filter,
+    Info,
     Link as LinkIcon,
     Loader2,
     MapPin,
@@ -350,7 +351,7 @@ const Hero = () => {
     };
 
     const handleRefresh = () => {
-        fetchDashboard();
+        window.location.reload();
     };
 
     const quickActions = [
@@ -730,7 +731,7 @@ const Hero = () => {
                     </div>
                 </div>
 
-                <div className="mb-10 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="mb-3 md:mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                     {statCards.map((card) => {
                         const Icon = card.icon;
                         return (
@@ -758,35 +759,12 @@ const Hero = () => {
                 </div>
 
                 {/* Search & Filters */}
-                <div className="mb-10 bg-white rounded-2xl shadow-sm">
+                <div className="mb-3 md:mb-4 bg-white rounded-2xl shadow-sm">
                     <div className="px-6 py-6">
-                        {/* First Row - Action Buttons Only */}
-                        <div className="flex items-center justify-end gap-2 mb-4">
-                            <button 
-                                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                                className={`inline-flex items-center h-12 px-6 rounded-xl text-[14px] font-medium transition whitespace-nowrap ${
-                                    showAdvancedFilters 
-                                        ? "bg-[#0955AC] text-white border-[#0955AC]" 
-                                        : "border border-slate-200 bg-white hover:bg-slate-50"
-                                }`}>
-                                <Filter className="mr-2 h-4 w-4" /> Filters
-                            </button>
-                            <button 
-                                onClick={() => setShowExportModal(true)}
-                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
-                                <Download className="mr-2 h-4 w-4" /> Export
-                            </button>
-                            <button 
-                                onClick={handleRefresh}
-                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
-                                <RefreshCw className="h-4 w-4" />
-                            </button>
-                        </div>
-
-                        {/* Second Row - Search + Filters */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+                        {/* Main Filter Row - Search, Location, and Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                             {/* Search */}
-                            <div className="relative">
+                            <div className="relative flex-1 min-w-[250px]">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
                                     value={filters.search}
@@ -797,34 +775,20 @@ const Hero = () => {
                                         }))
                                     }
                                     placeholder="Search warehouses, cities or types"
-                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                    className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
                                 />
-                            </div>
-
-                            {/* Status select */}
-                            <div>
-                                <select
-                                    value={filters.status}
-                                    onChange={(event) =>
-                                        setFilters((prev) => ({
-                                            ...prev,
-                                            status: event.target.value,
-                                        }))
-                                    }
-                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
-                                >
-                                    <option value="all">All status</option>
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="active">Active</option>
-                                    <option value="paid">Paid</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="cancelled">Cancelled</option>
-                                    <option value="completed">Completed</option>
-                                </select>
+                                {filters.search && (
+                                    <button
+                                        onClick={() => setFilters((prev) => ({ ...prev, search: "" }))}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
 
                             {/* Location select */}
-                            <div>
+                            <div className="flex-1 min-w-[150px]">
                                 <select
                                     value={filters.location}
                                     onChange={(event) =>
@@ -833,7 +797,7 @@ const Hero = () => {
                                             location: event.target.value,
                                         }))
                                     }
-                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                    className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
                                 >
                                     <option value="all">All locations</option>
                                     {filtersData.locations.map((city) => (
@@ -844,27 +808,31 @@ const Hero = () => {
                                 </select>
                             </div>
 
-                            {/* Sort select */}
-                            <div>
-                                <select
-                                    value={filters.sort}
-                                    onChange={(event) =>
-                                        setFilters((prev) => ({
-                                            ...prev,
-                                            sort: event.target.value,
-                                        }))
-                                    }
-                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
-                                >
-                                    <option value="dateDesc">Latest first</option>
-                                    <option value="dateAsc">Oldest first</option>
-                                    <option value="priceAsc">Price (low → high)</option>
-                                    <option value="priceDesc">Price (high → low)</option>
-                                </select>
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 items-center flex-wrap">
+                                <button 
+                                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                                    className={`inline-flex items-center h-11 px-4 rounded-lg text-[14px] font-medium transition whitespace-nowrap ${
+                                        showAdvancedFilters 
+                                            ? "bg-[#0955AC] text-white border border-[#0955AC]" 
+                                            : "border border-slate-300 hover:bg-slate-50"
+                                    }`}>
+                                    <Filter className="mr-2 h-4 w-4" /> Filters
+                                </button>
+                                <button 
+                                    onClick={() => setShowExportModal(true)}
+                                    className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
+                                    <Download className="mr-2 h-4 w-4" /> Export
+                                </button>
+                                <button 
+                                    onClick={handleRefresh}
+                                    className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition">
+                                    <RefreshCw className="h-4 w-4" />
+                                </button>
                             </div>
                         </div>
 
-                        {/* Third Row - Date Filters + Clear Button */}
+                        {/* Advanced Filters Panel (Collapsible) */}
                         <AnimatePresence>
                             {showAdvancedFilters && (
                                 <motion.div
@@ -874,35 +842,87 @@ const Hero = () => {
                                     transition={{ duration: 0.2 }}
                                     className="overflow-hidden"
                                 >
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-2">
+                                        {/* Status */}
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Status</label>
+                                            <select
+                                                value={filters.status}
+                                                onChange={(event) =>
+                                                    setFilters((prev) => ({
+                                                        ...prev,
+                                                        status: event.target.value,
+                                                    }))
+                                                }
+                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                            >
+                                                <option value="all">All status</option>
+                                                <option value="confirmed">Confirmed</option>
+                                                <option value="active">Active</option>
+                                                <option value="paid">Paid</option>
+                                                <option value="pending">Pending</option>
+                                                <option value="cancelled">Cancelled</option>
+                                                <option value="completed">Completed</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Sort */}
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Sort By</label>
+                                            <select
+                                                value={filters.sort}
+                                                onChange={(event) =>
+                                                    setFilters((prev) => ({
+                                                        ...prev,
+                                                        sort: event.target.value,
+                                                    }))
+                                                }
+                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                            >
+                                                <option value="dateDesc">Latest first</option>
+                                                <option value="dateAsc">Oldest first</option>
+                                                <option value="priceAsc">Price (low → high)</option>
+                                                <option value="priceDesc">Price (high → low)</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Start Date */}
                                         <div>
                                             <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Start Date</label>
                                             <input
                                                 type="date"
                                                 value={startDate}
                                                 onChange={(e) => setStartDate(e.target.value)}
-                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
                                             />
                                         </div>
 
+                                        {/* End Date */}
                                         <div>
                                             <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">End Date</label>
                                             <input
                                                 type="date"
                                                 value={endDate}
                                                 onChange={(e) => setEndDate(e.target.value)}
-                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
                                             />
                                         </div>
 
+                                        {/* Clear Filters Button */}
                                         <div className="flex items-end">
                                             <button
                                                 onClick={handleClearFilters}
-                                                className="h-12 w-full inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition"
+                                                className="h-10 w-full inline-flex items-center justify-center px-4 rounded-lg border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition"
                                             >
-                                                <X className="mr-2 h-4 w-4" /> Clear Filters
+                                                <X className="mr-2 h-4 w-4" /> Clear
                                             </button>
                                         </div>
+                                    </div>
+                                    
+                                    {/* Showing count */}
+                                    <div className="mt-4 flex items-center gap-2 text-[14px] text-slate-600">
+                                        <Info className="h-4 w-4" />
+                                        <span>Showing {filteredBookings.length} of {myBookings.length} bookings</span>
                                     </div>
                                 </motion.div>
                             )}
@@ -910,7 +930,7 @@ const Hero = () => {
                     </div>
                 </div>
 
-                <div className="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="mb-3 md:mb-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-sm">
                         <div className="mb-4 flex items-center justify-between">
                             <h2 className="text-xl font-semibold text-slate-900">
