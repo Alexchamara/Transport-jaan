@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     Ship,
     Plane,
@@ -15,6 +15,12 @@ import {
     CreditCard,
     Clock,
     Weight,
+    RefreshCw,
+    X,
+    Info,
+    FileText,
+    File,
+    ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import {
     AreaChart,
@@ -205,6 +211,11 @@ const Hero = () => {
     const [origin, setOrigin] = useState("all");
     const [sort, setSort] = useState("popular");
     const [isMobile, setIsMobile] = useState(false);
+    const [statusFilterMain, setStatusFilterMain] = useState("all");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -237,7 +248,47 @@ const Hero = () => {
         return ["all", ...Array.from(set)];
     }, []);
 
-    const upcoming = bookings.filter((r) =>
+    const filteredBookings = useMemo(() => {
+        return bookings.filter((b) => {
+            const searchMatch = !q || 
+                b.code?.toLowerCase().includes(q.toLowerCase()) ||
+                b.item?.toLowerCase().includes(q.toLowerCase()) ||
+                b.hub?.toLowerCase().includes(q.toLowerCase());
+            const modeMatch = mode === "all" || b.mode === mode;
+            const statusMatch = statusFilterMain === "all" || b.status === statusFilterMain;
+            
+            let dateMatch = true;
+            if (startDate || endDate) {
+                const bookingDate = new Date(b.from);
+                if (startDate) dateMatch = dateMatch && bookingDate >= new Date(startDate);
+                if (endDate) dateMatch = dateMatch && bookingDate <= new Date(endDate);
+            }
+            
+            return searchMatch && modeMatch && statusMatch && dateMatch;
+        });
+    }, [q, mode, statusFilterMain, startDate, endDate]);
+
+    const handleClearFilters = () => {
+        setQ("");
+        setMode("all");
+        setOrigin("all");
+        setStatusFilterMain("all");
+        setSort("popular");
+        setStartDate("");
+        setEndDate("");
+    };
+
+    const handleRefresh = () => {
+        window.location.reload();
+    };
+
+    const handleExportFormat = (format) => {
+        console.log(`Exporting as ${format}`);
+        alert(`Exporting bookings as ${format}`);
+        setShowExportModal(false);
+    };
+
+    const upcoming = filteredBookings.filter((r) =>
         ["confirmed", "paid", "pending"].includes(r.status)
     );
 
@@ -314,7 +365,433 @@ const Hero = () => {
                     </div>
                 </div>
 
-                {/* Top Row: Filters + Charts */}
+                {/* Search & Filters */}
+                <div className="mb-8 bg-white rounded-2xl shadow-sm">
+                    <div className="px-6 py-6">
+                        {/* First Row - Action Buttons Only */}
+                        <div className="flex items-center justify-end gap-2 mb-4">
+                            <button 
+                                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                                className={`inline-flex items-center h-12 px-4 rounded-xl text-[14px] font-medium transition whitespace-nowrap ${
+                                    showAdvancedFilters 
+                                        ? "bg-[#0955AC] text-white border-[#0955AC]" 
+                                        : "border border-slate-200 hover:bg-slate-50"
+                                }`}>
+                                <Filter className="mr-2 h-4 w-4" /> Filters
+                            </button>
+                            <button 
+                                onClick={() => setShowExportModal(true)}
+                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
+                                <Download className="mr-2 h-4 w-4" /> Export
+                            </button>
+                            <button 
+                                onClick={handleRefresh}
+                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                                <RefreshCw className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        {/* Second Row - Search + Filters */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            {/* Search */}
+                            <div className="relative">
+                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder="Search bookings, reference numbers..."
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                />
+                            </div>
+
+                            {/* Service/Mode select */}
+                            <div>
+                                <select
+                                    value={mode}
+                                    onChange={(e) => setMode(e.target.value)}
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                >
+                                    <option value="all">All Services</option>
+                                    <option value="fcl">FCL</option>
+                                    <option value="lcl">LCL</option>
+                                    <option value="air">Air</option>
+                                </select>
+                            </div>
+
+                            {/* Status select */}
+                            <div>
+                                <select
+                                    value={statusFilterMain}
+                                    onChange={(e) => setStatusFilterMain(e.target.value)}
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                >
+                                    <option value="all">All Statuses</option>
+                                    <option value="confirmed">Confirmed</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+
+                            {/* Sort select */}
+                            <div>
+                                <select
+                                    value={sort}
+                                    onChange={(e) => setSort(e.target.value)}
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                >
+                                    <option value="popular">
+                                        Most Recent
+                                    </option>
+                                    <option value="price">Price (Asc)</option>
+                                    <option value="rating">
+                                        Rating (Desc)
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Third Row - Date Filters (Collapsible) */}
+                        <AnimatePresence>
+                            {showAdvancedFilters && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                                        {/* Start Date */}
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Start Date</label>
+                                            <input
+                                                type="date"
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
+                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                            />
+                                        </div>
+
+                                        {/* End Date */}
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">End Date</label>
+                                            <input
+                                                type="date"
+                                                value={endDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                            />
+                                        </div>
+
+                                        {/* Clear Filters Button */}
+                                        <div className="flex items-end">
+                                            <button
+                                                onClick={handleClearFilters}
+                                                className="h-12 w-full inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition"
+                                            >
+                                                <X className="mr-2 h-4 w-4" /> Clear Filters
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Showing count */}
+                                    <div className="mt-4 flex items-center gap-2 text-[14px] text-slate-600">
+                                        <Info className="h-4 w-4" />
+                                        <span>Showing {filteredBookings.length} of {bookings.length} bookings</span>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
+
+                {/* Services & Upcoming */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <div className="lg:col-span-2">
+                        <div className="mb-3 flex items-center justify-between">
+                            <h2 className="text-[20px] font-[600]">
+                                Available Services
+                            </h2>
+
+                            {/* Tabs */}
+                            <div className="hidden sm:block">
+                                <div className="rounded-2xl inline-flex gap-2">
+                                    {[
+                                        {
+                                            val: "all",
+                                            label: "All",
+                                            icon: null,
+                                        },
+                                        {
+                                            val: "fcl",
+                                            label: "FCL",
+                                            icon: Ship,
+                                        },
+                                        {
+                                            val: "lcl",
+                                            label: "LCL",
+                                            icon: Boxes,
+                                        },
+                                        {
+                                            val: "air",
+                                            label: "Air",
+                                            icon: Plane,
+                                        },
+                                    ].map(({ val, label, icon: Icon }) => {
+                                        const active =
+                                            mode === val ||
+                                            (val === "all" && mode === "all");
+                                        return (
+                                            <button
+                                                key={val}
+                                                onClick={() => setMode(val)}
+                                                className={`px-8 py-2 rounded-xl border text-[12px] font-[600] transition ${
+                                                    active
+                                                        ? "bg-[#0955AC] text-white border-[#0955AC]"
+                                                        : "border-slate-200 hover:bg-slate-100"
+                                                }`}
+                                            >
+                                                <span className="inline-flex items-center gap-2">
+                                                    {Icon ? (
+                                                        <Icon className="h-8 w-8" />
+                                                    ) : null}
+                                                    {label}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Service grid */}
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            {filteredServices.map((s) => (
+                                <motion.div
+                                    key={s.id}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.25 }}
+                                >
+                                    <div className="group rounded-2xl bg-white border border-slate-200 shadow-sm">
+                                        <div className="px-10 pt-10 pb-5">
+                                            <div className="flex items-start justify-between">
+                                                <div>
+                                                    <h3 className="text-[18px] font-semibold leading-none tracking-tight">
+                                                        {s.name}
+                                                    </h3>
+                                                    <p className="mt-1 flex items-center gap-2 text-[12px] text-slate-500">
+                                                        <MapPin className="h-3.5 w-3.5" />
+                                                        {s.origin}
+                                                    </p>
+                                                </div>
+                                                <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-semibold bg-slate-50 text-slate-700">
+                                                    <Star className="mr-1 h-4 w-4" />
+                                                    {s.rating}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="px-10 pb-10 flex items-end justify-between gap-2">
+                                            <div className="text-[14px] text-slate-600">
+                                                <div className="flex items-center gap-2 text-slate-700">
+                                                    <CreditCard className="h-4 w-4" />
+                                                    <span className="font-medium">
+                                                        {s.unit === "kg" ||
+                                                        s.unit === "cbm"
+                                                            ? `${s.price}/${s.unit}`
+                                                            : `LKR ${s.price}`}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-1 flex items-center gap-2 text-slate-500">
+                                                    <Clock className="h-4 w-4" />{" "}
+                                                    Schedule weekly sailings
+                                                </div>
+                                            </div>
+                                            {/* <button className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0955AC]">
+                                                Book{" "}
+                                                <ChevronRight className="ml-1 h-4 w-4 inline-block" />
+                                            </button> */}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+
+                            {filteredServices.length === 0 && (
+                                <div className="rounded-2xl border-dashed border border-slate-200 bg-white">
+                                    <div className="px-4 py-10 text-center text-slate-500">
+                                        No results. Try changing filters.
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Sidebar: Upcoming + Quick Actions */}
+                    <div className="space-y-4">
+                        {/* Upcoming */}
+                        <div className="rounded-2xl bg-white shadow-sm">
+                            <div className="px-10 pt-10 pb-5">
+                                <h3 className="font-semibold leading-none tracking-tight text-[18px]">
+                                    Upcoming Shipments
+                                </h3>
+                                <p className="text-[14px] text-slate-500 mt-1">
+                                    Next sailings and flights
+                                </p>
+                            </div>
+                            <div className="px-10 pb-10 space-y-6 text-[14px]">
+                                {upcoming.map((r) => (
+                                    <div
+                                        key={r.code}
+                                        className="rounded-2xl border p-5"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-slate-700">
+                                                <ModeIcon
+                                                    mode={r.mode}
+                                                    className="h-7 w-7"
+                                                />
+                                                <span className="font-medium">
+                                                    {r.item}
+                                                </span>
+                                            </div>
+                                            <span
+                                                className={`rounded-full border px-2 py-0.5 text-[10px] ${
+                                                    statusMap[r.status].tone
+                                                }`}
+                                            >
+                                                {statusMap[r.status].label}
+                                            </span>
+                                        </div>
+                                        <div className="mt-2 flex items-center gap-2 text-[12px] text-slate-600">
+                                            <Calendar className="h-4 w-4" />
+                                            <span>
+                                                {r.from} → {r.to}
+                                            </span>
+                                        </div>
+                                        <div className="mt-1 text-sm text-slate-500">
+                                            Hub: {r.hub}
+                                        </div>
+                                        <div className="mt-2 flex items-center justify-between text-[12px]">
+                                            <span className="text-slate-500">
+                                                Ref: {r.code}
+                                            </span>
+                                            {/* <button className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm">
+                                                Manage
+                                            </button> */}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm">
+                            <div className="px-10 pt-10 pb-5">
+                                <h3 className="font-semibold leading-none tracking-tight text-[18px]">
+                                    Quick Actions
+                                </h3>
+                                <p className="text-[14px] text-slate-500 mt-1">
+                                    Common tasks
+                                </p>
+                            </div>
+                            <div className="px-10 pb-10 grid grid-cols-2 gap-2 font-[500]">
+                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
+                                    <Ship className="mr-2 h-7 w-7" /> Book FCL
+                                </button>
+                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
+                                    <Boxes className="mr-2 h-7 w-7" /> Book LCL
+                                </button>
+                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
+                                    <Plane className="mr-2 h-7 w-7" /> Book Air
+                                </button>
+                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
+                                    <Calendar className="mr-2 h-7 w-7" /> Change Dates
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* History Table */}
+                <div className="mt-8 mb-8 rounded-2xl bg-white shadow-sm">
+                    <div className="px-10 pt-10 pb-5">
+                        <h3 className="font-semibold leading-none tracking-tight text-[18px]">
+                            Recent Activity
+                        </h3>
+                        <p className="text-[14px] text-slate-500 mt-1">
+                            Latest bookings and changes
+                        </p>
+                    </div>
+                    <div className="px-10 pb-10">
+                        <div className="overflow-x-auto">
+                            <table className="w-full table-auto border-separate border-spacing-y-5 text-[14px]">
+                                <thead>
+                                    <tr className="text-left text-slate-500">
+                                        <th className="px-3 py-2">Category</th>
+                                        <th className="px-3 py-2">Service</th>
+                                        <th className="px-3 py-2">From</th>
+                                        <th className="px-3 py-2">To</th>
+                                        <th className="px-3 py-2">Hub</th>
+                                        <th className="px-3 py-2">Status</th>
+                                        <th className="px-3 py-2 text-right">
+                                            Amount
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {bookings.map((r) => (
+                                        <tr
+                                            key={r.code}
+                                            className="rounded-xl bg-white shadow-sm"
+                                        >
+                                            <td className="px-3 py-3">
+                                                <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2 py-1 text-slate-700">
+                                                    <ModeIcon
+                                                        mode={r.mode}
+                                                        className="h-4 w-4"
+                                                    />
+                                                    {r.mode.toUpperCase()}
+                                                </div>
+                                            </td>
+                                            <td className="px-3 py-3 font-medium">
+                                                {r.item}
+                                            </td>
+                                            <td className="px-3 py-3 text-slate-600">
+                                                {r.from}
+                                            </td>
+                                            <td className="px-3 py-3 text-slate-600">
+                                                {r.to}
+                                            </td>
+                                            <td className="px-3 py-3 text-slate-600">
+                                                {r.hub}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                <span
+                                                    className={`rounded-full border px-2 py-0.5 text-xs ${
+                                                        statusMap[r.status].tone
+                                                    }`}
+                                                >
+                                                    {statusMap[r.status].label}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3 text-right font-medium">
+                                                {typeof r.amount === "number"
+                                                    ? `LKR ${r.amount.toFixed(
+                                                          2
+                                                      )}`
+                                                    : r.amount}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Charts Section */}
                 <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Area chart card */}
                     <div className="lg:col-span-2 bg-white rounded-[10px] shadow-sm">
@@ -582,361 +1059,101 @@ const Hero = () => {
                     </div>
                 </div>
 
-                {/* Search & Filters */}
-                <div className="mb-8 rounded-2xl">
-                    <div className="px-4 pb-4 pt-6">
-                        <div className="grid items-center gap-3 md:grid-cols-2 lg:grid-cols-4 font-[600]">
-                            {/* Search */}
-                            <div className="relative">
-                                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <input
-                                    value={q}
-                                    onChange={(e) => setQ(e.target.value)}
-                                    placeholder="Search routes, ports, airports…"
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none"
-                                />
-                            </div>
-
-                            {/* Mode select */}
-                            <div>
-                                <select
-                                    value={mode}
-                                    onChange={(e) => setMode(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
-                                >
-                                    <option value="all">All Categories</option>
-                                    <option value="fcl">FCL</option>
-                                    <option value="lcl">LCL</option>
-                                    <option value="air">Air</option>
-                                </select>
-                            </div>
-
-                            {/* Origin select */}
-                            <div>
-                                <select
-                                    value={origin}
-                                    onChange={(e) => setOrigin(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
-                                >
-                                    {origins.map((o) => (
-                                        <option key={o} value={o}>
-                                            {o === "all" ? "All Origins" : o}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Sort select */}
-                            <div>
-                                <select
-                                    value={sort}
-                                    onChange={(e) => setSort(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
-                                >
-                                    <option value="popular">
-                                        Most Popular
-                                    </option>
-                                    <option value="price">Price (Asc)</option>
-                                    <option value="rating">
-                                        Rating (Desc)
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Services & Upcoming */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h2 className="text-[20px] font-[600]">
-                                Available Services
-                            </h2>
-
-                            {/* Tabs */}
-                            <div className="hidden sm:block">
-                                <div className="rounded-2xl inline-flex gap-2">
-                                    {[
-                                        {
-                                            val: "all",
-                                            label: "All",
-                                            icon: null,
-                                        },
-                                        {
-                                            val: "fcl",
-                                            label: "FCL",
-                                            icon: Ship,
-                                        },
-                                        {
-                                            val: "lcl",
-                                            label: "LCL",
-                                            icon: Boxes,
-                                        },
-                                        {
-                                            val: "air",
-                                            label: "Air",
-                                            icon: Plane,
-                                        },
-                                    ].map(({ val, label, icon: Icon }) => {
-                                        const active =
-                                            mode === val ||
-                                            (val === "all" && mode === "all");
-                                        return (
-                                            <button
-                                                key={val}
-                                                onClick={() => setMode(val)}
-                                                className={`px-8 py-2 rounded-xl border text-[12px] font-[600] transition ${
-                                                    active
-                                                        ? "bg-[#0955AC] text-white border-[#0955AC]"
-                                                        : "border-slate-200 hover:bg-slate-100"
-                                                }`}
-                                            >
-                                                <span className="inline-flex items-center gap-2">
-                                                    {Icon ? (
-                                                        <Icon className="h-8 w-8" />
-                                                    ) : null}
-                                                    {label}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Service grid */}
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {filteredServices.map((s) => (
-                                <motion.div
-                                    key={s.id}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.25 }}
-                                >
-                                    <div className="group rounded-2xl bg-white border border-slate-200 shadow-sm">
-                                        <div className="px-10 pt-10 pb-5">
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <h3 className="text-[18px] font-semibold leading-none tracking-tight">
-                                                        {s.name}
-                                                    </h3>
-                                                    <p className="mt-1 flex items-center gap-2 text-[12px] text-slate-500">
-                                                        <MapPin className="h-3.5 w-3.5" />
-                                                        {s.origin}
-                                                    </p>
-                                                </div>
-                                                <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-semibold bg-slate-50 text-slate-700">
-                                                    <Star className="mr-1 h-4 w-4" />
-                                                    {s.rating}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="px-10 pb-10 flex items-end justify-between gap-2">
-                                            <div className="text-[14px] text-slate-600">
-                                                <div className="flex items-center gap-2 text-slate-700">
-                                                    <CreditCard className="h-4 w-4" />
-                                                    <span className="font-medium">
-                                                        {s.unit === "kg" ||
-                                                        s.unit === "cbm"
-                                                            ? `${s.price}/${s.unit}`
-                                                            : `LKR ${s.price}`}
-                                                    </span>
-                                                </div>
-                                                <div className="mt-1 flex items-center gap-2 text-slate-500">
-                                                    <Clock className="h-4 w-4" />{" "}
-                                                    Schedule weekly sailings
-                                                </div>
-                                            </div>
-                                            {/* <button className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0955AC]">
-                                                Book{" "}
-                                                <ChevronRight className="ml-1 h-4 w-4 inline-block" />
-                                            </button> */}
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
-
-                            {filteredServices.length === 0 && (
-                                <div className="rounded-2xl border-dashed border border-slate-200 bg-white">
-                                    <div className="px-4 py-10 text-center text-slate-500">
-                                        No results. Try changing filters.
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Sidebar: Upcoming + Quick Actions */}
-                    <div className="space-y-4">
-                        {/* Upcoming */}
-                        <div className="rounded-2xl bg-white shadow-sm">
-                            <div className="px-10 pt-10 pb-5">
-                                <h3 className="font-semibold leading-none tracking-tight text-[18px]">
-                                    Upcoming Shipments
-                                </h3>
-                                <p className="text-[14px] text-slate-500 mt-1">
-                                    Next sailings and flights
-                                </p>
-                            </div>
-                            <div className="px-10 pb-10 space-y-6 text-[14px]">
-                                {upcoming.map((r) => (
-                                    <div
-                                        key={r.code}
-                                        className="rounded-2xl border p-5"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2 text-slate-700">
-                                                <ModeIcon
-                                                    mode={r.mode}
-                                                    className="h-7 w-7"
-                                                />
-                                                <span className="font-medium">
-                                                    {r.item}
-                                                </span>
-                                            </div>
-                                            <span
-                                                className={`rounded-full border px-2 py-0.5 text-[10px] ${
-                                                    statusMap[r.status].tone
-                                                }`}
-                                            >
-                                                {statusMap[r.status].label}
-                                            </span>
-                                        </div>
-                                        <div className="mt-2 flex items-center gap-2 text-[12px] text-slate-600">
-                                            <Calendar className="h-4 w-4" />
-                                            <span>
-                                                {r.from} → {r.to}
-                                            </span>
-                                        </div>
-                                        <div className="mt-1 text-sm text-slate-500">
-                                            Hub: {r.hub}
-                                        </div>
-                                        <div className="mt-2 flex items-center justify-between text-[12px]">
-                                            <span className="text-slate-500">
-                                                Ref: {r.code}
-                                            </span>
-                                            {/* <button className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm">
-                                                Manage
-                                            </button> */}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Quick Actions */}
-                        <div className="rounded-2xl bg-white border border-slate-200 shadow-sm">
-                            <div className="px-10 pt-10 pb-5">
-                                <h3 className="font-semibold leading-none tracking-tight text-[18px]">
-                                    Quick Actions
-                                </h3>
-                                <p className="text-[14px] text-slate-500 mt-1">
-                                    Common tasks
-                                </p>
-                            </div>
-                            <div className="px-10 pb-10 grid grid-cols-2 gap-2 font-[500]">
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Ship className="mr-2 h-7 w-7" /> Book FCL
-                                </button>
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Boxes className="mr-2 h-7 w-7" /> Book LCL
-                                </button>
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Plane className="mr-2 h-7 w-7" /> Book Air
-                                </button>
-                                <button className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center">
-                                    <Calendar className="mr-2 h-7 w-7" /> Change
-                                    Dates
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* History Table */}
-                <div className="mt-8 rounded-2xl bg-white shadow-sm">
-                    <div className="px-10 pt-10 pb-5">
-                        <h3 className="font-semibold leading-none tracking-tight text-[18px]">
-                            Recent Activity
-                        </h3>
-                        <p className="text-[14px] text-slate-500 mt-1">
-                            Latest bookings and changes
-                        </p>
-                    </div>
-                    <div className="px-10 pb-10">
-                        <div className="overflow-x-auto">
-                            <table className="w-full table-auto border-separate border-spacing-y-5 text-[14px]">
-                                <thead>
-                                    <tr className="text-left text-slate-500">
-                                        <th className="px-3 py-2">Category</th>
-                                        <th className="px-3 py-2">Service</th>
-                                        <th className="px-3 py-2">From</th>
-                                        <th className="px-3 py-2">To</th>
-                                        <th className="px-3 py-2">Hub</th>
-                                        <th className="px-3 py-2">Status</th>
-                                        <th className="px-3 py-2 text-right">
-                                            Amount
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {bookings.map((r) => (
-                                        <tr
-                                            key={r.code}
-                                            className="rounded-xl bg-white shadow-sm"
-                                        >
-                                            <td className="px-3 py-3">
-                                                <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2 py-1 text-slate-700">
-                                                    <ModeIcon
-                                                        mode={r.mode}
-                                                        className="h-4 w-4"
-                                                    />
-                                                    {r.mode.toUpperCase()}
-                                                </div>
-                                            </td>
-                                            <td className="px-3 py-3 font-medium">
-                                                {r.item}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600">
-                                                {r.from}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600">
-                                                {r.to}
-                                            </td>
-                                            <td className="px-3 py-3 text-slate-600">
-                                                {r.hub}
-                                            </td>
-                                            <td className="px-3 py-3">
-                                                <span
-                                                    className={`rounded-full border px-2 py-0.5 text-xs ${
-                                                        statusMap[r.status].tone
-                                                    }`}
-                                                >
-                                                    {statusMap[r.status].label}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 py-3 text-right font-medium">
-                                                {typeof r.amount === "number"
-                                                    ? `LKR ${r.amount.toFixed(
-                                                          2
-                                                      )}`
-                                                    : r.amount}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Footer */}
                 <div className="mt-8 text-center text-xs text-slate-400">
                     © {new Date().getFullYear()} Freight Portal · FCL • LCL •
                     Air
                 </div>
+
+                {/* Export Modal */}
+                <AnimatePresence>
+                    {showExportModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                            onClick={() => setShowExportModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white rounded-2xl shadow-xl max-w-md w-full"
+                            >
+                                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
+                                    <h2 className="text-[18px] font-semibold text-slate-900">Export Bookings</h2>
+                                    <button
+                                        onClick={() => setShowExportModal(false)}
+                                        className="text-slate-400 hover:text-slate-600 transition"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+
+                                <div className="px-6 py-4">
+                                    <p className="text-[14px] text-slate-600 mb-4">
+                                        Export all {filteredBookings.length} filtered bookings
+                                    </p>
+
+                                    <div className="space-y-2">
+                                        {/* PDF Option */}
+                                        <button
+                                            onClick={() => handleExportFormat('PDF')}
+                                            className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                                                    <FileText className="h-5 w-5 text-red-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-[14px] font-medium text-slate-900">Export as PDF</p>
+                                                    <p className="text-[12px] text-slate-500">Printable document format</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                                        </button>
+
+                                        {/* Excel Option */}
+                                        <button
+                                            onClick={() => handleExportFormat('Excel')}
+                                            className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                                                    <File className="h-5 w-5 text-green-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-[14px] font-medium text-slate-900">Export as Excel</p>
+                                                    <p className="text-[12px] text-slate-500">Spreadsheet format (.xlsx)</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                                        </button>
+
+                                        {/* CSV Option */}
+                                        <button
+                                            onClick={() => handleExportFormat('CSV')}
+                                            className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                                                    <FileText className="h-5 w-5 text-blue-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-[14px] font-medium text-slate-900">Export as CSV</p>
+                                                    <p className="text-[12px] text-slate-500">Comma-separated values</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
