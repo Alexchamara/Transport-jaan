@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link, router } from '@inertiajs/react';
 import {
     Package,
@@ -12,6 +12,7 @@ import {
     Plus,
     Download,
     ChevronRight,
+    ChevronRight as ChevronRightIcon,
     Star,
     CreditCard,
     Clock,
@@ -19,6 +20,9 @@ import {
     Weight,
     Eye,
     RefreshCw,
+    Info,
+    X,
+    File,
 } from "lucide-react";
 import {
     AreaChart,
@@ -67,6 +71,10 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
     const [q, setQ] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [sort, setSort] = useState("recent");
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
+    const [showExportModal, setShowExportModal] = useState(false);
 
     // Calculate statistics from props or use defaults
     const stats = {
@@ -154,15 +162,35 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
         router.visit('/couriers/create');
     };
 
-    // Handle view shipment
-    const handleViewShipment = (id) => {
-        router.visit(`/courier-shipment/${id}`);
+    // Handle clear filters
+    const handleClearFilters = () => {
+        setQ("");
+        setStatusFilter("all");
+        setSort("recent");
+        setStartDate("");
+        setEndDate("");
     };
 
     // Handle export
     const handleExport = () => {
-        // TODO: Implement export functionality
-        alert('Export functionality coming soon!');
+        setShowExportModal(true);
+    };
+
+    // Handle export format
+    const handleExportFormat = (format) => {
+        console.log(`Exporting shipments as ${format}`);
+        alert(`Exporting ${filteredShipments.length} shipments as ${format}`);
+        setShowExportModal(false);
+    };
+
+    // Handle refresh
+    const handleRefresh = () => {
+        window.location.reload();
+    };
+
+    // Handle view shipment
+    const handleViewShipment = (id) => {
+        router.visit(`/courier-shipment/${id}`);
     };
 
     return (
@@ -242,127 +270,34 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                     </div>
                 </div>
 
-                {/* Top Row: Filters + Charts */}
-                <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    {/* Area chart card */}
-                    <div className="lg:col-span-2 bg-white rounded-[10px] shadow-sm">
-                        <div className="px-10 pt-10 pb-5">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                        Bookings by Month
-                                    </h3>
-                                    <p className="text-[14px] text-slate-500 pt-1">
-                                        Documents • Parcels • Freight (last 12 months)
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="px-10 pb-10 pt-10">
-                            {chartMonthlyData.some(d => d.document + d.parcel + d.freight > 0) ? (
-                                <div className="h-[350px] w-full focus:outline-none"
-                                    style={{ WebkitTapHighlightColor: "transparent", outline: "none" }}
-                                >
-                                    <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" tabIndex={-1}>
-                                        <AreaChart data={chartMonthlyData} margin={{ left: 8, right: 8, top: 10 }}>
-                                            <defs>
-                                                <linearGradient id="gDoc" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
-                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02} />
-                                                </linearGradient>
-                                                <linearGradient id="gParcel" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#0955AC" stopOpacity={0.35} />
-                                                    <stop offset="95%" stopColor="#0955AC" stopOpacity={0.02} />
-                                                </linearGradient>
-                                                <linearGradient id="gFreight" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
-                                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid vertical={false} horizontal={true} />
-                                            <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                                            <YAxis tickLine={false} axisLine={false} />
-                                            <RTooltip />
-                                            <Area type="monotone" dataKey="document" name="Document" stroke="#3b82f6" fill="url(#gDoc)" strokeWidth={4} />
-                                            <Area type="monotone" dataKey="parcel" name="Parcel" stroke="#0955AC" fill="url(#gParcel)" strokeWidth={4} />
-                                            <Area type="monotone" dataKey="freight" name="Freight" stroke="#6366f1" fill="url(#gFreight)" strokeWidth={4} />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            ) : (
-                                <div className="h-[350px] flex items-center justify-center text-slate-400">
-                                    <div className="text-center">
-                                        <Package className="h-16 w-16 mx-auto mb-4 opacity-20" />
-                                        <p>No shipment data yet</p>
-                                        <button onClick={handleNewBooking} className="mt-4 text-[#0955AC] hover:underline">
-                                            Create your first shipment
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Pie card */}
-                    <div className="bg-white rounded-2xl shadow-sm">
-                        <div className="px-10 pt-10">
-                            <h3 className="font-semibold leading-none tracking-tight text-[16px]">
-                                Category Mix
-                            </h3>
-                            <p className="text-[14px] text-slate-500 mt-1">
-                                Share of total bookings
-                            </p>
-                        </div>
-                        <div className="px-10 pb-10">
-                            {pieData.length > 0 ? (
-                                <>
-                                    <div className="h-[350px] w-full"
-                                        style={{ WebkitTapHighlightColor: "transparent", outline: "none" }}
-                                    >
-                                        <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" tabIndex={-1}>
-                                            <PieChart>
-                                                <Pie data={pieData} innerRadius={90} outerRadius={140} paddingAngle={5} dataKey="value" nameKey="name" cornerRadius={8}>
-                                                    {pieData.map((_, i) => (
-                                                        <Cell key={i} fill={["#3b82f6", "#0955AC", "#6366f1"][i]} />
-                                                    ))}
-                                                </Pie>
-                                                <RTooltip />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                    <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
-                                        {stats.document > 0 && (
-                                            <div className="flex items-center gap-2">
-                                                <span className="h-5 w-5 rounded-full bg-[#3b82f6]" /> Document
-                                            </div>
-                                        )}
-                                        {stats.parcel > 0 && (
-                                            <div className="flex items-center gap-2">
-                                                <span className="h-5 w-5 rounded-full bg-[#0955AC]" /> Parcel
-                                            </div>
-                                        )}
-                                        {stats.freight > 0 && (
-                                            <div className="flex items-center gap-2">
-                                                <span className="h-5 w-5 rounded-full bg-indigo-500" /> Freight
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="h-[350px] flex items-center justify-center text-slate-400">
-                                    <div className="text-center">
-                                        <p>No data to display</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
                 {/* Search & Filters */}
-                <div className="mb-8 rounded-2xl">
-                    <div className="px-4 pb-4 pt-6">
-                        <div className="grid items-center gap-3 md:grid-cols-2 lg:grid-cols-3 font-[600]">
+                <div className="mb-8 bg-white rounded-2xl shadow-sm">
+                    <div className="px-6 py-6">
+                        {/* First Row - Action Buttons Only */}
+                        <div className="flex items-center justify-end gap-2 mb-4">
+                            <button 
+                                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                                className={`inline-flex items-center h-12 px-6 rounded-xl text-[14px] font-medium transition whitespace-nowrap ${
+                                    showAdvancedFilters 
+                                        ? "bg-[#0955AC] text-white border-[#0955AC]" 
+                                        : "border border-slate-200 bg-white hover:bg-slate-50"
+                                }`}>
+                                <Filter className="mr-2 h-4 w-4" /> Filters
+                            </button>
+                            <button 
+                                onClick={handleExport}
+                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
+                                <Download className="mr-2 h-4 w-4" /> Export
+                            </button>
+                            <button 
+                                onClick={handleRefresh}
+                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
+                                <RefreshCw className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        {/* Second Row - Search + Filters */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
                             {/* Search */}
                             <div className="relative">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -370,7 +305,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                                     value={q}
                                     onChange={(e) => setQ(e.target.value)}
                                     placeholder="Search shipments, locations…"
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none"
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
                                 />
                             </div>
 
@@ -379,7 +314,7 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
                                 >
                                     <option value="all">All Status</option>
                                     <option value="pending">Pending</option>
@@ -395,13 +330,63 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                                 <select
                                     value={sort}
                                     onChange={(e) => setSort(e.target.value)}
-                                    className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none"
+                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
                                 >
                                     <option value="recent">Most Recent</option>
                                     <option value="oldest">Oldest First</option>
                                     <option value="cost">Highest Cost</option>
                                 </select>
                             </div>
+                        </div>
+
+                        {/* Third Row - Date Filters + Clear Button */}
+                        <AnimatePresence>
+                            {showAdvancedFilters && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Start Date</label>
+                                            <input
+                                                type="date"
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
+                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">End Date</label>
+                                            <input
+                                                type="date"
+                                                value={endDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                            />
+                                        </div>
+
+                                        <div className="flex items-end">
+                                            <button
+                                                onClick={handleClearFilters}
+                                                className="h-12 w-full inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition"
+                                            >
+                                                <X className="mr-2 h-4 w-4" /> Clear Filters
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Showing count */}
+                        <div className="mt-4 flex items-center gap-2 text-[14px] text-slate-600">
+                            <Info className="h-4 w-4" />
+                            <span>Showing {filteredShipments.length} of {shipments.length} shipments</span>
                         </div>
                     </div>
                 </div>
@@ -597,6 +582,96 @@ const Hero = ({ shipments = [], statistics = {}, monthlyData = [] }) => {
                         </div>
                     </div>
                 </div>
+
+                {/* Export Modal */}
+                <AnimatePresence>
+                    {showExportModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+                            onClick={() => setShowExportModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-white rounded-2xl shadow-xl max-w-md w-full"
+                            >
+                                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
+                                    <h2 className="text-[18px] font-semibold text-slate-900">Export Shipments</h2>
+                                    <button
+                                        onClick={() => setShowExportModal(false)}
+                                        className="text-slate-400 hover:text-slate-600 transition"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+
+                                <div className="px-6 py-4">
+                                    <p className="text-[14px] text-slate-600 mb-4">
+                                        Export all {filteredShipments.length} filtered shipments
+                                    </p>
+
+                                    <div className="space-y-2">
+                                        {/* PDF Option */}
+                                        <button
+                                            onClick={() => handleExportFormat('PDF')}
+                                            className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                                                    <FileText className="h-5 w-5 text-red-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-[14px] font-medium text-slate-900">Export as PDF</p>
+                                                    <p className="text-[12px] text-slate-500">Printable document format</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                                        </button>
+
+                                        {/* Excel Option */}
+                                        <button
+                                            onClick={() => handleExportFormat('Excel')}
+                                            className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                                                    <File className="h-5 w-5 text-green-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-[14px] font-medium text-slate-900">Export as Excel</p>
+                                                    <p className="text-[12px] text-slate-500">Spreadsheet format (.xlsx)</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                                        </button>
+
+                                        {/* CSV Option */}
+                                        <button
+                                            onClick={() => handleExportFormat('CSV')}
+                                            className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                                                    <FileText className="h-5 w-5 text-blue-600" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-[14px] font-medium text-slate-900">Export as CSV</p>
+                                                    <p className="text-[12px] text-slate-500">Comma-separated values</p>
+                                                </div>
+                                            </div>
+                                            <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Footer */}
                 <div className="mt-8 text-center text-xs text-slate-400">
