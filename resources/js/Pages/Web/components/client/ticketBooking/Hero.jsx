@@ -368,10 +368,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
             <p className="text-slate-600 text-[14px]">Manage your Flight • Train • Bus bookings.</p>
           </div>
           <div className="flex flex-col md:flex-row gap-2 justify-center items-center">
-            <button onClick={() => router.visit('/ticketBooking')} className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium">
-              <Download className="mr-2 h-7 w-7" /> Export
-            </button>
-            <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
+            <button onClick={() => router.visit('/ticketBooking')} className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
               <Plus className="mr-2 h-6 w-6" /> New Booking
             </button>
           </div>
