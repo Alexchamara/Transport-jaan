@@ -1,0 +1,504 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { usePage } from "@inertiajs/react";
+import {
+    Download,
+    Search,
+    ChevronLeft,
+    ChevronRight,
+    Eye,
+    X,
+    Filter,
+    ChevronDown as DropdownIcon,
+} from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import SideMenu from "./SideMenu";
+import UserDropdown from "../../../components/vendors/UserDropdown";
+import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
+import UnverifiedBanner from "./UnverifiedBanner";
+import { API_BASE_URL } from "../../../../../config/api";
+import icon1 from "../../../assets/vendors/booking/icons/icon1.svg";
+import icon2 from "../../../assets/vendors/booking/icons/icon2.svg";
+import icon3 from "../../../assets/vendors/booking/icons/icon3.svg";
+import icon4 from "../../../assets/vendors/booking/icons/icon4.svg";
+import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
+
+// ─── dummy data for unverified vendors ───────────────────────────────────────
+const DUMMY_BOOKINGS = [
+    { id: 1,  booking_code: "BK-001", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Kasun Perera",        customer_email: "kasun@gmail.com",  customer_phone: "+94 77 123 4567", total_amount: 5000,   status: "Confirmed", payment_status: "Paid",    booking_date: "2025-06-10", start_date: "2025-07-01", end_date: "2025-07-03" },
+    { id: 2,  booking_code: "FL-201", booking_type: "flight",  service_name: "Flight Ticket",     customer_name: "Nimal Fernando",      customer_email: "nimal@yahoo.com",  customer_phone: "+94 71 234 5678", total_amount: 15000,  status: "Paid",      payment_status: "Paid",    booking_date: "2025-06-08", start_date: "2025-06-20", end_date: "2025-06-20" },
+    { id: 3,  booking_code: "BK-002", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Dilani Wickramasinghe", customer_email: "dilani@outlook.com",customer_phone: "+94 76 345 6789", total_amount: 8500,   status: "Pending",   payment_status: "Pending", booking_date: "2025-06-12", start_date: "2025-07-10", end_date: "2025-07-12" },
+    { id: 4,  booking_code: "FL-202", booking_type: "flight",  service_name: "Flight Ticket",     customer_name: "Roshan Jayawardena",  customer_email: "roshan@gmail.com", customer_phone: "+94 78 456 7890", total_amount: 82500,  status: "Completed", payment_status: "Paid",    booking_date: "2025-05-29", start_date: "2025-06-05", end_date: "2025-06-07" },
+    { id: 5,  booking_code: "BK-003", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Sachini Silva",       customer_email: "sachini@gmail.com",customer_phone: "+94 70 567 8901", total_amount: 12000,  status: "Confirmed", payment_status: "Paid",    booking_date: "2025-06-11", start_date: "2025-07-15", end_date: "2025-07-18" },
+    { id: 6,  booking_code: "BK-004", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Tharindu Bandara",    customer_email: "tharindu@live.com",customer_phone: "+94 75 678 9012", total_amount: 6800,   status: "Cancelled", payment_status: "Pending", booking_date: "2025-06-05", start_date: "2025-06-25", end_date: "2025-06-26" },
+    { id: 7,  booking_code: "FL-203", booking_type: "flight",  service_name: "Flight Ticket",     customer_name: "Priya Rajapaksa",     customer_email: "priya@gmail.com",  customer_phone: "+94 72 789 0123", total_amount: 98000,  status: "Pending",   payment_status: "Pending", booking_date: "2025-06-09", start_date: "2025-08-01", end_date: "2025-08-03" },
+    { id: 8,  booking_code: "BK-005", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Chamara Gunasekara",  customer_email: "chamara@gmail.com",customer_phone: "+94 74 890 1234", total_amount: 4200,   status: "Completed", payment_status: "Paid",    booking_date: "2025-05-20", start_date: "2025-06-10", end_date: "2025-06-11" },
+    { id: 9,  booking_code: "FL-204", booking_type: "flight",  service_name: "Flight Ticket",     customer_name: "Sanduni Rathnayake", customer_email: "sanduni@gmail.com",customer_phone: "+94 77 901 2345", total_amount: 52500,  status: "Confirmed", payment_status: "Paid",    booking_date: "2025-06-14", start_date: "2025-07-20", end_date: "2025-07-22" },
+    { id: 10, booking_code: "BK-006", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Isuru Dissanayake",   customer_email: "isuru@gmail.com",  customer_phone: "+94 71 012 3456", total_amount: 9500,   status: "Active",    payment_status: "Paid",    booking_date: "2025-06-13", start_date: "2025-06-13", end_date: "2025-06-15" },
+];
+
+const DUMMY_STATS = { upcoming: 4, pending: 3, cancelled: 1, completed: 2 };
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+const STATUS_STYLES = {
+    confirmed:  { bg: "#D8E4F2",   text: "#000000",   border: "#0000004D" },
+    paid:       { bg: "#ACE19957", text: "#3B8F31",   border: "#3B8F314D" },
+    pending:    { bg: "#FFF7ED",   text: "#EA580C",   border: "#EA580C4D" },
+    completed:  { bg: "#D1FAE5",   text: "#059669",   border: "#06B6D44D" },
+    cancelled:  { bg: "#F87171",   text: "#FFFFFF",   border: "#B91C1C"   },
+    active:     { bg: "#E8F5E9",   text: "#2E7D32",   border: "#2E7D324D" },
+    returned:   { bg: "#D1FAE5",   text: "#059669",   border: "#06B6D44D" },
+};
+const getStatusStyle = (status) =>
+    STATUS_STYLES[status?.toLowerCase()] ?? STATUS_STYLES["pending"];
+
+const typeBadge = (type) =>
+    type === "flight"
+        ? "bg-blue-100 text-blue-700"
+        : "bg-orange-100 text-orange-700";
+
+// ─── component ───────────────────────────────────────────────────────────────
+const BookingPage = () => {
+    const { auth, allBookings: propBookings, bookingStats: propStats } = usePage().props;
+    const user = auth?.user;
+    const isVerified = user?.vendor_status === "verified" || user?.is_verified === true;
+
+    // ── notifications ──
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        if (!auth?.user) return;
+        const fetchNotifications = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setNotifications(data.notifications || []);
+                    setUnreadCount(data.unread_count || 0);
+                }
+            } catch (e) { console.error("Failed to fetch notifications:", e); }
+        };
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, [auth?.user]);
+
+    // ── data source ──
+    const rawBookings = useMemo(() => {
+        if (!isVerified) return DUMMY_BOOKINGS;
+        return propBookings?.length ? propBookings : DUMMY_BOOKINGS;
+    }, [isVerified, propBookings]);
+
+    const stats = useMemo(() => {
+        if (!isVerified) return DUMMY_STATS;
+        return propStats ?? DUMMY_STATS;
+    }, [isVerified, propStats]);
+
+    // ── filter state ──
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState("All");
+    const [typeFilter, setTypeFilter] = useState("All");
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
+    const [showFilters, setShowFilters] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
+
+    // ── pagination ──
+    const [page, setPage] = useState(1);
+    const ROWS = 7;
+
+    // ── modal ──
+    const [modal, setModal] = useState(null);
+
+    const resetPage = () => setPage(1);
+
+    const filtered = useMemo(() => {
+        const q = search.toLowerCase();
+        return rawBookings.filter((b) => {
+            const matchSearch =
+                !q ||
+                b.booking_code?.toLowerCase().includes(q) ||
+                b.customer_name?.toLowerCase().includes(q) ||
+                b.service_name?.toLowerCase().includes(q) ||
+                b.customer_email?.toLowerCase().includes(q);
+            const matchStatus = statusFilter === "All" || b.status?.toLowerCase() === statusFilter.toLowerCase();
+            const matchType   = typeFilter === "All" || b.booking_type === typeFilter;
+            const bd = b.booking_date ? new Date(b.booking_date) : null;
+            const matchFrom = !dateFrom || !bd || bd >= new Date(dateFrom);
+            const matchTo   = !dateTo   || !bd || bd <= new Date(dateTo);
+            return matchSearch && matchStatus && matchType && matchFrom && matchTo;
+        });
+    }, [rawBookings, search, statusFilter, typeFilter, dateFrom, dateTo]);
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS));
+    const paginated  = filtered.slice((page - 1) * ROWS, page * ROWS);
+
+    const handleResetFilters = () => {
+        setSearch(""); setStatusFilter("All"); setTypeFilter("All");
+        setDateFrom(""); setDateTo(""); resetPage();
+    };
+
+    // ── exports ──
+    const exportCSV = () => {
+        const headers = ["Booking Code", "Type", "Service", "Customer", "Phone", "Amount", "Status", "Payment", "Date"];
+        const rows = filtered.map((b) =>
+            [b.booking_code, b.booking_type, b.service_name, b.customer_name, b.customer_phone,
+             b.total_amount, b.status, b.payment_status, b.booking_date]
+                .map((v) => `"${v ?? ""}"`)
+                .join(",")
+        );
+        const blob = new Blob([[headers.join(","), ...rows].join("\n")], { type: "text/csv" });
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+        a.download = `bookings-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+        setShowExportMenu(false);
+    };
+
+    const exportXLSX = () => {
+        const data = [
+            ["Booking Code", "Type", "Service", "Customer", "Phone", "Amount", "Status", "Payment", "Date"],
+            ...filtered.map((b) => [b.booking_code, b.booking_type, b.service_name, b.customer_name,
+                b.customer_phone, b.total_amount, b.status, b.payment_status, b.booking_date]),
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws["!cols"] = [14,10,18,20,16,12,12,12,14].map((w) => ({ wch: w }));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Bookings");
+        XLSX.writeFile(wb, `bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
+        setShowExportMenu(false);
+    };
+
+    const exportPDF = () => {
+        const doc = new jsPDF({ orientation: "landscape" });
+        doc.setFontSize(14);
+        doc.text("All Bookings Report", 14, 14);
+        doc.setFontSize(9);
+        doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 20);
+        autoTable(doc, {
+            head: [["Code", "Type", "Service", "Customer", "Phone", "Amount", "Status", "Payment", "Date"]],
+            body: filtered.map((b) => [b.booking_code, b.booking_type, b.service_name, b.customer_name,
+                b.customer_phone, `Rs. ${(b.total_amount || 0).toLocaleString()}`, b.status, b.payment_status, b.booking_date]),
+            startY: 25,
+            headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: "bold" },
+            alternateRowStyles: { fillColor: [230, 240, 250] },
+        });
+        doc.save(`bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
+        setShowExportMenu(false);
+    };
+
+    // ── render ────────────────────────────────────────────────────────────────
+    return (
+        <div className="poppins flex flex-row w-full min-h-screen bg-[#F5F5F5]">
+            <SideMenu />
+
+            <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
+                {/* ── Header ── */}
+                <div className="flex md:flex-row flex-col gap-5 justify-between items-center mb-6">
+                    <div className="flex items-center gap-4">
+                        <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left">
+                            All Bookings
+                        </h1>
+                    </div>
+                    <div className="hidden lg:flex items-center gap-3">
+                        <NotificationDropdown notifications={notifications} unreadCount={unreadCount} />
+                        <UserDropdown settingsRoute={route("settingsPage")} />
+                    </div>
+                </div>
+
+                {/* ── Unverified Banner ── */}
+                <UnverifiedBanner />
+
+                {/* ── Stats Cards (2 × 2) ── */}
+                <div className="flex flex-col gap-5 mt-6">
+                    <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
+                        {[
+                            { icon: icon1, label: "Upcoming",  value: stats.upcoming,  pct: "+2.86%" },
+                            { icon: icon2, label: "Pending",   value: stats.pending,   pct: "+1.42%" },
+                        ].map(({ icon, label, value, pct }) => (
+                            <div
+                                key={label}
+                                className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
+                                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            >
+                                <div className="flex flex-row gap-5 justify-center items-center">
+                                    <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                        <img src={icon} alt={label} />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">{label} Bookings</h1>
+                                        <h1 className="text-[20px] md:text-[24px] font-[700]">{value}</h1>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+                                    <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center gap-1">
+                                        <img src={upArrow} className="size-[16px]" alt="up" />
+                                        <h1>{pct}</h1>
+                                    </div>
+                                    <h1 className="text-[#7B7B7A]">from last week</h1>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex xl:flex-row flex-col gap-5 w-full">
+                        {[
+                            { icon: icon3, label: "Cancelled", value: stats.cancelled, pct: "-0.50%", down: true },
+                            { icon: icon4, label: "Completed", value: stats.completed, pct: "+3.12%" },
+                        ].map(({ icon, label, value, pct, down }) => (
+                            <div
+                                key={label}
+                                className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
+                                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                            >
+                                <div className="flex flex-row gap-5 justify-center items-center">
+                                    <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                        <img src={icon} alt={label} />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">{label} Bookings</h1>
+                                        <h1 className="text-[20px] md:text-[24px] font-[700]">{value}</h1>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+                                    <div className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center gap-1 ${down ? "bg-[#FF888880]" : "bg-[#D8E4F2]"}`}>
+                                        <img src={upArrow} className={`size-[16px] ${down ? "rotate-180" : ""}`} alt="trend" />
+                                        <h1>{pct}</h1>
+                                    </div>
+                                    <h1 className="text-[#7B7B7A]">from last week</h1>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* ── White Card: Toolbar + Table + Pagination ── */}
+                <div
+                    className="w-full bg-white rounded-[10px] px-5 py-6 mt-6"
+                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                >
+                    {/* Toolbar */}
+                    <div className="flex md:flex-row flex-col justify-between gap-3 mb-5">
+                        <div className="flex gap-3 flex-wrap items-center">
+                            {/* Search */}
+                            <div className="xl:w-[240px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4 gap-2">
+                                <Search className="size-[15px] text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => { setSearch(e.target.value); resetPage(); }}
+                                    className="w-full outline-none bg-transparent text-[14px] placeholder:text-[#7B7B7ACC]"
+                                    placeholder="Search booking, customer…"
+                                />
+                            </div>
+                            {/* Filter toggle */}
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className="xl:w-[110px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] bg-white border border-gray-300"
+                            >
+                                <Filter className="size-[14px]" />
+                                <span>Filter</span>
+                            </button>
+                        </div>
+                        {/* Export */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowExportMenu(!showExportMenu)}
+                                className="xl:w-[115px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] bg-white border border-gray-300"
+                            >
+                                <Download size={14} />
+                                <span>Export</span>
+                                <DropdownIcon size={12} />
+                            </button>
+                            {showExportMenu && (
+                                <div className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-[8px] shadow-lg z-50">
+                                    {[["CSV", exportCSV], ["XLSX", exportXLSX], ["PDF", exportPDF]].map(([label, fn]) => (
+                                        <button key={label} onClick={fn}
+                                            className="w-full text-left px-4 py-2 hover:bg-gray-50 font-[500] text-[14px] border-b last:border-b-0 border-gray-100">
+                                            Export to {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Filter Panel */}
+                    {showFilters && (
+                        <div className="border border-gray-200 rounded-[8px] p-4 bg-gray-50 mb-5">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-[600] text-[15px]">Filters</h3>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={handleResetFilters}
+                                        className="px-3 py-1.5 text-[13px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-[#0955AC] hover:text-white transition font-[500]">
+                                        Reset
+                                    </button>
+                                    <button onClick={() => setShowFilters(false)}
+                                        className="text-gray-500 hover:text-[#0955AC] text-[22px] font-bold leading-none">×</button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {[
+                                    { label: "Type", value: typeFilter, setter: (v) => { setTypeFilter(v); resetPage(); },
+                                      options: [["All", "All Types"], ["vehicle", "Vehicle"], ["flight", "Flight"]] },
+                                    { label: "Status", value: statusFilter, setter: (v) => { setStatusFilter(v); resetPage(); },
+                                      options: [["All","All Status"],["Confirmed","Confirmed"],["Pending","Pending"],["Paid","Paid"],["Completed","Completed"],["Cancelled","Cancelled"],["Active","Active"]] },
+                                ].map(({ label, value, setter, options }) => (
+                                    <div key={label} className="flex flex-col gap-1.5">
+                                        <label className="text-[12px] font-[600] text-gray-600">{label}</label>
+                                        <select value={value} onChange={(e) => setter(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] bg-white">
+                                            {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                                        </select>
+                                    </div>
+                                ))}
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[12px] font-[600] text-gray-600">From Date</label>
+                                    <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); resetPage(); }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]" />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[12px] font-[600] text-gray-600">To Date</label>
+                                    <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); resetPage(); }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Table */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-[14px]">
+                            <thead>
+                                <tr className="bg-gray-50 border-b border-gray-200">
+                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Code</th>
+                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Type</th>
+                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Service</th>
+                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Customer</th>
+                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Amount</th>
+                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Status</th>
+                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Payment</th>
+                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Date</th>
+                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">View</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {paginated.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-[14px]">
+                                            No bookings found.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    paginated.map((b) => {
+                                        const st = getStatusStyle(b.status);
+                                        const pt = getStatusStyle(b.payment_status);
+                                        return (
+                                            <tr key={b.id ?? b.booking_code} className="hover:bg-gray-50 transition">
+                                                <td className="px-4 py-3 font-[500] text-gray-900">{b.booking_code}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`text-[12px] font-[600] px-2 py-1 rounded-full ${typeBadge(b.booking_type)}`}>
+                                                        {b.booking_type === "flight" ? "✈ Flight" : "🚗 Vehicle"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600">{b.service_name}</td>
+                                                <td className="px-4 py-3 text-gray-900 font-[500]">{b.customer_name}</td>
+                                                <td className="px-4 py-3 font-[600] text-gray-900">
+                                                    Rs. {(b.total_amount || 0).toLocaleString()}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span
+                                                        className="px-3 py-1 rounded-[5px] text-[12px] font-[500]"
+                                                        style={{ backgroundColor: st.bg, color: st.text, border: `1px solid ${st.border}` }}
+                                                    >
+                                                        {b.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span
+                                                        className="px-3 py-1 rounded-[5px] text-[12px] font-[500]"
+                                                        style={{ backgroundColor: pt.bg, color: pt.text, border: `1px solid ${pt.border}` }}
+                                                    >
+                                                        {b.payment_status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-500">{b.booking_date}</td>
+                                                <td className="px-4 py-3">
+                                                    <button
+                                                        onClick={() => setModal(b)}
+                                                        className="p-1.5 rounded-[6px] hover:bg-blue-50 text-blue-500 transition"
+                                                    >
+                                                        <Eye size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Pagination */}
+                    <div className="flex justify-between items-center mt-5 text-[14px] text-gray-500">
+                        <span>
+                            Showing {filtered.length === 0 ? 0 : (page - 1) * ROWS + 1}–
+                            {Math.min(page * ROWS, filtered.length)} of {filtered.length}
+                        </span>
+                        <div className="flex gap-2 items-center">
+                            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                                className="p-1.5 rounded-[6px] border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition">
+                                <ChevronLeft size={16} />
+                            </button>
+                            <span className="font-[600] text-gray-700">{page} / {totalPages}</span>
+                            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                                className="p-1.5 rounded-[6px] border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition">
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Detail Modal ── */}
+            {modal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+                    onClick={() => setModal(null)}>
+                    <div className="bg-white rounded-[14px] w-full max-w-lg mx-4 p-6 shadow-xl"
+                        onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-5">
+                            <h2 className="text-[18px] font-[700]">Booking Details</h2>
+                            <button onClick={() => setModal(null)}
+                                className="p-1 rounded-full hover:bg-gray-100 transition">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="flex flex-col gap-3 text-[14px]">
+                            {[
+                                ["Booking Code",  modal.booking_code],
+                                ["Type",          modal.booking_type === "flight" ? "✈ Flight" : "🚗 Vehicle"],
+                                ["Service",       modal.service_name],
+                                ["Customer",      modal.customer_name],
+                                ["Email",         modal.customer_email],
+                                ["Phone",         modal.customer_phone],
+                                ["Amount",        `Rs. ${(modal.total_amount || 0).toLocaleString()}`],
+                                ["Status",        modal.status],
+                                ["Payment",       modal.payment_status],
+                                ["Booking Date",  modal.booking_date],
+                                ["Start Date",    modal.start_date ?? "—"],
+                                ["End Date",      modal.end_date ?? "—"],
+                            ].map(([label, value]) => (
+                                <div key={label} className="flex justify-between border-b border-gray-50 pb-2">
+                                    <span className="text-gray-500 font-[500]">{label}</span>
+                                    <span className="font-[600]">{value}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default BookingPage;

@@ -58,11 +58,40 @@ const IMAGES = [
     },
 ];
 
+const SERVICES = [
+    {
+        title: "Vehicle Rental",
+        subtitle: "Cars, vans & trucks",
+        img: img1,
+        sub: [
+            { title: "Land Vehicle", subtitle: "Cars, buses & trucks", href: "/vehicleList", img: img1 },
+            { title: "Sea Vehicle", subtitle: "Boats & ships", href: "/seaVehicleList", img: img2 },
+            { title: "Air Vehicle", subtitle: "Helicopters & planes", href: "/airVehicleList", img: img3 },
+        ],
+    },
+    {
+        title: "Ticket Booking",
+        subtitle: "Land, air & sea tickets",
+        img: img7,
+        sub: [
+            { title: "Flight Ticket", subtitle: "Book air tickets", href: "/flight-booking", img: img3 },
+            { title: "Bus Ticket", subtitle: "Book bus tickets", href: "/busTicketBookingDetails", img: img1 },
+            { title: "Train Ticket", subtitle: "Book train tickets", href: "/trainTicketBookingDetails", img: img2 },
+        ],
+    },
+    { title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create", img: img8 },
+    { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
+    { title: "Freight Module", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
+    { title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey", img: img6 },
+];
+
 const TravelExploreAnimation = ({ auth }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [hoveredCard, setHoveredCard] = useState(0);
     const [servicesOpen, setServicesOpen] = useState(false);
     const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
+    const [hoveredService, setHoveredService] = useState(null);
+    const [mobileSubService, setMobileSubService] = useState(null);
 
     const user = auth?.user;
     const userRole = user?.role;
@@ -163,32 +192,66 @@ const TravelExploreAnimation = ({ auth }) => {
                                                 initial={{ opacity: 0, y: -8 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ duration: 0.2 }}
-                                                className="absolute top-full left-1/2 -translate-x-1/2 w-64 z-[70] pt-3"
+                                                className="absolute top-full -translate-x-1/2 w-64 z-[70] pt-3"
                                             >
-                                                <div className="bg-white/15 backdrop-blur-lg border border-white/30 rounded-2xl overflow-hidden shadow-2xl">
-                                                    {[
-                                                        { title: "Vehicle Rental", subtitle: "Cars, vans & trucks", href: "/clientRent", img: img1 },
-                                                        { title: "Ticket Booking", subtitle: "Land, air & sea tickets", href: "/flight-booking", img: img7 },
-                                                        { title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create", img: img8 },
-                                                        { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
-                                                        { title: "Freight Module", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
-                                                        { title: "Multimodal", subtitle: "Combined transport", href: "/multimodal", img: img6 },
-                                                    ].map((service, i) => (
-                                                        <a
+                                                <div className="bg-white/15 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl">
+                                                    {SERVICES.map((service, i) => (
+                                                        <div
                                                             key={i}
-                                                            href={service.href}
-                                                            className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/20 transition-all duration-200 border-b border-white/10 last:border-0"
+                                                            className="relative"
+                                                            onMouseEnter={() => setHoveredService(i)}
+                                                            onMouseLeave={() => setHoveredService(null)}
                                                         >
-                                                            <img
-                                                                src={service.img}
-                                                                alt={service.title}
-                                                                className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                                                            />
-                                                            <div>
-                                                                <p className="text-sm font-semibold leading-tight">{service.title}</p>
-                                                                <p className="text-xs text-white/70 leading-tight mt-0.5">{service.subtitle}</p>
-                                                            </div>
-                                                        </a>
+                                                            <a
+                                                                href={service.sub ? undefined : service.href}
+                                                                onClick={service.sub ? (e) => e.preventDefault() : undefined}
+                                                                className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/20 transition-all duration-200 border-b border-white/10 last:border-0 cursor-pointer"
+                                                            >
+                                                                <img
+                                                                    src={service.img}
+                                                                    alt={service.title}
+                                                                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                                                />
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                                    <p className="text-xs text-white/70 leading-tight mt-0.5">{service.subtitle}</p>
+                                                                </div>
+                                                                {service.sub && (
+                                                                    <svg className="w-3 h-3 text-white/70 flex-shrink-0 -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                    </svg>
+                                                                )}
+                                                            </a>
+                                                            {/* Sub-dropdown flyout */}
+                                                            {service.sub && hoveredService === i && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, x: -6 }}
+                                                                    animate={{ opacity: 1, x: 0 }}
+                                                                    transition={{ duration: 0.15 }}
+                                                                    className="absolute left-full top-0 w-56 pl-2 z-[80]"
+                                                                >
+                                                                    <div className="bg-white/15 backdrop-blur-lg border border-white/30 rounded-2xl shadow-2xl overflow-hidden">
+                                                                        {service.sub.map((sub, j) => (
+                                                                            <a
+                                                                                key={j}
+                                                                                href={sub.href}
+                                                                                className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/20 transition-all duration-200 border-b border-white/10 last:border-0"
+                                                                            >
+                                                                                <img
+                                                                                    src={sub.img}
+                                                                                    alt={sub.title}
+                                                                                    className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+                                                                                />
+                                                                                <div>
+                                                                                    <p className="text-sm font-semibold leading-tight">{sub.title}</p>
+                                                                                    <p className="text-xs text-white/70 leading-tight mt-0.5">{sub.subtitle}</p>
+                                                                                </div>
+                                                                            </a>
+                                                                        ))}
+                                                                    </div>
+                                                                </motion.div>
+                                                            )}
+                                                        </div>
                                                     ))}
                                                 </div>
                                             </motion.div>
@@ -332,23 +395,51 @@ const TravelExploreAnimation = ({ auth }) => {
                                                 </svg>
                                             </div>
                                             {mobileServicesOpen && (
-                                                <div className="pb-2 flex flex-col gap-1">
-                                                    {[
-                                                        { title: "Vehicle Rental", subtitle: "Cars, vans & trucks", href: "/clientRent" },
-                                                        { title: "Ticket Booking", subtitle: "Land, air & sea tickets", href: "/flight-booking" },
-                                                        { title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create" },
-                                                        { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList" },
-                                                        { title: "Freight Module", subtitle: "Bulk cargo shipments", href: "/freight-home" },
-                                                        { title: "Multimodal", subtitle: "Combined transport", href: "/multimodal" },
-                                                    ].map((service, i) => (
-                                                        <a
-                                                            key={i}
-                                                            href={service.href}
-                                                            className="flex flex-col px-3 py-2 rounded-xl hover:bg-white/10 active:bg-white/20 transition-all duration-200"
-                                                        >
-                                                            <p className="text-sm font-semibold leading-tight">{service.title}</p>
-                                                            <p className="text-xs text-white/60 leading-tight mt-0.5">{service.subtitle}</p>
-                                                        </a>
+                                                <div className="pb-2 flex flex-col gap-0.5">
+                                                    {SERVICES.map((service, i) => (
+                                                        <div key={i}>
+                                                            {service.sub ? (
+                                                                <>
+                                                                    <div
+                                                                        className="flex justify-between items-center px-3 py-2 rounded-xl hover:bg-white/10 active:bg-white/20 transition-all duration-200 cursor-pointer"
+                                                                        onClick={() => setMobileSubService(mobileSubService === i ? null : i)}
+                                                                    >
+                                                                        <div>
+                                                                            <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                                            <p className="text-xs text-white/60 leading-tight mt-0.5">{service.subtitle}</p>
+                                                                        </div>
+                                                                        <svg
+                                                                            className={`w-3.5 h-3.5 text-white/70 flex-shrink-0 transition-transform duration-200 ${mobileSubService === i ? "rotate-180" : ""}`}
+                                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                                        >
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    {mobileSubService === i && (
+                                                                        <div className="ml-4 mb-1 flex flex-col gap-0.5 border-l border-white/20 pl-3">
+                                                                            {service.sub.map((sub, j) => (
+                                                                                <a
+                                                                                    key={j}
+                                                                                    href={sub.href}
+                                                                                    className="flex flex-col py-1.5 hover:text-white/80 transition-colors duration-200"
+                                                                                >
+                                                                                    <p className="text-sm font-medium leading-tight">{sub.title}</p>
+                                                                                    <p className="text-xs text-white/50 leading-tight mt-0.5">{sub.subtitle}</p>
+                                                                                </a>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <a
+                                                                    href={service.href}
+                                                                    className="flex flex-col px-3 py-2 rounded-xl hover:bg-white/10 active:bg-white/20 transition-all duration-200"
+                                                                >
+                                                                    <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                                    <p className="text-xs text-white/60 leading-tight mt-0.5">{service.subtitle}</p>
+                                                                </a>
+                                                            )}
+                                                        </div>
                                                     ))}
                                                 </div>
                                             )}

@@ -38,7 +38,7 @@ const SideMenu = () => {
         <div className="flex-shrink-0 mb-4">
           <h1
             className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
-            onClick={() => (window.location.href = "/mainDashboard")}
+            onClick={() => (window.location.href = "/vendorAllBookings")}
           >
             Company <br />
             <span className="text-[#0955AC]">Logo</span>

@@ -22,7 +22,16 @@ class CheckUserStatus
         }
 
         // If user is logged in but unverified, redirect to approval pending page
+        // Exception: Allow vendors to access vendorAllBookings route
         if (Auth::user()->status === 'unverified') {
+            $isVendorAllBookings = $request->path() === 'vendorAllBookings' || $request->route()?->getName() === 'vendorAllBookings';
+            $isVendor = Auth::user()->role === 'vendor';
+            
+            // Allow vendors to access their all bookings dashboard
+            if ($isVendor && $isVendorAllBookings) {
+                return $next($request);
+            }
+
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Your account is pending approval.'], 403);
             }
