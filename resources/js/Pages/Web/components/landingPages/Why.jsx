@@ -25,38 +25,38 @@ const Why = () => {
                 {/* card section */}
                 <div className="py-10 md:px-20 flex flex-col gap-10">
                     {/* 1st row */}
-                    <div className="flex lg:flex-row flex-col gap-10 justify-center items-center">
+                    <div className="flex lg:flex-row flex-col gap-6 justify-center items-center">
                         {/* card 1 */}
-                        <div className="xl:w-[370px] h-[300px] border-[0.2px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-10 py-5 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
-                            <img src={box} className="size-[56px]" />
-                            <h1 className="text-[22px] font-[600]">
+                        <div className="xl:w-[280px] h-[220px] border-[0.2px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-7 py-4 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
+                            <img src={box} className="size-[36px]" />
+                            <h1 className="text-[16px] font-[600]">
                                 One Platform, Many Services
                             </h1>
-                            <p className="text-[10px] xl:text-[12px]/[33px] text-[#FFFFFFA6] font-[500] text-justify">
+                            <p className="text-[10px] xl:text-[11px]/[22px] text-[#FFFFFFA6] font-[500] text-justify">
                                 Book land, air, sea, courier, and warehouse
                                 services easily through a single, unified
                                 digital platform.
                             </p>
                         </div>
                         {/* card 2 */}
-                        <div className="xl:w-[370px] h-[300px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-10 py-5 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
-                            <img src={box} className="size-[56px]" />
-                            <h1 className="text-[22px] font-[600]">
+                        <div className="xl:w-[280px] h-[220px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-7 py-4 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
+                            <img src={box} className="size-[36px]" />
+                            <h1 className="text-[16px] font-[600]">
                                 Trusted Service Providers
                             </h1>
-                            <p className="text-[10px] xl:text-[12px]/[33px] text-[#FFFFFFA6] font-[500] text-justify">
+                            <p className="text-[10px] xl:text-[11px]/[22px] text-[#FFFFFFA6] font-[500] text-justify">
                                 We work only with verified and reliable service
                                 providers to ensure safe, secure, and
                                 professional logistics solutions.
                             </p>
                         </div>
                         {/* card 3 */}
-                        <div className="xl:w-[370px] h-[300px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-10 py-5 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
-                            <img src={box} className="size-[56px]" />
-                            <h1 className="text-[22px] font-[600]">
+                        <div className="xl:w-[280px] h-[220px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-7 py-4 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
+                            <img src={box} className="size-[36px]" />
+                            <h1 className="text-[16px] font-[600]">
                                 Easy Booking Process
                             </h1>
-                            <p className="text-[10px] xl:text-[12px]/[33px] text-[#FFFFFFA6] font-[500] text-justify">
+                            <p className="text-[10px] xl:text-[11px]/[22px] text-[#FFFFFFA6] font-[500] text-justify">
                                 Search, compare, and book services quickly with
                                 clear pricing and a user-friendly booking
                                 experience.
@@ -64,37 +64,37 @@ const Why = () => {
                         </div>
                     </div>
                     {/* 2nd row */}
-                    <div className="flex lg:flex-row flex-col gap-10 justify-center items-center">
+                    <div className="flex lg:flex-row flex-col gap-6 justify-center items-center">
                         {/* card 1 */}
-                        <div className="xl:w-[370px] h-[300px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-10 py-5 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
-                            <img src={box} className="size-[56px]" />
-                            <h1 className="text-[22px] font-[600]">
+                        <div className="xl:w-[280px] h-[220px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-7 py-4 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
+                            <img src={box} className="size-[36px]" />
+                            <h1 className="text-[16px] font-[600]">
                                 Real-Time Tracking
                             </h1>
-                            <p className="text-[10px] xl:text-[12px]/[33px] text-[#FFFFFFA6] font-[500] text-justify">
+                            <p className="text-[10px] xl:text-[11px]/[22px] text-[#FFFFFFA6] font-[500] text-justify">
                                 Track your shipments at every stage and stay
                                 updated with live status notifications and
                                 alerts
                             </p>
                         </div>
                         {/* card 2 */}
-                        <div className="xl:w-[370px] h-[300px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-10 py-5 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
-                            <img src={box} className="size-[56px]" />
-                            <h1 className="text-[22px] font-[600]">
+                        <div className="xl:w-[280px] h-[220px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-7 py-4 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
+                            <img src={box} className="size-[36px]" />
+                            <h1 className="text-[16px] font-[600]">
                                 Secure Payments
                             </h1>
-                            <p className="text-[10px] xl:text-[12px]/[33px] text-[#FFFFFFA6] font-[500] text-justify">
+                            <p className="text-[10px] xl:text-[11px]/[22px] text-[#FFFFFFA6] font-[500] text-justify">
                                 Make safe online payments with trusted payment
                                 gateways and transparent billing at every step.
                             </p>
                         </div>
                         {/* card 3 */}
-                        <div className="xl:w-[370px] h-[300px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-10 py-5 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
-                            <img src={box} className="size-[56px]" />
-                            <h1 className="text-[22px] font-[600]">
+                        <div className="xl:w-[280px] h-[220px] border-[1px] border-[#FFFFFF] rounded-[10px] px-5 xl:px-7 py-4 flex flex-col gap-2 shadow-[0px_0px_25px_6px_rgba(255,255,255,0.18)_inset,0px_0px_60px_0px_rgba(255,112,3,0.12)]">
+                            <img src={box} className="size-[36px]" />
+                            <h1 className="text-[16px] font-[600]">
                                 Business-Friendly Solutions
                             </h1>
-                            <p className="text-[10px] xl:text-[12px]/[33px] text-[#FFFFFFA6] font-[500] text-justify">
+                            <p className="text-[10px] xl:text-[11px]/[22px] text-[#FFFFFFA6] font-[500] text-justify">
                                 Flexible options designed to support
                                 individuals, small businesses, and large
                                 enterprises efficiently.

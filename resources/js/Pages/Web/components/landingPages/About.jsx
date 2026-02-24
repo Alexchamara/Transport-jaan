@@ -1,6 +1,7 @@
 import React from "react";
 import img1 from "../../assets/landingPages/img1.svg";
 import img2 from "../../assets/landingPages/img2.svg";
+import CompanyLogo from "../CompanyLogo";
 
 const About = () => {
     return (
@@ -14,12 +15,14 @@ const About = () => {
             </div>
             <div className="flex xl:flex-row flex-col gap-10">
 
-                <div className="max-w-full 2xl:text-[14px]/[50px] text-[12px]/[40px] font-[400] xl:text-justify text-center flex flex-col gap-10 px-20">
+                <div className="max-w-full 2xl:text-[14px]/[28px] text-[12px]/[24px] font-[400] xl:text-justify text-center flex flex-col gap-10 px-20">
                     <h1 className="2xl:text-[47px] text-[25px] xl:text-[45px] font-[600] flex flex-center items-center gap-3 justify-center pt-10">
-                        Why is Company Name?
+                        Why is <span className="pb-[25px]"><CompanyLogo className='h-[75px] object-contain' />
+
+                        </span>
                     </h1>
 
-                    <div className="w-full">
+                    <div className="w-full text-[18px] leading-[28px] flex flex-col gap-4">
                         <p>
                             We are a comprehensive multimodal transport and
                             logistics booking platform designed to simplify how
@@ -48,7 +51,7 @@ const About = () => {
                         </p>
                     </div>
 
-                    <div
+                    {/* <div
                         className="xl:w-[137px] xl:h-[41px] xl:text-[14px] md:text-[10px] text-[12px] font-[700] flex justify-center items-center rounded-[44px] cursor-pointer px-4 py-4"
                         style={{
                             background:
@@ -56,7 +59,7 @@ const About = () => {
                         }}
                     >
                         Read More
-                    </div>
+                    </div> */}
                 </div>
             </div>
 
