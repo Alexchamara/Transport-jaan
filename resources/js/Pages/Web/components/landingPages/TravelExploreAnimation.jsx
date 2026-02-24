@@ -84,7 +84,7 @@ const SERVICES = [
     { title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create", img: img8 },
     { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
     { title: "Freight", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
-    
+
 ];
 
 const TravelExploreAnimation = ({ auth }) => {
@@ -154,7 +154,7 @@ const TravelExploreAnimation = ({ auth }) => {
                             {/* Desktop */}
                             <div className="md:flex hidden justify-between items-center px-10 py-10">
                                 <div className="pb-[25px]">
-                                    <CompanyLogo className='h-[75px] object-contain'/>
+                                    <CompanyLogo className="h-[40px] md:h-[50px] lg:h-[60px] xl:h-[70px] object-contain" />
                                 </div>
                                 <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[400] text-white">
                                     <div
@@ -340,7 +340,7 @@ const TravelExploreAnimation = ({ auth }) => {
                             {/* Mobile */}
                             <div className="md:hidden px-4 py-3 flex justify-between items-center">
                                 <div className="text-white text-base order-2 uppercase font-[700]">
-                                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="text-white text-base uppercase font-[700]" />
+                                    <CompanyLogo className="h-[40px] sm:h-[50px] object-contain" fallbackClassName="text-white text-base uppercase font-[700]" />
                                 </div>
                                 <div
                                     className="size-[30px] flex justify-center items-center cursor-pointer order-1"
