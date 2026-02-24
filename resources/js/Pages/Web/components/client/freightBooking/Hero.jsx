@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import jsPDF from "jspdf";
 import {
     Ship,
     Plane,
@@ -282,9 +283,143 @@ const Hero = () => {
         window.location.reload();
     };
 
+    const formatExportDate = (value) => {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return date.toISOString().split("T")[0];
+    };
+
+    const escapeCsvValue = (value) => {
+        const text = String(value ?? "");
+        if (/[",\n]/.test(text)) {
+            return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+    };
+
+    const downloadTextFile = (content, fileName, mimeType) => {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const downloadCsv = (rows, fileName) => {
+        if (rows.length === 0) {
+            alert("No bookings to export for the selected filters.");
+            return;
+        }
+        const headers = Object.keys(rows[0]);
+        const csvLines = [
+            headers.join(","),
+            ...rows.map((row) =>
+                headers.map((key) => escapeCsvValue(row[key])).join(",")
+            ),
+        ];
+        downloadTextFile(
+            `${csvLines.join("\n")}\n`,
+            fileName,
+            "text/csv;charset=utf-8;"
+        );
+    };
+
+    const downloadPdf = (rows, fileName) => {
+        if (rows.length === 0) {
+            alert("No bookings to export for the selected filters.");
+            return;
+        }
+
+        const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+        const margin = 36;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const lineHeight = 16;
+
+        const columns = [
+            { key: "Mode", label: "Mode", width: 60 },
+            { key: "Service", label: "Service", width: 220 },
+            { key: "From", label: "From", width: 110 },
+            { key: "To", label: "To", width: 110 },
+            { key: "Hub", label: "Hub", width: 120 },
+            { key: "Status", label: "Status", width: 80 },
+            { key: "Amount", label: "Amount", width: 70 },
+            { key: "Currency", label: "Currency", width: 60 },
+            { key: "Reference", label: "Reference", width: 120 },
+        ];
+
+        const maxWidth = pageWidth - margin * 2;
+        const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
+        const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
+        columns.forEach((col) => {
+            col.width = col.width * scale;
+        });
+
+        let y = margin;
+
+        const drawHeader = () => {
+            pdf.setFontSize(11);
+            let x = margin;
+            columns.forEach((col) => {
+                pdf.text(col.label, x, y);
+                x += col.width;
+            });
+            y += lineHeight;
+            pdf.setDrawColor(220);
+            pdf.line(margin, y - 10, margin + maxWidth, y - 10);
+        };
+
+        const drawRow = (row) => {
+            pdf.setFontSize(9);
+            let x = margin;
+            columns.forEach((col) => {
+                const value = String(row[col.key] ?? "");
+                const clipped = value.length > 32 ? `${value.slice(0, 29)}...` : value;
+                pdf.text(clipped, x, y);
+                x += col.width;
+            });
+            y += lineHeight;
+            if (y > pageHeight - margin) {
+                pdf.addPage();
+                y = margin;
+                drawHeader();
+            }
+        };
+
+        drawHeader();
+        rows.forEach(drawRow);
+        pdf.save(fileName);
+    };
+
     const handleExportFormat = (format) => {
-        console.log(`Exporting as ${format}`);
-        alert(`Exporting bookings as ${format}`);
+        const rows = filteredBookings.map((booking) => ({
+            Mode: (booking.mode || "").toUpperCase(),
+            Service: booking.item || "",
+            From: formatExportDate(booking.from),
+            To: formatExportDate(booking.to),
+            Hub: booking.hub || "",
+            Status: booking.status || "",
+            Amount: Number(booking.amount || 0).toFixed(2),
+            Currency: "LKR",
+            Reference: booking.code || "",
+        }));
+
+        const dateStamp = new Date().toISOString().split("T")[0];
+        const baseName = `freight-bookings-${dateStamp}`;
+
+        if (format === "PDF") {
+            downloadPdf(rows, `${baseName}.pdf`);
+        } else if (format === "Excel") {
+            downloadCsv(rows, `${baseName}.xlsx`);
+        } else {
+            downloadCsv(rows, `${baseName}.csv`);
+        }
+
         setShowExportModal(false);
     };
 
@@ -320,7 +455,7 @@ const Hero = () => {
                 </div>
 
                 {/* KPI Cards */}
-                <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="mb-3 md:mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
@@ -366,50 +501,35 @@ const Hero = () => {
                 </div>
 
                 {/* Search & Filters */}
-                <div className="mb-8 bg-white rounded-2xl shadow-sm">
+                <div className="mb-3 md:mb-4 bg-white rounded-2xl shadow-sm">
                     <div className="px-6 py-6">
-                        {/* First Row - Action Buttons Only */}
-                        <div className="flex items-center justify-end gap-2 mb-4">
-                            <button 
-                                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                                className={`inline-flex items-center h-12 px-4 rounded-xl text-[14px] font-medium transition whitespace-nowrap ${
-                                    showAdvancedFilters 
-                                        ? "bg-[#0955AC] text-white border-[#0955AC]" 
-                                        : "border border-slate-200 hover:bg-slate-50"
-                                }`}>
-                                <Filter className="mr-2 h-4 w-4" /> Filters
-                            </button>
-                            <button 
-                                onClick={() => setShowExportModal(true)}
-                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
-                                <Download className="mr-2 h-4 w-4" /> Export
-                            </button>
-                            <button 
-                                onClick={handleRefresh}
-                                className="inline-flex items-center h-12 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition">
-                                <RefreshCw className="h-4 w-4" />
-                            </button>
-                        </div>
-
-                        {/* Second Row - Search + Filters */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {/* Main Filter Row - Search, Services, and Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                             {/* Search */}
-                            <div className="relative">
+                            <div className="relative flex-1 min-w-[250px]">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
                                     value={q}
                                     onChange={(e) => setQ(e.target.value)}
                                     placeholder="Search bookings, reference numbers..."
-                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                    className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
                                 />
+                                {q && (
+                                    <button
+                                        onClick={() => setQ("")}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
 
                             {/* Service/Mode select */}
-                            <div>
+                            <div className="flex-1 min-w-[150px]">
                                 <select
                                     value={mode}
                                     onChange={(e) => setMode(e.target.value)}
-                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                    className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
                                 >
                                     <option value="all">All Services</option>
                                     <option value="fcl">FCL</option>
@@ -418,40 +538,31 @@ const Hero = () => {
                                 </select>
                             </div>
 
-                            {/* Status select */}
-                            <div>
-                                <select
-                                    value={statusFilterMain}
-                                    onChange={(e) => setStatusFilterMain(e.target.value)}
-                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
-                                >
-                                    <option value="all">All Statuses</option>
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="paid">Paid</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                            </div>
-
-                            {/* Sort select */}
-                            <div>
-                                <select
-                                    value={sort}
-                                    onChange={(e) => setSort(e.target.value)}
-                                    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
-                                >
-                                    <option value="popular">
-                                        Most Recent
-                                    </option>
-                                    <option value="price">Price (Asc)</option>
-                                    <option value="rating">
-                                        Rating (Desc)
-                                    </option>
-                                </select>
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 items-center flex-wrap">
+                                <button 
+                                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                                    className={`inline-flex items-center h-11 px-4 rounded-lg text-[14px] font-medium transition whitespace-nowrap ${
+                                        showAdvancedFilters 
+                                            ? "bg-[#0955AC] text-white border border-[#0955AC]" 
+                                            : "border border-slate-300 hover:bg-slate-50"
+                                    }`}>
+                                    <Filter className="mr-2 h-4 w-4" /> Filters
+                                </button>
+                                <button 
+                                    onClick={() => setShowExportModal(true)}
+                                    className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
+                                    <Download className="mr-2 h-4 w-4" /> Export
+                                </button>
+                                <button 
+                                    onClick={handleRefresh}
+                                    className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition">
+                                    <RefreshCw className="h-4 w-4" />
+                                </button>
                             </div>
                         </div>
 
-                        {/* Third Row - Date Filters (Collapsible) */}
+                        {/* Advanced Filters Panel (Collapsible) */}
                         <AnimatePresence>
                             {showAdvancedFilters && (
                                 <motion.div
@@ -461,7 +572,37 @@ const Hero = () => {
                                     transition={{ duration: 0.2 }}
                                     className="overflow-hidden"
                                 >
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-2">
+                                        {/* Status */}
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Status</label>
+                                            <select
+                                                value={statusFilterMain}
+                                                onChange={(e) => setStatusFilterMain(e.target.value)}
+                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                            >
+                                                <option value="all">All Statuses</option>
+                                                <option value="confirmed">Confirmed</option>
+                                                <option value="paid">Paid</option>
+                                                <option value="pending">Pending</option>
+                                                <option value="cancelled">Cancelled</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Sort */}
+                                        <div>
+                                            <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Sort By</label>
+                                            <select
+                                                value={sort}
+                                                onChange={(e) => setSort(e.target.value)}
+                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                                            >
+                                                <option value="popular">Most Recent</option>
+                                                <option value="price">Price (Asc)</option>
+                                                <option value="rating">Rating (Desc)</option>
+                                            </select>
+                                        </div>
+
                                         {/* Start Date */}
                                         <div>
                                             <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Start Date</label>
@@ -469,7 +610,7 @@ const Hero = () => {
                                                 type="date"
                                                 value={startDate}
                                                 onChange={(e) => setStartDate(e.target.value)}
-                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
                                             />
                                         </div>
 
@@ -480,7 +621,7 @@ const Hero = () => {
                                                 type="date"
                                                 value={endDate}
                                                 onChange={(e) => setEndDate(e.target.value)}
-                                                className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                                                className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
                                             />
                                         </div>
 
@@ -488,9 +629,9 @@ const Hero = () => {
                                         <div className="flex items-end">
                                             <button
                                                 onClick={handleClearFilters}
-                                                className="h-12 w-full inline-flex items-center justify-center px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition"
+                                                className="h-10 w-full inline-flex items-center justify-center px-4 rounded-lg border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition"
                                             >
-                                                <X className="mr-2 h-4 w-4" /> Clear Filters
+                                                <X className="mr-2 h-4 w-4" /> Clear
                                             </button>
                                         </div>
                                     </div>
@@ -715,7 +856,7 @@ const Hero = () => {
                 </div>
 
                 {/* History Table */}
-                <div className="mt-8 mb-8 rounded-2xl bg-white shadow-sm">
+                <div className="mt-3 md:mt-4 mb-8 rounded-2xl bg-white shadow-sm">
                     <div className="px-10 pt-10 pb-5">
                         <h3 className="font-semibold leading-none tracking-tight text-[18px]">
                             Recent Activity
@@ -792,7 +933,7 @@ const Hero = () => {
                 </div>
 
                 {/* Charts Section */}
-                <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="mt-3 md:mt-4 mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Area chart card */}
                     <div className="lg:col-span-2 bg-white rounded-[10px] shadow-sm">
                         <div className="px-10 pt-10 pb-5">

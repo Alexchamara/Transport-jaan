@@ -313,13 +313,167 @@ const Hero = ({
         setShowBulkActions(false);
     };
 
+    const formatExportDate = (value) => {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return date.toISOString().split("T")[0];
+    };
+
+    const getExportRows = (bookings) => {
+        return bookings.map((booking) => {
+            const amount = parseFloat(booking.total_amount ?? booking.amount ?? 0) || 0;
+            return {
+                Type: booking.booking_type || "booking",
+                Service:
+                    booking.service_name ||
+                    booking.vehicle_name ||
+                    booking.title ||
+                    booking.item ||
+                    "Booking",
+                Status: booking.status || "",
+                Amount: amount.toFixed(2),
+                Currency: booking.currency || "LKR",
+                Created: formatExportDate(booking.created_at || booking.booking_date),
+                Start: formatExportDate(
+                    booking.start_date ||
+                        booking.departure_date ||
+                        booking.pickup_date
+                ),
+                Reference:
+                    booking.booking_code ||
+                    booking.reference_number ||
+                    booking.tracking_reference ||
+                    booking.id ||
+                    "",
+            };
+        });
+    };
+
+    const escapeCsvValue = (value) => {
+        const text = String(value ?? "");
+        if (/[",\n]/.test(text)) {
+            return `"${text.replace(/"/g, '""')}"`;
+        }
+        return text;
+    };
+
+    const downloadTextFile = (content, fileName, mimeType) => {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const downloadCsv = (rows, fileName) => {
+        if (rows.length === 0) {
+            alert("No bookings to export for the selected filters.");
+            return;
+        }
+        const headers = Object.keys(rows[0]);
+        const csvLines = [
+            headers.join(","),
+            ...rows.map((row) =>
+                headers.map((key) => escapeCsvValue(row[key])).join(",")
+            ),
+        ];
+        downloadTextFile(
+            `${csvLines.join("\n")}\n`,
+            fileName,
+            "text/csv;charset=utf-8;"
+        );
+    };
+
+    const downloadPdf = (rows, fileName) => {
+        if (rows.length === 0) {
+            alert("No bookings to export for the selected filters.");
+            return;
+        }
+
+        const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+        const margin = 36;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const lineHeight = 16;
+
+        const columns = [
+            { key: "Type", label: "Type", width: 80 },
+            { key: "Service", label: "Service", width: 220 },
+            { key: "Status", label: "Status", width: 80 },
+            { key: "Amount", label: "Amount", width: 70 },
+            { key: "Currency", label: "Currency", width: 60 },
+            { key: "Created", label: "Created", width: 80 },
+            { key: "Start", label: "Start", width: 80 },
+            { key: "Reference", label: "Reference", width: 140 },
+        ];
+
+        const maxWidth = pageWidth - margin * 2;
+        const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
+        const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
+        columns.forEach((col) => {
+            col.width = col.width * scale;
+        });
+
+        let y = margin;
+
+        const drawHeader = () => {
+            pdf.setFontSize(11);
+            let x = margin;
+            columns.forEach((col) => {
+                pdf.text(col.label, x, y);
+                x += col.width;
+            });
+            y += lineHeight;
+            pdf.setDrawColor(220);
+            pdf.line(margin, y - 10, margin + maxWidth, y - 10);
+        };
+
+        const drawRow = (row) => {
+            pdf.setFontSize(9);
+            let x = margin;
+            columns.forEach((col) => {
+                const value = String(row[col.key] ?? "");
+                const clipped = value.length > 32 ? `${value.slice(0, 29)}...` : value;
+                pdf.text(clipped, x, y);
+                x += col.width;
+            });
+            y += lineHeight;
+            if (y > pageHeight - margin) {
+                pdf.addPage();
+                y = margin;
+                drawHeader();
+            }
+        };
+
+        drawHeader();
+        rows.forEach(drawRow);
+        pdf.save(fileName);
+    };
+
     const handleExport = (format) => {
         const dataToExport = selectedBookings.length > 0 
             ? filteredBookings.filter(b => selectedBookings.includes(b.id))
             : filteredBookings;
-        
-        console.log(`Exporting ${dataToExport.length} bookings as ${format}`);
-        alert(`Exporting ${dataToExport.length} bookings as ${format}`);
+
+        const rows = getExportRows(dataToExport);
+        const dateStamp = new Date().toISOString().split("T")[0];
+        const baseName = selectedBookings.length > 0
+            ? `selected-bookings-${dateStamp}`
+            : `filtered-bookings-${dateStamp}`;
+
+        if (format === "PDF") {
+            downloadPdf(rows, `${baseName}.pdf`);
+        } else if (format === "Excel") {
+            downloadCsv(rows, `${baseName}.xlsx`);
+        } else {
+            downloadCsv(rows, `${baseName}.csv`);
+        }
+
         setShowExportModal(false);
     };
 
@@ -464,7 +618,7 @@ const Hero = ({
                 </div>
 
                 {/* KPI Cards */}
-                <div className="mb-6 md:mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                <div className="mb-4 md:mb-4 -mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[14px] font-[700]">
@@ -528,34 +682,10 @@ const Hero = ({
                 <div className="mb-6 md:mb-8 rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm">
                     <div className="px-4 sm:px-6 py-4 sm:py-5">
                         <div className="flex flex-col gap-4">
-                            {/* Action Buttons Row */}
-                            <div className="flex gap-2 justify-end items-center flex-wrap">
-                                <button 
-                                    onClick={() => setShowFilters(!showFilters)}
-                                    className={`inline-flex items-center h-10 px-4 rounded-xl border text-[14px] font-medium transition-colors ${
-                                        showFilters ? 'bg-[#0955AC] text-white border-[#0955AC]' : 'border-slate-200 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <Filter className="mr-2 h-4 w-4" /> Filters
-                                </button>
-                                <button 
-                                    onClick={() => setShowExportModal(true)}
-                                    className="inline-flex items-center h-10 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
-                                >
-                                    <Download className="mr-2 h-4 w-4" /> Export
-                                </button>
-                                <button 
-                                    onClick={() => window.location.reload()}
-                                    className="inline-flex items-center h-10 px-4 rounded-xl border border-slate-200 text-[14px] font-medium hover:bg-slate-50"
-                                >
-                                    <RefreshCw className="h-4 w-4" />
-                                </button>
-                            </div>
-                            
-                            {/* Filter Inputs Row */}
-                            <div className="grid items-center gap-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-5 font-[600]">
+                            {/* Filter Inputs Row - Same Row */}
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                             {/* Search */}
-                            <div className="relative lg:col-span-2">
+                            <div className="relative flex-1 min-w-[250px]">
                                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
                                     value={q}
@@ -574,7 +704,7 @@ const Hero = ({
                             </div>
 
                             {/* Type select */}
-                            <div>
+                            <div className="flex-1 min-w-[150px]">
                                 <select
                                     value={bookingType}
                                     onChange={(e) => setBookingType(e.target.value)}
@@ -593,35 +723,28 @@ const Hero = ({
                                 </select>
                             </div>
 
-                            {/* Status select */}
-                            <div>
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 items-center flex-wrap">
+                                <button 
+                                    onClick={() => setShowFilters(!showFilters)}
+                                    className={`inline-flex items-center h-11 px-4 rounded-lg border text-[13px] font-medium transition-colors whitespace-nowrap ${
+                                        showFilters ? 'bg-[#0955AC] text-white border-[#0955AC]' : 'border-slate-300 hover:bg-slate-50'
+                                    }`}
                                 >
-                                    <option value="all">All Statuses</option>
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="paid">Paid</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="active">Active</option>
-                                    <option value="in_transit">In Transit</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                            </div>
-
-                            {/* Sort select */}
-                            <div>
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                    <Filter className="mr-2 h-4 w-4" /> Filters
+                                </button>
+                                <button 
+                                    onClick={() => setShowExportModal(true)}
+                                    className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 text-[13px] font-medium hover:bg-slate-50 whitespace-nowrap"
                                 >
-                                    <option value="recent">Most Recent</option>
-                                    <option value="upcoming">Upcoming First</option>
-                                    <option value="amount">Highest Amount</option>
-                                </select>
+                                    <Download className="mr-2 h-4 w-4" /> Export
+                                </button>
+                                <button 
+                                    onClick={() => window.location.reload()}
+                                    className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 whitespace-nowrap"
+                                >
+                                    <RefreshCw className="h-4 w-4" />
+                                </button>
                             </div>
                         </div>
 
@@ -636,7 +759,39 @@ const Hero = ({
                                     className="overflow-hidden"
                                 >
                                     <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-200">
-                                        <div className="grid gap-2 sm:gap-3 md:grid-cols-3">
+                                        <div className="grid gap-2 sm:gap-3 md:grid-cols-5">
+                                            {/* Status select */}
+                                            <div>
+                                                <label className="block text-[12px] font-medium text-slate-700 mb-1">Status</label>
+                                                <select
+                                                    value={statusFilter}
+                                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                >
+                                                    <option value="all">All Statuses</option>
+                                                    <option value="confirmed">Confirmed</option>
+                                                    <option value="paid">Paid</option>
+                                                    <option value="pending">Pending</option>
+                                                    <option value="active">Active</option>
+                                                    <option value="in_transit">In Transit</option>
+                                                    <option value="completed">Completed</option>
+                                                    <option value="cancelled">Cancelled</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Sort select */}
+                                            <div>
+                                                <label className="block text-[12px] font-medium text-slate-700 mb-1">Sort By</label>
+                                                <select
+                                                    value={sortBy}
+                                                    onChange={(e) => setSortBy(e.target.value)}
+                                                    className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                >
+                                                    <option value="recent">Most Recent</option>
+                                                    <option value="upcoming">Upcoming First</option>
+                                                    <option value="amount">Highest Amount</option>
+                                                </select>
+                                            </div>
                                             <div>
                                                 <label className="block text-[12px] font-medium text-slate-700 mb-1">
                                                     Start Date
@@ -684,7 +839,7 @@ const Hero = ({
                 </div>
 
                 {/* Main Content Grid */}
-                <div className="mt-6 md:mt-8">
+                <div className="mt-2 md:mt-4">
                     <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-4">
                     {/* Bookings List */}
                     <div className="lg:col-span-3">
@@ -974,7 +1129,7 @@ const Hero = ({
                 </div>
 
                 {/* Charts Row */}
-                <div className="mt-6 md:mt-8">
+                <div className="mt-4 md:mt-6">
                     <div className="grid grid-cols-1 gap-4 md:gap-6">
                     {/* Bar Chart */}
                     <div className="bg-white rounded-xl shadow-sm">
