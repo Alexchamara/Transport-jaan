@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { router } from "@inertiajs/react";
+import jsPDF from "jspdf";
 import {
   Plane,
   TrainFront,
@@ -18,7 +19,13 @@ import {
   Ticket,
   XCircle,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  RefreshCw,
+  X,
+  Info,
+  FileText,
+  File,
+  ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import {
   AreaChart,
@@ -54,6 +61,11 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [policyDetails, setPolicyDetails] = useState(null);
+  const [statusFilterMain, setStatusFilterMain] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
@@ -63,9 +75,170 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
         b.reference?.toLowerCase().includes(q.toLowerCase()) ||
         b.from?.toLowerCase().includes(q.toLowerCase()) ||
         b.to?.toLowerCase().includes(q.toLowerCase());
-      return modeMatch && searchMatch;
+      const statusMatch = statusFilterMain === "all" || b.status === statusFilterMain;
+      
+      let dateMatch = true;
+      if (startDate || endDate) {
+        const bookingDate = new Date(b.departure_date || b.booking_date);
+        if (startDate) dateMatch = dateMatch && bookingDate >= new Date(startDate);
+        if (endDate) dateMatch = dateMatch && bookingDate <= new Date(endDate);
+      }
+      
+      return modeMatch && searchMatch && statusMatch && dateMatch;
     });
-  }, [bookings, mode, q]);
+  }, [bookings, mode, q, statusFilterMain, startDate, endDate]);
+
+  const handleClearFilters = () => {
+    setQ("");
+    setMode("all");
+    setStatusFilterMain("all");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+  const formatExportDate = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toISOString().split("T")[0];
+  };
+
+  const escapeCsvValue = (value) => {
+    const text = String(value ?? "");
+    if (/[",\n]/.test(text)) {
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+  };
+
+  const downloadTextFile = (content, fileName, mimeType) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadCsv = (rows, fileName) => {
+    if (rows.length === 0) {
+      alert("No bookings to export for the selected filters.");
+      return;
+    }
+    const headers = Object.keys(rows[0]);
+    const csvLines = [
+      headers.join(","),
+      ...rows.map((row) =>
+        headers.map((key) => escapeCsvValue(row[key])).join(",")
+      ),
+    ];
+    downloadTextFile(
+      `${csvLines.join("\n")}\n`,
+      fileName,
+      "text/csv;charset=utf-8;"
+    );
+  };
+
+  const downloadPdf = (rows, fileName) => {
+    if (rows.length === 0) {
+      alert("No bookings to export for the selected filters.");
+      return;
+    }
+
+    const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const margin = 36;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const lineHeight = 16;
+
+    const columns = [
+      { key: "Mode", label: "Mode", width: 70 },
+      { key: "Reference", label: "Reference", width: 130 },
+      { key: "Service", label: "Service", width: 220 },
+      { key: "From", label: "From", width: 110 },
+      { key: "To", label: "To", width: 110 },
+      { key: "Date", label: "Date", width: 90 },
+      { key: "Status", label: "Status", width: 80 },
+      { key: "Amount", label: "Amount", width: 70 },
+      { key: "Currency", label: "Currency", width: 60 },
+    ];
+
+    const maxWidth = pageWidth - margin * 2;
+    const totalWidth = columns.reduce((sum, col) => sum + col.width, 0);
+    const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
+    columns.forEach((col) => {
+      col.width = col.width * scale;
+    });
+
+    let y = margin;
+
+    const drawHeader = () => {
+      pdf.setFontSize(11);
+      let x = margin;
+      columns.forEach((col) => {
+        pdf.text(col.label, x, y);
+        x += col.width;
+      });
+      y += lineHeight;
+      pdf.setDrawColor(220);
+      pdf.line(margin, y - 10, margin + maxWidth, y - 10);
+    };
+
+    const drawRow = (row) => {
+      pdf.setFontSize(9);
+      let x = margin;
+      columns.forEach((col) => {
+        const value = String(row[col.key] ?? "");
+        const clipped = value.length > 32 ? `${value.slice(0, 29)}...` : value;
+        pdf.text(clipped, x, y);
+        x += col.width;
+      });
+      y += lineHeight;
+      if (y > pageHeight - margin) {
+        pdf.addPage();
+        y = margin;
+        drawHeader();
+      }
+    };
+
+    drawHeader();
+    rows.forEach(drawRow);
+    pdf.save(fileName);
+  };
+
+  const handleExportFormat = (format) => {
+    const rows = filteredBookings.map((booking) => ({
+      Mode: (booking.mode || "").toUpperCase(),
+      Reference: booking.reference || "",
+      Service: booking.name || "",
+      From: booking.from || "",
+      To: booking.to || "",
+      Date: formatExportDate(booking.departure_date || booking.booking_date),
+      Status: booking.status || "",
+      Amount: Number(booking.total_price || 0).toFixed(2),
+      Currency: "LKR",
+    }));
+
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const baseName = `ticket-bookings-${dateStamp}`;
+
+    if (format === "PDF") {
+      downloadPdf(rows, `${baseName}.pdf`);
+    } else if (format === "Excel") {
+      downloadCsv(rows, `${baseName}.xlsx`);
+    } else {
+      downloadCsv(rows, `${baseName}.csv`);
+    }
+
+    setShowExportModal(false);
+  };
 
   // Calculate KPI values
   const upcomingFlights = bookings.filter((r) => r.mode === "flight" && ["confirmed", "paid", "pending"].includes(r.status)).length;
@@ -195,17 +368,14 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
             <p className="text-slate-600 text-[14px]">Manage your Flight • Train • Bus bookings.</p>
           </div>
           <div className="flex flex-col md:flex-row gap-2 justify-center items-center">
-            <button onClick={() => router.visit('/ticketBooking')} className="inline-flex items-center h-10 px-6 py-6 rounded-2xl border border-slate-200 text-[16px] font-medium">
-              <Download className="mr-2 h-7 w-7" /> Export
-            </button>
-            <button className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
+            <button onClick={() => router.visit('/ticketBooking')} className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
               <Plus className="mr-2 h-6 w-6" /> New Booking
             </button>
           </div>
         </div>
 
         {/* KPI Cards */}
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="mb-3 md:mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="bg-white rounded-2xl shadow-sm">
             <div className="px-5 pt-5 pb-2">
               <p className="flex items-center gap-3 text-[#7B7B7A] text-[16px] font-[700]">
@@ -243,107 +413,153 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
           </div>
         </div>
 
-        {/* Charts Row */}
-        <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Area chart card */}
-          <div className="lg:col-span-2 bg-white rounded-[10px] shadow-sm">
-            <div className="px-10 pt-10 pb-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold leading-none tracking-tight text-[16px]">Bookings by Month</h3>
-                  <p className="text-[14px] text-slate-500 pt-1">Flight • Train • Bus (last 6 months)</p>
-                </div>
-              </div>
-            </div>
-            <div className="px-10 pb-10 pt-10">
-              <div className="h-[350px] w-full focus:outline-none" style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}>
-                <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" tabIndex={-1} style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}>
-                  <AreaChart data={monthlyData} margin={{ left: 8, right: 8, top: 10 }}>
-                    <defs>
-                      <linearGradient id="gFlight" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0955AC" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#0955AC" stopOpacity={0.02} />
-                      </linearGradient>
-                      <linearGradient id="gTrain" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02} />
-                      </linearGradient>
-                      <linearGradient id="gBus" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} horizontal={true} />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                    <YAxis tickLine={false} axisLine={false} />
-                    <RTooltip />
-                    <Area type="monotone" dataKey="flight" name="Flight" stroke="#0955AC" fill="url(#gFlight)" strokeWidth={4} />
-                    <Area type="monotone" dataKey="train" name="Train" stroke="#3b82f6" fill="url(#gTrain)" strokeWidth={4} />
-                    <Area type="monotone" dataKey="bus" name="Bus" stroke="#6366f1" fill="url(#gBus)" strokeWidth={4} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Pie card */}
-          <div className="bg-white rounded-2xl shadow-sm">
-            <div className="px-10 pt-10">
-              <h3 className="font-semibold leading-none tracking-tight text-[16px]">Category Mix</h3>
-              <p className="text-[14px] text-slate-500 mt-1">Share of total bookings</p>
-            </div>
-            <div className="px-10 pb-10">
-              <div className="h-[350px] w-full" style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}>
-                <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" tabIndex={-1} style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}>
-                  <PieChart>
-                    <Pie data={pieData} innerRadius={90} outerRadius={140} paddingAngle={5} dataKey="value" nameKey="name" cornerRadius={8}>
-                      {pieData.map((_, i) => (
-                        <Cell key={i} fill={["#0955AC", "#3b82f6", "#6366f1"][i]} />
-                      ))}
-                    </Pie>
-                    <RTooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
-                <div className="flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-[#0955AC]" /> Flight</div>
-                <div className="flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-[#3b82f6]" /> Train</div>
-                <div className="flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-indigo-500" /> Bus</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Search & Filters */}
-        <div className="mb-8 rounded-2xl">
-          <div className="px-4 pb-4 pt-6">
-            <div className="grid items-center gap-3 md:grid-cols-2 font-[600]">
+        <div className="mb-3 md:mb-4 bg-white rounded-2xl shadow-sm">
+          <div className="px-6 py-6">
+            {/* Main Filter Row - Search, Services, and Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
               {/* Search */}
-              <div className="relative">
+              <div className="relative flex-1 min-w-[250px]">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search by reference, route, or location…"
-                  className="h-12 w-full rounded-[10px] border border-slate-300 bg-white pl-9 px-3 text-[14px] placeholder:text-slate-400 focus:outline-none"
+                  placeholder="Search bookings, reference numbers..."
+                  className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-10 text-[14px] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
                 />
+                {q && (
+                  <button
+                    onClick={() => setQ("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
-              {/* Mode select */}
-              <div>
-                <select value={mode} onChange={(e) => setMode(e.target.value)} className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-3 text-[14px] focus:outline-none">
-                  <option value="all">All Categories</option>
+              {/* Service/Mode select */}
+              <div className="flex-1 min-w-[150px]">
+                <select
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value)}
+                  className="h-11 w-full rounded-lg border border-slate-200 bg-white px-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                >
+                  <option value="all">All Services</option>
                   <option value="flight">Flight</option>
                   <option value="train">Train</option>
                   <option value="bus">Bus</option>
                 </select>
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 items-center flex-wrap">
+                <button 
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className={`inline-flex items-center h-11 px-4 rounded-lg text-[14px] font-medium transition whitespace-nowrap ${
+                    showAdvancedFilters 
+                      ? "bg-[#0955AC] text-white border border-[#0955AC]" 
+                      : "border border-slate-300 hover:bg-slate-50"
+                  }`}>
+                  <Filter className="mr-2 h-4 w-4" /> Filters
+                </button>
+                <button 
+                  onClick={() => setShowExportModal(true)}
+                  className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
+                  <Download className="mr-2 h-4 w-4" /> Export
+                </button>
+                <button 
+                  onClick={handleRefresh}
+                  className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition">
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+              </div>
             </div>
+
+            {/* Advanced Filters Panel (Collapsible) */}
+            <AnimatePresence>
+              {showAdvancedFilters && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 pt-2">
+                    {/* Status */}
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Status</label>
+                      <select
+                        value={statusFilterMain}
+                        onChange={(e) => setStatusFilterMain(e.target.value)}
+                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                      >
+                        <option value="all">All Statuses</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="paid">Paid</option>
+                        <option value="pending">Pending</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+
+                    {/* Sort */}
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Sort By</label>
+                      <select
+                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent appearance-none cursor-pointer"
+                      >
+                        <option value="recent">Most Recent</option>
+                        <option value="price">Price (Asc)</option>
+                        <option value="date">Date (Asc)</option>
+                      </select>
+                    </div>
+
+                    {/* Start Date */}
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">Start Date</label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                      />
+                    </div>
+
+                    {/* End Date */}
+                    <div>
+                      <label className="block text-[12px] text-slate-600 mb-1.5 font-medium">End Date</label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Clear Filters Button */}
+                    <div className="flex items-end">
+                      <button
+                        onClick={handleClearFilters}
+                        className="h-10 w-full inline-flex items-center justify-center px-4 rounded-lg border border-slate-200 text-[14px] font-medium hover:bg-slate-50 transition"
+                      >
+                        <X className="mr-2 h-4 w-4" /> Clear
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Showing count */}
+                  <div className="mt-4 flex items-center gap-2 text-[14px] text-slate-600">
+                    <Info className="h-4 w-4" />
+                    <span>Showing {filteredBookings.length} of {bookings.length} bookings</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
         {/* Bookings Table */}
-        <div className="mt-8 rounded-2xl bg-white shadow-sm">
+        <div className="mt-3 md:mt-4 rounded-2xl bg-white shadow-sm">
           <div className="px-10 pt-10 pb-5">
             <div className="flex items-center justify-between">
               <div>
@@ -503,6 +719,77 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
           </div>
         </div>
 
+        {/* Charts Row */}
+        <div className="mt-3 md:mt-4 mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Area chart card */}
+          <div className="lg:col-span-2 bg-white rounded-[10px] shadow-sm">
+            <div className="px-10 pt-10 pb-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold leading-none tracking-tight text-[16px]">Bookings by Month</h3>
+                  <p className="text-[14px] text-slate-500 pt-1">Flight • Train • Bus (last 6 months)</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-10 pb-10 pt-10">
+              <div className="h-[350px] w-full focus:outline-none" style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}>
+                <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" tabIndex={-1} style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}>
+                  <AreaChart data={monthlyData} margin={{ left: 8, right: 8, top: 10 }}>
+                    <defs>
+                      <linearGradient id="gFlight" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0955AC" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#0955AC" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="gTrain" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="gBus" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} horizontal={true} />
+                    <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                    <YAxis tickLine={false} axisLine={false} />
+                    <RTooltip />
+                    <Area type="monotone" dataKey="flight" name="Flight" stroke="#0955AC" fill="url(#gFlight)" strokeWidth={4} />
+                    <Area type="monotone" dataKey="train" name="Train" stroke="#3b82f6" fill="url(#gTrain)" strokeWidth={4} />
+                    <Area type="monotone" dataKey="bus" name="Bus" stroke="#6366f1" fill="url(#gBus)" strokeWidth={4} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Pie card */}
+          <div className="bg-white rounded-2xl shadow-sm">
+            <div className="px-10 pt-10">
+              <h3 className="font-semibold leading-none tracking-tight text-[16px]">Category Mix</h3>
+              <p className="text-[14px] text-slate-500 mt-1">Share of total bookings</p>
+            </div>
+            <div className="px-10 pb-10">
+              <div className="h-[350px] w-full" style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}>
+                <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" tabIndex={-1} style={{ WebkitTapHighlightColor: 'transparent', outline: 'none' }}>
+                  <PieChart>
+                    <Pie data={pieData} innerRadius={90} outerRadius={140} paddingAngle={5} dataKey="value" nameKey="name" cornerRadius={8}>
+                      {pieData.map((_, i) => (
+                        <Cell key={i} fill={["#0955AC", "#3b82f6", "#6366f1"][i]} />
+                      ))}
+                    </Pie>
+                    <RTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-4 flex items-center justify-center gap-4 text-[14px] text-slate-600">
+                <div className="flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-[#0955AC]" /> Flight</div>
+                <div className="flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-[#3b82f6]" /> Train</div>
+                <div className="flex items-center gap-2"><span className="h-5 w-5 rounded-full bg-indigo-500" /> Bus</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Cancellation Modal */}
         {showCancelModal && selectedBooking && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -595,6 +882,96 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
             </div>
           </div>
         )}
+
+        {/* Export Modal */}
+        <AnimatePresence>
+          {showExportModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+              onClick={() => setShowExportModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-2xl shadow-xl max-w-md w-full"
+              >
+                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
+                  <h2 className="text-[18px] font-semibold text-slate-900">Export Bookings</h2>
+                  <button
+                    onClick={() => setShowExportModal(false)}
+                    className="text-slate-400 hover:text-slate-600 transition"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="px-6 py-4">
+                  <p className="text-[14px] text-slate-600 mb-4">
+                    Export all {filteredBookings.length} filtered bookings
+                  </p>
+
+                  <div className="space-y-2">
+                    {/* PDF Option */}
+                    <button
+                      onClick={() => handleExportFormat('PDF')}
+                      className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+                          <FileText className="h-5 w-5 text-red-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-[14px] font-medium text-slate-900">Export as PDF</p>
+                          <p className="text-[12px] text-slate-500">Printable document format</p>
+                        </div>
+                      </div>
+                      <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                    </button>
+
+                    {/* Excel Option */}
+                    <button
+                      onClick={() => handleExportFormat('Excel')}
+                      className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+                          <File className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-[14px] font-medium text-slate-900">Export as Excel</p>
+                          <p className="text-[12px] text-slate-500">Spreadsheet format (.xlsx)</p>
+                        </div>
+                      </div>
+                      <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                    </button>
+
+                    {/* CSV Option */}
+                    <button
+                      onClick={() => handleExportFormat('CSV')}
+                      className="w-full flex items-center justify-between p-4 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-[#0955AC] transition group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                          <FileText className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-[14px] font-medium text-slate-900">Export as CSV</p>
+                          <p className="text-[12px] text-slate-500">Comma-separated values</p>
+                        </div>
+                      </div>
+                      <ChevronRightIcon className="h-5 w-5 text-slate-400 group-hover:text-[#0955AC]" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Footer */}
         <div className="mt-8 text-center text-xs text-slate-400">

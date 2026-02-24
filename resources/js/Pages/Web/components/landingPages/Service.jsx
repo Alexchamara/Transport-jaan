@@ -131,9 +131,13 @@ const Service = () => {
                     </div>
                 </div>
                 {/* Card 3 */}
-                <div
+                {/* <div
                     className="w-[305px] h-[740px] relative group overflow-hidden"
                     onClick={() => (window.location.href = "/courier-service")}
+                > */}
+                <div
+                    className="w-[305px] h-[740px] relative group overflow-hidden"
+                    onClick={() => (window.location.href = "/couriers/create")}
                 >
                     {/* Background image */}
                     <img src={card3} className="w-full h-full object-cover" />
@@ -187,7 +191,7 @@ const Service = () => {
                 {/* Card 4 */}
                 <div
                     className="w-[305px] h-[740px] relative group overflow-hidden"
-                    onClick={() => (window.location.href = "/warehouse")}
+                    onClick={() => (window.location.href = "/warehouseList")}
                 >
                     {/* Background image */}
                     <img src={card4} className="w-full h-full object-cover" />

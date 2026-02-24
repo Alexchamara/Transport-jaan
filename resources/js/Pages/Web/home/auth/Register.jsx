@@ -112,11 +112,40 @@ const Register = ({ role = "client" }) => {
                             {role === "client" ? (
                                 <>
                                     {/* Client Form Layout */}
-                                    {/* Row 1: Full Name | Phone Number */}
+                                    {/* Row 1: Client Type | Full Name */}
                                     <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
                                         <div className="flex flex-col gap-2 mb-6">
                                             <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                                Full Name
+                                                Client Type
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                                <select
+                                                    value={data.vendor_type}
+                                                    onChange={(e) => setData("vendor_type", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none text-white"
+                                                    required
+                                                >
+                                                    <option value="" className="bg-gray-800 text-white">
+                                                        Select Client type
+                                                    </option>
+                                                    <option value="individual" className="bg-gray-800 text-white">
+                                                        Individual
+                                                    </option>
+                                                    <option value="business" className="bg-gray-800 text-white">
+                                                        Business
+                                                    </option>
+                                                </select>
+                                            </div>
+                                            {errors.vendor_type && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.vendor_type}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                {data.vendor_type === "business" ? "Company Name" : "Full Name"}
                                             </label>
                                             <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                                 <input
@@ -124,7 +153,7 @@ const Register = ({ role = "client" }) => {
                                                     value={data.name}
                                                     onChange={(e) => setData("name", e.target.value)}
                                                     className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                    placeholder="Enter your full name"
+                                                    placeholder={data.vendor_type === "business" ? "Enter your company name" : "Enter your full name"}
                                                     required
                                                 />
                                             </div>
@@ -134,7 +163,10 @@ const Register = ({ role = "client" }) => {
                                                 </div>
                                             )}
                                         </div>
+                                    </div>
 
+                                    {/* Row 2: Phone Number | Email Address */}
+                                    <div className="flex flex-col lg:flex-row gap-10 justify-center items-start">
                                         <div className="flex flex-col gap-2 mb-6">
                                             <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
                                                 Phone Number
@@ -160,28 +192,27 @@ const Register = ({ role = "client" }) => {
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
 
-                                    {/* Row 2: Email Address (full width) */}
-                                    <div className="flex flex-col gap-2 mb-6 w-full md:w-[824px]">
-                                        <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                            Email Address
-                                        </label>
-                                        <div className="w-full h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
-                                            <input
-                                                type="email"
-                                                value={data.email}
-                                                onChange={(e) => setData("email", e.target.value)}
-                                                className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                placeholder="Enter your email address"
-                                                required
-                                            />
-                                        </div>
-                                        {errors.email && (
-                                            <div className="text-red-500 text-sm px-10 mt-1">
-                                                {errors.email}
+                                        <div className="flex flex-col gap-2 mb-6">
+                                            <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                                Email Address
+                                            </label>
+                                            <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
+                                                <input
+                                                    type="email"
+                                                    value={data.email}
+                                                    onChange={(e) => setData("email", e.target.value)}
+                                                    className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
+                                                    placeholder="Enter your email address"
+                                                    required
+                                                />
                                             </div>
-                                        )}
+                                            {errors.email && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {errors.email}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Row 3: Password | Confirm Password */}
@@ -275,7 +306,7 @@ const Register = ({ role = "client" }) => {
 
                                         <div className="flex flex-col gap-2 mb-6">
                                             <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                                Full Name
+                                                {data.vendor_type === "business" ? "Company Name" : "Full Name"}
                                             </label>
                                             <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-12 py-2">
                                                 <input
@@ -283,7 +314,7 @@ const Register = ({ role = "client" }) => {
                                                     value={data.name}
                                                     onChange={(e) => setData("name", e.target.value)}
                                                     className="w-full text-[14px] font-[500] bg-transparent border-none focus:outline-none focus:ring-0 focus:border-none"
-                                                    placeholder="Enter your full name"
+                                                    placeholder={data.vendor_type === "business" ? "Enter your company name" : "Enter your full name"}
                                                     required
                                                 />
                                             </div>
