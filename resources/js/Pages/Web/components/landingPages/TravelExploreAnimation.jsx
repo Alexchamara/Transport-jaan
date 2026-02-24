@@ -11,6 +11,7 @@ import img5 from "../../assets/landingPages/hero/freight.jpg";
 import img6 from "../../assets/landingPages/hero/multimodel.jpg";
 import img7 from "../../assets/landingPages/hero/ticketbooking.jpg";
 import img8 from "../../assets/courierService/courier.jpg";
+import bg3 from "../../assets/multiModel/bg6.jpg";
 
 import burgerIcon from "../../assets/landingPages/burgerIcon.svg";
 import { Link } from "@inertiajs/react";
@@ -133,7 +134,7 @@ const TravelExploreAnimation = ({ auth }) => {
                     ))}
                 </div>
                 {/* Dark Overlay */}
-                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                <div className="absolute inset-0 bg-dark/50 backdrop-blur-sm" />
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
                 {/* Dropdown blur overlay */}
@@ -152,6 +153,9 @@ const TravelExploreAnimation = ({ auth }) => {
                         <div className="bg-transparent">
                             {/* Desktop */}
                             <div className="md:flex hidden justify-between items-center px-10 py-10">
+                                <div className="pb-[25px]">
+                                    <CompanyLogo className='h-[75px] object-contain'/>
+                                </div>
                                 <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[400] text-white">
                                     <div
                                         className="xl:w-[101px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
