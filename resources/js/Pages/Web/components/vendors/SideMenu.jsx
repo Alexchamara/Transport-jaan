@@ -46,7 +46,7 @@ const SideMenu = () => {
                 <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
                     <button
                         onClick={() =>
-                            (window.location.href = "/mainDashboard")
+                            (window.location.href = "/vendorAllBookings")
                         }
                         className="absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         title="Go to Dashboard"
@@ -56,7 +56,7 @@ const SideMenu = () => {
                     <h1
                         className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
                         onClick={() =>
-                            (window.location.href = "/mainDashboard")
+                            (window.location.href = "/vendorAllBookings")
                         }
                     >
                         Company <br />
@@ -242,20 +242,6 @@ const SideMenu = () => {
                                 </div>
                             </div>
                         )}
-
-                        <div
-                            className={`flex flex-row justify-start items-center gap-5 cursor-pointer w-full rounded-lg px-3 py-1.5 ${
-                                currentPath === "/vendors/tracking"
-                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                                    : "text-[#00000066]"
-                            }`}
-                            onClick={() =>
-                                (window.location.href = "/vendors/tracking")
-                            }
-                        >
-                            <img src={trackLogo} className="w-[22px]" />
-                            <h1>Tracking</h1>
-                        </div>
                     </div>
                 </div>
 

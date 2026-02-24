@@ -35,18 +35,14 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
-        // Check if user is unverified
-        if ($user->status === 'unverified') {
-            return redirect()->route('approval.pending');
-        }
-
-        // Proceed with role-based redirection for verified users
+        // Proceed with role-based redirection (both verified and unverified users)
         $role = $user->role;
+        $status = $user->status;
 
         $redirectTo = match($role) {
             'SuperAdmin' => route('superadmin.dashboard'),
             'client' => route('clientAllBookings'),
-            'vendor' => route('vendors.mainDashboard'),
+            'vendor' => $status === 'unverified' ? route('vendorAllBookings') : route('vendors.mainDashboard'),
             'admin' => route('landingPage.home'),
             default => route('landingPage.home'),
         };
