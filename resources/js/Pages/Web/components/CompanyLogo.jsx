@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { Link, usePage } from '@inertiajs/react';
 
-const CompanyLogo = ({ className = 'h-[40px] object-contain', fallbackClassName = 'text-white text-[25px] font-bold poppins' }) => {
+const CompanyLogo = ({ 
+    className = 'h-[40px] object-contain', 
+    fallbackClassName = 'text-white text-[25px] font-bold poppins',
+    enableLink = true,
+    href = '/'
+}) => {
     const [currentLogo, setCurrentLogo] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { auth } = usePage().props;
 
     useEffect(() => {
         fetchCurrentLogo();
@@ -60,21 +67,24 @@ const CompanyLogo = ({ className = 'h-[40px] object-contain', fallbackClassName 
     };
 
     if (loading) {
-        return <div className={fallbackClassName}>COMPANY LOGO</div>;
+        const content = <div className={fallbackClassName}>COMPANY LOGO</div>;
+        return enableLink ? <Link href={href} className="cursor-pointer">{content}</Link> : content;
     }
 
     if (currentLogo) {
-        return (
+        const content = (
             <img 
                 src={currentLogo} 
                 alt='Company Logo' 
-                className={className}
+                className={`${className} ${enableLink ? 'cursor-pointer' : ''}`}
                 onError={() => setCurrentLogo(null)}
             />
         );
+        return enableLink ? <Link href={href}>{content}</Link> : content;
     }
 
-    return <div className={fallbackClassName}>COMPANY LOGO</div>;
+    const content = <div className={fallbackClassName}>COMPANY LOGO</div>;
+    return enableLink ? <Link href={href} className="cursor-pointer">{content}</Link> : content;
 };
 
 export default CompanyLogo;
