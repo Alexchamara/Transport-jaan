@@ -15,14 +15,14 @@ const About = () => {
             </div>
             <div className="flex xl:flex-row flex-col gap-10">
 
-                <div className="max-w-full 2xl:text-[14px]/[28px] text-[12px]/[24px] font-[400] xl:text-justify text-center flex flex-col gap-10 px-20">
+                <div className="max-w-full font-[400] text-center xl:text-justify flex flex-col gap-6 sm:px-8 md:px-12 xl:px-20">
                     <h1 className="2xl:text-[47px] text-[25px] xl:text-[45px] font-[600] flex flex-center items-center gap-3 justify-center pt-10">
                         Why is <span className="pb-[25px]"><CompanyLogo className='h-[75px] object-contain' />
 
                         </span>
                     </h1>
 
-                    <div className="w-full text-[18px] leading-[28px] flex flex-col gap-4">
+                    <div className="w-full text-[8px] sm:text-[14px] md:text-[15px] lg:text-[16px] xl:text-[17px] leading-[22px] sm:leading-[24px] md:leading-[26px] xl:leading-[30px] flex flex-col gap-3 sm:gap-4">
                         <p>
                             We are a comprehensive multimodal transport and
                             logistics booking platform designed to simplify how
@@ -63,28 +63,28 @@ const About = () => {
                 </div>
             </div>
 
-            <div className="flex xl:flex-row flex-col justify-center items-center pt-10 gap-20">
-                <div className="font-[600] flex flex-row items-center gap-3">
-                    <h1 className="text-[50px] lg:text-[71px]">10</h1>
-                    <h1 className="text-[16px] lg:text-[20px]">
+            <div className="grid grid-cols-2 xl:flex xl:flex-row justify-center items-center pt-10 gap-6 sm:gap-10 xl:gap-20">
+                <div className="font-[600] flex flex-col md:flex-row items-center sm:gap-3 justify-center">
+                    <h1 className="text-[36px] sm:text-[50px] lg:text-[71px]">10</h1>
+                    <h1 className="text-[12px] sm:text-[16px] lg:text-[20px]">
                         Years of <br /> Experience
                     </h1>
                 </div>
-                <div className="font-[600] flex flex-row items-center gap-3">
-                    <h1 className="text-[50px] lg:text-[71px]">120+</h1>
-                    <h1 className="text-[16px] lg:text-[20px]">
+                <div className="font-[600] flex flex-col md:flex-row items-center sm:gap-3 justify-center">
+                    <h1 className="text-[36px] sm:text-[50px] lg:text-[71px]">120+</h1>
+                    <h1 className="text-[12px] sm:text-[16px] lg:text-[20px]">
                         Projects <br /> Completed
                     </h1>
                 </div>
-                <div className="font-[600] flex flex-row items-center gap-3">
-                    <h1 className="text-[50px] lg:text-[71px]">1.5K+</h1>
-                    <h1 className="text-[16px] lg:text-[20px]">
+                <div className="font-[600] flex flex-col md:flex-row items-center sm:gap-3 justify-center">
+                    <h1 className="text-[36px] sm:text-[50px] lg:text-[71px]">1.5K+</h1>
+                    <h1 className="text-[12px] sm:text-[16px] lg:text-[20px]">
                         Happy <br /> Clients
                     </h1>
                 </div>
-                <div className="font-[600] flex flex-row items-center gap-3">
-                    <h1 className="text-[50px] lg:text-[71px]">40</h1>
-                    <h1 className="text-[16px] lg:text-[20px]">
+                <div className="font-[600] flex flex-col md:flex-row items-center sm:gap-3 justify-center">
+                    <h1 className="text-[36px] sm:text-[50px] lg:text-[71px]">40</h1>
+                    <h1 className="text-[12px] sm:text-[16px] lg:text-[20px]">
                         Countries <br /> Covered
                     </h1>
                 </div>
