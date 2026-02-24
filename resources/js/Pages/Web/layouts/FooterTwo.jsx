@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "@inertiajs/react";
+import CompanyLogo from "../components/CompanyLogo";
 import linkedin from "../assets/landingPages/in.svg";
 import fb from "../assets/landingPages/fb.svg";
 import twitter from "../assets/landingPages/twitter.svg";
@@ -28,7 +29,7 @@ const FooterTwo = () => {
         <div className="md:px-20 px-10 py-10">
             <div className="relative border-t-[1px] border-b-[2px] flex flex-col items-center justify-center py-20">
                 <h1 className="text-[25px] font-[700] uppercase">
-                    Company Logo
+                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="text-[25px] font-[700] uppercase" />
                 </h1>
 
                 <div className="mt-40 flex flex-col justify-center items-center">

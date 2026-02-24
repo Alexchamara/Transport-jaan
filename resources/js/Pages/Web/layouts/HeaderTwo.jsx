@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { usePage, Link } from "@inertiajs/react";
+import CompanyLogo from "../components/CompanyLogo";
 import burgerIcon from "../assets/landingPages/burgerIcon.svg";
 
 const HeaderTwo = () => {
@@ -19,7 +20,7 @@ const HeaderTwo = () => {
         <div className="px-5 py-5 xl:px-10 xl:py-10 bg-[#000000] flex flex-row justify-between items-center poppins text-[#FFFFFF]">
 
           <div className="text-[31px] font-[700] uppercase cursor-pointer">
-               <h1>Company Logo</h1>
+               <CompanyLogo className="h-[100px] object-contain" fallbackClassName="text-[31px] font-[700] uppercase" />
           </div>
             {/* navbar section - desktop only */}
             <div className="lg:flex hidden flex-row items-center justify-between gap-20">
