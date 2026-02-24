@@ -27,9 +27,9 @@ const LandingPage = () => {
             <div id="about">
                 <About />
             </div>
-            <div id="services">
+            {/* <div id="services">
                 <Service />
-            </div>
+            </div> */}
             <Why />
             <div id="blog">
                 <Blog />

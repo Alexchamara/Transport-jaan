@@ -60,6 +60,8 @@ const IMAGES = [
 const TravelExploreAnimation = ({ auth }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [hoveredCard, setHoveredCard] = useState(0);
+    const [servicesOpen, setServicesOpen] = useState(false);
+    const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
 
     const user = auth?.user;
     const userRole = user?.role;
@@ -103,6 +105,15 @@ const TravelExploreAnimation = ({ auth }) => {
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
                 {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+                {/* Dropdown blur overlay */}
+                <div
+                    className="absolute inset-0 z-[50] pointer-events-none transition-all duration-300"
+                    style={{
+                        backdropFilter: servicesOpen ? "blur(1px)" : "blur(0px)",
+                        WebkitBackdropFilter: servicesOpen ? "blur(1px)" : "blur(0px)",
+                        backgroundColor: servicesOpen ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0)",
+                    }}
+                />
 
                 {/* NAVBAR */}
                 <div className="absolute inset-x-0 top-0 xl:left-0 z-[60] pointer-events-none">
@@ -124,10 +135,63 @@ const TravelExploreAnimation = ({ auth }) => {
                                         About Us
                                     </div>
                                     <div
-                                        className="xl:w-[114px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
-                                        onClick={() => handleScroll("services")}
+                                        className="relative"
+                                        onMouseEnter={() => setServicesOpen(true)}
+                                        onMouseLeave={() => setServicesOpen(false)}
                                     >
-                                        Services
+                                        <div
+                                            className="xl:w-[114px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
+                                            onTouchStart={(e) => { e.preventDefault(); setServicesOpen(prev => !prev); }}
+                                        >
+                                            <span className="flex items-center gap-1">
+                                                Services
+                                                <svg
+                                                    className={`w-3 h-3 transition-transform duration-200 ${servicesOpen ? "rotate-180" : ""}`}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </span>
+                                        </div>
+
+                                        {/* Dropdown */}
+                                        {servicesOpen && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -8 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="absolute top-full left-1/2 -translate-x-1/2 w-64 z-[70] pt-3"
+                                            >
+                                                <div className="bg-white/15 backdrop-blur-lg border border-white/30 rounded-2xl overflow-hidden shadow-2xl">
+                                                    {[
+                                                        { title: "Vehicle Rental", subtitle: "Cars, vans & trucks", href: "/clientRent", img: img1 },
+                                                        { title: "Ticket Booking", subtitle: "Land, air & sea tickets", href: "/flight-booking", img: img7 },
+                                                        { title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create", img: img8 },
+                                                        { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
+                                                        { title: "Freight Module", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
+                                                        { title: "Multimodal", subtitle: "Combined transport", href: "/multimodal", img: img6 },
+                                                    ].map((service, i) => (
+                                                        <a
+                                                            key={i}
+                                                            href={service.href}
+                                                            className="flex items-center gap-3 px-4 py-3 text-white hover:bg-white/20 transition-all duration-200 border-b border-white/10 last:border-0"
+                                                        >
+                                                            <img
+                                                                src={service.img}
+                                                                alt={service.title}
+                                                                className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                                            />
+                                                            <div>
+                                                                <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                                <p className="text-xs text-white/70 leading-tight mt-0.5">{service.subtitle}</p>
+                                                            </div>
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
                                     </div>
                                     <div
                                         className="xl:w-[81px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
@@ -227,7 +291,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                     className="fixed inset-0 bg-black bg-opacity-40 z-40"
                                     onClick={() => setMenuOpen(false)}
                                 />
-                                <div className="fixed top-0 left-0 h-full w-64 bg-[#000000] z-50 shadow-lg flex flex-col p-6">
+                                <div className="fixed top-0 left-0 h-full w-64 bg-[#000000] z-50 shadow-lg flex flex-col p-6 overflow-y-auto">
                                     <div className="flex justify-end mb-6">
                                         <button
                                             className="text-white text-2xl"
@@ -251,13 +315,42 @@ const TravelExploreAnimation = ({ auth }) => {
                                         >
                                             About Us
                                         </div>
-                                        <div
-                                            className="border-b border-[#FFFFFF91] py-2 cursor-pointer"
-                                            onClick={() =>
-                                                handleScroll("services")
-                                            }
-                                        >
-                                            Services
+                                        <div className="border-b border-[#FFFFFF91]">
+                                            <div
+                                                className="py-2 cursor-pointer flex justify-between items-center"
+                                                onClick={() => setMobileServicesOpen(prev => !prev)}
+                                            >
+                                                <span>Services</span>
+                                                <svg
+                                                    className={`w-4 h-4 transition-transform duration-200 ${mobileServicesOpen ? "rotate-180" : ""}`}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                            {mobileServicesOpen && (
+                                                <div className="pb-2 flex flex-col gap-1">
+                                                    {[
+                                                        { title: "Vehicle Rental", subtitle: "Cars, vans & trucks", href: "/clientRent" },
+                                                        { title: "Ticket Booking", subtitle: "Land, air & sea tickets", href: "/flight-booking" },
+                                                        { title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create" },
+                                                        { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList" },
+                                                        { title: "Freight Module", subtitle: "Bulk cargo shipments", href: "/freight-home" },
+                                                        { title: "Multimodal", subtitle: "Combined transport", href: "/multimodal" },
+                                                    ].map((service, i) => (
+                                                        <a
+                                                            key={i}
+                                                            href={service.href}
+                                                            className="flex flex-col px-3 py-2 rounded-xl hover:bg-white/10 active:bg-white/20 transition-all duration-200"
+                                                        >
+                                                            <p className="text-sm font-semibold leading-tight">{service.title}</p>
+                                                            <p className="text-xs text-white/60 leading-tight mt-0.5">{service.subtitle}</p>
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                         <div
                                             className="border-b border-[#FFFFFF91] py-2 cursor-pointer"
