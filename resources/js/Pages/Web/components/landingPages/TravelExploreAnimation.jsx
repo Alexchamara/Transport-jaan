@@ -23,7 +23,7 @@ const IMAGES = [
         ctaLabel: "Book Vehicle",
         href: "/clientRent",
         url: img1,
-        tags: ["Vehicle Rental","Booking"],
+        tags: ["Vehicle Rental", "Booking"],
     },
     {
         title: "Warehouse",
@@ -340,7 +340,7 @@ const TravelExploreAnimation = ({ auth }) => {
                 </div>
 
                 {/* Services Cards Grid */}
-                <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24 md:py-32">
+                <div className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24 md:py-32 mt-16 sm:mt-20 md:mt-24">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                         {IMAGES.map((item, i) => (
                             <motion.a
