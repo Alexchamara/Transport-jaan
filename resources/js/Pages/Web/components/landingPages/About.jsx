@@ -12,32 +12,14 @@ const About = () => {
                 </h1>
                 <div className="md:w-[112px] w-[40px] h-[1.8px] bg-[#FF7003]" />
             </div>
-            <div className="flex xl:flex-row flex-col gap-10 justify-center items-center py-10">
-                <div className="flex md:flex-row flex-col gap-5 items-center justify-center">
-                    <img src={img1} className="w-[272px] 2xl:w-[372px]" />
-                    <div className="flex flex-col gap-5">
-                        <div
-                            className="w-[237px] 2xl:w-[337px] xl:h-[219px] p-5 rounded-[30px] font-[600] text-[#29D3DC] flex flex-col justify-center items-center"
-                            style={{
-                                background:
-                                    "linear-gradient(180deg, #11207D 0%, #1F3AE3 100%)",
-                            }}
-                        >
-                            <h1 className="2xl:text-[82px] text-[72px]">10+</h1>
-                            <h1 className="2xl:text-[28px] text-[24px] text-center">
-                                Years of experience{" "}
-                            </h1>
-                        </div>
-                        <img src={img2} className="w-[237px] 2xl:w-[337px]" />
-                    </div>
-                </div>
+            <div className="flex xl:flex-row flex-col gap-10">
 
-                <div className="max-w-[600px] 2xl:text-[14px]/[50px] text-[12px]/[40px] font-[400] xl:text-justify text-center flex flex-col gap-10">
-                    <h1 className="2xl:text-[47px] text-[25px] xl:text-[45px] font-[600]">
+                <div className="max-w-full 2xl:text-[14px]/[50px] text-[12px]/[40px] font-[400] xl:text-justify text-center flex flex-col gap-10 px-20">
+                    <h1 className="2xl:text-[47px] text-[25px] xl:text-[45px] font-[600] flex flex-center items-center gap-3 justify-center pt-10">
                         Why is Company Name?
                     </h1>
 
-                    <div>
+                    <div className="w-full">
                         <p>
                             We are a comprehensive multimodal transport and
                             logistics booking platform designed to simplify how

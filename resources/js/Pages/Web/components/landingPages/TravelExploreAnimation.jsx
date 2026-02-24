@@ -22,12 +22,12 @@ const IMAGES = [
         description:
             "Book or rent vehicles across land, sea, and air. Including cars, buses, boats, helicopters, and flight tickets for personal or business travel needs.",
         ctaLabel: "Book Vehicle",
-        href: "/clientRent",
+        href: "/multiModel/plan-journey",
         url: img1,
         tags: ["Vehicle Rental", "Booking"],
     },
     {
-        title: "Warehouse",
+        title: "Warehousing",
         subtitle: "Storage & Fulfillment",
         description:
             "Find warehousing solutions for goods storage, inventory management, and distribution. Flexible space and integrated logistics support.",
@@ -79,10 +79,11 @@ const SERVICES = [
             { title: "Train Ticket", subtitle: "Book train tickets", href: "/trainTicketBookingDetails", img: img2 },
         ],
     },
+    { title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey", img: img6 },
     { title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create", img: img8 },
     { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
-    { title: "Freight Module", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
-    { title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey", img: img6 },
+    { title: "Freight", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
+    
 ];
 
 const TravelExploreAnimation = ({ auth }) => {
