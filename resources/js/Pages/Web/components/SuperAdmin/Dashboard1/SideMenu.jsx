@@ -27,6 +27,36 @@ const SideMenu = () => {
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [hoveredSection, setHoveredSection] = useState(null); // Track hovered section
     const [showLogoutModal, setShowLogoutModal] = useState(false); // State for logout modal
+    const [currentLogo, setCurrentLogo] = useState(null); // State for current logo
+
+    const fetchCurrentLogo = async () => {
+        try {
+            const response = await fetch('/superadmin/settings/website/current-logo', {
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
+            const result = await response.json();
+            if (result.logo) {
+                setCurrentLogo(result.logo);
+            }
+        } catch (err) {
+            console.error('Error fetching current logo:', err);
+        }
+    };
+
+    useEffect(() => {
+        // Fetch current logo on mount
+        fetchCurrentLogo();
+
+        // Listen for custom logo update event from WebsiteSettings
+        const handleLogoUpdate = (event) => {
+            fetchCurrentLogo();
+        };
+
+        window.addEventListener('logoUpdated', handleLogoUpdate);
+        return () => window.removeEventListener('logoUpdated', handleLogoUpdate);
+    }, []);
 
     useEffect(() => {
         if (window.location.pathname === "/SuperAdmin/Analytics") {
@@ -68,6 +98,9 @@ const SideMenu = () => {
             setIsSettingsOpen(true);
         } else if (window.location.pathname === "/superadmin/settings/commission" || window.location.pathname === "/SuperAdmin/settings/commission") {
             setActiveSubsection("CommissionSettings");
+            setIsSettingsOpen(true);
+        } else if (window.location.pathname === "/superadmin/settings/website" || window.location.pathname === "/SuperAdmin/settings/website") {
+            setActiveSubsection("WebsiteSettings");
             setIsSettingsOpen(true);
         }
     }, [window.location.pathname]);
@@ -122,10 +155,20 @@ const SideMenu = () => {
             <div className="flex flex-col gap-5 px-[28px] py-[32px] shadow-lg shadow-[#0105114D] sm:px-4 md:px-[28px] lg:px-[28px]">
                 <Link
                     href="/SuperAdmin/Dashboard"
-                    className="text-white text-[25px] font-bold poppins mb-8 sm:text-[20px] md:text-[25px] lg:text-[25px] cursor-pointer"
+                    className="cursor-pointer mb-8"
                     onClick={() => handleMenuClick("Dashboard")}
                 >
-                    COMPANY LOGO
+                    {currentLogo ? (
+                        <img 
+                            src={currentLogo} 
+                            alt='Company Logo' 
+                            className='h-[40px] object-contain'
+                        />
+                    ) : (
+                        <div className='text-white text-[25px] font-bold poppins sm:text-[20px] md:text-[25px] lg:text-[25px]'>
+                            COMPANY LOGO
+                        </div>
+                    )}
                 </Link>
 
                 {/* Main Menu */}
@@ -473,7 +516,7 @@ const SideMenu = () => {
                 {/* Settings Dropdown */}
                 <div
                     className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
-                        isSettingsOpen ? "max-h-[200px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
+                        isSettingsOpen ? "max-h-[250px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
                     }`}
                 >
                     <Link
@@ -522,6 +565,22 @@ const SideMenu = () => {
                         onMouseLeave={() => setHoveredSection(null)}
                     >
                         Commission Settings
+                    </Link>
+
+                    <Link
+                        href="/superadmin/settings/website"
+                        className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
+                            activeSubsection === "WebsiteSettings"
+                                ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                : hoveredSection === "WebsiteSettings"
+                                ? "text-white bg-[#181A2A] border-l-transparent"
+                                : "text-[#AEB9E1] border-l-transparent"
+                        }`}
+                        onClick={() => setActiveSubsection("WebsiteSettings")}
+                        onMouseEnter={() => setHoveredSection("WebsiteSettings")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                    >
+                        Website Settings
                     </Link>
                 </div>
 
