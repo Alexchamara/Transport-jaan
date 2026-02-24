@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useForm } from '@inertiajs/react';
 import bg from "../../assets/landingPages/bg.svg";
+import CompanyLogo from "../../components/CompanyLogo";
 import eye from "../../assets/auth/eye.svg";
 import google from "../../assets/auth/google.svg";
 
@@ -28,7 +29,7 @@ const Signup = () => {
                     className="absolute md:top-[30px] top-[10px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
                     onClick={() => (window.location.href = "/")}
                 >
-                    Company Logo
+                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="md:text-[31px] text-[20px] font-[700] poppins uppercase" />
                 </h1>
 
                 <div

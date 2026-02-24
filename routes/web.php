@@ -56,6 +56,15 @@ $render = function (string $view) {
 |--------------------------------------------------------------------------
 */
 
+// Media serving route for storage files (public access)
+Route::get('/storage/{path}', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'serveFile'])
+    ->name('storage.serve')
+    ->where('path', '.*');
+
+// Public logo endpoint - accessible to all pages
+Route::get('/website/logo/current', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'getCurrentLogo'])
+    ->name('website.logo.current');
+
 Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 
@@ -410,6 +419,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::put('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'update'])->name('cancellation.update');
         
         Route::get('/commission', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'edit'])->name('commission.edit');
+        
+        Route::get('/website', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'index'])->name('website.index');
+        Route::post('/website/logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'uploadLogo'])->name('website.uploadLogo');
+        Route::get('/website/current-logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'getCurrentLogo'])->name('website.currentLogo');
     });
 
     // Commission API Routes

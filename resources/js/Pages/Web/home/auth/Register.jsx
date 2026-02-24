@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useForm, router } from "@inertiajs/react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import CompanyLogo from "../../components/CompanyLogo";
 import bg from "../../assets/landingPages/bg.svg";
 import eye from "../../assets/auth/eye.svg";
 import google from "../../assets/auth/google.svg";
@@ -48,7 +49,7 @@ const Register = ({ role = "client" }) => {
                     className="absolute top-[30px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
                     onClick={() => router.visit("/")}
                 >
-                    Company Logo
+                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="md:text-[31px] text-[20px] font-[700] poppins uppercase" />
                 </h1>
 
                 <div

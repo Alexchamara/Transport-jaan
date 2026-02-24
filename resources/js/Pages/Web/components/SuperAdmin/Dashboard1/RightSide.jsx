@@ -1613,7 +1613,7 @@ const RightSide = ({ userStats, landBookings = [], airBookings = [], seaBookings
 
             {/* Bookings Section */}
             <div className="px-4 md:px-12 lg:px-47">
-                <div className="xl:w-[1125px] xl:h-[42px] text-white text-[24px] font-[600] mt-[50px]">
+                <div className="xl:w-[1125px] xl:h-[42px] text-white text-[24px] font-[600] mt-[10px]">
                     Bookings Overview
                 </div>
                 

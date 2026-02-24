@@ -5,6 +5,7 @@ import proPic from "../../assets/header/profilePic.svg";
 import bell from "../../assets/header/bell.svg";
 import search from "../../assets/header/search.svg";
 import { ArrowLeft } from "lucide-react";
+import CompanyLogo from "../../components/CompanyLogo";
 
 const ClientHeader = () => {
     const { auth } = usePage().props;
@@ -146,10 +147,10 @@ const ClientHeader = () => {
                 {/* Logo */}
                 <div
                     onClick={() => router.visit("/")}
-                    className="absolute left-1/2 transform -translate-x-1/2 text-[16px] sm:text-[20px] md:text-[25px] lg:text-[30px] font-[700] text-black text-center cursor-pointer hover:text-[#0955AC] transition-colors"
+                    className="absolute left-1/2 transform -translate-x-1/2 text-center cursor-pointer transition-colors"
                     style={{ minWidth: "120px" }}
                 >
-                    COMPANY LOGO
+                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="text-[16px] sm:text-[20px] md:text-[25px] lg:text-[30px] font-[700] text-black" />
                 </div>
 
                 {/* Desktop icons */}
