@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import bg from "../../assets/landingPages/bg.svg";
+import CompanyLogo from "../../components/CompanyLogo";
 import proPic1 from "../../assets/auth/proPic1.svg";
 import proPic2 from "../../assets/auth/proPic2.svg";
 import proPic3 from "../../assets/auth/proPic3.svg";
@@ -14,7 +15,7 @@ const Signin = () => {
                     className="absolute md:top-[30px] top-[10px] md:text-[31px] text-[20px] font-[700] poppins uppercase cursor-pointer"
                     onClick={() => router.visit('/')}
                 >
-                    Company Logo
+                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="md:text-[31px] text-[20px] font-[700] poppins uppercase" />
                 </h1>
 
                 <div

@@ -55,7 +55,12 @@ class WebsiteSettingsController extends Controller
                 'logo' => $logoPath,
             ]);
 
-            // Return the URL to the stored file
+            // Return Inertia response for Inertia requests, JSON for others
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->with('success', 'Logo uploaded successfully');
+            }
+
+            // Return the URL to the stored file for non-Inertia requests
             $logoUrl = asset($logoPath);
 
             return response()->json([
@@ -64,6 +69,10 @@ class WebsiteSettingsController extends Controller
                 'logo' => $logoUrl,
             ], 200);
         } catch (\Exception $e) {
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->withErrors(['logo' => $e->getMessage()]);
+            }
+            
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

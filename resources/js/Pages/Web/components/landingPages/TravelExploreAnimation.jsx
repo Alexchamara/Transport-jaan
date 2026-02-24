@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 
 import { motion, AnimatePresence } from "framer-motion";
+import CompanyLogo from "../CompanyLogo";
 
 import img1 from "../../assets/landingPages/hero/landvehiclerental.jpg";
 import img2 from "../../assets/landingPages/hero/seavehiclebooking.jpg";
@@ -290,7 +291,7 @@ const TravelExploreAnimation = ({ auth }) => {
                             {/* Mobile */}
                             <div className="md:hidden px-4 py-3 flex justify-between items-center">
                                 <div className="text-white text-base order-2 uppercase font-[700]">
-                                    Company Logo
+                                    <CompanyLogo className="h-[100px] object-contain" fallbackClassName="text-white text-base uppercase font-[700]" />
                                 </div>
                                 <div
                                     className="size-[30px] flex justify-center items-center cursor-pointer order-1"

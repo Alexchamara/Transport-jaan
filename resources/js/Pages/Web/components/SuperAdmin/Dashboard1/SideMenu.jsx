@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
+import CompanyLogo from "../../CompanyLogo";
 import homepng from "../../../assets/superAdmin/HomeB.svg";
 import homepngW from "../../../assets/superAdmin/HomeW.svg";
 import drop from "../../../assets/superAdmin/Chevron Down.png";
@@ -27,36 +28,6 @@ const SideMenu = () => {
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [hoveredSection, setHoveredSection] = useState(null); // Track hovered section
     const [showLogoutModal, setShowLogoutModal] = useState(false); // State for logout modal
-    const [currentLogo, setCurrentLogo] = useState(null); // State for current logo
-
-    const fetchCurrentLogo = async () => {
-        try {
-            const response = await fetch('/superadmin/settings/website/current-logo', {
-                headers: {
-                    'Accept': 'application/json',
-                },
-            });
-            const result = await response.json();
-            if (result.logo) {
-                setCurrentLogo(result.logo);
-            }
-        } catch (err) {
-            console.error('Error fetching current logo:', err);
-        }
-    };
-
-    useEffect(() => {
-        // Fetch current logo on mount
-        fetchCurrentLogo();
-
-        // Listen for custom logo update event from WebsiteSettings
-        const handleLogoUpdate = (event) => {
-            fetchCurrentLogo();
-        };
-
-        window.addEventListener('logoUpdated', handleLogoUpdate);
-        return () => window.removeEventListener('logoUpdated', handleLogoUpdate);
-    }, []);
 
     useEffect(() => {
         if (window.location.pathname === "/SuperAdmin/Analytics") {
@@ -152,27 +123,17 @@ const SideMenu = () => {
 
     return (
         <div className="w-[300px] h-[1000px] sm:w-[250px] md:w-[300px] lg:w-[300px]">
-            <div className="flex flex-col gap-5 px-[28px] py-[32px] shadow-lg shadow-[#0105114D] sm:px-4 md:px-[28px] lg:px-[28px]">
+            <div className="flex flex-col gap-0 px-[28px] py-[32px] shadow-lg shadow-[#0105114D] sm:px-4 md:px-[28px] lg:px-[28px]">
                 <Link
                     href="/SuperAdmin/Dashboard"
-                    className="cursor-pointer mb-8"
+                    className="cursor-pointer"
                     onClick={() => handleMenuClick("Dashboard")}
                 >
-                    {currentLogo ? (
-                        <img 
-                            src={currentLogo} 
-                            alt='Company Logo' 
-                            className='h-[40px] object-contain'
-                        />
-                    ) : (
-                        <div className='text-white text-[25px] font-bold poppins sm:text-[20px] md:text-[25px] lg:text-[25px]'>
-                            COMPANY LOGO
-                        </div>
-                    )}
+                    <CompanyLogo className='h-[200px] object-contain' fallbackClassName='text-white text-[25px] font-bold poppins sm:text-[20px] md:text-[25px] lg:text-[25px]' />
                 </Link>
 
                 {/* Main Menu */}
-                <div className="w-[244px] flex flex-col gap-2 py-[10px] sm:w-[200px] md:w-[244px] lg:w-[244px]">
+                <div className="w-[244px] flex flex-col gap-2 mt-2 sm:w-[200px] md:w-[244px] lg:w-[244px]">
                     {/* Dashboard */}
                     <div
                         className={`w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] ${

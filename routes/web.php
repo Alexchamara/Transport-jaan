@@ -61,6 +61,10 @@ Route::get('/storage/{path}', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsC
     ->name('storage.serve')
     ->where('path', '.*');
 
+// Public logo endpoint - accessible to all pages
+Route::get('/website/logo/current', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'getCurrentLogo'])
+    ->name('website.logo.current');
+
 Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 

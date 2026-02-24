@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage, router } from '@inertiajs/react';
 import { Upload, X, Save } from 'lucide-react';
 import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
 
@@ -18,33 +18,24 @@ const WebsiteSettings = () => {
         fetchCurrentLogo();
     }, []);
 
+    // Handle flash messages from backend
+    useEffect(() => {
+        if (props.success) {
+            setSuccess(props.success);
+            setTimeout(() => setSuccess(''), 3000);
+        }
+        if (props.errors && props.errors.logo) {
+            setError(props.errors.logo);
+            setTimeout(() => setError(''), 5000);
+        }
+    }, [props.success, props.errors]);
+
     // Reset logo load error when currentLogo changes
     useEffect(() => {
         if (currentLogo) {
             setLogoLoadError(false);
         }
     }, [currentLogo]);
-
-    const getCsrfToken = () => {
-        // Try multiple methods to get CSRF token
-        const metaToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        const inputToken = document.querySelector('input[name="_token"]')?.value;
-        const propsToken = props?.csrf_token;
-        
-        const token = metaToken || inputToken || propsToken || '';
-        
-        console.log('CSRF Token Sources:', {
-            metaToken: !!metaToken,
-            inputToken: !!inputToken,
-            propsToken: !!propsToken,
-            selectedToken: token ? token.substring(0, 10) + '...' : 'NONE'
-        });
-        
-        if (!token) {
-            console.error('CSRF token not found! This will cause 419 errors.');
-        }
-        return token;
-    };
 
     const fetchCurrentLogo = async () => {
         try {
@@ -92,59 +83,41 @@ const WebsiteSettings = () => {
         reader.readAsDataURL(file);
     };
 
-    const handleLogoUpload = async () => {
+    const handleLogoUpload = () => {
         if (!websiteLogoFile) {
             setError('Please select a logo file');
             return;
         }
 
         setLogoUploading(true);
+        setError('');
+        setSuccess('');
+        
         const formDataToSend = new FormData();
         formDataToSend.append('logo', websiteLogoFile);
 
-        const csrfToken = getCsrfToken();
-        console.log('Upload attempt with CSRF token:', csrfToken ? 'TOKEN FOUND' : 'NO TOKEN!');
-
-        try {
-            const response = await fetch('/superadmin/settings/website/logo', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-                body: formDataToSend,
-            });
-
-            const contentType = response.headers.get('content-type');
-            console.log('Upload response status:', response.status);
-            console.log('Content-Type:', contentType);
-
-            if (!response.ok) {
-                const text = await response.text();
-                console.error('Response text:', text.substring(0, 200));
-                throw new Error(`Upload failed with status ${response.status}`);
+        router.post('/superadmin/settings/website/logo', formDataToSend, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                // Update current logo with the preview immediately
+                setCurrentLogo(websiteLogoPreview);
+                setWebsiteLogoFile(null);
+                setWebsiteLogoPreview(null);
+                
+                // Fetch the actual uploaded logo URL from server
+                fetchCurrentLogo();
+                
+                // Dispatch event to update sidebar and all components in current tab
+                window.dispatchEvent(new CustomEvent('logoUpdated'));
+                
+                // Trigger storage event for cross-tab communication
+                localStorage.setItem('websiteLogoUpdated', Date.now().toString());
+            },
+            onFinish: () => {
+                setLogoUploading(false);
             }
-
-            const result = await response.json();
-            console.log('Upload result:', result);
-
-            if (!result.success) {
-                throw new Error(result.message || 'Failed to upload logo');
-            }
-
-            setSuccess('Logo uploaded successfully');
-            setWebsiteLogoFile(null);
-            setWebsiteLogoPreview(null);
-            setLogoLoadError(false);
-            setCurrentLogo(result.logo);
-            // Dispatch custom event to update sidebar logo
-            window.dispatchEvent(new CustomEvent('logoUpdated', { detail: result.logo }));
-            setTimeout(() => setSuccess(''), 3000);
-        } catch (err) {
-            console.error('Upload error:', err);
-            setError(err.message || 'Failed to upload logo');
-        } finally {
-            setLogoUploading(false);
-        }
+        });
     };
 
     const handleCancelUpload = () => {
@@ -200,39 +173,41 @@ const WebsiteSettings = () => {
                                 {(currentLogo || websiteLogoPreview) && (
                                     <div className='space-y-3'>
                                         <p className='text-sm font-medium text-gray-200'>Current Logo</p>
-                                        <div className='w-48 h-48 bg-[#081028] border border-gray-600 rounded-lg flex items-center justify-center overflow-hidden'>
-                                            {websiteLogoPreview ? (
-                                                <img 
-                                                    src={websiteLogoPreview} 
-                                                    alt='Logo Preview' 
-                                                    className='w-full h-full object-contain p-4'
-                                                    onError={(e) => {
-                                                        console.error('Logo preview failed to load:', websiteLogoPreview);
-                                                        setLogoLoadError(true);
-                                                    }}
-                                                />
-                                            ) : currentLogo && !logoLoadError ? (
-                                                <img 
-                                                    src={currentLogo} 
-                                                    alt='Current Logo' 
-                                                    className='w-full h-full object-contain p-4'
-                                                    onError={(e) => {
-                                                        console.error('Current logo failed to load:', currentLogo, 'Error:', e);
-                                                        setLogoLoadError(true);
-                                                    }}
-                                                />
-                                            ) : (
-                                                <div className='text-center text-gray-500'>
-                                                    <Upload className='w-8 h-8 mx-auto mb-2' />
-                                                    <p className='text-xs'>No logo available</p>
-                                                </div>
-                                            )}
+                                        <div className='flex justify-center'>
+                                            <div className='w-full max-w-sm h-60 bg-[#081028] border border-gray-600 rounded-lg flex items-center justify-center overflow-hidden'>
+                                                {websiteLogoPreview ? (
+                                                    <img 
+                                                        src={websiteLogoPreview} 
+                                                        alt='Logo Preview' 
+                                                        className='max-w-full max-h-full w-auto h-auto object-contain p-4'
+                                                        onError={(e) => {
+                                                            console.error('Logo preview failed to load:', websiteLogoPreview);
+                                                            setLogoLoadError(true);
+                                                        }}
+                                                    />
+                                                ) : currentLogo && !logoLoadError ? (
+                                                    <img 
+                                                        src={currentLogo} 
+                                                        alt='Current Logo' 
+                                                        className='max-w-full max-h-full w-auto h-auto object-contain p-4'
+                                                        onError={(e) => {
+                                                            console.error('Current logo failed to load:', currentLogo, 'Error:', e);
+                                                            setLogoLoadError(true);
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className='text-center text-gray-500'>
+                                                        <Upload className='w-8 h-8 mx-auto mb-2' />
+                                                        <p className='text-xs'>No logo available</p>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
 
                                 {/* Upload Section */}
-                                <div className='space-y-4'>
+                                <div className='space-y-4 max-w-sm mx-auto'>
                                     <div className='space-y-2'>
                                         <label className='block text-sm font-medium text-gray-200'>
                                             Upload Logo
@@ -267,24 +242,24 @@ const WebsiteSettings = () => {
                                         <div className='space-y-3 p-4 bg-[#081028] border border-gray-600 rounded-lg'>
                                             <div className='text-sm text-gray-300'>
                                                 <p className='font-medium mb-1'>Selected File:</p>
-                                                <p className='text-gray-400'>{websiteLogoFile.name}</p>
+                                                <p className='text-gray-400 break-all'>{websiteLogoFile.name}</p>
                                                 <p className='text-gray-400 text-xs mt-1'>
                                                     Size: {(websiteLogoFile.size / 1024).toFixed(2)} KB
                                                 </p>
                                             </div>
                                             
-                                            <div className='flex gap-2'>
+                                            <div className='flex flex-col sm:flex-row gap-2'>
                                                 <button
                                                     onClick={handleLogoUpload}
                                                     disabled={logoUploading}
-                                                    className='flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200'
+                                                    className='flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex-1'
                                                 >
                                                     <Save className='w-4 h-4 mr-2' />
                                                     {logoUploading ? 'Uploading...' : 'Upload Logo'}
                                                 </button>
                                                 <button
                                                     onClick={handleCancelUpload}
-                                                    className='px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors duration-200'
+                                                    className='px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors duration-200 flex-1 sm:flex-initial'
                                                 >
                                                     Cancel
                                                 </button>
