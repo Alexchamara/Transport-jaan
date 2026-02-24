@@ -39,6 +39,14 @@ Route::middleware('guest')->group(function () {
 Route::get('approval-pending', function() {
     // Check if user is authenticated but unverified
     if (Auth::check() && Auth::user()->status !== 'verified') {
+        $user = Auth::user();
+        
+        // Unverified vendors go to their All Bookings Dashboard
+        if ($user->role === 'vendor') {
+            return redirect()->route('vendorAllBookings');
+        }
+        
+        // All other unverified users see the approval pending page
         return Inertia::render('Auth/ApprovalPending');
     }
 

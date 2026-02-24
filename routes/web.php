@@ -585,8 +585,8 @@ Route::middleware(['auth', 'vendor.verified'])
     ->name('vendors.')
     ->group(function () use ($render) {
         // Dashboard with real props
-        Route::get('/dashbord', [DashboardController::class, 'index'])->name('dashboard'); // legacy spelling
-        Route::get('/dashboard', [DashboardController::class, 'index']); // alias
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard'); // primary route
+        Route::get('/', [DashboardController::class, 'index']); // legacy path
 
         // Notification routes
         Route::get('/notifications', [NotificationController::class, 'page'])->name('notifications');
@@ -765,7 +765,7 @@ Route::redirect('/tracking', '/vendors/tracking')->name('tracking.legacy');
 Route::redirect('/calendar', '/vendors/calendar')->name('calendar.legacy');
 Route::redirect('/addUnit', '/vendors/addUnit')->name('addUnit.legacy');
 Route::redirect('/unitDetails', '/vendors/unitDetails')->name('unitDetails.legacy');
-Route::redirect('/dashboard', '/vendors/dashbord')->name('dashboard.legacy');
+Route::redirect('/dashboard', '/vendors/dashboard')->name('dashboard.legacy');
 
 // SuperAdmin legacy redirects
 Route::redirect('/SuperAdmin/Dashboard', '/superadmin/dashboard')->name('SuperAdmin.Dashboard.legacy');
@@ -1245,6 +1245,24 @@ Route::get('/clientVehicleDashboard', function () {
         'monthlyData' => $monthlyData,
     ]);
 })->middleware(\App\Http\Middleware\ClientVerificationCheck::class)->name('clientVehicleDashboard');
+
+// Vendor All Bookings Dashboard
+Route::get('/vendorAllBookings', [\App\Http\Controllers\VendorAllBookingsController::class, 'index'])
+    ->middleware('auth')
+    ->name('vendorAllBookings');
+
+// Vendor Booking Calendar
+Route::get('/vendors/calendar', [\App\Http\Controllers\VendorAllBookingsController::class, 'calendar'])
+    ->middleware('auth')
+    ->name('vendorCalendar');
+
+Route::get('/vendorAllBookings/clients', [\App\Http\Controllers\VendorAllBookingsController::class, 'clients'])
+    ->middleware('auth')
+    ->name('vendorAllBookingsClients');
+
+Route::get('/vendorAllBookings/bookings', [\App\Http\Controllers\VendorAllBookingsController::class, 'bookings'])
+    ->middleware('auth')
+    ->name('vendorAllBookingsPage');
 
 Route::get('/clientAllBookings', function () {
     $clientId = Auth::id();

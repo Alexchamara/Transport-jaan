@@ -1,0 +1,51 @@
+import React, { useState } from "react";
+import { usePage } from "@inertiajs/react";
+import SideMenu from "./allBookings/SideMenu";
+import VendorAllBookings from "./allBookings/VendorAllBookings";
+import { Menu } from "lucide-react";
+
+const AllBookingsDashboard = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Extract props from Inertia
+  const { props } = usePage();
+  const {
+    allBookings,
+    statistics,
+    monthlyData
+  } = props;
+
+  return (
+    <div className="bg-[#F5F5F5] h-auto min-h-screen">
+      <div className="flex flex-row gap-0 h-auto">
+        {/* Toggle Button (only visible on mobile) */}
+        <button
+          className="lg:hidden p-2 m-2 fixed left-2 top-2 z-50 bg-white rounded-full shadow"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <Menu size={22} />
+        </button>
+
+        {/* Side Menu */}
+        <div
+          className={`fixed lg:static top-0 left-0 h-screen z-40 transition-transform duration-300
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0 bg-white shadow lg:shadow-none`}
+        >
+          <SideMenu />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto">
+          <VendorAllBookings
+            allBookings={allBookings}
+            statistics={statistics}
+            monthlyData={monthlyData}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AllBookingsDashboard;

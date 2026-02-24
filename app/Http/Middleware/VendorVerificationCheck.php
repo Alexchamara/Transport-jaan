@@ -27,7 +27,18 @@ class VendorVerificationCheck
         }
 
         // If vendor is logged in but not verified, redirect to approval pending page
+        // Exception: Allow vendors to access vendorAllBookings and vendors/dashboard routes
         if (Auth::user()->status !== 'verified') {
+            $isVendorAllBookings    = $request->path() === 'vendorAllBookings' || $request->route()?->getName() === 'vendorAllBookings';
+            $isVendorDashboard     = $request->path() === 'vendors/dashboard' || $request->route()?->getName() === 'vendors.dashboard';
+            $isWarehouseDashboard  = $request->path() === 'vendors/warehouse/dashboard' || $request->route()?->getName() === 'vendors.warehouse.dashboard';
+            $isVehicleClientTable           = $request->path() === 'vendors/clients' || $request->route()?->getName() === 'vendors.clients';
+            
+            // Allow unverified vendors to access their dashboards
+            if ($isVendorAllBookings || $isVendorDashboard || $isWarehouseDashboard || $isVehicleClientTable) {
+                return $next($request);
+            }
+
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Your vendor account is pending approval from admin.'], 403);
             }
