@@ -22,7 +22,7 @@ const About = () => {
                         </span>
                     </h1>
 
-                    <div className="w-full text-[8px] sm:text-[14px] md:text-[15px] lg:text-[16px] xl:text-[17px] leading-[22px] sm:leading-[24px] md:leading-[26px] xl:leading-[30px] flex flex-col gap-3 sm:gap-4">
+                    <div className="w-full text-[12px] sm:text-[14px] md:text-[15px] lg:text-[16px] xl:text-[17px] leading-relaxed sm:leading-[24px] md:leading-[26px] xl:leading-[30px] flex flex-col gap-3 sm:gap-4">
                         <p>
                             We are a comprehensive multimodal transport and
                             logistics booking platform designed to simplify how
