@@ -152,9 +152,9 @@ const TravelExploreAnimation = ({ auth }) => {
                     <div className="pointer-events-auto">
                         <div className="bg-transparent">
                             {/* Desktop */}
-                            <div className="md:flex hidden justify-between items-center px-10 py-10">
-                                <div className="pb-[25px]">
-                                    <CompanyLogo className="h-[40px] md:h-[50px] lg:h-[90px] xl:h-[100px] object-contain" />
+                            <div className="md:flex hidden justify-between items-center px-10 py-5">
+                                <div className="pb-[40px]">
+                                    <CompanyLogo className="h-[50px] md:h-[60px] lg:h-[90px] xl:h-[100px] object-contain" />
                                 </div>
                                 <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[400] text-white">
                                     <div
