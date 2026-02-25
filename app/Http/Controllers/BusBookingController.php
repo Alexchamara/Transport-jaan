@@ -85,11 +85,6 @@ class BusBookingController extends Controller
      */
     public function preview(Request $request)
     {
-        // Check if the user is logged in
-        if (!Auth::check()) {
-            return redirect()->route('signin')->with('message', 'Please log in to make a booking.');
-        }
-
         $scheduleId = $request->get('id');
         $searchParams = [
             'from' => $request->get('from'),

@@ -159,11 +159,6 @@ class TrainController extends Controller
 
     public function preview(Request $request)
     {
-        // Check if the user is logged in
-        if (!Auth::check()) {
-            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
-        }
-
         $scheduleId = $request->input('schedule_id');
         $returnScheduleId = $request->input('return_schedule_id');
         $adults = $request->input('adults', 1);
