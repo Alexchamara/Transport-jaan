@@ -154,14 +154,14 @@ const TravelExploreAnimation = ({ auth }) => {
                             {/* Desktop */}
                             <div className="md:flex hidden justify-between items-center px-10 py-10">
                                 <div className="pb-[25px]">
-                                    <CompanyLogo className="h-[40px] md:h-[50px] lg:h-[60px] xl:h-[70px] object-contain" />
+                                    <CompanyLogo className="h-[40px] md:h-[50px] lg:h-[90px] xl:h-[100px] object-contain" />
                                 </div>
                                 <div className="flex flex-row gap-5 xl:text-[17px] text-[10px] font-[400] text-white">
                                     <div
                                         className="xl:w-[101px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
                                         onClick={() => handleScroll("home")}
                                     >
-                                        Home
+                                        Hom
                                     </div>
                                     <div
                                         className="xl:w-[121px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
