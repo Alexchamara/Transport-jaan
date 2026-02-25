@@ -161,7 +161,7 @@ const TravelExploreAnimation = ({ auth }) => {
                                         className="xl:w-[101px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
                                         onClick={() => handleScroll("home")}
                                     >
-                                        Hom
+                                        Home
                                     </div>
                                     <div
                                         className="xl:w-[121px] h-[38px] border-[1.2px] border-[#FFFFFF91] rounded-[100px] flex justify-center items-center cursor-pointer px-4 py-2"
