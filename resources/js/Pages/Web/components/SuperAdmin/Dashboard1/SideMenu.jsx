@@ -88,6 +88,9 @@ const SideMenu = () => {
         } else if (window.location.pathname === "/SuperAdmin/AccountSettings") {
             setActiveSubsection("AccountSettings");
             setIsAccountOpen(true);
+        } else if (window.location.pathname === "/superadmin/profile") {
+            setActiveSubsection("Profile");
+            setIsAccountOpen(true);
         } else if (window.location.pathname === "/superadmin/settings/cancellation" || window.location.pathname === "/SuperAdmin/settings/cancellation") {
             setActiveSubsection("CancellationSettings");
             setIsSettingsOpen(true);
@@ -800,9 +803,33 @@ const SideMenu = () => {
                 {/* Account Settings Dropdown */}
                 <div
                     className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
-                        isAccountOpen ? "max-h-[100px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
+                        isAccountOpen ? "max-h-[200px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
                     }`}
                 >
+                    {/* Profile Link */}
+                    <Link
+                        href="/superadmin/profile"
+                        className={`text-[14px] font-[500] px-4 py-2 rounded-md cursor-pointer flex items-center gap-2 ${
+                            activeSubsection === "Profile"
+                                ? "text-white bg-[#181A2A]"
+                                : hoveredSection === "Profile"
+                                ? "text-white bg-[#181A2A]"
+                                : "text-[#AEB9E1]"
+                        }`}
+                        onMouseEnter={() => setHoveredSection("Profile")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                        preserveState
+                        preserveScroll
+                    >
+                        <img
+                            src={person}
+                            className="size-[12px]"
+                            alt="Profile Icon"
+                        />
+                        <span>Profile</span>
+                    </Link>
+
+                    {/* Logout Link */}
                     <div
                         className={`text-[14px] font-[500] px-4 py-2 rounded-md cursor-pointer flex items-center gap-2 ${
                             hoveredSection === "Logout"

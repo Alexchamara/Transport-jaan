@@ -351,6 +351,10 @@ Route::prefix('client')->as('client.')->group(function () {
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\SuperAdminDashboardController::class, 'index'])->name('dashboard');
 
+    // Profile Routes
+    Route::get('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'index'])->name('profile');
+    Route::put('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'update'])->name('profile.update');
+
     Route::get('/Analytics', function () {
         return Inertia::render('Web/home/SuperAdmin/Analytics');
     })->name('Analytics');
