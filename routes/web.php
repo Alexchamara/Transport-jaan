@@ -1277,6 +1277,16 @@ Route::get('/vendorAllBookings/bookings', [\App\Http\Controllers\VendorAllBookin
     ->middleware('auth')
     ->name('vendorAllBookingsPage');
 
+// Vendor Profile & Service Registration Routes
+Route::middleware(['auth'])->prefix('vendor/profile')->name('vendor.profile.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\VendorProfileController::class, 'index'])->name('index');
+    Route::post('/save', [\App\Http\Controllers\VendorProfileController::class, 'saveProfile'])->name('save');
+    Route::post('/service/{subCategory}', [\App\Http\Controllers\VendorProfileController::class, 'saveServiceRegistration'])->name('service.save');
+    Route::delete('/service/{subCategory}', [\App\Http\Controllers\VendorProfileController::class, 'removeServiceRegistration'])->name('service.remove');
+    Route::post('/submit', [\App\Http\Controllers\VendorProfileController::class, 'submit'])->name('submit');
+    Route::delete('/logo', [\App\Http\Controllers\VendorProfileController::class, 'removeLogo'])->name('logo.remove');
+});
+
 Route::get('/clientAllBookings', function () {
     $clientId = Auth::id();
     
