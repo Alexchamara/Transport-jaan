@@ -52,7 +52,7 @@ const onToggleWishlist = async () => {
   if (!vehicle?.id) return;
 
   if (!props?.auth?.user) {
-    router.visit(route?.("login") ?? "/login");
+    router.visit(route?.("signin") ?? "/signin");
     return;
   }
 

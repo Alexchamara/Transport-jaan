@@ -611,7 +611,7 @@ const UnitContent = () => {
     const editUnit = (unit) => router.visit(`/vendors/addUnit/${unit.id}`);
 
     return (
-        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* ==================== HEADER WITH DROPDOWN (Fully Responsive) ==================== */}
             <div className="flex flex-col md:flex-row justify-between lg:items-start items-center gap-4 sm:gap-6 mb-8">
                 {/* Title */}
@@ -619,14 +619,6 @@ const UnitContent = () => {
                     Vehicle Rental Units
                 </h1>
 
-                {/* Right Side: Notifications + User Dropdown */}
-                <div className="flex items-center gap-3 sm:gap-5 w-full sm:w-auto lg:justify-end justify-center">
-
-                    {/* User Dropdown - Now properly aligned and responsive */}
-                    <div className="">
-                        <UserDropdown settingsRoute={route("settingsPage")} />
-                    </div>
-                </div>
             </div>
 
             {/* ==================== SEARCH / FILTERS (Responsive Layout) ==================== */}

@@ -14,7 +14,7 @@ const Signup = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('login'), {
+        post(route('signin'), {
             onFinish: () => {
                 // Reset form
                 setData('password', '');
@@ -118,7 +118,7 @@ const Signup = () => {
                                 disabled={processing}
                                 className="xl:w-[397px] w-full xl:h-[56px] bg-[#2E6099] rounded-[100px] xl:text-[16px] text-[12px] font-[600] flex justify-center items-center cursor-pointer disabled:opacity-50 px-6 py-2"
                             >
-                                {processing ? 'Logging in...' : 'Login'}
+                                {processing ? 'Logging in...' : 'signin'}
                             </button>
                         </form>
 

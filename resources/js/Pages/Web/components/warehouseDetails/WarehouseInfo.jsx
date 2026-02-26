@@ -71,7 +71,7 @@ const WarehouseInfo = () => {
 
     // 🔐 Auth guard
     if (!props?.auth?.user) {
-      router.get(route?.("login") ?? "/login", { return_to: window.location.pathname });
+      router.get(route?.("signin") ?? "/signin", { return_to: window.location.pathname });
       return;
     }
 
@@ -96,7 +96,7 @@ const WarehouseInfo = () => {
       setIsLiked(!next);
 
       if (error.response?.status === 401) {
-        router.get(route?.("login") ?? "/login", { return_to: window.location.pathname });
+        router.get(route?.("signin") ?? "/signin", { return_to: window.location.pathname });
         return;
       }
 

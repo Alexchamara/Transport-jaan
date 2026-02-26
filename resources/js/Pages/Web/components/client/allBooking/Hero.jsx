@@ -170,6 +170,7 @@ const Hero = ({
     // Calculate pie chart data
     const pieData = useMemo(() => {
         return [
+            { name: "All Bookings", value: allBookings.length, color: "#3b82f6" },
             { name: "Vehicle Rentals", value: bookingsByType.vehicle.length, color: "#3b82f6" },
             { name: "Warehouse", value: bookingsByType.warehouse.length, color: "#8b5cf6" },
             { name: "Courier", value: bookingsByType.courier.length, color: "#ec4899" },

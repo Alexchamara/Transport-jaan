@@ -16,7 +16,7 @@ const AllBookingsDashboard = () => {
   } = props;
 
   return (
-    <div className="bg-[#F5F5F5] h-auto min-h-screen">
+    <div className="bg-[#E5E5E5] h-auto min-h-screen">
       <div className="flex flex-row gap-0 h-auto">
         {/* Toggle Button (only visible on mobile) */}
         <button
@@ -36,7 +36,7 @@ const AllBookingsDashboard = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-w-0">
           <VendorAllBookings
             allBookings={allBookings}
             statistics={statistics}

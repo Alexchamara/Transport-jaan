@@ -142,16 +142,16 @@ const CalendarContent = ({
     ];
 
     return (
-        <div className="w-full h-auto px-5 xl:px-0 xl:pr-5 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* ==================== HEADER WITH DROPDOWN ==================== */}
             <div className="flex flex-col sm:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[25px] sm:text-[35px] font-[700]">Vehicle Rental Calendar</h1>
 
-                <div className="flex flex-row gap-5 relative items-center">
+                {/* <div className="flex flex-row gap-5 relative items-center">
                     <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
                 </div>
-                </div>
+                </div> */}
             </div>
 
             {/* ==================== TOP ROW: Booking + Reminders + Month Picker ==================== */}
@@ -297,7 +297,7 @@ const CalendarContent = ({
 
             {/* ==================== MAIN CALENDAR GRID ==================== */}
             <div
-                className="w-full max-w-[280px] sm:max-w-[1100px] h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
                 <div className="px-5 sm:px-10 lg:px-20 flex flex-col sm:flex-row items-center justify-between gap-4">

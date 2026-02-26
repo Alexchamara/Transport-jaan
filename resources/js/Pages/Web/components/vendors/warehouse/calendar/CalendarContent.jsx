@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage, router } from "@inertiajs/react";
 import { API_BASE_URL } from "../../../../../../config/api";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 import proPicTwo from "../../../../assets/vendors/tracking/proPic.svg";
 
@@ -55,6 +56,18 @@ const CalendarContent = ({
     // Notifications
     const [warehouseNotifications, setWarehouseNotifications] = useState([]);
     const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Warehousing';
+    const services = [
+      { name: 'All Bookings', route: route('vendorAllBookings') },
+      { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+      { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+      { name: 'Courier Service', route: route('courierService.dashboard') },
+      { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+      { name: 'Freight', route: route('freight.dashboard') },
+      { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
 
     // Update when props change
     useEffect(() => {
@@ -361,7 +374,11 @@ const CalendarContent = ({
     ];
 
     return (
-        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
+        </div>
+        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-6 pb-12">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
                 <div className="flex items-center gap-4">
@@ -369,13 +386,13 @@ const CalendarContent = ({
                         Warehouse Calendar
                     </h1>
                 </div>
-                <div className="hidden lg:flex items-center gap-3">
+                {/* <div className="hidden lg:flex items-center gap-3">
                     <NotificationDropdown
                         notifications={warehouseNotifications}
                         unreadCount={notificationUnreadCount}
                     />
                     <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
-                </div>
+                </div> */}
             </div>
             {/* end of header section */}
 
@@ -592,6 +609,7 @@ const CalendarContent = ({
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

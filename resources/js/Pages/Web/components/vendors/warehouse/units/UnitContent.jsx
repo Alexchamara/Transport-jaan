@@ -2,6 +2,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { API_BASE_URL } from "../../../../../../config/api";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 // Assets
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
@@ -632,6 +633,18 @@ const UnitContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
 
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Warehousing';
+    const services = [
+      { name: 'All Bookings', route: route('vendorAllBookings') },
+      { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+      { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+      { name: 'Courier Service', route: route('courierService.dashboard') },
+      { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+      { name: 'Freight', route: route('freight.dashboard') },
+      { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
+
     // Data & Loading
     const [units, setUnits] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -842,7 +855,11 @@ const UnitContent = () => {
     };
 
     return (
-        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
+        </div>
+        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-6 pb-12">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
                 <div className="flex items-center gap-4">
@@ -850,13 +867,13 @@ const UnitContent = () => {
                         Warehouse Units
                     </h1>
                 </div>
-                <div className="hidden lg:flex items-center gap-3">
+                {/* <div className="hidden lg:flex items-center gap-3">
                     <NotificationDropdown
                         notifications={warehouseNotifications}
                         unreadCount={notificationUnreadCount}
                     />
                     <UserDropdown />
-                </div>
+                </div> */}
             </div>
             {/* end of header section */}
 
@@ -1126,6 +1143,7 @@ const UnitContent = () => {
                 </div>
             )}
         </div>
+        </>
     );
 };
 

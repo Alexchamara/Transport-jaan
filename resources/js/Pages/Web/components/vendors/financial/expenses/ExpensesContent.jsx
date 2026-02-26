@@ -337,16 +337,16 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto lg:pr-5 px-5 lg:px-0 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* ==================== HEADER WITH DROPDOWN ==================== */}
             <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[20px] lg:text-[35px] font-[700] text-center">Vehicle Rental Expenses</h1>
 
-                <div className="flex flex-row gap-5 relative items-center">
+                {/* <div className="flex flex-row gap-5 relative items-center">
                     <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
                 </div>
-                </div>
+                </div> */}
             </div>
 
             {/* ==================== MINI CARDS ==================== */}

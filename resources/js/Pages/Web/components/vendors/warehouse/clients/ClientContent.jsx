@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import { API_BASE_URL } from "../../../../../../config/api";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -16,6 +17,18 @@ const ClientContent = () => {
     const user = auth?.user;
     const [warehouseNotifications, setWarehouseNotifications] = useState([]);
     const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Warehousing';
+    const services = [
+      { name: 'All Bookings', route: route('vendorAllBookings') },
+      { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+      { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+      { name: 'Courier Service', route: route('courierService.dashboard') },
+      { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+      { name: 'Freight', route: route('freight.dashboard') },
+      { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
 
     // Fetch notifications
     useEffect(() => {
@@ -43,7 +56,11 @@ const ClientContent = () => {
     }, [auth?.user]);
 
     return (
-        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
+        </div>
+        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-6 pb-12">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
                 <div className="flex items-center gap-4">
@@ -72,13 +89,13 @@ const ClientContent = () => {
                         </h1>
                     </div>
                 </div> */}
-                <div className="hidden lg:flex items-center gap-3">
+                {/* <div className="hidden lg:flex items-center gap-3">
                     <NotificationDropdown
                         notifications={warehouseNotifications}
                         unreadCount={notificationUnreadCount}
                     />
                     <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
-                </div>
+                </div> */}
             </div>
             {/* end of header section */}
 
@@ -93,6 +110,7 @@ const ClientContent = () => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

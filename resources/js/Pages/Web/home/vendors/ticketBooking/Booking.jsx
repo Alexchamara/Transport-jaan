@@ -26,7 +26,7 @@ const Booking = () => {
             </div>
 
             {/* Main Content - Only vertical scroll */}
-            <div className="flex-1 bg-[#E5E5E5] ">
+            <div className="flex-1 flex flex-col min-w-0 bg-[#E5E5E5]">
                 <BookingContent />
             </div>
         </div>

@@ -22,16 +22,32 @@ import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg";
 
 import UserDropdown from "../../UserDropdown";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 const TrackingContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Courier Service';
+    const services = [
+        { name: 'All Bookings', route: route('vendorAllBookings') },
+        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+        { name: 'Courier Service', route: route('courierService.dashboard') },
+        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+        { name: 'Freight', route: route('freight.dashboard') },
+        { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
 
     // Dropdown state
     const [showUserDropdown, setShowUserDropdown] = useState(false);
     const wrapperRef = useRef(null);
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("courierService.settingsPage")} />
+        </div>
+        <div className="pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">
@@ -48,9 +64,9 @@ const TrackingContent = () => {
             <Bell size={28} />
           </div> */}
 
-                    <div className="flex flex-row gap-5 relative items-center">
+                    {/* <div className="flex flex-row gap-5 relative items-center">
                         <UserDropdown />
-                    </div>
+                    </div> */}
                 </div>
             </div>
             {/* end of header section */}
@@ -226,6 +242,7 @@ const TrackingContent = () => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

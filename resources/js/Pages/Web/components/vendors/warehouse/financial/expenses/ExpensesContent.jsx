@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import ServiceNavBar from "../../../../../../../Components/vendors/ServiceNavBar";
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -27,6 +28,18 @@ import NotificationDropdown from "../../NotificationDropdown";
 const ExpensesContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Warehousing';
+    const services = [
+      { name: 'All Bookings', route: route('vendorAllBookings') },
+      { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+      { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+      { name: 'Courier Service', route: route('courierService.dashboard') },
+      { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+      { name: 'Freight', route: route('freight.dashboard') },
+      { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
 
     const [warehouseNotifications, setWarehouseNotifications] = useState([]);
     const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
@@ -341,7 +354,11 @@ const ExpensesContent = () => {
     }, [auth?.user]);
 
     return (
-        <div className="flex flex-col gap-6 lg:gap-10 w-full h-auto xl:pr-5 px-5 xl:px-0 py-4 lg:py-10 pt-24 lg:pt-12 bg-[#E5E5E5]">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
+        </div>
+        <div className="flex flex-col gap-6 lg:gap-10 w-full h-auto xl:pr-5 px-5 xl:px-0 py-4 lg:py-10 pt-6 pb-12 bg-[#E5E5E5]">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
                 <div className="flex items-center gap-4">
@@ -369,7 +386,7 @@ const ExpensesContent = () => {
                         </h1>
                     </div>
                 </div> */}
-                <div className="hidden xl:flex items-center gap-3">
+                {/* <div className="hidden xl:flex items-center gap-3">
                     <NotificationDropdown
                         notifications={warehouseNotifications}
                         unreadCount={notificationUnreadCount}
@@ -377,7 +394,7 @@ const ExpensesContent = () => {
                     <UserDropdown
                         settingsRoute={route("warehouse.settingsPage")}
                     />
-                </div>
+                </div> */}
             </div>
             {/* end of header section */}
 
@@ -831,6 +848,7 @@ const ExpensesContent = () => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

@@ -8,7 +8,7 @@ const Expenses = () => {
 const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="bg-[#E5E5E5] min-h-screen w-full flex">
+        <div className="bg-[#E5E5E5] min-h-screen w-full flex gap-0">
             {/* Toggle Button (only visible on mobile) */}
             <button
                 className="lg:hidden p-2 m-2 fixed left-2 top-2 z-50 bg-white rounded-full shadow"

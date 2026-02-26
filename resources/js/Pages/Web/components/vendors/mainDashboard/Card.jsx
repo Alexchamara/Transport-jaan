@@ -12,7 +12,7 @@ const Card = ({ title, description, index, subOptions }) => {
             router.visit("/ticketBooking/dashboard");
         } else if (title === "Courier Service") {
             router.visit("/courierService/dashboard");
-        } else if (title === "Warehouse Rental") {
+        } else if (title === "Warehousing") {
             router.visit("/warehouse/dashboard");
         } else if (title === "Freight") {
             router.visit("/freight/dashboard");

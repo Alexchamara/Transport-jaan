@@ -4,10 +4,12 @@ import UnitContent from '../../../components/vendors/courierService/units/UnitCo
 
 const Unit = () => {
   return (
-    <div className="bg-[#E5E5E5] h-auto">
-            <div className="flex flex-row gap-10 h-auto">
+    <div className="bg-[#E5E5E5] min-h-screen">
+            <div className="flex flex-row gap-0 h-auto">
                 <SideMenu />
-                <UnitContent/>
+                <div className="flex-1 flex flex-col min-w-0 bg-[#E5E5E5]">
+                    <UnitContent/>
+                </div>
             </div>
         </div>
   )

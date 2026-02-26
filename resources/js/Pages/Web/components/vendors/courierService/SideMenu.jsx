@@ -11,9 +11,10 @@ import {
   LogOut,
   Settings,
   Bell,
+  ArrowLeft,
 } from "lucide-react";
 
-const SideMenu = () => {
+const SideMenu = ({ isOpen = false }) => {
   const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const currentPath = window.location.pathname;
@@ -35,15 +36,27 @@ const SideMenu = () => {
       <div className="poppins min-w-[279px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
         
         {/* Logo – same as first */}
-        <div className="flex-shrink-0 mb-4">
-          <h1
-            className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
-            onClick={() => (window.location.href = "/vendorAllBookings")}
-          >
-            Company <br />
-            <span className="text-[#0955AC]">Logo</span>
-          </h1>
-        </div>
+       {/* Logo - Fixed at top with Back Button */}
+                <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
+                    <button
+                        onClick={() =>
+                            (window.location.href = "/vendorAllBookings")
+                        }
+                        className={`absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors ${isOpen ? 'lg:block hidden' : 'block'}`}
+                        title="Go to Dashboard"
+                    >
+                        <ArrowLeft className="w-5 h-5 text-gray-600" />
+                    </button>
+                    <h1
+                        className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
+                        onClick={() =>
+                            (window.location.href = "/vendorAllBookings")
+                        }
+                    >
+                        Company <br />
+                        <span className="text-[#0955AC]">Logo</span>
+                    </h1>
+                </div>
 
         {/* Scrollable Menu – same structure & styles */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">

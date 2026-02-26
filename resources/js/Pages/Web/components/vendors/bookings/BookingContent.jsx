@@ -293,18 +293,18 @@ const BookingContent = ({
     };
 
     return (
-        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-5 justify-between items-center mb-4 sm:mb-0">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-5 justify-between items-center mb-6">
                 <h1 className="figtree text-[20px] sm:text-[24px] lg:text-[28px] xl:text-[35px] font-[700]">
                     Vehicle Rental Bookings
                 </h1>
-                <div className="flex flex-row gap-3 sm:gap-5 relative items-center">
+                {/* <div className="flex flex-row gap-3 sm:gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
-                </div>
+                </div> */}
             </div>{" "}
             {/* KPI row */}
-            <div className="flex flex-col lg:flex-row gap-5 lg:gap-10 justify-between py-6 sm:py-10 w-full">
+            <div className="flex flex-col lg:flex-row gap-5 lg:gap-10 justify-between w-full mb-6">
                 <div className="flex flex-col gap-3 sm:gap-4 lg:gap-8">
                     {/* Upcoming */}
                     <div

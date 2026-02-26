@@ -8,6 +8,7 @@ import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
 
 import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
+import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar.jsx";
 import { Download } from "lucide-react"; // ← NEW
 
 const PAGE_SIZE = 8;
@@ -26,7 +27,19 @@ const selectClasses = inputClasses;
 export default function Driver() {
   const { auth } = usePage().props;
   const user = auth?.user;
-   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+  const activeService = 'Vehicle Rental';
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const services = [
+    { name: 'All Bookings', route: route('vendorAllBookings') },
+    { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+    { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+    { name: 'Courier Service', route: route('courierService.dashboard') },
+    { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+    { name: 'Freight', route: route('freight.dashboard') },
+    { name: 'Multimodal', route: route('multiModelHomepage.home') }
+  ];
 
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
@@ -504,7 +517,18 @@ export default function Driver() {
         ></div>
       )}
 
-      <main className="flex-1 w-full py-8">
+      <main className="flex-1 w-full flex flex-col min-w-0">
+        {/* ServiceNavBar - sticky at top */}
+        <div className="sticky top-0 z-30">
+          <ServiceNavBar 
+            services={services}
+            isVerified={isVerified}
+            activeService={activeService}
+            settingsRoute={route("settingsPage")}
+          />
+        </div>
+
+        <div className="flex-1 py-8">
         {/* ==================== HEADER WITH DROPDOWN ==================== */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
            {/* Hamburger button for mobile */}
@@ -530,11 +554,11 @@ export default function Driver() {
           <div className="flex flex-row gap-5 justify-between items-center">
             <h1 className="figtree text-[28px] font-[700]">Vehicle Rental Drivers</h1>
 
-            <div className="flex flex-row gap-5 relative items-center">
+            {/* <div className="flex flex-row gap-5 relative items-center">
                     <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
                 </div>
-                </div>
+                </div> */}
           </div>
         </div>
 
@@ -937,6 +961,7 @@ export default function Driver() {
               </div>
             </div>
           </div>
+        </div>
         </div>
       </main>
     </div>

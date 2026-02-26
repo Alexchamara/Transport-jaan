@@ -23,6 +23,7 @@ import icon2 from "../../../assets/vendors/booking/icons/icon2.svg";
 import icon3 from "../../../assets/vendors/booking/icons/icon3.svg";
 import icon4 from "../../../assets/vendors/booking/icons/icon4.svg";
 import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
+import ServiceNavBar from "../../../../../components/vendors/ServiceNavBar";
 
 // ─── dummy data for unverified vendors ───────────────────────────────────────
 const DUMMY_BOOKINGS = [
@@ -61,8 +62,35 @@ const typeBadge = (type) =>
 // ─── component ───────────────────────────────────────────────────────────────
 const BookingPage = () => {
     const { auth, allBookings: propBookings, bookingStats: propStats } = usePage().props;
+    const currentComponent = usePage().component;
     const user = auth?.user;
-    const isVerified = user?.vendor_status === "verified" || user?.is_verified === true;
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+
+    // Services array for navigation
+    const services = [
+        { name: 'All Bookings', route: route('vendorAllBookings') },
+        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+        { name: 'Courier Service', route: route('courierService.dashboard') },
+        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+        { name: 'Freight', route: route('freight.dashboard') },
+        { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
+
+    // Determine active service
+    const getActiveService = () => {
+        const componentMap = {
+            'VendorAllBookings': 'All Bookings',
+            'TicketBooking': 'Ticket Booking',
+            'CourierService': 'Courier Service',
+            'WarehouseRental': 'Warehousing',
+            'FreightDashboard': 'Freight',
+            'Multimodal': 'Multimodal'
+        };
+        return componentMap[currentComponent] || 'All Bookings';
+    };
+
+    const activeService = getActiveService();
 
     // ── notifications ──
     const [notifications, setNotifications] = useState([]);
@@ -189,28 +217,41 @@ const BookingPage = () => {
 
     // ── render ────────────────────────────────────────────────────────────────
     return (
-        <div className="poppins flex flex-row w-full min-h-screen bg-[#F5F5F5]">
+        <div className="poppins flex flex-row w-full min-h-screen bg-[#E5E5E5]">
             <SideMenu />
 
-            <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
+            <div className="flex-1 flex flex-col min-w-0">
+                {/* ServiceNavBar - sticky at the top, flush with sidebar */}
+                <div className="sticky top-0 z-30">
+                    <ServiceNavBar
+                        services={services}
+                        isVerified={isVerified}
+                        activeService={activeService}
+                        settingsRoute={route("settingsPage")}
+                    />
+                </div>
+
+            <div className="px-5 lg:pr-5 lg:pl-6 pt-6 pb-10">
                 {/* ── Header ── */}
                 <div className="flex md:flex-row flex-col gap-5 justify-between items-center mb-6">
                     <div className="flex items-center gap-4">
-                        <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left">
+                        <h1 className="figtree text-[35px] sm:text-[28px] font-[700] text-center md:text-left">
                             All Bookings
                         </h1>
                     </div>
-                    <div className="hidden lg:flex items-center gap-3">
+                    {/* <div className="hidden lg:flex items-center gap-3">
                         <NotificationDropdown notifications={notifications} unreadCount={unreadCount} />
                         <UserDropdown settingsRoute={route("settingsPage")} />
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* ── Unverified Banner ── */}
-                <UnverifiedBanner />
+                <div className="mt-6">
+                    <UnverifiedBanner />
+                </div>
 
                 {/* ── Stats Cards (2 × 2) ── */}
-                <div className="flex flex-col gap-5 mt-6">
+                <div className="flex flex-col gap-5 mt-14">
                     <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
                         {[
                             { icon: icon1, label: "Upcoming",  value: stats.upcoming,  pct: "+2.86%" },
@@ -226,13 +267,13 @@ const BookingPage = () => {
                                         <img src={icon} alt={label} />
                                     </div>
                                     <div>
-                                        <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">{label} Bookings</h1>
-                                        <h1 className="text-[20px] md:text-[24px] font-[700]">{value}</h1>
+                                        <h1 className="text-[16px] font-[500] text-[#7B7B7A]">{label} Bookings</h1>
+                                        <h1 className="text-[26px] font-[700]">{value}</h1>
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+                                <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                                     <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center gap-1">
-                                        <img src={upArrow} className="size-[16px]" alt="up" />
+                                        <img src={upArrow} className="size-[19px]" alt="up" />
                                         <h1>{pct}</h1>
                                     </div>
                                     <h1 className="text-[#7B7B7A]">from last week</h1>
@@ -256,13 +297,13 @@ const BookingPage = () => {
                                         <img src={icon} alt={label} />
                                     </div>
                                     <div>
-                                        <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">{label} Bookings</h1>
-                                        <h1 className="text-[20px] md:text-[24px] font-[700]">{value}</h1>
+                                        <h1 className="text-[16px] font-[500] text-[#7B7B7A]">{label} Bookings</h1>
+                                        <h1 className="text-[26px] font-[700]">{value}</h1>
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
+                                <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
                                     <div className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center gap-1 ${down ? "bg-[#FF888880]" : "bg-[#D8E4F2]"}`}>
-                                        <img src={upArrow} className={`size-[16px] ${down ? "rotate-180" : ""}`} alt="trend" />
+                                        <img src={upArrow} className={`size-[19px] ${down ? "rotate-180" : ""}`} alt="trend" />
                                         <h1>{pct}</h1>
                                     </div>
                                     <h1 className="text-[#7B7B7A]">from last week</h1>
@@ -497,6 +538,7 @@ const BookingPage = () => {
                     </div>
                 </div>
             )}
+            </div>{/* closes flex-1 flex flex-col */}
         </div>
     );
 };

@@ -331,9 +331,9 @@ const BookingContent = () => {
     };
 
     return (
-        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
-            <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
+            <div className="flex flex-col md:flex-row gap-5 justify-between items-center mb-6">
                 <h1 className="figtree text-[24px] md:text-[35px] font-[700]">Multimodal Bookings</h1>
                 {/* <div className="flex flex-row gap-5">
                     <div className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center">
