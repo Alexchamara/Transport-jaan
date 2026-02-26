@@ -619,27 +619,27 @@ const Hero = () => {
                             className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${rentalSubTab === 'land'
                                 ? 'bg-[#0955AC] text-white'
                                 : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                            }`}
+                                }`}
                         >
-                        Land
+                            Land
                         </button>
                         <button
                             onClick={() => handleRentalSubTabClick('sea')}
                             className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${rentalSubTab === 'sea'
                                 ? 'bg-[#0955AC] text-white'
                                 : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                            }`}
+                                }`}
                         >
-                        Sea
+                            Sea
                         </button>
                         <button
                             onClick={() => handleRentalSubTabClick('air')}
                             className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${rentalSubTab === 'air'
                                 ? 'bg-[#0955AC] text-white'
                                 : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                            }`}
+                                }`}
                         >
-                        Air
+                            Air
                         </button>
                     </div>
 
