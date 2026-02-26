@@ -17,7 +17,7 @@ import ServiceNavBar from "../../../../../components/vendors/ServiceNavBar";
 import { API_BASE_URL } from "../../../../../config/api";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
-import AllBookingTable from "../../../components/client/allBooking/AllBookingTable";
+import AllBookingTable from "./AllBookingTable";
 
 
 const VendorAllBookings = ({
@@ -35,55 +35,45 @@ const VendorAllBookings = ({
     // Dummy data for unverified vendors
     const dummyBookings = [
         {
-            id: 1,
-            booking_code: "BK-001",
-            booking_type: "vehicle",
-            customer_name: "John Doe",
-            service_name: "Vehicle Rental",
-            total_amount: 5000,
-            status: "Confirmed",
-            booking_date: "2025-02-20"
+            id: "BK-001", date: "Feb 20, 2025", customer: "John Doe",
+            car: "Toyota Corolla", plate: "CAB-1234", duration: "Economy",
+            startDate: "Mar 1, 2025", endDate: "Mar 5, 2025",
+            price: "Rs. 5,000", paymentStatus: "Paid", status: "Ongoing",
+            booking_type: "vehicle", service_name: "Vehicle Rental",
+            booking_date: "2025-02-20",
         },
         {
-            id: 2,
-            booking_code: "BK-002",
-            booking_type: "flight",
-            customer_name: "Jane Smith",
-            service_name: "Ticket Booking",
-            total_amount: 15000,
-            status: "Paid",
-            booking_date: "2025-02-19"
+            id: "BK-002", date: "Feb 19, 2025", customer: "Jane Smith",
+            car: "SriLankan Airlines", plate: "UL315", duration: "Business",
+            startDate: "Feb 25, 2025", endDate: "Feb 28, 2025",
+            price: "Rs. 15,000", paymentStatus: "Paid", status: "Returned",
+            booking_type: "flight", service_name: "Ticket Booking",
+            booking_date: "2025-02-19",
         },
         {
-            id: 3,
-            booking_code: "BK-003",
-            booking_type: "vehicle",
-            customer_name: "Ahmed Khan",
-            service_name: "Warehouse Rental",
-            total_amount: 8500,
-            status: "Pending",
-            booking_date: "2025-02-18"
+            id: "BK-003", date: "Feb 18, 2025", customer: "Ahmed Khan",
+            car: "Warehouse Unit A", plate: "WH-001", duration: "Monthly",
+            startDate: "Mar 1, 2025", endDate: "Mar 31, 2025",
+            price: "Rs. 8,500", paymentStatus: "Pending", status: "Ongoing",
+            booking_type: "warehouse", service_name: "Warehouse Rental",
+            booking_date: "2025-02-18",
         },
         {
-            id: 4,
-            booking_code: "BK-004",
-            booking_type: "flight",
-            customer_name: "Sara Williams",
-            service_name: "Courier Service",
-            total_amount: 3200,
-            status: "Completed",
-            booking_date: "2025-02-17"
+            id: "BK-004", date: "Feb 17, 2025", customer: "Sara Williams",
+            car: "Courier Standard", plate: "CR-202", duration: "Express",
+            startDate: "Feb 20, 2025", endDate: "Feb 21, 2025",
+            price: "Rs. 3,200", paymentStatus: "Paid", status: "Returned",
+            booking_type: "courier", service_name: "Courier Service",
+            booking_date: "2025-02-17",
         },
         {
-            id: 5,
-            booking_code: "BK-005",
-            booking_type: "vehicle",
-            customer_name: "Mike Johnson",
-            service_name: "Freight Rental",
-            total_amount: 12000,
-            status: "Confirmed",
-            booking_date: "2025-02-16"
-        }
+            id: "BK-005", date: "Feb 16, 2025", customer: "Mike Johnson",
+            car: "Freight Truck", plate: "FT-505", duration: "Full Load",
+            startDate: "Feb 22, 2025", endDate: "Feb 25, 2025",
+            price: "Rs. 12,000", paymentStatus: "Paid", status: "Ongoing",
+            booking_type: "freight", service_name: "Freight Rental",
+            booking_date: "2025-02-16",
+        },
     ];
 
     const dummyStatistics = {
@@ -97,6 +87,12 @@ const VendorAllBookings = ({
     const displayBookings = isVerified ? allBookings : dummyBookings;
     const displayStatistics = isVerified ? statistics : dummyStatistics;
 
+    // Percentage changes: hardcoded when unverified, from statistics when verified
+    const pctTotalBookings  = isVerified ? (statistics.total_bookings_change  ?? 0) : 2.86;
+    const pctActiveBookings = isVerified ? (statistics.active_bookings_change ?? 0) : 1.73;
+    const pctTotalEarned    = isVerified ? (statistics.total_earned_change    ?? 0) : 2.86;
+    const pctThisMonth      = isVerified ? (statistics.this_month_change      ?? 0) : 0;
+
     const [isMobile, setIsMobile] = useState(true);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -105,6 +101,7 @@ const VendorAllBookings = ({
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [typeFilter, setTypeFilter] = useState("All");
+    const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
     const [dateFromFilter, setDateFromFilter] = useState("");
     const [dateToFilter, setDateToFilter] = useState("");
 
@@ -263,31 +260,44 @@ const VendorAllBookings = ({
         setSearchQuery("");
         setStatusFilter("All");
         setTypeFilter("All");
+        setPaymentStatusFilter("All");
         setDateFromFilter("");
         setDateToFilter("");
     };
 
+    // Map a booking to the field names AllBookingTable expects
+    const mapToRow = (b) => ({
+        id:            b.id ?? b.booking_code,
+        date:          b.date ?? b.booking_date,
+        customer:      b.customer ?? b.customer_name,
+        transport:     b.transport ?? b.car ?? b.service_name,
+        details:       b.details ?? b.plate ?? b.booking_type,
+        duration:      b.duration ?? "—",
+        startDate:     b.startDate ?? b.start_date ?? "—",
+        endDate:       b.endDate ?? b.end_date ?? "—",
+        price:         b.price ?? (b.total_amount ? `Rs. ${Number(b.total_amount).toLocaleString()}` : "—"),
+        paymentStatus: b.paymentStatus ?? b.payment_status ?? "—",
+        status:        b.status ?? "—",
+    });
+
     // Apply filters to bookings
     const filteredBookings = (displayBookings || []).filter((booking) => {
-        // Search filter
-        const matchesSearch = !searchQuery || 
-            (booking.booking_code && booking.booking_code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (booking.customer_name && booking.customer_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (booking.service_name && booking.service_name.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-        // Type filter
+        const id = (booking.booking_code ?? booking.id ?? "").toString().toLowerCase();
+        const customer = (booking.customer_name ?? booking.customer ?? "").toLowerCase();
+        const service = (booking.service_name ?? booking.car ?? "").toLowerCase();
+        const q = searchQuery.toLowerCase();
+
+        const matchesSearch = !searchQuery || id.includes(q) || customer.includes(q) || service.includes(q);
         const matchesType = typeFilter === "All" || booking.booking_type === typeFilter;
-        
-        // Status filter
         const matchesStatus = statusFilter === "All" || booking.status?.toLowerCase() === statusFilter.toLowerCase();
-        
-        // Date filters
-        const bookingDate = new Date(booking.booking_date);
+        const matchesPayment = paymentStatusFilter === "All" ||
+            (booking.payment_status ?? booking.paymentStatus ?? "")?.toLowerCase() === paymentStatusFilter.toLowerCase();
+        const bookingDate = new Date(booking.booking_date ?? booking.date);
         const matchesFromDate = !dateFromFilter || bookingDate >= new Date(dateFromFilter);
         const matchesToDate = !dateToFilter || bookingDate <= new Date(dateToFilter);
-        
-        return matchesSearch && matchesType && matchesStatus && matchesFromDate && matchesToDate;
-    });
+
+        return matchesSearch && matchesType && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
+    }).map(mapToRow);
 
     // Get status styling (matching DashContent)
     const getStatusStyle = (status) => {
@@ -380,9 +390,9 @@ const VendorAllBookings = ({
                                 </div>
                             </div>
                             <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                                <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                    <img src={upArrow} className="size-[19px]" alt="trend" />
-                                    <h1 className="">+2.86%</h1>
+                                <div className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${pctTotalBookings >= 0 ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'}`}>
+                                    <img src={upArrow} className={`size-[19px] ${pctTotalBookings < 0 ? 'rotate-180' : ''}`} alt="trend" />
+                                    <h1>{pctTotalBookings >= 0 ? '+' : ''}{pctTotalBookings}%</h1>
                                 </div>
                                 <h1 className="text-[#7B7B7A]">from last week</h1>
                             </div>
@@ -407,9 +417,9 @@ const VendorAllBookings = ({
                                 </div>
                             </div>
                             <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                                <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                    <img src={upArrow} className="size-[19px]" alt="trend" />
-                                    <h1 className="">+1.73%</h1>
+                                <div className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${pctActiveBookings >= 0 ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'}`}>
+                                    <img src={upArrow} className={`size-[19px] ${pctActiveBookings < 0 ? 'rotate-180' : ''}`} alt="trend" />
+                                    <h1>{pctActiveBookings >= 0 ? '+' : ''}{pctActiveBookings}%</h1>
                                 </div>
                                 <h1 className="text-[#7B7B7A]">from last week</h1>
                             </div>
@@ -436,9 +446,9 @@ const VendorAllBookings = ({
                                 </div>
                             </div>
                             <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                                <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
-                                    <img src={upArrow} className="size-[19px]" alt="trend" />
-                                    <h1 className="">+2.86%</h1>
+                                <div className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${pctTotalEarned >= 0 ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'}`}>
+                                    <img src={upArrow} className={`size-[19px] ${pctTotalEarned < 0 ? 'rotate-180' : ''}`} alt="trend" />
+                                    <h1>{pctTotalEarned >= 0 ? '+' : ''}{pctTotalEarned}%</h1>
                                 </div>
                                 <h1 className="text-[#7B7B7A]">from last week</h1>
                             </div>
@@ -463,9 +473,9 @@ const VendorAllBookings = ({
                                 </div>
                             </div>
                             <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                                <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
-                                    <img src={upArrow} className="size-[19px] rotate-180" alt="down" />
-                                    <h1 className="">0%</h1>
+                                <div className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${pctThisMonth >= 0 ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'}`}>
+                                    <img src={upArrow} className={`size-[19px] ${pctThisMonth < 0 ? 'rotate-180' : ''}`} alt="trend" />
+                                    <h1>{pctThisMonth >= 0 ? '+' : ''}{pctThisMonth}%</h1>
                                 </div>
                                 <h1 className="text-[#7B7B7A]">from last week</h1>
                             </div>
@@ -635,15 +645,14 @@ const VendorAllBookings = ({
 
                                         {/* Results count */}
                                         <div className="mt-3 text-[12px] text-gray-500">
-                                            Showing {bookings?.length || 0} of {bookings?.length || 0} bookings
+                                            Showing {filteredBookings.length} of {displayBookings.length} bookings
                                         </div>
                                     </div>
                                 )}
                             </div>
 
                             <AllBookingTable
-                                bookings={bookings ?? []}
-                                bookingsMeta={bookingsMeta ?? {}}
+                                rows={filteredBookings}
                             />
                         </div>
                 </div>

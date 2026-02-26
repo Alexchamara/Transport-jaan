@@ -8,7 +8,7 @@ const Expenses = () => {
 
   return (
     <div className="bg-[#E5E5E5] min-h-screen">
-      <div className="flex flex-row gap-10 h-auto">
+      <div className="flex flex-row gap-0 h-auto">
 
         {/* Mobile Toggle Button */}
         <button

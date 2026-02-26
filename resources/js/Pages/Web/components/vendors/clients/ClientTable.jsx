@@ -250,50 +250,21 @@ const ClientTable = () => {
 
     return (
         <div className="relative">
-            {/* Filter Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                <button
-                    className={`px-4 sm:px-6 py-2 rounded-lg font-semibold transition-all text-sm sm:text-base ${
-                        activeFilter === 'all'
-                            ? 'bg-[#0955AC] text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                    onClick={() => handleFilterChange('all')}
-                >
-                    All Clients
-                </button>
-                <button
-                    className={`px-4 sm:px-6 py-2 rounded-lg font-semibold transition-all text-sm sm:text-base ${
-                        activeFilter === 'land'
-                            ? 'bg-[#0955AC] text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                    onClick={() => handleFilterChange('land')}
-                >
-                    🚗 Land
-                </button>
-                <button
-                    className={`px-4 sm:px-6 py-2 rounded-lg font-semibold transition-all text-sm sm:text-base ${
-                        activeFilter === 'air'
-                            ? 'bg-[#0955AC] text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                    onClick={() => handleFilterChange('air')}
-                >
-                    ✈️ Air
-                </button>
-                <button
-                    className={`px-4 sm:px-6 py-2 rounded-lg font-semibold transition-all text-sm sm:text-base ${
-                        activeFilter === 'sea'
-                            ? 'bg-[#0955AC] text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                    onClick={() => handleFilterChange('sea')}
-                >
-                    ⛵ Sea
-                </button>
-                 <div className="flex flex-row gap-3 sm:gap-5 relative items-center">
-                    <div className="relative">
+            
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
+                <div className="flex flex-row gap-5 justify-center items-center w-full sm:w-auto">
+                    <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                        <img src={miniSearchIcon} />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
+                            placeholder="Search client name, email, phone..."
+                        />
+                    </div>
+                </div>
+                <div className="relative">
                         <button
                             onClick={() => setShowExportMenu(!showExportMenu)}
                             className="flex items-center gap-2 px-4 py-2 bg-[#3B8F31] text-white rounded-[6px] hover:bg-[#2d6b25] transition text-[14px] sm:text-[16px]"
@@ -325,22 +296,6 @@ const ClientTable = () => {
                             </div>
                         )}
                     </div>
-                                    </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
-                <div className="flex flex-row gap-5 justify-center items-center w-full sm:w-auto">
-                    <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                        <img src={miniSearchIcon} />
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC]"
-                            placeholder="Search client name, email, phone..."
-                        />
-                    </div>
-                </div>
             </div>
 
             {/* table headings - hidden on mobile */}

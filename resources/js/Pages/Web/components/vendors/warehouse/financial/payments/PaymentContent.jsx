@@ -288,7 +288,7 @@ const PaymentContent = () => {
         <div className="sticky top-0 z-30">
             <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
         </div>
-        <div className="flex flex-col gap-10 w-full h-auto px-5 lg:pr-5 py-10 lg:px-0 pt-6 pb-12">
+        <div className="flex flex-col gap-10 w-full h-auto  lg:pr-5 lg:pl-5 pt-6 pb-12">
             {/* Header section */}
             <div className="flex lg:flex-row flex-col gap-5 justify-between items-center md:gap-3 mt-10 lg:mt-0">
                 <h1 className="figtree md:text-[35px] font-[700] text-[24px]">Warehouse Payment</h1>

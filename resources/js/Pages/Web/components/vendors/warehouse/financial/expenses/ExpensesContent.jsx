@@ -358,7 +358,7 @@ const ExpensesContent = () => {
         <div className="sticky top-0 z-30">
             <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
         </div>
-        <div className="flex flex-col gap-6 lg:gap-10 w-full h-auto xl:pr-5 px-5 xl:px-0 py-4 lg:py-10 pt-6 pb-12 bg-[#E5E5E5]">
+        <div className="flex flex-col gap-6 lg:gap-10 w-full h-auto lg:pl-5 lg:pr-5 py-4 lg:py-10 pt-6 pb-12 bg-[#E5E5E5]">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
                 <div className="flex items-center gap-4">

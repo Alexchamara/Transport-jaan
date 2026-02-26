@@ -57,7 +57,7 @@ const ClientContent = () => {
         <div className="sticky top-0 z-30">
             <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("courierService.settingsPage")} />
         </div>
-        <div className="w-full h-auto pr-5 py-10 pt-6 pb-12">
+        <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">

@@ -42,7 +42,7 @@ const TrackingContent = () => {
         <div className="sticky top-0 z-30">
             <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("ticketBooking.settingsPage")} />
         </div>
-        <div className="w-full h-auto px-5 py-5 lg:px-0 lg:pr-5 lg:py-10 pt-6 pb-12">
+        <div className="w-full h-auto px-5 py-5  lg:pl-10  lg:pr-5  pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
                 <h1 className="figtree text-[28px] md:text-[35px] font-[700]">

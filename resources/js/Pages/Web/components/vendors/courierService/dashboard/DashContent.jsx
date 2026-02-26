@@ -54,7 +54,7 @@ const DashContent = () => {
 
     return (
         <>
-        <div className="sticky top-0 z-30 ml-[-2.5rem]">
+        <div className="sticky top-0 z-30 ">
             <ServiceNavBar 
                 services={services}
                 isVerified={isVerified}
@@ -62,7 +62,7 @@ const DashContent = () => {
                 settingsRoute={route("settingsPage")}
             />
         </div>
-        <div className="w-full h-auto pr-5 pt-6 pb-10">
+        <div className="w-full h-auto pr-5 lg:pl-4 lg:pr-5 pt-6 pb-10">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">

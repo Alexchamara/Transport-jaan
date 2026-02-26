@@ -7,7 +7,7 @@ const Tracking = () => {
     const [isOpen, setIsOpen] = useState(false);
     return (
         <div className="bg-[#E5E5E5] min-h-screen">
-            <div className="flex flex-row gap-10 h-auto">
+            <div className="flex flex-row gap-0 h-auto">
                 {/* Mobile Toggle Button */}
                 <button
                     className="lg:hidden p-2 m-2 fixed left-2 top-2 z-50 bg-white rounded-full shadow"

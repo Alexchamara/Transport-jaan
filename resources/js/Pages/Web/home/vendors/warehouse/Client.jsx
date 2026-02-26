@@ -50,8 +50,7 @@ const Client = () => {
   }, [auth?.user]);
 
   return (
-    <div className="bg-[#E5E5E5] h-auto min-h-screen">
-      <div className="flex flex-row gap-10 h-auto">
+    <div className="bg-[#E5E5E5] min-h-screen w-full flex gap-0">
         {/* Mobile Header Bar with Toggle Button, Notifications and UserDropdown */}
         <div className={`lg:hidden fixed left-0 right-0 top-0 z-50 flex justify-between items-center px-2 py-2 transition-all duration-300 ${isScrolled ? 'bg-black/10 backdrop-blur-sm shadow-md' : ''}`}>
           <button
@@ -85,10 +84,9 @@ const Client = () => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto h-screen">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden h-screen">
           <ClientContent />
         </div>
-      </div>
     </div>
   );
 };

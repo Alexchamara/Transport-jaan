@@ -24,6 +24,11 @@ import icon3 from "../../../assets/vendors/booking/icons/icon3.svg";
 import icon4 from "../../../assets/vendors/booking/icons/icon4.svg";
 import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
 import ServiceNavBar from "../../../../../components/vendors/ServiceNavBar";
+import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
+import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
+import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
+import AllBookingTableTwo from "./AllBookingTableTwo";
+
 
 // ─── dummy data for unverified vendors ───────────────────────────────────────
 const DUMMY_BOOKINGS = [
@@ -61,6 +66,7 @@ const typeBadge = (type) =>
 
 // ─── component ───────────────────────────────────────────────────────────────
 const BookingPage = () => {
+    
     const { auth, allBookings: propBookings, bookingStats: propStats } = usePage().props;
     const currentComponent = usePage().component;
     const user = auth?.user;
@@ -116,13 +122,19 @@ const BookingPage = () => {
     // ── data source ──
     const rawBookings = useMemo(() => {
         if (!isVerified) return DUMMY_BOOKINGS;
-        return propBookings?.length ? propBookings : DUMMY_BOOKINGS;
+        return propBookings ?? [];
     }, [isVerified, propBookings]);
 
     const stats = useMemo(() => {
         if (!isVerified) return DUMMY_STATS;
         return propStats ?? DUMMY_STATS;
     }, [isVerified, propStats]);
+
+    // Percentage changes: hardcoded when unverified, from propStats when verified
+    const pctUpcoming   = isVerified ? (propStats?.upcoming_change   ?? 0) : 2.86;
+    const pctPending    = isVerified ? (propStats?.pending_change    ?? 0) : 1.42;
+    const pctCancelled  = isVerified ? (propStats?.cancelled_change  ?? 0) : -0.50;
+    const pctCompleted  = isVerified ? (propStats?.completed_change  ?? 0) : 3.12;
 
     // ── filter state ──
     const [search, setSearch] = useState("");
@@ -139,6 +151,17 @@ const BookingPage = () => {
 
     // ── modal ──
     const [modal, setModal] = useState(null);
+
+    // ── bookings table state ──
+    const [bookings, setBookings] = useState(rawBookings);
+    const statusColors = {
+        Confirmed: { bg: "#D8E4F2",   text: "#000000" },
+        Paid:      { bg: "#ACE19957", text: "#3B8F31" },
+        Pending:   { bg: "#FFF7ED",   text: "#EA580C" },
+        Completed: { bg: "#D1FAE5",   text: "#059669" },
+        Cancelled: { bg: "#F87171",   text: "#FFFFFF" },
+        Active:    { bg: "#E8F5E9",   text: "#2E7D32" },
+    };
 
     const resetPage = () => setPage(1);
 
@@ -254,8 +277,8 @@ const BookingPage = () => {
                 <div className="flex flex-col gap-5 mt-14">
                     <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
                         {[
-                            { icon: icon1, label: "Upcoming",  value: stats.upcoming,  pct: "+2.86%" },
-                            { icon: icon2, label: "Pending",   value: stats.pending,   pct: "+1.42%" },
+                            { icon: icon1, label: "Upcoming",  value: stats.upcoming,  pct: pctUpcoming },
+                            { icon: icon2, label: "Pending",   value: stats.pending,   pct: pctPending  },
                         ].map(({ icon, label, value, pct }) => (
                             <div
                                 key={label}
@@ -272,9 +295,9 @@ const BookingPage = () => {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                                    <div className="w-[81px] h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center gap-1">
-                                        <img src={upArrow} className="size-[19px]" alt="up" />
-                                        <h1>{pct}</h1>
+                                    <div className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center gap-1 ${pct >= 0 ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'}`}>
+                                        <img src={upArrow} className={`size-[19px] ${pct < 0 ? 'rotate-180' : ''}`} alt="trend" />
+                                        <h1>{pct >= 0 ? '+' : ''}{pct}%</h1>
                                     </div>
                                     <h1 className="text-[#7B7B7A]">from last week</h1>
                                 </div>
@@ -284,9 +307,9 @@ const BookingPage = () => {
 
                     <div className="flex xl:flex-row flex-col gap-5 w-full">
                         {[
-                            { icon: icon3, label: "Cancelled", value: stats.cancelled, pct: "-0.50%", down: true },
-                            { icon: icon4, label: "Completed", value: stats.completed, pct: "+3.12%" },
-                        ].map(({ icon, label, value, pct, down }) => (
+                            { icon: icon3, label: "Cancelled", value: stats.cancelled, pct: pctCancelled },
+                            { icon: icon4, label: "Completed", value: stats.completed, pct: pctCompleted },
+                        ].map(({ icon, label, value, pct }) => (
                             <div
                                 key={label}
                                 className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-3"
@@ -302,9 +325,9 @@ const BookingPage = () => {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                                    <div className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center gap-1 ${down ? "bg-[#FF888880]" : "bg-[#D8E4F2]"}`}>
-                                        <img src={upArrow} className={`size-[19px] ${down ? "rotate-180" : ""}`} alt="trend" />
-                                        <h1>{pct}</h1>
+                                    <div className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center gap-1 ${pct >= 0 ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'}`}>
+                                        <img src={upArrow} className={`size-[19px] ${pct < 0 ? 'rotate-180' : ''}`} alt="trend" />
+                                        <h1>{pct >= 0 ? '+' : ''}{pct}%</h1>
                                     </div>
                                     <h1 className="text-[#7B7B7A]">from last week</h1>
                                 </div>
@@ -318,186 +341,57 @@ const BookingPage = () => {
                     className="w-full bg-white rounded-[10px] px-5 py-6 mt-6"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                    {/* Toolbar */}
-                    <div className="flex md:flex-row flex-col justify-between gap-3 mb-5">
-                        <div className="flex gap-3 flex-wrap items-center">
-                            {/* Search */}
-                            <div className="xl:w-[240px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4 gap-2">
-                                <Search className="size-[15px] text-gray-400" />
-                                <input
-                                    type="text"
-                                    value={search}
-                                    onChange={(e) => { setSearch(e.target.value); resetPage(); }}
-                                    className="w-full outline-none bg-transparent text-[14px] placeholder:text-[#7B7B7ACC]"
-                                    placeholder="Search booking, customer…"
-                                />
-                            </div>
-                            {/* Filter toggle */}
-                            <button
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="xl:w-[110px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] bg-white border border-gray-300"
-                            >
-                                <Filter className="size-[14px]" />
-                                <span>Filter</span>
-                            </button>
+                     {/* car booking section */}
+            <div
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-5 sm:px-10"
+                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+            >
+                <div className="flex xl:flex-row flex-col justify-between">
+                    <h1 className="text-[24px] font-[700]">All Bookings</h1>
+                    <div className="flex xl:flex-row flex-col gap-5 mt-5 xl:mt-0">
+                        <div className="xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                            <img src={miniSearchIcon} alt="Search" />
+                            <input
+                                type="text"
+                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] truncate"
+                                placeholder={
+                                    "Search client name, airline, etc."
+                                }
+                            />
                         </div>
-                        {/* Export */}
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowExportMenu(!showExportMenu)}
-                                className="xl:w-[115px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] bg-white border border-gray-300"
-                            >
-                                <Download size={14} />
-                                <span>Export</span>
-                                <DropdownIcon size={12} />
-                            </button>
-                            {showExportMenu && (
-                                <div className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-[8px] shadow-lg z-50">
-                                    {[["CSV", exportCSV], ["XLSX", exportXLSX], ["PDF", exportPDF]].map(([label, fn]) => (
-                                        <button key={label} onClick={fn}
-                                            className="w-full text-left px-4 py-2 hover:bg-gray-50 font-[500] text-[14px] border-b last:border-b-0 border-gray-100">
-                                            Export to {label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                        <div className="xl:w-[155px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                            <img
+                                src={filterIcon}
+                                className="size-[12px]"
+                                alt="Filter"
+                            />
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
+                                Service Type
+                            </h1>
+                            <img src={miniDownArrow} alt="Dropdown" />
+                        </div>
+                        <div className="xl:w-[125px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                            <img
+                                src={filterIcon}
+                                className="size-[12px]"
+                                alt="Filter"
+                            />
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
+                                Status
+                            </h1>
+                            <img src={miniDownArrow} alt="Dropdown" />
                         </div>
                     </div>
+                </div>
 
-                    {/* Filter Panel */}
-                    {showFilters && (
-                        <div className="border border-gray-200 rounded-[8px] p-4 bg-gray-50 mb-5">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-[600] text-[15px]">Filters</h3>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={handleResetFilters}
-                                        className="px-3 py-1.5 text-[13px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-[#0955AC] hover:text-white transition font-[500]">
-                                        Reset
-                                    </button>
-                                    <button onClick={() => setShowFilters(false)}
-                                        className="text-gray-500 hover:text-[#0955AC] text-[22px] font-bold leading-none">×</button>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                {[
-                                    { label: "Type", value: typeFilter, setter: (v) => { setTypeFilter(v); resetPage(); },
-                                      options: [["All", "All Types"], ["vehicle", "Vehicle"], ["flight", "Flight"]] },
-                                    { label: "Status", value: statusFilter, setter: (v) => { setStatusFilter(v); resetPage(); },
-                                      options: [["All","All Status"],["Confirmed","Confirmed"],["Pending","Pending"],["Paid","Paid"],["Completed","Completed"],["Cancelled","Cancelled"],["Active","Active"]] },
-                                ].map(({ label, value, setter, options }) => (
-                                    <div key={label} className="flex flex-col gap-1.5">
-                                        <label className="text-[12px] font-[600] text-gray-600">{label}</label>
-                                        <select value={value} onChange={(e) => setter(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] bg-white">
-                                            {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                                        </select>
-                                    </div>
-                                ))}
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[12px] font-[600] text-gray-600">From Date</label>
-                                    <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); resetPage(); }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]" />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-[12px] font-[600] text-gray-600">To Date</label>
-                                    <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); resetPage(); }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]" />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-[14px]">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Code</th>
-                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Type</th>
-                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Service</th>
-                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Customer</th>
-                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Amount</th>
-                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Status</th>
-                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Payment</th>
-                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">Date</th>
-                                    <th className="px-4 py-3 text-left text-[12px] font-[600] text-gray-600 uppercase">View</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {paginated.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-[14px]">
-                                            No bookings found.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    paginated.map((b) => {
-                                        const st = getStatusStyle(b.status);
-                                        const pt = getStatusStyle(b.payment_status);
-                                        return (
-                                            <tr key={b.id ?? b.booking_code} className="hover:bg-gray-50 transition">
-                                                <td className="px-4 py-3 font-[500] text-gray-900">{b.booking_code}</td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`text-[12px] font-[600] px-2 py-1 rounded-full ${typeBadge(b.booking_type)}`}>
-                                                        {b.booking_type === "flight" ? "✈ Flight" : "🚗 Vehicle"}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-gray-600">{b.service_name}</td>
-                                                <td className="px-4 py-3 text-gray-900 font-[500]">{b.customer_name}</td>
-                                                <td className="px-4 py-3 font-[600] text-gray-900">
-                                                    Rs. {(b.total_amount || 0).toLocaleString()}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span
-                                                        className="px-3 py-1 rounded-[5px] text-[12px] font-[500]"
-                                                        style={{ backgroundColor: st.bg, color: st.text, border: `1px solid ${st.border}` }}
-                                                    >
-                                                        {b.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span
-                                                        className="px-3 py-1 rounded-[5px] text-[12px] font-[500]"
-                                                        style={{ backgroundColor: pt.bg, color: pt.text, border: `1px solid ${pt.border}` }}
-                                                    >
-                                                        {b.payment_status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-gray-500">{b.booking_date}</td>
-                                                <td className="px-4 py-3">
-                                                    <button
-                                                        onClick={() => setModal(b)}
-                                                        className="p-1.5 rounded-[6px] hover:bg-blue-50 text-blue-500 transition"
-                                                    >
-                                                        <Eye size={16} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination */}
-                    <div className="flex justify-between items-center mt-5 text-[14px] text-gray-500">
-                        <span>
-                            Showing {filtered.length === 0 ? 0 : (page - 1) * ROWS + 1}–
-                            {Math.min(page * ROWS, filtered.length)} of {filtered.length}
-                        </span>
-                        <div className="flex gap-2 items-center">
-                            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
-                                className="p-1.5 rounded-[6px] border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition">
-                                <ChevronLeft size={16} />
-                            </button>
-                            <span className="font-[600] text-gray-700">{page} / {totalPages}</span>
-                            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                                className="p-1.5 rounded-[6px] border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition">
-                                <ChevronRight size={16} />
-                            </button>
-                        </div>
-                    </div>
+                <AllBookingTableTwo
+                    bookings={bookings}
+                    setBookings={setBookings}
+                    statusColors={statusColors}
+                    bookingType="All"
+                />
+            </div>
+            {/* end */}  
                 </div>
             </div>
 

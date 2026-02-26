@@ -1,12 +1,26 @@
-import React from "react";
+import React, { useState } from "react";
 import SideMenu from "../../../components/vendors/warehouse/SideMenu";
 import Settings from "../../../components/vendors/warehouse/Settings";
+import { Menu } from "lucide-react";
 
 const SettingsPage = () => {
+    const [isOpen, setIsOpen] = useState(false);
     return (
-        <div className="bg-[#E5E5E5] h-auto">
-            <div className="flex flex-row gap-10 h-auto">
+        <div className="bg-[#E5E5E5] min-h-screen w-full flex gap-0">
+            <button
+                className="lg:hidden p-2 m-2 fixed left-2 top-2 z-50 bg-white rounded-full shadow"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <Menu size={22} />
+            </button>
+            <div
+                className={`fixed lg:static top-0 left-0 h-screen w-64 z-40 transition-transform duration-300 overflow-hidden flex-shrink-0
+                ${isOpen ? "translate-x-0" : "-translate-x-full"}
+                lg:translate-x-0 bg-white shadow-lg`}
+            >
                 <SideMenu />
+            </div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden h-screen">
                 <Settings />
             </div>
         </div>

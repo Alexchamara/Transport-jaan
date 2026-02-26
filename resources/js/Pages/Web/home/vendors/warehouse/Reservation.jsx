@@ -49,8 +49,7 @@ const Reservation = () => {
     }
   }, [auth?.user]);
   return (
-    <div className="bg-[#E5E5E5] min-h-screen">
-      <div className="flex flex-row gap-10 h-auto">
+    <div className="bg-[#E5E5E5] min-h-screen w-full flex gap-0">
         {/* Mobile Header Bar with Toggle Button, Notifications and UserDropdown */}
         <div className={`lg:hidden fixed left-0 right-0 top-0 z-50 flex justify-between items-center px-2 py-2 transition-all duration-300 ${isScrolled ? 'bg-black/10 backdrop-blur-sm shadow-md' : ''}`}>
           <button
@@ -76,18 +75,17 @@ const Reservation = () => {
 
         {/* Side Menu */}
         <div
-          className={`fixed lg:static top-0 left-0 min-h-screen w-64 z-40 transition-transform duration-300
+          className={`fixed lg:static top-0 left-0 h-screen w-64 z-40 transition-transform duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0 bg-white shadow lg:shadow-none overflow-hidden`}
+          lg:translate-x-0 bg-white shadow-lg overflow-hidden flex-shrink-0`}
         >
           <SideMenu isOpen={isOpen} />
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 bg-[#E5E5E5] overflow-y-auto h-screen">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden h-screen bg-[#E5E5E5]">
           <ReservationContent />
         </div>
-      </div>
     </div>
   );
 };

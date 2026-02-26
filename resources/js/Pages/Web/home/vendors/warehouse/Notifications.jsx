@@ -60,10 +60,12 @@ const Notifications = ({ notifications, unreadCount }) => {
         <>
             <Head title="Notifications - Warehouse" />
             
-            <div className="flex min-h-screen bg-gray-50">
-                <SideMenu />
+            <div className="bg-[#E5E5E5] min-h-screen w-full flex gap-0">
+                <div className="h-screen w-64 flex-shrink-0 overflow-hidden sticky top-0">
+                    <SideMenu />
+                </div>
                 
-                <div className="flex-1 p-8 ml-[280px]">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden h-screen p-8">
                     {/* Header */}
                     <div className="mb-8">
                         <div className="flex items-center justify-between">

@@ -376,7 +376,7 @@ const ReservationContent = () => {
         <div className="sticky top-0 z-30">
             <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
         </div>
-        <div className="w-full h-auto lg:pr-5 px-5 lg:px-0 py-10 pt-6 pb-12">
+        <div className="w-full h-auto lg:pr-5 lg:pl-4 px-5 pb-2">
             {/* Header */}
             <div className="flex lg:flex-row flex-col gap-5 justify-between items-center mt-10">
                 <h1 className="figtree text-[35px] font-[700] text-center">

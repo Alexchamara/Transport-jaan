@@ -145,7 +145,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                         </div>
                     </div>
                     <div className="flex flex-row gap-2 items-center">
-                        <h1>Flight (Airline &amp; No.)</h1>
+                        <h1>Service Type</h1>
                         <div className="flex flex-col justify-center items-center">
                             <img
                                 src={miniUp}
@@ -159,21 +159,7 @@ const CarBookingTableTwo = ({ bookings, setBookings, statusColors }) => {
                             />
                         </div>
                     </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Route (From → To)</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img
-                                src={miniUp}
-                                className="w-[6px] h-[4px]"
-                                alt="Sort Up"
-                            />
-                            <img
-                                src={miniDown}
-                                className="w-[6px] h-[4px]"
-                                alt="Sort Down"
-                            />
-                        </div>
-                    </div>
+                    
                     <div className="flex flex-row gap-2 items-center">
                         <h1>Schedule</h1>
                         <div className="flex flex-col justify-center items-center">

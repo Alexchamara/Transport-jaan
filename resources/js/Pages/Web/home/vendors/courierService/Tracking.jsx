@@ -1,15 +1,27 @@
-import React from "react";
+import React, { useState } from "react";
 import SideMenu from "../../../components/vendors/courierService/SideMenu";
 import TrackingContent from "../../../components/vendors/courierService/tracking/TrackingContent";
+import { Menu } from "lucide-react";
 
 const Tracking = () => {
+    const [isOpen, setIsOpen] = useState(false);
     return (
-        <div className="bg-[#E5E5E5] min-h-screen">
-            <div className="flex flex-row gap-0 h-auto">
+        <div className="bg-[#E5E5E5] min-h-screen w-full flex gap-0">
+            <button
+                className="lg:hidden p-2 m-2 fixed left-2 top-2 z-50 bg-white rounded-full shadow"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <Menu size={22} />
+            </button>
+            <div
+                className={`fixed lg:static top-0 left-0 h-screen w-64 z-40 transition-transform duration-300 overflow-hidden
+                ${isOpen ? "translate-x-0" : "-translate-x-full"}
+                lg:translate-x-0 bg-white shadow-lg flex-shrink-0`}
+            >
                 <SideMenu />
-                <div className="flex-1 flex flex-col min-w-0 bg-[#E5E5E5]">
-                    <TrackingContent />
-                </div>
+            </div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden h-screen bg-[#E5E5E5]">
+                <TrackingContent />
             </div>
         </div>
     );

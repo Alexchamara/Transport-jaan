@@ -8,9 +8,11 @@ const UnitDetails = () => {
     const { unitId } = props;
 
     return (
-        <div className="bg-[#E5E5E5] h-auto">
-            <div className="flex flex-row gap-10 h-auto">
+        <div className="bg-[#E5E5E5] min-h-screen w-full flex gap-0">
+            <div className="h-screen w-64 flex-shrink-0 overflow-hidden">
                 <SideMenu />
+            </div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden h-screen">
                 <UnitDetailsContent unitId={unitId} />
             </div>
         </div>

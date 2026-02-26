@@ -19,15 +19,15 @@ const Tracking = () => {
 
       {/* Side Menu */}
       <div
-        className={`fixed xl:static top-0 left-0 h-full z-40 transition-transform duration-300 
-        ${isOpen ? "translate-x-0" : "-translate-x-full"} 
-        xl:translate-x-0 bg-white shadow xl:shadow-none`}
+        className={`fixed xl:static top-0 left-0 h-screen w-64 z-40 transition-transform duration-300 overflow-hidden flex-shrink-0
+        ${isOpen ? "translate-x-0" : "-translate-x-full"}
+        xl:translate-x-0 bg-white shadow-lg`}
       >
         <SideMenu />
       </div>
 
       {/* Page Content */}
-      <div className="flex-1 p-4 xl:p-10">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden h-screen">
         <TrackingContent />
       </div>
     </div>

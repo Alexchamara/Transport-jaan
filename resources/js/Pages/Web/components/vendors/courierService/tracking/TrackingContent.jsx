@@ -47,7 +47,7 @@ const TrackingContent = () => {
         <div className="sticky top-0 z-30">
             <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("courierService.settingsPage")} />
         </div>
-        <div className="pt-6 pb-12">
+        <div className="pt-6 pb-12 lg:pl-4 lg:pr-5">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
                 <h1 className="figtree text-[35px] font-[700]">

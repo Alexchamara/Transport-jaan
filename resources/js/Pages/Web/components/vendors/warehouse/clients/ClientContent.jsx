@@ -60,7 +60,7 @@ const ClientContent = () => {
         <div className="sticky top-0 z-30">
             <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
         </div>
-        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-6 pb-12">
+        <div className="w-full h-auto  lg:pl-5 lg:pr-5  pt-6 pb-12">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
                 <div className="flex items-center gap-4">

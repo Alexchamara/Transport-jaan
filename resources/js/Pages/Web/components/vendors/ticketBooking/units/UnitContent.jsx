@@ -311,7 +311,7 @@ const UnitContent = () => {
                 settingsRoute={route("ticketBooking.settingsPage")}
             />
         </div>
-        <div className="w-full h-auto px-5 py-5 lg:px-0 lg:pr-5 lg:py-10">
+        <div className="w-full h-auto px-5 py-5 lg:pl-4 lg:pr-5 lg:py-10">
 
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">

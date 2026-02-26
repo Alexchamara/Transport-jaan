@@ -320,7 +320,7 @@ const CalendarContent = () => {
         <div className="sticky top-0 z-30">
             <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("ticketBooking.settingsPage")} />
         </div>
-        <div className="w-full h-auto px-5 lg:pr-5 lg:px-0 py-5 lg:py-10 pt-6 pb-12">
+        <div className="w-full h-auto px-5 lg:pl-4 lg:pr-5 py-5 lg:py-10 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col lg:flex-row gap-2 lg:gap-5 justify-between lg:items-start items-center">
                 <h1 className="figtree text-[24px] lg:text-[35px] font-[700]">
