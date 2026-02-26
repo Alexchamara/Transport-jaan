@@ -612,7 +612,7 @@ const SideMenu = () => {
                     </div>
 
                     {/* Vender */}
-                    <Link
+                    {/* <Link
                         href="/superadmin/Vender"
                         className={`w-[244px] h-[42px] flex flex-row justify-between items-center cursor-pointer px-4 ${
                             activeSubsection === "Vender"
@@ -643,9 +643,9 @@ const SideMenu = () => {
                             >
                                 Vender
                             </h1>
-                        </div>
+                        </div> */}
                         {/* <img src={dropl} className="size-[12px]" /> */}
-                    </Link>
+                    {/* </Link> */}
                 </div>
             </div>
 
