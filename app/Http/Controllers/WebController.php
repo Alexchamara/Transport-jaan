@@ -523,12 +523,6 @@ class WebController extends Controller
 
     public function freightTicketBooking()
     {
-        // Check if the user is logged in
-        if (!Auth::check()) {
-            // If not logged in, redirect to signin with a message
-            return redirect()->route('signin.signin')->with('message', 'Please log in to make a booking.');
-        }
-
         return Inertia::render('Web/home/ticketBooking/TicketBooking');
     }    public function ticketBooking()
     {

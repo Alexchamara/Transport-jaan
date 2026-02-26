@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
+import CompanyLogo from "../../CompanyLogo";
 import homepng from "../../../assets/superAdmin/HomeB.svg";
 import homepngW from "../../../assets/superAdmin/HomeW.svg";
 import drop from "../../../assets/superAdmin/Chevron Down.png";
@@ -69,6 +70,9 @@ const SideMenu = () => {
         } else if (window.location.pathname === "/superadmin/settings/commission" || window.location.pathname === "/SuperAdmin/settings/commission") {
             setActiveSubsection("CommissionSettings");
             setIsSettingsOpen(true);
+        } else if (window.location.pathname === "/superadmin/settings/website" || window.location.pathname === "/SuperAdmin/settings/website") {
+            setActiveSubsection("WebsiteSettings");
+            setIsSettingsOpen(true);
         }
     }, [window.location.pathname]);
 
@@ -119,17 +123,17 @@ const SideMenu = () => {
 
     return (
         <div className="w-[300px] h-[1000px] sm:w-[250px] md:w-[300px] lg:w-[300px]">
-            <div className="flex flex-col gap-5 px-[28px] py-[32px] shadow-lg shadow-[#0105114D] sm:px-4 md:px-[28px] lg:px-[28px]">
+            <div className="flex flex-col gap-0 px-[28px] py-[32px] shadow-lg shadow-[#0105114D] sm:px-4 md:px-[28px] lg:px-[28px]">
                 <Link
                     href="/SuperAdmin/Dashboard"
-                    className="text-white text-[25px] font-bold poppins mb-8 sm:text-[20px] md:text-[25px] lg:text-[25px] cursor-pointer"
+                    className="cursor-pointer"
                     onClick={() => handleMenuClick("Dashboard")}
                 >
-                    COMPANY LOGO
+                    <CompanyLogo className='h-[200px] object-contain' fallbackClassName='text-white text-[25px] font-bold poppins sm:text-[20px] md:text-[25px] lg:text-[25px]' />
                 </Link>
 
                 {/* Main Menu */}
-                <div className="w-[244px] flex flex-col gap-2 py-[10px] sm:w-[200px] md:w-[244px] lg:w-[244px]">
+                <div className="w-[244px] flex flex-col gap-2 mt-2 sm:w-[200px] md:w-[244px] lg:w-[244px]">
                     {/* Dashboard */}
                     <div
                         className={`w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] ${
@@ -473,7 +477,7 @@ const SideMenu = () => {
                 {/* Settings Dropdown */}
                 <div
                     className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
-                        isSettingsOpen ? "max-h-[200px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
+                        isSettingsOpen ? "max-h-[250px] opacity-100 py-4" : "max-h-0 opacity-0 py-0"
                     }`}
                 >
                     <Link
@@ -522,6 +526,22 @@ const SideMenu = () => {
                         onMouseLeave={() => setHoveredSection(null)}
                     >
                         Commission Settings
+                    </Link>
+
+                    <Link
+                        href="/superadmin/settings/website"
+                        className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer rounded-md ${
+                            activeSubsection === "WebsiteSettings"
+                                ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                : hoveredSection === "WebsiteSettings"
+                                ? "text-white bg-[#181A2A] border-l-transparent"
+                                : "text-[#AEB9E1] border-l-transparent"
+                        }`}
+                        onClick={() => setActiveSubsection("WebsiteSettings")}
+                        onMouseEnter={() => setHoveredSection("WebsiteSettings")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                    >
+                        Website Settings
                     </Link>
                 </div>
 

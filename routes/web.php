@@ -56,6 +56,15 @@ $render = function (string $view) {
 |--------------------------------------------------------------------------
 */
 
+// Media serving route for storage files (public access)
+Route::get('/storage/{path}', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'serveFile'])
+    ->name('storage.serve')
+    ->where('path', '.*');
+
+// Public logo endpoint - accessible to all pages
+Route::get('/website/logo/current', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'getCurrentLogo'])
+    ->name('website.logo.current');
+
 Route::get('/signup', [WebController::class, 'signup'])->name('signup.signup');
 Route::get('/signin', [WebController::class, 'signin'])->name('signin.signin');
 
@@ -111,14 +120,14 @@ Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 // Ticket booking (public screens)
 Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
 Route::get('/trainTicketBookingDetails', [TrainController::class, 'search'])->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
-Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->name('trainTicketBookingPreview.trainTicketBookingPreview')->middleware('auth');
+Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->name('trainTicketBookingPreview.trainTicketBookingPreview');
 Route::post('/train-bookings', [TrainController::class, 'store'])->name('train-bookings.store')->middleware('auth');
 Route::get('/train-booking-success/{reference}', [TrainController::class, 'bookingSuccess'])->name('train.booking.success')->middleware('auth');
 // Bus booking routes (all routes are public - no auth required)
 Route::get('/busTicketBookingDetails', [BusBookingController::class, 'search'])->name('busTicketBookingDetails.busTicketBookingDetails');
 Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store')->middleware('auth');
 Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success')->middleware('auth');
-Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview')->middleware('auth');
+Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview');
 
 // Bus ticket routes
 Route::get('/bus-ticket/download/{reference}', [BusBookingController::class, 'downloadTicket'])->name('bus.ticket.download')->middleware('auth');
@@ -410,6 +419,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::put('/cancellation', [\App\Http\Controllers\CancellationSettingsController::class, 'update'])->name('cancellation.update');
         
         Route::get('/commission', [\App\Http\Controllers\SuperAdmin\CommissionController::class, 'edit'])->name('commission.edit');
+        
+        Route::get('/website', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'index'])->name('website.index');
+        Route::post('/website/logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'uploadLogo'])->name('website.uploadLogo');
+        Route::get('/website/current-logo', [\App\Http\Controllers\SuperAdmin\WebsiteSettingsController::class, 'getCurrentLogo'])->name('website.currentLogo');
     });
 
     // Commission API Routes
