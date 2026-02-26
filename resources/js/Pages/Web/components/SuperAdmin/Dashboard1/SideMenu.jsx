@@ -65,7 +65,7 @@ const SideMenu = () => {
         } else if (window.location.pathname === "/SuperAdmin/Models") {
             setActiveSubsection("Models");
             setIsModelsOpen(true);
-        } else if (window.location.pathname === "/SuperAdmin/Vehicles") {
+        } else if (window.location.pathname === "/superadmin/Vehicles") {
             setActiveSubsection("Vehicles");
             setIsModelsOpen(true);
         } else if (window.location.pathname === "/SuperAdmin/Warehouse") {
@@ -431,7 +431,7 @@ const SideMenu = () => {
                         }`}
                     >
                         <Link
-                            href="/SuperAdmin/Vehicles"
+                            href="/superadmin/Vehicles"
                             className={`text-[14px] font-[500] px-4 py-2 ${
                                 activeSubsection === "Vehicles"
                                     ? "text-white bg-[#181A2A]"
@@ -442,6 +442,8 @@ const SideMenu = () => {
                             onClick={() => setActiveSubsection("Vehicles")}
                             onMouseEnter={() => setHoveredSection("Vehicles")}
                             onMouseLeave={() => setHoveredSection(null)}
+                            preserveState
+                            preserveScroll
                         >
                             Vehicles
                         </Link>
