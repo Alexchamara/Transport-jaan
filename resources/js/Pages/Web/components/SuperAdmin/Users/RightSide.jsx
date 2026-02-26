@@ -16,6 +16,7 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
     const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
     const [perPage, setPerPage] = useState(filters.per_page || 10);
+    const [showExportModal, setShowExportModal] = useState(false);
 
     // Sync local state with props when they change
     useEffect(() => {
@@ -25,40 +26,17 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
         setPerPage(filters.per_page || 10);
     }, [filters]);
 
-    // Auto-refresh mechanism for handling back navigation and stale data
+    // Debounced search - trigger search automatically when user types
     useEffect(() => {
-        // Check if we have inconsistent data state
-        const shouldHaveUsers = roleFilter === 'all' && statusFilter === 'all' && !searchTerm;
-        const hasCounts = counts && counts.total > 0;
-        const hasNoUsers = !users || users.length === 0;
-
-        // If we should have users based on counts but don't, refresh the data
-        if (hasNoUsers && shouldHaveUsers && hasCounts) {
-            console.log('Auto-refreshing: Data inconsistency detected');
-            router.get(baseRoute, { per_page: perPage }, {
-                preserveState: false,
-                replace: true
-            });
-            return;
-        }
-
-        // Also check when filters indicate we should have data but don't
-        if (hasNoUsers && counts && Object.keys(counts).length > 0) {
-            const totalExpected = counts.total || 0;
-            if (totalExpected > 0) {
-                console.log('Auto-refreshing: Expected users but none found');
-                router.get(baseRoute, {
-                    search: searchTerm,
-                    role: roleFilter,
-                    status: statusFilter,
-                    per_page: perPage,
-                }, {
-                    preserveState: false,
-                    replace: true
-                });
+        const delayDebounceFn = setTimeout(() => {
+            // Only perform search if searchTerm has changed from the filter prop
+            if (searchTerm !== (filters.search || '')) {
+                performSearch();
             }
-        }
-    }, [users, counts, roleFilter, statusFilter, searchTerm, perPage]);
+        }, 500); // Wait 500ms after user stops typing
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm]);
 
     // Handle page visibility change to refresh stale data
     useEffect(() => {
@@ -100,12 +78,6 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
         };
     }, [users, counts, searchTerm, roleFilter, statusFilter, perPage]);
 
-    const handleSearch = (e) => {
-        if (e.key === 'Enter') {
-            performSearch();
-        }
-    };
-
     const performSearch = () => {
         router.get(baseRoute, {
             search: searchTerm,
@@ -113,7 +85,8 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
             status: statusFilter,
             per_page: perPage,
         }, {
-            preserveState: false,
+            preserveState: true,
+            preserveScroll: true,
             replace: true
         });
     };
@@ -131,7 +104,8 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
         if (filterType === 'status') setStatusFilter(value);
 
         router.get(baseRoute, newFilters, {
-            preserveState: false,
+            preserveState: true,
+            preserveScroll: true,
             replace: true
         });
     };
@@ -144,7 +118,8 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
             status: statusFilter,
             per_page: newPerPage,
         }, {
-            preserveState: false,
+            preserveState: true,
+            preserveScroll: true,
             replace: true
         });
     };
@@ -157,34 +132,33 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
             per_page: perPage,
             page: page,
         }, {
-            preserveState: false,
+            preserveState: true,
+            preserveScroll: true,
             replace: true
         });
+    };
+
+    const handleExport = (format) => {
+        // Get current filtered data parameters
+        const exportParams = new URLSearchParams({
+            search: searchTerm,
+            role: roleFilter,
+            status: statusFilter,
+            format: format, // pdf, excel, or csv
+        });
+
+        // Trigger download
+        window.location.href = `${baseRoute}/export?${exportParams.toString()}`;
+        setShowExportModal(false);
     };
 
     return (
         <div className="flex flex-col gap-5 poppins">
             <div className="flex flex-col gap-5">
                 <div className="w-[1125px] h-[42px] flex flex-row justify-between items-center px-4 md:px-12 lg:px-47 my-6 md:my-10 lg:my-[25px]">
-                    <div className="flex flex-row justify-center items-center gap-6">
-                        <h1 className="text-white text-base md:text-lg lg:text-[24px] font-poppins">
-                            {pageTitle}
-                        </h1>
-                        <div className="flex flex-row items-center border border-[#343B4F] bg-[#0B1739] rounded-[4px] overflow-hidden px-2">
-                            <img
-                                src={Search}
-                                alt="Search"
-                                className="size-[12px]"
-                            />
-                            <input
-                                placeholder="Search for..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                onKeyPress={handleSearch}
-                                className="bg-transparent text-[#ffffff] text-[12px] outline-none border-none focus:outline-none focus:ring-0 p-2 w-full"
-                            />
-                        </div>
-                    </div>
+                    <h1 className="text-white text-base md:text-lg lg:text-[24px] font-poppins">
+                        {pageTitle}
+                    </h1>
 
                     <Link
                         className="text-white flex flex-row justify-end items-center gap-1 md:gap-2 border border-[#0E43FB] bg-[#0E43FB] px-2 md:px-4 py-2 rounded-[5px] text-xs md:text-sm"
@@ -284,13 +258,44 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
                 </div>
             </div>
 
-             {/* Filter buttons */}
-                <div className="flex flex-row gap-4 mx-12">
+             {/* Search and Filter Controls */}
+            <div className="w-[1125px] mx-[48px] mb-4">
+                <div className="w-[860px] mx-auto">
+                    <div className="flex flex-row gap-4 items-center">
+                    {/* Search Input */}
+                    <div className="flex flex-row items-center border border-[#343B4F] bg-[#0B1739] rounded-[5px] px-3 py-2 w-[500px]">
+                        <img
+                            src={Search}
+                            alt="Search"
+                            className="size-[14px] mr-2"
+                        />
+                        <input
+                            placeholder="Search by name, email, phone..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="bg-transparent text-[#ffffff] text-[14px] outline-none border-none focus:outline-none focus:ring-0 w-full"
+                        />
+                    </div>
+
+                    {/* Status Dropdown */}
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                        className="min-w-[140px] text-[14px] px-4 py-2 rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white cursor-pointer"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="verified">Verified</option>
+                        <option value="unverified">Unverified</option>
+                        <option value="blocked">Blocked</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+
+                    {/* Role Filter (only show if showRoleFilter is true) */}
                     {showRoleFilter && (
                     <select
                         value={roleFilter}
                         onChange={(e) => handleFilterChange('role', e.target.value)}
-                        className="w-[110px] text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                        className="min-w-[140px] text-[14px] px-4 py-2 rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white cursor-pointer"
                     >
                         <option value="all">All Roles</option>
                         <option value="client">Clients</option>
@@ -299,18 +304,27 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
                     </select>
                     )}
 
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => handleFilterChange('status', e.target.value)}
-                        className="w-[110px] text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                    {/* Filters Button */}
+                    {/* <button className="flex flex-row items-center gap-2 px-4 py-2 border border-[#343B4F] bg-[#0B1739] text-white rounded-[5px] hover:bg-[#181A2A] transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 4H14M4 8H12M6 12H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                        <span className="text-[14px]">Filters</span>
+                    </button> */}
+
+                    {/* Export Button */}
+                    <button 
+                        onClick={() => setShowExportModal(true)}
+                        className="flex flex-row items-center gap-2 px-4 py-2 border border-[#343B4F] bg-[#0B1739] text-white rounded-[5px] hover:bg-[#181A2A] transition-colors"
                     >
-                        <option value="all">All Status</option>
-                        <option value="verified">Verified</option>
-                        <option value="unverified">Unverified</option>
-                        <option value="blocked">Blocked</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 10V2M8 10L10.5 7.5M8 10L5.5 7.5M2 14H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-[14px]">Export</span>
+                    </button>
                 </div>
+            </div>
+            </div>
 
             <div className="w-[1125px] h-auto mx-[48px] ">
                 <div className="w-[1035px] h-auto border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
@@ -355,6 +369,97 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
                     </h1>
                 </div>
             </div>
+
+            {/* Export Modal */}
+            {showExportModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-[420px] p-6">
+                        {/* Modal Header */}
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-semibold text-gray-900">Export {pageTitle}</h2>
+                            <button 
+                                onClick={() => setShowExportModal(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Modal Subtitle */}
+                        <p className="text-sm text-gray-600 mb-6">
+                            Export all {pagination.total || 0} filtered users
+                        </p>
+
+                        {/* Export Options */}
+                        <div className="space-y-3">
+                            {/* Export as PDF */}
+                            <button
+                                onClick={() => handleExport('pdf')}
+                                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M6 2H14L18 6V16C18 17.1046 17.1046 18 16 18H4C2.89543 18 2 17.1046 2 16V4C2 2.89543 2.89543 2 4 2H6Z" stroke="#DC2626" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-medium text-gray-900">Export as PDF</p>
+                                        <p className="text-sm text-gray-500">Printable document format</p>
+                                    </div>
+                                </div>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M7.5 15L12.5 10L7.5 5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+
+                            {/* Export as Excel */}
+                            <button
+                                onClick={() => handleExport('excel')}
+                                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M6 2H14L18 6V16C18 17.1046 17.1046 18 16 18H4C2.89543 18 2 17.1046 2 16V4C2 2.89543 2.89543 2 4 2H6Z" stroke="#059669" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-medium text-gray-900">Export as Excel</p>
+                                        <p className="text-sm text-gray-500">Spreadsheet format (.xlsx)</p>
+                                    </div>
+                                </div>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M7.5 15L12.5 10L7.5 5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+
+                            {/* Export as CSV */}
+                            <button
+                                onClick={() => handleExport('csv')}
+                                className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M6 2H14L18 6V16C18 17.1046 17.1046 18 16 18H4C2.89543 18 2 17.1046 2 16V4C2 2.89543 2.89543 2 4 2H6Z" stroke="#2563EB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-medium text-gray-900">Export as CSV</p>
+                                        <p className="text-sm text-gray-500">Comma-separated values</p>
+                                    </div>
+                                </div>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M7.5 15L12.5 10L7.5 5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
