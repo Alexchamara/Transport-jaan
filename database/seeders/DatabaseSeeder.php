@@ -52,10 +52,10 @@ class DatabaseSeeder extends Seeder
             FlightBookingSeeder::class,
 
             // Bus & Train
-            BusStationSeeder::class,
-            BusSeeder::class,
-            BusScheduleSeeder::class,
-            BusBookingSeeder::class,
+            // BusStationSeeder::class,
+            // BusSeeder::class,
+            // BusScheduleSeeder::class,
+            // BusBookingSeeder::class,
 
             TrainStationSeeder::class,
             TrainSeeder::class,
@@ -64,6 +64,9 @@ class DatabaseSeeder extends Seeder
 
             // Warehouse
             WarehouseUnitSeeder::class,
+
+            // Service Categories for vendor registration
+            ServiceCategorySeeder::class,
         ]);
     }
 }

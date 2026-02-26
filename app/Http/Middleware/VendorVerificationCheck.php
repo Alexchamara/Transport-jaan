@@ -33,9 +33,12 @@ class VendorVerificationCheck
             $isVendorDashboard     = $request->path() === 'vendors/dashboard' || $request->route()?->getName() === 'vendors.dashboard';
             $isWarehouseDashboard  = $request->path() === 'vendors/warehouse/dashboard' || $request->route()?->getName() === 'vendors.warehouse.dashboard';
             $isVehicleClientTable           = $request->path() === 'vendors/clients' || $request->route()?->getName() === 'vendors.clients';
-            
-            // Allow unverified vendors to access their dashboards
-            if ($isVendorAllBookings || $isVendorDashboard || $isWarehouseDashboard || $isVehicleClientTable) {
+
+            // Allow unverified vendors to access vendor profile/registration routes
+            $isVendorProfile = str_starts_with($request->path(), 'vendor/profile') || str_starts_with($request->route()?->getName() ?? '', 'vendor.profile');
+
+            // Allow unverified vendors to access their dashboards and profile page
+            if ($isVendorAllBookings || $isVendorDashboard || $isWarehouseDashboard || $isVehicleClientTable || $isVendorProfile) {
                 return $next($request);
             }
 

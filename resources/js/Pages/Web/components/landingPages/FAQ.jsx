@@ -67,7 +67,7 @@ const FAQ = () => {
     };
 
     return (
-        <div className="poppins py-10 px-10">
+        <div className="poppins py-5 px-10">
             <div>
                 {/* heading */}
                 <div className="flex flex-row justify-center items-center gap-5">

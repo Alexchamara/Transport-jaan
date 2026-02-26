@@ -4,7 +4,7 @@ import box from "../../assets/landingPages/box.svg";
 const Why = () => {
     return (
         <div>
-            <div className="poppins py-10 px-10">
+            <div className="poppins py-5 px-10">
                 {/* heading */}
                 <div className="flex flex-row justify-center items-center gap-5">
                     <div className="xl:w-[112px] w-[30px] h-[1.8px] bg-[#FF7003]" />

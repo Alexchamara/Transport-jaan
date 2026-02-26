@@ -11,16 +11,18 @@ import ArrowLeftB from "../../../assets/superAdmin/Arrow LeftB.svg";
 import ArrowRight from "../../../assets/superAdmin/Arrow Right.svg";
 import { Link, router } from "@inertiajs/react";
 
-const RightSide = ({ users = [], counts = {}, filters = {} }) => {
+const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pageTitle = 'Users', baseRoute = '/superadmin/Users', showClientsCard = true, showVendorsCard = true, showRoleFilter = true }) => {
     const [searchTerm, setSearchTerm] = useState(filters.search || '');
     const [roleFilter, setRoleFilter] = useState(filters.role || 'all');
     const [statusFilter, setStatusFilter] = useState(filters.status || 'all');
+    const [perPage, setPerPage] = useState(filters.per_page || 10);
 
     // Sync local state with props when they change
     useEffect(() => {
         setSearchTerm(filters.search || '');
         setRoleFilter(filters.role || 'all');
         setStatusFilter(filters.status || 'all');
+        setPerPage(filters.per_page || 10);
     }, [filters]);
 
     // Auto-refresh mechanism for handling back navigation and stale data
@@ -33,7 +35,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
         // If we should have users based on counts but don't, refresh the data
         if (hasNoUsers && shouldHaveUsers && hasCounts) {
             console.log('Auto-refreshing: Data inconsistency detected');
-            router.get('/superadmin/Users', {}, {
+            router.get(baseRoute, { per_page: perPage }, {
                 preserveState: false,
                 replace: true
             });
@@ -45,27 +47,29 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
             const totalExpected = counts.total || 0;
             if (totalExpected > 0) {
                 console.log('Auto-refreshing: Expected users but none found');
-                router.get('/superadmin/Users', {
+                router.get(baseRoute, {
                     search: searchTerm,
                     role: roleFilter,
-                    status: statusFilter
+                    status: statusFilter,
+                    per_page: perPage,
                 }, {
                     preserveState: false,
                     replace: true
                 });
             }
         }
-    }, [users, counts, roleFilter, statusFilter, searchTerm]);
+    }, [users, counts, roleFilter, statusFilter, searchTerm, perPage]);
 
     // Handle page visibility change to refresh stale data
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (!document.hidden && (!users || users.length === 0) && counts && counts.total > 0) {
                 console.log('Auto-refreshing: Page became visible with stale data');
-                router.get('/superadmin/Users', {
+                router.get(baseRoute, {
                     search: searchTerm,
                     role: roleFilter,
-                    status: statusFilter
+                    status: statusFilter,
+                    per_page: perPage,
                 }, {
                     preserveState: false,
                     replace: true
@@ -76,10 +80,11 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
         // Handle browser back/forward navigation
         const handlePopState = () => {
             console.log('Auto-refreshing: Browser navigation detected');
-            router.get('/superadmin/Users', {
+            router.get(baseRoute, {
                 search: searchTerm,
                 role: roleFilter,
-                status: statusFilter
+                status: statusFilter,
+                per_page: perPage,
             }, {
                 preserveState: false,
                 replace: true
@@ -93,7 +98,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('popstate', handlePopState);
         };
-    }, [users, counts, searchTerm, roleFilter, statusFilter]);
+    }, [users, counts, searchTerm, roleFilter, statusFilter, perPage]);
 
     const handleSearch = (e) => {
         if (e.key === 'Enter') {
@@ -102,10 +107,11 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
     };
 
     const performSearch = () => {
-        router.get('/superadmin/Users', {
+        router.get(baseRoute, {
             search: searchTerm,
             role: roleFilter,
-            status: statusFilter
+            status: statusFilter,
+            per_page: perPage,
         }, {
             preserveState: false,
             replace: true
@@ -117,13 +123,40 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
             search: searchTerm,
             role: roleFilter,
             status: statusFilter,
+            per_page: perPage,
             [filterType]: value
         };
 
         if (filterType === 'role') setRoleFilter(value);
         if (filterType === 'status') setStatusFilter(value);
 
-        router.get('/superadmin/Users', newFilters, {
+        router.get(baseRoute, newFilters, {
+            preserveState: false,
+            replace: true
+        });
+    };
+
+    const handlePerPageChange = (newPerPage) => {
+        setPerPage(newPerPage);
+        router.get(baseRoute, {
+            search: searchTerm,
+            role: roleFilter,
+            status: statusFilter,
+            per_page: newPerPage,
+        }, {
+            preserveState: false,
+            replace: true
+        });
+    };
+
+    const handlePageChange = (page) => {
+        router.get(baseRoute, {
+            search: searchTerm,
+            role: roleFilter,
+            status: statusFilter,
+            per_page: perPage,
+            page: page,
+        }, {
             preserveState: false,
             replace: true
         });
@@ -135,7 +168,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                 <div className="w-[1125px] h-[42px] flex flex-row justify-between items-center px-4 md:px-12 lg:px-47 my-6 md:my-10 lg:my-[25px]">
                     <div className="flex flex-row justify-center items-center gap-6">
                         <h1 className="text-white text-base md:text-lg lg:text-[24px] font-poppins">
-                            Users
+                            {pageTitle}
                         </h1>
                         <div className="flex flex-row items-center border border-[#343B4F] bg-[#0B1739] rounded-[4px] overflow-hidden px-2">
                             <img
@@ -187,6 +220,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                 </div>
 
                 {/* Card2 */}
+                {showClientsCard && (
                 <div className="w-[243px] h-[80px] border border-[#343B4F] bg-[#0B1739] my-4 rounded-[10px]">
                     <div className="w-[220px] flex flex-row justify-between items-center">
                         <div className="px-2 py-4 flex flex-row items-center gap-2">
@@ -205,8 +239,10 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         <img src={DotsThreeY} />
                     </div>
                 </div>
+                )}
 
                 {/* Card3 */}
+                {showVendorsCard && (
                 <div className="w-[243px] h-[80px] border border-[#343B4F] bg-[#0B1739] my-4 rounded-[10px]">
                     <div className="w-[220px] flex flex-row justify-between items-center">
                         <div className="px-2 py-4 flex flex-row items-center gap-2">
@@ -225,6 +261,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         <img src={DotsThreeY} />
                     </div>
                 </div>
+                )}
 
                 {/* Card4 */}
                 <div className="w-[243px] h-[80px] border border-[#343B4F] bg-[#0B1739] my-4 rounded-[10px]">
@@ -249,6 +286,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
 
              {/* Filter buttons */}
                 <div className="flex flex-row gap-4 mx-12">
+                    {showRoleFilter && (
                     <select
                         value={roleFilter}
                         onChange={(e) => handleFilterChange('role', e.target.value)}
@@ -259,6 +297,7 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
                         <option value="vendor">Service Providers</option>
                         <option value="freight">Freight Users</option>
                     </select>
+                    )}
 
                     <select
                         value={statusFilter}
@@ -282,18 +321,34 @@ const RightSide = ({ users = [], counts = {}, filters = {} }) => {
             <div>
                 <div className="flex flex-row justify-between items-center mt-5 mx-[48px] w-[1032px]">
                     <h1 className="text-white text-[12px] font-500">
-                        {users.length > 0 ? `1 - ${users.length}` : '0'} of {counts.total || 0}
+                        {pagination.from || 0} - {pagination.to || 0} of {pagination.total || 0}
                     </h1>
                     <h1 className="text-[#AEB9E1] text-[12px] font-500 flex flex-row justify-center items-center gap-6">
                         Rows per page:
-                        <span className=" flex flex-row justify-center items-center gap-1 text-white border border-[#0B1739] bg-[#0A1330] py-[6px] px-[8px] ">
-                            10 <img src={DropDownB} className="size-[12px]" />
-                        </span>
+                        <select
+                            value={perPage}
+                            onChange={(e) => handlePerPageChange(parseInt(e.target.value))}
+                            className="flex flex-row justify-center items-center gap-1 text-white border border-[#0B1739] bg-[#0A1330] py-[6px] px-[8px] cursor-pointer"
+                        >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
                         <div className="flex flex-row justify-center items-center gap-2">
-                            <button className="border border-[#0B1739] bg-[#0A1330] p-[6px]">
+                            <button 
+                                onClick={() => handlePageChange(pagination.current_page - 1)}
+                                disabled={pagination.current_page <= 1}
+                                className="border border-[#0B1739] bg-[#0A1330] p-[6px] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
                                 <img src={ArrowLeftB} className="size-[14px]" />
                             </button>
-                            <button className="border border-[#0B1739] bg-[#0A1330] p-[6px]">
+                            <button 
+                                onClick={() => handlePageChange(pagination.current_page + 1)}
+                                disabled={pagination.current_page >= pagination.last_page}
+                                className="border border-[#0B1739] bg-[#0A1330] p-[6px] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
                                 <img src={ArrowRight} className="size-[14px]" />
                             </button>
                         </div>

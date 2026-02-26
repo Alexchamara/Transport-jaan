@@ -1,10 +1,10 @@
 import React from "react";
-import { usePage } from "@inertiajs/react";
-import { AlertTriangle, Clock, XCircle, ShieldOff } from "lucide-react";
+import { usePage, Link } from "@inertiajs/react";
+import { AlertTriangle, Clock, XCircle, ShieldOff, ArrowRight } from "lucide-react";
 
 /**
  * Displays a status banner based on the vendor's account status.
- * - unverified  → orange  "Account Not Verified"
+ * - unverified  → orange  "Account Not Verified" + CTA to complete profile
  * - inreview    → blue    "Account Under Review"
  * - rejected    → red     "Account Rejected" + reason
  * - blocked     → dark    "Account Blocked"
@@ -23,10 +23,19 @@ const UnverifiedBanner = ({ className = "" }) => {
             icon: <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-500" />,
             title: "Account Not Verified",
             body: (
-                <p className="text-amber-700 text-xs mt-0.5">
-                    You are viewing <strong>sample data</strong>. Your account is pending verification.
-                    Please complete the verification process to access real data and unlock all features.
-                </p>
+                <div>
+                    <p className="text-amber-700 text-xs mt-0.5">
+                        You are viewing <strong>sample data</strong>. Your account is pending verification.
+                        Please complete your business profile and register for services to get verified.
+                    </p>
+                    <Link
+                        href="/vendor/profile"
+                        className="inline-flex items-center gap-1.5 mt-2 px-4 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors"
+                    >
+                        Complete Your Profile
+                        <ArrowRight className="w-3 h-3" />
+                    </Link>
+                </div>
             ),
         },
         inreview: {

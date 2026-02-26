@@ -15,7 +15,7 @@ const Blog = () => {
                     "radial-gradient(closest-side at center, #32261D 0%, #000000 100%)",
             }}
         >
-            <div className="poppins py-10 px-10 xl:px-20">
+            <div className="poppins py-5 px-10 xl:px-20">
                 {/* heading */}
                 <div className="flex flex-row justify-center items-center gap-5">
                     <div className="xl:w-[112px] w-[40px] h-[1.8px] bg-[#FF7003]" />
