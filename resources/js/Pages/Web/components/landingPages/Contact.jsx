@@ -7,7 +7,7 @@ import { Textarea } from "@headlessui/react";
 const Contact = () => {
     return (
         <div>
-            <div className="poppins p-10 xl:py-20 xl:px-20">
+            <div className="poppins p-10 xl:py-5 xl:px-20">
                 <div className="flex xl:flex-row flex-col gap-20 justify-center items-center xl:items-start xl:px-20">
                     <div className="flex flex-col gap-10">
                         {/* heading */}
