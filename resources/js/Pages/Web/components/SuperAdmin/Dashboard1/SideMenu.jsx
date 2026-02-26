@@ -25,6 +25,7 @@ const SideMenu = () => {
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [isReportsOpen, setIsReportsOpen] = useState(false);
     const [isModelsOpen, setIsModelsOpen] = useState(false);
+    const [isUsersOpen, setIsUsersOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [hoveredSection, setHoveredSection] = useState(null); // Track hovered section
@@ -36,6 +37,13 @@ const SideMenu = () => {
             setIsDashboardOpen(true);
         } else if (window.location.pathname === "/SuperAdmin/Users") {
             setActiveSubsection("Users");
+            setIsUsersOpen(true);
+        } else if (window.location.pathname === "/superadmin/users/clients") {
+            setActiveSubsection("Clients");
+            setIsUsersOpen(true);
+        } else if (window.location.pathname === "/superadmin/users/service-providers") {
+            setActiveSubsection("ServiceProviders");
+            setIsUsersOpen(true);
         } else if (window.location.pathname === "/SuperAdmin/reports/vehicles") {
             setActiveSubsection("VehicleReports");
             setIsReportsOpen(true);
@@ -111,6 +119,14 @@ const SideMenu = () => {
             setIsModelsOpen((prev) => !prev); // toggle open/close
             setIsDashboardOpen(false);
             setIsReportsOpen(false);
+            setIsUsersOpen(false);
+            setIsSettingsOpen(false);
+            setIsAccountOpen(false);
+        } else if (menu === "Users") {
+            setIsUsersOpen((prev) => !prev); // toggle open/close
+            setIsDashboardOpen(false);
+            setIsReportsOpen(false);
+            setIsModelsOpen(false);
             setIsSettingsOpen(false);
             setIsAccountOpen(false);
         } else if (menu === "Settings") {
@@ -118,17 +134,20 @@ const SideMenu = () => {
             setIsDashboardOpen(false);
             setIsReportsOpen(false);
             setIsModelsOpen(false);
+            setIsUsersOpen(false);
             setIsAccountOpen(false);
         } else if (menu === "AccountSettings") {
             setIsAccountOpen((prev) => !prev); // toggle open/close
             setIsDashboardOpen(false);
             setIsReportsOpen(false);
             setIsModelsOpen(false);
+            setIsUsersOpen(false);
             setIsSettingsOpen(false);
         } else {
             setIsDashboardOpen(false);
             setIsReportsOpen(false);
             setIsModelsOpen(false);
+            setIsUsersOpen(false);
             setIsSettingsOpen(false);
             setIsAccountOpen(false);
         }
@@ -512,12 +531,11 @@ const SideMenu = () => {
                     </div>
 
                     {/* Users */}
-                    <Link
-                        href="/SuperAdmin/Users"
-                        className={`w-[244px] h-[42px] flex flex-row justify-between items-center cursor-pointer px-4 ${
-                            activeSubsection === "Users"
-                                ? "bg-[#181A2A] rounded-[10px]"
-                                : "hover:bg-[#181A2A] hover:rounded-[10px]"
+                    <div
+                        className={`w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] ${
+                            activeSubsection === "Users" || isUsersOpen
+                                ? "bg-[#181A2A]"
+                                : "hover:bg-[#181A2A]"
                         }`}
                         onClick={() => handleMenuClick("Users")}
                         onMouseEnter={() => setHoveredSection("Users")}
@@ -527,7 +545,7 @@ const SideMenu = () => {
                             <img
                                 src={
                                     hoveredSection === "Users" ||
-                                    activeSubsection === "Users"
+                                    activeSubsection === "Users" || isUsersOpen
                                         ? usersW
                                         : users
                                 }
@@ -536,7 +554,7 @@ const SideMenu = () => {
                             <h1
                                 className={`font-[500] text-[18px] ${
                                     activeSubsection === "Users" ||
-                                    hoveredSection === "Users"
+                                    hoveredSection === "Users" || isUsersOpen
                                         ? "text-white"
                                         : "text-[#AEB9E1]"
                                 }`}
@@ -544,8 +562,52 @@ const SideMenu = () => {
                                 Users
                             </h1>
                         </div>
-                        {/* <img src={dropl} className="size-[12px]" /> */}
-                    </Link>
+                        <img
+                            src={isUsersOpen ? drop : dropl}
+                            className="size-[12px] transition-transform duration-300"
+                            alt={isUsersOpen ? "Collapse" : "Expand"}
+                        />
+                    </div>
+
+                    {/* Users Dropdown */}
+                    <div
+                        className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
+                            isUsersOpen
+                                ? "max-h-[200px] opacity-100 py-4"
+                                : "max-h-0 opacity-0 py-0"
+                        }`}
+                    >
+                        <Link
+                            href="/superadmin/users/clients"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "Clients"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "Clients"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("Clients")}
+                            onMouseEnter={() => setHoveredSection("Clients")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Clients
+                        </Link>
+                        <Link
+                            href="/superadmin/users/service-providers"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "ServiceProviders"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "ServiceProviders"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("ServiceProviders")}
+                            onMouseEnter={() => setHoveredSection("ServiceProviders")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Service Providers
+                        </Link>
+                    </div>
 
                     {/* Vender */}
                     <Link

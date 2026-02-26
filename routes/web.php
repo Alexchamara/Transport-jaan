@@ -360,6 +360,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     // User Management Routes
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('index');
+        Route::get('/clients', [\App\Http\Controllers\SuperAdmin\UserController::class, 'clients'])->name('clients');
+        Route::get('/service-providers', [\App\Http\Controllers\SuperAdmin\UserController::class, 'serviceProviders'])->name('serviceProviders');
         Route::get('/create', [\App\Http\Controllers\SuperAdmin\UserController::class, 'create'])->name('create');
         Route::post('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'store'])->name('store');
         Route::get('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'show'])->name('show');
