@@ -20,6 +20,7 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 
 import CarBookingTableTwo from "../../../../components/vendors/courierService/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 import { ChevronDown, Settings as SettingsIcon } from "lucide-react";
 
@@ -28,6 +29,17 @@ import UserDropdown from "../../UserDropdown";
 const BookingContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Courier Service';
+    const services = [
+        { name: 'All Bookings', route: route('vendorAllBookings') },
+        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+        { name: 'Courier Service', route: route('courierService.dashboard') },
+        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+        { name: 'Freight', route: route('freight.dashboard') },
+        { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F314D", bg: "#ACE19957" },
@@ -182,20 +194,24 @@ const BookingContent = () => {
     };
 
     return (
-        <div className="w-full h-auto pr-5 py-10">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("courierService.settingsPage")} />
+        </div>
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
+            <div className="flex flex-row gap-5 justify-between items-center mb-6">
                 <h1 className="figtree text-[35px] font-[700]">
                     Courier Service Bookings
                 </h1>
-                <div className="flex flex-row gap-5 relative items-center">
+                {/* <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown />
-                </div>
+                </div> */}
             </div>
             {/* end of header section */}
 
             {/* Mini Cards + Chart */}
-            <div className="flex flex-row gap-10 justify-between py-20 w-full">
+            <div className="flex flex-row gap-10 justify-between w-full">
                 <div className="flex flex-col gap-8 w-full">
                     {/* Card 1 */}
                     <div
@@ -557,6 +573,7 @@ const BookingContent = () => {
                 />
             </div>
         </div>
+        </>
     );
 };
 

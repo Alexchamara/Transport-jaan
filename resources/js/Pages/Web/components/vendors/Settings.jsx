@@ -259,14 +259,11 @@ const Settings = () => {
           <h1 className="figtree text-[28px] sm:text-[35px] font-[700] text-center">
             Service Provider Profile Settings
           </h1>
-          <div className="flex flex-row gap-3 sm:gap-5 relative items-center w-full sm:w-auto justify-center xl:justify-end">
-            <UserDropdown settingsRoute={route("settingsPage")} />
-          </div>
         </div>
 
         <form onSubmit={submitAll} className="space-y-8 mt-8 sm:mt-10" noValidate>
           {/* ====================== PROFILE ====================== */}
-          <EditableSection
+          <EditableSection  
             title="Profile"
             description="Update your photo and personal details."
             isEditing={editing.profile}

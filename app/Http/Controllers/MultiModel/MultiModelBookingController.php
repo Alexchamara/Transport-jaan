@@ -377,8 +377,8 @@ class MultiModelBookingController extends Controller
         if (!$userId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Please login to complete your booking',
-                'redirect_url' => route('login')
+                'message' => 'Please Sign in to complete your booking',
+                'redirect_url' => route('signin')
             ], 401);
         }
 

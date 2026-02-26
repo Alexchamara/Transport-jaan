@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import WarehouseBookingService from "../../../../../../services/WarehouseBookingService";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.svg";
@@ -57,7 +58,17 @@ const BookingContent = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [warehouseNotifications, setWarehouseNotifications] = useState([]);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
-
+  const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+  const activeService = 'Warehousing';
+  const services = [
+    { name: 'All Bookings', route: route('vendorAllBookings') },
+    { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+    { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+    { name: 'Courier Service', route: route('courierService.dashboard') },
+    { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+    { name: 'Freight', route: route('freight.dashboard') },
+    { name: 'Multimodal', route: route('multiModelHomepage.home') }
+  ];
   // Fetch bookings and stats
   useEffect(() => {
     let isMounted = true;
@@ -173,9 +184,13 @@ const BookingContent = () => {
   ];
 
   return (
-    <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
+    <>
+    <div className="sticky top-0 z-30">
+      <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
+    </div>
+    <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
       {/* Header section */}
-      <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
+      <div className="flex md:flex-row flex-col gap-5 justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left md:mt-0">
             Warehouse Bookings
@@ -314,6 +329,11 @@ const BookingContent = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+    </div>
+    </>
   );
 };
 

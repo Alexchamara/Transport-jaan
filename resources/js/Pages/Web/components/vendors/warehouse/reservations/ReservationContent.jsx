@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { usePage } from "@inertiajs/react";
 import axios from "axios";
 import { API_BASE_URL } from "../../../../../../config/api";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
@@ -19,6 +20,21 @@ import UserDropdown from "../../../vendors/UserDropdown";
 
 
 const ReservationContent = () => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Warehousing';
+    const services = [
+      { name: 'All Bookings', route: route('vendorAllBookings') },
+      { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+      { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+      { name: 'Courier Service', route: route('courierService.dashboard') },
+      { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+      { name: 'Freight', route: route('freight.dashboard') },
+      { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
+
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -356,7 +372,11 @@ const ReservationContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <div className="w-full h-auto lg:pr-5 px-5 lg:px-0 py-10">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
+        </div>
+        <div className="w-full h-auto lg:pr-5 px-5 lg:px-0 py-10 pt-6 pb-12">
             {/* Header */}
             <div className="flex lg:flex-row flex-col gap-5 justify-between items-center mt-10">
                 <h1 className="figtree text-[35px] font-[700] text-center">
@@ -1397,6 +1417,7 @@ const ReservationContent = () => {
                 </div>
             )}
         </div>
+        </>
     );
 };
 

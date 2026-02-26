@@ -9,7 +9,9 @@ const UserDropdown = ({ settingsRoute }) => {
   const user = auth?.user;
 
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
   const dropdownRef = useRef(null);
+  const triggerRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -41,11 +43,23 @@ const UserDropdown = ({ settingsRoute }) => {
     );
   };
 
+  const handleToggle = () => {
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 6,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setIsOpen((prev) => !prev);
+  };
+
   return (
     <div ref={dropdownRef} className="relative">
       <div
+        ref={triggerRef}
         className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 max-w-full"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={handleToggle}
       >
         <div className="w-[40px] h-[40px] lg:w-[60px] lg:h-[60px] rounded-full lg:rounded-[10px] bg-[#E8E8EF] flex justify-center items-center overflow-hidden text-xl font-bold text-[#7B7B7A]">
           {user?.image ? (
@@ -81,7 +95,8 @@ const UserDropdown = ({ settingsRoute }) => {
 
       {isOpen && (
         <div
-          className="absolute top-[70px] right-0 w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+          className="fixed w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[9999]"
+          style={{ top: dropdownPos.top, right: dropdownPos.right }}
         >
           <Link
             href={settingsRoute}

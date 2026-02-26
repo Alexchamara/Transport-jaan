@@ -35,12 +35,25 @@ const transportIconForUnit = (unit, size = 120) => {
     return <BusFront size={size} />;
 };
 import UserDropdown from "../../UserDropdown";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar.jsx";
 
 import AddUnit from "../../../../home/vendors/ticketBooking/AddUnit";
 
 const UnitContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Ticket Booking';
+
+    const services = [
+        { name: 'All Bookings', route: route('vendorAllBookings') },
+        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+        { name: 'Courier Service', route: route('courierService.dashboard') },
+        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+        { name: 'Freight', route: route('freight.dashboard') },
+        { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
 
     // Sample data array for units
     const units = [
@@ -289,17 +302,27 @@ const UnitContent = () => {
     };
 
     return (
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar 
+                services={services}
+                isVerified={isVerified}
+                activeService={activeService}
+                settingsRoute={route("ticketBooking.settingsPage")}
+            />
+        </div>
         <div className="w-full h-auto px-5 py-5 lg:px-0 lg:pr-5 lg:py-10">
+
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
                 <h1 className="figtree text-[28px] md:text-[35px] font-[700]">
                     Ticket Units
                 </h1>
-                <div className="flex flex-row gap-5 relative items-center">
+                {/* <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown
                         settingsRoute={route("freight.settingsPage")}
                     />
-                </div>
+                </div> */}
             </div>
             {/* end of header section */}
 
@@ -484,6 +507,7 @@ const UnitContent = () => {
                 </>
             )}
         </div>
+        </>
     );
 };
 

@@ -109,7 +109,7 @@ const ReviewsTab = ({ warehouse }) => {
     
     // Check if user is authenticated
     if (!props?.auth?.user) {
-      router.get(route?.("login") ?? "/login", { return_to: window.location.pathname });
+      router.get(route?.("signin") ?? "/signin", { return_to: window.location.pathname });
       return;
     }
 
@@ -166,7 +166,7 @@ const ReviewsTab = ({ warehouse }) => {
 
   const openReviewModal = () => {
     if (!props?.auth?.user) {
-      router.get(route?.("login") ?? "/login", { return_to: window.location.pathname });
+      router.get(route?.("signin") ?? "/signin", { return_to: window.location.pathname });
       return;
     }
     setShowReviewModal(true);

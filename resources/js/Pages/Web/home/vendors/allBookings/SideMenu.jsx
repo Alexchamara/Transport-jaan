@@ -11,192 +11,309 @@ import messgLogo from "../../../assets/vendors/dashboard/messgLogo.svg";
 import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg";
 import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 
-import { Settings, Bell, Menu, ChevronDown, ChevronRight } from "lucide-react";
+import { Settings, Bell, Menu, ChevronDown, ChevronRight, ArrowLeft, User } from "lucide-react";
 import { Link } from "@inertiajs/react";
 
 const SideMenu = () => {
-    const [collapsed, setCollapsed] = useState(false);
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
+    const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
     const currentPath = window.location.pathname;
-
-    // Nav items
-    const navItems = [
-        { icon: dashLogo,     label: "Dashboard", href: "/vendorAllBookings",          path: "/vendorAllBookings"          },
-        { icon: bookLogo,     label: "Bookings",  href: "/vendorAllBookings/bookings", path: "/vendorAllBookings/bookings" },
-        { icon: calendarLogo, label: "Calendar",  href: "/vendors/calendar",           path: "/vendors/calendar"           },
-        { icon: clientsLogo,  label: "Clients",   href: "/vendorAllBookings/clients",  path: "/vendorAllBookings/clients"  },
-        { icon: uniLogo,      label: "Profile",   href: "", path: ""},
-    ];
-
-    const isActive = (path) => currentPath === path;
-    const isFinancialActive = ["/vendors/payment", "/vendors/expenses"].includes(currentPath);
 
     return (
         <>
+            {/* Custom Scrollbar – same as first */}
             <style>{`
-                .sidebar-scroll::-webkit-scrollbar { width: 4px; }
-                .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-                .sidebar-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-                .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
-                .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
-                .sidebar-tooltip {
-                    position: absolute;
-                    left: calc(100% + 12px);
-                    top: 50%;
-                    transform: translateY(-50%);
-                    background: #1f2937;
-                    color: #fff;
-                    font-size: 13px;
-                    font-weight: 500;
-                    padding: 5px 10px;
-                    border-radius: 6px;
-                    white-space: nowrap;
-                    pointer-events: none;
-                    opacity: 0;
-                    transition: opacity 0.15s;
-                    z-index: 100;
-                }
-                .sidebar-tooltip::before {
-                    content: '';
-                    position: absolute;
-                    right: 100%;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    border: 5px solid transparent;
-                    border-right-color: #1f2937;
-                }
-                .nav-item-wrap:hover .sidebar-tooltip { opacity: 1; }
-            `}</style>
+        .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 3px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
+      `}</style>
 
-            <div
-                className={`poppins h-screen bg-[#FFFFFF] flex flex-col py-4 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden transition-all duration-300 flex-shrink-0
-                ${collapsed ? "w-[72px] px-3" : "w-[250px] px-6"}`}
-            >
-                {/* ── Top: Toggle + Logo ── */}
-                <div className={`flex-shrink-0 mb-6 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
-                    {!collapsed && (
-                        <h1
-                            className="text-[18px] font-[700] uppercase leading-tight cursor-pointer select-none"
-                            onClick={() => (window.location.href = "/")}
-                        >
-                            Company <br />
-                            <span className="text-[#0955AC]">Logo</span>
-                        </h1>
-                    )}
+            <div className="poppins min-w-[250px] min-h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
+                {/* Logo - Fixed at top with Back Button */}
+                <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
                     <button
-                        onClick={() => {
-                            setCollapsed((c) => !c);
-                            if (!collapsed) setShowFinancialDropdown(false);
-                        }}
-                        className="p-2 rounded-[8px] hover:bg-[#F3F3F3] transition-colors flex-shrink-0"
-                        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                        onClick={() =>
+                            (window.location.href = "/vendorAllBookings")
+                        }
+                        className="absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Go to Dashboard"
                     >
-                        <Menu className="w-5 h-5 text-gray-600" />
+                        <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </button>
+                    <h1
+                        className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
+                        onClick={() =>
+                            (window.location.href = "/vendorAllBookings")
+                        }
+                    >
+                        Company <br />
+                        <span className="text-[#0955AC]">Logo</span>
+                    </h1>
                 </div>
 
-                {/* ── Scrollable nav ── */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll pb-4">
-                    <div className="flex flex-col gap-1">
-
-                        {/* Regular nav items */}
-                        {navItems.map(({ icon, label, href, path }) => (
-                            <div key={label} className="nav-item-wrap relative">
-                                <div
-                                    className={`flex flex-row items-center gap-4 cursor-pointer rounded-[8px] px-3 py-2.5 transition-all duration-150
-                                    ${isActive(path)
-                                        ? "bg-[#0955AC] text-white"
-                                        : "text-[#00000066] hover:bg-[#F3F3F3] hover:text-[#000000]"
-                                    }
-                                    ${collapsed ? "justify-center" : ""}`}
-                                    onClick={() => (window.location.href = href)}
-                                >
-                                    <img
-                                        src={icon}
-                                        className={`flex-shrink-0 w-[22px] h-[22px] ${isActive(path) ? "brightness-0 invert" : ""}`}
-                                        alt={label}
-                                    />
-                                    {!collapsed && (
-                                        <span className="figtree text-[15px] font-[500] whitespace-nowrap">{label}</span>
-                                    )}
-                                </div>
-                                {/* Tooltip shown only when collapsed */}
-                                {collapsed && <span className="sidebar-tooltip">{label}</span>}
-                            </div>
-                        ))}
-
-                        {/* Financial (dropdown) item */}
-                        <div className="nav-item-wrap relative">
-                            <div
-                                className={`flex flex-row items-center gap-4 cursor-pointer rounded-[8px] px-3 py-2.5 transition-all duration-150
-                                ${isFinancialActive
-                                    ? "bg-[#0955AC] text-white"
-                                    : "text-[#00000066] hover:bg-[#F3F3F3] hover:text-[#000000]"
-                                }
-                                ${collapsed ? "justify-center" : ""}`}
-                                onClick={() => !collapsed && setShowFinancialDropdown((p) => !p)}
-                            >
-                                <img
-                                    src={finLogo}
-                                    className={`flex-shrink-0 w-[22px] h-[22px] ${isFinancialActive ? "brightness-0 invert" : ""}`}
-                                    alt="Financial"
-                                />
-                                {!collapsed && (
-                                    <>
-                                        <span className="figtree text-[15px] font-[500] flex-1 whitespace-nowrap">Financial</span>
-                                        <ChevronDown
-                                            className={`w-4 h-4 transition-transform duration-200 ${showFinancialDropdown ? "rotate-180" : ""}`}
-                                        />
-                                    </>
-                                )}
-                            </div>
-                            {collapsed && <span className="sidebar-tooltip">Financial</span>}
-
-                            {/* Dropdown — only visible when expanded */}
-                            {!collapsed && showFinancialDropdown && (
-                                <div className="ml-9 mt-1 flex flex-col gap-1">
-                                    {[
-                                        { label: "Payment",  href: "/vendors/payment"  },
-                                        { label: "Expenses", href: "/vendors/expenses" },
-                                    ].map(({ label, href }) => (
-                                        <div
-                                            key={label}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-[8px] cursor-pointer text-[14px] font-[500] transition-all
-                                            ${currentPath === href
-                                                ? "bg-[#0955AC29] text-[#0955AC] font-[700]"
-                                                : "text-[#00000066] hover:bg-[#F3F3F3] hover:text-[#000000]"
-                                            }`}
-                                            onClick={() => (window.location.href = href)}
-                                        >
-                                            <ChevronRight className="w-3 h-3 flex-shrink-0" />
-                                            {label}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                {/* Scrollable Menu */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">
+                    <div className="figtree flex flex-col items-start gap-4 text-[18px] font-[500] text-[#00000066]">
+                        {/* Dashboard */}
+                        <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath === "/vendorAllBookings" 
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            onClick={() =>
+                                (window.location.href = "/vendorAllBookings")
+                            }
+                        >
+                            <img
+                                src={dashLogo}
+                                className="w-[22px]"
+                                alt="Dashboard"
+                            />
+                            <span>Dashboard</span>
                         </div>
 
+                        {/* Bookings */}
+                        <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath === "/vendorAllBookings/bookings"
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            onClick={() =>
+                                (window.location.href = "/vendorAllBookings/bookings")
+                            }
+                        >
+                            <img
+                                src={bookLogo}
+                                className="w-[22px]"
+                                alt="Bookings"
+                            />
+                            <span>Bookings</span>
+                        </div>
+
+                        {/* Units */}
+                        {/* <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath === "/vendors/freight/units" ||
+                                currentPath === "/freight/units"
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            onClick={() =>
+                                (window.location.href = "/freight/units")
+                            }
+                        >
+                            <img
+                                src={uniLogo}
+                                className="w-[22px]"
+                                alt="Units"
+                            />
+                            <span>Units</span>
+                        </div> */}
+
+                        {/* Calendar */}
+                        <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath === "/vendors/calendar" 
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            onClick={() =>
+                                (window.location.href = "/vendorAllBookings/calendar")
+                            }
+                        >
+                            <img
+                                src={calendarLogo}
+                                className="w-[22px]"
+                                alt="Calendar"
+                            />
+                            <span>Calendar</span>
+                        </div>
+
+                        {/* Clients */}
+                        <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath === "/vendorAllBookings/clients"
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            onClick={() =>
+                                (window.location.href = "/vendorAllBookings/clients")
+                            }
+                        >
+                            <img
+                                src={clientsLogo}
+                                className="w-[22px]"
+                                alt="Clients"
+                            />
+                            <span>Clients</span>
+                        </div>
+
+                        {/* Financial Dropdown */}
+                        <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                [
+                                    "/vendors/freight/payment",
+                                    "/freight/payment",
+                                    "/vendors/freight/expenses",
+                                    "/freight/expenses",
+                                ].includes(currentPath)
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            onClick={() =>
+                                setShowFinancialDropdown((prev) => !prev)
+                            }
+                        >
+                            <img
+                                src={finLogo}
+                                className="w-[22px]"
+                                alt="Financial"
+                            />
+                            <span>Financial</span>
+                        </div>
+
+                        {showFinancialDropdown && (
+                            <div className="ml-8 mb-2 w-40 bg-white flex flex-col text-[18px] font-[500]">
+                                <div
+                                    className={`px-3 py-1.5 cursor-pointer rounded-lg ${
+                                        currentPath ===
+                                            "/vendors/freight/payment" ||
+                                        currentPath === "/freight/payment"
+                                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                            : "text-[#00000066]"
+                                    }`}
+                                    // onClick={() =>
+                                    //     (window.location.href =
+                                    //         "/freight/payment")
+                                    // }
+                                >
+                                    Payment
+                                </div>
+                                <div
+                                    className={`px-3 py-1.5 cursor-pointer rounded-lg ${
+                                        currentPath ===
+                                            "/vendors/freight/expenses" ||
+                                        currentPath === "/freight/expenses"
+                                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                            : "text-[#00000066]"
+                                    }`}
+                                    // onClick={() =>
+                                    //     (window.location.href =
+                                    //         "/freight/expenses")
+                                    // }
+                                >
+                                    Expenses
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Tracking */}
+                        {/* <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath === "/vendors/freight/tracking" ||
+                                currentPath === "/freight/tracking"
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            onClick={() =>
+                                (window.location.href = "/freight/tracking")
+                            }
+                        >
+                            <img
+                                src={trackLogo}
+                                className="w-[22px]"
+                                alt="Tracking"
+                            />
+                            <span>Tracking</span>
+                        </div> */}
+
+                        {/* Message
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/freight/message" ||
+                currentPath === "/freight/message"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => (window.location.href = "/freight/message")}
+            >
+              <img src={messgLogo} className="w-[22px]" alt="Message" />
+              <span>Message</span>
+            </div> */}
+
+        {/* Settings */}
+            <div
+              className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                currentPath === "/vendors/freight/settingsPage" ||
+                currentPath === "/freight/settingsPage"
+                  ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                  : "text-[#00000066]"
+              }`}
+              onClick={() => setShowSettingsDropdown((prev) => !prev)}
+            >
+              <Settings className="w-[22px] h-[22px]" />
+              <span>Settings</span>
+            </div>
+
+                        {showSettingsDropdown && (
+                            <div className="ml-8 mb-2 w-48 bg-white flex flex-col text-[18px] font-[500]">
+                                <div
+                                    className={`px-3 py-1.5 cursor-pointer rounded-lg flex items-center gap-2 ${
+                                        currentPath ===
+                                            "/vendors/freight/notifications" ||
+                                        currentPath === "/freight/notifications"
+                                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                            : "text-[#00000066]"
+                                    }`}
+                                    // onClick={() =>
+                                    //     (window.location.href =
+                                    //         "/freight/notifications")
+                                    // }
+                                >
+                                    <Bell className="w-[16px] h-[16px]" />
+                                    <span>Notifications</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
+                    <div
+                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                                currentPath === "/vendors/profile" 
+                                    ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                    : "text-[#00000066]"
+                            }`}
+                            // onClick={() =>
+                            //     (window.location.href = "/vendors/profile")
+                            // }
+                        >
+                            <User className="w-[22px] h-[22px]" />
+                            <span>Profile</span>
+                        </div>
                 </div>
 
-                {/* ── Logout (bottom) ── */}
-                <div className={`flex-shrink-0 pt-4 border-t border-gray-100 nav-item-wrap relative`}>
-                    <Link
-                        href={route("logout")}
-                        method="post"
-                        as="button"
-                        className={`figtree flex flex-row items-center gap-4 cursor-pointer text-[15px] font-[500] text-[#00000066] px-3 py-2.5 hover:bg-[#FEF2F2] hover:text-[#DC2626] rounded-[8px] w-full transition-all duration-150 group
-                        ${collapsed ? "justify-center" : ""}`}
-                    >
-                        <img
-                            src={logOutLogo}
-                            className="w-[22px] h-[22px] flex-shrink-0 group-hover:brightness-0 group-hover:invert group-hover:sepia group-hover:saturate-[5000%] group-hover:hue-rotate-[340deg] transition-all duration-200"
-                            alt="Logout"
-                        />
-                        {!collapsed && <span className="whitespace-nowrap">Logout</span>}
-                    </Link>
-                    {collapsed && <span className="sidebar-tooltip">Logout</span>}
-                </div>
+                
+
+                {/* Logout – fixed bottom
+        <div className="flex-shrink-0 mt-2 pt-4 border-t border-gray-200 w-full">
+          <div
+            className="figtree flex items-center gap-5 text-[18px] font-[500] text-[#00000066] px-3 py-2.5 hover:bg-[#FEF2F2] hover:text-[#DC2626] rounded-lg w-full transition-all duration-200 group cursor-pointer"
+            onClick={() => (window.location.href = "/logout")}
+          >
+            <img
+              src={logOutLogo}
+              className="w-[22px] h-[22px] group-hover:brightness-0 group-hover:invert group-hover:sepia group-hover:saturate-[5000%] group-hover:hue-rotate-[340deg] transition-all duration-200"
+              alt="Logout"
+            />
+            <span>Logout</span>
+          </div>
+        </div> */}
             </div>
         </>
     );

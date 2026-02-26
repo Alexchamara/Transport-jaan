@@ -3,6 +3,7 @@ import { usePage, router } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { API_BASE_URL } from "../../../../../../../config/api";
+import ServiceNavBar from "../../../../../../../Components/vendors/ServiceNavBar";
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -26,6 +27,18 @@ import NotificationDropdown from "../../NotificationDropdown";
 const PaymentContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Warehousing';
+    const services = [
+      { name: 'All Bookings', route: route('vendorAllBookings') },
+      { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+      { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+      { name: 'Courier Service', route: route('courierService.dashboard') },
+      { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+      { name: 'Freight', route: route('freight.dashboard') },
+      { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
     const [warehouseNotifications, setWarehouseNotifications] = useState([]);
     const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
@@ -271,7 +284,11 @@ const PaymentContent = () => {
     };
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto px-5 lg:pr-5 py-10 lg:px-0">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
+        </div>
+        <div className="flex flex-col gap-10 w-full h-auto px-5 lg:pr-5 py-10 lg:px-0 pt-6 pb-12">
             {/* Header section */}
             <div className="flex lg:flex-row flex-col gap-5 justify-between items-center md:gap-3 mt-10 lg:mt-0">
                 <h1 className="figtree md:text-[35px] font-[700] text-[24px]">Warehouse Payment</h1>
@@ -295,37 +312,37 @@ const PaymentContent = () => {
                         </h1>
                     </div>
                 </div> */}
-                <div className="hidden lg:flex items-center gap-3">
+                {/* <div className="hidden lg:flex items-center gap-3">
                     <NotificationDropdown
                         notifications={warehouseNotifications}
                         unreadCount={notificationUnreadCount}
                     />
                     <UserDropdown settingsRoute={route("warehouse.settingsPage")} />
-                </div>
+                </div> */}
             </div>
             {/* end of header section */}
 
             {/* mini 4 cards */}
-            <div className="flex xl:flex-row flex-col gap-5 w-full md:flex-col md:gap-3">
+            <div className="flex xl:flex-row flex-col gap-5 w-full">
                 {/* card 1 - Balance */}
                 <div
-                    className="xl:min-w-[300px] w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2 md:min-w-full md:px-3"
+                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-5 justify-center items-center md:gap-3">
-                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center md:size-[40px]">
-                            <img src={wallet} className="md:w-6 md:h-6" />
+                    <div className="flex flex-row gap-5 justify-center items-center">
+                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                            <img src={wallet} />
                         </div>
                         <div>
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7A] md:text-[14px]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Balance
                             </h1>
-                            <h1 className="text-[20px] font-[700] md:text-[20px]">LKR {stats.balance.amount}</h1>
+                            <h1 className="text-[20px] font-[700]">LKR {stats.balance.amount}</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500] md:text-[12px]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div 
                             className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${
                                 stats.balance.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
@@ -344,23 +361,23 @@ const PaymentContent = () => {
 
                 {/* card 2 - Income */}
                 <div
-                    className="xl:min-w-[300px] w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2 md:min-w-full md:px-3"
+                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                     style={{
                         boxShadow: "4px 4px 4px #0000001A",
                     }}
                 >
-                    <div className="flex flex-row gap-5 justify-center items-center md:gap-3">
-                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center md:size-[40px]">
-                            <img src={income} className="md:w-6 md:h-6" />
+                    <div className="flex flex-row gap-5 justify-center items-center">
+                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                            <img src={income} />
                         </div>
                         <div>
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7A] md:text-[14px]">
+                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                 Income
                             </h1>
-                            <h1 className="text-[20px] font-[700] md:text-[20px]">LKR {stats.income.amount}</h1>
+                            <h1 className="text-[20px] font-[700]">LKR {stats.income.amount}</h1>
                         </div>
                     </div>
-                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500] md:text-[12px]">
+                    <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                         <div 
                             className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${
                                 stats.income.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
@@ -380,26 +397,26 @@ const PaymentContent = () => {
                 <div className="flex flex-row gap-5 w-full">
                     {/* card 3 - Expenses */}
                     <div
-                        className="xl:min-w-[300px] w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2 md:min-w-full md:px-3"
+                        className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                         style={{
                             boxShadow: "4px 4px 4px #0000001A",
                         }}
                     >
-                        <div className="flex flex-row gap-5 justify-center items-center md:gap-3">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center md:size-[40px]">
-                                <img src={expenses} className="md:w-6 md:h-6" />
+                        <div className="flex flex-row gap-5 justify-center items-center">
+                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                <img src={expenses} />
                             </div>
                             <div>
-                                <h1 className="text-[14px] font-[500] text-[#7B7B7A] md:text-[14px]">
+                                <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
                                     Expenses
                                 </h1>
-                                <h1 className="text-[20px] font-[700] md:text-[20px]">
+                                <h1 className="text-[20px] font-[700]">
                                     LKR {stats.expenses.amount}
                                 </h1>
                                 {/* <h1 className="text-[26px] font-[700]">LKR {stats.balance.amount}</h1> */}
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500] md:text-[12px]">
+                        <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
                             <div className="w-[81px] h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                                 <img
                                     src={upArrow}
@@ -407,7 +424,7 @@ const PaymentContent = () => {
                                 />
                                 <h1>{stats.balance.isPositive ? '+' : ''}{stats.balance.growth}%</h1>
                             </div>
-                            <h1 className="text-[#7B7B7A]">from last week</h1>
+                            <h1 className="text-[#7B7B7A]">fromz last week</h1>
                         </div>
                     </div>
                     {/* end of card 3 */}
@@ -415,7 +432,7 @@ const PaymentContent = () => {
             </div>
 
             <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] px-10 py-10 md:px-4 md:py-6"
+                className="w-full max-w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-5 sm:px-10"
                 style={{
                     boxShadow: "4px 4px 4px #0000001A",
                 }}
@@ -742,6 +759,7 @@ const PaymentContent = () => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

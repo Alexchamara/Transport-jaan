@@ -207,18 +207,15 @@ const DashContent = ({
             : n;
 
     return (
-        <div className="w-full max-w-full h-auto px-5 lg:px-0 lg:pr-5 py-5 lg:py-10">
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header */}
-            <div className="flex md:flex-row flex-col gap-5 justify-between xl:items-start items-center">
+            <div className="flex md:flex-row flex-col gap-5 justify-between xl:items-start items-center mb-6">
                 <h1 className="figtree text-[24px] sm:text-[28px] md:text-[35px] font-[700] text-center">
                     Vehicle Rental Dashboard
                 </h1>
-                <div className="w-full md:w-auto flex justify-center md:justify-end">
-                    <UserDropdown settingsRoute={route("settingsPage")} />
-                </div>
             </div>
 
-            <div className="flex flex-col gap-5 py-10 w-full">
+            <div className="flex flex-col gap-5 w-full">
                 {/* Top Section: Cards + Car Availability */}
                 <div className="flex flex-col xl:flex-row gap-5 w-full">
                     {/* Left - Cards */}

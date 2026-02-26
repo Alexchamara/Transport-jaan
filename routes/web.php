@@ -1265,7 +1265,7 @@ Route::get('/vendorAllBookings', [\App\Http\Controllers\VendorAllBookingsControl
     ->name('vendorAllBookings');
 
 // Vendor Booking Calendar
-Route::get('/vendors/calendar', [\App\Http\Controllers\VendorAllBookingsController::class, 'calendar'])
+Route::get('/vendorAllBookings/calendar', [\App\Http\Controllers\VendorAllBookingsController::class, 'calendar'])
     ->middleware('auth')
     ->name('vendorCalendar');
 

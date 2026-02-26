@@ -501,7 +501,7 @@ class WarehouseBookingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Please log in to make a booking.',
-                'redirect' => route('login')
+                'redirect' => route('signin')
             ], 401);
         }
 
@@ -1032,7 +1032,7 @@ class WarehouseBookingController extends Controller
         if (!Auth::check()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Please login to add to wishlist'
+                'message' => 'Please Sign in to add to wishlist'
             ], 401);
         }
 

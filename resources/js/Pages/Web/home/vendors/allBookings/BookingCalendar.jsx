@@ -1,414 +1,457 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { usePage, Link } from "@inertiajs/react";
-import { format, parse, startOfWeek, getDay } from 'date-fns';
-import enUS from 'date-fns/locale/en-US';
-import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import search from "../../../assets/vendors/dashboard/searchIcon.svg";
+import settings from "../../../assets/vendors/dashboard/settings.svg";
+import bell from "../../../assets/vendors/dashboard/bell.svg";
+import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg"; // Added
+
+import proPicTwo from "../../../assets/vendors/tracking/proPic.svg";
+import car1 from "../../../assets/vendors/dashboard/icons/car1.svg";
+
+import leftArrow from "../../../assets/vendors/calendar/leftArrow.svg";
+import miniDownArrow from "../../../assets/vendors/calendar/miniDown.svg";
+
+import CalendarMonthPicker from "../../../components/vendors/calendar/CalendarMonthPicker";
+import CalendarGrid from "../../../components/vendors/calendar/CalendarGrid";
+
 import UserDropdown from "../../../components/vendors/UserDropdown";
 import UnverifiedBanner from "./UnverifiedBanner";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import ServiceNavBar from "../../../../../components/vendors/ServiceNavBar";
 
-const locales = {
-    'en-US': enUS,
-};
 
-const localizer = dateFnsLocalizer({
-    format,
-    parse,
-    startOfWeek,
-    getDay,
-    locales,
-});
+// Define days, times, and events for the calendar
+const days = [
+    { label: "Mon", date: 14 },
+    { label: "Tue", date: 15 },
+    { label: "Wed", date: 16 },
+    { label: "Thu", date: 17 },
+    { label: "Fri", date: 18 },
+    { label: "Sat", date: 19 },
+    { label: "Sun", date: 20 },
+];
 
-const BookingCalendar = ({
-    allBookings = [],
-    statistics = {}
-}) => {
+const times = [
+    "8:00 AM",
+    "9:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "12:00 PM",
+    "1:00 PM",
+    "2:00 PM",
+    "3:00 PM",
+    "4:00 PM",
+];
+
+const events = [
+    // Monday
+    {
+        day: 0,
+        time: "8:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 0,
+        time: "12:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 0,
+        time: "3:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    // Tuesday
+    {
+        day: 1,
+        time: "9:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    {
+        day: 1,
+        time: "1:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    // Wednesday
+    {
+        day: 2,
+        time: "8:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    // Thursday
+    {
+        day: 3,
+        time: "9:30 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 3,
+        time: "9:30 AM",
+        title: "Toyota Vezel",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 3,
+        time: "12:30 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 3,
+        time: "1:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    // {
+    //     day: 3,
+    //     time: "1:00 PM",
+    //     title: "Toyota Vezel",
+    //     person: "Steve Gibson",
+    //     status: "cancelled",
+    // },
+    // Friday
+    {
+        day: 4,
+        time: "8:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    {
+        day: 4,
+        time: "11:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    // Saturday
+    {
+        day: 5,
+        time: "9:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+    // Sunday
+    {
+        day: 6,
+        time: "8:00 AM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    {
+        day: 6,
+        time: "1:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "cancelled",
+    },
+    {
+        day: 6,
+        time: "4:00 PM",
+        title: "BMW LX3",
+        person: "Steve Gibson",
+        status: "done",
+    },
+];
+
+const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
+
+const CalendarContent = () => {
     const { auth } = usePage().props;
+    const currentComponent = usePage().component;
     const user = auth?.user;
-    const isVerified = user?.vendor_status === 'verified' || user?.is_verified;
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
 
-    // Dummy data for unverified vendors
-    const dummyBookings = [
-        {
-            id: 1,
-            booking_code: "BK-001",
-            booking_type: "vehicle",
-            customer_name: "John Doe",
-            service_name: "Vehicle Rental",
-            total_amount: 5000,
-            status: "Confirmed",
-            booking_date: "2025-02-20"
-        },
-        {
-            id: 2,
-            booking_code: "BK-002",
-            booking_type: "flight",
-            customer_name: "Jane Smith",
-            service_name: "Ticket Booking",
-            total_amount: 15000,
-            status: "Paid",
-            booking_date: "2025-02-19"
-        },
-        {
-            id: 3,
-            booking_code: "BK-003",
-            booking_type: "vehicle",
-            customer_name: "Ahmed Khan",
-            service_name: "Warehouse Rental",
-            total_amount: 8500,
-            status: "Pending",
-            booking_date: "2025-02-18"
-        },
-        {
-            id: 4,
-            booking_code: "BK-004",
-            booking_type: "flight",
-            customer_name: "Sara Williams",
-            service_name: "Courier Service",
-            total_amount: 3200,
-            status: "Completed",
-            booking_date: "2025-02-17"
-        },
-        {
-            id: 5,
-            booking_code: "BK-005",
-            booking_type: "vehicle",
-            customer_name: "Mike Johnson",
-            service_name: "Freight Rental",
-            total_amount: 12000,
-            status: "Confirmed",
-            booking_date: "2025-02-16"
-        },
-        {
-            id: 6,
-            booking_code: "BK-006",
-            booking_type: "vehicle",
-            customer_name: "Lisa Anderson",
-            service_name: "Vehicle Rental",
-            total_amount: 7800,
-            status: "Confirmed",
-            booking_date: "2025-02-21"
-        },
-        {
-            id: 7,
-            booking_code: "BK-007",
-            booking_type: "flight",
-            customer_name: "David Brown",
-            service_name: "Courier Service",
-            total_amount: 4500,
-            status: "Pending",
-            booking_date: "2025-02-22"
-        }
+    const services = [
+        { name: 'All Bookings', route: route('vendorAllBookings') },
+        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+        { name: 'Courier Service', route: route('courierService.dashboard') },
+        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+        { name: 'Freight', route: route('freight.dashboard') },
+        { name: 'Multimodal', route: route('multiModelHomepage.home') }
     ];
 
-    // Use dummy data if unverified, real data if verified
-    const displayBookings = isVerified ? allBookings : dummyBookings;
-
-    const [selectedEvent, setSelectedEvent] = useState(null);
-
-    // Convert bookings to calendar events
-    const calendarEvents = (displayBookings || []).map(booking => ({
-        id: booking.id,
-        title: `${booking.booking_code} - ${booking.customer_name}`,
-        start: new Date(booking.booking_date),
-        end: new Date(booking.booking_date),
-        resource: booking,
-    }));
-
-    const handleSelectEvent = (event) => {
-        setSelectedEvent(event.resource);
+    // Determine active service based on current component
+    const getActiveService = () => {
+        const componentMap = {
+            'VendorAllBookings': 'All Bookings',
+            'TicketBooking': 'Ticket Booking',
+            'CourierService': 'Courier Service',
+            'WarehouseRental': 'Warehousing',
+            'FreightDashboard': 'Freight',
+            'Multimodal': 'Multimodal'
+        };
+        return componentMap[currentComponent] || 'All Bookings';
     };
 
-    const handleSelectSlot = () => {
-        setSelectedEvent(null);
+    const activeService = getActiveService();
+
+    const today = new Date();
+    const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+    const [currentYear, setCurrentYear] = useState(today.getFullYear());
+    const [currentDay, setCurrentDay] = useState(today.getDate());
+    const [currentView, setCurrentView] = useState("day"); // 'day', 'week', 'month', 'year'
+
+    const handlePrev = () => {
+        switch (currentView) {
+            case "day":
+                const prevDay = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay - 1
+                );
+                setCurrentDay(prevDay.getDate());
+                setCurrentMonth(prevDay.getMonth());
+                setCurrentYear(prevDay.getFullYear());
+                break;
+            case "week":
+                const prevWeek = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay - 7
+                );
+                setCurrentDay(prevWeek.getDate());
+                setCurrentMonth(prevWeek.getMonth());
+                setCurrentYear(prevWeek.getFullYear());
+                break;
+            case "month":
+                setCurrentMonth((prev) => {
+                    if (prev === 0) {
+                        setCurrentYear((y) => y - 1);
+                        return 11;
+                    }
+                    return prev - 1;
+                });
+                break;
+            case "year":
+                setCurrentYear((y) => y - 1);
+                break;
+        }
+    };
+
+    const handleNext = () => {
+        switch (currentView) {
+            case "day":
+                const nextDay = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay + 1
+                );
+                setCurrentDay(nextDay.getDate());
+                setCurrentMonth(nextDay.getMonth());
+                setCurrentYear(nextDay.getFullYear());
+                break;
+            case "week":
+                const nextWeek = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay + 7
+                );
+                setCurrentDay(nextWeek.getDate());
+                setCurrentMonth(nextWeek.getMonth());
+                setCurrentYear(nextWeek.getFullYear());
+                break;
+            case "month":
+                setCurrentMonth((prev) => {
+                    if (prev === 11) {
+                        setCurrentYear((y) => y + 1);
+                        return 0;
+                    }
+                    return prev + 1;
+                });
+                break;
+            case "year":
+                setCurrentYear((y) => y + 1);
+                break;
+        }
+    };
+
+    const handleToday = () => {
+        const today = new Date();
+        setCurrentDay(today.getDate());
+        setCurrentMonth(today.getMonth());
+        setCurrentYear(today.getFullYear());
+    };
+
+    const getHeaderTitle = () => {
+        switch (currentView) {
+            case "day":
+                const dayDate = new Date(currentYear, currentMonth, currentDay);
+                return `${monthNames[currentMonth]} ${currentDay}`;
+            case "week":
+                const weekDate = new Date(
+                    currentYear,
+                    currentMonth,
+                    currentDay
+                );
+                const dayOfWeek = weekDate.getDay();
+                const monday = new Date(weekDate);
+                monday.setDate(weekDate.getDate() - ((dayOfWeek + 6) % 7));
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                return `${
+                    monthNames[monday.getMonth()]
+                } ${monday.getDate()} - ${sunday.getDate()}`;
+            case "month":
+                return `${monthNames[currentMonth]} ${currentYear}`;
+            case "year":
+                return `${currentYear}`;
+            default:
+                return `${monthNames[currentMonth]} ${currentYear}`;
+        }
     };
 
     return (
-        <div className="w-full max-w-full lg:pr-5 px-5 lg:px-0 py-10">
-            <style>{`
-                .rbc-calendar {
-                    font-family: inherit;
-                }
-                .rbc-header {
-                    padding: 12px 8px;
-                    background-color: #f3f4f6;
-                    border: 1px solid #e5e7eb;
-                    font-weight: 600;
-                    color: #1f2937;
-                }
-                .rbc-today {
-                    background-color: #eff6ff;
-                }
-                .rbc-event {
-                    background-color: #0955ac;
-                    border-radius: 4px;
-                    padding: 2px 5px;
-                    color: white;
-                    cursor: pointer;
-                }
-                .rbc-event:hover {
-                    background-color: #073a7d;
-                }
-                .rbc-toolbar button {
-                    padding: 6px 12px;
-                    margin: 4px;
-                    border: 1px solid #d1d5db;
-                    background-color: white;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 14px;
-                }
-                .rbc-toolbar button:hover {
-                    background-color: #0955ac;
-                    color: white;
-                }
-                .rbc-toolbar button.rbc-active {
-                    background-color: #0955ac;
-                    color: white;
-                }
-                .rbc-cell {
-                    padding: 8px 4px;
-                }
-                .rbc-day-bg {
-                    border: 1px solid #e5e7eb;
-                }
-                .rbc-time-slot {
-                    border: 1px solid #f0f0f0;
-                }
-                .rbc-month-view {
-                    border: 1px solid #e5e7eb;
-                    border-radius: 8px;
-                    overflow: hidden;
-                }
-                .rbc-toolbar {
-                    padding: 10px;
-                    background-color: #f9fafb;
-                    border-bottom: 1px solid #e5e7eb;
-                    flex-wrap: wrap;
-                }
-                .rbc-toolbar label {
-                    font-weight: 600;
-                    color: #1f2937;
-                }
-                .rbc-off-range {
-                    background-color: #f9fafb;
-                }
-            `}</style>
-
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar 
+                services={services}
+                isVerified={isVerified}
+                activeService={activeService}
+                settingsRoute={route("settingsPage")}
+            />
+        </div>
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
-            <div className="flex xl:flex-row flex-col gap-5 justify-between items-center mb-8">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => window.history.back()}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Go Back"
-                    >
-                        <ArrowLeft className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <h1 className="figtree text-[35px] sm:text-[28px] font-[700]">
-                        Booking Calendar
-                    </h1>
-                </div>
+            <div className="flex flex-col lg:flex-row gap-2 lg:gap-5 justify-between lg:items-start items-center mb-6">
+                <h1 className="figtree text-[24px] lg:text-[35px] font-[700]">
+                    All Booking Calendar
+                </h1>
                 <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown
-                        settingsRoute={route("settingsPage")}
+                    {/* <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <img src={search} alt="Search" />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <img src={settings} alt="Settings" />
+          </div>
+          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+            <img src={bell} alt="Notifications" />
+          </div> */}
+{/* 
+                    <div className="flex flex-row gap-5 relative items-center">
+                        <UserDropdown
+                            settingsRoute={route("ticketBooking.settingsPage")}
+                        />
+                    </div> */}
+                </div>
+            </div>
+            {/* end of header section */}
+
+           
+
+            {/* Unverified Warning */}
+            <div className="mt-6">
+                <UnverifiedBanner />
+            </div>
+
+             <div
+                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
+                style={{ boxShadow: "4px 4px 4px #0000001A" }}
+            >
+                <div className="px-20 flex flex-row items-center justify-between">
+                    <div className="flex flex-row justify-center items-center gap-6">
+                        <div className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center">
+                            Today
+                        </div>
+                        <div className="flex flex-row justify-center items-center gap-2">
+                            <div
+                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer"
+                                onClick={handlePrev}
+                            >
+                                <ChevronLeft size={16} />
+                            </div>
+                            <div
+                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer"
+                                onClick={handleNext}
+                            >
+                                <ChevronRight size={16} />
+                            </div>
+                        </div>
+                        <h1 className="text-[18px] font-[700]">
+                            {monthNames[currentMonth]} {currentYear}
+                        </h1>
+                    </div>
+                    <div className="flex flex-row justify-center items-center gap-5">
+                        <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
+                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
+                                All
+                            </div>
+                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
+                                Pickup
+                            </div>
+                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
+                                Delivery
+                            </div>
+                        </div>
+                        <div className="w-[96px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center gap-3">
+                            <h1>Week</h1>
+                            <ChevronDown size={14} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-row gap-10 justify-start items-center px-20 py-5">
+                    <div className="flex flex-row justify-start items-center gap-5">
+                        <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
+                        <h1 className="text-[#00000080] font-[600] text-[16px]">
+                            Delivered
+                        </h1>
+                    </div>
+                    <div className="flex flex-row justify-start items-center gap-5">
+                        <div className="size-[16px] bg-[#FFDBDF] rounded-[4px]" />
+                        <h1 className="text-[#00000080] font-[600] text-[16px]">
+                            Cancelled
+                        </h1>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-8 border-t border-l border-[#00000026]">
+                    <CalendarGrid
+                        days={days}
+                        times={times}
+                        events={events}
+                        proPicTwo={proPicTwo}
+                        currentMonth={currentMonth}
+                        currentYear={currentYear}
                     />
                 </div>
             </div>
-
-            {/* Unverified Warning */}
-            <UnverifiedBanner />
-
-            {/* Main Content */}
-            <div className="flex flex-col lg:flex-row gap-6">
-                {/* Calendar Section */}
-                <div className="flex-1 min-h-[calc(100vh-200px)]">
-                    <div
-                        className="w-full h-full bg-[#FFFFFF] rounded-[10px] p-6"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        <BigCalendar
-                            localizer={localizer}
-                            events={calendarEvents}
-                            startAccessor="start"
-                            endAccessor="end"
-                            style={{ height: 'calc(100vh - 300px)', minHeight: '600px' }}
-                            popup
-                            selectable
-                            onSelectEvent={handleSelectEvent}
-                            onSelectSlot={handleSelectSlot}
-                            eventPropGetter={() => ({
-                                style: {
-                                    backgroundColor: '#0955AC',
-                                    borderRadius: '5px',
-                                    opacity: 0.9,
-                                    color: 'white',
-                                    border: '0px',
-                                    display: 'block'
-                                }
-                            })}
-                        />
-                    </div>
-                </div>
-
-                {/* Event Details Sidebar */}
-                <div className="w-full lg:w-[350px] flex-shrink-0">
-                    <div
-                        className="w-full bg-[#FFFFFF] rounded-[10px] p-6 sticky top-20"
-                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                    >
-                        {selectedEvent ? (
-                            <div className="space-y-4">
-                                <h2 className="text-[20px] font-[700] text-gray-900">
-                                    Booking Details
-                                </h2>
-                                <div className="space-y-3 border-t pt-4">
-                                    <div>
-                                        <p className="text-[12px] font-[600] text-gray-500 uppercase">
-                                            Booking Code
-                                        </p>
-                                        <p className="text-[16px] font-[600] text-gray-900">
-                                            {selectedEvent.booking_code}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <p className="text-[12px] font-[600] text-gray-500 uppercase">
-                                            Customer Name
-                                        </p>
-                                        <p className="text-[16px] font-[600] text-gray-900">
-                                            {selectedEvent.customer_name}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <p className="text-[12px] font-[600] text-gray-500 uppercase">
-                                            Service
-                                        </p>
-                                        <p className="text-[16px] font-[600] text-gray-900">
-                                            {selectedEvent.service_name}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <p className="text-[12px] font-[600] text-gray-500 uppercase">
-                                            Booking Type
-                                        </p>
-                                        <p className="text-[16px] font-[600] text-gray-900 capitalize">
-                                            {selectedEvent.booking_type}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <p className="text-[12px] font-[600] text-gray-500 uppercase">
-                                            Amount
-                                        </p>
-                                        <p className="text-[16px] font-[700] text-[#0955AC]">
-                                            Rs. {(selectedEvent.total_amount || 0).toLocaleString()}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <p className="text-[12px] font-[600] text-gray-500 uppercase">
-                                            Status
-                                        </p>
-                                        <span 
-                                            className="inline-block px-3 py-1 rounded-[5px] font-[500] text-[14px] mt-1"
-                                            style={{
-                                                backgroundColor: getStatusColor(selectedEvent.status).bg,
-                                                color: getStatusColor(selectedEvent.status).text,
-                                                border: `1px solid ${getStatusColor(selectedEvent.status).border}`
-                                            }}
-                                        >
-                                            {selectedEvent.status}
-                                        </span>
-                                    </div>
-
-                                    <div>
-                                        <p className="text-[12px] font-[600] text-gray-500 uppercase">
-                                            Booking Date
-                                        </p>
-                                        <p className="text-[16px] font-[600] text-gray-900">
-                                            {new Date(selectedEvent.booking_date).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric'
-                                            })}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <div className="text-[48px] mb-4">📅</div>
-                                <h3 className="text-[18px] font-[600] text-gray-900 mb-2">
-                                    Select a Booking
-                                </h3>
-                                <p className="text-[14px] text-gray-500">
-                                    Click on any event in the calendar to view booking details
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Stats Summary */}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <StatCard 
-                    label="Total Bookings" 
-                    value={calendarEvents.length}
-                    icon="📊"
-                />
-                <StatCard 
-                    label="Confirmed" 
-                    value={displayBookings.filter(b => b.status === 'Confirmed').length}
-                    icon="✅"
-                />
-                <StatCard 
-                    label="Pending" 
-                    value={displayBookings.filter(b => b.status === 'Pending').length}
-                    icon="⏳"
-                />
-                <StatCard 
-                    label="Completed" 
-                    value={displayBookings.filter(b => b.status === 'Completed').length}
-                    icon="🎉"
-                />
-            </div>
         </div>
+        </>
     );
 };
 
-const getStatusColor = (status) => {
-    const statusLower = status?.toLowerCase() || '';
-    const styles = {
-        'confirmed': { bg: '#D8E4F2', text: '#000000', border: '#0000004D' },
-        'paid': { bg: '#ACE19957', text: '#3B8F31', border: '#3B8F314D' },
-        'pending': { bg: '#FFF7ED', text: '#EA580C', border: '#EA580C4D' },
-        'completed': { bg: '#D1FAE5', text: '#059669', border: '#06B6D44D' },
-        'cancelled': { bg: '#F87171', text: '#FFFFFF', border: '#B91C1C' },
-        'active': { bg: '#E8F5E9', text: '#2E7D32', border: '#2E7D324D' }
-    };
-    return styles[statusLower] || styles['pending'];
-};
-
-const StatCard = ({ label, value, icon }) => (
-    <div
-        className="bg-[#FFFFFF] rounded-[8px] p-4 flex items-center gap-4"
-        style={{ boxShadow: "4px 4px 4px #0000001A" }}
-    >
-        <div className="text-[32px]">{icon}</div>
-        <div>
-            <p className="text-[12px] font-[500] text-[#7B7B7A] uppercase">
-                {label}
-            </p>
-            <p className="text-[24px] font-[700] text-gray-900">
-                {value}
-            </p>
-        </div>
-    </div>
-);
-
-export default BookingCalendar;
+export default CalendarContent;

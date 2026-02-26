@@ -58,9 +58,9 @@ const DashContent = () => {
     }, []);
 
     return (
-        <div className="w-full h-auto px-5 lg:pr-5 lg:px-0 py-10">
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
-            <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
+            <div className="flex xl:flex-row flex-col gap-5 justify-between items-center mb-6">
                 <h1 className="figtree text-[24px] md:text-[35px] font-[700]">
                     Multimodal Dashboard
                 </h1>

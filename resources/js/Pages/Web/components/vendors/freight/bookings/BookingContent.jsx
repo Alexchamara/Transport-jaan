@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
@@ -25,6 +26,18 @@ import UserDropdown from "../../UserDropdown";
 const BookingContent = () => {
   const { auth } = usePage().props;
   const user = auth?.user;
+
+  const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+  const activeService = 'Freight';
+  const services = [
+    { name: 'All Bookings', route: route('vendorAllBookings') },
+    { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+    { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+    { name: 'Courier Service', route: route('courierService.dashboard') },
+    { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+    { name: 'Freight', route: route('freight.dashboard') },
+    { name: 'Multimodal', route: route('multiModelHomepage.home') }
+  ];
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -312,17 +325,21 @@ const BookingContent = () => {
     };
 
     return (
-        <div className="w-full h-auto py-10 px-5 lg:px-0 lg:pr-5">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("freight.settingsPage")} />
+        </div>
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
-            <div className="flex flex-col md:flex-row gap-5 justify-between xl:items-start items-center">
+            <div className="flex flex-col md:flex-row gap-5 justify-between xl:items-start items-center mb-6">
                 <h1 className="figtree text-[28px] md:text-[35px] font-[700]">Freight Bookings</h1>
-                <div className="flex flex-row gap-5 relative items-center">
+                {/* <div className="flex flex-row gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("freight.settingsPage")} />
-                </div>
+                </div> */}
             </div>
             {/* end of header section */}
 
-            <div className="flex flex-col md:flex-row gap-10 justify-between py-10 w-full">
+            <div className="flex flex-col md:flex-row gap-10 justify-between w-full">
                 {/* mini left */}
                 <div className="flex flex-col gap-8 w-full">
                     {/* card 1 */}
@@ -718,6 +735,7 @@ const BookingContent = () => {
             </div>
             {/* end */}
         </div>
+        </>
     );
 };
 

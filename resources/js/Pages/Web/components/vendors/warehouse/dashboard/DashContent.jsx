@@ -26,6 +26,7 @@ import * as XLSX from "xlsx";
 import axios from "axios";
 import { API_BASE_URL } from "../../../../../../config/api";
 import { PieChart, Pie, Cell } from "recharts";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 import UserDropdown from "../../UserDropdown";
 import NotificationDropdown from "../NotificationDropdown";
@@ -33,8 +34,21 @@ import NotificationDropdown from "../NotificationDropdown";
 const DashContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+        const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Warehousing';
+
 
     const [isMobile, setIsMobile] = useState(false);
+
+     const services = [
+        { name: 'All Bookings', route: route('vendorAllBookings') },
+        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+        { name: 'Courier Service', route: route('courierService.dashboard') },
+        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+        { name: 'Freight', route: route('freight.dashboard') },
+        { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
 
     useEffect(() => {
         const checkMobile = () => {
@@ -1347,7 +1361,16 @@ const DashContent = () => {
     }
 
     return (
-        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-5 xl:pl-0 pt-24 lg:pt-12 pb-8 lg:pb-12">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar 
+                services={services}
+                isVerified={isVerified}
+                activeService={activeService}
+                settingsRoute={route("settingsPage")}
+            />
+        </div>
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Real-time notifications */}
             {notifications.length > 0 && (
                 <div className="fixed top-4 right-4 z-50 space-y-2">
@@ -1378,9 +1401,9 @@ const DashContent = () => {
                     ))}
                 </div>
             )}
-
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
+                 
                 <div className="flex items-center gap-4">
                     <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left  md:mt-0">
                         Warehouse Dashboard
@@ -1416,7 +1439,7 @@ const DashContent = () => {
                         </h1>
                     </div>
                 </div> */}
-                <div className="hidden lg:flex items-center gap-3">
+                {/* <div className="hidden lg:flex items-center gap-3">
                     <NotificationDropdown
                         notifications={warehouseNotifications}
                         unreadCount={notificationUnreadCount}
@@ -1424,7 +1447,7 @@ const DashContent = () => {
                     <UserDropdown
                         settingsRoute={route("warehouse.settingsPage")}
                     />
-                </div>
+                </div> */}
             </div>
             {/* end of header section */}
 
@@ -2218,6 +2241,7 @@ const DashContent = () => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

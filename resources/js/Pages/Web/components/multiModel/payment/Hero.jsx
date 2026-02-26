@@ -100,8 +100,8 @@ const Hero = ({ cart = {}, pricing = {} }) => {
             
             // Handle authentication error
             if (error.response?.status === 401) {
-                alert('Please login to complete your booking');
-                window.location.href = '/login';
+                alert('Please Sign in to complete your booking');
+                window.location.href = '/signin';
                 return;
             }
             

@@ -18,6 +18,7 @@ import BookingOverviewBarChart from "./BookingOverviewBarChart";
 import EarningSummaryChart from "./EarningSummaryChart";
 import RealStatusPieChart from "./RealStatusPieChart";
 import CarBookingTable from "./CarBookingTable";
+import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 import UserDropdown from "../../UserDropdown";
 
@@ -52,6 +53,8 @@ const transportTypes = [
 const DashContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const activeService = 'Ticket Booking';
 
     const [isMobile, setIsMobile] = useState(true);
     const [showExportMenu, setShowExportMenu] = useState(false);
@@ -63,6 +66,16 @@ const DashContent = () => {
     const [flightPaymentFilter, setFlightPaymentFilter] = useState("All");
     const [flightDateFromFilter, setFlightDateFromFilter] = useState("");
     const [flightDateToFilter, setFlightDateToFilter] = useState("");
+
+      const services = [
+        { name: 'All Bookings', route: route('vendorAllBookings') },
+        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
+        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
+        { name: 'Courier Service', route: route('courierService.dashboard') },
+        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
+        { name: 'Freight', route: route('freight.dashboard') },
+        { name: 'Multimodal', route: route('multiModelHomepage.home') }
+    ];
 
     useEffect(() => {
         const checkMobile = () => {
@@ -337,23 +350,26 @@ const DashContent = () => {
     });
 
     return (
-        <div className="w-full max-w-full lg:pr-5 px-5 lg:px-0 py-10">
+        <>
+        <div className="sticky top-0 z-30">
+            <ServiceNavBar 
+                services={services}
+                isVerified={isVerified}
+                activeService={activeService}
+                settingsRoute={route("settingsPage")}
+            />
+        </div>
+        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
-            <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] sm:text-[28px] font-[700] text-center
-                ">
+            <div className="flex xl:flex-row flex-col gap-5 justify-between items-center mb-6">
+                <h1 className="figtree text-[35px] sm:text-[28px] font-[700] text-center md:text-left">
                     Flight Booking Dashboard
                 </h1>
-                <div className="flex flex-row gap-5 relative items-center">
-                    <UserDropdown
-                        settingsRoute={route("ticketBooking.settingsPage")}
-                    />
-                </div>
             </div>
             {/* end of header section */}
 
             {/* === REST OF THE DASHBOARD (UNCHANGED) === */}
-            <div className="flex flex-col gap-5 py-10">
+            <div className="flex flex-col gap-5">
                 {/* Top Section: Cards + Seat Availability */}
                 <div className="flex flex-col xl:flex-row gap-5 w-full">
                     {/* Left - Cards */}
@@ -1010,6 +1026,7 @@ const DashContent = () => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

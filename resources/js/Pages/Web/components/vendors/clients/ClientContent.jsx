@@ -17,14 +17,14 @@ const ClientContent = () => {
 
 
     return (
-        <div className="w-full h-auto px-5 lg:px-0 lg:pr-5 py-10">
+        <div className="flex flex-col gap-10 w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* ==================== HEADER WITH NOTIFICATION + DROPDOWN ==================== */}
             <div className="flex flex-col sm:flex-row gap-5 justify-between lg:items-start items-center">
                 <h1 className="figtree text-[25px] sm:text-[35px] font-[700]">Vehicle Rental Clients</h1>
-
+{/* 
                 <div className="flex flex-row gap-3 sm:gap-5 relative items-center">
                     <UserDropdown settingsRoute={route("settingsPage")} />
-                </div>
+                </div> */}
             </div>
 
             {/* ==================== CLIENT TABLE ==================== */}

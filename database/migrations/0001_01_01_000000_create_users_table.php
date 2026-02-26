@@ -18,7 +18,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('role', ['client', 'vendor', 'admin', 'SuperAdmin'])->default('client');
-            $table->enum('status', ['verified', 'unverified', 'blocked', 'rejected'])->default('unverified');
+            $table->enum('status', ['verified', 'unverified', 'inreview', 'suspended', 'blocked', 'rejected'])->default('unverified');
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
             $table->string('country')->nullable();
