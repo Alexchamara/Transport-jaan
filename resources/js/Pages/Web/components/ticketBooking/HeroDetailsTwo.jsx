@@ -114,7 +114,7 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
         <section className="mx-auto w-full max-w-6xl px-6 py-8">
             {/* Back */}
             <div className="mb-4">
-                <Link
+                {/* <Link
                     href="/ticketBooking?type=bus"
                     className="inline-flex items-center gap-2 text-[#0955AC] text-sm sm:text-base font-semibold"
                 >
@@ -122,7 +122,7 @@ const HeroDetailsTwo = ({ stations = [], schedules = [], searchParams = {} }) =>
                         ←
                     </span>
                     Back
-                </Link>
+                </Link> */}
             </div>
             <div className="mb-8 sm:mb-20">
                 <BusCard />

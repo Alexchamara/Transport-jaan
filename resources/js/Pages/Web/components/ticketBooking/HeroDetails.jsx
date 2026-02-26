@@ -2,17 +2,34 @@ import React, { useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
 import TrainCard from "./TrainCard";
 
-export default function HeroDetails() {
-    const { props } = usePage();
-    const {
-        searchParams = {},
-        outboundSchedules = [],
-        returnSchedules = [],
-        fromStationName = '',
-        toStationName = '',
-        hasActiveFilters = false,
-        isShowingAllTrains = false
-    } = props;
+export default function HeroDetails({
+    outboundSchedules: propOutbound,
+    returnSchedules: propReturn,
+    searchParams: propSearchParams,
+    fromStationName: propFromStation,
+    toStationName: propToStation,
+    hasActiveFilters: propHasFilters,
+    isShowingAllTrains: propShowAll,
+    inline = false,
+}) {
+    // Use props if provided (inline mode), otherwise fall back to usePage (standalone page mode)
+    let pageProps = {};
+    try {
+        if (!inline) {
+            const page = usePage();
+            pageProps = page.props || {};
+        }
+    } catch (e) {
+        // usePage might fail when embedded inline outside Inertia page context
+    }
+
+    const searchParams = propSearchParams ?? pageProps.searchParams ?? {};
+    const outboundSchedules = propOutbound ?? pageProps.outboundSchedules ?? [];
+    const returnSchedules = propReturn ?? pageProps.returnSchedules ?? [];
+    const fromStationName = propFromStation ?? pageProps.fromStationName ?? '';
+    const toStationName = propToStation ?? pageProps.toStationName ?? '';
+    const hasActiveFilters = propHasFilters ?? pageProps.hasActiveFilters ?? false;
+    const isShowingAllTrains = propShowAll ?? pageProps.isShowingAllTrains ?? false;
 
     const [sortBy, setSortBy] = useState('fare');
 
@@ -40,18 +57,6 @@ export default function HeroDetails() {
 
     return (
         <section className="mx-auto w-full max-w-6xl px-6 py-8">
-            {/* Back */}
-            <div className="mb-4">
-                <Link
-                    href="/ticketBooking?type=train"
-                    className="inline-flex items-center gap-2 text-[#0955AC] text-base font-semibold"
-                >
-                    <span className="inline-block rounded-full border border-[#0955AC]/20 p-1 leading-none">
-                        ←
-                    </span>
-                    Back
-                </Link>
-            </div>
 
             {/* Search Summary */}
             {hasActiveFilters && (
@@ -133,11 +138,10 @@ export default function HeroDetails() {
                             <button
                                 key={filter.key}
                                 onClick={() => setSortBy(filter.key)}
-                                className={`rounded border px-5 py-2 text-lg font-semibold transition-colors ${
-                                    sortBy === filter.key
+                                className={`rounded border px-5 py-2 text-lg font-semibold transition-colors ${sortBy === filter.key
                                         ? 'border-[#0955AC] bg-[#0955AC] text-white'
                                         : 'border-gray-300 text-gray-800 hover:bg-gray-50'
-                                }`}
+                                    }`}
                             >
                                 {filter.label}
                             </button>
@@ -256,11 +260,10 @@ export default function HeroDetails() {
                                         </div>
                                         <button
                                             disabled={trip.soldOut}
-                                            className={`w-full rounded-lg px-6 py-4 text-lg font-bold text-white sm:w-auto ${
-                                                trip.soldOut
+                                            className={`w-full rounded-lg px-6 py-4 text-lg font-bold text-white sm:w-auto ${trip.soldOut
                                                     ? "bg-red-500/70 cursor-not-allowed"
                                                     : "bg-[#0955AC] hover:bg-[#074489]"
-                                            }`}
+                                                }`}
                                         >
                                             {trip.status}
                                         </button>
@@ -366,11 +369,10 @@ export default function HeroDetails() {
                                             </div>
                                             <button
                                                 disabled={trip.soldOut}
-                                                className={`w-full rounded-lg px-6 py-4 text-lg font-bold text-white sm:w-auto ${
-                                                    trip.soldOut
+                                                className={`w-full rounded-lg px-6 py-4 text-lg font-bold text-white sm:w-auto ${trip.soldOut
                                                         ? "bg-red-500/70 cursor-not-allowed"
                                                         : "bg-[#0955AC] hover:bg-[#074489]"
-                                                }`}
+                                                    }`}
                                             >
                                                 {trip.status}
                                             </button>
