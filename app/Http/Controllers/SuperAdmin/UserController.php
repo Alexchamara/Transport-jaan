@@ -19,11 +19,13 @@ class UserController extends Controller
         $search = $request->get('search', '');
         $roleFilter = $request->get('role', 'all');
         $statusFilter = $request->get('status', 'all');
+        $perPage = $request->get('per_page', 10);
 
         \Log::info('SuperAdmin UserController index called', [
             'search' => $search,
             'roleFilter' => $roleFilter,
             'statusFilter' => $statusFilter,
+            'per_page' => $perPage,
             'request_method' => $request->method(),
             'is_ajax' => $request->ajax(),
             'wants_json' => $request->wantsJson()
@@ -51,7 +53,9 @@ class UserController extends Controller
             $query->where('status', $statusFilter);
         }
 
-        $users = $query->orderBy('created_at', 'desc')->get()->map(function ($user) {
+        $paginatedUsers = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        
+        $users = $paginatedUsers->getCollection()->map(function ($user) {
             return [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -67,46 +71,35 @@ class UserController extends Controller
             ];
         });
 
-        // Get counts for different categories
-        $totalUsers = $users->count();
-        $clientCount = $users->where('role', 'client')->count();
-        $vendorCount = $users->where('role', 'vendor')->count();
-        $verifiedCount = $users->where('status', 'verified')->count();
-        $unverifiedCount = $users->where('status', 'unverified')->count();
-        $blockedCount = $users->whereIn('status', ['blocked', 'rejected'])->count();
+        // Get counts for different categories (from all users, not just current page)
+        $allUsersQuery = User::whereNotIn('role', ['admin', 'SuperAdmin']);
+        $totalUsers = $allUsersQuery->count();
+        $clientCount = User::where('role', 'client')->whereNotIn('role', ['admin', 'SuperAdmin'])->count();
+        $vendorCount = User::where('role', 'vendor')->whereNotIn('role', ['admin', 'SuperAdmin'])->count();
+        $verifiedCount = User::where('status', 'verified')->whereNotIn('role', ['admin', 'SuperAdmin'])->count();
+        $unverifiedCount = User::where('status', 'unverified')->whereNotIn('role', ['admin', 'SuperAdmin'])->count();
+        $blockedCount = User::whereIn('status', ['blocked', 'rejected'])->whereNotIn('role', ['admin', 'SuperAdmin'])->count();
 
         \Log::info('SuperAdmin UserController data prepared', [
             'total_users' => $totalUsers,
             'client_count' => $clientCount,
             'vendor_count' => $vendorCount,
             'verified_count' => $verifiedCount,
-            'users_sample' => $users->take(3)->pluck('name', 'email')->toArray()
+            'current_page' => $paginatedUsers->currentPage(),
+            'per_page' => $paginatedUsers->perPage()
         ]);
-
-        // Check if this is an API request
-        if ($request->wantsJson() || $request->is('api/*')) {
-            return response()->json([
-                'users' => $users->values(),
-                'total' => $totalUsers,
-                'counts' => [
-                    'total' => $totalUsers,
-                    'clients' => $clientCount,
-                    'vendors' => $vendorCount,
-                    'verified' => $verifiedCount,
-                    'unverified' => $unverifiedCount,
-                    'blocked' => $blockedCount,
-                ],
-                'filters' => [
-                    'search' => $search,
-                    'role' => $roleFilter,
-                    'status' => $statusFilter,
-                ]
-            ]);
-        }
 
         // Return Inertia response for web interface
         return Inertia::render('Web/home/SuperAdmin/Users', [
             'users' => $users->values(),
+            'pagination' => [
+                'current_page' => $paginatedUsers->currentPage(),
+                'last_page' => $paginatedUsers->lastPage(),
+                'per_page' => $paginatedUsers->perPage(),
+                'total' => $paginatedUsers->total(),
+                'from' => $paginatedUsers->firstItem(),
+                'to' => $paginatedUsers->lastItem(),
+            ],
             'counts' => [
                 'total' => $totalUsers,
                 'clients' => $clientCount,
@@ -119,6 +112,7 @@ class UserController extends Controller
                 'search' => $search,
                 'role' => $roleFilter,
                 'status' => $statusFilter,
+                'per_page' => $perPage,
             ]
         ]);
     }
@@ -342,4 +336,155 @@ class UserController extends Controller
 
         return redirect()->back()->with('success', 'User status updated successfully');
     }
+
+    /**
+     * Display clients only
+     */
+    public function clients(Request $request)
+    {
+        $search = $request->get('search', '');
+        $statusFilter = $request->get('status', 'all');
+        $perPage = $request->get('per_page', 10);
+
+        // Get all clients
+        $query = User::where('role', 'client');
+
+        // Apply search filter
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply status filter
+        if ($statusFilter !== 'all') {
+            $query->where('status', $statusFilter);
+        }
+
+        $paginatedUsers = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        
+        $users = $paginatedUsers->getCollection()->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone ?? 'N/A',
+                'address' => $user->address ?? 'N/A',
+                'country' => $user->country ?? 'N/A',
+                'date_of_birth' => $user->date_of_birth ?? 'N/A',
+                'role' => $user->role,
+                'status' => $user->status,
+                'regDate' => $user->created_at->format('Y-m-d'),
+                'created_at' => $user->created_at->diffForHumans(),
+            ];
+        });
+
+        $totalUsers = User::where('role', 'client')->count();
+        $verifiedCount = User::where('role', 'client')->where('status', 'verified')->count();
+        $unverifiedCount = User::where('role', 'client')->where('status', 'unverified')->count();
+
+        return Inertia::render('Web/home/SuperAdmin/Clients', [
+            'users' => $users->values(),
+            'pagination' => [
+                'current_page' => $paginatedUsers->currentPage(),
+                'last_page' => $paginatedUsers->lastPage(),
+                'per_page' => $paginatedUsers->perPage(),
+                'total' => $paginatedUsers->total(),
+                'from' => $paginatedUsers->firstItem(),
+                'to' => $paginatedUsers->lastItem(),
+            ],
+            'counts' => [
+                'total' => $totalUsers,
+                'clients' => $totalUsers,
+                'vendors' => 0,
+                'verified' => $verifiedCount,
+                'unverified' => $unverifiedCount,
+                'blocked' => 0,
+            ],
+            'filters' => [
+                'search' => $search,
+                'role' => 'client',
+                'status' => $statusFilter,
+                'per_page' => $perPage,
+            ]
+        ]);
+    }
+
+    /**
+     * Display service providers (vendors) only
+     */
+    public function serviceProviders(Request $request)
+    {
+        $search = $request->get('search', '');
+        $statusFilter = $request->get('status', 'all');
+        $perPage = $request->get('per_page', 10);
+
+        // Get all vendors/service providers
+        $query = User::where('role', 'vendor');
+
+        // Apply search filter
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply status filter
+        if ($statusFilter !== 'all') {
+            $query->where('status', $statusFilter);
+        }
+
+        $paginatedUsers = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        
+        $users = $paginatedUsers->getCollection()->map(function ($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone ?? 'N/A',
+                'address' => $user->address ?? 'N/A',
+                'country' => $user->country ?? 'N/A',
+                'date_of_birth' => $user->date_of_birth ?? 'N/A',
+                'role' => $user->role,
+                'status' => $user->status,
+                'regDate' => $user->created_at->format('Y-m-d'),
+                'created_at' => $user->created_at->diffForHumans(),
+            ];
+        });
+
+        $totalUsers = User::where('role', 'vendor')->count();
+        $verifiedCount = User::where('role', 'vendor')->where('status', 'verified')->count();
+        $unverifiedCount = User::where('role', 'vendor')->where('status', 'unverified')->count();
+
+        return Inertia::render('Web/home/SuperAdmin/ServiceProviders', [
+            'users' => $users->values(),
+            'pagination' => [
+                'current_page' => $paginatedUsers->currentPage(),
+                'last_page' => $paginatedUsers->lastPage(),
+                'per_page' => $paginatedUsers->perPage(),
+                'total' => $paginatedUsers->total(),
+                'from' => $paginatedUsers->firstItem(),
+                'to' => $paginatedUsers->lastItem(),
+            ],
+            'counts' => [
+                'total' => $totalUsers,
+                'clients' => 0,
+                'vendors' => $totalUsers,
+                'verified' => $verifiedCount,
+                'unverified' => $unverifiedCount,
+                'blocked' => 0,
+            ],
+            'filters' => [
+                'search' => $search,
+                'role' => 'vendor',
+                'status' => $statusFilter,
+                'per_page' => $perPage,
+            ]
+        ]);
+    }
 }
+
