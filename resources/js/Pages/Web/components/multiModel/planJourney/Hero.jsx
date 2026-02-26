@@ -579,10 +579,10 @@ const Hero = () => {
     return (
         <>
             {/* Top Navigation Buttons */}
-            <div className="flex justify-center items-center gap-3 pt-8 px-5">
+            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 pt-6 sm:pt-8 px-3 sm:px-5">
                 <button
                     onClick={handleVehicleRentalClick}
-                    className={`px-6 py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[14px] poppins transition-colors ${activeTab === 'rental'
+                    className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'rental'
                         ? 'bg-[#0955AC] text-white'
                         : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
                         }`}
@@ -591,7 +591,7 @@ const Hero = () => {
                 </button>
                 <button
                     onClick={handleTicketBookingClick}
-                    className={`px-6 py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[14px] poppins transition-colors ${activeTab === 'ticket'
+                    className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'ticket'
                         ? 'bg-[#0955AC] text-white'
                         : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
                         }`}
@@ -600,7 +600,7 @@ const Hero = () => {
                 </button>
                 <button
                     onClick={() => setActiveTab('multimodal')}
-                    className={`px-6 py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[14px] poppins transition-colors ${activeTab === 'multimodal'
+                    className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'multimodal'
                         ? 'bg-[#0955AC] text-white shadow-md'
                         : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
                         }`}
@@ -613,10 +613,10 @@ const Hero = () => {
             {activeTab === 'rental' && (
                 <div className="px-5 md:px-10 py-6">
                     {/* Sub-tab buttons: Land, Sea, Air */}
-                    <div className="flex justify-center items-center gap-3 mb-6">
+                    <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                         <button
                             onClick={() => handleRentalSubTabClick('land')}
-                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${rentalSubTab === 'land'
+                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${rentalSubTab === 'land'
                                 ? 'bg-[#0955AC] text-white'
                                 : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
                                 }`}
@@ -625,7 +625,7 @@ const Hero = () => {
                         </button>
                         <button
                             onClick={() => handleRentalSubTabClick('sea')}
-                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${rentalSubTab === 'sea'
+                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${rentalSubTab === 'sea'
                                 ? 'bg-[#0955AC] text-white'
                                 : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
                                 }`}
@@ -634,7 +634,7 @@ const Hero = () => {
                         </button>
                         <button
                             onClick={() => handleRentalSubTabClick('air')}
-                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${rentalSubTab === 'air'
+                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${rentalSubTab === 'air'
                                 ? 'bg-[#0955AC] text-white'
                                 : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
                                 }`}
@@ -724,10 +724,10 @@ const Hero = () => {
             {activeTab === 'ticket' && (
                 <div className="px-5 md:px-10 py-6">
                     {/* Sub-tab buttons: Bus, Train, Flight */}
-                    <div className="flex justify-center items-center gap-3 mb-6">
+                    <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                         <button
                             onClick={() => handleTicketSubTabClick('bus')}
-                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${ticketSubTab === 'bus'
+                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${ticketSubTab === 'bus'
                                 ? 'bg-[#0955AC] text-white'
                                 : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
                                 }`}
@@ -736,7 +736,7 @@ const Hero = () => {
                         </button>
                         <button
                             onClick={() => handleTicketSubTabClick('train')}
-                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${ticketSubTab === 'train'
+                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${ticketSubTab === 'train'
                                 ? 'bg-[#0955AC] text-white'
                                 : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
                                 }`}
@@ -745,7 +745,7 @@ const Hero = () => {
                         </button>
                         <button
                             onClick={() => handleTicketSubTabClick('flight')}
-                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${ticketSubTab === 'flight'
+                            className={`flex-1 sm:flex-none min-w-[70px] px-3 sm:px-5 py-1.5 sm:py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[13px] poppins transition-colors ${ticketSubTab === 'flight'
                                 ? 'bg-[#0955AC] text-white'
                                 : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
                                 }`}
