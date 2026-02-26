@@ -1,0 +1,92 @@
+import React from 'react';
+import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
+
+const VehicleReports = ({ bookings = [], stats = {} }) => {
+  return (
+    <div className='flex flex-row bg-[#081028] min-h-screen sm:flex-col md:flex-row lg:flex-row poppins'>
+      <div className='sm:w-full md:w-auto lg:w-auto'>
+        <SideMenu />
+      </div>
+      <div className='flex-1 p-8'>
+        <div className='max-w-7xl mx-auto'>
+          <h1 className='text-white text-3xl font-bold mb-6'>Vehicle Bookings Report</h1>
+          <p className='text-gray-400 mb-8'>Comprehensive report of all vehicle bookings across Land, Air, and Sea transport.</p>
+          
+          <div className='grid grid-cols-1 md:grid-cols-4 gap-6 mb-8'>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>Total Bookings</h3>
+              <p className='text-white text-2xl font-bold'>{stats.totalBookings || 0}</p>
+              <p className='text-green-500 text-sm mt-2'>All Vehicles</p>
+            </div>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>Land Vehicles</h3>
+              <p className='text-white text-2xl font-bold'>{stats.landTotal || 0}</p>
+              <p className='text-green-500 text-sm mt-2'>LKR {(stats.landRevenue || 0).toLocaleString()}</p>
+            </div>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>Air Vehicles</h3>
+              <p className='text-white text-2xl font-bold'>{stats.airTotal || 0}</p>
+              <p className='text-green-500 text-sm mt-2'>LKR {(stats.airRevenue || 0).toLocaleString()}</p>
+            </div>
+            <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+              <h3 className='text-gray-400 text-sm mb-2'>Sea Vehicles</h3>
+              <p className='text-white text-2xl font-bold'>{stats.seaTotal || 0}</p>
+              <p className='text-green-500 text-sm mt-2'>LKR {(stats.seaRevenue || 0).toLocaleString()}</p>
+            </div>
+          </div>
+          
+          {/* All Vehicle Bookings */}
+          <div className='bg-[#181A2A] rounded-lg p-6 border border-gray-700'>
+            <h3 className='text-white text-lg font-semibold mb-4'>All Vehicle Bookings</h3>
+            {bookings && bookings.length > 0 ? (
+              <div className='overflow-x-auto'>
+                <table className='w-full text-left'>
+                  <thead>
+                    <tr className='border-b border-gray-700'>
+                      <th className='text-gray-400 pb-3 px-2'>Booking Ref</th>
+                      <th className='text-gray-400 pb-3 px-2'>Vehicle Type</th>
+                      <th className='text-gray-400 pb-3 px-2'>Status</th>
+                      <th className='text-gray-400 pb-3 px-2'>Amount</th>
+                      <th className='text-gray-400 pb-3 px-2'>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bookings.map((booking, index) => (
+                      <tr key={index} className='border-b border-gray-800'>
+                        <td className='text-white py-3 px-2'>{booking.booking_reference}</td>
+                        <td className='py-3 px-2'>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            booking.vehicle_type === 'Land' ? 'bg-blue-600 text-white' : 
+                            booking.vehicle_type === 'Air' ? 'bg-purple-600 text-white' : 
+                            'bg-teal-600 text-white'
+                          }`}>
+                            {booking.vehicle_type}
+                          </span>
+                        </td>
+                        <td className='py-3 px-2'>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            booking.status === 'confirmed' ? 'bg-green-600 text-white' : 
+                            booking.status === 'pending' ? 'bg-yellow-600 text-white' : 
+                            'bg-gray-600 text-white'
+                          }`}>
+                            {booking.status}
+                          </span>
+                        </td>
+                        <td className='text-white py-3 px-2'>LKR {booking.final_amount.toLocaleString()}</td>
+                        <td className='text-gray-400 py-3 px-2'>{new Date(booking.created_at).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className='text-gray-400'>No vehicle booking data available.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default VehicleReports;
