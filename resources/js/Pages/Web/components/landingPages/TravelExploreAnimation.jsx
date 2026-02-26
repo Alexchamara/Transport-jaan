@@ -75,9 +75,9 @@ const SERVICES = [
         subtitle: "Land, air & sea tickets",
         img: img7,
         sub: [
-            { title: "Flight Ticket", subtitle: "Book air tickets", href: "/flight-booking", img: img3 },
             { title: "Bus Ticket", subtitle: "Book bus tickets", href: "/busTicketBookingDetails", img: img1 },
             { title: "Train Ticket", subtitle: "Book train tickets", href: "/trainTicketBookingDetails", img: img2 },
+            { title: "Flight Ticket", subtitle: "Book air tickets", href: "/flight-booking", img: img3 },
         ],
     },
     { title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey", img: img6 },

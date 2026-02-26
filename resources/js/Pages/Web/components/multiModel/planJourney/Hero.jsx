@@ -12,8 +12,176 @@ import badgeCheck from "../../../assets/multiModel/planJourney/badgeCheck.svg";
 import JourneyPlanner from "./JourneyPlanner";
 import MapComponent from "./MapComponent";
 import AvailableVehicles from "./AvailableVehicles";
+import FilterSidebar from "../../vehicleList/FilterSidebar";
+import VehicleListContent from "../../vehicleList/VehicleListContent";
+import SearchForm from "../../vehicleList/SearchForm";
+import SeaFilterSidebar from "../../seaVehicleList/FilterSidebar";
+import SeaVehicleListContent from "../../seaVehicleList/SeaVehicleListContent";
+import SeaSearchForm from "../../seaVehicleList/SearchForm";
+import AirFilterSidebar from "../../airVehicleList/FilterSidebar";
+import AirVehicleListContent from "../../airVehicleList/AirVehicleListContent";
+import AirSearchForm from "../../airVehicleList/SearchForm";
+import HeroDetailsTwo from "../../ticketBooking/HeroDetailsTwo";
+import HeroDetails from "../../ticketBooking/HeroDetails";
+import FlightForm from "../../ticketBooking/FlightForm";
 
 const Hero = () => {
+    // Active tab state: 'rental', 'ticket', or 'multimodal'
+    const [activeTab, setActiveTab] = useState('rental');
+
+    // Vehicle Rental inline view state
+    const [rentalSubTab, setRentalSubTab] = useState('land');
+    const [vehicleListData, setVehicleListData] = useState(null);
+    const [isLoadingRental, setIsLoadingRental] = useState(false);
+    const [seaVehicleData, setSeaVehicleData] = useState(null);
+    const [isLoadingSea, setIsLoadingSea] = useState(false);
+    const [airVehicleData, setAirVehicleData] = useState(null);
+    const [isLoadingAir, setIsLoadingAir] = useState(false);
+    const [rentalFormData, setRentalFormData] = useState({
+        pickupLocation: "", pickupDate: "", dropoffLocation: "", dropoffDate: "", brand: "", bodyType: "",
+    });
+    const [seaFormData, setSeaFormData] = useState({
+        pickupLocation: "", pickupDate: "", dropoffLocation: "", dropoffDate: "", brand: "", bodyType: "",
+    });
+    const [airFormData, setAirFormData] = useState({
+        pickupLocation: "", pickupDate: "", dropoffLocation: "", dropoffDate: "", brand: "", bodyType: "",
+    });
+
+    // Auto-fetch land vehicle list on mount
+    useEffect(() => {
+        fetchLandVehicles();
+    }, []);
+
+    // Ticket Booking inline view state
+    const [ticketSubTab, setTicketSubTab] = useState('bus');
+    const [ticketData, setTicketData] = useState(null);
+    const [isLoadingTicket, setIsLoadingTicket] = useState(false);
+    const [trainData, setTrainData] = useState(null);
+    const [isLoadingTrain, setIsLoadingTrain] = useState(false);
+
+    const handleVehicleRentalClick = async (e) => {
+        e.preventDefault();
+        setActiveTab('rental');
+        if (rentalSubTab === 'land') {
+            await fetchLandVehicles();
+        } else if (rentalSubTab === 'sea') {
+            await fetchSeaVehicles();
+        } else if (rentalSubTab === 'air') {
+            await fetchAirVehicles();
+        }
+    };
+
+    const fetchLandVehicles = async () => {
+        if (vehicleListData) return;
+        setIsLoadingRental(true);
+        try {
+            const res = await fetch('/vehicleList/json');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setVehicleListData(data);
+        } catch (err) {
+            console.error('Failed to load vehicle list:', err);
+            alert('Failed to load vehicle list. Please try again.');
+        } finally {
+            setIsLoadingRental(false);
+        }
+    };
+
+    const fetchSeaVehicles = async () => {
+        if (seaVehicleData) return;
+        setIsLoadingSea(true);
+        try {
+            const res = await fetch('/seaVehicleList/json');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setSeaVehicleData(data);
+        } catch (err) {
+            console.error('Failed to load sea vehicle list:', err);
+            alert('Failed to load sea vehicles. Please try again.');
+        } finally {
+            setIsLoadingSea(false);
+        }
+    };
+
+    const fetchAirVehicles = async () => {
+        if (airVehicleData) return;
+        setIsLoadingAir(true);
+        try {
+            const res = await fetch('/airVehicleList/json');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setAirVehicleData(data);
+        } catch (err) {
+            console.error('Failed to load air vehicle list:', err);
+            alert('Failed to load air vehicles. Please try again.');
+        } finally {
+            setIsLoadingAir(false);
+        }
+    };
+
+    const handleRentalSubTabClick = async (subTab) => {
+        setRentalSubTab(subTab);
+        if (subTab === 'land') {
+            await fetchLandVehicles();
+        } else if (subTab === 'sea') {
+            await fetchSeaVehicles();
+        } else if (subTab === 'air') {
+            await fetchAirVehicles();
+        }
+    };
+
+    const handleTicketBookingClick = async (e) => {
+        e.preventDefault();
+        setActiveTab('ticket');
+        // Load the currently selected sub-tab data
+        if (ticketSubTab === 'bus') {
+            await fetchBusData();
+        } else if (ticketSubTab === 'train') {
+            await fetchTrainData();
+        }
+    };
+
+    const fetchBusData = async () => {
+        if (ticketData) return;
+        setIsLoadingTicket(true);
+        try {
+            const res = await fetch('/busTicketBookingDetails/json');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setTicketData(data);
+        } catch (err) {
+            console.error('Failed to load bus ticket data:', err);
+            alert('Failed to load bus ticket booking. Please try again.');
+        } finally {
+            setIsLoadingTicket(false);
+        }
+    };
+
+    const fetchTrainData = async () => {
+        if (trainData) return;
+        setIsLoadingTrain(true);
+        try {
+            const res = await fetch('/trainTicketBookingDetails/json');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setTrainData(data);
+        } catch (err) {
+            console.error('Failed to load train ticket data:', err);
+            alert('Failed to load train ticket booking. Please try again.');
+        } finally {
+            setIsLoadingTrain(false);
+        }
+    };
+
+    const handleTicketSubTabClick = async (subTab) => {
+        setTicketSubTab(subTab);
+        if (subTab === 'bus') {
+            await fetchBusData();
+        } else if (subTab === 'train') {
+            await fetchTrainData();
+        }
+    };
+
     const [startJourney, setStartJourney] = useState({ location: "", startDate: "", startTime: "", coordinates: null });
     const [addedStops, setAddedStops] = useState([]);
     const [endJourney, setEndJourney] = useState({ location: "", returnDate: "", returnTime: "", coordinates: null });
@@ -100,7 +268,7 @@ const Hero = () => {
     const handleLocationUpdate = (waypointIndex, locationData) => {
         const currentTrip = trips[currentTripIndex];
         const newTrips = [...trips];
-        
+
         if (waypointIndex === 0) {
             newTrips[currentTripIndex] = {
                 ...currentTrip,
@@ -131,7 +299,7 @@ const Hero = () => {
                 stops: newStops
             };
         }
-        
+
         setTrips(newTrips);
     };
 
@@ -145,77 +313,77 @@ const Hero = () => {
     const storeJourneyInSession = async () => {
         // Build legs array from ALL trips
         const legs = [];
-        
+
         // Process all trips, not just current one
         for (let tripIndex = 0; tripIndex < trips.length; tripIndex++) {
             const trip = trips[tripIndex];
-            
+
             // Validate minimum requirements for each trip
             if (!trip.startJourney.location || !trip.startJourney.startDate || !trip.startJourney.startTime) {
                 alert(`Please fill in start location, date, and time for Trip ${tripIndex + 1}.`);
                 return false;
             }
-            
+
             if (!trip.endJourney.location || !trip.endJourney.returnDate || !trip.endJourney.returnTime) {
                 alert(`Please fill in end location, date, and time for Trip ${tripIndex + 1}.`);
                 return false;
             }
-        
-        // Create first leg: start → first stop (or end if no stops)
-        if (trip.stops && trip.stops.length > 0) {
-            // First leg: start → first stop
-            legs.push({
-                from_location: trip.startJourney.location,
-                to_location: trip.stops[0].destination || trip.endJourney.location,
-                start_date: trip.startJourney.startDate,
-                start_time: trip.startJourney.startTime,
-                end_date: trip.stops[0].departureDate || trip.endJourney.returnDate,
-                end_time: trip.stops[0].departureTime || trip.endJourney.returnTime,
-                vehicle_type: 'land', // Default, can be made dynamic later
-                trip_id: tripIndex // Add trip identifier
-            });
-            
-            // Middle legs: stop to stop
-            for (let i = 0; i < trip.stops.length - 1; i++) {
+
+            // Create first leg: start → first stop (or end if no stops)
+            if (trip.stops && trip.stops.length > 0) {
+                // First leg: start → first stop
                 legs.push({
-                    from_location: trip.stops[i].destination,
-                    to_location: trip.stops[i + 1].destination,
-                    start_date: trip.stops[i].departureDate || trip.stops[i].returnDate,
-                    start_time: trip.stops[i].departureTime || trip.stops[i].returnTime,
-                    end_date: trip.stops[i + 1].departureDate || trip.stops[i + 1].returnDate,
-                    end_time: trip.stops[i + 1].departureTime || trip.stops[i + 1].returnTime,
+                    from_location: trip.startJourney.location,
+                    to_location: trip.stops[0].destination || trip.endJourney.location,
+                    start_date: trip.startJourney.startDate,
+                    start_time: trip.startJourney.startTime,
+                    end_date: trip.stops[0].departureDate || trip.endJourney.returnDate,
+                    end_time: trip.stops[0].departureTime || trip.endJourney.returnTime,
+                    vehicle_type: 'land', // Default, can be made dynamic later
+                    trip_id: tripIndex // Add trip identifier
+                });
+
+                // Middle legs: stop to stop
+                for (let i = 0; i < trip.stops.length - 1; i++) {
+                    legs.push({
+                        from_location: trip.stops[i].destination,
+                        to_location: trip.stops[i + 1].destination,
+                        start_date: trip.stops[i].departureDate || trip.stops[i].returnDate,
+                        start_time: trip.stops[i].departureTime || trip.stops[i].returnTime,
+                        end_date: trip.stops[i + 1].departureDate || trip.stops[i + 1].returnDate,
+                        end_time: trip.stops[i + 1].departureTime || trip.stops[i + 1].returnTime,
+                        vehicle_type: 'land',
+                        trip_id: tripIndex // Add trip identifier
+                    });
+                }
+
+                // Last leg: last stop → end
+                const lastStop = trip.stops[trip.stops.length - 1];
+                legs.push({
+                    from_location: lastStop.destination,
+                    to_location: trip.endJourney.location,
+                    start_date: lastStop.returnDate || lastStop.departureDate,
+                    start_time: lastStop.returnTime || lastStop.departureTime,
+                    end_date: trip.endJourney.returnDate,
+                    end_time: trip.endJourney.returnTime,
+                    vehicle_type: 'land',
+                    trip_id: tripIndex // Add trip identifier
+                });
+            } else {
+                // Single leg: start → end (no stops)
+                legs.push({
+                    from_location: trip.startJourney.location,
+                    to_location: trip.endJourney.location,
+                    start_date: trip.startJourney.startDate,
+                    start_time: trip.startJourney.startTime,
+                    end_date: trip.endJourney.returnDate,
+                    end_time: trip.endJourney.returnTime,
                     vehicle_type: 'land',
                     trip_id: tripIndex // Add trip identifier
                 });
             }
-            
-            // Last leg: last stop → end
-            const lastStop = trip.stops[trip.stops.length - 1];
-            legs.push({
-                from_location: lastStop.destination,
-                to_location: trip.endJourney.location,
-                start_date: lastStop.returnDate || lastStop.departureDate,
-                start_time: lastStop.returnTime || lastStop.departureTime,
-                end_date: trip.endJourney.returnDate,
-                end_time: trip.endJourney.returnTime,
-                vehicle_type: 'land',
-                trip_id: tripIndex // Add trip identifier
-            });
-        } else {
-            // Single leg: start → end (no stops)
-            legs.push({
-                from_location: trip.startJourney.location,
-                to_location: trip.endJourney.location,
-                start_date: trip.startJourney.startDate,
-                start_time: trip.startJourney.startTime,
-                end_date: trip.endJourney.returnDate,
-                end_time: trip.endJourney.returnTime,
-                vehicle_type: 'land',
-                trip_id: tripIndex // Add trip identifier
-            });
-        }
         } // End of trip loop
-        
+
         try {
             const response = await fetch('/multiModel/journey/store', {
                 method: 'POST',
@@ -225,7 +393,7 @@ const Hero = () => {
                 },
                 body: JSON.stringify({ legs })
             });
-            
+
             const data = await response.json();
             if (data.success) {
                 console.log('✅ Journey stored in session successfully');
@@ -242,7 +410,7 @@ const Hero = () => {
 
     const fetchAvailableVehicles = async () => {
         setIsLoadingVehicles(true);
-        
+
         // FIRST: Store ALL trips in session
         const stored = await storeJourneyInSession();
         if (!stored) {
@@ -250,11 +418,11 @@ const Hero = () => {
             setIsLoadingVehicles(false);
             return;
         }
-        
+
         // Get current trip data
         const currentTrip = trips[currentTripIndex];
         console.log('Fetching vehicles for Trip', currentTripIndex + 1, 'of', trips.length);
-        
+
         // Determine the date range for fetching vehicles (first leg)
         const startDate = currentTrip.startJourney.startDate;
         const startTime = currentTrip.startJourney.startTime;
@@ -379,7 +547,7 @@ const Hero = () => {
         };
         const encodedData = btoa(JSON.stringify(journeyData));
         const shareUrl = `${window.location.origin}${window.location.pathname}?journey=${encodedData}`;
-        
+
         if (navigator.share) {
             navigator.share({
                 title: 'My Journey Plan',
@@ -409,15 +577,238 @@ const Hero = () => {
         URL.revokeObjectURL(url);
     };
     return (
-            <>
-            <div className="grid grid-cols-1 xl:grid-cols-3 px-5 md:px-10 py-10 gap-20">
+        <>
+            {/* Top Navigation Buttons */}
+            <div className="flex justify-center items-center gap-3 pt-8 px-5">
+                <button
+                    onClick={handleVehicleRentalClick}
+                    className={`px-6 py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[14px] poppins transition-colors ${activeTab === 'rental'
+                        ? 'bg-[#0955AC] text-white'
+                        : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                        }`}
+                >
+                    Vehicle Rental
+                </button>
+                <button
+                    onClick={handleTicketBookingClick}
+                    className={`px-6 py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[14px] poppins transition-colors ${activeTab === 'ticket'
+                        ? 'bg-[#0955AC] text-white'
+                        : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                        }`}
+                >
+                    Ticket Booking
+                </button>
+                <button
+                    onClick={() => setActiveTab('multimodal')}
+                    className={`px-6 py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[14px] poppins transition-colors ${activeTab === 'multimodal'
+                        ? 'bg-[#0955AC] text-white shadow-md'
+                        : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                        }`}
+                >
+                    Multimodal
+                </button>
+            </div>
+
+            {/* Vehicle Rental Inline View */}
+            {activeTab === 'rental' && (
+                <div className="px-5 md:px-10 py-6">
+                    {/* Sub-tab buttons: Land, Sea, Air */}
+                    <div className="flex justify-center items-center gap-3 mb-6">
+                        <button
+                            onClick={() => handleRentalSubTabClick('land')}
+                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${rentalSubTab === 'land'
+                                ? 'bg-[#0955AC] text-white'
+                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                            }`}
+                        >
+                        Land
+                        </button>
+                        <button
+                            onClick={() => handleRentalSubTabClick('sea')}
+                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${rentalSubTab === 'sea'
+                                ? 'bg-[#0955AC] text-white'
+                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                            }`}
+                        >
+                        Sea
+                        </button>
+                        <button
+                            onClick={() => handleRentalSubTabClick('air')}
+                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${rentalSubTab === 'air'
+                                ? 'bg-[#0955AC] text-white'
+                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                            }`}
+                        >
+                        Air
+                        </button>
+                    </div>
+
+                    {/* Land Sub-tab Content */}
+                    {rentalSubTab === 'land' && (
+                        <>
+                            {isLoadingRental ? (
+                                <div className="flex justify-center items-center py-20">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC]"></div>
+                                </div>
+                            ) : vehicleListData ? (
+                                <div className="flex">
+                                    <FilterSidebar searchParams={rentalFormData} />
+                                    <div className="flex-1">
+                                        <SearchForm formData={rentalFormData} onFormChange={setRentalFormData} />
+                                        <VehicleListContent
+                                            vehicles={vehicleListData.vehicles}
+                                            authUser={vehicleListData.auth?.user}
+                                            likedVehicleIds={vehicleListData.likedVehicleIds}
+                                            searchParams={{
+                                                pickupLocation: rentalFormData.pickupLocation,
+                                                pickupDate: rentalFormData.pickupDate,
+                                                dropoffLocation: rentalFormData.dropoffLocation,
+                                                dropoffDate: rentalFormData.dropoffDate,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : null}
+                        </>
+                    )}
+
+                    {/* Sea Sub-tab Content */}
+                    {rentalSubTab === 'sea' && (
+                        <>
+                            {isLoadingSea ? (
+                                <div className="flex justify-center items-center py-20">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC]"></div>
+                                </div>
+                            ) : seaVehicleData ? (
+                                <div className="flex">
+                                    <SeaFilterSidebar searchParams={seaFormData} />
+                                    <div className="flex-1">
+                                        <SeaSearchForm formData={seaFormData} onFormChange={setSeaFormData} />
+                                        <SeaVehicleListContent
+                                            vehicles={seaVehicleData.vehicles}
+                                            authUser={seaVehicleData.auth?.user}
+                                            likedVehicleIds={seaVehicleData.likedVehicleIds}
+                                        />
+                                    </div>
+                                </div>
+                            ) : null}
+                        </>
+                    )}
+
+                    {/* Air Sub-tab Content */}
+                    {rentalSubTab === 'air' && (
+                        <>
+                            {isLoadingAir ? (
+                                <div className="flex justify-center items-center py-20">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC]"></div>
+                                </div>
+                            ) : airVehicleData ? (
+                                <div className="flex">
+                                    <AirFilterSidebar searchParams={airFormData} />
+                                    <div className="flex-1">
+                                        <AirSearchForm formData={airFormData} onFormChange={setAirFormData} />
+                                        <AirVehicleListContent
+                                            vehicles={airVehicleData.vehicles}
+                                            authUser={airVehicleData.auth?.user}
+                                            likedVehicleIds={airVehicleData.likedVehicleIds}
+                                        />
+                                    </div>
+                                </div>
+                            ) : null}
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* Ticket Booking Inline View */}
+            {activeTab === 'ticket' && (
+                <div className="px-5 md:px-10 py-6">
+                    {/* Sub-tab buttons: Bus, Train, Flight */}
+                    <div className="flex justify-center items-center gap-3 mb-6">
+                        <button
+                            onClick={() => handleTicketSubTabClick('bus')}
+                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${ticketSubTab === 'bus'
+                                ? 'bg-[#0955AC] text-white'
+                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                                }`}
+                        >
+                            Bus
+                        </button>
+                        <button
+                            onClick={() => handleTicketSubTabClick('train')}
+                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${ticketSubTab === 'train'
+                                ? 'bg-[#0955AC] text-white'
+                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                                }`}
+                        >
+                            Train
+                        </button>
+                        <button
+                            onClick={() => handleTicketSubTabClick('flight')}
+                            className={`px-5 py-2 rounded-full border-2 border-[#0955AC] font-[600] text-[13px] poppins transition-colors ${ticketSubTab === 'flight'
+                                ? 'bg-[#0955AC] text-white'
+                                : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                                }`}
+                        >
+                            Flight
+                        </button>
+                    </div>
+
+                    {/* Bus Sub-tab Content */}
+                    {ticketSubTab === 'bus' && (
+                        <>
+                            {isLoadingTicket ? (
+                                <div className="flex justify-center items-center py-20">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC]"></div>
+                                </div>
+                            ) : ticketData ? (
+                                <HeroDetailsTwo
+                                    stations={ticketData.stations}
+                                    schedules={ticketData.schedules}
+                                    searchParams={ticketData.searchParams}
+                                />
+                            ) : null}
+                        </>
+                    )}
+
+                    {/* Train Sub-tab Content */}
+                    {ticketSubTab === 'train' && (
+                        <>
+                            {isLoadingTrain ? (
+                                <div className="flex justify-center items-center py-20">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0955AC]"></div>
+                                </div>
+                            ) : trainData ? (
+                                <HeroDetails
+                                    outboundSchedules={trainData.outboundSchedules}
+                                    returnSchedules={trainData.returnSchedules}
+                                    searchParams={trainData.searchParams}
+                                    fromStationName={trainData.fromStationName}
+                                    toStationName={trainData.toStationName}
+                                    hasActiveFilters={trainData.hasActiveFilters}
+                                    isShowingAllTrains={trainData.isShowingAllTrains}
+                                    inline={true}
+                                />
+                            ) : null}
+                        </>
+                    )}
+
+                    {/* Flight Sub-tab Content */}
+                    {ticketSubTab === 'flight' && (
+                        <FlightForm />
+                    )}
+                </div>
+            )}
+
+            {/* Multimodal Journey Planner View */}
+            {activeTab === 'multimodal' && <div className="grid grid-cols-1 xl:grid-cols-3 px-5 md:px-10 py-10 gap-20">
                 <div className="xl:col-span-1">
-                    <JourneyPlanner 
-                        startJourney={startJourney} 
-                        setStartJourney={setStartJourney} 
-                        addedStops={addedStops} 
-                        setAddedStops={setAddedStops} 
-                        endJourney={endJourney} 
+                    <JourneyPlanner
+                        startJourney={startJourney}
+                        setStartJourney={setStartJourney}
+                        addedStops={addedStops}
+                        setAddedStops={setAddedStops}
+                        endJourney={endJourney}
                         setEndJourney={setEndJourney}
                         trips={trips}
                         setTrips={setTrips}
@@ -451,30 +842,30 @@ const Hero = () => {
                     </div>
 
                     <div className="flex flex-row items-center text-[#6F6F6F] text-[10px] font-[500] latto mb-16">
-                    <div className="relative flex flex-col items-center justify-center">
-                        <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
-                        <h3 className="absolute top-6">From</h3>
-                        {trips[currentTripIndex]?.startJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{trips[currentTripIndex].startJourney.location}</h4>}
-                    </div>
-
-                    {trips[currentTripIndex]?.stops.length > 0 ? trips[currentTripIndex].stops.map((stop, index) => (
-                        <div key={stop.id} className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]">
-                            <div className="absolute left-1/2 -translate-x-1/2 flex flex-col justify-center items-center gap-1">
-                                <div className=" size-[16px] bg-[#C6C6C6] rounded-full" />
-                                <h3 className="absolute top-6 text-nowrap">Stop {index + 1}</h3>
-                                {stop.destination && <h4 className="absolute top-10 text-[8px] text-center w-24">{stop.destination}</h4>}
-                            </div>
+                        <div className="relative flex flex-col items-center justify-center">
+                            <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
+                            <h3 className="absolute top-6">From</h3>
+                            {trips[currentTripIndex]?.startJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{trips[currentTripIndex].startJourney.location}</h4>}
                         </div>
-                    )) : (
-                        <div className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]"></div>
-                    )}
 
-                    <div className="relative flex flex-col items-center justify-center">
-                        <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
-                        <h3 className="absolute top-6">To</h3>
-                        {trips[currentTripIndex]?.endJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{trips[currentTripIndex].endJourney.location}</h4>}
+                        {trips[currentTripIndex]?.stops.length > 0 ? trips[currentTripIndex].stops.map((stop, index) => (
+                            <div key={stop.id} className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]">
+                                <div className="absolute left-1/2 -translate-x-1/2 flex flex-col justify-center items-center gap-1">
+                                    <div className=" size-[16px] bg-[#C6C6C6] rounded-full" />
+                                    <h3 className="absolute top-6 text-nowrap">Stop {index + 1}</h3>
+                                    {stop.destination && <h4 className="absolute top-10 text-[8px] text-center w-24">{stop.destination}</h4>}
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="relative flex flex-col justify-center w-full h-[1px] bg-[#C6C6C6]"></div>
+                        )}
+
+                        <div className="relative flex flex-col items-center justify-center">
+                            <div className="size-[20px] border-[1px] border-[#C6C6C6] rounded-full"></div>
+                            <h3 className="absolute top-6">To</h3>
+                            {trips[currentTripIndex]?.endJourney.location && <h4 className="absolute top-10 text-[8px] text-center w-24">{trips[currentTripIndex].endJourney.location}</h4>}
+                        </div>
                     </div>
-                </div>
 
                     {/* Review Journey Button */}
                     <div className="flex justify-center items-center mt-5">
@@ -498,78 +889,78 @@ const Hero = () => {
                     {!showVehicles ? (
                         // Available Vehicles Card
                         <div className="relative w-full md:h-[400px] shadow-lg bg-[#F4F3F3] rounded-[20px] pb-20 md:pb-0 p-5 md:p-10 poppins flex flex-col gap-5">
-                        <div>
-                            <h1 className="bebas-neue text-[50px]/[100%]">
-                                Available Vehicles
-                            </h1>
-                            <h3 className="text-[14px] font-[500] text-[#00000080]">
-                                Add Journey → Click Find Vehicles → Go!
-                            </h3>
+                            <div>
+                                <h1 className="bebas-neue text-[50px]/[100%]">
+                                    Available Vehicles
+                                </h1>
+                                <h3 className="text-[14px] font-[500] text-[#00000080]">
+                                    Add Journey → Click Find Vehicles → Go!
+                                </h3>
+                            </div>
+
+                            <div className="text-[18px] text-[#0955AC] font-[700] figtree mt-5 flex flex-col md:flex-row justify-between gap-5 items-center w-full">
+                                <Link href="/multiModel/available-vehicles" className="w-full">
+                                    <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
+                                        <img src={car} alt="car icon" />
+                                        <h1>Car</h1>
+                                        <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
+                                            145
+                                        </div>
+                                    </div>
+                                </Link>
+
+                                <Link href="/multiModel/available-vehicles" className="w-full">
+                                    <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
+                                        <img src={bus} alt="bus icon" />
+                                        <h1>Bus</h1>
+                                        <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
+                                            10
+                                        </div>
+                                    </div>
+                                </Link>
+
+                                <Link href="/multiModel/available-vehicles" className="w-full">
+                                    <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
+                                        <img src={tram} alt="tram icon" />
+                                        <h1>Train</h1>
+                                        <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
+                                            3
+                                        </div>
+                                    </div>
+                                </Link>
+
+                                <Link href="/multiModel/available-vehicles" className="w-full">
+                                    <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
+                                        <img src={plane} alt="plane icon" />
+                                        <h1>Plane</h1>
+                                        <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
+                                            1
+                                        </div>
+                                    </div>
+                                </Link>
+
+                                <Link href="/multiModel/available-vehicles" className="w-full">
+                                    <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
+                                        <img src={ship} alt="ship icon" />
+                                        <h1>Yatch</h1>
+                                        <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
+                                            1
+                                        </div>
+                                    </div>
+                                </Link>
+                            </div>
+                            <div className="absolute md:bottom-5 bottom-2 right-5 flex flex-row gap-2 text-[15px] font-[500] text-[#000000] items-center">
+                                <img src={badgeCheck} alt="badge check icon" />
+                                <h1>
+                                    All the{" "}
+                                    <span className="text-[#0955AC]">vehicles</span>{" "}
+                                    are{" "}
+                                    <span className="text-[#0955AC]">verified</span>{" "}
+                                </h1>
+                            </div>
                         </div>
-
-                        <div className="text-[18px] text-[#0955AC] font-[700] figtree mt-5 flex flex-col md:flex-row justify-between gap-5 items-center w-full">
-                            <Link href="/multiModel/available-vehicles" className="w-full">
-                                <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
-                                    <img src={car} alt="car icon" />
-                                    <h1>Car</h1>
-                                    <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
-                                        145
-                                    </div>
-                                </div>
-                            </Link>
-
-                            <Link href="/multiModel/available-vehicles" className="w-full">
-                                <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
-                                    <img src={bus} alt="bus icon" />
-                                    <h1>Bus</h1>
-                                    <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
-                                        10
-                                    </div>
-                                </div>
-                            </Link>
-
-                            <Link href="/multiModel/available-vehicles" className="w-full">
-                                <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
-                                    <img src={tram} alt="tram icon" />
-                                    <h1>Train</h1>
-                                    <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
-                                        3
-                                    </div>
-                                </div>
-                            </Link>
-
-                            <Link href="/multiModel/available-vehicles" className="w-full">
-                                <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
-                                    <img src={plane} alt="plane icon" />
-                                    <h1>Plane</h1>
-                                    <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
-                                        1
-                                    </div>
-                                </div>
-                            </Link>
-
-                            <Link href="/multiModel/available-vehicles" className="w-full">
-                                <div className="relative w-full md:w-[108px] md:h-[118px] bg-[#0955AC1A] rounded-[10px] flex flex-col justify-center items-center px-4 py-2">
-                                    <img src={ship} alt="ship icon" />
-                                    <h1>Yatch</h1>
-                                    <div className="absolute top-[-10px] right-[-10px] w-[45px] h-[25px] bg-[#0955AC] rounded-[5px] text-[#FFFFFF] font-[700] flex justify-center items-center p-1">
-                                        1
-                                    </div>
-                                </div>
-                            </Link>
-                        </div>
-                        <div className="absolute md:bottom-5 bottom-2 right-5 flex flex-row gap-2 text-[15px] font-[500] text-[#000000] items-center">
-                            <img src={badgeCheck} alt="badge check icon" />
-                            <h1>
-                                All the{" "}
-                                <span className="text-[#0955AC]">vehicles</span>{" "}
-                                are{" "}
-                                <span className="text-[#0955AC]">verified</span>{" "}
-                            </h1>
-                        </div>
-                    </div>
                     ) : (
-                        <AvailableVehicles 
+                        <AvailableVehicles
                             onBackToJourney={() => setShowVehicles(false)}
                             currentTripIndex={currentTripIndex}
                             trips={trips}
@@ -582,7 +973,7 @@ const Hero = () => {
                         />
                     )}
                 </div>
-            </div>
+            </div>}
         </>
     );
 };

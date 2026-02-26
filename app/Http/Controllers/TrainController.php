@@ -157,6 +157,50 @@ class TrainController extends Controller
         ]);
     }
 
+    /**
+     * Return train ticket booking data as JSON for inline rendering
+     */
+    public function searchJson(Request $request)
+    {
+        $outboundSchedules = TrainSchedule::with(['train', 'departureStation', 'arrivalStation'])
+            ->where('status', 'active')
+            ->where('date', '>=', \Carbon\Carbon::today()->format('Y-m-d'))
+            ->orderBy('date')
+            ->orderBy('departure_time')
+            ->limit(20)
+            ->get()
+            ->map(function ($schedule) {
+                return [
+                    'id' => $schedule->id,
+                    'name' => $schedule->train->name,
+                    'class' => $schedule->train->class_type,
+                    'route' => 'Route number: ' . $schedule->train->route_number,
+                    'depart' => \Carbon\Carbon::parse($schedule->departure_time)->format('g:i A'),
+                    'arrive' => \Carbon\Carbon::parse($schedule->arrival_time)->format('g:i A'),
+                    'date' => \Carbon\Carbon::parse($schedule->date)->format('j M'),
+                    'duration' => $this->formatDuration($schedule->duration_minutes),
+                    'price' => $schedule->price,
+                    'available_seats' => $schedule->available_seats,
+                    'total_capacity' => $schedule->train->capacity,
+                    'status' => $schedule->available_seats > 0 ? 'View Seats' : 'Sold Out',
+                    'soldOut' => $schedule->available_seats == 0,
+                    'facilities' => $schedule->train->facilities ?? [],
+                    'train_number' => $schedule->train->train_number,
+                    'operator' => $schedule->train->operator,
+                ];
+            });
+
+        return response()->json([
+            'searchParams' => [],
+            'outboundSchedules' => $outboundSchedules,
+            'returnSchedules' => [],
+            'fromStationName' => '',
+            'toStationName' => '',
+            'hasActiveFilters' => false,
+            'isShowingAllTrains' => true,
+        ]);
+    }
+
     public function preview(Request $request)
     {
         $scheduleId = $request->input('schedule_id');

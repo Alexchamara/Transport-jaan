@@ -242,6 +242,150 @@ class ClientVehicleController extends Controller
         ]);
     }
 
+    /**
+     * Return vehicle list as JSON (for inline loading in multimodal page).
+     */
+    public function vehicleListJson(Request $request)
+    {
+        $query = Vehicle::with([
+            'landSpec',
+            'images' => fn($q) => $q->orderByDesc('is_primary')
+                ->orderBy('sort_order')
+                ->orderBy('id'),
+        ])->active()->type('land');
+
+        $vehicles = $query->paginate(12)->withQueryString()
+            ->through(function (Vehicle $v) {
+                $primaryMedia = optional(
+                    $v->images->sortByDesc('is_primary')->sortBy('sort_order')->first()
+                );
+                return [
+                    'id'                   => $v->id,
+                    'model'                => $v->model,
+                    'manufacturer'         => $v->manufacturer,
+                    'rental_price_per_day' => $v->rental_price_per_day,
+                    'primary_image_url'    => $primaryMedia?->url,
+                    'images' => $v->images->map(fn($m) => [
+                        'id'         => $m->id,
+                        'url'        => $m->url,
+                        'is_primary' => (bool) $m->is_primary,
+                        'sort_order' => (int) $m->sort_order,
+                    ])->values(),
+                    'landSpec' => [
+                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
+                        'transmission_type' => $v->landSpec->transmission_type ?? null,
+                        'seats'             => $v->landSpec->seats ?? null,
+                    ],
+                    'mileage_km'         => $v->mileage_km,
+                    'passenger_capacity' => $v->passenger_capacity,
+                ];
+            });
+
+        $likedVehicleIds = Auth::check()
+            ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
+            : [];
+
+        return response()->json([
+            'vehicles'        => $vehicles,
+            'likedVehicleIds' => $likedVehicleIds,
+            'auth'            => ['user' => Auth::user()],
+        ]);
+    }
+
+    public function seaVehicleListJson(Request $request)
+    {
+        $query = Vehicle::with([
+            'landSpec',
+            'images' => fn($q) => $q->orderByDesc('is_primary')
+                ->orderBy('sort_order')
+                ->orderBy('id'),
+        ])->active()->type('sea');
+
+        $vehicles = $query->paginate(12)->withQueryString()
+            ->through(function (Vehicle $v) {
+                $primaryMedia = optional(
+                    $v->images->sortByDesc('is_primary')->sortBy('sort_order')->first()
+                );
+                return [
+                    'id'                   => $v->id,
+                    'model'                => $v->model,
+                    'manufacturer'         => $v->manufacturer,
+                    'rental_price_per_day' => $v->rental_price_per_day,
+                    'primary_image_url'    => $primaryMedia?->url,
+                    'images' => $v->images->map(fn($m) => [
+                        'id'         => $m->id,
+                        'url'        => $m->url,
+                        'is_primary' => (bool) $m->is_primary,
+                        'sort_order' => (int) $m->sort_order,
+                    ])->values(),
+                    'landSpec' => [
+                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
+                        'transmission_type' => $v->landSpec->transmission_type ?? null,
+                        'seats'             => $v->landSpec->seats ?? null,
+                    ],
+                    'mileage_km'         => $v->mileage_km,
+                    'passenger_capacity' => $v->passenger_capacity,
+                ];
+            });
+
+        $likedVehicleIds = Auth::check()
+            ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
+            : [];
+
+        return response()->json([
+            'vehicles'        => $vehicles,
+            'likedVehicleIds' => $likedVehicleIds,
+            'auth'            => ['user' => Auth::user()],
+        ]);
+    }
+
+    public function airVehicleListJson(Request $request)
+    {
+        $query = Vehicle::with([
+            'landSpec',
+            'images' => fn($q) => $q->orderByDesc('is_primary')
+                ->orderBy('sort_order')
+                ->orderBy('id'),
+        ])->active()->type('air');
+
+        $vehicles = $query->paginate(12)->withQueryString()
+            ->through(function (Vehicle $v) {
+                $primaryMedia = optional(
+                    $v->images->sortByDesc('is_primary')->sortBy('sort_order')->first()
+                );
+                return [
+                    'id'                   => $v->id,
+                    'model'                => $v->model,
+                    'manufacturer'         => $v->manufacturer,
+                    'rental_price_per_day' => $v->rental_price_per_day,
+                    'primary_image_url'    => $primaryMedia?->url,
+                    'images' => $v->images->map(fn($m) => [
+                        'id'         => $m->id,
+                        'url'        => $m->url,
+                        'is_primary' => (bool) $m->is_primary,
+                        'sort_order' => (int) $m->sort_order,
+                    ])->values(),
+                    'landSpec' => [
+                        'fuel_type'         => $v->landSpec->fuel_type ?? null,
+                        'transmission_type' => $v->landSpec->transmission_type ?? null,
+                        'seats'             => $v->landSpec->seats ?? null,
+                    ],
+                    'mileage_km'         => $v->mileage_km,
+                    'passenger_capacity' => $v->passenger_capacity,
+                ];
+            });
+
+        $likedVehicleIds = Auth::check()
+            ? Auth::user()->vehicleLikes()->pluck('vehicle_id')->toArray()
+            : [];
+
+        return response()->json([
+            'vehicles'        => $vehicles,
+            'likedVehicleIds' => $likedVehicleIds,
+            'auth'            => ['user' => Auth::user()],
+        ]);
+    }
+
      public function seaVehicleList(Request $request)
     {
         $filters = $request->only([

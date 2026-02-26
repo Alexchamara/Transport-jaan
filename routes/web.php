@@ -120,11 +120,13 @@ Route::get('/summary', [WebController::class, 'summary'])->name('summary');
 // Ticket booking (public screens)
 Route::get('/ticketBooking', [WebController::class, 'ticketBooking'])->name('ticketBooking.ticketBooking');
 Route::get('/trainTicketBookingDetails', [TrainController::class, 'search'])->name('TrainTicketBookingDetails.TrainTicketBookingDetails');
+Route::get('/trainTicketBookingDetails/json', [TrainController::class, 'searchJson'])->name('trainTicketBookingDetails.json');
 Route::get('/trainTicketBookingPreview', [TrainController::class, 'preview'])->name('trainTicketBookingPreview.trainTicketBookingPreview');
 Route::post('/train-bookings', [TrainController::class, 'store'])->name('train-bookings.store')->middleware('auth');
 Route::get('/train-booking-success/{reference}', [TrainController::class, 'bookingSuccess'])->name('train.booking.success')->middleware('auth');
 // Bus booking routes (all routes are public - no auth required)
 Route::get('/busTicketBookingDetails', [BusBookingController::class, 'search'])->name('busTicketBookingDetails.busTicketBookingDetails');
+Route::get('/busTicketBookingDetails/json', [BusBookingController::class, 'searchJson'])->name('busTicketBookingDetails.json');
 Route::post('/bus-bookings', [BusBookingController::class, 'store'])->name('bus-bookings.store')->middleware('auth');
 Route::get('/bus-booking-success/{reference}', [BusBookingController::class, 'bookingSuccess'])->name('bus.booking.success')->middleware('auth');
 Route::get('/busTicketBookingPreview', [BusBookingController::class, 'preview'])->name('busTicketBookingPreview.busTicketBookingPreview');
@@ -257,8 +259,11 @@ Route::prefix('warehouse-bookings')->name('warehouse-bookings.')->group(function
 */
 Route::get('/clientRent', [ClientVehicleController::class, 'home'])->name('client.home');
 Route::get('/vehicleList', [ClientVehicleController::class, 'vehicleList'])->name('vehicle.list');
+Route::get('/vehicleList/json', [ClientVehicleController::class, 'vehicleListJson'])->name('vehicle.list.json');
 Route::get('/seaVehicleList', [ClientVehicleController::class, 'seaVehicleList'])->name('seaVehicle.list');
+Route::get('/seaVehicleList/json', [ClientVehicleController::class, 'seaVehicleListJson'])->name('seaVehicle.list.json');
 Route::get('/airVehicleList', [ClientVehicleController::class, 'airVehicleList'])->name('airVehicle.list');
+Route::get('/airVehicleList/json', [ClientVehicleController::class, 'airVehicleListJson'])->name('airVehicle.list.json');
 Route::get('/vehicleDetails/{vehicle}', [ClientVehicleController::class, 'vehicleDetails'])->name('vehicle.details');
 Route::get('/airVehicleDetails/{vehicle}', [ClientVehicleController::class, 'airVehicleDetails'])->name('airVehicle.details');
 Route::get('/seaVehicleDetails/{vehicle}', [ClientVehicleController::class, 'seaVehicleDetails'])->name('seaVehicle.details');
