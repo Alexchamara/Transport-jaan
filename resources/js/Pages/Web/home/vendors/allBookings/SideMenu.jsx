@@ -284,7 +284,7 @@ const SideMenu = () => {
                         )}
                     </div>
                     <div
-                            className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
+                            className={`mt-4 figtree flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer text-[18px] font-[500] ${
                                 currentPath === "/vendors/profile" 
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
                                     : "text-[#00000066]"
@@ -295,7 +295,7 @@ const SideMenu = () => {
                         >
                             <User className="w-[22px] h-[22px]" />
                             <span>Profile</span>
-                        </div>
+                    </div>
                 </div>
 
                 

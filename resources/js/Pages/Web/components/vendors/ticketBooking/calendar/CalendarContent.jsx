@@ -189,17 +189,6 @@ const CalendarContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-    const activeService = 'Ticket Booking';
-    const services = [
-        { name: "All Bookings", route: route("vendorAllBookings") },
-        { name: "Vehicle Rental", route: route("vendors.dashboard") },
-        { name: "Ticket Booking", route: route("ticketBooking.dashboard") },
-        { name: "Courier Service", route: route("courierService.dashboard") },
-        { name: "Warehousing", route: route("vendors.warehouse.dashboard") },
-        { name: "Freight", route: route("freight.dashboard") },
-        { name: "Multimodal", route: route("multiModelHomepage.home") },
-    ];
-
     const today = new Date();
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -318,8 +307,10 @@ const CalendarContent = () => {
     return (
         <>
         <div className="sticky top-0 z-30">
-            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("ticketBooking.settingsPage")} />
-        </div>
+<ServiceNavBar 
+    isVerified={isVerified}
+    settingsRoute={route("settingsPage")}
+/>        </div>
         <div className="w-full h-auto px-5 lg:pl-4 lg:pr-5 py-5 lg:py-10 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col lg:flex-row gap-2 lg:gap-5 justify-between lg:items-start items-center">

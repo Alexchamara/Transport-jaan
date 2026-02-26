@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage, Link } from "@inertiajs/react";
-import { Download, ChevronDown as DropdownIcon, Plane, Car, Search as SearchIcon, Filter as FilterIcon, ChevronDown } from "lucide-react";
+import { Download, ChevronDown as DropdownIcon, Plane, Car, Search as SearchIcon, Filter as FilterIcon, ChevronDown, Zap, Calendar } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -313,41 +313,14 @@ const VendorAllBookings = ({
         return styles[statusLower] || { bg: '#D8E4F2', text: '#000000', border: '#0000004D' };
     };
 
-    const services = [
-        { name: 'All Bookings', route: route('vendorAllBookings') },
-        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
-        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
-        { name: 'Courier Service', route: route('courierService.dashboard') },
-        { name: 'Warehouse Rental', route: route('vendors.warehouse.dashboard') },
-        { name: 'Freight', route: route('freight.dashboard') },
-        { name: 'Multimodal', route: route('multiModelHomepage.home') }
-    ];
-
-    // Determine active service based on current component
-    const getActiveService = () => {
-        const componentMap = {
-            'VendorAllBookings': 'All Bookings',
-            'TicketBooking': 'Ticket Booking',
-            'CourierService': 'Courier Service',
-            'WarehouseRental': 'Warehouse Rental',
-            'FreightDashboard': 'Freight Rental',
-            'Multimodal': 'Multimodal'
-        };
-        return componentMap[currentComponent] || 'All Bookings';
-    };
-
-    const activeService = getActiveService();
-
     return (
         <>
         {/* ServiceNavBar - flush at top, no gap */}
         <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                services={services}
-                isVerified={isVerified}
-                activeService={activeService}
-                settingsRoute={route("settingsPage")}
-            />
+                <ServiceNavBar 
+                    isVerified={isVerified}
+                    settingsRoute={route("settingsPage")}
+                />
         </div>
 
         <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-8 lg:pb-12">
@@ -405,7 +378,7 @@ const VendorAllBookings = ({
                         >
                             <div className="flex flex-row gap-5 justify-center items-center">
                                 <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                    <img src={wheelIcon} alt="active" />
+                                    <Zap className="w-[24px] h-[24px] text-black" />
                                 </div>
                                 <div>
                                     <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
@@ -461,7 +434,7 @@ const VendorAllBookings = ({
                         >
                             <div className="flex flex-row gap-5 justify-center items-center">
                                 <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                    <img src={carIcon} alt="month" />
+                                    <Calendar className="w-[24px] h-[24px] text-black" />
                                 </div>
                                 <div>
                                     <h1 className="text-[14px] font-[500] text-[#7B7B7A]">

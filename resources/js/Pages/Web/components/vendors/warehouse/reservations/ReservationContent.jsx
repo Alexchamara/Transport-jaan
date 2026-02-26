@@ -24,17 +24,6 @@ const ReservationContent = () => {
     const user = auth?.user;
 
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-    const activeService = 'Warehousing';
-    const services = [
-      { name: 'All Bookings', route: route('vendorAllBookings') },
-      { name: 'Vehicle Rental', route: route('vendors.dashboard') },
-      { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
-      { name: 'Courier Service', route: route('courierService.dashboard') },
-      { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
-      { name: 'Freight', route: route('freight.dashboard') },
-      { name: 'Multimodal', route: route('multiModelHomepage.home') }
-    ];
-
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -374,8 +363,11 @@ const ReservationContent = () => {
     return (
         <>
         <div className="sticky top-0 z-30">
-            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
-        </div>
+        <ServiceNavBar 
+            isVerified={isVerified}
+            settingsRoute={route("settingsPage")}
+        /> 
+       </div>
         <div className="w-full h-auto lg:pr-5 lg:pl-4 px-5 pb-2">
             {/* Header */}
             <div className="flex lg:flex-row flex-col gap-5 justify-between items-center mt-10">

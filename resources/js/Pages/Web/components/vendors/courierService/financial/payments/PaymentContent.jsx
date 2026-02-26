@@ -22,16 +22,6 @@ const PaymentContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-    const activeService = 'Courier Service';
-    const services = [
-        { name: 'All Bookings', route: route('vendorAllBookings') },
-        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
-        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
-        { name: 'Courier Service', route: route('courierService.dashboard') },
-        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
-        { name: 'Freight', route: route('freight.dashboard') },
-        { name: 'Multimodal', route: route('multiModelHomepage.home') }
-    ];
 
     const transactions = [
         {
@@ -223,8 +213,10 @@ const PaymentContent = () => {
     return (
         <>
         <div className="sticky top-0 z-30">
-            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("courierService.settingsPage")} />
-        </div>
+            <ServiceNavBar 
+                isVerified={isVerified}
+                settingsRoute={route("settingsPage")}
+            />        </div>
         <div className="pt-6 pb-12">
         <div className="flex flex-col gap-10 w-full h-auto lg:pl-4 lg:pr-5 ">
             {/* Header section */}

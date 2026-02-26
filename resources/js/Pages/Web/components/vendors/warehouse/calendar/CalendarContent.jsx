@@ -58,16 +58,6 @@ const CalendarContent = ({
     const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-    const activeService = 'Warehousing';
-    const services = [
-      { name: 'All Bookings', route: route('vendorAllBookings') },
-      { name: 'Vehicle Rental', route: route('vendors.dashboard') },
-      { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
-      { name: 'Courier Service', route: route('courierService.dashboard') },
-      { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
-      { name: 'Freight', route: route('freight.dashboard') },
-      { name: 'Multimodal', route: route('multiModelHomepage.home') }
-    ];
 
     // Update when props change
     useEffect(() => {
@@ -376,7 +366,10 @@ const CalendarContent = ({
     return (
         <>
         <div className="sticky top-0 z-30">
-            <ServiceNavBar services={services} isVerified={isVerified} activeService={activeService} settingsRoute={route("warehouse.settingsPage")} />
+            <ServiceNavBar 
+                isVerified={isVerified}
+                settingsRoute={route("settingsPage")}
+            />
         </div>
         <div className="w-full h-auto px-4 sm:px-6 lg:pl-4 lg:pr-5 pt-6 pb-12">
             {/* Header section */}

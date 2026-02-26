@@ -21,16 +21,6 @@ const VendorLayout = ({ children, activeService = "Vehicle Rental" }) => {
 
     const [isOpen, setIsOpen] = useState(false);
 
-    const services = [
-        { name: "All Bookings",      route: route("vendorAllBookings") },
-        { name: "Vehicle Rental",    route: route("vendors.dashboard") },
-        { name: "Ticket Booking",    route: route("ticketBooking.dashboard") },
-        { name: "Courier Service",   route: route("courierService.dashboard") },
-        { name: "Warehousing",  route: route("vendors.warehouse.dashboard") },
-        { name: "Freight",    route: route("freight.dashboard") },
-        { name: "Multimodal",        route: route("multiModelHomepage.home") },
-    ];
-
     return (
         <div className="bg-[#E5E5E5] min-h-screen">
             <div className="flex flex-row h-auto">
@@ -55,10 +45,8 @@ const VendorLayout = ({ children, activeService = "Vehicle Rental" }) => {
                 <div className="flex-1 flex flex-col min-w-0">
                     {/* ServiceNavBar - sticky at the top of the content area */}
                     <div className="sticky top-0 z-30">
-                        <ServiceNavBar
-                            services={services}
+                       <ServiceNavBar 
                             isVerified={isVerified}
-                            activeService={activeService}
                             settingsRoute={route("settingsPage")}
                         />
                     </div>

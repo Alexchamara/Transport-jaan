@@ -19,16 +19,6 @@ const AllClient = () => {
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
 
-    const services = [
-        { name: 'All Bookings', route: route('vendorAllBookings') },
-        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
-        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
-        { name: 'Courier Service', route: route('courierService.dashboard') },
-        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
-        { name: 'Freight', route: route('freight.dashboard') },
-        { name: 'Multimodal', route: route('multiModelHomepage.home') }
-    ];
-
     // Determine active service based on current component
     const getActiveService = () => {
         const componentMap = {
@@ -42,8 +32,6 @@ const AllClient = () => {
         return componentMap[currentComponent] || 'All Bookings';
     };
 
-    const activeService = getActiveService();
-
     return (
         <div className="flex flex-row gap-0 w-full h-full min-h-screen bg-[#F5F5F5]">
             <SideMenu />
@@ -51,9 +39,7 @@ const AllClient = () => {
                 {/* ServiceNavBar - sticky at top, flush with sidebar */}
                 <div className="sticky top-0 z-30">
                     <ServiceNavBar 
-                        services={services}
                         isVerified={isVerified}
-                        activeService={activeService}
                         settingsRoute={route("settingsPage")}
                     />
                 </div>

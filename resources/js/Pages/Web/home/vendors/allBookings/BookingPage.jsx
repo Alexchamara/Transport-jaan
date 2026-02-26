@@ -72,32 +72,6 @@ const BookingPage = () => {
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
 
-    // Services array for navigation
-    const services = [
-        { name: 'All Bookings', route: route('vendorAllBookings') },
-        { name: 'Vehicle Rental', route: route('vendors.dashboard') },
-        { name: 'Ticket Booking', route: route('ticketBooking.dashboard') },
-        { name: 'Courier Service', route: route('courierService.dashboard') },
-        { name: 'Warehousing', route: route('vendors.warehouse.dashboard') },
-        { name: 'Freight', route: route('freight.dashboard') },
-        { name: 'Multimodal', route: route('multiModelHomepage.home') }
-    ];
-
-    // Determine active service
-    const getActiveService = () => {
-        const componentMap = {
-            'VendorAllBookings': 'All Bookings',
-            'TicketBooking': 'Ticket Booking',
-            'CourierService': 'Courier Service',
-            'WarehouseRental': 'Warehousing',
-            'FreightDashboard': 'Freight',
-            'Multimodal': 'Multimodal'
-        };
-        return componentMap[currentComponent] || 'All Bookings';
-    };
-
-    const activeService = getActiveService();
-
     // ── notifications ──
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -246,12 +220,10 @@ const BookingPage = () => {
             <div className="flex-1 flex flex-col min-w-0">
                 {/* ServiceNavBar - sticky at the top, flush with sidebar */}
                 <div className="sticky top-0 z-30">
-                    <ServiceNavBar
-                        services={services}
+                    <ServiceNavBar 
                         isVerified={isVerified}
-                        activeService={activeService}
                         settingsRoute={route("settingsPage")}
-                    />
+                />
                 </div>
 
             <div className="px-5 lg:pr-5 lg:pl-6 pt-6 pb-10">
