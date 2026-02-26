@@ -1,0 +1,285 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\VendorProfileRequest;
+use App\Models\ServiceCategory;
+use App\Models\ServiceSubCategory;
+use App\Models\VendorProfile;
+use App\Models\VendorServiceRegistration;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+
+class VendorProfileController extends Controller
+{
+    /**
+     * Show the vendor registration page
+     */
+    public function index()
+    {
+        $user = Auth::user();
+
+        $vendorProfile = VendorProfile::where('user_id', $user->id)->first();
+
+        $serviceCategories = ServiceCategory::active()
+            ->ordered()
+            ->with('activeSubCategories')
+            ->get();
+
+        $vendorRegistrations = VendorServiceRegistration::where('user_id', $user->id)
+            ->get()
+            ->keyBy('service_sub_category_id');
+
+        return Inertia::render('Web/home/vendors/allBookings/VendorProfile', [
+            'vendorProfile' => $vendorProfile,
+            'serviceCategories' => $serviceCategories,
+            'vendorRegistrations' => $vendorRegistrations,
+            'user' => $user,
+        ]);
+    }
+
+    /**
+     * Save or update vendor business profile (Step 1)
+     */
+    public function saveProfile(VendorProfileRequest $request)
+    {
+        $user = Auth::user();
+        $data = $request->validated();
+
+        // Handle logo upload
+        if ($request->hasFile('logo')) {
+            $logo = $request->file('logo');
+            $logoPath = $logo->store('uploads/vendors/' . $user->id . '/logo', 'public');
+            $data['logo'] = $logoPath;
+        }
+
+        $vendorProfile = VendorProfile::updateOrCreate(
+            ['user_id' => $user->id],
+            array_merge($data, ['submission_status' => 'draft'])
+        );
+
+        return redirect()->back()->with('success', 'Business profile saved successfully.');
+    }
+
+    /**
+     * Save service registration for a specific sub-category (Step 2)
+     */
+    public function saveServiceRegistration(Request $request, ServiceSubCategory $subCategory)
+    {
+        $user = Auth::user();
+        $requiredFields = $subCategory->required_fields;
+
+        // Build field values from request
+        $fieldValues = [];
+
+        foreach ($requiredFields as $field) {
+            $key = $field['key'];
+            $type = $field['type'];
+
+            switch ($type) {
+                case 'file':
+                    if ($request->hasFile("fields.{$key}.file")) {
+                        $file = $request->file("fields.{$key}.file");
+                        $path = $file->store(
+                            'uploads/vendors/' . $user->id . '/services/' . $subCategory->slug,
+                            'public'
+                        );
+                        $fieldValues[$key] = ['file' => $path, 'original_name' => $file->getClientOriginalName()];
+                    } elseif ($request->input("fields.{$key}.existing_file")) {
+                        // Keep existing file
+                        $fieldValues[$key] = [
+                            'file' => $request->input("fields.{$key}.existing_file"),
+                            'original_name' => $request->input("fields.{$key}.existing_name", ''),
+                        ];
+                    }
+                    break;
+
+                case 'file_with_dates':
+                    $entry = [];
+                    if ($request->hasFile("fields.{$key}.file")) {
+                        $file = $request->file("fields.{$key}.file");
+                        $path = $file->store(
+                            'uploads/vendors/' . $user->id . '/services/' . $subCategory->slug,
+                            'public'
+                        );
+                        $entry['file'] = $path;
+                        $entry['original_name'] = $file->getClientOriginalName();
+                    } elseif ($request->input("fields.{$key}.existing_file")) {
+                        $entry['file'] = $request->input("fields.{$key}.existing_file");
+                        $entry['original_name'] = $request->input("fields.{$key}.existing_name", '');
+                    }
+                    $entry['effective_date'] = $request->input("fields.{$key}.effective_date");
+                    $entry['expiry_date'] = $request->input("fields.{$key}.expiry_date");
+                    $fieldValues[$key] = $entry;
+                    break;
+
+                case 'checkbox':
+                    $fieldValues[$key] = (bool) $request->input("fields.{$key}", false);
+                    break;
+
+                case 'file_optional':
+                    if ($request->hasFile("fields.{$key}.file")) {
+                        $file = $request->file("fields.{$key}.file");
+                        $path = $file->store(
+                            'uploads/vendors/' . $user->id . '/services/' . $subCategory->slug,
+                            'public'
+                        );
+                        $entry = ['file' => $path, 'original_name' => $file->getClientOriginalName()];
+                        if ($request->has("fields.{$key}.effective_date")) {
+                            $entry['effective_date'] = $request->input("fields.{$key}.effective_date");
+                            $entry['expiry_date'] = $request->input("fields.{$key}.expiry_date");
+                        }
+                        $fieldValues[$key] = $entry;
+                    } elseif ($request->input("fields.{$key}.existing_file")) {
+                        $fieldValues[$key] = [
+                            'file' => $request->input("fields.{$key}.existing_file"),
+                            'original_name' => $request->input("fields.{$key}.existing_name", ''),
+                            'effective_date' => $request->input("fields.{$key}.effective_date"),
+                            'expiry_date' => $request->input("fields.{$key}.expiry_date"),
+                        ];
+                    }
+                    break;
+            }
+        }
+
+        VendorServiceRegistration::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'service_sub_category_id' => $subCategory->id,
+            ],
+            [
+                'service_category_id' => $subCategory->service_category_id,
+                'field_values' => $fieldValues,
+                'status' => 'draft',
+            ]
+        );
+
+        return redirect()->back()->with('success', 'Service registration saved successfully.');
+    }
+
+    /**
+     * Remove a service registration
+     */
+    public function removeServiceRegistration(ServiceSubCategory $subCategory)
+    {
+        $user = Auth::user();
+
+        $registration = VendorServiceRegistration::where('user_id', $user->id)
+            ->where('service_sub_category_id', $subCategory->id)
+            ->first();
+
+        if ($registration) {
+            $registration->delete();
+        }
+
+        return redirect()->back()->with('success', 'Service registration removed.');
+    }
+
+    /**
+     * Submit entire profile + services for review (Step 3)
+     */
+    public function submit()
+    {
+        $user = Auth::user();
+        $vendorProfile = VendorProfile::where('user_id', $user->id)->first();
+
+        if (!$vendorProfile) {
+            return redirect()->back()->withErrors(['profile' => 'Please complete your business profile first.']);
+        }
+
+        // Check that at least one service registration exists
+        $registrations = VendorServiceRegistration::where('user_id', $user->id)->get();
+
+        if ($registrations->isEmpty()) {
+            return redirect()->back()->withErrors(['services' => 'Please register for at least one service.']);
+        }
+
+        // Validate required fields for each service registration
+        foreach ($registrations as $registration) {
+            $subCategory = ServiceSubCategory::find($registration->service_sub_category_id);
+            if (!$subCategory) continue;
+
+            $requiredFields = $subCategory->required_fields;
+            $fieldValues = $registration->field_values ?? [];
+
+            foreach ($requiredFields as $field) {
+                if (!$field['required']) continue;
+
+                $key = $field['key'];
+                $type = $field['type'];
+
+                switch ($type) {
+                    case 'file':
+                    case 'file_optional':
+                        if (empty($fieldValues[$key]['file'])) {
+                            return redirect()->back()->withErrors([
+                                'services' => "Missing required document: {$field['label']} for {$subCategory->name}"
+                            ]);
+                        }
+                        break;
+
+                    case 'file_with_dates':
+                        if (empty($fieldValues[$key]['file'])) {
+                            return redirect()->back()->withErrors([
+                                'services' => "Missing required document: {$field['label']} for {$subCategory->name}"
+                            ]);
+                        }
+                        if (empty($fieldValues[$key]['effective_date']) || empty($fieldValues[$key]['expiry_date'])) {
+                            return redirect()->back()->withErrors([
+                                'services' => "Missing dates for {$field['label']} in {$subCategory->name}"
+                            ]);
+                        }
+                        break;
+
+                    case 'checkbox':
+                        if (empty($fieldValues[$key])) {
+                            return redirect()->back()->withErrors([
+                                'services' => "Please confirm {$field['label']} for {$subCategory->name}"
+                            ]);
+                        }
+                        break;
+                }
+            }
+        }
+
+        DB::transaction(function () use ($vendorProfile, $registrations, $user) {
+            // Update profile status
+            $vendorProfile->update([
+                'submission_status' => 'submitted',
+                'submitted_at' => now(),
+            ]);
+
+            // Update all service registrations
+            foreach ($registrations as $registration) {
+                $registration->update([
+                    'status' => 'submitted',
+                    'submitted_at' => now(),
+                ]);
+            }
+
+            // Update user status to inreview
+            $user->update(['status' => 'inreview']);
+        });
+
+        return redirect()->route('vendorAllBookings')->with('success', 'Your profile has been submitted for review.');
+    }
+
+    /**
+     * Remove vendor profile logo
+     */
+    public function removeLogo()
+    {
+        $user = Auth::user();
+        $vendorProfile = VendorProfile::where('user_id', $user->id)->first();
+
+        if ($vendorProfile && $vendorProfile->logo) {
+            Storage::disk('public')->delete($vendorProfile->logo);
+            $vendorProfile->update(['logo' => null]);
+        }
+
+        return redirect()->back()->with('success', 'Logo removed successfully.');
+    }
+}

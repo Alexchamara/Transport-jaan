@@ -3,7 +3,7 @@ import SideMenu from "../../components/SuperAdmin/Dashboard1/SideMenu";
 import RightSide from "../../components/SuperAdmin/Users/RightSide";
 import { usePage, router } from '@inertiajs/react';
 
-const Users = ({ users, counts, filters, pagination }) => {
+const Clients = ({ users, counts, filters, pagination }) => {
     const { flash } = usePage().props;
 
     useEffect(() => {
@@ -15,33 +15,20 @@ const Users = ({ users, counts, filters, pagination }) => {
         }
     }, [flash]);
 
-    // Debug logging to track data loading
-    useEffect(() => {
-        console.log('Users component mounted/updated:', {
-            usersCount: users?.length || 0,
-            users: users,
-            counts: counts,
-            filters: filters
-        });
-    }, [users, counts, filters]);
-
     // Auto-refresh if component mounts with no data but should have data
     useEffect(() => {
-        // Only run on initial mount (when users is undefined or empty but we expect data)
         if ((!users || users.length === 0) && (!counts || Object.keys(counts).length === 0)) {
-            console.log('Users component: Auto-refreshing due to missing initial data');
-            const currentFilters = filters || {};
-            router.get('/superadmin/Users', {
-                search: currentFilters.search || '',
-                role: currentFilters.role || 'all',
-                status: currentFilters.status || 'all',
-                per_page: currentFilters.per_page || 10,
+            console.log('Clients component: Auto-refreshing due to missing initial data');
+            router.get('/superadmin/users/clients', {
+                role: 'client',
+                status: filters?.status || 'all',
+                per_page: filters?.per_page || 10,
             }, {
                 preserveState: false,
                 replace: true
             });
         }
-    }, []); // Only run once on mount
+    }, []);
 
     return (
         <div className="flex flex-row bg-[#081028] min-h-screen sm:flex-col md:flex-row lg:flex-row poppins">
@@ -62,12 +49,16 @@ const Users = ({ users, counts, filters, pagination }) => {
                 <RightSide
                     users={users}
                     counts={counts}
-                    filters={filters}
+                    filters={{ ...filters, role: 'client' }}
                     pagination={pagination}
+                    pageTitle="Clients"
+                    baseRoute="/superadmin/users/clients"
+                    showVendorsCard={false}
+                    showRoleFilter={false}
                 />
             </div>
         </div>
     );
 };
 
-export default Users;
+export default Clients;

@@ -77,9 +77,34 @@ class User extends Authenticatable
     }
 
     public function vehicleReviews()
-{
-       return $this->hasMany(VehicleReview::class);
-}
+    {
+        return $this->hasMany(VehicleReview::class);
+    }
+
+    public function vendorProfile()
+    {
+        return $this->hasOne(VendorProfile::class);
+    }
+
+    public function serviceRegistrations()
+    {
+        return $this->hasMany(VendorServiceRegistration::class);
+    }
+
+    /**
+     * Get approved service category slugs for this vendor.
+     */
+    public function getApprovedServiceSlugs(): array
+    {
+        return $this->serviceRegistrations()
+            ->where('status', 'approved')
+            ->with('serviceCategory')
+            ->get()
+            ->pluck('serviceCategory.slug')
+            ->unique()
+            ->values()
+            ->toArray();
+    }
 
     /**
      * Get the user's profile image URL.

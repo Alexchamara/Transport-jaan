@@ -33,7 +33,7 @@ const IMAGES = [
         description:
             "Find warehousing solutions for goods storage, inventory management, and distribution. Flexible space and integrated logistics support.",
         ctaLabel: "Find Warehouses",
-        href: "/warehouse",
+        href: "/warehouseList",
         url: img4,
         tags: ["Warehouse", "Storage", "Fulfillment"],
     },
@@ -53,7 +53,7 @@ const IMAGES = [
         description:
             "Send packages, documents, and parcels locally or internationally with our trusted courier network. Real-time tracking and secure delivery options.",
         ctaLabel: "Book Courier",
-        href: "/courier-service",
+        href: "/couriers/create",
         url: img8,
         tags: ["Courier", "Delivery", "Tracking"],
     },

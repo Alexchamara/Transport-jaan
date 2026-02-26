@@ -21,9 +21,11 @@ import arrow_r from "../../../assets/superAdmin/Arrow Right.png";
 import { Link, router } from "@inertiajs/react";
 
 const SideMenu = () => {
-    const [activeSubsection, setActiveSubsection] = useState("Reports"); // Default active
+    const [activeSubsection, setActiveSubsection] = useState(""); // Default active
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+    const [isReportsOpen, setIsReportsOpen] = useState(false);
     const [isModelsOpen, setIsModelsOpen] = useState(false);
+    const [isUsersOpen, setIsUsersOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [hoveredSection, setHoveredSection] = useState(null); // Track hovered section
@@ -35,9 +37,31 @@ const SideMenu = () => {
             setIsDashboardOpen(true);
         } else if (window.location.pathname === "/SuperAdmin/Users") {
             setActiveSubsection("Users");
-        } else if (window.location.pathname === "/SuperAdmin/Dashboard") {
-            setActiveSubsection("Reports");
-            setIsDashboardOpen(true);
+            setIsUsersOpen(true);
+        } else if (window.location.pathname === "/superadmin/users/clients") {
+            setActiveSubsection("Clients");
+            setIsUsersOpen(true);
+        } else if (window.location.pathname === "/superadmin/users/service-providers") {
+            setActiveSubsection("ServiceProviders");
+            setIsUsersOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/reports/vehicles") {
+            setActiveSubsection("VehicleReports");
+            setIsReportsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/reports/tickets") {
+            setActiveSubsection("TicketReports");
+            setIsReportsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/reports/warehouse") {
+            setActiveSubsection("WarehouseReports");
+            setIsReportsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/reports/multimodal") {
+            setActiveSubsection("MultimodalReports");
+            setIsReportsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/reports/courier") {
+            setActiveSubsection("CourierReports");
+            setIsReportsOpen(true);
+        } else if (window.location.pathname === "/SuperAdmin/reports/freight") {
+            setActiveSubsection("FreightReports");
+            setIsReportsOpen(true);
         } else if (window.location.pathname === "/SuperAdmin/Models") {
             setActiveSubsection("Models");
             setIsModelsOpen(true);
@@ -81,27 +105,49 @@ const SideMenu = () => {
 
         if (menu === "Dashboard") {
             setIsDashboardOpen((prev) => !prev); // toggle open/close
+            setIsReportsOpen(false);
+            setIsModelsOpen(false);
+            setIsSettingsOpen(false);
+            setIsAccountOpen(false);
+        } else if (menu === "Reports") {
+            setIsReportsOpen((prev) => !prev); // toggle open/close
+            setIsDashboardOpen(false);
             setIsModelsOpen(false);
             setIsSettingsOpen(false);
             setIsAccountOpen(false);
         } else if (menu === "Models") {
             setIsModelsOpen((prev) => !prev); // toggle open/close
             setIsDashboardOpen(false);
+            setIsReportsOpen(false);
+            setIsUsersOpen(false);
+            setIsSettingsOpen(false);
+            setIsAccountOpen(false);
+        } else if (menu === "Users") {
+            setIsUsersOpen((prev) => !prev); // toggle open/close
+            setIsDashboardOpen(false);
+            setIsReportsOpen(false);
+            setIsModelsOpen(false);
             setIsSettingsOpen(false);
             setIsAccountOpen(false);
         } else if (menu === "Settings") {
             setIsSettingsOpen((prev) => !prev); // toggle open/close
             setIsDashboardOpen(false);
+            setIsReportsOpen(false);
             setIsModelsOpen(false);
+            setIsUsersOpen(false);
             setIsAccountOpen(false);
         } else if (menu === "AccountSettings") {
             setIsAccountOpen((prev) => !prev); // toggle open/close
             setIsDashboardOpen(false);
+            setIsReportsOpen(false);
             setIsModelsOpen(false);
+            setIsUsersOpen(false);
             setIsSettingsOpen(false);
         } else {
             setIsDashboardOpen(false);
+            setIsReportsOpen(false);
             setIsModelsOpen(false);
+            setIsUsersOpen(false);
             setIsSettingsOpen(false);
             setIsAccountOpen(false);
         }
@@ -122,7 +168,7 @@ const SideMenu = () => {
     };
 
     return (
-        <div className="w-[300px] h-[1000px] sm:w-[250px] md:w-[300px] lg:w-[300px]">
+        <div className="w-[300px] min-h-screen sm:w-[250px] md:w-[300px] lg:w-[300px]">
             <div className="flex flex-col gap-0 px-[28px] py-[32px] shadow-lg shadow-[#0105114D] sm:px-4 md:px-[28px] lg:px-[28px]">
                 <Link
                     href="/SuperAdmin/Dashboard"
@@ -181,21 +227,6 @@ const SideMenu = () => {
                                 : "max-h-0 opacity-0 py-0"
                         }`}
                     >
-                        <Link
-                            href="/SuperAdmin/Dashboard"
-                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
-                                activeSubsection === "Reports"
-                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
-                                    : hoveredSection === "Reports"
-                                    ? "text-white bg-[#181A2A] border-l-transparent"
-                                    : "text-[#AEB9E1] border-l-transparent"
-                            }`}
-                            onClick={() => setActiveSubsection("Reports")}
-                            onMouseEnter={() => setHoveredSection("Reports")}
-                            onMouseLeave={() => setHoveredSection(null)}
-                        >
-                            Reports
-                        </Link>
                         {/* <Link
                             href="/SuperAdmin/Analytics"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
@@ -211,6 +242,145 @@ const SideMenu = () => {
                         >
                             Analytics
                         </Link> */}
+                    </div>
+
+                    {/* Reports */}
+                    <div
+                        className={`w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] ${
+                            activeSubsection === "Reports" || isReportsOpen
+                                ? "bg-[#181A2A]"
+                                : "hover:bg-[#181A2A]"
+                        }`}
+                        onClick={() => handleMenuClick("Reports")}
+                        onMouseEnter={() => setHoveredSection("Reports")}
+                        onMouseLeave={() => setHoveredSection(null)}
+                    >
+                        <div className="flex flex-row items-center gap-2">
+                            <img
+                                src={
+                                    hoveredSection === "Reports" ||
+                                    activeSubsection === "Reports" || isReportsOpen
+                                        ? featuresW
+                                        : features
+                                }
+                                className="size-[14px]"
+                            />
+                            <h1
+                                className={`font-[500] text-[18px] ${
+                                    activeSubsection === "Reports" ||
+                                    hoveredSection === "Reports" || isReportsOpen
+                                        ? "text-white"
+                                        : "text-[#AEB9E1]"
+                                }`}
+                            >
+                                Reports
+                            </h1>
+                        </div>
+                        <img
+                            src={isReportsOpen ? drop : dropl}
+                            className="size-[12px] transition-transform duration-300"
+                            alt={isReportsOpen ? "Collapse" : "Expand"}
+                        />
+                    </div>
+
+                    {/* Reports Dropdown */}
+                    <div
+                        className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
+                            isReportsOpen
+                                ? "max-h-[600px] opacity-100 py-4"
+                                : "max-h-0 opacity-0 py-0"
+                        }`}
+                    >
+                        <Link
+                            href="/SuperAdmin/reports/vehicles"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "VehicleReports"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "VehicleReports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("VehicleReports")}
+                            onMouseEnter={() => setHoveredSection("VehicleReports")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Vehicle Booking Report
+                        </Link>
+                        <Link
+                            href="/SuperAdmin/reports/tickets"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "TicketReports"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "TicketReports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("TicketReports")}
+                            onMouseEnter={() => setHoveredSection("TicketReports")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Ticket Booking Report
+                        </Link>
+                        <Link
+                            href="/SuperAdmin/reports/warehouse"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "WarehouseReports"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "WarehouseReports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("WarehouseReports")}
+                            onMouseEnter={() => setHoveredSection("WarehouseReports")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Warehouse Booking Report
+                        </Link>
+                        <Link
+                            href="/SuperAdmin/reports/multimodal"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "MultimodalReports"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "MultimodalReports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("MultimodalReports")}
+                            onMouseEnter={() => setHoveredSection("MultimodalReports")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Multimodal Booking Report
+                        </Link>
+                        <Link
+                            href="/SuperAdmin/reports/courier"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "CourierReports"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "CourierReports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("CourierReports")}
+                            onMouseEnter={() => setHoveredSection("CourierReports")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Courier Booking Report
+                        </Link>
+                        <Link
+                            href="/SuperAdmin/reports/freight"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "FreightReports"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "FreightReports"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("FreightReports")}
+                            onMouseEnter={() => setHoveredSection("FreightReports")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Freight Booking Report
+                        </Link>
                     </div>
 
                     {/* Models */}
@@ -361,12 +531,11 @@ const SideMenu = () => {
                     </div>
 
                     {/* Users */}
-                    <Link
-                        href="/SuperAdmin/Users"
-                        className={`w-[244px] h-[42px] flex flex-row justify-between items-center cursor-pointer px-4 ${
-                            activeSubsection === "Users"
-                                ? "bg-[#181A2A] rounded-[10px]"
-                                : "hover:bg-[#181A2A] hover:rounded-[10px]"
+                    <div
+                        className={`w-[244px] h-[42px] flex flex-row justify-between items-center gap-5 cursor-pointer rounded-md px-4 sm:w-[200px] md:w-[244px] lg:w-[244px] ${
+                            activeSubsection === "Users" || isUsersOpen
+                                ? "bg-[#181A2A]"
+                                : "hover:bg-[#181A2A]"
                         }`}
                         onClick={() => handleMenuClick("Users")}
                         onMouseEnter={() => setHoveredSection("Users")}
@@ -376,7 +545,7 @@ const SideMenu = () => {
                             <img
                                 src={
                                     hoveredSection === "Users" ||
-                                    activeSubsection === "Users"
+                                    activeSubsection === "Users" || isUsersOpen
                                         ? usersW
                                         : users
                                 }
@@ -385,7 +554,7 @@ const SideMenu = () => {
                             <h1
                                 className={`font-[500] text-[18px] ${
                                     activeSubsection === "Users" ||
-                                    hoveredSection === "Users"
+                                    hoveredSection === "Users" || isUsersOpen
                                         ? "text-white"
                                         : "text-[#AEB9E1]"
                                 }`}
@@ -393,8 +562,52 @@ const SideMenu = () => {
                                 Users
                             </h1>
                         </div>
-                        {/* <img src={dropl} className="size-[12px]" /> */}
-                    </Link>
+                        <img
+                            src={isUsersOpen ? drop : dropl}
+                            className="size-[12px] transition-transform duration-300"
+                            alt={isUsersOpen ? "Collapse" : "Expand"}
+                        />
+                    </div>
+
+                    {/* Users Dropdown */}
+                    <div
+                        className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
+                            isUsersOpen
+                                ? "max-h-[200px] opacity-100 py-4"
+                                : "max-h-0 opacity-0 py-0"
+                        }`}
+                    >
+                        <Link
+                            href="/superadmin/users/clients"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "Clients"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "Clients"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("Clients")}
+                            onMouseEnter={() => setHoveredSection("Clients")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Clients
+                        </Link>
+                        <Link
+                            href="/superadmin/users/service-providers"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "ServiceProviders"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "ServiceProviders"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("ServiceProviders")}
+                            onMouseEnter={() => setHoveredSection("ServiceProviders")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                        >
+                            Service Providers
+                        </Link>
+                    </div>
 
                     {/* Vender */}
                     <Link
