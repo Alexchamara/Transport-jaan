@@ -356,6 +356,10 @@ Route::prefix('client')->as('client.')->group(function () {
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\SuperAdmin\SuperAdminDashboardController::class, 'index'])->name('dashboard');
 
+    // Profile Routes
+    Route::get('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'index'])->name('profile');
+    Route::put('/profile', [\App\Http\Controllers\SuperAdmin\ProfileController::class, 'update'])->name('profile.update');
+
     Route::get('/Analytics', function () {
         return Inertia::render('Web/home/SuperAdmin/Analytics');
     })->name('Analytics');
@@ -367,6 +371,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::get('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('index');
         Route::get('/clients', [\App\Http\Controllers\SuperAdmin\UserController::class, 'clients'])->name('clients');
         Route::get('/service-providers', [\App\Http\Controllers\SuperAdmin\UserController::class, 'serviceProviders'])->name('serviceProviders');
+        Route::get('/export', [\App\Http\Controllers\SuperAdmin\UserController::class, 'export'])->name('export');
+        Route::get('/clients/export', [\App\Http\Controllers\SuperAdmin\UserController::class, 'export'])->name('clients.export');
+        Route::get('/service-providers/export', [\App\Http\Controllers\SuperAdmin\UserController::class, 'export'])->name('serviceProviders.export');
         Route::get('/create', [\App\Http\Controllers\SuperAdmin\UserController::class, 'create'])->name('create');
         Route::post('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'store'])->name('store');
         Route::get('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'show'])->name('show');
@@ -941,6 +948,8 @@ Route::get('/SuperAdmin/Vender', function () {
 })->name('SuperAdmin.NewVender');
 
 // SuperAdmin Reports Routes
+Route::get('/SuperAdmin/reports/filter-options', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'getFilterOptions'])->name('SuperAdmin.reports.filterOptions');
+
 Route::get('/SuperAdmin/reports/vehicles', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'vehicleBookings'])->name('SuperAdmin.reports.vehicles');
 
 Route::get('/SuperAdmin/reports/vehicles/land', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'landVehicleBookings'])->name('SuperAdmin.reports.vehicles.land');

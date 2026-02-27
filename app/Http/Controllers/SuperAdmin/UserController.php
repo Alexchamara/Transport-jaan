@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Response;
 
 class UserController extends Controller
 {
@@ -486,5 +489,180 @@ class UserController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Export users based on filters and format
+     */
+    public function export(Request $request)
+    {
+        $search = $request->get('search', '');
+        $roleFilter = $request->get('role', 'all');
+        $statusFilter = $request->get('status', 'all');
+        $format = $request->get('format', 'csv');
+
+        // Build query based on current route
+        $currentRoute = $request->segment(3); // Gets 'clients', 'service-providers', or null
+        
+        if ($currentRoute === 'clients') {
+            $query = User::where('role', 'client');
+        } elseif ($currentRoute === 'service-providers') {
+            $query = User::where('role', 'vendor');
+        } else {
+            $query = User::whereNotIn('role', ['admin', 'SuperAdmin']);
+        }
+
+        // Apply search filter
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply role filter (only for general users page)
+        if ($roleFilter !== 'all' && !$currentRoute) {
+            $query->where('role', $roleFilter);
+        }
+
+        // Apply status filter
+        if ($statusFilter !== 'all') {
+            $query->where('status', $statusFilter);
+        }
+
+        $users = $query->orderBy('created_at', 'desc')->get();
+
+        // Export based on format
+        switch ($format) {
+            case 'pdf':
+                return $this->exportPDF($users);
+            case 'excel':
+                return $this->exportExcel($users);
+            case 'csv':
+            default:
+                return $this->exportCSV($users);
+        }
+    }
+
+    private function exportCSV($users)
+    {
+        $filename = 'users_' . date('Y-m-d_His') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function() use ($users) {
+            $file = fopen('php://output', 'w');
+            
+            // Add CSV headers
+            fputcsv($file, ['ID', 'Name', 'Email', 'Phone', 'Role', 'Status', 'Country', 'Registration Date']);
+
+            // Add data rows
+            foreach ($users as $user) {
+                fputcsv($file, [
+                    $user->id,
+                    $user->name,
+                    $user->email,
+                    $user->phone ?? 'N/A',
+                    $user->role,
+                    $user->status,
+                    $user->country ?? 'N/A',
+                    $user->created_at->format('Y-m-d'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return Response::stream($callback, 200, $headers);
+    }
+
+    private function exportExcel($users)
+    {
+        $filename = 'users_' . date('Y-m-d_His') . '.xlsx';
+        
+        // Create a simple CSV export (you can enhance this with actual Excel formatting)
+        $headers = [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        // For now, use CSV format (you can integrate Laravel Excel package for better Excel support)
+        return $this->exportCSV($users);
+    }
+
+    private function exportPDF($users)
+    {
+        $filename = 'users_' . date('Y-m-d_His') . '.pdf';
+        
+        try {
+            // Try using Dompdf if available
+            if (class_exists('Barryvdh\DomPDF\Facade\Pdf')) {
+                $html = $this->generateUserTableHTML($users);
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+                $pdf->setPaper('A4', 'landscape');
+                return $pdf->download($filename);
+            }
+            
+            // Alternative: try direct Dompdf instantiation
+            $dompdf = new \Dompdf\Dompdf([
+                'isPhpEnabled' => false,
+                'enable_remote' => false,
+            ]);
+            
+            $html = $this->generateUserTableHTML($users);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'landscape');
+            $dompdf->render();
+            
+            return Response::make($dompdf->output(), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => "attachment; filename=\"$filename\"",
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('PDF export failed: ' . $e->getMessage());
+            // Fall back to CSV
+            return $this->exportCSV($users);
+        }
+    }
+
+    private function generateUserTableHTML($users)
+    {
+        $html = '<html><head><meta charset="UTF-8"><style>
+            body { font-family: Arial, sans-serif; margin: 15px; font-size: 11px; }
+            h1 { color: #333; font-size: 18px; margin-bottom: 5px; }
+            p { margin: 5px 0; color: #666; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th, td { border: 1px solid #999; padding: 6px; text-align: left; }
+            th { background-color: #0E43FB; color: white; font-weight: bold; }
+            tr:nth-child(even) { background-color: #f5f5f5; }
+        </style></head><body>';
+        
+        $html .= '<h1>Users Export Report</h1>';
+        $html .= '<p><strong>Generated on:</strong> ' . date('Y-m-d H:i:s') . '</p>';
+        $html .= '<p><strong>Total Records:</strong> ' . count($users) . '</p>';
+        $html .= '<table>';
+        $html .= '<thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Registration Date</th></tr></thead>';
+        $html .= '<tbody>';
+        
+        foreach ($users as $user) {
+            $html .= '<tr>';
+            $html .= '<td>' . htmlspecialchars((string)$user->id) . '</td>';
+            $html .= '<td>' . htmlspecialchars($user->name ?? '') . '</td>';
+            $html .= '<td>' . htmlspecialchars($user->email ?? '') . '</td>';
+            $html .= '<td>' . htmlspecialchars($user->phone ?? 'N/A') . '</td>';
+            $html .= '<td>' . htmlspecialchars($user->role ?? '') . '</td>';
+            $html .= '<td>' . htmlspecialchars($user->status ?? '') . '</td>';
+            $html .= '<td>' . ($user->created_at ? $user->created_at->format('Y-m-d') : 'N/A') . '</td>';
+            $html .= '</tr>';
+        }
+        
+        $html .= '</tbody></table></body></html>';
+        
+        return $html;
+    }
 }
+
 

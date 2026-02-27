@@ -28,6 +28,7 @@ class User extends Authenticatable
         'address',
         'country',
         'image',
+        'avatar',
         // Extended profile fields
         'first_name',
         'last_name',
@@ -112,6 +113,14 @@ class User extends Authenticatable
     public function getImageUrlAttribute()
     {
         return $this->image ? asset('storage/' . $this->image) : null;
+    }
+
+    /**
+     * Get the user's avatar URL.
+     */
+    public function getAvatarUrlAttribute()
+    {
+        return $this->avatar ? asset('storage/' . $this->avatar) : null;
     }
 
 }

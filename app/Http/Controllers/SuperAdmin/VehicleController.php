@@ -23,7 +23,7 @@ class VehicleController extends Controller
         $filters = $request->only(['category_type', 'approval_status', 'status', 'search', 'sort_by', 'sort_order']);
 
         $query = Vehicle::with(['category', 'provider', 'media' => function($query) {
-            $query->where('media_type', 'image')->where('is_primary', true);
+            $query->where('media_type', 'image')->orderBy('sort_order')->orderBy('id');
         }]);
 
         // Filter by category type (land, sea, air)
@@ -94,7 +94,7 @@ class VehicleController extends Controller
             'seaSpec',
             'landSpec',
             'policies',
-            'reviews.user'
+            'reviews.client'
         ]);
 
         return Inertia::render('Web/home/SuperAdmin/VehicleDetails', [
