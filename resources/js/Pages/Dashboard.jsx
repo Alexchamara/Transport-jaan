@@ -9,7 +9,7 @@ export default function Dashboard({ user }) {
         if (user) {
             const redirectPath = {
                 'client': '/clientAllBookings',
-                'vendor': '/vendors/mainDashboard',
+                'vendor': '/vendorAllBookings',
                 'SuperAdmin': '/superadmin/dashboard',
                 'admin': '/'
             }[user.role] || '/';

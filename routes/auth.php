@@ -56,7 +56,7 @@ Route::get('approval-pending', function() {
         $user = Auth::user();
         
         if ($user->role === 'vendor') {
-            return redirect()->route('vendors.mainDashboard');
+            return redirect()->route('vendorAllBookings');
         } elseif ($user->role === 'client') {
             return redirect()->route('client.dashboard');
         } elseif ($user->role === 'SuperAdmin') {
