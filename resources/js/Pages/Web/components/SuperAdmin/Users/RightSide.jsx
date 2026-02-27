@@ -259,21 +259,15 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
             </div>
 
              {/* Search and Filter Controls */}
-            <div className="w-[1125px] mx-[48px] mb-4">
-                <div className="w-[860px] mx-auto">
-                    <div className="flex flex-row gap-4 items-center">
+            <div className="w-[1035px] mx-[48px] mb-6 bg-[#0F1A3A] rounded-lg p-4 border border-gray-700">
+                <div className="flex flex-wrap gap-4 items-center">
                     {/* Search Input */}
-                    <div className="flex flex-row items-center border border-[#343B4F] bg-[#0B1739] rounded-[5px] px-3 py-2 w-[500px]">
-                        <img
-                            src={Search}
-                            alt="Search"
-                            className="size-[14px] mr-2"
-                        />
+                    <div className="flex-1 min-w-[200px]">
                         <input
                             placeholder="Search by name, email, phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-transparent text-[#ffffff] text-[14px] outline-none border-none focus:outline-none focus:ring-0 w-full"
+                            className="w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0E43FB]"
                         />
                     </div>
 
@@ -281,7 +275,7 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
                     <select
                         value={statusFilter}
                         onChange={(e) => handleFilterChange('status', e.target.value)}
-                        className="min-w-[140px] text-[14px] px-4 py-2 rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white cursor-pointer"
+                        className="bg-[#0B1739] border border-gray-700 text-white rounded-md px-6 py-2 text-sm"
                     >
                         <option value="all">All Status</option>
                         <option value="verified">Verified</option>
@@ -295,7 +289,7 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
                     <select
                         value={roleFilter}
                         onChange={(e) => handleFilterChange('role', e.target.value)}
-                        className="min-w-[140px] text-[14px] px-4 py-2 rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white cursor-pointer"
+                        className="bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm"
                     >
                         <option value="all">All Roles</option>
                         <option value="client">Clients</option>
@@ -304,36 +298,27 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
                     </select>
                     )}
 
-                    {/* Filters Button */}
-                    {/* <button className="flex flex-row items-center gap-2 px-4 py-2 border border-[#343B4F] bg-[#0B1739] text-white rounded-[5px] hover:bg-[#181A2A] transition-colors">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M2 4H14M4 8H12M6 12H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                        </svg>
-                        <span className="text-[14px]">Filters</span>
-                    </button> */}
-
                     {/* Export Button */}
                     <button 
                         onClick={() => setShowExportModal(true)}
-                        className="flex flex-row items-center gap-2 px-4 py-2 border border-[#343B4F] bg-[#0B1739] text-white rounded-[5px] hover:bg-[#181A2A] transition-colors"
+                        className="flex items-center gap-2 bg-[#0E43FB] text-white px-4 py-2 rounded-md text-sm hover:bg-[#0A36D6]"
                     >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M8 10V2M8 10L10.5 7.5M8 10L5.5 7.5M2 14H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                        <span className="text-[14px]">Export</span>
+                        Export
                     </button>
                 </div>
             </div>
-            </div>
 
-            <div className="w-[1125px] h-auto mx-[48px] ">
-                <div className="w-[1035px] h-auto border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
+            <div className="w-[1035px] h-auto mx-[48px]">
+                <div className="h-auto border border-[#343B4F] bg-[#0B1739] rounded-[10px]">
                     <AllUsers users={users} />
                 </div>
             </div>
 
             <div>
-                <div className="flex flex-row justify-between items-center mt-5 mx-[48px] w-[1032px]">
+                <div className="flex flex-row justify-between items-center mt-5 mx-[48px] w-[1035px]">
                     <h1 className="text-white text-[12px] font-500">
                         {pagination.from || 0} - {pagination.to || 0} of {pagination.total || 0}
                     </h1>
