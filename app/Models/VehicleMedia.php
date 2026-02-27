@@ -54,6 +54,12 @@ class VehicleMedia extends Model
             return $path;
         }
 
+        // If path starts with asset prefix, extract the path part
+        if (Str::startsWith($path, 'asset(')) {
+            // This shouldn't happen, but handle it just in case
+            return $path;
+        }
+
         // Root-relative path starting with /?
         if (Str::startsWith($path, '/')) {
             return asset(ltrim($path, '/'));
@@ -76,6 +82,12 @@ class VehicleMedia extends Model
         // Check if file exists in public directory
         if (file_exists(public_path($cleanPath))) {
             return asset($cleanPath);
+        }
+
+        // If none of the above worked, try to serve the path as-is through storage
+        // This handles paths like "vehicles/1/images/filename.jpg"
+        if (Storage::disk('public')->exists('storage/' . $cleanPath) || Storage::disk('public')->exists($cleanPath)) {
+            return Storage::disk('public')->url($cleanPath);
         }
 
         // Return default image if file doesn't exist

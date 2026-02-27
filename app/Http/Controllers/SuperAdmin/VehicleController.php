@@ -94,7 +94,7 @@ class VehicleController extends Controller
             'seaSpec',
             'landSpec',
             'policies',
-            'reviews.user'
+            'reviews.client'
         ]);
 
         return Inertia::render('Web/home/SuperAdmin/VehicleDetails', [
