@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import SideMenu from "../../components/SuperAdmin/Dashboard1/SideMenu";
 import Search from "../../assets/superAdmin/Search.png";
@@ -22,11 +22,18 @@ const Vehicles = ({ vehicles = { data: [] }, categories = [], filters = {}, stat
     );
     const [statusFilter, setStatusFilter] = useState(filters.status || "all");
 
-    // Handle search
-    const handleSearch = (e) => {
-        if (e.key === "Enter") {
+    // Debounced search
+    useEffect(() => {
+        const debounceTimer = setTimeout(() => {
             performSearch();
-        }
+        }, 500);
+
+        return () => clearTimeout(debounceTimer);
+    }, [searchTerm]);
+
+    // Handle search - removed Enter key requirement for auto-search
+    const handleSearch = (e) => {
+        // No longer need Enter key requirement
     };
 
     const performSearch = () => {
@@ -228,25 +235,7 @@ const Vehicles = ({ vehicles = { data: [] }, categories = [], filters = {}, stat
                             <h1 className="text-white text-base md:text-lg lg:text-[24px] font-poppins">
                                 Vehicles
                             </h1>
-                            <div className="flex flex-row items-center border border-[#343B4F] bg-[#0B1739] rounded-[4px] overflow-hidden px-2">
-                                <img
-                                    src={Search}
-                                    alt="Search"
-                                    className="size-[12px]"
-                                />
-                                <input
-                                    placeholder="Search for vehicles..."
-                                    value={searchTerm}
-                                    onChange={(e) =>
-                                        setSearchTerm(e.target.value)
-                                    }
-                                    onKeyPress={handleSearch}
-                                    className="bg-transparent text-[#ffffff] text-[12px] outline-none border-none focus:outline-none focus:ring-0 p-2 w-full"
-                                />
-                            </div>
                         </div>
-
-
                     </div>
 
                     {/* Stats Cards */}
@@ -332,61 +321,82 @@ const Vehicles = ({ vehicles = { data: [] }, categories = [], filters = {}, stat
                         </div>
                     </div>
 
-                    {/* Filter buttons */}
-                    <div className="w-[1040px] flex flex-row gap-4 mx-[45px] justify-between">
-                        {/* Category Filter Buttons */}
-                        <div className="flex flex-row gap-4">
-                            <button
-                                onClick={() =>
-                                    handleFilterChange("category_type", "all")
-                                }
-                                className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
-                                    categoryFilter === "all" ||
-                                    categoryFilter === ""
-                                        ? "border-[#0E43FB] bg-[#0E43FB] text-white"
-                                        : "border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]"
-                                }`}
-                            >
-                                All
-                            </button>
-                            <button
-                                onClick={() =>
-                                    handleFilterChange("category_type", "land")
-                                }
-                                className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
-                                    categoryFilter === "land"
-                                        ? "border-[#0E43FB] bg-[#0E43FB] text-white"
-                                        : "border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]"
-                                }`}
-                            >
-                                Land
-                            </button>
-                            <button
-                                onClick={() =>
-                                    handleFilterChange("category_type", "sea")
-                                }
-                                className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
-                                    categoryFilter === "sea"
-                                        ? "border-[#0E43FB] bg-[#0E43FB] text-white"
-                                        : "border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]"
-                                }`}
-                            >
-                                Sea
-                            </button>
-                            <button
-                                onClick={() =>
-                                    handleFilterChange("category_type", "air")
-                                }
-                                className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
-                                    categoryFilter === "air"
-                                        ? "border-[#0E43FB] bg-[#0E43FB] text-white"
-                                        : "border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]"
-                                }`}
-                            >
-                                Air
-                            </button>
+                    {/* Filter buttons and Search */}
+                    <div className="w-[1040px] flex flex-row gap-4 mx-[45px] justify-between items-center">
+                        {/* Left Side: Search + Category Filter Buttons */}
+                        <div className="flex flex-row items-center gap-4">
+                            {/* Search Bar */}
+                            <div className="flex flex-row items-center border border-[#343B4F] bg-[#0B1739] rounded-[4px] overflow-hidden px-2 h-10">
+                                <img
+                                    src={Search}
+                                    alt="Search"
+                                    className="size-[12px]"
+                                />
+                                <input
+                                    placeholder="Search vehicles..."
+                                    value={searchTerm}
+                                    onChange={(e) =>
+                                        setSearchTerm(e.target.value)
+                                    }
+                                    className="bg-transparent text-[#ffffff] text-[12px] outline-none border-none focus:outline-none focus:ring-0 p-2 w-[200px]"
+                                />
+                            </div>
+                            
+                            {/* Category Filter Buttons */}
+                            <div className="flex flex-row gap-2">
+                                <button
+                                    onClick={() =>
+                                        handleFilterChange("category_type", "all")
+                                    }
+                                    className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
+                                        categoryFilter === "all" ||
+                                        categoryFilter === ""
+                                            ? "border-[#0E43FB] bg-[#0E43FB] text-white"
+                                            : "border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]"
+                                    }`}
+                                >
+                                    All
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        handleFilterChange("category_type", "land")
+                                    }
+                                    className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
+                                        categoryFilter === "land"
+                                            ? "border-[#0E43FB] bg-[#0E43FB] text-white"
+                                            : "border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]"
+                                    }`}
+                                >
+                                    Land
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        handleFilterChange("category_type", "sea")
+                                    }
+                                    className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
+                                        categoryFilter === "sea"
+                                            ? "border-[#0E43FB] bg-[#0E43FB] text-white"
+                                            : "border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]"
+                                    }`}
+                                >
+                                    Sea
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        handleFilterChange("category_type", "air")
+                                    }
+                                    className={`text-[15px] px-[16px] py-[6px] rounded-[5px] border ${
+                                        categoryFilter === "air"
+                                            ? "border-[#0E43FB] bg-[#0E43FB] text-white"
+                                            : "border-[#343B4F] bg-[#0B1739] text-white hover:border-[#0E43FB]"
+                                    }`}
+                                >
+                                    Air
+                                </button>
+                            </div>
                         </div>
 
+                        {/* Right Side: Status Dropdowns and Clear Filters */}
                         <div className="flex flex-row gap-2">
                             <select
                                 value={statusFilter}
