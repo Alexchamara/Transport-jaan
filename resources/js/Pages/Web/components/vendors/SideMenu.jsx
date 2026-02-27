@@ -10,6 +10,7 @@ import trackLogo from "../../assets/vendors/dashboard/trackLogo.svg";
 import messgLogo from "../../assets/vendors/dashboard/messgLogo.svg";
 import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg";
 import proPic from "../../assets/vendors/dashboard/proPic.svg";
+import CompanyLogo from "../CompanyLogo";
 
 import { Settings, Bell, ArrowLeft } from "lucide-react";
 import { Link } from "@inertiajs/react";
@@ -53,15 +54,7 @@ const SideMenu = () => {
                     >
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </button>
-                    <h1
-                        className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
-                        onClick={() =>
-                            (window.location.href = "/vendorAllBookings")
-                        }
-                    >
-                        Company <br />
-                        <span className="text-[#0955AC]">Logo</span>
-                    </h1>
+                   <CompanyLogo className="h-[40px] object-contain" fallbackClassName="text-[20px] font-[700] poppins uppercase" />
                 </div>
 
                 {/* Scrollable menu container */}

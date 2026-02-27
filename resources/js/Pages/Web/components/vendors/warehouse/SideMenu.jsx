@@ -12,6 +12,7 @@ import {
     Bell,
     ArrowLeft,
 } from "lucide-react";
+import CompanyLogo from "../../CompanyLogo";
 
 const SideMenu = ({ isOpen = false }) => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
@@ -43,15 +44,7 @@ const SideMenu = ({ isOpen = false }) => {
                     >
                         <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </button>
-                    <h1
-                        className="text-[20px] font-[700] text-center uppercase leading-tight cursor-pointer"
-                        onClick={() =>
-                            (window.location.href = "/vendorAllBookings")
-                        }
-                    >
-                        Company <br />
-                        <span className="text-[#0955AC]">Logo</span>
-                    </h1>
+                   <CompanyLogo className="h-[40px] object-contain" fallbackClassName="text-[20px] font-[700] poppins uppercase" />
                 </div>
 
                 {/* Scrollable Menu */}
