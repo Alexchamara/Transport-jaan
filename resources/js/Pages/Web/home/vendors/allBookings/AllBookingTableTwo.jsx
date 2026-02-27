@@ -113,6 +113,8 @@ const AllBookingTableTwo = ({ bookings: bookingsProp = [], setBookings, statusCo
   const isVerified = user?.status === "verified" || user?.status === "Verified";
   const bookings = !isVerified ? DUMMY_BOOKINGS : bookingsProp;
 
+  console.log("Rendering AllBookingTableTwo with bookings:", bookings);
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -212,18 +214,17 @@ const AllBookingTableTwo = ({ bookings: bookingsProp = [], setBookings, statusCo
     <div className="py-6 sm:py-10">
       {/* Desktop Table View - Hidden on mobile */}
       <div className="hidden lg:block overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-        <div className="min-w-[800px] lg:min-w-[1100px]">
+        <div className="min-w-[900px] lg:min-w-[1200px]">
           {/* headings */}
-          <div className="grid grid-cols-9 bg-[#D8E4F2] h-[42px] items-center rounded-[8px] text-[12px] sm:text-[14px] font-[600] px-4 sm:px-10">
+          <div className="grid bg-[#D8E4F2] h-[42px] items-center rounded-[8px] text-[12px] sm:text-[14px] font-[600] px-4 sm:px-10" style={{gridTemplateColumns:'100px 1.2fr 1.4fr 1.4fr 2fr 1.2fr 1.2fr'}}>
             {[
-              "Book id",
+              "Bookd id",
               "Booking Date",
               "Client Name",
               "Service",
               "Date",
               "Payment",
               "Status",
-              "Actions",
             ].map((h, i) => (
               <div key={i} className={`flex items-center gap-2 ${i === 6 || i === 7 ? "sm:ml-10" : ""}`}>
                 <span>{h}</span>
@@ -253,76 +254,48 @@ const AllBookingTableTwo = ({ bookings: bookingsProp = [], setBookings, statusCo
       ) : currentBookings.map((booking, idx) => (
         <div
           key={startIdx + idx}
-          className={`grid grid-cols-9 ${
+          className={`grid ${
             startIdx + idx !== bookings.length - 1 ? "border-b-[1.5px] border-[#00000033]" : ""
           } h-[100px] items-center text-[13px] sm:text-[15px] font-[500] px-4 sm:px-10 hover:bg-gray-100`}
+          style={{gridTemplateColumns:'100px 1.2fr 1.4fr 1.4fr 2fr 1.2fr 1.2fr'}}
         >
           <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.id}</div>
-          <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.bookingDate}</div>
-          <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.clientName}</div>
-
-          {/* Car Model (no blank space if plate is missing) */}
-          <div className="flex flex-col cursor-pointer" onClick={() => handleRowClick(booking, idx)}>
-            {booking.carModel ? <div>{booking.carModel}</div> : null}
-
-            {hasRealPlate(booking.carPlate) && (
-              <div
-                className={`inline-flex ${booking.carModel ? "mt-1" : ""} w-[87px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] justify-center items-center text-[#00000099] text-[11px] sm:text-[13px]`}
-              >
-                {booking.carPlate}
-              </div>
-            )}
-          </div>
+          <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.booking_date}</div>
+          <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.customer_name}</div>
+          <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.service_name}</div>
 
           {/* <div className="cursor-pointer" onClick={() => handleRowClick(booking, idx)}>{booking.plan}</div> */}
 
           <div className="text-[12px] sm:text-[14px] font-[500] text-[#939392] cursor-pointer" onClick={() => handleRowClick(booking, idx)}>
             <div className="flex gap-2 items-center">
               <span>Start</span>
-              <div className="w-[80px] sm:w-[92px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[10px] sm:text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                {booking.startDate}
+              <div className="w-[80px] sm:w-[105px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[10px] sm:text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                {booking.start_date}
               </div>
             </div>
             <div className="flex gap-3 items-center mt-1">
               <span>End</span>
-              <div className="w-[80px] sm:w-[92px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[10px] sm:text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                {booking.endDate}
+              <div className="w-[80px] sm:w-[105px] h-[22px] bg-[#D9D9D957] border-[0.5px] border-[#0000004D] text-[10px] sm:text-[11px] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                {booking.end_date}
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col items-center cursor-pointer" onClick={() => handleRowClick(booking, idx)}>
-            <div>{booking.payment}</div>
+          <div className="flex flex-col items-start cursor-pointer" onClick={() => handleRowClick(booking, idx)}>
             <div
-              className="w-[70px] sm:w-[80px] h-[20px] border rounded-[4px] text-[10px] sm:text-[11px] text-[#00000099] font-[600] flex justify-center items-center"
+              className="w-[80px] sm:w-[100px] h-[24px] border rounded-[4px] text-[10px] sm:text-[12px] text-[#00000099] font-[600] flex justify-center items-center"
               style={{ borderColor: booking.paymentStatusColor, background: booking.paymentStatusBg }}
             >
-              {booking.paymentStatus}
+              {booking.payment_status}
             </div>
           </div>
 
           <div
-            className="w-[76px] sm:w-[86px] h-[22px] border rounded-[4px] flex justify-center items-center text-[10px] sm:text-[11px] font-[700] cursor-pointer"
+            className="w-[80px] sm:w-[100px] h-[24px] border rounded-[4px] flex justify-center items-center text-[10px] sm:text-[12px] font-[700] cursor-pointer"
             style={{ background: booking.statusBg, borderColor: "#0000004D", color: booking.statusText }}
             onClick={() => handleRowClick(booking, idx)}
           >
             {booking.status}
-          </div>
-
-          {/* Actions Column */}
-          <div className="flex justify-center items-center sm:ml-10" onClick={(e) => e.stopPropagation()}>
-            {booking.status !== "Cancelled" && (
-              <button
-                onClick={() => {
-                  setBookingToCancel(booking);
-                  setShowCancellationModal(true);
-                }}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Cancel booking"
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
-            )}
           </div>
         </div>
       ))}

@@ -467,7 +467,7 @@ const VendorAllBookings = ({
                                 {/* Header and Buttons */}
                                 <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 w-full">
                                     <h1 className="text-[20px] md:text-[24px] font-[700]">
-                                        All Booking
+                                        All Bookings
                                     </h1>
 
                                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">

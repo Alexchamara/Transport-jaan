@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
 
             // Vehicle Category & Vehicle seeders
             VehicleCategorySeeder::class,
-            VehicleSeeder::class,
+           // VehicleSeeder::class,
             LandVehicleSpecSeeder::class,
             AirVehicleSpecSeeder::class,
             SeaVehicleSpecSeeder::class,
@@ -34,7 +34,7 @@ class DatabaseSeeder extends Seeder
             VehicleFeaturePricingSeeder::class,
             VehiclePolicySeeder::class,
             VehicleMaintenanceSeeder::class,
-            VehicleReviewSeeder::class,
+            //VehicleReviewSeeder::class,
             VehicleLikeSeeder::class,
 
             // Units
@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
             BookingSeeder::class,
             BookingScheduleSeeder::class,
             BookingAddonSeeder::class,
-            BookingPaymentSeeder::class,
+       //     BookingPaymentSeeder::class,
             BookingCustomerSeeder::class,
 
             // Freight & Flight
@@ -57,16 +57,17 @@ class DatabaseSeeder extends Seeder
             // BusScheduleSeeder::class,
             // BusBookingSeeder::class,
 
-            TrainStationSeeder::class,
-            TrainSeeder::class,
-            TrainScheduleSeeder::class,
-            TrainBookingSeeder::class,
+           // TrainStationSeeder::class,
+           // TrainSeeder::class,
+            //TrainScheduleSeeder::class,
+           // TrainBookingSeeder::class,
 
             // Warehouse
             WarehouseUnitSeeder::class,
 
             // Service Categories for vendor registration
             ServiceCategorySeeder::class,
+            VendorUsersSeeder::class,
         ]);
     }
 }

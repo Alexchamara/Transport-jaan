@@ -64,6 +64,8 @@ const ClientTable = () => {
             client.joinDate || ""
         ]);
 
+        
+
         const csvContent = [
             headers.join(","),
             ...data.map(row => row.map(cell => `"${cell}"`).join(","))
@@ -237,7 +239,7 @@ const ClientTable = () => {
     const handleFilterChange = (filter) => {
         setActiveFilter(filter);
         // Optionally, reload data from backend
-        router.get(`/vendors/clients?filter=${filter}`, {}, {
+        router.get(`/vendorAllBookings/clients?filter=${filter}`, {}, {
             preserveState: true,
             preserveScroll: true,
         });
@@ -248,6 +250,7 @@ const ClientTable = () => {
         setCurrentPage(1);
     }, [itemsPerPage]);
 
+console.log("Current Clients:", clients);
     return (
         <div className="relative">
             

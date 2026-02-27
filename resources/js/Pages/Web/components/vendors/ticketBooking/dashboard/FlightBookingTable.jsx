@@ -3,7 +3,7 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 
 
 
-const CarBookingTable = ({ bookings }) => {
+const FlightBookingTable = ({ bookings }) => {
     const tableData = bookings || [];
     
     if (tableData.length === 0) {
@@ -216,4 +216,4 @@ const CarBookingTable = ({ bookings }) => {
     );
 };
 
-export default CarBookingTable;
+export default FlightBookingTable;

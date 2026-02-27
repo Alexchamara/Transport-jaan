@@ -12,6 +12,11 @@ class BookingCustomer extends Model
         'city','zip_code','age',
     ];
 
+    public function getFullNameAttribute(): string
+    {
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? '')) ?: 'Customer';
+    }
+
     public function booking() {
         return $this->belongsTo(Booking::class);
     }

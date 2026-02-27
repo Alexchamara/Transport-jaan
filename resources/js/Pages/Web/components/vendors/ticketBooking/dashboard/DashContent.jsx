@@ -17,7 +17,7 @@ import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 import BookingOverviewBarChart from "./BookingOverviewBarChart";
 import EarningSummaryChart from "./EarningSummaryChart";
 import RealStatusPieChart from "./RealStatusPieChart";
-import CarBookingTable from "./CarBookingTable";
+import FlightBookingTable from "./FlightBookingTable";
 import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 import UserDropdown from "../../UserDropdown";
@@ -812,7 +812,7 @@ const DashContent = () => {
                                     </div>
                                 )}
                             </div>
-                            <CarBookingTable bookings={filteredFlightBookings} />
+                            <FlightBookingTable bookings={filteredFlightBookings} />
                         </div>
                     </div>
 

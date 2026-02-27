@@ -119,7 +119,7 @@ const CarBookingTable = ({ rows = [] }) => {
 
   // Desktop Table View
   return (
-    <div className="py-10">
+    <div className="py-10 w-full">
       {/* SCROLL WRAPPER (DESKTOP) */}
       <div className="overflow-x-auto md:overflow-x-visible ml-5">
         <div className="min-w-[700px] md:min-w-full">

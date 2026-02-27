@@ -605,8 +605,7 @@ const DashContent = ({
                             </div>
 
                             <CarBookingTable
-                                bookings={bookings ?? []}
-                                bookingsMeta={bookingsMeta ?? {}}
+                                rows={bookings ?? []}
                             />
                         </div>
 

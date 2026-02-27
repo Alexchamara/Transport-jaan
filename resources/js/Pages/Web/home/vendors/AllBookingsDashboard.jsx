@@ -16,8 +16,8 @@ const AllBookingsDashboard = () => {
   } = props;
 
   return (
-    <div className="bg-[#E5E5E5] h-auto min-h-screen">
-      <div className="flex flex-row gap-0 h-auto">
+    <div className="bg-[#E5E5E5] min-h-screen">
+      <div className="flex flex-row gap-0 min-h-screen">
         {/* Toggle Button (only visible on mobile) */}
         <button
           className="lg:hidden p-2 m-2 fixed left-2 top-2 z-50 bg-white rounded-full shadow"
@@ -28,12 +28,20 @@ const AllBookingsDashboard = () => {
 
         {/* Side Menu */}
         <div
-          className={`fixed lg:static top-0 left-0 h-screen z-40 transition-transform duration-300
+          className={`fixed lg:sticky top-0 left-0 h-screen flex-shrink-0 z-40 transition-transform duration-300
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0 bg-white shadow lg:shadow-none`}
+          lg:translate-x-0`}
         >
           <SideMenu />
         </div>
+
+        {/* Overlay for mobile */}
+        {isOpen && (
+          <div
+            className="fixed inset-0 bg-black/30 z-30 lg:hidden"
+            onClick={() => setIsOpen(false)}
+          />
+        )}
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0">

@@ -72,6 +72,8 @@ const AllBookingTable = ({ bookings, rows }) => {
     const source = (!isVerified && raw.length === 0) ? DUMMY_BOOKINGS : raw;
     const tableData = source.map(addStyles);
 
+    console.log("Table Data:", tableData);
+
     if (tableData.length === 0) {
         return (
             <div className="py-10 w-full flex flex-col items-center justify-center text-gray-500">
@@ -85,7 +87,7 @@ const AllBookingTable = ({ bookings, rows }) => {
             {/* DESKTOP/TABLET TABLE (keeps your original layout) */}
             <div className="hidden md:block overflow-auto">
                 {/* table headings */}
-                <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[12px] font-[600] px-12 py-3 gap-x-6">
+                <div className="grid bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[12px] font-[600] px-12 py-3 gap-x-8" style={{gridTemplateColumns:'80px 1fr 1.2fr 1.3fr 1.8fr 1.2fr 1fr'}}>
                     <div className="flex flex-row gap-2 items-center">
                         <h1>Booking ID</h1>
                         <div className="flex flex-col justify-center items-center">
@@ -128,7 +130,7 @@ const AllBookingTable = ({ bookings, rows }) => {
                             <ArrowDown className="w-[6px] h-[10px]" />
                         </div>
                     </div>
-                    <div className="flex flex-row gap-2 items-center ml-10">
+                    <div className="flex flex-row gap-2 items-center">
                         <h1>Payment Status</h1>
                         <div className="flex flex-col justify-center items-center">
                             <ArrowUp className="w-[6px] h-[10px]" />
@@ -148,36 +150,30 @@ const AllBookingTable = ({ bookings, rows }) => {
                     {tableData.map((row, index) => (
                         <div
                             key={index}
-                            className="hidden md:grid grid-cols-8 border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[13px] font-[500] px-12 py-4 gap-x-6"
+                            className="hidden md:grid border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[13px] font-[500] px-12 py-4 gap-x-8" style={{gridTemplateColumns:'80px 1fr 1.2fr 1.3fr 1.8fr 1.2fr 1fr'}}
                         >
                             <div>{row.id}</div>
                             <div>{row.date}</div>
                             <div>{row.customer}</div>
-                            {/* <div className="flex flex-col gap-2">
-                                <h1>{row.transport}</h1>
-                                <div className="p-2 rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[11px]">
-                                    {row.details}
-                                </div>
-                            </div> */}
-                            <div>{row.duration}</div>
+                            <div>{row.transport}</div>
+                            
                             <div className="text-[14px] font-[500] text-[#939392] space-y-2">
                                 <div className="flex flex-row gap-2 justify-start items-center">
                                     <h1>Start</h1>
-                                    <div className="p-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[8px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                    <div className="px-2 py-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px] min-w-[90px]">
                                         {row.startDate}
                                     </div>
                                 </div>
                                 <div className="flex flex-row gap-4 justify-start items-center">
                                     <h1>End</h1>
-                                    <div className="p-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[8px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                    <div className="px-2 py-1 border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px] min-w-[90px]">
                                         {row.endDate}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex flex-col justify-center items-center gap-2">
-                                <h1>{row.price}</h1>
+                            <div className="flex flex-col justify-center items-start gap-2">
                                 <div
-                                    className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                    className="w-[90px] h-[24px] rounded-[4px] text-[11px] text-[#00000099] font-[500] flex justify-center items-center"
                                     style={{
                                         border: `0.5px solid ${row.paymentColor}`,
                                         backgroundColor: row.paymentBg,
@@ -187,7 +183,7 @@ const AllBookingTable = ({ bookings, rows }) => {
                                 </div>
                             </div>
                             <div
-                                className="w-[75px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                                className="w-[90px] h-[24px] rounded-[4px] flex justify-center items-center text-[11px] font-[700]"
                                 style={{
                                     backgroundColor: row.statusBg,
                                     border: `1px solid ${row.statusBorder}`,

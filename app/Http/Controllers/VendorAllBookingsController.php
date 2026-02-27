@@ -7,6 +7,7 @@ use App\Models\FlightBooking;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use App\Models\User;
 
 class VendorAllBookingsController extends Controller
 {
@@ -35,7 +36,7 @@ class VendorAllBookingsController extends Controller
                 return [
                     'id' => $booking->id,
                     'booking_type' => 'vehicle',
-                    'service_name' => $vehicle->name ?? 'Vehicle Rental',
+                    'service_name' => 'Vehicle Rental',
                     'vehicle_name' => $vehicle->name ?? null,
                     'vehicle_category' => $vehicle->category ?? null,
                     'status' => $booking->status,
@@ -70,15 +71,14 @@ class VendorAllBookingsController extends Controller
                 ];
             });
 
-        // Fetch flight bookings for this vendor
-        $flightBookings = FlightBooking::where('user_id', $vendorId)
-            ->with(['user'])
+        // Fetch all flight bookings
+        $flightBookings = FlightBooking::with(['user'])
             ->get()
             ->map(function($booking) {
                 return [
                     'id' => $booking->id,
                     'booking_type' => 'flight',
-                    'service_name' => 'Flight Ticket',
+                    'service_name' => 'Air Ticket Booking',
                     'status' => $booking->status,
                     'booking_date' => $booking->created_at->format('Y-m-d'),
                     'start_date' => $booking->departure_date,
@@ -161,7 +161,7 @@ class VendorAllBookingsController extends Controller
                 return [
                     'id' => $booking->id,
                     'booking_type' => 'vehicle',
-                    'service_name' => $vehicle->name ?? 'Vehicle Rental',
+                    'service_name' => 'Vehicle Rental',
                     'vehicle_name' => $vehicle->name ?? null,
                     'vehicle_category' => $vehicle->category ?? null,
                     'status' => $booking->status,
@@ -179,9 +179,8 @@ class VendorAllBookingsController extends Controller
                 ];
             });
 
-        // Fetch flight bookings as vendor
-        $flightBookings = FlightBooking::where('user_id', $vendorId)
-            ->with(['flight', 'client', 'customer', 'payments'])
+        // Fetch all flight bookings
+        $flightBookings = FlightBooking::with(['user'])
             ->get()
             ->map(function($booking) {
                 $flight = $booking->flight;
@@ -190,7 +189,7 @@ class VendorAllBookingsController extends Controller
                 return [
                     'id' => $booking->id,
                     'booking_type' => 'flight',
-                    'service_name' => 'Flight Booking',
+                    'service_name' => 'Air Ticket Booking',
                     'flight_number' => $flight->flight_number ?? null,
                     'airline' => $flight->airline ?? null,
                     'status' => $booking->status,
@@ -205,6 +204,7 @@ class VendorAllBookingsController extends Controller
                     'created_at' => $booking->created_at->format('Y-m-d'),
                 ];
             });
+
 
         $allBookings = $vehicleBookings->concat($flightBookings)->sortByDesc('created_at')->values();
 
@@ -225,77 +225,79 @@ class VendorAllBookingsController extends Controller
     public function clients()
     {
         $vendorId = Auth::id();
-        $vendor = Auth::user();
+        $vendor   = Auth::user();
 
         if ($vendor->role !== 'vendor') {
             abort(403, 'Unauthorized access');
         }
 
-        // Fetch vehicle bookings for this vendor
-        $vehicleBookings = Booking::whereHas('vehicle', function($q) use ($vendorId) {
-            $q->where('provider_id', $vendorId);
-        })
-            ->with(['vehicle', 'client', 'customer', 'schedule', 'payments'])
+        $filter = request()->get('filter', 'all');
+
+        // Fetch all users with role = 'client'
+        $clients = User::where('role', 'client')->get();
+
+        // Aggregate vehicle booking stats per client_id for this vendor
+        $vehicleStats = Booking::whereHas('vehicle', fn($q) => $q->where('provider_id', $vendorId))
+            ->selectRaw('client_id, COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total')
+            ->groupBy('client_id')
             ->get()
-            ->map(function($booking) {
-                $vehicle  = $booking->vehicle;
-                $client   = $booking->client;
-                $customer = $booking->customer;
-                $schedule = $booking->schedule;
+            ->keyBy('client_id');
 
-                return [
-                    'id'               => $booking->id,
-                    'booking_type'     => 'vehicle',
-                    'service_name'     => $vehicle->name ?? 'Vehicle Rental',
-                    'status'           => $booking->status,
-                    'total_amount'     => $booking->total_amount,
-                    'booking_date'     => $booking->created_at->format('Y-m-d'),
-                    'booking_code'     => $booking->booking_code ?? 'BK-' . $booking->id,
-                    'currency'         => $booking->currency ?? 'LKR',
-                    'created_at'       => $booking->created_at,
-                    'customer_name'    => $customer->name ?? $client->name ?? 'N/A',
-                    'customer_email'   => $customer->email ?? $client->email ?? 'N/A',
-                    'customer_phone'   => $customer->phone ?? $client->phone ?? 'N/A',
-                    'customer_address' => $customer->address ?? $client->address ?? '',
-                ];
-            });
-
-        // Fetch flight bookings for this vendor
-        $flightBookings = FlightBooking::where('user_id', $vendorId)
-            ->with(['user'])
+        // Aggregate flight booking stats per user_id
+        $flightStats = FlightBooking::selectRaw('user_id, COUNT(*) as count')
+            ->groupBy('user_id')
             ->get()
-            ->map(function($booking) {
-                return [
-                    'id'               => $booking->id,
-                    'booking_type'     => 'flight',
-                    'service_name'     => 'Flight Ticket',
-                    'status'           => $booking->status,
-                    'total_amount'     => $booking->total_amount ?? 0,
-                    'booking_date'     => $booking->created_at->format('Y-m-d'),
-                    'booking_code'     => 'FL-' . $booking->id,
-                    'currency'         => 'LKR',
-                    'created_at'       => $booking->created_at,
-                    'customer_name'    => $booking->name ?? 'N/A',
-                    'customer_email'   => $booking->email ?? 'N/A',
-                    'customer_phone'   => $booking->phone ?? 'N/A',
-                    'customer_address' => '',
-                ];
-            });
+            ->keyBy('user_id');
 
-        $allBookings = collect($vehicleBookings)
-            ->merge($flightBookings)
-            ->sortByDesc('created_at')
-            ->values();
+        $landClients = [];
+        $airClients  = [];
 
-        $statistics = [
-            'total_bookings'  => $allBookings->count(),
-            'active_bookings' => $allBookings->whereIn('status', ['confirmed', 'paid', 'active'])->count(),
-            'total_earned'    => $allBookings->sum('total_amount'),
-        ];
+        foreach ($clients as $user) {
+            $vStat  = $vehicleStats->get($user->id);
+            $fStat  = $flightStats->get($user->id);
+            $vCount = (int)($vStat->count ?? 0);
+            $fCount = (int)($fStat->count ?? 0);
+
+            $base = [
+                'id'             => $user->id,
+                'name'           => $user->name ?? trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')),
+                'email'          => $user->email ?? 'N/A',
+                'phone'          => $user->phone ?? 'N/A',
+                'address'        => $user->address ?? $user->address_line1 ?? 'N/A',
+                'image'          => $user->image ?? null,
+                'joinDate'       => $user->created_at->format('Y-m-d'),
+            ];
+
+            if ($fCount > 0) {
+                $airClients[] = array_merge($base, [
+                    'vehicle_type'   => 'Air',
+                    'bookings_count' => $fCount,
+                    'total_spent'    => 0,
+                ]);
+            }
+
+            if ($vCount > 0 || $fCount === 0) {
+                $landClients[] = array_merge($base, [
+                    'vehicle_type'   => 'Land',
+                    'bookings_count' => $vCount,
+                    'total_spent'    => (float)($vStat->total ?? 0),
+                ]);
+            }
+        }
 
         return Inertia::render('Web/home/vendors/allBookings/AllClient', [
-            'allBookings' => $allBookings,
-            'statistics'  => $statistics,
+            'clients'       => [
+                'land' => $landClients,
+                'air'  => $airClients,
+                'sea'  => [],
+            ],
+            'currentFilter' => $filter,
+            'stats'         => [
+                'total' => $clients->count(),
+                'land'  => count($landClients),
+                'air'   => count($airClients),
+                'sea'   => 0,
+            ],
         ]);
     }
 
@@ -323,7 +325,7 @@ class VendorAllBookingsController extends Controller
                 return [
                     'id'            => $booking->id,
                     'booking_type'  => 'vehicle',
-                    'service_name'  => $vehicle->name ?? 'Vehicle Rental',
+                    'service_name'  => 'Vehicle Rental',
                     'status'        => $booking->status,
                     'payment_status'=> $booking->payments->first()?->status ?? 'Pending',
                     'total_amount'  => $booking->total_amount,
@@ -341,20 +343,19 @@ class VendorAllBookingsController extends Controller
             });
 
         // ── Flight bookings ───────────────────────────────────────────────────
-        $flightBookings = FlightBooking::where('user_id', $vendorId)
-            ->with(['user'])
+        $flightBookings = FlightBooking::with(['user'])
             ->get()
             ->map(function ($booking) {
                 return [
                     'id'            => $booking->id,
                     'booking_type'  => 'flight',
-                    'service_name'  => 'Flight Ticket',
+                    'service_name'  => 'Air Ticket Booking',
                     'status'        => $booking->status,
                     'payment_status'=> $booking->payment_status ?? 'Pending',
                     'total_amount'  => $booking->total_amount ?? 0,
                     'booking_date'  => $booking->created_at->format('Y-m-d'),
-                    'start_date'    => $booking->departure_date ?? null,
-                    'end_date'      => $booking->return_date ?? null,
+                    'start_date' => \Carbon\Carbon::parse($booking->start_date)->format('Y-m-d'),
+                    'end_date'   => \Carbon\Carbon::parse($booking->end_date)->format('Y-m-d'),
                     'booking_code'  => 'FL-' . $booking->id,
                     'customer_name' => $booking->name ?? 'N/A',
                     'customer_email'=> $booking->email ?? 'N/A',

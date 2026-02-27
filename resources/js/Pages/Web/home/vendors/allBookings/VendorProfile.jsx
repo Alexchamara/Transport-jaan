@@ -75,8 +75,8 @@ const VendorProfile = () => {
         website: vendorProfile?.website || "",
         established_year: vendorProfile?.established_year || "",
         employee_count: vendorProfile?.employee_count || "",
-        address_line_1: vendorProfile?.address_line_1 || "",
-        address_line_2: vendorProfile?.address_line_2 || "",
+        address_line1: vendorProfile?.address_line1 || "",
+        address_line2: vendorProfile?.address_line2 || "",
         city: vendorProfile?.city || "",
         state: vendorProfile?.state || "",
         postal_code: vendorProfile?.postal_code || "",
@@ -178,7 +178,7 @@ const VendorProfile = () => {
         if (isBusiness && !profileData.business_registration_no.trim()) {
             errs.business_registration_no = "Registration number is required";
         }
-        if (!profileData.address_line_1.trim()) errs.address_line_1 = "Address is required";
+        if (!profileData.address_line1.trim()) errs.address_line1 = "Address is required";
         if (!profileData.city.trim()) errs.city = "City is required";
         if (!profileData.contact_phone.trim()) errs.contact_phone = "Phone number is required";
         if (!profileData.contact_email.trim()) errs.contact_email = "Email is required";
@@ -678,16 +678,16 @@ const VendorProfile = () => {
                                     </label>
                                     <input
                                         type="text"
-                                        value={profileData.address_line_1}
-                                        onChange={(e) => handleProfileChange("address_line_1", e.target.value)}
+                                        value={profileData.address_line1}
+                                        onChange={(e) => handleProfileChange("address_line1", e.target.value)}
                                         disabled={isReadOnly}
                                         className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                            localErrors.address_line_1 ? "border-red-400" : "border-gray-300"
+                                            localErrors.address_line1 ? "border-red-400" : "border-gray-300"
                                         }`}
                                         placeholder="Street address"
                                     />
-                                    {localErrors.address_line_1 && (
-                                        <p className="text-xs text-red-500 mt-1">{localErrors.address_line_1}</p>
+                                    {localErrors.address_line1 && (
+                                        <p className="text-xs text-red-500 mt-1">{localErrors.address_line1}</p>
                                     )}
                                 </div>
                                 <div className="md:col-span-2">
@@ -696,8 +696,8 @@ const VendorProfile = () => {
                                     </label>
                                     <input
                                         type="text"
-                                        value={profileData.address_line_2}
-                                        onChange={(e) => handleProfileChange("address_line_2", e.target.value)}
+                                        value={profileData.address_line2}
+                                        onChange={(e) => handleProfileChange("address_line2", e.target.value)}
                                         disabled={isReadOnly}
                                         className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
                                         placeholder="Suite, floor, etc. (optional)"
@@ -1115,8 +1115,8 @@ const VendorProfile = () => {
                                     <SummaryItem
                                         label="Address"
                                         value={[
-                                            vendorProfile.address_line_1,
-                                            vendorProfile.address_line_2,
+                                            vendorProfile.address_line1,
+                                            vendorProfile.address_line2,
                                             vendorProfile.city,
                                             vendorProfile.state,
                                             vendorProfile.postal_code,
