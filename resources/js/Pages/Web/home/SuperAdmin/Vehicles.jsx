@@ -403,7 +403,7 @@ const Vehicles = ({ vehicles = { data: [] }, categories = [], filters = {}, stat
                                 onChange={(e) =>
                                     handleFilterChange("status", e.target.value)
                                 }
-                                className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                                className="text-[15px] px-[26px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
                             >
                                 <option value="all">All Status</option>
                                 <option value="active">Active</option>
@@ -419,7 +419,7 @@ const Vehicles = ({ vehicles = { data: [] }, categories = [], filters = {}, stat
                                         e.target.value
                                     )
                                 }
-                                className="text-[15px] px-[9px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
+                                className="text-[15px] px-[26px] py-[6px] rounded-[5px] border border-[#343B4F] bg-[#0B1739] text-white"
                             >
                                 <option value="all">All Approval Status</option>
                                 <option value="pending">Pending</option>

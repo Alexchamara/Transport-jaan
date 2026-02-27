@@ -183,7 +183,7 @@ const SideMenu = () => {
         <div className="w-[300px] min-h-screen sm:w-[250px] md:w-[300px] lg:w-[300px]">
             <div className="flex flex-col gap-0 px-[28px] py-[32px] shadow-lg shadow-[#0105114D] sm:px-4 md:px-[28px] lg:px-[28px]">
                 <Link
-                    href="/SuperAdmin/Dashboard"
+                    href="/"
                     className="cursor-pointer"
                     onClick={() => handleMenuClick("Dashboard")}
                 >
