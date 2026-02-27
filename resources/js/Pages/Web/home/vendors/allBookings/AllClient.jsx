@@ -10,7 +10,7 @@ import ClientTable from "../../../components/vendors/clients/ClientTable";
 
 import UserDropdown from "../../../components/vendors/UserDropdown";
 import UnverifiedBanner from "./UnverifiedBanner";
-import ServiceNavBar from "../../../../../components/vendors/ServiceNavBar";
+import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar";
 import SideMenu from "./SideMenu";
 
 const AllClient = () => {
