@@ -23,7 +23,7 @@ import icon2 from "../../../assets/vendors/booking/icons/icon2.svg";
 import icon3 from "../../../assets/vendors/booking/icons/icon3.svg";
 import icon4 from "../../../assets/vendors/booking/icons/icon4.svg";
 import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
-import ServiceNavBar from "../../../../../components/vendors/ServiceNavBar";
+import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
 import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";

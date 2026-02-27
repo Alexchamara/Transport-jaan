@@ -13,7 +13,7 @@ import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
 import UserDropdown from "../../../components/vendors/UserDropdown";
 import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
 import UnverifiedBanner from "./UnverifiedBanner";
-import ServiceNavBar from "../../../../../components/vendors/ServiceNavBar";
+import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar";
 import { API_BASE_URL } from "../../../../../config/api";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
