@@ -33,7 +33,7 @@ const VehicleList = () => {
 
   return (
     <div className="vehicle-list-page">
-      <Header />
+      {/* <Header /> */}
       <div className="main-content flex">
         <FilterSidebar searchParams={formData} />
         <div className="vehicle-list-container flex-1">

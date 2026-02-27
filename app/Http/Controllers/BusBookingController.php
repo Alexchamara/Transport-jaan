@@ -81,6 +81,24 @@ class BusBookingController extends Controller
     }
 
     /**
+     * Return ticket booking data as JSON for inline rendering
+     */
+    public function searchJson(Request $request)
+    {
+        $stations = BusStation::where('status', 'active')->get();
+
+        return response()->json([
+            'stations' => $stations,
+            'schedules' => [],
+            'searchParams' => [
+                'from' => $request->input('from'),
+                'to' => $request->input('to'),
+                'date' => $request->input('date'),
+            ]
+        ]);
+    }
+
+    /**
      * Display the booking preview page with seat selection
      */
     public function preview(Request $request)
