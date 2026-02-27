@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -9,16 +9,26 @@ const TicketReports = ({ bookings = [], stats = {} }) => {
   const [typeFilter, setTypeFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [statusOptions, setStatusOptions] = useState([]);
+  const [typeOptions, setTypeOptions] = useState([]);
+  const [dateOptions, setDateOptions] = useState(['All', 'Last 7 Days', 'Last 30 Days', 'This Year']);
 
-  const statusOptions = useMemo(
-    () => Array.from(new Set(bookings.map((booking) => booking.status).filter(Boolean))),
-    [bookings]
-  );
+  // Fetch filter options from database
+  useEffect(() => {
+    fetch('/SuperAdmin/reports/filter-options')
+      .then(res => res.json())
+      .then(data => {
+        setStatusOptions(data.ticketStatuses || []);
+        setDateOptions(['All', 'Last 7 Days', 'Last 30 Days', 'This Year']);
+      })
+      .catch(err => console.error('Failed to fetch filter options:', err));
+  }, []);
 
-  const typeOptions = useMemo(
-    () => Array.from(new Set(bookings.map((booking) => booking.type).filter(Boolean))),
-    [bookings]
-  );
+  // Extract ticket types from bookings data
+  useEffect(() => {
+    const ticketTypes = Array.from(new Set(bookings.map((booking) => booking.type).filter(Boolean)));
+    setTypeOptions(ticketTypes);
+  }, [bookings]);
 
   const matchesDateFilter = (createdAt) => {
     if (dateFilter === 'All') return true;

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -6,19 +6,29 @@ import autoTable from 'jspdf-autotable';
 const FreightReports = ({ bookings = [], stats = {} }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [cargoFilter, setCargoFilter] = useState('All');
+  const [typeFilter, setTypeFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [statusOptions, setStatusOptions] = useState([]);
+  const [typeOptions, setTypeOptions] = useState([]);
+  const [dateOptions, setDateOptions] = useState(['All', 'Last 7 Days', 'Last 30 Days', 'This Year']);
 
-  const statusOptions = useMemo(
-    () => Array.from(new Set(bookings.map((booking) => booking.status).filter(Boolean))),
-    [bookings]
-  );
+  // Fetch filter options from database
+  useEffect(() => {
+    fetch('/SuperAdmin/reports/filter-options')
+      .then(res => res.json())
+      .then(data => {
+        setStatusOptions(data.freightStatuses || []);
+        setDateOptions(['All', 'Last 7 Days', 'Last 30 Days', 'This Year']);
+      })
+      .catch(err => console.error('Failed to fetch filter options:', err));
+  }, []);
 
-  const cargoOptions = useMemo(
-    () => Array.from(new Set(bookings.map((booking) => booking.cargo_type).filter(Boolean))),
-    [bookings]
-  );
+  // Extract cargo types from bookings data
+  useEffect(() => {
+    const cargoTypes = Array.from(new Set(bookings.map((booking) => booking.cargo_type).filter(Boolean)));
+    setTypeOptions(cargoTypes);
+  }, [bookings]);
 
   const matchesDateFilter = (createdAt) => {
     if (dateFilter === 'All') return true;
@@ -51,17 +61,17 @@ const FreightReports = ({ bookings = [], stats = {} }) => {
 
       const matchesSearch = !searchValue || searchTarget.includes(searchValue);
       const matchesStatus = statusFilter === 'All' || booking.status === statusFilter;
-      const matchesCargo = cargoFilter === 'All' || booking.cargo_type === cargoFilter;
+      const matchesCargo = typeFilter === 'All' || booking.cargo_type === typeFilter;
       const matchesDate = matchesDateFilter(booking.created_at);
 
       return matchesSearch && matchesStatus && matchesCargo && matchesDate;
     });
-  }, [bookings, searchTerm, statusFilter, cargoFilter, dateFilter]);
+  }, [bookings, searchTerm, statusFilter, typeFilter, dateFilter]);
 
   const resetFilters = () => {
     setSearchTerm('');
     setStatusFilter('All');
-    setCargoFilter('All');
+    setTypeFilter('All');
     setDateFilter('All');
   };
 
@@ -177,11 +187,11 @@ const FreightReports = ({ bookings = [], stats = {} }) => {
               </select>
               <select
                 className='bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm'
-                value={cargoFilter}
-                onChange={(event) => setCargoFilter(event.target.value)}
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value)}
               >
                 <option value='All'>All Cargo Types</option>
-                {cargoOptions.map((type) => (
+                {typeOptions.map((type) => (
                   <option key={type} value={type}>
                     {type}
                   </option>

@@ -943,6 +943,8 @@ Route::get('/SuperAdmin/Vender', function () {
 })->name('SuperAdmin.NewVender');
 
 // SuperAdmin Reports Routes
+Route::get('/SuperAdmin/reports/filter-options', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'getFilterOptions'])->name('SuperAdmin.reports.filterOptions');
+
 Route::get('/SuperAdmin/reports/vehicles', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'vehicleBookings'])->name('SuperAdmin.reports.vehicles');
 
 Route::get('/SuperAdmin/reports/vehicles/land', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'landVehicleBookings'])->name('SuperAdmin.reports.vehicles.land');

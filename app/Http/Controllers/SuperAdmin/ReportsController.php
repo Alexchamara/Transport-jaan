@@ -496,4 +496,21 @@ class ReportsController extends Controller
             ->values()
             ->toArray();
     }
+
+    /**
+     * Get filter options for reports
+     */
+    public function getFilterOptions()
+    {
+        return response()->json([
+            'statuses' => ['pending', 'confirmed', 'cancelled', 'completed'],
+            'vehicleTypes' => ['Land', 'Air', 'Sea'],
+            'dates' => ['All', 'Last 7 Days', 'Last 30 Days', 'This Year'],
+            'ticketStatuses' => ['pending', 'confirmed', 'cancelled', 'completed'],
+            'warehouseStatuses' => ['pending', 'confirmed', 'cancelled', 'completed', 'cancelled_by_vendor'],
+            'multimodalStatuses' => ['pending', 'confirmed', 'cancelled', 'completed'],
+            'courierStatuses' => ['pending', 'in_transit', 'delivered', 'cancelled'],
+            'freightStatuses' => ['pending', 'quoted', 'accepted', 'rejected', 'expired'],
+        ]);
+    }
 }

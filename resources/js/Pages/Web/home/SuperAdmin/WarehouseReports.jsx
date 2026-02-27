@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import SideMenu from '../../components/SuperAdmin/Dashboard1/SideMenu';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -9,16 +9,26 @@ const WarehouseReports = ({ bookings = [], stats = {} }) => {
   const [typeFilter, setTypeFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [statusOptions, setStatusOptions] = useState([]);
+  const [typeOptions, setTypeOptions] = useState([]);
+  const [dateOptions, setDateOptions] = useState(['All', 'Last 7 Days', 'Last 30 Days', 'This Year']);
 
-  const statusOptions = useMemo(
-    () => Array.from(new Set(bookings.map((booking) => booking.status).filter(Boolean))),
-    [bookings]
-  );
+  // Fetch filter options from database
+  useEffect(() => {
+    fetch('/SuperAdmin/reports/filter-options')
+      .then(res => res.json())
+      .then(data => {
+        setStatusOptions(data.warehouseStatuses || []);
+        setDateOptions(['All', 'Last 7 Days', 'Last 30 Days', 'This Year']);
+      })
+      .catch(err => console.error('Failed to fetch filter options:', err));
+  }, []);
 
-  const typeOptions = useMemo(
-    () => Array.from(new Set(bookings.map((booking) => booking.storage_type).filter(Boolean))),
-    [bookings]
-  );
+  // Extract storage types from bookings data
+  useEffect(() => {
+    const storageTypes = Array.from(new Set(bookings.map((booking) => booking.storage_type).filter(Boolean)));
+    setTypeOptions(storageTypes);
+  }, [bookings]);
 
   const matchesDateFilter = (createdAt) => {
     if (dateFilter === 'All') return true;
@@ -167,7 +177,7 @@ const WarehouseReports = ({ bookings = [], stats = {} }) => {
                   </option>
                 ))}
               </select>
-              <select
+              {/* <select
                 className='bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm'
                 value={typeFilter}
                 onChange={(event) => setTypeFilter(event.target.value)}
@@ -178,7 +188,7 @@ const WarehouseReports = ({ bookings = [], stats = {} }) => {
                     {type}
                   </option>
                 ))}
-              </select>
+              </select> */}
               <select
                 className='bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm'
                 value={dateFilter}
