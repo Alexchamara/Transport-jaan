@@ -2,7 +2,7 @@
  * API Configuration
  * Base URL for all API requests
  */
-export const API_BASE_URL = "/" || "https://transport.jaan.lk/";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/';
 
 /**
  * Helper function to construct full API URL

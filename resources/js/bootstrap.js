@@ -3,8 +3,8 @@ window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-// Set the base URL for API requests
-window.axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://transport.jaan.lk/';
+// Set the base URL for API requests - use relative URL so it always matches the current server
+window.axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || '/';
 
 // Enable credentials (cookies) for all requests
 window.axios.defaults.withCredentials = true;
