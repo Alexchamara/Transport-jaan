@@ -251,49 +251,38 @@ const AllUsers = ({ users = [] }) => {
 
     return (
         <div className="poppins flex flex-col items-center min-h-screen w-full gap-1">
-            <div className="w-[962px] flex flex-row justify-between items-center text-white text-[16px] font-500 pt-6">
-                <h1>All Users</h1>
-                <h1 className="text-[#0955AC] text-[14px] font-400">
-                    {users.length > 0 ? `1 - ${users.length}` : '0'}{" "}
-                    <span className="text-[#AEB9E1]">of {users.length}</span>
-                </h1>
-            </div>
-            <div className="w-full">
-                <div className="h-[1px] w-full bg-[#343B4F] mt-2"></div>
-            </div>
-
             {/* Header */}
-            <div className="flex flex-row justify-center items-center w-full h-[61px]">
-                <div className="flex flex-row justify-start items-start w-full px-[35px]">
-                    <div className="flex flex-row justify-start items-center gap-4 w-[180px]">
-                        <h1 className="text-white text-[10px] font-400">User Name</h1>
+            <div className="flex flex-row justify-center items-center w-full h-[70px] bg-[#0F1A3A] border-b border-[#343B4F]">
+                <div className="flex flex-row justify-start items-center w-full px-[40px] gap-4">
+                    <div className="flex-[1.3] min-w-0">
+                        <h1 className="text-white text-[14px] font-600 whitespace-nowrap overflow-hidden">User Name</h1>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[230px]">Email</h1>
+                    <div className="flex-[2.2] min-w-0">
+                        <h1 className="text-white text-[14px] font-600 whitespace-nowrap overflow-hidden">Email</h1>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[150px]">Phone</h1>
+                    <div className="flex-[1.2] min-w-0">
+                        <h1 className="text-white text-[14px] font-600 whitespace-nowrap overflow-hidden">Phone</h1>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[100px]">Role</h1>
+                    <div className="flex-[1] min-w-0">
+                        <h1 className="text-white text-[14px] font-600 whitespace-nowrap overflow-hidden">Role</h1>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[150px]">Registration Date</h1>
+                    <div className="flex-[1.3] min-w-0">
+                        <h1 className="text-white text-[14px] font-600 whitespace-nowrap overflow-hidden">Reg. Date</h1>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400 w-[100px]">Status</h1>
+                    <div className="flex-[1] min-w-0">
+                        <h1 className="text-white text-[14px] font-600 whitespace-nowrap overflow-hidden">Status</h1>
                     </div>
-                    <div>
-                        <h1 className="text-white text-[10px] font-400"></h1>
+                    <div className="flex-[0.95] min-w-0">
+                        <h1 className="text-white text-[14px] font-600 whitespace-nowrap overflow-hidden">Actions</h1>
                     </div>
                 </div>
             </div>
 
             {/* Rows */}
             {users.length === 0 ? (
-                <div className="text-white text-[12px] font-400 w-full text-center py-8 space-y-2">
+                <div className="text-white text-[14px] font-400 w-full text-center py-12 space-y-2">
                     <div>No users found.</div>
-                    <div className="text-[#AEB9E1] text-[10px]">
+                    <div className="text-[#AEB9E1] text-[12px]">
                         If you expected to see users here, try clicking the "Refresh" button above.
                     </div>
                 </div>
@@ -303,51 +292,52 @@ const AllUsers = ({ users = [] }) => {
                     return (
                         <div
                             key={index}
-                            className="flex flex-row justify-center items-center w-full h-[61px]"
+                            className="flex flex-row justify-center items-center w-full min-h-[75px] border-b border-[#343B4F] hover:bg-[#0F1A3A]/50 transition-colors"
                         >
-                            <div className="flex flex-row justify-start items-start w-full px-[35px]">
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[180px]">
+                            <div className="flex flex-row justify-start items-center w-full px-[40px] gap-4 py-[12px]">
+                                <div className="flex-[1.3] min-w-0">
+                                    <h1 className="text-[#E0E6F7] text-[13px] font-500 break-words">
                                         {user.name}
                                     </h1>
                                 </div>
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[230px]">
+                                <div className="flex-[2.2] min-w-0">
+                                    <h1 className="text-[#AEB9E1] text-[13px] font-400 break-words">
                                         {user.email}
                                     </h1>
                                 </div>
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[150px]">
-                                        {user.phone}
+                                <div className="flex-[1.2] min-w-0">
+                                    <h1 className="text-[#AEB9E1] text-[13px] font-400 break-words">
+                                        {user.phone || 'N/A'}
                                     </h1>
                                 </div>
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[100px] capitalize">
+                                <div className="flex-[1] min-w-0">
+                                    <h1 className="text-[#AEB9E1] text-[13px] font-400 capitalize break-words">
                                         {user.role}
                                     </h1>
                                 </div>
-                                <div>
-                                    <h1 className="text-[#AEB9E1] text-[10px] font-400 w-[150px]">
+                                <div className="flex-[1.3] min-w-0">
+                                    <h1 className="text-[#AEB9E1] text-[13px] font-400 break-words">
                                         {user.regDate}
                                     </h1>
                                 </div>
-                                <div className="w-[100px]">
+                                <div className="flex-[1] min-w-0 flex items-center justify-center">
                                     <div
-                                        className={`flex flex-row justify-center items-center gap-1 border ${statusStyles.border} ${statusStyles.bg} px-[6px] py-[2px] rounded-[5px] w-[70px]`}
+                                        className={`inline-flex flex-row justify-center items-center gap-2 border ${statusStyles.border} ${statusStyles.bg} px-[12px] py-[6px] rounded-[6px]`}
                                     >
-                                        <div className={`w-1 h-1 rounded-full ${statusStyles.dot}`} />
-                                        <h1 className={`${statusStyles.text} text-[10px] font-500 capitalize`}>
+                                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusStyles.dot}`} />
+                                        <h1 className={`${statusStyles.text} text-[12px] font-500 capitalize whitespace-nowrap`}>
                                             {user.status}
                                         </h1>
                                     </div>
                                 </div>
-                                <div className="w-[20px]">
+                                <div className="flex-[0.95] min-w-0 flex items-center justify-center">
                                     <button
                                         onClick={() => handleViewDetails(user)}
-                                        className="hover:scale-110 transition-transform"
+                                        className="inline-flex items-center justify-center gap-2 px-[16px] py-[8px] bg-[#0E43FB] text-white text-[13px] font-500 rounded-[6px] hover:bg-[#0A36D6] transition-colors whitespace-nowrap flex-shrink-0"
                                         title="View Details"
                                     >
                                         <img src={Eye} alt="View" className="w-4 h-4" />
+                                        View
                                     </button>
                                 </div>
                             </div>

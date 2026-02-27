@@ -681,7 +681,7 @@ class VehicleController extends Controller
                         $vehicle->media()->create([
                             'media_type' => 'image',
                             'title'      => $file->getClientOriginalName(),
-                            'path'       => asset('storage/' . $path),
+                            'path'       => 'storage/' . $path,
                             'is_primary' => false,
                             'sort_order' => $currentMax + $i + 1,
                         ]);

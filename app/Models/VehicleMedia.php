@@ -41,7 +41,8 @@ class VehicleMedia extends Model
     {
         $path = $this->path;
         if (!$path) {
-            return asset('images/default-vehicle.jpg');
+            // Return a simple SVG placeholder inline to avoid 404 errors
+            return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzBCMTczOSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBRUI5RTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObiBJbWFnZTwvdGV4dD48L3N2Zz4=';
         }
 
         // Already absolute URL?
@@ -51,6 +52,12 @@ class VehicleMedia extends Model
 
         // Already starts with http/https?
         if (Str::startsWith($path, ['http://', 'https://'])) {
+            return $path;
+        }
+
+        // If path starts with asset prefix, extract the path part
+        if (Str::startsWith($path, 'asset(')) {
+            // This shouldn't happen, but handle it just in case
             return $path;
         }
 
@@ -78,8 +85,14 @@ class VehicleMedia extends Model
             return asset($cleanPath);
         }
 
+        // If none of the above worked, try to serve the path as-is through storage
+        // This handles paths like "vehicles/1/images/filename.jpg"
+        if (Storage::disk('public')->exists('storage/' . $cleanPath) || Storage::disk('public')->exists($cleanPath)) {
+            return Storage::disk('public')->url($cleanPath);
+        }
+
         // Return default image if file doesn't exist
-        return asset('images/default-vehicle.jpg');
+        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjEyMCIgZmlsbD0iIzBCMTczOSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiNBRUI5RTEiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObiBJbWFnZTwvdGV4dD48L3N2Zz4=';
     }
 
     /**
