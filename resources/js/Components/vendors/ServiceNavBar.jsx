@@ -108,7 +108,7 @@ const ServiceNavBar = ({
             {/* Unverified Alert */}
             {showUnverifiedAlert && (
                 <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 animate-pulse">
-                    <div className="bg-[#F87171] text-white px-6 py-3 rounded-lg shadow-lg font-[500] flex items-center gap-3 animate-slide-down">
+                    <div className="bg-[#F87171] text-white px-6 py-3 rounded-lg shadow-lg font-[500] flex items-center gap-3 ">
                         <span>⚠️</span>
                         <span>Please verify your account to access all features</span>
                     </div>
