@@ -48,7 +48,13 @@ const categoryColors = {
 };
 
 const VendorProfile = () => {
-    const { vendorProfile, serviceCategories, vendorRegistrations, user, flash, errors: pageErrors } = usePage().props;
+    const { vendorProfile, serviceCategories, vendorRegistrations, user, flash, errors: pageErrors, canEdit, isRevisionRequested } = usePage().props;
+
+    // Also check if any individual service has revision_requested
+    const hasAnyServiceRevision = vendorRegistrations
+        ? Object.values(vendorRegistrations).some(r => r.status === 'revision_requested')
+        : false;
+    const needsRevision = isRevisionRequested || hasAnyServiceRevision;
 
     // Vendor type from signup: "individual" or "business"
     const isBusiness = user?.vendor_type === "business";
@@ -110,9 +116,10 @@ const VendorProfile = () => {
         }
     }, [pageErrors]);
 
-    // If profile is already submitted or approved, auto-navigate to step 3 (review)
+    // If profile is submitted or approved, auto-navigate to step 3 (review)
+    // If revision_requested, also go to step 3 so vendor sees the banner first
     useEffect(() => {
-        if (vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved") {
+        if (vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved" || vendorProfile?.submission_status === "revision_requested") {
             setCurrentStep(3);
         }
     }, []);
@@ -326,7 +333,10 @@ const VendorProfile = () => {
             return;
         }
 
-        if (!confirm("Are you sure you want to submit your profile for review? You won't be able to make changes after submission.")) {
+        const confirmMsg = needsRevision
+            ? "Are you sure you want to resubmit your profile? The admin will review your updated information."
+            : "Are you sure you want to submit your profile for review? You won't be able to make changes after submission.";
+        if (!confirm(confirmMsg)) {
             return;
         }
 
@@ -373,12 +383,15 @@ const VendorProfile = () => {
                                     ? "bg-blue-100 text-blue-700"
                                     : vendorProfile.submission_status === "approved"
                                     ? "bg-green-100 text-green-700"
+                                    : vendorProfile.submission_status === "revision_requested"
+                                    ? "bg-amber-100 text-amber-700"
                                     : "bg-red-100 text-red-700"
                             }`}
                         >
                             {vendorProfile.submission_status === "draft" && "Draft"}
                             {vendorProfile.submission_status === "submitted" && "Under Review"}
                             {vendorProfile.submission_status === "approved" && "Approved"}
+                            {vendorProfile.submission_status === "revision_requested" && "Revision Requested"}
                             {vendorProfile.submission_status === "rejected" && "Rejected"}
                         </span>
                     )}
@@ -920,18 +933,32 @@ const VendorProfile = () => {
                 {currentStep === 2 && (
                     <div className="space-y-6">
                         {/* Info banner */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-                            <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                            <div>
-                                <p className="text-sm font-medium text-blue-800">
-                                    Select the services you want to register for
-                                </p>
-                                <p className="text-xs text-blue-600 mt-0.5">
-                                    Expand a category, then expand a sub-category to fill in the required documents. 
-                                    Save each sub-category individually. You need at least one service registration to submit.
-                                </p>
+                        {needsRevision ? (
+                            <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-4 flex items-start gap-3">
+                                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="text-sm font-bold text-amber-800">
+                                        Revision Mode — Only flagged services can be edited
+                                    </p>
+                                    <p className="text-xs text-amber-700 mt-0.5">
+                                        Update the services marked as "Revision Needed" and go back to Review &amp; Resubmit. You cannot add new services or modify other services during revision.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                                <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                    <p className="text-sm font-medium text-blue-800">
+                                        Select the services you want to register for
+                                    </p>
+                                    <p className="text-xs text-blue-600 mt-0.5">
+                                        Expand a category, then expand a sub-category to fill in the required documents. 
+                                        Save each sub-category individually. You need at least one service registration to submit.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Service Categories */}
                         {serviceCategories?.map((category) => {
@@ -942,6 +969,16 @@ const VendorProfile = () => {
                             const registeredCount = subCategories.filter((sc) =>
                                 isSubCategoryRegistered(sc.id)
                             ).length;
+
+                            // In revision mode, only show categories that have revision_requested services
+                            const revisionSubs = needsRevision
+                                ? subCategories.filter((sc) => {
+                                    const reg = getSubCatRegistration(sc.id);
+                                    return reg && reg.status === 'revision_requested';
+                                })
+                                : null;
+
+                            if (needsRevision && (!revisionSubs || revisionSubs.length === 0)) return null;
 
                             return (
                                 <div
@@ -966,21 +1003,33 @@ const VendorProfile = () => {
                                                     {category.name}
                                                 </h3>
                                                 <p className="text-xs text-gray-500">
-                                                    {subCategories.length} sub-categories
-                                                    {registeredCount > 0 && (
-                                                        <span className="ml-2 text-green-600 font-medium">
-                                                            • {registeredCount} registered
+                                                    {needsRevision ? (
+                                                        <span className="text-amber-600 font-medium">
+                                                            {revisionSubs.length} service(s) need revision
                                                         </span>
+                                                    ) : (
+                                                        <>
+                                                            {subCategories.length} sub-categories
+                                                            {registeredCount > 0 && (
+                                                                <span className="ml-2 text-green-600 font-medium">
+                                                                    • {registeredCount} registered
+                                                                </span>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {registeredCount > 0 && (
+                                            {needsRevision ? (
+                                                <span className="bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                                                    Revision
+                                                </span>
+                                            ) : registeredCount > 0 ? (
                                                 <span className="bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
                                                     {registeredCount}
                                                 </span>
-                                            )}
+                                            ) : null}
                                             {isExpanded ? (
                                                 <ChevronDown className="w-5 h-5 text-gray-400" />
                                             ) : (
@@ -992,18 +1041,22 @@ const VendorProfile = () => {
                                     {/* Sub-categories */}
                                     {isExpanded && (
                                         <div className="px-5 pb-5 space-y-3">
-                                            {subCategories.map((subCat) => {
+                                            {(needsRevision ? revisionSubs : subCategories).map((subCat) => {
                                                 const isRegistered = isSubCategoryRegistered(subCat.id);
                                                 const registration = getSubCatRegistration(subCat.id);
                                                 const isSubExpanded = expandedSubCategories[subCat.id];
                                                 const requiredFields = subCat.required_fields || [];
                                                 const isGovernment = requiredFields.length === 0;
+                                                const svcStatus = registration?.status;
+                                                const isRevisionService = svcStatus === 'revision_requested';
 
                                                 return (
                                                     <div
                                                         key={subCat.id}
                                                         className={`rounded-lg border transition-all ${
-                                                            isRegistered
+                                                            isRevisionService
+                                                                ? "border-amber-300 bg-amber-50"
+                                                                : isRegistered
                                                                 ? "border-green-300 bg-green-50"
                                                                 : "border-gray-200 bg-white"
                                                         }`}
@@ -1014,7 +1067,11 @@ const VendorProfile = () => {
                                                             onClick={() => toggleSubCategory(subCat.id)}
                                                         >
                                                             <div className="flex items-center gap-3">
-                                                                {isRegistered ? (
+                                                                {isRevisionService ? (
+                                                                    <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
+                                                                        <AlertCircle className="w-3.5 h-3.5 text-white" />
+                                                                    </div>
+                                                                ) : isRegistered ? (
                                                                     <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
                                                                         <Check className="w-3.5 h-3.5 text-white" />
                                                                     </div>
@@ -1033,11 +1090,15 @@ const VendorProfile = () => {
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                {isRegistered && (
+                                                                {isRevisionService ? (
+                                                                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-semibold">
+                                                                        Revision Needed
+                                                                    </span>
+                                                                ) : isRegistered ? (
                                                                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">
                                                                         Saved
                                                                     </span>
-                                                                )}
+                                                                ) : null}
                                                                 {!isGovernment && (
                                                                     isSubExpanded ? (
                                                                         <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -1047,6 +1108,14 @@ const VendorProfile = () => {
                                                                 )}
                                                             </div>
                                                         </div>
+
+                                                        {/* Admin notes for revision services */}
+                                                        {isRevisionService && registration?.admin_notes && (
+                                                            <div className="mx-4 mb-2 bg-white border border-amber-300 rounded-lg px-3 py-2">
+                                                                <p className="text-xs font-bold text-amber-800">Admin Notes:</p>
+                                                                <p className="text-sm text-gray-800">{registration.admin_notes}</p>
+                                                            </div>
+                                                        )}
 
                                                         {/* Sub-category form */}
                                                         {isSubExpanded && !isGovernment && (
@@ -1073,32 +1142,25 @@ const VendorProfile = () => {
                                                                 />
 
                                                                 {/* Sub-category actions */}
-                                                                {!isReadOnly && (
+                                                                {(!isReadOnly || isRevisionService) && (
                                                                     <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
-                                                                        {isRegistered && (
-                                                                            <button
-                                                                                onClick={() =>
-                                                                                    removeServiceRegistration(subCat)
-                                                                                }
-                                                                                className="flex items-center gap-1.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                                            >
-                                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                                                Remove
-                                                                            </button>
-                                                                        )}
                                                                         <button
                                                                             onClick={() =>
                                                                                 saveServiceRegistration(subCat)
                                                                             }
                                                                             disabled={saving}
-                                                                            className="flex items-center gap-1.5 px-5 py-2 bg-[#0955AC] text-white rounded-lg hover:bg-[#074a94] transition-colors text-sm font-medium disabled:opacity-50"
+                                                                            className={`flex items-center gap-1.5 px-5 py-2 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50 ${
+                                                                                isRevisionService
+                                                                                    ? 'bg-amber-600 hover:bg-amber-700'
+                                                                                    : 'bg-[#0955AC] hover:bg-[#074a94]'
+                                                                            }`}
                                                                         >
                                                                             {saving ? (
                                                                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                                             ) : (
                                                                                 <Save className="w-3.5 h-3.5" />
                                                                             )}
-                                                                            {isRegistered ? "Update" : "Save"}
+                                                                            {isRevisionService ? "Update & Fix" : isRegistered ? "Update" : "Save"}
                                                                         </button>
                                                                     </div>
                                                                 )}
@@ -1143,6 +1205,29 @@ const VendorProfile = () => {
                 {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ STEP 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
                 {currentStep === 3 && (
                     <div className="space-y-6">
+                        {/* Revision Requested Banner */}
+                        {needsRevision && (
+                            <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-5 shadow-sm">
+                                <div className="flex items-start gap-3">
+                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center">
+                                        <AlertCircle className="w-6 h-6 text-amber-700" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-base font-bold text-amber-900 mb-1">Action Required — Revision Requested</p>
+                                        <p className="text-sm text-amber-800">
+                                            The admin has reviewed your submission and requested changes. Please review the notes below, update the flagged services using the <strong>Edit</strong> buttons, and click <strong>Resubmit for Review</strong>.
+                                        </p>
+                                    </div>
+                                </div>
+                                {vendorProfile?.admin_notes && (
+                                    <div className="mt-3 bg-white border border-amber-300 rounded-lg px-4 py-3">
+                                        <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Admin Notes</p>
+                                        <p className="text-sm text-gray-800 leading-relaxed">{vendorProfile.admin_notes}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {/* Submitted / Under Review notice */}
                         {isReadOnly && (
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
@@ -1164,10 +1249,10 @@ const VendorProfile = () => {
                                     <Eye className="w-5 h-5 text-[#0955AC]" />
                                     {isBusiness ? "Business Profile Summary" : "Personal Profile Summary"}
                                 </h2>
-                                {!isReadOnly && (
+                                {!isReadOnly && !needsRevision && (
                                     <button
                                         onClick={() => setCurrentStep(1)}
-                                        className="text-sm text-[#0955AC] hover:underline"
+                                        className="text-sm font-medium text-[#0955AC] hover:underline"
                                     >
                                         Edit
                                     </button>
@@ -1231,12 +1316,16 @@ const VendorProfile = () => {
                                     <FileText className="w-5 h-5 text-[#0955AC]" />
                                     Registered Services ({registeredServiceCount})
                                 </h2>
-                                {!isReadOnly && (
+                                {(!isReadOnly || needsRevision) && (
                                     <button
                                         onClick={() => setCurrentStep(2)}
-                                        className="text-sm text-[#0955AC] hover:underline"
+                                        className={`text-sm font-medium px-3 py-1 rounded-lg transition-colors ${
+                                            needsRevision
+                                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                                : 'text-[#0955AC] hover:underline'
+                                        }`}
                                     >
-                                        Edit
+                                        Edit Services
                                     </button>
                                 )}
                             </div>
@@ -1269,14 +1358,32 @@ const VendorProfile = () => {
                                                     {registeredSubs.map((sub) => {
                                                         const reg = getSubCatRegistration(sub.id);
                                                         const fieldCount = Object.keys(reg?.field_values || {}).length;
+                                                        const svcStatus = reg?.status;
+                                                        const svcStatusConfig = {
+                                                            approved: { bg: 'bg-green-100', text: 'text-green-700', label: 'Approved' },
+                                                            submitted: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Pending' },
+                                                            revision_requested: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Revision Needed' },
+                                                            rejected: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejected' },
+                                                            draft: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Draft' },
+                                                        };
+                                                        const statusStyle = svcStatusConfig[svcStatus] || svcStatusConfig.draft;
                                                         return (
-                                                            <div
-                                                                key={sub.id}
-                                                                className="flex items-center gap-2 text-sm text-gray-700 bg-white rounded-md px-3 py-2"
-                                                            >
-                                                                <Check className="w-4 h-4 text-green-500" />
-                                                                <span className="font-medium">{sub.name}</span>
-                                                                <span className="text-xs text-gray-400 ml-auto">
+                                                            <div key={sub.id} className="bg-white rounded-md px-3 py-2">
+                                                                <div className="flex items-center gap-2 text-sm text-gray-700">
+                                                                    <Check className="w-4 h-4 text-green-500" />
+                                                                    <span className="font-medium">{sub.name}</span>
+                                                                    <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
+                                                                        {statusStyle.label}
+                                                                    </span>
+                                                                </div>
+                                                                {reg?.admin_notes && (svcStatus === 'revision_requested' || svcStatus === 'rejected') && (
+                                                                    <div className={`mt-1.5 ml-6 text-xs px-2.5 py-1.5 rounded ${
+                                                                        svcStatus === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                                                    }`}>
+                                                                        <span className="font-semibold">Admin: </span>{reg.admin_notes}
+                                                                    </div>
+                                                                )}
+                                                                <span className="text-xs text-gray-400 ml-6">
                                                                     {fieldCount} field(s) completed
                                                                 </span>
                                                             </div>
@@ -1305,18 +1412,22 @@ const VendorProfile = () => {
                                 Back: Services
                             </button>
 
-                            {!isReadOnly && (
+                            {(!isReadOnly || needsRevision) && (
                                 <button
                                     onClick={submitForReview}
                                     disabled={submitting || !vendorProfile || registeredServiceCount === 0}
-                                    className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-200"
+                                    className={`flex items-center gap-2 px-8 py-3 text-white rounded-lg transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${
+                                        needsRevision
+                                            ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
+                                            : 'bg-green-600 hover:bg-green-700 shadow-green-200'
+                                    }`}
                                 >
                                     {submitting ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
                                     ) : (
                                         <Send className="w-4 h-4" />
                                     )}
-                                    Submit for Review
+                                    {needsRevision ? 'Resubmit for Review' : 'Submit for Review'}
                                 </button>
                             )}
                         </div>

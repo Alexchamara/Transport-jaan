@@ -155,6 +155,19 @@ class VendorProfileController extends Controller
             }
         }
 
+        // During revision mode, only allow updating services that are revision_requested
+        $profile = VendorProfile::where('user_id', $user->id)->first();
+        $existingReg = VendorServiceRegistration::where('user_id', $user->id)
+            ->where('service_sub_category_id', $subCategory->id)
+            ->first();
+
+        if ($profile && $profile->submission_status === 'revision_requested') {
+            // Only allow editing services with revision_requested status
+            if (!$existingReg || $existingReg->status !== 'revision_requested') {
+                return redirect()->back()->with('error', 'You can only edit services that require revision.');
+            }
+        }
+
         VendorServiceRegistration::updateOrCreate(
             [
                 'user_id' => $user->id,
@@ -163,7 +176,7 @@ class VendorProfileController extends Controller
             [
                 'service_category_id' => $subCategory->service_category_id,
                 'field_values' => $fieldValues,
-                'status' => 'draft',
+                'status' => ($existingReg && $existingReg->status === 'revision_requested') ? 'revision_requested' : 'draft',
             ]
         );
 
@@ -176,6 +189,12 @@ class VendorProfileController extends Controller
     public function removeServiceRegistration(ServiceSubCategory $subCategory)
     {
         $user = Auth::user();
+
+        // Block removal during revision mode
+        $profile = VendorProfile::where('user_id', $user->id)->first();
+        if ($profile && $profile->submission_status === 'revision_requested') {
+            return redirect()->back()->with('error', 'You cannot remove services while revision is pending.');
+        }
 
         $registration = VendorServiceRegistration::where('user_id', $user->id)
             ->where('service_sub_category_id', $subCategory->id)
