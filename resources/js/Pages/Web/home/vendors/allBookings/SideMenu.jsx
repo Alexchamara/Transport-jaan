@@ -39,7 +39,7 @@ const SideMenu = () => {
                 <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
                     <button
                         onClick={() =>
-                            (window.location.href = "/vendorAllBookings")
+                            (window.location.href = "/")
                         }
                         className="absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         title="Go to Dashboard"
@@ -275,8 +275,9 @@ const SideMenu = () => {
                                 </div>
                             </div>
                         )}
-                    </div>
-                    <div
+
+                        {/* Profile */}
+                        <div
                             className={`flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer ${
                                 currentPath === "/vendor/profile" 
                                     ? "bg-[#0955AC29] text-[#000000] font-[700]"
@@ -288,6 +289,7 @@ const SideMenu = () => {
                         >
                             <User className="w-[22px] h-[22px]" />
                             <span>Profile</span>
+                        </div>
                     </div>
                 </div>
 

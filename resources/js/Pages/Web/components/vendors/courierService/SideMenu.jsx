@@ -41,7 +41,7 @@ const SideMenu = ({ isOpen = false }) => {
                 <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
                     <button
                         onClick={() =>
-                            (window.location.href = "/vendorAllBookings")
+                            (window.location.href = "/")
                         }
                         className={`absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors ${isOpen ? 'lg:block hidden' : 'block'}`}
                         title="Go to Dashboard"
