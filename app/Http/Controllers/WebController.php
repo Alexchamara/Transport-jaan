@@ -138,11 +138,13 @@ class WebController extends Controller
             Log::info('multiModelPlanJourney accessed');
             return Inertia::render('Web/home/multiModel/PlanJourney');
         } catch (\Exception $e) {
-            Log::error('Error in multiModelPlanJourney', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+            Log::error('[multiModelPlanJourney] Exception: ' . get_class($e), [
+                'error_code' => $e->getCode(),
+                'error_message' => $e->getMessage(),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
+                'error_class' => get_class($e),
+                'full_trace' => $e->getTraceAsString()
             ]);
             throw $e;
         }
