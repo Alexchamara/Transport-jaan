@@ -57,8 +57,20 @@ const getStatusStyle = (status) => {
     }
 };
 
+const formatDate = (dateString) => {
+    if (!dateString) return "—";
+    // If date contains 'T', it's ISO format - extract yyyy-mm-dd portion
+    if (dateString.includes('T')) {
+        return dateString.split('T')[0];
+    }
+    // Otherwise return as is (for backward compatibility)
+    return dateString;
+};
+
 const addStyles = (row) => ({
     ...row,
+    startDate: formatDate(row.startDate),
+    endDate: formatDate(row.endDate),
     ...getPaymentStyle(row.paymentStatus),
     ...getStatusStyle(row.status),
 });
