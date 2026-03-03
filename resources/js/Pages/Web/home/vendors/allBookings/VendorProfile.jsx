@@ -71,6 +71,7 @@ const VendorProfile = () => {
     const [errorMessage, setErrorMessage] = useState("");
     const fileInputRef = useRef(null);
 
+
     // ─── Profile Form State ──────────────────────────────────
     const [profileData, setProfileData] = useState({
         company_name: vendorProfile?.company_name || "",
@@ -96,6 +97,10 @@ const VendorProfile = () => {
         vendorProfile?.logo ? `/storage/${vendorProfile.logo}` : null
     );
     const [serviceErrors, setServiceErrors] = useState({});
+
+    // ─── Constants (Defined early for use in effects) ────────
+    const isReadOnly = vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved";
+    const registeredServiceCount = vendorRegistrations ? Object.keys(vendorRegistrations).length : 0;
 
     // Auto-clear success messages
     useEffect(() => {
@@ -125,8 +130,6 @@ const VendorProfile = () => {
     }, []);
 
     // ─── Helpers ──────────────────────────────────────────────
-    const isReadOnly = vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved";
-    const registeredServiceCount = vendorRegistrations ? Object.keys(vendorRegistrations).length : 0;
 
     const toggleCategory = (catId) => {
         setExpandedCategories((prev) => ({ ...prev, [catId]: !prev[catId] }));
@@ -158,6 +161,44 @@ const VendorProfile = () => {
                 return next;
             });
         }
+    };
+
+    const saveProfileAndNavigate = () => {
+        if (!validateProfile()) {
+            setErrorMessage("Please fill in all required fields to continue.");
+            setTimeout(() => setErrorMessage(""), 4000);
+            return;
+        }
+
+        setSaving(true);
+        const formData = new FormData();
+
+        Object.entries(profileData).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                formData.append(key, value);
+            }
+        });
+
+        if (logoFile) {
+            formData.append("logo", logoFile);
+        }
+
+        router.post(route("vendor.profile.save"), formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setSaving(false);
+                setSuccessMessage("Profile saved!");
+                setTimeout(() => setSuccessMessage(""), 2000);
+                setCurrentStep(2);
+            },
+            onError: (errors) => {
+                setSaving(false);
+                setLocalErrors(errors);
+                setErrorMessage("Failed to save profile. Please check your inputs.");
+                setTimeout(() => setErrorMessage(""), 4000);
+            },
+        });
     };
 
     const handleLogoChange = (e) => {
@@ -893,38 +934,24 @@ const VendorProfile = () => {
                         </div>
 
                         {/* Step 1 Actions */}
-                        <div className="flex items-center justify-between">
-                            <div />
-                            <div className="flex items-center gap-3">
-                                {!isReadOnly && (
-                                    <button
-                                        onClick={saveProfile}
-                                        disabled={saving}
-                                        className="flex items-center gap-2 px-6 py-2.5 bg-[#0955AC] text-white rounded-lg hover:bg-[#074a94] transition-colors font-medium text-sm disabled:opacity-50"
-                                    >
-                                        {saving ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <Save className="w-4 h-4" />
-                                        )}
-                                        Save Profile
-                                    </button>
+                        <div className="flex items-center justify-end">
+                            <button
+                                onClick={saveProfileAndNavigate}
+                                disabled={saving}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm disabled:opacity-50"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span>Saving...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        Next: Services
+                                        <ArrowRight className="w-4 h-4" />
+                                    </>
                                 )}
-                                <button
-                                    onClick={() => {
-                                        if (validateProfile()) {
-                                            setCurrentStep(2);
-                                        } else {
-                                            setErrorMessage("Please fill in all required fields to continue.");
-                                            setTimeout(() => setErrorMessage(""), 4000);
-                                        }
-                                    }}
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
-                                >
-                                    Next: Services
-                                    <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
+                            </button>
                         </div>
                     </div>
                 )}
