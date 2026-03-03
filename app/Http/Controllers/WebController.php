@@ -134,7 +134,18 @@ class WebController extends Controller
 
     public function multiModelPlanJourney()
     {
-        return Inertia::render('Web/home/multiModel/PlanJourney');
+        try {
+            Log::info('multiModelPlanJourney accessed');
+            return Inertia::render('Web/home/multiModel/PlanJourney');
+        } catch (\Exception $e) {
+            Log::error('Error in multiModelPlanJourney', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 
     public function multiModelAvailableVehicles(Request $request)
