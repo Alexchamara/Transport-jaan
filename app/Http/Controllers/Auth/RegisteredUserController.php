@@ -59,7 +59,7 @@ class RegisteredUserController extends Controller
 
         $redirectTo = match($user->role) {
             'client' => route('clientAllBookings', absolute: false),
-            'vendor' => route('vendors.mainDashboard', absolute: false),
+            'vendor' => route('vendorAllBookings', absolute: false),
             default => route('landingPage.home', absolute: false),
         };
 

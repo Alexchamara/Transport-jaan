@@ -89,6 +89,7 @@ const VendorProfile = () => {
     const [logoPreview, setLogoPreview] = useState(
         vendorProfile?.logo ? `/storage/${vendorProfile.logo}` : null
     );
+    const [serviceErrors, setServiceErrors] = useState({});
 
     // Auto-clear success messages
     useEffect(() => {
@@ -178,6 +179,9 @@ const VendorProfile = () => {
         if (isBusiness && !profileData.business_registration_no.trim()) {
             errs.business_registration_no = "Registration number is required";
         }
+        if (!isBusiness && !profileData.business_registration_no.trim()) {
+            errs.business_registration_no = "NIC number is required";
+        }
         if (!profileData.address_line1.trim()) errs.address_line1 = "Address is required";
         if (!profileData.city.trim()) errs.city = "City is required";
         if (!profileData.contact_phone.trim()) errs.contact_phone = "Phone number is required";
@@ -185,6 +189,26 @@ const VendorProfile = () => {
         if (!profileData.contact_person.trim()) errs.contact_person = "Contact person is required";
         setLocalErrors(errs);
         return Object.keys(errs).length === 0;
+    };
+
+    const validateServiceFields = (requiredFields, values) => {
+        const errs = {};
+        requiredFields.forEach((field) => {
+            const val = values[field.key];
+            if (field.required || field.type !== "file_optional") {
+                if (field.type === "checkbox") {
+                    if (!val) errs[field.key] = "Please confirm this requirement";
+                } else if (field.type === "file" || field.type === "file_with_dates") {
+                    if (!val || (!val.file && !val.existing_file)) {
+                        errs[field.key] = "Please upload a document";
+                    } else if (field.type === "file_with_dates") {
+                        if (!val.effective_date) errs[field.key] = "Effective date is required";
+                        if (!val.expiry_date) errs[field.key] = "Expiry date is required";
+                    }
+                }
+            }
+        });
+        return errs;
     };
 
     const saveProfile = () => {
@@ -224,9 +248,19 @@ const VendorProfile = () => {
     };
 
     const saveServiceRegistration = (subCategory) => {
+        const requiredFields = subCategory.required_fields || [];
+        const values = serviceFieldValues[subCategory.id] || {};
+        const fieldErrors = validateServiceFields(requiredFields, values);
+        
+        if (Object.keys(fieldErrors).length > 0) {
+            setServiceErrors((prev) => ({ ...prev, [subCategory.id]: fieldErrors }));
+            setErrorMessage("Please fill in all required fields before saving.");
+            setTimeout(() => setErrorMessage(""), 4000);
+            return;
+        }
+
         setSaving(true);
         const formData = new FormData();
-        const values = serviceFieldValues[subCategory.id] || {};
 
         // Build the form data matching the controller's expected structure
         Object.entries(values).forEach(([key, val]) => {
@@ -363,7 +397,29 @@ const VendorProfile = () => {
                             return (
                                 <React.Fragment key={step.num}>
                                     <button
-                                        onClick={() => !isReadOnly && setCurrentStep(step.num)}
+                                        onClick={() => {
+                                            if (isReadOnly) return;
+                                            
+                                            // Validate when moving forward from step 1 to step 2
+                                            if (step.num === 2 && currentStep === 1) {
+                                                if (!validateProfile()) {
+                                                    setErrorMessage("Please fill in all required fields to continue.");
+                                                    setTimeout(() => setErrorMessage(""), 4000);
+                                                    return;
+                                                }
+                                            }
+                                            
+                                            // Validate when moving forward from step 2 to step 3
+                                            if (step.num === 3 && currentStep === 2) {
+                                                if (registeredServiceCount === 0) {
+                                                    setErrorMessage("Please register for at least one service before proceeding.");
+                                                    setTimeout(() => setErrorMessage(""), 4000);
+                                                    return;
+                                                }
+                                            }
+                                            
+                                            setCurrentStep(step.num);
+                                        }}
                                         disabled={isReadOnly}
                                         className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl transition-all ${
                                             isActive
@@ -842,7 +898,14 @@ const VendorProfile = () => {
                                     </button>
                                 )}
                                 <button
-                                    onClick={() => setCurrentStep(2)}
+                                    onClick={() => {
+                                        if (validateProfile()) {
+                                            setCurrentStep(2);
+                                        } else {
+                                            setErrorMessage("Please fill in all required fields to continue.");
+                                            setTimeout(() => setErrorMessage(""), 4000);
+                                        }
+                                    }}
                                     className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
                                 >
                                     Next: Services
@@ -995,9 +1058,18 @@ const VendorProfile = () => {
                                                                         serviceFieldValues[subCat.id] ||
                                                                         {}
                                                                     }
-                                                                    onChange={(values) =>
-                                                                        handleServiceFieldChange(subCat.id, values)
-                                                                    }
+                                                                    onChange={(values) => {
+                                                                        handleServiceFieldChange(subCat.id, values);
+                                                                        // Clear errors when user makes changes
+                                                                        if (serviceErrors[subCat.id]) {
+                                                                            setServiceErrors((prev) => {
+                                                                                const next = { ...prev };
+                                                                                delete next[subCat.id];
+                                                                                return next;
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                    errors={serviceErrors[subCat.id] || {}}
                                                                 />
 
                                                                 {/* Sub-category actions */}
@@ -1051,7 +1123,14 @@ const VendorProfile = () => {
                                 Back: Profile
                             </button>
                             <button
-                                onClick={() => setCurrentStep(3)}
+                                onClick={() => {
+                                    if (registeredServiceCount === 0) {
+                                        setErrorMessage("Please register for at least one service before proceeding.");
+                                        setTimeout(() => setErrorMessage(""), 4000);
+                                    } else {
+                                        setCurrentStep(3);
+                                    }
+                                }}
                                 className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
                             >
                                 Next: Review
