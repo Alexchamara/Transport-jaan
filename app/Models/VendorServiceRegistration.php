@@ -60,4 +60,19 @@ class VendorServiceRegistration extends Model
     {
         return $this->status === 'rejected';
     }
+
+    public function isRevisionRequested(): bool
+    {
+        return $this->status === 'revision_requested';
+    }
+
+    public function canEdit(): bool
+    {
+        return in_array($this->status, ['draft', 'revision_requested']);
+    }
+
+    public function reviewer()
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
 }

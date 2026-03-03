@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Booking;
 use App\Models\FlightBooking;
 use App\Models\SeaVehicleBookings;
+use App\Models\VendorProfile;
+use App\Models\VendorServiceRegistration;
 use App\Models\Warehouse\WarehouseBooking;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -34,7 +36,8 @@ class SuperAdminDashboardController extends Controller
             'landBookings' => $landBookings,
             'airBookings' => $airBookings,
             'seaBookings' => $seaBookings,
-            'warehouseBookings' => $warehouseBookings
+            'warehouseBookings' => $warehouseBookings,
+            'pendingVendorReviews' => $this->getPendingVendorReviews(),
         ]);
     }
 
@@ -252,6 +255,30 @@ class SuperAdminDashboardController extends Controller
             'totalUsers' => $totalUsers,
             'isMonthlyGrowthPositive' => $monthlyGrowth >= 0,
             'isSignupGrowthPositive' => $signupGrowth >= 0,
+        ];
+    }
+
+    private function getPendingVendorReviews()
+    {
+        $pendingProfiles = VendorProfile::where('submission_status', 'submitted')->count();
+        $pendingServices = VendorServiceRegistration::where('status', 'submitted')->count();
+
+        $recentSubmissions = VendorProfile::where('submission_status', 'submitted')
+            ->with('user:id,name,email')
+            ->orderBy('submitted_at', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(fn($profile) => [
+                'id' => $profile->user_id,
+                'name' => $profile->user->name ?? 'N/A',
+                'company' => $profile->company_name,
+                'submitted_at' => $profile->submitted_at?->diffForHumans(),
+            ]);
+
+        return [
+            'pendingProfiles' => $pendingProfiles,
+            'pendingServices' => $pendingServices,
+            'recentSubmissions' => $recentSubmissions,
         ];
     }
 }

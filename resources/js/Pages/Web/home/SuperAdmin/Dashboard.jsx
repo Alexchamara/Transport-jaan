@@ -7,7 +7,8 @@ const Dashboard = ({
   landBookings = [], 
   airBookings = [], 
   seaBookings = [], 
-  warehouseBookings = [] 
+  warehouseBookings = [],
+  pendingVendorReviews = null
 }) => {
   // Removed the auto-refresh logic that was causing large header issues
   // with nginx by triggering multiple page reloads
@@ -24,6 +25,7 @@ const Dashboard = ({
           airBookings={airBookings}
           seaBookings={seaBookings}
           warehouseBookings={warehouseBookings}
+          pendingVendorReviews={pendingVendorReviews}
         />
       </div>
     </div>

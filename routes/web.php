@@ -370,7 +370,19 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::prefix('users')->name('users.')->group(function () {
         Route::get('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('index');
         Route::get('/clients', [\App\Http\Controllers\SuperAdmin\UserController::class, 'clients'])->name('clients');
-        Route::get('/service-providers', [\App\Http\Controllers\SuperAdmin\UserController::class, 'serviceProviders'])->name('serviceProviders');
+        Route::get('/service-providers', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'index'])->name('serviceProviders');
+        Route::get('/service-providers/{user}/review', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'show'])->name('serviceProviders.review');
+        Route::post('/service-providers/{registration}/approve-service', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'approveService'])->name('serviceProviders.approveService');
+        Route::post('/service-providers/{registration}/reject-service', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'rejectService'])->name('serviceProviders.rejectService');
+        Route::post('/service-providers/{registration}/request-service-revision', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'requestServiceRevision'])->name('serviceProviders.requestServiceRevision');
+        Route::post('/service-providers/{user}/approve-all', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'approveAll'])->name('serviceProviders.approveAll');
+        Route::post('/service-providers/{user}/reject-all', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'rejectAll'])->name('serviceProviders.rejectAll');
+        Route::post('/service-providers/{user}/request-revision', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'requestRevision'])->name('serviceProviders.requestRevision');
+        Route::post('/service-providers/{user}/add-note', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'addNote'])->name('serviceProviders.addNote');
+        Route::post('/service-providers/{user}/block', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'blockVendor'])->name('serviceProviders.block');
+        Route::post('/service-providers/{user}/unblock', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'unblockVendor'])->name('serviceProviders.unblock');
+        Route::get('/service-providers/{registration}/download-document/{fieldKey}', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'downloadDocument'])->name('serviceProviders.downloadDocument');
+        Route::get('/service-providers/{user}/download-all-documents', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'downloadAllDocuments'])->name('serviceProviders.downloadAllDocs');
         Route::get('/export', [\App\Http\Controllers\SuperAdmin\UserController::class, 'export'])->name('export');
         Route::get('/clients/export', [\App\Http\Controllers\SuperAdmin\UserController::class, 'export'])->name('clients.export');
         Route::get('/service-providers/export', [\App\Http\Controllers\SuperAdmin\UserController::class, 'export'])->name('serviceProviders.export');

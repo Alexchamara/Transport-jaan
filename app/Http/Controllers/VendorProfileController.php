@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Models\VendorActivityLog;
 use Inertia\Inertia;
 
 class VendorProfileController extends Controller
@@ -38,6 +39,8 @@ class VendorProfileController extends Controller
             'serviceCategories' => $serviceCategories,
             'vendorRegistrations' => $vendorRegistrations,
             'user' => $user,
+            'canEdit' => !$vendorProfile || $vendorProfile->canEdit(),
+            'isRevisionRequested' => $vendorProfile?->isRevisionRequested() ?? false,
         ]);
     }
 
@@ -48,6 +51,13 @@ class VendorProfileController extends Controller
     {
         $user = Auth::user();
         $data = $request->validated();
+
+        $existingProfile = VendorProfile::where('user_id', $user->id)->first();
+
+        // Only allow edit if draft or revision_requested
+        if ($existingProfile && !$existingProfile->canEdit()) {
+            return redirect()->back()->withErrors(['profile' => 'Profile cannot be edited in its current status.']);
+        }
 
         // Handle logo upload
         if ($request->hasFile('logo')) {
@@ -246,22 +256,38 @@ class VendorProfileController extends Controller
         }
 
         DB::transaction(function () use ($vendorProfile, $registrations, $user) {
+            $isResubmission = $vendorProfile->isRevisionRequested();
+
             // Update profile status
             $vendorProfile->update([
                 'submission_status' => 'submitted',
                 'submitted_at' => now(),
             ]);
 
-            // Update all service registrations
+            // Update all editable service registrations
             foreach ($registrations as $registration) {
-                $registration->update([
-                    'status' => 'submitted',
-                    'submitted_at' => now(),
-                ]);
+                if (in_array($registration->status, ['draft', 'revision_requested'])) {
+                    $registration->update([
+                        'status' => 'submitted',
+                        'submitted_at' => now(),
+                    ]);
+                }
             }
 
             // Update user status to inreview
             $user->update(['status' => 'inreview']);
+
+            // Log activity
+            VendorActivityLog::create([
+                'vendor_id' => $user->id,
+                'action' => $isResubmission ? 'profile_resubmitted' : 'profile_submitted',
+                'target_type' => 'vendor_profile',
+                'target_id' => $vendorProfile->id,
+                'description' => $isResubmission
+                    ? 'Vendor resubmitted profile after revision request.'
+                    : 'Vendor submitted profile for review.',
+                'metadata' => ['services_count' => $registrations->count()],
+            ]);
         });
 
         return redirect()->route('vendorAllBookings')->with('success', 'Your profile has been submitted for review.');

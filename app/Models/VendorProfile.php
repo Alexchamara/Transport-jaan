@@ -70,4 +70,14 @@ class VendorProfile extends Model
     {
         return $this->submission_status === 'rejected';
     }
+
+    public function isRevisionRequested(): bool
+    {
+        return $this->submission_status === 'revision_requested';
+    }
+
+    public function canEdit(): bool
+    {
+        return in_array($this->submission_status, ['draft', 'revision_requested']);
+    }
 }

@@ -3,7 +3,7 @@ import calender from "../../../assets/superAdmin/Calendar Icon.png";
 import dropD from "../../../assets/superAdmin/Chevron Down.png";
 import Cards from "../Cards";
 
-const RightSide = ({ userStats, landBookings = [], airBookings = [], seaBookings = [], warehouseBookings = [] }) => {
+const RightSide = ({ userStats, landBookings = [], airBookings = [], seaBookings = [], warehouseBookings = [], pendingVendorReviews = null }) => {
     const [expandedLandBooking, setExpandedLandBooking] = useState(null);
     const [landSearchQuery, setLandSearchQuery] = useState("");
     const [landCurrentPage, setLandCurrentPage] = useState(1);
@@ -1610,6 +1610,54 @@ const RightSide = ({ userStats, landBookings = [], airBookings = [], seaBookings
             {/* <div>
                 <Cards userStats={userStats} />
             </div> */}
+
+            {/* Pending Vendor Reviews Widget */}
+            {pendingVendorReviews && (pendingVendorReviews.pendingProfiles > 0 || pendingVendorReviews.pendingServices > 0) && (
+                <div className="px-4 md:px-12 lg:px-47 mb-6">
+                    <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-5">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-[#FDB52A20] flex items-center justify-center text-[18px]">
+                                    📋
+                                </div>
+                                <div>
+                                    <h3 className="text-white text-[16px] font-[600]">Pending Vendor Reviews</h3>
+                                    <p className="text-[#AEB9E1] text-[12px]">
+                                        {pendingVendorReviews.pendingProfiles} vendor{pendingVendorReviews.pendingProfiles !== 1 ? 's' : ''} &middot; {pendingVendorReviews.pendingServices} service{pendingVendorReviews.pendingServices !== 1 ? 's' : ''} awaiting review
+                                    </p>
+                                </div>
+                            </div>
+                            <a
+                                href="/superadmin/users/service-providers"
+                                className="bg-[#0E43FB] text-white text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#0A36D6] transition-colors"
+                            >
+                                Review All
+                            </a>
+                        </div>
+                        {pendingVendorReviews.recentSubmissions && pendingVendorReviews.recentSubmissions.length > 0 && (
+                            <div className="space-y-2">
+                                {pendingVendorReviews.recentSubmissions.map((sub) => (
+                                    <div key={sub.id} className="flex items-center justify-between bg-[#081028] rounded-lg px-3 py-2">
+                                        <div>
+                                            <span className="text-[#E0E6F7] text-[13px]">{sub.company || sub.name}</span>
+                                            {sub.company && <span className="text-[#AEB9E1] text-[11px] ml-2">({sub.name})</span>}
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[#AEB9E1] text-[11px]">{sub.submitted_at}</span>
+                                            <a
+                                                href={`/superadmin/users/service-providers/${sub.id}/review`}
+                                                className="text-[#5B8DEF] text-[11px] hover:text-[#0E43FB] transition-colors"
+                                            >
+                                                Review →
+                                            </a>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Bookings Section */}
             <div className="px-4 md:px-12 lg:px-47">

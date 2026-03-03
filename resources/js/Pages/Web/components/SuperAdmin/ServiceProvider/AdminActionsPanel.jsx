@@ -1,0 +1,290 @@
+import React, { useState } from "react";
+import { router } from '@inertiajs/react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
+    const [showBulkModal, setShowBulkModal] = useState(null);
+    const [showNoteModal, setShowNoteModal] = useState(false);
+    const [adminNotes, setAdminNotes] = useState('');
+    const [processing, setProcessing] = useState(false);
+
+    const pendingCount = serviceRegistrations?.filter(r => r.status === 'submitted').length || 0;
+    const approvedCount = serviceRegistrations?.filter(r => r.status === 'approved').length || 0;
+    const rejectedCount = serviceRegistrations?.filter(r => r.status === 'rejected').length || 0;
+    const totalCount = serviceRegistrations?.length || 0;
+
+    const handleBulkAction = (action) => {
+        const routeMap = {
+            approve_all: `/superadmin/users/service-providers/${vendor.id}/approve-all`,
+            reject_all: `/superadmin/users/service-providers/${vendor.id}/reject-all`,
+            request_revision: `/superadmin/users/service-providers/${vendor.id}/request-revision`,
+        };
+
+        if (['reject_all', 'request_revision'].includes(action) && !adminNotes.trim()) return;
+
+        setProcessing(true);
+        router.post(routeMap[action], { admin_notes: adminNotes }, {
+            preserveScroll: true,
+            onFinish: () => {
+                setProcessing(false);
+                setShowBulkModal(null);
+                setAdminNotes('');
+            },
+        });
+    };
+
+    const handleAddNote = () => {
+        if (!adminNotes.trim()) return;
+        setProcessing(true);
+        router.post(`/superadmin/users/service-providers/${vendor.id}/add-note`, { note: adminNotes }, {
+            preserveScroll: true,
+            onFinish: () => {
+                setProcessing(false);
+                setShowNoteModal(false);
+                setAdminNotes('');
+            },
+        });
+    };
+
+    const handleBlockToggle = () => {
+        const isBlocked = vendor.status === 'blocked';
+        const url = isBlocked
+            ? `/superadmin/users/service-providers/${vendor.id}/unblock`
+            : `/superadmin/users/service-providers/${vendor.id}/block`;
+
+        setProcessing(true);
+        router.post(url, {}, {
+            preserveScroll: true,
+            onFinish: () => setProcessing(false),
+        });
+    };
+
+    return (
+        <div className="space-y-4">
+            {/* Service Summary */}
+            <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-4">
+                <h3 className="text-white text-[13px] font-[600] mb-3">Service Summary</h3>
+                <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[#AEB9E1] text-[12px]">Total Services</span>
+                        <span className="text-white text-[13px] font-[600]">{totalCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-[#AEB9E1] text-[12px]">Pending Review</span>
+                        <span className="text-[#5B8DEF] text-[13px] font-[600]">{pendingCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-[#AEB9E1] text-[12px]">Approved</span>
+                        <span className="text-[#14CA74] text-[13px] font-[600]">{approvedCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-[#AEB9E1] text-[12px]">Rejected</span>
+                        <span className="text-[#FF4757] text-[13px] font-[600]">{rejectedCount}</span>
+                    </div>
+                    {/* Progress bar */}
+                    {totalCount > 0 && (
+                        <div className="mt-2">
+                            <div className="w-full h-2 bg-[#081028] rounded-full overflow-hidden flex">
+                                {approvedCount > 0 && (
+                                    <div className="bg-[#14CA74] h-full" style={{ width: `${(approvedCount / totalCount) * 100}%` }} />
+                                )}
+                                {pendingCount > 0 && (
+                                    <div className="bg-[#5B8DEF] h-full" style={{ width: `${(pendingCount / totalCount) * 100}%` }} />
+                                )}
+                                {rejectedCount > 0 && (
+                                    <div className="bg-[#FF4757] h-full" style={{ width: `${(rejectedCount / totalCount) * 100}%` }} />
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Bulk Actions */}
+            {pendingCount > 0 && (
+                <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-4">
+                    <h3 className="text-white text-[13px] font-[600] mb-3">Bulk Actions</h3>
+                    <div className="space-y-2">
+                        <button
+                            onClick={() => setShowBulkModal('approve_all')}
+                            className="w-full bg-[#05C168] text-white text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#05C168]/80 transition-colors"
+                        >
+                            Approve All Pending ({pendingCount})
+                        </button>
+                        <button
+                            onClick={() => setShowBulkModal('reject_all')}
+                            className="w-full bg-[#FF4757] text-white text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#FF4757]/80 transition-colors"
+                        >
+                            Reject All Pending ({pendingCount})
+                        </button>
+                        <button
+                            onClick={() => setShowBulkModal('request_revision')}
+                            className="w-full border border-[#FDB52A] text-[#FDB52A] text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#FDB52A20] transition-colors"
+                        >
+                            Request Revision
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Admin Tools */}
+            <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-4">
+                <h3 className="text-white text-[13px] font-[600] mb-3">Admin Tools</h3>
+                <div className="space-y-2">
+                    <button
+                        onClick={() => setShowNoteModal(true)}
+                        className="w-full border border-[#343B4F] text-[#AEB9E1] text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#343B4F30] transition-colors flex items-center justify-center gap-2"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Add Admin Note
+                    </button>
+
+                    <button
+                        onClick={handleBlockToggle}
+                        disabled={processing}
+                        className={`w-full text-[12px] px-4 py-2 rounded-[5px] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 ${
+                            vendor.status === 'blocked'
+                                ? 'border border-[#14CA74] text-[#14CA74] hover:bg-[#05C16820]'
+                                : 'border border-[#FF4757] text-[#FF4757] hover:bg-[#FF475720]'
+                        }`}
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            {vendor.status === 'blocked' ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                            ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            )}
+                        </svg>
+                        {vendor.status === 'blocked' ? 'Unblock Vendor' : 'Block Vendor'}
+                    </button>
+
+                    <a
+                        href={`/superadmin/users/service-providers/${vendor.id}/download-all-documents`}
+                        className="w-full border border-[#343B4F] text-[#AEB9E1] text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#343B4F30] transition-colors flex items-center justify-center gap-2"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Download All Documents (ZIP)
+                    </a>
+                </div>
+            </div>
+
+            {/* Bulk Action Modal */}
+            <AnimatePresence>
+                {showBulkModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center"
+                        onClick={() => { setShowBulkModal(null); setAdminNotes(''); }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-6 rounded-2xl text-white w-[500px] max-w-[90vw] shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h3 className="text-[18px] font-[600] mb-2">
+                                {showBulkModal === 'approve_all' && 'Approve All Pending Services'}
+                                {showBulkModal === 'reject_all' && 'Reject All Pending Services'}
+                                {showBulkModal === 'request_revision' && 'Request Revision for All'}
+                            </h3>
+                            <p className="text-[#AEB9E1] text-[13px] mb-4">
+                                {showBulkModal === 'approve_all' && `This will approve all ${pendingCount} pending service registrations.`}
+                                {showBulkModal === 'reject_all' && `This will reject all ${pendingCount} pending service registrations. A reason is required.`}
+                                {showBulkModal === 'request_revision' && `This will request revision for all ${pendingCount} pending services. Details are required.`}
+                            </p>
+
+                            <textarea
+                                value={adminNotes}
+                                onChange={(e) => setAdminNotes(e.target.value)}
+                                placeholder={
+                                    showBulkModal === 'approve_all' ? 'Optional notes...' :
+                                    showBulkModal === 'reject_all' ? 'Reason for rejection (required)...' :
+                                    'Describe what needs revision (required)...'
+                                }
+                                className="w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-24 resize-none focus:outline-none focus:ring-1 focus:ring-[#0E43FB] mb-4"
+                            />
+
+                            <div className="flex gap-3 justify-end">
+                                <button
+                                    onClick={() => { setShowBulkModal(null); setAdminNotes(''); }}
+                                    className="border border-[#343B4F] text-[#AEB9E1] text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#343B4F30] transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleBulkAction(showBulkModal)}
+                                    disabled={processing || (['reject_all', 'request_revision'].includes(showBulkModal) && !adminNotes.trim())}
+                                    className={`text-white text-[13px] px-4 py-2 rounded-[5px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                        showBulkModal === 'approve_all' ? 'bg-[#05C168] hover:bg-[#05C168]/80' :
+                                        showBulkModal === 'reject_all' ? 'bg-[#FF4757] hover:bg-[#FF4757]/80' :
+                                        'bg-[#FDB52A] hover:bg-[#FDB52A]/80'
+                                    }`}
+                                >
+                                    {processing ? 'Processing...' : 'Confirm'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Add Note Modal */}
+            <AnimatePresence>
+                {showNoteModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center"
+                        onClick={() => { setShowNoteModal(false); setAdminNotes(''); }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-6 rounded-2xl text-white w-[500px] max-w-[90vw] shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h3 className="text-[18px] font-[600] mb-2">Add Admin Note</h3>
+                            <p className="text-[#AEB9E1] text-[13px] mb-4">
+                                Add a note to this vendor's activity log.
+                            </p>
+
+                            <textarea
+                                value={adminNotes}
+                                onChange={(e) => setAdminNotes(e.target.value)}
+                                placeholder="Write your note here..."
+                                className="w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-24 resize-none focus:outline-none focus:ring-1 focus:ring-[#0E43FB] mb-4"
+                            />
+
+                            <div className="flex gap-3 justify-end">
+                                <button
+                                    onClick={() => { setShowNoteModal(false); setAdminNotes(''); }}
+                                    className="border border-[#343B4F] text-[#AEB9E1] text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#343B4F30] transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleAddNote}
+                                    disabled={processing || !adminNotes.trim()}
+                                    className="bg-[#0E43FB] text-white text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#0A36D6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {processing ? 'Saving...' : 'Save Note'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+export default AdminActionsPanel;
