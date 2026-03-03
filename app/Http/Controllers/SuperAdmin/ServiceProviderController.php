@@ -163,6 +163,7 @@ class ServiceProviderController extends Controller
                     'service_sub_category_slug' => $subCat?->slug,
                     'required_fields' => $subCat?->required_fields ?? [],
                     'field_values' => $reg->field_values ?? [],
+                    'pre_revision_field_values' => $reg->pre_revision_field_values,
                     'status' => $reg->status,
                     'admin_notes' => $reg->admin_notes,
                     'submitted_at' => $reg->submitted_at?->format('Y-m-d H:i'),
@@ -309,10 +310,22 @@ class ServiceProviderController extends Controller
 
         $registration->update([
             'status' => 'revision_requested',
+            'pre_revision_field_values' => $registration->field_values,
             'admin_notes' => $request->input('admin_notes'),
             'reviewed_at' => now(),
             'reviewed_by' => $admin->id,
         ]);
+
+        // Also update the vendor profile so vendor can edit & resubmit
+        $profile = VendorProfile::where('user_id', $registration->user_id)->first();
+        if ($profile && $profile->submission_status === 'submitted') {
+            $profile->update([
+                'submission_status' => 'revision_requested',
+                'admin_notes' => $request->input('admin_notes'),
+                'reviewed_at' => now(),
+                'reviewed_by' => $admin->id,
+            ]);
+        }
 
         VendorActivityLog::create([
             'vendor_id' => $registration->user_id,

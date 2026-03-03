@@ -136,6 +136,21 @@ const ServiceRegistrationsSection = ({ serviceRegistrations, vendorId }) => {
                                     <h3 className="text-white text-[14px] font-[600]">{reg.service_sub_category}</h3>
                                     <p className="text-[#AEB9E1] text-[11px]">{reg.service_category}</p>
                                 </div>
+                                {reg.pre_revision_field_values && reg.status === 'submitted' && (() => {
+                                    const count = (reg.required_fields || []).filter(f => {
+                                        const cur = JSON.stringify(reg.field_values?.[f.key] ?? null);
+                                        const prev = JSON.stringify(reg.pre_revision_field_values?.[f.key] ?? null);
+                                        return cur !== prev;
+                                    }).length;
+                                    return count > 0 ? (
+                                        <span className="flex items-center gap-1 bg-[#14CA7420] border border-[#14CA7450] text-[#14CA74] text-[10px] font-[600] px-2 py-0.5 rounded-full">
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            {count} Updated
+                                        </span>
+                                    ) : null;
+                                })()}
                             </div>
                             <div className="flex items-center gap-3">
                                 <div className={`inline-flex items-center gap-1.5 border ${statusStyles.border} ${statusStyles.bg} px-[10px] py-[4px] rounded-[6px]`}>
@@ -172,17 +187,43 @@ const ServiceRegistrationsSection = ({ serviceRegistrations, vendorId }) => {
 
                                         {/* Submitted Documents / Fields */}
                                         <div>
-                                            <h4 className="text-[#AEB9E1] text-[12px] font-[600] uppercase tracking-wider mb-3">
-                                                Submitted Documents & Fields
-                                            </h4>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h4 className="text-[#AEB9E1] text-[12px] font-[600] uppercase tracking-wider">
+                                                    Submitted Documents & Fields
+                                                </h4>
+                                                {reg.pre_revision_field_values && (() => {
+                                                    const updatedCount = (reg.required_fields || []).filter(f => {
+                                                        const cur = JSON.stringify(reg.field_values?.[f.key] ?? null);
+                                                        const prev = JSON.stringify(reg.pre_revision_field_values?.[f.key] ?? null);
+                                                        return cur !== prev;
+                                                    }).length;
+                                                    return updatedCount > 0 ? (
+                                                        <span className="flex items-center gap-1.5 bg-[#14CA7422] border border-[#14CA7450] text-[#14CA74] text-[11px] font-[600] px-2.5 py-1 rounded-full">
+                                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                            {updatedCount} field{updatedCount > 1 ? 's' : ''} updated
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                            </div>
                                             <div className="space-y-3">
                                                 {(reg.required_fields || []).map((field) => {
                                                     const value = reg.field_values?.[field.key];
+                                                    const preRevisionValue = reg.pre_revision_field_values
+                                                        ? reg.pre_revision_field_values[field.key]
+                                                        : undefined;
+                                                    const isUpdated = reg.pre_revision_field_values !== null &&
+                                                        reg.pre_revision_field_values !== undefined &&
+                                                        JSON.stringify(value ?? null) !== JSON.stringify(preRevisionValue ?? null);
                                                     return (
                                                         <DocumentField
                                                             key={field.key}
                                                             field={field}
                                                             value={value}
+                                                            preRevisionValue={preRevisionValue}
+                                                            isUpdated={isUpdated}
+                                                            hasRevisionSnapshot={reg.pre_revision_field_values != null}
                                                             registrationId={reg.id}
                                                             isExpiringOrExpired={isExpiringOrExpired}
                                                             getExpiryStyles={getExpiryStyles}
@@ -368,16 +409,38 @@ const ServiceRegistrationsSection = ({ serviceRegistrations, vendorId }) => {
     );
 };
 
-const DocumentField = ({ field, value, registrationId, isExpiringOrExpired, getExpiryStyles, isImageFile, isPdfFile, onPreview }) => {
+const DocumentField = ({ field, value, preRevisionValue, isUpdated, hasRevisionSnapshot, registrationId, isExpiringOrExpired, getExpiryStyles, isImageFile, isPdfFile, onPreview }) => {
     const hasFile = value?.file;
     const fileName = value?.original_name || (hasFile ? value.file.split('/').pop() : null);
 
+    const prevHasFile = preRevisionValue?.file;
+    const prevFileName = preRevisionValue?.original_name || (prevHasFile ? preRevisionValue.file.split('/').pop() : null);
+
     if (field.type === 'checkbox') {
         return (
-            <div className="flex items-center justify-between bg-[#081028] rounded-lg px-4 py-3">
-                <div>
-                    <p className="text-[#E0E6F7] text-[13px]">{field.label}</p>
+            <div className={`flex items-center justify-between rounded-lg px-4 py-3 ${
+                isUpdated
+                    ? 'bg-[#14CA7410] border border-[#14CA7440] ring-1 ring-[#14CA7430]'
+                    : 'bg-[#081028]'
+            }`}>
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-[#E0E6F7] text-[13px]">{field.label}</p>
+                        {isUpdated && (
+                            <span className="flex items-center gap-1 bg-[#14CA7422] border border-[#14CA7450] text-[#14CA74] text-[9px] font-[700] px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Updated
+                            </span>
+                        )}
+                    </div>
                     {field.description && <p className="text-[#AEB9E1] text-[10px]">{field.description}</p>}
+                    {isUpdated && hasRevisionSnapshot && (
+                        <p className="text-[#AEB9E1] text-[10px] mt-1">
+                            Was: <span className="text-[#FDB52A]">{preRevisionValue ? 'Confirmed' : 'Not confirmed'}</span>
+                        </p>
+                    )}
                 </div>
                 <div className={`flex items-center gap-1.5 ${value ? 'text-[#14CA74]' : 'text-[#FF4757]'}`}>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -398,12 +461,24 @@ const DocumentField = ({ field, value, registrationId, isExpiringOrExpired, getE
     const expiryStylesData = expiryStatus ? getExpiryStyles(expiryStatus) : null;
 
     return (
-        <div className="bg-[#081028] rounded-lg px-4 py-3">
+        <div className={`rounded-lg px-4 py-3 ${
+            isUpdated
+                ? 'bg-[#14CA7410] border border-[#14CA7440] ring-1 ring-[#14CA7430]'
+                : 'bg-[#081028]'
+        }`}>
             <div className="flex items-start justify-between">
                 <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-[#E0E6F7] text-[13px] font-[500]">{field.label}</p>
                         {field.required && <span className="text-[#FF4757] text-[9px]">Required</span>}
+                        {isUpdated && (
+                            <span className="flex items-center gap-1 bg-[#14CA7422] border border-[#14CA7450] text-[#14CA74] text-[9px] font-[700] px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Updated
+                            </span>
+                        )}
                         {expiryStylesData && (
                             <span className={`${expiryStylesData.text} ${expiryStylesData.bg} text-[9px] px-1.5 py-0.5 rounded font-[600]`}>
                                 {expiryStylesData.label}
@@ -456,18 +531,37 @@ const DocumentField = ({ field, value, registrationId, isExpiringOrExpired, getE
                 </div>
             )}
 
+            {/* Previous file reference when updated */}
+            {isUpdated && prevHasFile && prevFileName && prevFileName !== fileName && (
+                <div className="mt-2 flex items-center gap-2 px-3 py-1.5 bg-[#FDB52A10] border border-[#FDB52A30] rounded text-[11px]">
+                    <svg className="w-3 h-3 text-[#FDB52A] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-[#FDB52A]">Previous: </span>
+                    <span className="text-[#AEB9E1] truncate">{prevFileName}</span>
+                </div>
+            )}
+
             {/* Date fields for file_with_dates */}
             {(field.type === 'file_with_dates' || (field.type === 'file_optional' && value?.effective_date)) && value && (
                 <div className="mt-2 flex gap-4 text-[11px]">
                     <div>
                         <span className="text-[#AEB9E1]">Effective: </span>
-                        <span className="text-[#E0E6F7]">{value.effective_date || 'N/A'}</span>
+                        <span className={`${isUpdated && value?.effective_date !== preRevisionValue?.effective_date ? 'text-[#14CA74] font-[600]' : 'text-[#E0E6F7]'}`}>
+                            {value.effective_date || 'N/A'}
+                        </span>
+                        {isUpdated && preRevisionValue?.effective_date && value?.effective_date !== preRevisionValue?.effective_date && (
+                            <span className="text-[#FDB52A] ml-1">(was {preRevisionValue.effective_date})</span>
+                        )}
                     </div>
                     <div>
                         <span className="text-[#AEB9E1]">Expiry: </span>
-                        <span className={`${expiryStylesData?.text || 'text-[#E0E6F7]'}`}>
+                        <span className={`${isUpdated && value?.expiry_date !== preRevisionValue?.expiry_date ? 'text-[#14CA74] font-[600]' : (expiryStylesData?.text || 'text-[#E0E6F7]')}`}>
                             {value.expiry_date || 'N/A'}
                         </span>
+                        {isUpdated && preRevisionValue?.expiry_date && value?.expiry_date !== preRevisionValue?.expiry_date && (
+                            <span className="text-[#FDB52A] ml-1">(was {preRevisionValue.expiry_date})</span>
+                        )}
                     </div>
                 </div>
             )}

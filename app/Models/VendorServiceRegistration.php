@@ -14,6 +14,7 @@ class VendorServiceRegistration extends Model
         'service_category_id',
         'service_sub_category_id',
         'field_values',
+        'pre_revision_field_values',
         'status',
         'admin_notes',
         'submitted_at',
@@ -22,6 +23,7 @@ class VendorServiceRegistration extends Model
 
     protected $casts = [
         'field_values' => 'array',
+        'pre_revision_field_values' => 'array',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
     ];
