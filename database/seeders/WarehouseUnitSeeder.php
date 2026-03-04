@@ -7,6 +7,7 @@ use App\Models\Warehouse\WarehouseUnit;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Faker\Factory as Faker;
 
 class WarehouseUnitSeeder extends Seeder
 {
@@ -15,7 +16,7 @@ class WarehouseUnitSeeder extends Seeder
      */
     public function run(): void
     {
-        $faker = fake('en_US');
+        $faker = Faker::create('en_US');
 
         $vendorIds = User::query()
             ->where('role', 'vendor')
