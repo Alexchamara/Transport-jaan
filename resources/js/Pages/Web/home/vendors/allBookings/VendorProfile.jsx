@@ -179,9 +179,9 @@ const VendorProfile = () => {
         const formData = new FormData();
 
         Object.entries(profileData).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                formData.append(key, value);
-            }
+            // Ensure empty strings are sent as empty strings, not null
+            const finalValue = value === null || value === undefined ? '' : value;
+            formData.append(key, finalValue);
         });
 
         if (logoFile) {
@@ -271,9 +271,9 @@ const VendorProfile = () => {
         const formData = new FormData();
 
         Object.entries(profileData).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                formData.append(key, value);
-            }
+            // Ensure empty strings are sent as empty strings, not null
+            const finalValue = value === null || value === undefined ? '' : value;
+            formData.append(key, finalValue);
         });
 
         if (logoFile) {
