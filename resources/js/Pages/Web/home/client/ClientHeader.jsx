@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { router, usePage, Link } from "@inertiajs/react";
+import { AnimatePresence } from "framer-motion";
+import ActionModalTemplate from "../../components/SuperAdmin/Common/ActionModalTemplate";
 import downArrow from "../../assets/rentAVehicle/header/downArrow.png";
 import proPic from "../../assets/header/profilePic.svg";
 import bell from "../../assets/header/bell.svg";
@@ -11,6 +13,7 @@ const ClientHeader = () => {
     const { auth } = usePage().props;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [actionModalState, setActionModalState] = useState({ isOpen: false });
 
     const [openDropdown, setOpenDropdown] = useState({
         vehicle: false,
@@ -40,9 +43,18 @@ const ClientHeader = () => {
         }
     };
 
-    const handleLogout = async (e) => {
+    const handleOpenLogoutModal = (e) => {
         e.preventDefault();
+        setIsProfileOpen(false);
+        setIsMenuOpen(false);
+        setActionModalState({ isOpen: true });
+    };
 
+    const closeActionModal = () => {
+        setActionModalState({ isOpen: false });
+    };
+
+    const handleActionConfirm = () => {
         const attemptLogout = () => {
             router.post(
                 route("logout"),
@@ -79,6 +91,7 @@ const ClientHeader = () => {
                         }
                     },
                     onSuccess: () => (window.location.href = "/"),
+                    onFinish: () => closeActionModal(),
                 }
             );
         };
@@ -207,7 +220,7 @@ const ClientHeader = () => {
                                         My Profile
                                     </Link>
                                     <button
-                                        onClick={(e) => { setIsProfileOpen(false); handleLogout(e); }}
+                                        onClick={handleOpenLogoutModal}
                                         className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -516,7 +529,7 @@ const ClientHeader = () => {
                                         />
                                     </div>
                                     <button
-                                        onClick={handleLogout}
+                                        onClick={handleOpenLogoutModal}
                                         className="bg-[#EF3826] w-full h-[40px] hover:bg-red-700 px-3 py-2 rounded text-white text-[12px] font-bold mt-2"
                                     >
                                         Logout
@@ -545,6 +558,22 @@ const ClientHeader = () => {
                     <div className="flex-1" onClick={toggleMenu} />
                 </div>
             )}
+
+            {/* Logout Confirmation Modal */}
+            <AnimatePresence>
+                {actionModalState.isOpen && (
+                    <ActionModalTemplate
+                        title="Confirm Logout"
+                        description="Are you sure you want to logout from your account?"
+                        confirmText="Logout"
+                        confirmClassName="bg-red-600 hover:bg-red-700"
+                        processingText="Logging out..."
+                        onClose={closeActionModal}
+                        onConfirm={handleActionConfirm}
+                        theme="light"
+                    />
+                )}
+            </AnimatePresence>
         </header>
     );
 };
