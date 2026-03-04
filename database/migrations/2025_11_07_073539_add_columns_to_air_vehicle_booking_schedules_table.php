@@ -39,7 +39,7 @@ return new class extends Migration
         $existingFKs = collect(Schema::getForeignKeys($table))->pluck('name');
         $existingIndexes = collect(Schema::getIndexes($table))->pluck('name');
 
-        Schema::table($table, function (Blueprint $t) use ($existingFKs, $existingIndexes) {
+        Schema::table($table, function (Blueprint $t) use ($existingFKs, $existingIndexes, $table) {
             if ($existingFKs->contains('air_vehicle_booking_schedules_air_vehicle_booking_id_foreign')) {
                 $t->dropForeign(['air_vehicle_booking_id']);
             }
