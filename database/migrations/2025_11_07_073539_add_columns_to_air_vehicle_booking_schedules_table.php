@@ -34,20 +34,36 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('air_vehicle_booking_schedules', function (Blueprint $table) {
+        $table = 'air_vehicle_booking_schedules';
 
-            // ✅ Drop foreign key first (it uses the indexes)
-            $table->dropForeign(['air_vehicle_booking_id']);
+        $existingFKs = collect(Schema::getForeignKeys($table))->pluck('name');
+        $existingIndexes = collect(Schema::getIndexes($table))->pluck('name');
 
-            // ✅ Drop indexes after FK is removed
-            $table->dropIndex('avb_sched_pickup_idx');
-            $table->dropIndex('avb_sched_dropoff_idx');
+        Schema::table($table, function (Blueprint $t) use ($existingFKs, $existingIndexes) {
+            if ($existingFKs->contains('air_vehicle_booking_schedules_air_vehicle_booking_id_foreign')) {
+                $t->dropForeign(['air_vehicle_booking_id']);
+            }
 
-            // ✅ Drop column
-            $table->dropColumn('air_vehicle_booking_id');
+            if ($existingIndexes->contains('avb_sched_pickup_idx')) {
+                $t->dropIndex('avb_sched_pickup_idx');
+            }
 
-            // ✅ Drop the added columns
-            $table->dropColumn(['pickup_location', 'dropoff_location', 'pickup_at', 'dropoff_at']);
+            if ($existingIndexes->contains('avb_sched_dropoff_idx')) {
+                $t->dropIndex('avb_sched_dropoff_idx');
+            }
+
+            if (Schema::hasColumn($table, 'air_vehicle_booking_id')) {
+                $t->dropColumn('air_vehicle_booking_id');
+            }
+
+            $colsToDrop = array_filter(
+                ['pickup_location', 'dropoff_location', 'pickup_at', 'dropoff_at'],
+                fn($col) => Schema::hasColumn($table, $col)
+            );
+
+            if (!empty($colsToDrop)) {
+                $t->dropColumn(array_values($colsToDrop));
+            }
         });
     }
 };
