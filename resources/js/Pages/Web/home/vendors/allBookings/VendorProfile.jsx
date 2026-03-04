@@ -954,7 +954,7 @@ const VendorProfile = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country
+                                        Country<span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -990,10 +990,10 @@ const VendorProfile = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                        Phone Number
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Phone Number <span className="text-red-500">*</span>
                                     </label>
-                                    <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-4 py-2">
+                                    <div className="w-full">
                                         <PhoneInput
                                             country={'lk'}
                                             value={profileData.contact_phone}
@@ -1010,9 +1010,9 @@ const VendorProfile = () => {
                                         />
                                     </div>
                                     {localErrors.contact_phone && (
-                                        <div className="text-red-500 text-sm px-10 mt-1">
+                                        <p className="text-xs text-red-500 mt-1">
                                             {localErrors.contact_phone}
-                                        </div>
+                                        </p>
                                     )}
                                 </div>
                                 <div>
