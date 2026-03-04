@@ -36,12 +36,14 @@ return new class extends Migration
     {
         Schema::table('air_vehicle_booking_schedules', function (Blueprint $table) {
 
-            // ✅ Drop indexes first
+            // ✅ Drop foreign key first (it uses the indexes)
+            $table->dropForeign(['air_vehicle_booking_id']);
+
+            // ✅ Drop indexes after FK is removed
             $table->dropIndex('avb_sched_pickup_idx');
             $table->dropIndex('avb_sched_dropoff_idx');
 
-            // ✅ Drop foreign key + column
-            $table->dropForeign(['air_vehicle_booking_id']);
+            // ✅ Drop column
             $table->dropColumn('air_vehicle_booking_id');
 
             // ✅ Drop the added columns
