@@ -24,6 +24,8 @@ import {
     Eye,
     Loader2,
 } from "lucide-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 import ServiceRegistrationFields from "../../../../../Components/vendors/ServiceRegistrationFields";
 import VendorLayout from "../VendorLayout";
 
@@ -895,21 +897,29 @@ const VendorProfile = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Phone <span className="text-red-500">*</span>
+                                    <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
+                                        Phone Number
                                     </label>
-                                    <input
-                                        type="tel"
-                                        value={profileData.contact_phone}
-                                        onChange={(e) => handleProfileChange("contact_phone", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                            localErrors.contact_phone ? "border-red-400" : "border-gray-300"
-                                        }`}
-                                        placeholder="+94 7XX XXX XXXX"
-                                    />
+                                    <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-4 py-2">
+                                        <PhoneInput
+                                            country={'lk'}
+                                            value={profileData.contact_phone}
+                                            onChange={(phone) => handleProfileChange('contact_phone', phone)}
+                                            disabled={isReadOnly}
+                                            containerClass="custom-phone-input"
+                                            inputClass="form-control"
+                                            buttonClass="flag-dropdown"
+                                            dropdownClass="text-gray-800 bg-white"
+                                            searchClass="text-gray-800"
+                                            preferredCountries={['lk', 'in', 'us', 'gb', 'ca', 'au']}
+                                            enableSearch={true}
+                                            placeholder="Enter your phone number"
+                                        />
+                                    </div>
                                     {localErrors.contact_phone && (
-                                        <p className="text-xs text-red-500 mt-1">{localErrors.contact_phone}</p>
+                                        <div className="text-red-500 text-sm px-10 mt-1">
+                                            {localErrors.contact_phone}
+                                        </div>
                                     )}
                                 </div>
                                 <div>
