@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { router, usePage } from "@inertiajs/react";
+import { AnimatePresence } from "framer-motion";
 import {
     Building2,
     Upload,
@@ -28,6 +29,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import ServiceRegistrationFields from "../../../../../Components/vendors/ServiceRegistrationFields";
 import VendorLayout from "../VendorLayout";
+import ActionModalTemplate from "../../../components/SuperAdmin/Common/ActionModalTemplate";
 
 // Map category slugs to icons
 const categoryIcons = {
@@ -71,6 +73,7 @@ const VendorProfile = () => {
     const [localErrors, setLocalErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState(flash?.success || "");
     const [errorMessage, setErrorMessage] = useState("");
+    const [actionModalState, setActionModalState] = useState({ isOpen: false, action: null, payload: null });
     const fileInputRef = useRef(null);
 
 
@@ -351,16 +354,82 @@ const VendorProfile = () => {
         });
     };
 
-    const removeServiceRegistration = (subCategory) => {
-        if (!confirm(`Remove registration for ${subCategory.name}?`)) return;
+    const openActionModal = (action, payload = null) => {
+        setActionModalState({ isOpen: true, action, payload });
+    };
 
-        router.delete(route("vendor.profile.service.remove", subCategory.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSuccessMessage(`${subCategory.name} registration removed.`);
-                setTimeout(() => setSuccessMessage(""), 3000);
-            },
-        });
+    const closeActionModal = () => {
+        setActionModalState({ isOpen: false, action: null, payload: null });
+    };
+
+    const getActionModalConfig = () => {
+        if (actionModalState.action === "remove_service") {
+            return {
+                title: "Remove Service Registration",
+                description: `Are you sure you want to remove registration for ${actionModalState.payload?.name || "this service"}?`,
+                confirmText: "Remove",
+                confirmClassName: "bg-red-600 hover:bg-red-700",
+                processingText: "Removing...",
+            };
+        }
+
+        if (actionModalState.action === "submit_profile") {
+            return {
+                title: needsRevision ? "Confirm Resubmission" : "Confirm Submission",
+                description: needsRevision
+                    ? "Are you sure you want to resubmit your profile? The admin will review your updated information."
+                    : "Are you sure you want to submit your profile for review? You won't be able to make changes after submission.",
+                confirmText: needsRevision ? "Resubmit" : "Submit",
+                confirmClassName: "bg-blue-600 hover:bg-blue-700",
+                processingText: needsRevision ? "Resubmitting..." : "Submitting...",
+            };
+        }
+
+        return null;
+    };
+
+    const handleActionConfirm = () => {
+        if (actionModalState.action === "remove_service") {
+            const subCategory = actionModalState.payload;
+            if (!subCategory) {
+                closeActionModal();
+                return;
+            }
+
+            router.delete(route("vendor.profile.service.remove", subCategory.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSuccessMessage(`${subCategory.name} registration removed.`);
+                    setTimeout(() => setSuccessMessage(""), 3000);
+                },
+                onFinish: () => {
+                    closeActionModal();
+                },
+            });
+            return;
+        }
+
+        if (actionModalState.action === "submit_profile") {
+            setSubmitting(true);
+            router.post(route("vendor.profile.submit"), {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSubmitting(false);
+                    closeActionModal();
+                },
+                onError: (errors) => {
+                    setSubmitting(false);
+                    const firstError = Object.values(errors)[0];
+                    setErrorMessage(typeof firstError === "string" ? firstError : "Submission failed.");
+                    setTimeout(() => setErrorMessage(""), 5000);
+                    closeActionModal();
+                },
+            });
+        }
+    };
+
+    const removeServiceRegistration = (subCategory) => {
+        openActionModal("remove_service", subCategory);
     };
 
     // ─── Step 3: Submit for Review ────────────────────────────
@@ -376,26 +445,7 @@ const VendorProfile = () => {
             return;
         }
 
-        const confirmMsg = needsRevision
-            ? "Are you sure you want to resubmit your profile? The admin will review your updated information."
-            : "Are you sure you want to submit your profile for review? You won't be able to make changes after submission.";
-        if (!confirm(confirmMsg)) {
-            return;
-        }
-
-        setSubmitting(true);
-        router.post(route("vendor.profile.submit"), {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSubmitting(false);
-            },
-            onError: (errors) => {
-                setSubmitting(false);
-                const firstError = Object.values(errors)[0];
-                setErrorMessage(typeof firstError === "string" ? firstError : "Submission failed.");
-                setTimeout(() => setErrorMessage(""), 5000);
-            },
-        });
+        openActionModal("submit_profile");
     };
 
     // ─── STEP INDICATOR ───────────────────────────────────────
@@ -404,6 +454,8 @@ const VendorProfile = () => {
         { num: 2, label: "Service Registration", icon: FileText },
         { num: 3, label: "Review & Submit", icon: Send },
     ];
+
+    const actionModalConfig = getActionModalConfig();
 
     // ─── RENDER ───────────────────────────────────────────────
     return (
@@ -1471,6 +1523,22 @@ const VendorProfile = () => {
                     </div>
                 )}
             </div>
+
+            <AnimatePresence>
+                {actionModalState.isOpen && actionModalConfig && (
+                    <ActionModalTemplate
+                        title={actionModalConfig.title}
+                        description={actionModalConfig.description}
+                        processing={actionModalState.action === "submit_profile" ? submitting : false}
+                        processingText={actionModalConfig.processingText}
+                        confirmText={actionModalConfig.confirmText}
+                        confirmClassName={actionModalConfig.confirmClassName}
+                        onClose={closeActionModal}
+                        onConfirm={handleActionConfirm}
+                        theme="light"
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Animations */}
             <style>{`
