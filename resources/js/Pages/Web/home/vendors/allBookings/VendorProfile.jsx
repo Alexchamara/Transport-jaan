@@ -48,13 +48,19 @@ const categoryColors = {
 };
 
 const VendorProfile = () => {
-    const { vendorProfile, serviceCategories, vendorRegistrations, user, flash, errors: pageErrors, canEdit, isRevisionRequested } = usePage().props;
+    const { vendorProfile, serviceCategories, vendorRegistrations, user, flash, errors: pageErrors, canEdit, isRevisionRequested, canAddNewServices } = usePage().props;
 
     // Also check if any individual service has revision_requested
     const hasAnyServiceRevision = vendorRegistrations
         ? Object.values(vendorRegistrations).some(r => r.status === 'revision_requested')
         : false;
     const needsRevision = isRevisionRequested || hasAnyServiceRevision;
+
+    // Check for draft (new) services when vendor has submitted/approved profile
+    const draftServiceCount = vendorRegistrations
+        ? Object.values(vendorRegistrations).filter(r => r.status === 'draft').length
+        : 0;
+    const hasDraftServices = draftServiceCount > 0;
 
     // Vendor type from signup: "individual" or "business"
     const isBusiness = user?.vendor_type === "business";
@@ -396,6 +402,33 @@ const VendorProfile = () => {
         });
     };
 
+    // ─── Submit New Services (for submitted/approved vendors) ──
+    const submitNewServices = () => {
+        if (!hasDraftServices) {
+            setErrorMessage("No new services to submit.");
+            setTimeout(() => setErrorMessage(""), 4000);
+            return;
+        }
+
+        if (!confirm(`Submit ${draftServiceCount} new service(s) for admin review? Your existing services are not affected.`)) {
+            return;
+        }
+
+        setSubmitting(true);
+        router.post(route("vendor.profile.submit-new-services"), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setSubmitting(false);
+            },
+            onError: (errors) => {
+                setSubmitting(false);
+                const firstError = Object.values(errors)[0];
+                setErrorMessage(typeof firstError === "string" ? firstError : "Submission failed.");
+                setTimeout(() => setErrorMessage(""), 5000);
+            },
+        });
+    };
+
     // ─── STEP INDICATOR ───────────────────────────────────────
     const steps = [
         { num: 1, label: "Business Profile", icon: Building2 },
@@ -452,7 +485,7 @@ const VendorProfile = () => {
                                 <React.Fragment key={step.num}>
                                     <button
                                         onClick={() => {
-                                            if (isReadOnly) return;
+                                            if (isReadOnly && !canAddNewServices) return;
                                             
                                             // Validate when moving forward from step 1 to step 2
                                             if (step.num === 2 && currentStep === 1) {
@@ -474,14 +507,14 @@ const VendorProfile = () => {
                                             
                                             setCurrentStep(step.num);
                                         }}
-                                        disabled={isReadOnly}
+                                        disabled={isReadOnly && !canAddNewServices}
                                         className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl transition-all ${
                                             isActive
                                                 ? "bg-[#0955AC] text-white shadow-lg shadow-blue-200"
                                                 : isCompleted
                                                 ? "bg-green-50 text-green-700 hover:bg-green-100"
                                                 : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                                        } ${isReadOnly ? "cursor-default" : "cursor-pointer"}`}
+                                        } ${(isReadOnly && !canAddNewServices) ? "cursor-default" : "cursor-pointer"}`}
                                     >
                                         <div
                                             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
@@ -972,20 +1005,20 @@ const VendorProfile = () => {
                                     </p>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-                                <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                        ) : canAddNewServices ? (
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+                                <Info className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                                 <div>
-                                    <p className="text-sm font-medium text-blue-800">
-                                        Select the services you want to register for
+                                    <p className="text-sm font-medium text-green-800">
+                                        Add New Services
                                     </p>
-                                    <p className="text-xs text-blue-600 mt-0.5">
-                                        Expand a category, then expand a sub-category to fill in the required documents. 
-                                        Save each sub-category individually. You need at least one service registration to submit.
+                                    <p className="text-xs text-green-600 mt-0.5">
+                                        Your existing services are shown below (read-only). You can register for additional services — 
+                                        expand a category, fill in the documents, and save. Then submit only your new services for review.
                                     </p>
                                 </div>
                             </div>
-                        )}
+                        ) : null}
 
                         {/* Service Categories */}
                         {serviceCategories?.map((category) => {
@@ -1076,6 +1109,9 @@ const VendorProfile = () => {
                                                 const isGovernment = requiredFields.length === 0;
                                                 const svcStatus = registration?.status;
                                                 const isRevisionService = svcStatus === 'revision_requested';
+                                                const isDraftService = svcStatus === 'draft';
+                                                // In "add new services" mode: existing non-draft services are locked
+                                                const isLockedExisting = canAddNewServices && isRegistered && !isDraftService;
 
                                                 return (
                                                     <div
@@ -1083,6 +1119,10 @@ const VendorProfile = () => {
                                                         className={`rounded-lg border transition-all ${
                                                             isRevisionService
                                                                 ? "border-amber-300 bg-amber-50"
+                                                                : isDraftService
+                                                                ? "border-blue-300 bg-blue-50"
+                                                                : isLockedExisting
+                                                                ? "border-gray-200 bg-gray-50 opacity-75"
                                                                 : isRegistered
                                                                 ? "border-green-300 bg-green-50"
                                                                 : "border-gray-200 bg-white"
@@ -1090,8 +1130,8 @@ const VendorProfile = () => {
                                                     >
                                                         {/* Sub-category header */}
                                                         <div
-                                                            className="flex items-center justify-between px-4 py-3 cursor-pointer"
-                                                            onClick={() => toggleSubCategory(subCat.id)}
+                                                            className={`flex items-center justify-between px-4 py-3 ${isLockedExisting ? 'cursor-default' : 'cursor-pointer'}`}
+                                                            onClick={() => !isLockedExisting && toggleSubCategory(subCat.id)}
                                                         >
                                                             <div className="flex items-center gap-3">
                                                                 {isRevisionService ? (
@@ -1121,12 +1161,28 @@ const VendorProfile = () => {
                                                                     <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-semibold">
                                                                         Revision Needed
                                                                     </span>
+                                                                ) : isLockedExisting ? (
+                                                                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                                                                        svcStatus === 'approved'
+                                                                            ? 'bg-green-100 text-green-700'
+                                                                            : svcStatus === 'submitted'
+                                                                            ? 'bg-blue-100 text-blue-700'
+                                                                            : svcStatus === 'rejected'
+                                                                            ? 'bg-red-100 text-red-700'
+                                                                            : 'bg-gray-100 text-gray-600'
+                                                                    }`}>
+                                                                        {svcStatus === 'approved' ? 'Approved' : svcStatus === 'submitted' ? 'Under Review' : svcStatus === 'rejected' ? 'Rejected' : svcStatus}
+                                                                    </span>
+                                                                ) : isDraftService ? (
+                                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">
+                                                                        New — Draft
+                                                                    </span>
                                                                 ) : isRegistered ? (
                                                                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">
                                                                         Saved
                                                                     </span>
                                                                 ) : null}
-                                                                {!isGovernment && (
+                                                                {!isGovernment && !isLockedExisting && (
                                                                     isSubExpanded ? (
                                                                         <ChevronDown className="w-4 h-4 text-gray-400" />
                                                                     ) : (
@@ -1144,8 +1200,8 @@ const VendorProfile = () => {
                                                             </div>
                                                         )}
 
-                                                        {/* Sub-category form */}
-                                                        {isSubExpanded && !isGovernment && (
+                                                        {/* Sub-category form — hidden for locked existing services */}
+                                                        {isSubExpanded && !isGovernment && !isLockedExisting && (
                                                             <div className="px-4 pb-4 border-t border-gray-100 pt-4">
                                                                 <ServiceRegistrationFields
                                                                     requiredFields={requiredFields}
@@ -1169,8 +1225,28 @@ const VendorProfile = () => {
                                                                 />
 
                                                                 {/* Sub-category actions */}
-                                                                {(!isReadOnly || isRevisionService) && (
-                                                                    <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
+                                                                {(!isReadOnly || isRevisionService || canAddNewServices) && (
+                                                                    <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
+                                                                        <div>
+                                                                            {/* Remove button: only for draft services or normal mode non-read-only */}
+                                                                            {isDraftService && canAddNewServices ? (
+                                                                                <button
+                                                                                    onClick={() => removeServiceRegistration(subCat)}
+                                                                                    className="flex items-center gap-1.5 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                                                                                >
+                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                    Remove
+                                                                                </button>
+                                                                            ) : !isReadOnly && isRegistered && !isRevisionService ? (
+                                                                                <button
+                                                                                    onClick={() => removeServiceRegistration(subCat)}
+                                                                                    className="flex items-center gap-1.5 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                                                                                >
+                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                    Remove
+                                                                                </button>
+                                                                            ) : <div />}
+                                                                        </div>
                                                                         <button
                                                                             onClick={() =>
                                                                                 saveServiceRegistration(subCat)
@@ -1256,7 +1332,7 @@ const VendorProfile = () => {
                         )}
 
                         {/* Submitted / Under Review notice */}
-                        {isReadOnly && (
+                        {isReadOnly && !canAddNewServices && (
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
                                 <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
                                 <div>
@@ -1265,6 +1341,61 @@ const VendorProfile = () => {
                                             ? "Your profile is under review. You cannot make changes while it's being reviewed."
                                             : "Your profile has been approved."}
                                     </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Add New Services prompt for submitted/approved vendors */}
+                        {canAddNewServices && (
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+                                <Info className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-green-800">
+                                        {vendorProfile?.submission_status === "approved"
+                                            ? "Your profile is approved! You can add new services anytime."
+                                            : "Your profile is under review. You can still add new services independently."}
+                                    </p>
+                                    <p className="text-xs text-green-600 mt-0.5">
+                                        New services will be submitted separately for admin review without affecting your existing services.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setCurrentStep(2)}
+                                    className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                                >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    Add New Service
+                                </button>
+                            </div>
+                        )}
+
+                        {/* New Services Pending Submission */}
+                        {canAddNewServices && hasDraftServices && (
+                            <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center">
+                                            <FileText className="w-4 h-4 text-blue-700" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-blue-900">{draftServiceCount} New Service{draftServiceCount > 1 ? 's' : ''} Ready to Submit</p>
+                                            <p className="text-xs text-blue-700 mt-0.5">
+                                                You have {draftServiceCount} new service{draftServiceCount > 1 ? 's' : ''} saved as draft. Submit them for admin review.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={submitNewServices}
+                                        disabled={submitting}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-[#0955AC] text-white rounded-lg hover:bg-[#074a94] transition-colors font-semibold text-sm disabled:opacity-50 shadow-lg shadow-blue-200"
+                                    >
+                                        {submitting ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Send className="w-4 h-4" />
+                                        )}
+                                        Submit New Services
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -1343,16 +1474,18 @@ const VendorProfile = () => {
                                     <FileText className="w-5 h-5 text-[#0955AC]" />
                                     Registered Services ({registeredServiceCount})
                                 </h2>
-                                {(!isReadOnly || needsRevision) && (
+                                {(!isReadOnly || needsRevision || canAddNewServices) && (
                                     <button
                                         onClick={() => setCurrentStep(2)}
                                         className={`text-sm font-medium px-3 py-1 rounded-lg transition-colors ${
                                             needsRevision
                                                 ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                                : canAddNewServices
+                                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
                                                 : 'text-[#0955AC] hover:underline'
                                         }`}
                                     >
-                                        Edit Services
+                                        {canAddNewServices ? 'Add New Service' : 'Edit Services'}
                                     </button>
                                 )}
                             </div>
@@ -1431,13 +1564,15 @@ const VendorProfile = () => {
 
                         {/* Step 3 Actions */}
                         <div className="flex items-center justify-between">
-                            <button
-                                onClick={() => setCurrentStep(2)}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                Back: Services
-                            </button>
+                            {(!isReadOnly || canAddNewServices || needsRevision) ? (
+                                <button
+                                    onClick={() => setCurrentStep(2)}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                    {canAddNewServices ? 'Add Services' : 'Back: Services'}
+                                </button>
+                            ) : <div />}
 
                             {(!isReadOnly || needsRevision) && (
                                 <button

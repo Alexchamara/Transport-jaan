@@ -1331,6 +1331,7 @@ Route::middleware(['auth'])->prefix('vendor/profile')->name('vendor.profile.')->
     Route::post('/service/{subCategory}', [\App\Http\Controllers\VendorProfileController::class, 'saveServiceRegistration'])->name('service.save');
     Route::delete('/service/{subCategory}', [\App\Http\Controllers\VendorProfileController::class, 'removeServiceRegistration'])->name('service.remove');
     Route::post('/submit', [\App\Http\Controllers\VendorProfileController::class, 'submit'])->name('submit');
+    Route::post('/submit-new-services', [\App\Http\Controllers\VendorProfileController::class, 'submitNewServices'])->name('submit-new-services');
     Route::delete('/logo', [\App\Http\Controllers\VendorProfileController::class, 'removeLogo'])->name('logo.remove');
 });
 
