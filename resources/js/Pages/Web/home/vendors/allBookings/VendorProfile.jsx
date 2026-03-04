@@ -300,7 +300,7 @@ const VendorProfile = () => {
         setServiceFieldValues((prev) => ({ ...prev, [subCatId]: values }));
     };
 
-    const saveServiceRegistration = (subCategory) => {
+    const saveServiceRegistration = (subCategory, closeModalOnFinish = false) => {
         const requiredFields = subCategory.required_fields || [];
         const values = serviceFieldValues[subCategory.id] || {};
         const fieldErrors = validateServiceFields(requiredFields, values);
@@ -345,13 +345,28 @@ const VendorProfile = () => {
                 setSaving(false);
                 setSuccessMessage(`${subCategory.name} registration saved!`);
                 setTimeout(() => setSuccessMessage(""), 3000);
+                if (closeModalOnFinish) {
+                    closeActionModal();
+                }
             },
             onError: (errors) => {
                 setSaving(false);
                 setErrorMessage("Failed to save service registration. Please check your inputs.");
                 setTimeout(() => setErrorMessage(""), 4000);
+                if (closeModalOnFinish) {
+                    closeActionModal();
+                }
             },
         });
+    };
+
+    const handleServiceRegistrationAction = (subCategory, isRevisionService, isRegistered) => {
+        if (isRevisionService || isRegistered) {
+            openActionModal("update_service", { subCategory, isRevisionService });
+            return;
+        }
+
+        saveServiceRegistration(subCategory);
     };
 
     const openActionModal = (action, payload = null) => {
@@ -382,6 +397,21 @@ const VendorProfile = () => {
                 confirmText: needsRevision ? "Resubmit" : "Submit",
                 confirmClassName: "bg-blue-600 hover:bg-blue-700",
                 processingText: needsRevision ? "Resubmitting..." : "Submitting...",
+            };
+        }
+
+        if (actionModalState.action === "update_service") {
+            const isRevisionService = Boolean(actionModalState.payload?.isRevisionService);
+            const serviceName = actionModalState.payload?.subCategory?.name || "this service";
+
+            return {
+                title: isRevisionService ? "Confirm Update & Fix" : "Confirm Service Update",
+                description: isRevisionService
+                    ? `Are you sure you want to update and fix ${serviceName}?`
+                    : `Are you sure you want to update ${serviceName}?`,
+                confirmText: isRevisionService ? "Update & Fix" : "Update",
+                confirmClassName: "bg-blue-600 hover:bg-blue-700",
+                processingText: isRevisionService ? "Updating..." : "Saving...",
             };
         }
 
@@ -425,6 +455,17 @@ const VendorProfile = () => {
                     closeActionModal();
                 },
             });
+            return;
+        }
+
+        if (actionModalState.action === "update_service") {
+            const subCategory = actionModalState.payload?.subCategory;
+            if (!subCategory) {
+                closeActionModal();
+                return;
+            }
+
+            saveServiceRegistration(subCategory, true);
         }
     };
 
@@ -1235,7 +1276,11 @@ const VendorProfile = () => {
                                                                     <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
                                                                         <button
                                                                             onClick={() =>
-                                                                                saveServiceRegistration(subCat)
+                                                                                handleServiceRegistrationAction(
+                                                                                    subCat,
+                                                                                    isRevisionService,
+                                                                                    isRegistered
+                                                                                )
                                                                             }
                                                                             disabled={saving}
                                                                             className={`flex items-center gap-1.5 px-5 py-2 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50 ${
@@ -1529,7 +1574,13 @@ const VendorProfile = () => {
                     <ActionModalTemplate
                         title={actionModalConfig.title}
                         description={actionModalConfig.description}
-                        processing={actionModalState.action === "submit_profile" ? submitting : false}
+                        processing={
+                            actionModalState.action === "submit_profile"
+                                ? submitting
+                                : actionModalState.action === "update_service"
+                                    ? saving
+                                    : false
+                        }
                         processingText={actionModalConfig.processingText}
                         confirmText={actionModalConfig.confirmText}
                         confirmClassName={actionModalConfig.confirmClassName}
