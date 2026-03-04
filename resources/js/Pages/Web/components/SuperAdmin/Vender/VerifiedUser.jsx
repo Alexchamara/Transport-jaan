@@ -1,10 +1,22 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Eye from "../../../assets/superAdmin/eye.png";
 import { Link, router } from "@inertiajs/react";
+import ActionModalTemplate from "../Common/ActionModalTemplate";
 
 const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isBlockClicked, isPendingClicked }) => {
     const [isLoading, setIsLoading] = useState(false);
+    const [showActionModal, setShowActionModal] = useState(null);
+    const [actionNotes, setActionNotes] = useState("");
+
+    const actionConfig = {
+        block: {
+            title: 'Block User',
+            description: 'This will block this user account.',
+            confirmText: 'Block User',
+            confirmClassName: 'bg-red-600 hover:bg-red-700',
+        },
+    };
 
     // Function to get styles for status
     const getStatusStyles = (status) => {
@@ -59,6 +71,14 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isBlockCli
             setIsLoading(false);
         }
     };
+
+    const handleActionConfirm = () => {
+        if (showActionModal === 'block') {
+            handleBlock();
+        }
+        setShowActionModal(null);
+        setActionNotes("");
+    };
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -111,7 +131,7 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isBlockCli
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
                         className="bg-red-600 text-white text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
-                        onClick={handleBlock}
+                        onClick={() => setShowActionModal('block')}
                         disabled={isLoading}
                     >
                         {isLoading ? 'Processing...' : 'Block user'}
@@ -125,6 +145,26 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isBlockCli
                         Close
                     </motion.button>
                 </div>
+
+                <AnimatePresence>
+                    {showActionModal && actionConfig[showActionModal] && (
+                        <ActionModalTemplate
+                            title={actionConfig[showActionModal].title}
+                            description={actionConfig[showActionModal].description}
+                            notes={actionNotes}
+                            setNotes={setActionNotes}
+                            placeholder=""
+                            showNotes={false}
+                            notesRequired={false}
+                            processing={isLoading}
+                            processingText="Processing..."
+                            confirmText={actionConfig[showActionModal].confirmText}
+                            confirmClassName={actionConfig[showActionModal].confirmClassName}
+                            onClose={() => { setShowActionModal(null); setActionNotes(""); }}
+                            onConfirm={handleActionConfirm}
+                        />
+                    )}
+                </AnimatePresence>
             </motion.div>
         </motion.div>
     );
