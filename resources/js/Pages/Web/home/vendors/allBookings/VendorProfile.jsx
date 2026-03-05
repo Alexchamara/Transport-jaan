@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { AnimatePresence } from "framer-motion";
+import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 import {
     Building2,
     Upload,
@@ -73,6 +74,7 @@ const VendorProfile = () => {
     const [localErrors, setLocalErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState(flash?.success || "");
     const [errorMessage, setErrorMessage] = useState("");
+    const [phoneValidationError, setPhoneValidationError] = useState("");
     const [actionModalState, setActionModalState] = useState({ isOpen: false, action: null, payload: null });
     const fileInputRef = useRef(null);
 
@@ -102,6 +104,51 @@ const VendorProfile = () => {
         vendorProfile?.logo ? `/storage/${vendorProfile.logo}` : null
     );
     const [serviceErrors, setServiceErrors] = useState({});
+
+    // ─── Phone Validation ────────────────────────────────────
+    const validatePhone = (phone) => {
+        // Check if phone is empty
+        if (!phone || phone.trim() === '') {
+            return { valid: false, message: 'Phone number is required' };
+        }
+
+        try {
+            // Add + prefix if not present for proper validation
+            const phoneWithPlus = phone.startsWith('+') ? phone : '+' + phone;
+            
+            // Validate using libphonenumber-js
+            if (!isValidPhoneNumber(phoneWithPlus)) {
+                return { 
+                    valid: false, 
+                    message: 'Please enter a valid phone number'
+                };
+            }
+
+            // Parse the phone number to get more details
+            const phoneNumber = parsePhoneNumber(phoneWithPlus);
+            
+            // Additional check to ensure it's a valid mobile/fixed line
+            if (!phoneNumber.isValid()) {
+                return { 
+                    valid: false, 
+                    message: 'Please enter a valid phone number'
+                };
+            }
+
+            return { valid: true, message: '' };
+        } catch (error) {
+            return { 
+                valid: false, 
+                message: 'Please enter a valid phone number with country code'
+            };
+        }
+    };
+
+    const handlePhoneChange = (phone) => {
+        handleProfileChange('contact_phone', phone);
+        const validation = validatePhone(phone);
+        setPhoneValidationError(validation.valid ? '' : validation.message);
+    };
 
     // ─── Constants (Defined early for use in effects) ────────
     const isReadOnly = vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved";
@@ -237,7 +284,15 @@ const VendorProfile = () => {
         }
         if (!profileData.address_line1.trim()) errs.address_line1 = "Address is required";
         if (!profileData.city.trim()) errs.city = "City is required";
-        if (!profileData.contact_phone.trim()) errs.contact_phone = "Phone number is required";
+        if (!profileData.contact_phone.trim()) {
+            errs.contact_phone = "Phone number is required";
+        } else {
+            // Validate phone number using the library
+            const phoneValidation = validatePhone(profileData.contact_phone);
+            if (!phoneValidation.valid) {
+                errs.contact_phone = phoneValidation.message;
+            }
+        }
         if (!profileData.contact_email.trim()) errs.contact_email = "Email is required";
         if (!profileData.contact_person.trim()) errs.contact_person = "Contact person is required";
         setLocalErrors(errs);
@@ -997,7 +1052,8 @@ const VendorProfile = () => {
                                         <PhoneInput
                                             country={'lk'}
                                             value={profileData.contact_phone}
-                                            onChange={(phone) => handleProfileChange('contact_phone', phone)}
+                                            onChange={handlePhoneChange}
+                                            countryCodeEditable={false}
                                             disabled={isReadOnly}
                                             containerClass="custom-phone-input"
                                             inputClass="form-control"
@@ -1009,6 +1065,11 @@ const VendorProfile = () => {
                                             placeholder="Enter your phone number"
                                         />
                                     </div>
+                                    {phoneValidationError && (
+                                        <p className="text-xs text-red-500 mt-1">
+                                            {phoneValidationError}
+                                        </p>
+                                    )}
                                     {localErrors.contact_phone && (
                                         <p className="text-xs text-red-500 mt-1">
                                             {localErrors.contact_phone}
