@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { usePage, Link, router } from "@inertiajs/react";
+import { usePage, router } from "@inertiajs/react";
 import { AnimatePresence } from "framer-motion";
 import ActionModalTemplate from "../SuperAdmin/Common/ActionModalTemplate";
 import proPic from "../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg";
-import { ChevronDown, User } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 const UserDropdown = ({ settingsRoute }) => {
   const { auth } = usePage().props;
@@ -121,16 +121,6 @@ const UserDropdown = ({ settingsRoute }) => {
           className="fixed w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[9999]"
           style={{ top: dropdownPos.top, right: dropdownPos.right }}
         >
-          <Link
-            href={settingsRoute}
-            className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-[500] text-[#000000CC] hover:bg-[#F3F4F6] transition-colors"
-          >
-            <User className="w-[20px] h-[20px]" />
-            <span>Profile</span>
-          </Link>
-
-          <div className="w-full h-[1px] bg-[#E5E7EB] my-1" />
-
           <button
             onClick={handleOpenLogoutModal}
             className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-[500] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors text-left"
