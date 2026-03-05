@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useForm, router } from "@inertiajs/react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 import CompanyLogo from "../../components/CompanyLogo";
 import bg from "../../assets/landingPages/bg.svg";
 import eye from "../../assets/auth/eye.svg";
@@ -10,6 +11,7 @@ import google from "../../assets/auth/google.svg";
 const Register = ({ role = "client" }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [phoneValidationError, setPhoneValidationError] = useState("");
 
     const { data, setData, post, processing, errors } = useForm({
         email: "",
@@ -22,8 +24,62 @@ const Register = ({ role = "client" }) => {
         remember: false,
     });
 
+    // Phone validation using libphonenumber-js library
+    const validatePhone = (phone) => {
+        // Check if phone is empty
+        if (!phone || phone.trim() === '') {
+            return { valid: false, message: 'Phone number is required' };
+        }
+
+        try {
+            // Add + prefix if not present for proper validation
+            const phoneWithPlus = phone.startsWith('+') ? phone : '+' + phone;
+            
+            // Validate using libphonenumber-js
+            if (!isValidPhoneNumber(phoneWithPlus)) {
+                return { 
+                    valid: false, 
+                    message: 'Please enter a valid phone number'
+                };
+            }
+
+            // Parse the phone number to get more details
+            const phoneNumber = parsePhoneNumber(phoneWithPlus);
+            
+            // Additional check to ensure it's a valid mobile/fixed line
+            if (!phoneNumber.isValid()) {
+                return { 
+                    valid: false, 
+                    message: 'Please enter a valid phone number'
+                };
+            }
+
+            return { valid: true, message: '' };
+        } catch (error) {
+            return { 
+                valid: false, 
+                message: 'Please enter a valid phone number with country code'
+            };
+        }
+    };
+
+    // Phone change handler with real-time validation
+    const handlePhoneChange = (phone) => {
+        setData('phone', phone);
+        const validation = validatePhone(phone);
+        setPhoneValidationError(validation.valid ? '' : validation.message);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        // Validate phone number before submission
+        const phoneValidation = validatePhone(data.phone);
+        if (!phoneValidation.valid) {
+            alert(phoneValidation.message);
+            return;
+        }
+        
         post(route("register.store"), {
             preserveScroll: true,
             onSuccess: () => {
@@ -176,7 +232,7 @@ const Register = ({ role = "client" }) => {
                                                 <PhoneInput
                                                     country={'lk'}
                                                     value={data.phone}
-                                                    onChange={(phone) => setData('phone', phone)}
+                                                    onChange={handlePhoneChange}
                                                     containerClass="custom-phone-input"
                                                     inputClass="form-control"
                                                     buttonClass="flag-dropdown"
@@ -187,6 +243,11 @@ const Register = ({ role = "client" }) => {
                                                     placeholder="Enter your phone number"
                                                 />
                                             </div>
+                                            {phoneValidationError && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {phoneValidationError}
+                                                </div>
+                                            )}
                                             {errors.phone && (
                                                 <div className="text-red-500 text-sm px-10 mt-1">
                                                     {errors.phone}
@@ -358,7 +419,7 @@ const Register = ({ role = "client" }) => {
                                                 <PhoneInput
                                                     country={'lk'}
                                                     value={data.phone}
-                                                    onChange={(phone) => setData('phone', phone)}
+                                                    onChange={handlePhoneChange}
                                                     containerClass="custom-phone-input"
                                                     inputClass="form-control"
                                                     buttonClass="flag-dropdown"
@@ -369,6 +430,11 @@ const Register = ({ role = "client" }) => {
                                                     placeholder="Enter your phone number"
                                                 />
                                             </div>
+                                            {phoneValidationError && (
+                                                <div className="text-red-500 text-sm px-10 mt-1">
+                                                    {phoneValidationError}
+                                                </div>
+                                            )}
                                             {errors.phone && (
                                                 <div className="text-red-500 text-sm px-10 mt-1">
                                                     {errors.phone}
