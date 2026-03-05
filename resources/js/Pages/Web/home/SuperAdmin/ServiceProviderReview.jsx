@@ -69,15 +69,15 @@ const ServiceProviderReview = ({ vendor, vendorProfile, serviceRegistrations, ac
                     </div>
                 </div>
 
-                {/* Vendor Header Card */}
+                {/* Service Provider Header Card */}
                 <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-6 mb-6">
                     <div className="flex flex-row justify-between items-start">
                         <div className="flex items-start gap-4">
-                            {/* Vendor Logo */}
+                            {/* Service Provider Logo */}
                             {vendorProfile?.logo ? (
                                 <img
                                     src={`/storage/${vendorProfile.logo}`}
-                                    alt="Vendor Logo"
+                                    alt="Service Provider Logo"
                                     className="w-16 h-16 rounded-lg object-cover border border-[#343B4F]"
                                 />
                             ) : (

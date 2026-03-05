@@ -67,6 +67,18 @@ class VendorProfileController extends Controller
             $data['logo'] = $logoPath;
         }
 
+        // Handle empty/null values: numeric fields get NULL, string fields get empty string
+        $numericFields = ['established_year', 'employee_count'];
+        foreach ($data as $key => $value) {
+            if ($value === null || $value === '') {
+                if (in_array($key, $numericFields)) {
+                    $data[$key] = null;
+                } else {
+                    $data[$key] = '';
+                }
+            }
+        }
+
         $vendorProfile = VendorProfile::updateOrCreate(
             ['user_id' => $user->id],
             array_merge($data, ['submission_status' => 'draft'])
@@ -275,11 +287,6 @@ class VendorProfileController extends Controller
                         break;
 
                     case 'checkbox':
-                        if (empty($fieldValues[$key])) {
-                            return redirect()->back()->withErrors([
-                                'services' => "Please confirm {$field['label']} for {$subCategory->name}"
-                            ]);
-                        }
                         break;
                 }
             }

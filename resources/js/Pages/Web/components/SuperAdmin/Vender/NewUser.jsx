@@ -1,10 +1,28 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Eye from "../../../assets/superAdmin/eye.png";
 import { Link, router } from "@inertiajs/react";
+import ActionModalTemplate from "../Common/ActionModalTemplate";
 
 const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyClicked, isRejectClicked }) => {
     const [isLoading, setIsLoading] = useState(false);
+    const [showActionModal, setShowActionModal] = useState(null);
+    const [actionNotes, setActionNotes] = useState("");
+
+    const actionConfig = {
+        verify: {
+            title: 'Verify User',
+            description: 'This will verify this user account.',
+            confirmText: 'Verify',
+            confirmClassName: 'bg-green-600 hover:bg-green-700',
+        },
+        reject: {
+            title: 'Reject User',
+            description: 'This will reject this user account.',
+            confirmText: 'Reject',
+            confirmClassName: 'bg-red-600 hover:bg-red-700',
+        },
+    };
 
     // Function to get styles for status
     const getStatusStyles = (status) => {
@@ -75,6 +93,22 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
         }
     };
 
+    const handleActionConfirm = () => {
+        if (showActionModal === 'verify') {
+            handleVerify();
+        }
+        if (showActionModal === 'reject') {
+            handleReject();
+        }
+        setShowActionModal(null);
+        setActionNotes("");
+    };
+
+    const openActionModal = (actionKey) => {
+        setShowActionModal(actionKey);
+        setActionNotes("");
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -128,7 +162,7 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale:1 }}
                         className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md disabled:opacity-50"
-                        onClick={handleVerify}
+                        onClick={() => openActionModal('verify')}
                         disabled={isLoading}
                     >
                         {isLoading ? 'Processing...' : 'Verify'}
@@ -137,7 +171,7 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
                         className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
-                        onClick={handleReject}
+                        onClick={() => openActionModal('reject')}
                         disabled={isLoading}
                     >
                         {isLoading ? 'Processing...' : 'Reject'}
@@ -151,6 +185,26 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         Close
                     </motion.button>
                 </div>
+
+                <AnimatePresence>
+                    {showActionModal && actionConfig[showActionModal] && (
+                        <ActionModalTemplate
+                            title={actionConfig[showActionModal].title}
+                            description={actionConfig[showActionModal].description}
+                            notes={actionNotes}
+                            setNotes={setActionNotes}
+                            placeholder=""
+                            showNotes={false}
+                            notesRequired={false}
+                            processing={isLoading}
+                            processingText="Processing..."
+                            confirmText={actionConfig[showActionModal].confirmText}
+                            confirmClassName={actionConfig[showActionModal].confirmClassName}
+                            onClose={() => { setShowActionModal(null); setActionNotes(""); }}
+                            onConfirm={handleActionConfirm}
+                        />
+                    )}
+                </AnimatePresence>
             </motion.div>
         </motion.div>
     );

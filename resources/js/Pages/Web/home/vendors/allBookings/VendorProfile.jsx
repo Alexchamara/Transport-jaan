@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { router, usePage } from "@inertiajs/react";
+import { AnimatePresence } from "framer-motion";
+import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 import {
     Building2,
     Upload,
@@ -28,6 +30,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import ServiceRegistrationFields from "../../../../../Components/vendors/ServiceRegistrationFields";
 import VendorLayout from "../VendorLayout";
+import ActionModalTemplate from "../../../components/SuperAdmin/Common/ActionModalTemplate";
 
 // Map category slugs to icons
 const categoryIcons = {
@@ -77,6 +80,8 @@ const VendorProfile = () => {
     const [localErrors, setLocalErrors] = useState({});
     const [successMessage, setSuccessMessage] = useState(flash?.success || "");
     const [errorMessage, setErrorMessage] = useState("");
+    const [phoneValidationError, setPhoneValidationError] = useState("");
+    const [actionModalState, setActionModalState] = useState({ isOpen: false, action: null, payload: null });
     const fileInputRef = useRef(null);
 
 
@@ -105,6 +110,51 @@ const VendorProfile = () => {
         vendorProfile?.logo ? `/storage/${vendorProfile.logo}` : null
     );
     const [serviceErrors, setServiceErrors] = useState({});
+
+    // ─── Phone Validation ────────────────────────────────────
+    const validatePhone = (phone) => {
+        // Check if phone is empty
+        if (!phone || phone.trim() === '') {
+            return { valid: false, message: 'Phone number is required' };
+        }
+
+        try {
+            // Add + prefix if not present for proper validation
+            const phoneWithPlus = phone.startsWith('+') ? phone : '+' + phone;
+            
+            // Validate using libphonenumber-js
+            if (!isValidPhoneNumber(phoneWithPlus)) {
+                return { 
+                    valid: false, 
+                    message: 'Please enter a valid phone number'
+                };
+            }
+
+            // Parse the phone number to get more details
+            const phoneNumber = parsePhoneNumber(phoneWithPlus);
+            
+            // Additional check to ensure it's a valid mobile/fixed line
+            if (!phoneNumber.isValid()) {
+                return { 
+                    valid: false, 
+                    message: 'Please enter a valid phone number'
+                };
+            }
+
+            return { valid: true, message: '' };
+        } catch (error) {
+            return { 
+                valid: false, 
+                message: 'Please enter a valid phone number with country code'
+            };
+        }
+    };
+
+    const handlePhoneChange = (phone) => {
+        handleProfileChange('contact_phone', phone);
+        const validation = validatePhone(phone);
+        setPhoneValidationError(validation.valid ? '' : validation.message);
+    };
 
     // ─── Constants (Defined early for use in effects) ────────
     const isReadOnly = vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved";
@@ -182,9 +232,9 @@ const VendorProfile = () => {
         const formData = new FormData();
 
         Object.entries(profileData).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                formData.append(key, value);
-            }
+            // Ensure empty strings are sent as empty strings, not null
+            const finalValue = value === null || value === undefined ? '' : value;
+            formData.append(key, finalValue);
         });
 
         if (logoFile) {
@@ -240,7 +290,15 @@ const VendorProfile = () => {
         }
         if (!profileData.address_line1.trim()) errs.address_line1 = "Address is required";
         if (!profileData.city.trim()) errs.city = "City is required";
-        if (!profileData.contact_phone.trim()) errs.contact_phone = "Phone number is required";
+        if (!profileData.contact_phone.trim()) {
+            errs.contact_phone = "Phone number is required";
+        } else {
+            // Validate phone number using the library
+            const phoneValidation = validatePhone(profileData.contact_phone);
+            if (!phoneValidation.valid) {
+                errs.contact_phone = phoneValidation.message;
+            }
+        }
         if (!profileData.contact_email.trim()) errs.contact_email = "Email is required";
         if (!profileData.contact_person.trim()) errs.contact_person = "Contact person is required";
         setLocalErrors(errs);
@@ -251,10 +309,13 @@ const VendorProfile = () => {
         const errs = {};
         requiredFields.forEach((field) => {
             const val = values[field.key];
+            // Checkboxes are optional - skip validation for checkbox type
+            if (field.type === "checkbox") {
+                return; // Skip checkbox validation
+            }
+            // Only validate file fields if they're required or not optional
             if (field.required || field.type !== "file_optional") {
-                if (field.type === "checkbox") {
-                    if (!val) errs[field.key] = "Please confirm this requirement";
-                } else if (field.type === "file" || field.type === "file_with_dates") {
+                if (field.type === "file" || field.type === "file_with_dates") {
                     if (!val || (!val.file && !val.existing_file)) {
                         errs[field.key] = "Please upload a document";
                     } else if (field.type === "file_with_dates") {
@@ -274,9 +335,9 @@ const VendorProfile = () => {
         const formData = new FormData();
 
         Object.entries(profileData).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                formData.append(key, value);
-            }
+            // Ensure empty strings are sent as empty strings, not null
+            const finalValue = value === null || value === undefined ? '' : value;
+            formData.append(key, finalValue);
         });
 
         if (logoFile) {
@@ -303,7 +364,7 @@ const VendorProfile = () => {
         setServiceFieldValues((prev) => ({ ...prev, [subCatId]: values }));
     };
 
-    const saveServiceRegistration = (subCategory) => {
+    const saveServiceRegistration = (subCategory, closeModalOnFinish = false) => {
         const requiredFields = subCategory.required_fields || [];
         const values = serviceFieldValues[subCategory.id] || {};
         const fieldErrors = validateServiceFields(requiredFields, values);
@@ -348,25 +409,132 @@ const VendorProfile = () => {
                 setSaving(false);
                 setSuccessMessage(`${subCategory.name} registration saved!`);
                 setTimeout(() => setSuccessMessage(""), 3000);
+                if (closeModalOnFinish) {
+                    closeActionModal();
+                }
             },
             onError: (errors) => {
                 setSaving(false);
                 setErrorMessage("Failed to save service registration. Please check your inputs.");
                 setTimeout(() => setErrorMessage(""), 4000);
+                if (closeModalOnFinish) {
+                    closeActionModal();
+                }
             },
         });
     };
 
-    const removeServiceRegistration = (subCategory) => {
-        if (!confirm(`Remove registration for ${subCategory.name}?`)) return;
+    const handleServiceRegistrationAction = (subCategory, isRevisionService, isRegistered) => {
+        if (isRevisionService || isRegistered) {
+            openActionModal("update_service", { subCategory, isRevisionService });
+            return;
+        }
 
-        router.delete(route("vendor.profile.service.remove", subCategory.id), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSuccessMessage(`${subCategory.name} registration removed.`);
-                setTimeout(() => setSuccessMessage(""), 3000);
-            },
-        });
+        saveServiceRegistration(subCategory);
+    };
+
+    const openActionModal = (action, payload = null) => {
+        setActionModalState({ isOpen: true, action, payload });
+    };
+
+    const closeActionModal = () => {
+        setActionModalState({ isOpen: false, action: null, payload: null });
+    };
+
+    const getActionModalConfig = () => {
+        if (actionModalState.action === "remove_service") {
+            return {
+                title: "Remove Service Registration",
+                description: `Are you sure you want to remove registration for ${actionModalState.payload?.name || "this service"}?`,
+                confirmText: "Remove",
+                confirmClassName: "bg-red-600 hover:bg-red-700",
+                processingText: "Removing...",
+            };
+        }
+
+        if (actionModalState.action === "submit_profile") {
+            return {
+                title: needsRevision ? "Confirm Resubmission" : "Confirm Submission",
+                description: needsRevision
+                    ? "Are you sure you want to resubmit your profile? The admin will review your updated information."
+                    : "Are you sure you want to submit your profile for review? You won't be able to make changes after submission.",
+                confirmText: needsRevision ? "Resubmit" : "Submit",
+                confirmClassName: "bg-blue-600 hover:bg-blue-700",
+                processingText: needsRevision ? "Resubmitting..." : "Submitting...",
+            };
+        }
+
+        if (actionModalState.action === "update_service") {
+            const isRevisionService = Boolean(actionModalState.payload?.isRevisionService);
+            const serviceName = actionModalState.payload?.subCategory?.name || "this service";
+
+            return {
+                title: isRevisionService ? "Confirm Update & Fix" : "Confirm Service Update",
+                description: isRevisionService
+                    ? `Are you sure you want to update and fix ${serviceName}?`
+                    : `Are you sure you want to update ${serviceName}?`,
+                confirmText: isRevisionService ? "Update & Fix" : "Update",
+                confirmClassName: "bg-blue-600 hover:bg-blue-700",
+                processingText: isRevisionService ? "Updating..." : "Saving...",
+            };
+        }
+
+        return null;
+    };
+
+    const handleActionConfirm = () => {
+        if (actionModalState.action === "remove_service") {
+            const subCategory = actionModalState.payload;
+            if (!subCategory) {
+                closeActionModal();
+                return;
+            }
+
+            router.delete(route("vendor.profile.service.remove", subCategory.id), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSuccessMessage(`${subCategory.name} registration removed.`);
+                    setTimeout(() => setSuccessMessage(""), 3000);
+                },
+                onFinish: () => {
+                    closeActionModal();
+                },
+            });
+            return;
+        }
+
+        if (actionModalState.action === "submit_profile") {
+            setSubmitting(true);
+            router.post(route("vendor.profile.submit"), {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSubmitting(false);
+                    closeActionModal();
+                },
+                onError: (errors) => {
+                    setSubmitting(false);
+                    const firstError = Object.values(errors)[0];
+                    setErrorMessage(typeof firstError === "string" ? firstError : "Submission failed.");
+                    setTimeout(() => setErrorMessage(""), 5000);
+                    closeActionModal();
+                },
+            });
+            return;
+        }
+
+        if (actionModalState.action === "update_service") {
+            const subCategory = actionModalState.payload?.subCategory;
+            if (!subCategory) {
+                closeActionModal();
+                return;
+            }
+
+            saveServiceRegistration(subCategory, true);
+        }
+    };
+
+    const removeServiceRegistration = (subCategory) => {
+        openActionModal("remove_service", subCategory);
     };
 
     // ─── Step 3: Submit for Review ────────────────────────────
@@ -382,26 +550,7 @@ const VendorProfile = () => {
             return;
         }
 
-        const confirmMsg = needsRevision
-            ? "Are you sure you want to resubmit your profile? The admin will review your updated information."
-            : "Are you sure you want to submit your profile for review? You won't be able to make changes after submission.";
-        if (!confirm(confirmMsg)) {
-            return;
-        }
-
-        setSubmitting(true);
-        router.post(route("vendor.profile.submit"), {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSubmitting(false);
-            },
-            onError: (errors) => {
-                setSubmitting(false);
-                const firstError = Object.values(errors)[0];
-                setErrorMessage(typeof firstError === "string" ? firstError : "Submission failed.");
-                setTimeout(() => setErrorMessage(""), 5000);
-            },
-        });
+        openActionModal("submit_profile");
     };
 
     // ─── Submit New Services (for submitted/approved vendors) ──
@@ -437,6 +586,8 @@ const VendorProfile = () => {
         { num: 2, label: "Service Registration", icon: FileText },
         { num: 3, label: "Review & Submit", icon: Send },
     ];
+
+    const actionModalConfig = getActionModalConfig();
 
     // ─── RENDER ───────────────────────────────────────────────
     return (
@@ -894,7 +1045,7 @@ const VendorProfile = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country
+                                        Country<span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -930,14 +1081,15 @@ const VendorProfile = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="text-[14px] text-[#FFFFFFB2] font-[500] px-10">
-                                        Phone Number
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Phone Number <span className="text-red-500">*</span>
                                     </label>
-                                    <div className="w-full md:w-[397px] h-[56px] rounded-[100px] border-[1px] border-[#FFFFFF8F] flex justify-center items-center px-4 py-2">
+                                    <div className="w-full">
                                         <PhoneInput
                                             country={'lk'}
                                             value={profileData.contact_phone}
-                                            onChange={(phone) => handleProfileChange('contact_phone', phone)}
+                                            onChange={handlePhoneChange}
+                                            countryCodeEditable={false}
                                             disabled={isReadOnly}
                                             containerClass="custom-phone-input"
                                             inputClass="form-control"
@@ -949,10 +1101,15 @@ const VendorProfile = () => {
                                             placeholder="Enter your phone number"
                                         />
                                     </div>
+                                    {phoneValidationError && (
+                                        <p className="text-xs text-red-500 mt-1">
+                                            {phoneValidationError}
+                                        </p>
+                                    )}
                                     {localErrors.contact_phone && (
-                                        <div className="text-red-500 text-sm px-10 mt-1">
+                                        <p className="text-xs text-red-500 mt-1">
                                             {localErrors.contact_phone}
-                                        </div>
+                                        </p>
                                     )}
                                 </div>
                                 <div>
@@ -1259,7 +1416,11 @@ const VendorProfile = () => {
                                                                         </div>
                                                                         <button
                                                                             onClick={() =>
-                                                                                saveServiceRegistration(subCat)
+                                                                                handleServiceRegistrationAction(
+                                                                                    subCat,
+                                                                                    isRevisionService,
+                                                                                    isRegistered
+                                                                                )
                                                                             }
                                                                             disabled={saving}
                                                                             className={`flex items-center gap-1.5 px-5 py-2 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50 ${
@@ -1606,6 +1767,28 @@ const VendorProfile = () => {
                     </div>
                 )}
             </div>
+
+            <AnimatePresence>
+                {actionModalState.isOpen && actionModalConfig && (
+                    <ActionModalTemplate
+                        title={actionModalConfig.title}
+                        description={actionModalConfig.description}
+                        processing={
+                            actionModalState.action === "submit_profile"
+                                ? submitting
+                                : actionModalState.action === "update_service"
+                                    ? saving
+                                    : false
+                        }
+                        processingText={actionModalConfig.processingText}
+                        confirmText={actionModalConfig.confirmText}
+                        confirmClassName={actionModalConfig.confirmClassName}
+                        onClose={closeActionModal}
+                        onConfirm={handleActionConfirm}
+                        theme="light"
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Animations */}
             <style>{`

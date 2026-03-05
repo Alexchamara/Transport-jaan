@@ -142,7 +142,7 @@ const ServiceProviders = ({ users, counts, filters, pagination, serviceCategorie
 
                 {/* Stats Cards */}
                 <div className="flex flex-row gap-[22px] mb-6 flex-wrap">
-                    <StatsCard label="Total Vendors" count={counts?.total || 0} color="#CB3CFF" />
+                    <StatsCard label="Total Service Providers" count={counts?.total || 0} color="#CB3CFF" />
                     <StatsCard label="Pending Review" count={counts?.pending_review || 0} color="#FDB52A" />
                     <StatsCard label="Verified" count={counts?.verified || 0} color="#05C168" />
                     <StatsCard label="Rejected" count={counts?.rejected || 0} color="#FF4757" />
@@ -209,7 +209,7 @@ const ServiceProviders = ({ users, counts, filters, pagination, serviceCategorie
                     {/* Table Header */}
                     <div className="flex flex-row w-full h-[50px] bg-[#0F1A3A] border-b border-[#343B4F] items-center px-[24px]">
                         <div className="flex-[1.2]">
-                            <h1 className="text-white text-[13px] font-[600]">Vendor</h1>
+                            <h1 className="text-white text-[13px] font-[600]">Service Provider</h1>
                         </div>
                         <div className="flex-[1]">
                             <h1 className="text-white text-[13px] font-[600]">Type</h1>
@@ -245,7 +245,7 @@ const ServiceProviders = ({ users, counts, filters, pagination, serviceCategorie
                                     key={user.id}
                                     className="flex flex-row w-full border-b border-[#343B4F] items-center px-[24px] py-[14px] hover:bg-[#0F1A3A]/50 transition-colors"
                                 >
-                                    {/* Vendor Info */}
+                                    {/* Service Provider Info */}
                                     <div className="flex-[1.2]">
                                         <h1 className="text-[#E0E6F7] text-[13px] font-[500]">{user.name}</h1>
                                         <p className="text-[#AEB9E1] text-[11px]">{user.email}</p>
@@ -254,7 +254,7 @@ const ServiceProviders = ({ users, counts, filters, pagination, serviceCategorie
                                         )}
                                     </div>
 
-                                    {/* Vendor Type */}
+                                    {/* Service Provider Type */}
                                     <div className="flex-[1]">
                                         <span className="text-[#AEB9E1] text-[12px] capitalize">{user.vendor_type}</span>
                                     </div>

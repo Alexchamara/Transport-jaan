@@ -1,13 +1,54 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { router } from "@inertiajs/react";
 import Eye from "../../../assets/superAdmin/eye.png";
+import ActionModalTemplate from "../Common/ActionModalTemplate";
 
 // User Details Modal with Status Management
 
 // User Details Modal
 const UserDetailsModal = ({ user, onClose }) => {
     const [isUpdating, setIsUpdating] = useState(false);
+    const [showActionModal, setShowActionModal] = useState(null);
+    const [actionNotes, setActionNotes] = useState("");
+
+    const actionConfig = {
+        block: {
+            targetStatus: 'blocked',
+            title: 'Block User',
+            description: 'This will block the user account from platform access.',
+            confirmText: 'Block User',
+            confirmClassName: 'bg-red-600 hover:bg-red-700',
+        },
+        unblock: {
+            targetStatus: 'verified',
+            title: 'Unblock User',
+            description: 'This will restore access and mark the user as verified.',
+            confirmText: 'Unblock User',
+            confirmClassName: 'bg-green-600 hover:bg-green-700',
+        },
+        verify: {
+            targetStatus: 'verified',
+            title: 'Verify User',
+            description: 'This will verify the user account.',
+            confirmText: 'Verify User',
+            confirmClassName: 'bg-green-600 hover:bg-green-700',
+        },
+        reject: {
+            targetStatus: 'rejected',
+            title: 'Reject User',
+            description: 'This will reject the user account.',
+            confirmText: 'Reject User',
+            confirmClassName: 'bg-red-600 hover:bg-red-700',
+        },
+        reinstate: {
+            targetStatus: 'verified',
+            title: 'Reinstate User',
+            description: 'This will reinstate the user and mark as verified.',
+            confirmText: 'Reinstate User',
+            confirmClassName: 'bg-[#FDB52A] hover:bg-[#E0A01F]',
+        },
+    };
 
     const handleStatusChange = async (newStatus) => {
         setIsUpdating(true);
@@ -31,6 +72,19 @@ const UserDetailsModal = ({ user, onClose }) => {
         );
     };
 
+    const openStatusActionModal = (actionKey) => {
+        setShowActionModal(actionKey);
+        setActionNotes("");
+    };
+
+    const handleStatusActionConfirm = () => {
+        const config = actionConfig[showActionModal];
+        if (!config) return;
+        handleStatusChange(config.targetStatus);
+        setShowActionModal(null);
+        setActionNotes("");
+    };
+
     const getStatusActionButtons = () => {
         const buttons = [];
 
@@ -41,7 +95,7 @@ const UserDetailsModal = ({ user, onClose }) => {
                         key="block"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('blocked')}
+                        onClick={() => openStatusActionModal('block')}
                         disabled={isUpdating}
                         className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
                     >
@@ -56,7 +110,7 @@ const UserDetailsModal = ({ user, onClose }) => {
                         key="unblock"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('verified')}
+                        onClick={() => openStatusActionModal('unblock')}
                         disabled={isUpdating}
                         className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md disabled:opacity-50"
                     >
@@ -71,7 +125,7 @@ const UserDetailsModal = ({ user, onClose }) => {
                         key="verify"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('verified')}
+                        onClick={() => openStatusActionModal('verify')}
                         disabled={isUpdating}
                         className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md disabled:opacity-50"
                     >
@@ -81,7 +135,7 @@ const UserDetailsModal = ({ user, onClose }) => {
                         key="reject"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('rejected')}
+                        onClick={() => openStatusActionModal('reject')}
                         disabled={isUpdating}
                         className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
                     >
@@ -96,7 +150,7 @@ const UserDetailsModal = ({ user, onClose }) => {
                         key="verify"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
-                        onClick={() => handleStatusChange('verified')}
+                        onClick={() => openStatusActionModal('reinstate')}
                         disabled={isUpdating}
                         className="bg-[#FDB52A] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#E0A01F] transition-colors duration-50 shadow-md disabled:opacity-50"
                     >
@@ -189,6 +243,26 @@ const UserDetailsModal = ({ user, onClose }) => {
                     </div>
                 </div>
             </motion.div>
+
+            <AnimatePresence>
+                {showActionModal && actionConfig[showActionModal] && (
+                    <ActionModalTemplate
+                        title={actionConfig[showActionModal].title}
+                        description={actionConfig[showActionModal].description}
+                        notes={actionNotes}
+                        setNotes={setActionNotes}
+                        placeholder=""
+                        showNotes={false}
+                        notesRequired={false}
+                        processing={isUpdating}
+                        processingText="Updating..."
+                        confirmText={actionConfig[showActionModal].confirmText}
+                        confirmClassName={actionConfig[showActionModal].confirmClassName}
+                        onClose={() => { setShowActionModal(null); setActionNotes(""); }}
+                        onConfirm={handleStatusActionConfirm}
+                    />
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import dashLogo from "../../../assets/vendors/dashboard/dashLogo.svg";
 import bookLogo from "../../../assets/vendors/dashboard/bookLogo.svg";
 import uniLogo from "../../../assets/vendors/dashboard/uniLogo.svg";
@@ -18,7 +18,20 @@ import { Link } from "@inertiajs/react";
 const SideMenu = () => {
     const [showFinancialDropdown, setShowFinancialDropdown] = useState(false);
     const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
+    const [hideForLogoutModal, setHideForLogoutModal] = useState(false);
     const currentPath = window.location.pathname;
+
+    useEffect(() => {
+        const handleLogoutModalState = (event) => {
+            setHideForLogoutModal(Boolean(event.detail?.isOpen));
+        };
+
+        window.addEventListener("vendor:logout-modal-state", handleLogoutModalState);
+
+        return () => {
+            window.removeEventListener("vendor:logout-modal-state", handleLogoutModalState);
+        };
+    }, []);
 
     return (
         <>
@@ -34,7 +47,7 @@ const SideMenu = () => {
         .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
       `}</style>
 
-            <div className="poppins min-w-[250px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden">
+            <div className={`poppins min-w-[250px] h-screen bg-[#FFFFFF] flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] sticky top-0 left-0 shadow-lg overflow-hidden transition-all duration-150 ${hideForLogoutModal ? "blur-[2px] brightness-90 pointer-events-none" : "blur-0 brightness-100"}`}>
                 {/* Logo - Fixed at top with Back Button */}
                 <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
                     <button
