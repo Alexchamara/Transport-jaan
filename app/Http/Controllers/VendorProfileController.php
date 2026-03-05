@@ -276,11 +276,6 @@ class VendorProfileController extends Controller
                         break;
 
                     case 'checkbox':
-                        if (empty($fieldValues[$key])) {
-                            return redirect()->back()->withErrors([
-                                'services' => "Please confirm {$field['label']} for {$subCategory->name}"
-                            ]);
-                        }
                         break;
                 }
             }

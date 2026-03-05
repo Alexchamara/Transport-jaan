@@ -303,10 +303,13 @@ const VendorProfile = () => {
         const errs = {};
         requiredFields.forEach((field) => {
             const val = values[field.key];
+            // Checkboxes are optional - skip validation for checkbox type
+            if (field.type === "checkbox") {
+                return; // Skip checkbox validation
+            }
+            // Only validate file fields if they're required or not optional
             if (field.required || field.type !== "file_optional") {
-                if (field.type === "checkbox") {
-                    if (!val) errs[field.key] = "Please confirm this requirement";
-                } else if (field.type === "file" || field.type === "file_with_dates") {
+                if (field.type === "file" || field.type === "file_with_dates") {
                     if (!val || (!val.file && !val.existing_file)) {
                         errs[field.key] = "Please upload a document";
                     } else if (field.type === "file_with_dates") {
