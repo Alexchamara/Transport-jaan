@@ -837,9 +837,9 @@ const Hero = () => {
     }
 
     return (
-        <div className="min-h-screen w-full bg-[#E5E5E5] p-10 md:p-20 poppins">
+        <div className="min-h-screen w-full bg-[#E5E5E5] md:px-20 md:pt-2 md:pb-20 poppins">
             <div className="mx-auto max-w-[1300px]">
-                <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="mb-3 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-col gap-1">
                         <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-[36px]">
                             Warehouse Management

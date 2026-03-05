@@ -538,9 +538,9 @@ const Hero = ({
 
     return (
         <div className="min-h-screen w-full bg-[#E5E5E5]">
-            <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-8 sm:py-10 md:py-12 poppins">
+            <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 md:pt-2 md:pb-20 poppins">
                 {/* Header */}
-                <div className="mb-6 flex flex-col gap-4 md:mb-10">
+                <div className="mb-3 flex flex-col gap-4 md:mb-3">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="flex flex-col gap-4">
                             <div>
@@ -619,7 +619,7 @@ const Hero = ({
                 </div>
 
                 {/* KPI Cards */}
-                <div className="mb-4 md:mb-4 -mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                <div className="mb-4 md:mb-4 mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <div className="bg-white rounded-2xl shadow-sm">
                         <div className="px-5 pt-5 pb-2">
                             <p className="flex items-center gap-3 text-[#7B7B7A] text-[14px] font-[700]">

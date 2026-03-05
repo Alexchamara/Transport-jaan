@@ -9,7 +9,7 @@ const ClientAllBookings = ({ allBookings = [], statistics = {}, monthlyData = []
             <ClientHeader />
 
             {/* Back Button */}
-            <div className="container mx-auto px-4 py-6">
+            <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8 py-1 mb-3">
                 <Link
                     href="/"
                     className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors"
