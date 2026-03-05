@@ -156,6 +156,53 @@ const VendorProfile = () => {
         setPhoneValidationError(validation.valid ? '' : validation.message);
     };
 
+    // ─── Sri Lankan NIC Validation ──────────────────────────
+    const validateNIC = (nic) => {
+        // Check if NIC is empty
+        if (!nic || nic.trim() === '') {
+            return { valid: false, message: 'NIC number is required' };
+        }
+
+        const nicClean = nic.trim().toUpperCase();
+
+        // Old format: 9 digits + 1 letter (V, X, Y, W)
+        const oldFormatRegex = /^\d{9}[VXYW]$/;
+        // New format: 12 digits
+        const newFormatRegex = /^\d{12}$/;
+
+        if (oldFormatRegex.test(nicClean)) {
+            return { valid: true, message: '' };
+        }
+
+        if (newFormatRegex.test(nicClean)) {
+            return { valid: true, message: '' };
+        }
+
+        return { 
+            valid: false, 
+            message: 'Invalid NIC format. Please enter either 9 digits + letter (V,X,Y,W) or 12 digits'
+        };
+    };
+
+    const handleNICChange = (value) => {
+        // Remove any invalid characters - allow only digits and letters V, X, Y, W
+        const cleanedValue = value.replace(/[^0-9VXYW]/gi, '').toUpperCase();
+        
+        // Enforce max length: 12 for new format
+        const limitedValue = cleanedValue.slice(0, 12);
+        
+        handleProfileChange('business_registration_no', limitedValue);
+        
+        // Clear error if valid
+        if (limitedValue && validateNIC(limitedValue).valid) {
+            setLocalErrors((prev) => {
+                const next = { ...prev };
+                delete next['business_registration_no'];
+                return next;
+            });
+        }
+    };
+
     // ─── Constants (Defined early for use in effects) ────────
     const isReadOnly = vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved";
     const registeredServiceCount = vendorRegistrations ? Object.keys(vendorRegistrations).length : 0;
@@ -285,8 +332,11 @@ const VendorProfile = () => {
         if (isBusiness && !profileData.business_registration_no.trim()) {
             errs.business_registration_no = "Registration number is required";
         }
-        if (!isBusiness && !profileData.business_registration_no.trim()) {
-            errs.business_registration_no = "NIC number is required";
+        if (!isBusiness) {
+            const nicValidation = validateNIC(profileData.business_registration_no);
+            if (!nicValidation.valid) {
+                errs.business_registration_no = nicValidation.message;
+            }
         }
         if (!profileData.address_line1.trim()) errs.address_line1 = "Address is required";
         if (!profileData.city.trim()) errs.city = "City is required";
@@ -823,12 +873,13 @@ const VendorProfile = () => {
                                     <input
                                         type="text"
                                         value={profileData.business_registration_no}
-                                        onChange={(e) => handleProfileChange("business_registration_no", e.target.value)}
+                                        onChange={(e) => handleNICChange(e.target.value)}
                                         disabled={isReadOnly}
+                                        maxLength="12"
                                         className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
                                             localErrors.business_registration_no ? "border-red-400" : "border-gray-300"
                                         }`}
-                                        placeholder="e.g. 200012345678"
+                                        placeholder="Enter your NIC number "
                                     />
                                     {localErrors.business_registration_no && (
                                         <p className="text-xs text-red-500 mt-1">{localErrors.business_registration_no}</p>
