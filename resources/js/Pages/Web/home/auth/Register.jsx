@@ -233,6 +233,7 @@ const Register = ({ role = "client" }) => {
                                                     country={'lk'}
                                                     value={data.phone}
                                                     onChange={handlePhoneChange}
+                                                    countryCodeEditable={false}
                                                     containerClass="custom-phone-input"
                                                     inputClass="form-control"
                                                     buttonClass="flag-dropdown"
@@ -420,6 +421,7 @@ const Register = ({ role = "client" }) => {
                                                     country={'lk'}
                                                     value={data.phone}
                                                     onChange={handlePhoneChange}
+                                                    countryCodeEditable={false}
                                                     containerClass="custom-phone-input"
                                                     inputClass="form-control"
                                                     buttonClass="flag-dropdown"
