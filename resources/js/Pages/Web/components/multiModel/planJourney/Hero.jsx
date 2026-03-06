@@ -13,6 +13,7 @@ import JourneyPlanner from "./JourneyPlanner";
 import MapComponent from "./MapComponent";
 import AvailableVehicles from "./AvailableVehicles";
 import FilterSidebar from "../../vehicleList/FilterSidebar";
+import BackButton from "../../BackBtn";
 import VehicleListContent from "../../vehicleList/VehicleListContent";
 import SearchForm from "../../vehicleList/SearchForm";
 import SeaFilterSidebar from "../../seaVehicleList/FilterSidebar";
@@ -578,6 +579,11 @@ const Hero = () => {
     };
     return (
         <>
+            {/* Back Button */}
+            <div className="px-3 sm:px-5 pt-4">
+                <BackButton />
+            </div>
+
             {/* Top Navigation Buttons */}
             <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 pt-6 sm:pt-8 px-3 sm:px-5">
                 <button
