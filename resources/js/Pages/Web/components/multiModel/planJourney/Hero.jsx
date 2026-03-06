@@ -579,40 +579,44 @@ const Hero = () => {
     };
     return (
         <>
-            {/* Back Button */}
-            <div className="px-3 sm:px-5 pt-4">
-                <BackButton />
-            </div>
 
-            {/* Top Navigation Buttons */}
-            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 pt-6 sm:pt-8 px-3 sm:px-5">
-                <button
-                    onClick={handleVehicleRentalClick}
-                    className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'rental'
-                        ? 'bg-[#0955AC] text-white'
-                        : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                        }`}
-                >
-                    Vehicle Rental
-                </button>
-                <button
-                    onClick={handleTicketBookingClick}
-                    className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'ticket'
-                        ? 'bg-[#0955AC] text-white'
-                        : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                        }`}
-                >
-                    Ticket Booking
-                </button>
-                <button
-                    onClick={() => setActiveTab('multimodal')}
-                    className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'multimodal'
-                        ? 'bg-[#0955AC] text-white shadow-md'
-                        : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                        }`}
-                >
-                    Multimodal
-                </button>
+            <div className="relative flex items-center pt-6 sm:pt-8 px-5 md:px-10">
+                {/* Back Button - left corner */}
+                <div className="absolute left-5 md:left-[70px]">
+                    <BackButton />
+                </div>
+
+                {/* Top Navigation Buttons - centered */}
+                <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full">
+                    <button
+                        onClick={handleVehicleRentalClick}
+                        className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'rental'
+                            ? 'bg-[#0955AC] text-white'
+                            : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                            }`}
+                    >
+                        Vehicle Rental
+                    </button>
+                    <button
+                        onClick={handleTicketBookingClick}
+                        className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'ticket'
+                            ? 'bg-[#0955AC] text-white'
+                            : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                            }`}
+                    >
+                        Ticket Booking
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('multimodal')}
+                        className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'multimodal'
+                            ? 'bg-[#0955AC] text-white shadow-md'
+                            : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                            }`}
+                    >
+                        Multimodal
+                    </button>
+                </div>
+
             </div>
 
             {/* Vehicle Rental Inline View */}
