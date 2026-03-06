@@ -70,20 +70,20 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
       const modeMatch = mode === "all" || b.mode === mode;
-      const searchMatch = !q || 
+      const searchMatch = !q ||
         b.name?.toLowerCase().includes(q.toLowerCase()) ||
         b.reference?.toLowerCase().includes(q.toLowerCase()) ||
         b.from?.toLowerCase().includes(q.toLowerCase()) ||
         b.to?.toLowerCase().includes(q.toLowerCase());
       const statusMatch = statusFilterMain === "all" || b.status === statusFilterMain;
-      
+
       let dateMatch = true;
       if (startDate || endDate) {
         const bookingDate = new Date(b.departure_date || b.booking_date);
         if (startDate) dateMatch = dateMatch && bookingDate >= new Date(startDate);
         if (endDate) dateMatch = dateMatch && bookingDate <= new Date(endDate);
       }
-      
+
       return modeMatch && searchMatch && statusMatch && dateMatch;
     });
   }, [bookings, mode, q, statusFilterMain, startDate, endDate]);
@@ -259,7 +259,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
   const handleCancelClick = async (booking) => {
     setSelectedBooking(booking);
     setPolicyDetails(null);
-    
+
     // Fetch cancellation policy for bus bookings
     if (booking.type === 'bus') {
       try {
@@ -276,15 +276,15 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
         console.error('Failed to fetch cancellation policy:', error);
       }
     }
-    
+
     setShowCancelModal(true);
   };
 
   const handleConfirmCancel = async () => {
     if (!selectedBooking) return;
-    
+
     setCancelling(true);
-    
+
     try {
       let url = '';
       if (selectedBooking.type === 'bus') {
@@ -294,9 +294,9 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
       } else if (selectedBooking.type === 'flight') {
         url = `/flight-bookings/${selectedBooking.reference}/cancel`;
       }
-      
+
       console.log('Cancelling booking:', { url, reference: selectedBooking.reference, type: selectedBooking.type, reason: cancelReason });
-      
+
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
       if (!csrfToken) {
         console.error('CSRF token not found');
@@ -304,7 +304,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
         setCancelling(false);
         return;
       }
-      
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -316,13 +316,13 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
           reason: cancelReason
         })
       });
-      
+
       console.log('Response status:', response.status, response.statusText);
-      
+
       // Check if response is JSON
       const contentType = response.headers.get('content-type');
       console.log('Content-Type:', contentType);
-      
+
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
         console.error('Server returned non-JSON response:', text.substring(0, 500));
@@ -330,10 +330,10 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
         setCancelling(false);
         return;
       }
-      
+
       const data = await response.json();
       console.log('Response data:', data);
-      
+
       if (data.success) {
         // Reload the page to show updated data
         router.reload();
@@ -363,12 +363,12 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
         <div className="mb-3 flex flex-col gap-4 md:mb-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-2">
             <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
-               <span className="text-[#0955AC]">Ticket Booking</span> {" "}Dashboard
+              <span className="text-[#0955AC]">Ticket Booking</span> {" "}Dashboard
             </h1>
             <p className="text-slate-600 text-[14px]">Manage your Flight • Train • Bus bookings.</p>
           </div>
           <div className="flex flex-col md:flex-row gap-2 justify-center items-center">
-            <button onClick={() => router.visit('/multiModel/plan-journey')} className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
+            <button onClick={() => router.visit('/multiModel/plan-journey?tab=ticket')} className="inline-flex items-center h-10 px-6 py-6 rounded-2xl bg-[#0955AC] text-white text-[16px] font-medium">
               <Plus className="mr-2 h-6 w-6" /> New Booking
             </button>
           </div>
@@ -453,21 +453,20 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
 
               {/* Action Buttons */}
               <div className="flex gap-2 items-center flex-wrap">
-                <button 
+                <button
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                  className={`inline-flex items-center h-11 px-4 rounded-lg text-[14px] font-medium transition whitespace-nowrap ${
-                    showAdvancedFilters 
-                      ? "bg-[#0955AC] text-white border border-[#0955AC]" 
+                  className={`inline-flex items-center h-11 px-4 rounded-lg text-[14px] font-medium transition whitespace-nowrap ${showAdvancedFilters
+                      ? "bg-[#0955AC] text-white border border-[#0955AC]"
                       : "border border-slate-300 hover:bg-slate-50"
-                  }`}>
+                    }`}>
                   <Filter className="mr-2 h-4 w-4" /> Filters
                 </button>
-                <button 
+                <button
                   onClick={() => setShowExportModal(true)}
                   className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 text-[14px] font-medium hover:bg-slate-50 transition whitespace-nowrap">
                   <Download className="mr-2 h-4 w-4" /> Export
                 </button>
-                <button 
+                <button
                   onClick={handleRefresh}
                   className="inline-flex items-center h-11 px-4 rounded-lg border border-slate-300 hover:bg-slate-50 transition">
                   <RefreshCw className="h-4 w-4" />
@@ -546,7 +545,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Showing count */}
                   <div className="mt-4 flex items-center gap-2 text-[14px] text-slate-600">
                     <Info className="h-4 w-4" />
@@ -579,9 +578,8 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
                       <button
                         key={val}
                         onClick={() => setMode(val)}
-                        className={`px-6 py-2 rounded-xl border text-[12px] font-[600] transition ${
-                          active ? "bg-[#0955AC] text-white border-[#0955AC]" : "border-slate-200 hover:bg-slate-100"
-                        }`}
+                        className={`px-6 py-2 rounded-xl border text-[12px] font-[600] transition ${active ? "bg-[#0955AC] text-white border-[#0955AC]" : "border-slate-200 hover:bg-slate-100"
+                          }`}
                       >
                         <span className="inline-flex items-center gap-2">
                           {Icon ? <Icon className="h-6 w-6" /> : null}
@@ -680,7 +678,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
                                 )}
                               </>
                             )}
-                            
+
                             {/* Cancel button for eligible bookings */}
                             {canCancelBooking(booking) && (
                               <button
@@ -691,7 +689,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
                                 Cancel
                               </button>
                             )}
-                            
+
                             {/* Cancelled status display */}
                             {booking.status === 'cancelled' && (
                               <div className="flex flex-col items-center">
@@ -703,7 +701,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
                                 )}
                               </div>
                             )}
-                            
+
                             {/* No actions available */}
                             {booking.status !== 'cancelled' && !canCancelBooking(booking) && booking.type !== 'bus' && booking.type !== 'train' && booking.type !== 'flight' && (
                               <span className="text-xs text-slate-400">No actions</span>
@@ -810,7 +808,7 @@ const Hero = ({ bookings = [], monthlyData = [] }) => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="px-6 py-4">
                 <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                   <div className="flex items-start gap-3">

@@ -341,7 +341,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     );
 
     const handleNewBooking = () => {
-        window.location.href = '/clientRent';
+        window.location.href = '/multiModel/plan-journey';
     };
 
     const handleCancellationSuccess = () => {
