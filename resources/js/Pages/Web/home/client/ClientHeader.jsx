@@ -392,23 +392,18 @@ const ClientHeader = () => {
                                         className="ml-4 mt-1 flex flex-col space-y-1"
                                     >
                                         <Link
-                                            href="/courierBookingDashboard"
+                                            href=""
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
-                                            Land
+                                            Domestic
                                         </Link>
                                         <Link
-                                            href="/courierBookingDashboard"
+                                            href=""
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
-                                            Air
+                                            Logistic
                                         </Link>
-                                        <Link
-                                            href="/courierBookingDashboard"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            Sea
-                                        </Link>
+                                        
                                     </div>
                                 )}
                             </div>
