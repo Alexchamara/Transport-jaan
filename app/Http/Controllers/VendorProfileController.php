@@ -178,18 +178,18 @@ class VendorProfileController extends Controller
 
         // Determine if we can edit the service
         $canEdit = !$existingReg || $existingReg->canEdit();
-
+        
         if (!$canEdit) {
             return redirect()->back()->with('error', 'You cannot edit this service in its current status.');
         }
 
-        // Validate editing during revision mode
+        // Validate editing during revision or submitted modes
         if ($profile && $profile->submission_status === 'revision_requested') {
-            if (!$existingReg || !in_array($existingReg->status, ['revision_requested', 'rejected'])) {
+            $allowedStatuses = ['revision_requested', 'rejected'];
+            if (!$existingReg || !in_array($existingReg->status, $allowedStatuses)) {
                 return redirect()->back()->with('error', 'You can only edit services that require revision or have been rejected.');
             }
         } elseif ($profile && in_array($profile->submission_status, ['submitted', 'approved'])) {
-            // Submitted/approved: allow creating NEW services, block editing existing non-draft ones
             if ($existingReg && $existingReg->status !== 'draft') {
                 return redirect()->back()->with('error', 'You cannot edit already submitted services. Only new services can be added.');
             }
