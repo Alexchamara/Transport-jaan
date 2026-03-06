@@ -23,7 +23,7 @@ const IMAGES = [
         description:
             "Book or rent vehicles across land, sea, and air. Including cars, buses, boats, helicopters, and flight tickets for personal or business travel needs.",
         ctaLabel: "Book Vehicle",
-        href: "/multiModel/plan-journey",
+        href: "/multiModel/plan-journey?tab=rental",
         url: img1,
         tags: ["Vehicle Rental", "Booking"],
     },
@@ -65,9 +65,9 @@ const SERVICES = [
         subtitle: "Cars, vans & trucks",
         img: img1,
         sub: [
-            { title: "Land Vehicle", subtitle: "Cars, buses & trucks", href: "/vehicleList", img: img1 },
-            { title: "Sea Vehicle", subtitle: "Boats & ships", href: "/seaVehicleList", img: img2 },
-            { title: "Air Vehicle", subtitle: "Helicopters & planes", href: "/airVehicleList", img: img3 },
+            { title: "Land Vehicle", subtitle: "Cars, buses & trucks", href: "/multiModel/plan-journey?tab=rental&subTab=land", img: img1 },
+            { title: "Sea Vehicle", subtitle: "Boats & ships", href: "/multiModel/plan-journey?tab=rental&subTab=sea", img: img2 },
+            { title: "Air Vehicle", subtitle: "Helicopters & planes", href: "/multiModel/plan-journey?tab=rental&subTab=air", img: img3 },
         ],
     },
     {
@@ -75,12 +75,12 @@ const SERVICES = [
         subtitle: "Land, air & sea tickets",
         img: img7,
         sub: [
-            { title: "Bus Ticket", subtitle: "Book bus tickets", href: "/busTicketBookingDetails", img: img1 },
-            { title: "Train Ticket", subtitle: "Book train tickets", href: "/trainTicketBookingDetails", img: img2 },
-            { title: "Flight Ticket", subtitle: "Book air tickets", href: "/flight-booking", img: img3 },
+            { title: "Bus Ticket", subtitle: "Book bus tickets", href: "/multiModel/plan-journey?tab=ticket&subTab=bus", img: img1 },
+            { title: "Train Ticket", subtitle: "Book train tickets", href: "/multiModel/plan-journey?tab=ticket&subTab=train", img: img2 },
+            { title: "Flight Ticket", subtitle: "Book air tickets", href: "/multiModel/plan-journey?tab=ticket&subTab=flight", img: img3 },
         ],
     },
-    { title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey", img: img6 },
+    { title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey?tab=multimodal", img: img6 },
     { title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create", img: img8 },
     { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
     { title: "Freight", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },

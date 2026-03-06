@@ -28,10 +28,20 @@ import FlightForm from "../../ticketBooking/FlightForm";
 
 const Hero = () => {
     // Active tab state: 'rental', 'ticket', or 'multimodal'
-    const [activeTab, setActiveTab] = useState('rental');
+    const getInitialTab = () => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        return ['rental', 'ticket', 'multimodal'].includes(tab) ? tab : 'rental';
+    };
+    const [activeTab, setActiveTab] = useState(getInitialTab);
 
     // Vehicle Rental inline view state
-    const [rentalSubTab, setRentalSubTab] = useState('land');
+    const getInitialRentalSubTab = () => {
+        const params = new URLSearchParams(window.location.search);
+        const subTab = params.get('subTab');
+        return ['land', 'sea', 'air'].includes(subTab) ? subTab : 'land';
+    };
+    const [rentalSubTab, setRentalSubTab] = useState(getInitialRentalSubTab);
     const [vehicleListData, setVehicleListData] = useState(null);
     const [isLoadingRental, setIsLoadingRental] = useState(false);
     const [seaVehicleData, setSeaVehicleData] = useState(null);
@@ -48,13 +58,39 @@ const Hero = () => {
         pickupLocation: "", pickupDate: "", dropoffLocation: "", dropoffDate: "", brand: "", bodyType: "",
     });
 
-    // Auto-fetch land vehicle list on mount
+    // Auto-fetch data on mount based on initial tab/subTab from URL
     useEffect(() => {
-        fetchLandVehicles();
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        const subTab = params.get('subTab');
+
+        if (tab === 'ticket') {
+            if (subTab === 'train') {
+                fetchTrainData();
+            } else if (subTab === 'flight') {
+                // flight tab uses FlightForm, no fetch needed
+            } else {
+                fetchBusData(); // default bus
+            }
+        } else if (tab === 'rental') {
+            if (subTab === 'sea') {
+                fetchSeaVehicles();
+            } else if (subTab === 'air') {
+                fetchAirVehicles();
+            } else {
+                fetchLandVehicles(); // default land
+            }
+        } else {
+            fetchLandVehicles(); // default fallback
+        }
     }, []);
 
     // Ticket Booking inline view state
-    const [ticketSubTab, setTicketSubTab] = useState('bus');
+    const [ticketSubTab, setTicketSubTab] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        const subTab = params.get('subTab');
+        return ['bus', 'train', 'flight'].includes(subTab) ? subTab : 'bus';
+    });
     const [ticketData, setTicketData] = useState(null);
     const [isLoadingTicket, setIsLoadingTicket] = useState(false);
     const [trainData, setTrainData] = useState(null);
