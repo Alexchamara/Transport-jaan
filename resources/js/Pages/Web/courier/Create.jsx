@@ -288,10 +288,10 @@ const Create = () => {
                             </p>
                             <div className="mt-6">
                                 <Link
-                                    href="/courier-service"
+                                    href="/"
                                     className="inline-flex items-center gap-2 text-xs md:text-sm text-white/70 hover:text-white transition"
                                 >
-                                    ← Back to courier overview
+                                    ← Back to home
                                 </Link>
                             </div>
                         </div>
