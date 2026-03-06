@@ -298,19 +298,19 @@ const ClientHeader = () => {
                                         className="ml-4 mt-1 flex flex-col space-y-1"
                                     >
                                         <Link
-                                            href="/clientRent?type=land"
+                                            href="/multiModel/plan-journey"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Land
                                         </Link>
                                         <Link
-                                            href="/clientRent?type=air"
+                                            href="/multiModel/plan-journey"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Air
                                         </Link>
                                         <Link
-                                            href="/clientRent?type=sea"
+                                            href="/multiModel/plan-journey"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Sea

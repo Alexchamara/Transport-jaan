@@ -12,10 +12,10 @@ const ClientCardDashboard = () => {
       icon: '🚗',
       route: '/clientRent',
       subOptions: [
-        { name: 'Cars & SUVs', route: '/clientRent?type=land' },
-        { name: 'Aircraft', route: '/clientRent?type=air' },
+        { name: 'Cars & SUVs', route: '/multiModel/plan-journey' },
+        { name: 'Aircraft', route: '/multiModel/plan-journey' },
         { name: 'Vehicle Dashboard', route: '/clientVehicleDashboard' },
-        { name: 'Boats & Ships', route: '/clientRent?type=sea' }
+        { name: 'Boats & Ships', route: '/multiModel/plan-journey' }
       ]
     },
     {

@@ -801,20 +801,20 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                             </div>
                             <div className="px-10 pb-10 grid grid-cols-2 gap-2 font-[500]">
                                 <Link
-                                    href="/clientRent?type=land"
+                                    href="/multiModel/plan-journey"
                                     className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center"
                                 >
                                     <Car className="mr-2 h-7 w-7" /> Rent Land Vehicle
                                 </Link>
                                 <Link
-                                    href="/clientRent?type=air"
+                                    href="/multiModel/plan-journey"
                                     className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center"
                                 >
                                     <Plane className="mr-2 h-7 w-7" /> Charter
                                     Flight
                                 </Link>
                                 <Link
-                                    href="/clientRent?type=sea"
+                                    href="/multiModel/plan-journey"
                                     className="h-12 px-3 rounded-2xl border border-slate-200 text-left text-[12px] hover:bg-slate-100 inline-flex items-center"
                                 >
                                     <Ship className="mr-2 h-7 w-7" /> Book Yacht
