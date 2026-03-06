@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { usePage, Link, router } from "@inertiajs/react";
+import { usePage, router } from "@inertiajs/react";
+import { AnimatePresence } from "framer-motion";
+import ActionModalTemplate from "../SuperAdmin/Common/ActionModalTemplate";
 import proPic from "../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg";
-import { ChevronDown, User } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 const UserDropdown = ({ settingsRoute }) => {
   const { auth } = usePage().props;
@@ -10,6 +12,7 @@ const UserDropdown = ({ settingsRoute }) => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+  const [actionModalState, setActionModalState] = useState({ isOpen: false });
   const dropdownRef = useRef(null);
   const triggerRef = useRef(null);
 
@@ -30,15 +33,35 @@ const UserDropdown = ({ settingsRoute }) => {
     };
   }, []);
 
-  const handleLogout = (e) => {
+  const notifyLogoutModalState = (isModalOpen) => {
+    window.dispatchEvent(
+      new CustomEvent("vendor:logout-modal-state", {
+        detail: { isOpen: isModalOpen },
+      })
+    );
+  };
+
+  const handleOpenLogoutModal = (e) => {
     e.preventDefault();
     setIsOpen(false);
+    notifyLogoutModalState(true);
+    setActionModalState({ isOpen: true });
+  };
+
+  const closeActionModal = () => {
+    notifyLogoutModalState(false);
+    setActionModalState({ isOpen: false });
+  };
+
+  const handleActionConfirm = () => {
+    localStorage.removeItem("vendor_theme");
     router.post(
       route("logout"),
       {},
       {
         onSuccess: () => router.visit("/"),
         preserveScroll: true,
+        onFinish: () => closeActionModal(),
       }
     );
   };
@@ -98,18 +121,8 @@ const UserDropdown = ({ settingsRoute }) => {
           className="fixed w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[9999]"
           style={{ top: dropdownPos.top, right: dropdownPos.right }}
         >
-          <Link
-            href={settingsRoute}
-            className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-[500] text-[#000000CC] hover:bg-[#F3F4F6] transition-colors"
-          >
-            <User className="w-[20px] h-[20px]" />
-            <span>Profile</span>
-          </Link>
-
-          <div className="w-full h-[1px] bg-[#E5E7EB] my-1" />
-
           <button
-            onClick={handleLogout}
+            onClick={handleOpenLogoutModal}
             className="flex w-full items-center gap-3 px-4 py-3 text-[16px] font-[500] text-[#DC2626] hover:bg-[#FEF2F2] transition-colors text-left"
           >
             <img src={logOutLogo} className="w-[20px] h-[20px]" alt="Logout" />
@@ -117,6 +130,21 @@ const UserDropdown = ({ settingsRoute }) => {
           </button>
         </div>
       )}
+
+      <AnimatePresence>
+        {actionModalState.isOpen && (
+          <ActionModalTemplate
+            title="Confirm Logout"
+            description="Are you sure you want to logout from your account?"
+            confirmText="Logout"
+            confirmClassName="bg-red-600 hover:bg-red-700"
+            processingText="Logging out..."
+            onClose={closeActionModal}
+            onConfirm={handleActionConfirm}
+            theme="light"
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

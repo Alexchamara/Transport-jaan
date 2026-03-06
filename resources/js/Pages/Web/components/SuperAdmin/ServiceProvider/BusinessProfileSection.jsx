@@ -27,7 +27,7 @@ const BusinessProfileSection = ({ vendorProfile, vendor }) => {
                     <InfoField label="Website" value={vendorProfile.website} isLink />
                     <InfoField label="Established Year" value={vendorProfile.established_year} />
                     <InfoField label="Employee Count" value={vendorProfile.employee_count} />
-                    <InfoField label="Vendor Type" value={vendor?.vendor_type} capitalize />
+                    <InfoField label="Service Provider Type" value={vendor?.vendor_type} capitalize />
                 </div>
                 {vendorProfile.description && (
                     <div className="mt-4 pt-4 border-t border-[#343B4F]">

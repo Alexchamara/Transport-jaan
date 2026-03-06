@@ -356,10 +356,10 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     // };
 
     return (
-        <div className="min-h-screen w-full bg-[#E5E5E5] md:p-20 poppins">
+        <div className="min-h-screen w-full bg-[#E5E5E5] md:px-20 md:pt-2 md:pb-20 poppins">
             <div className="mx-auto max-w-[1300px]">
                 {/* Header */}
-                <div className="mb-6 flex flex-col gap-4 md:mb-10 md:flex-row md:items-center md:justify-between">
+                <div className="mb-3 flex flex-col gap-4 md:mb-3 md:flex-row md:items-center md:justify-between">
                     <div className="flex flex-col gap-2">
                         <h1 className="text-2xl font-bold tracking-tight md:text-[35px]">
                             <span className="text-[#0955AC]">Vehicle Rentals</span>{" "}

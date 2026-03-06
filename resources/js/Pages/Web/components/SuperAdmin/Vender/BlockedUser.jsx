@@ -1,10 +1,34 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Eye from "../../../assets/superAdmin/eye.png";
 import { Link, router } from "@inertiajs/react";
+import ActionModalTemplate from "../Common/ActionModalTemplate";
 
 const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyClicked, isPendingClicked }) => {
     const [isLoading, setIsLoading] = useState(false);
+    const [showActionModal, setShowActionModal] = useState(null);
+    const [actionNotes, setActionNotes] = useState("");
+
+    const actionConfig = {
+        verify: {
+            title: 'Verify User',
+            description: 'This will verify this blocked user.',
+            confirmText: 'Verify',
+            confirmClassName: 'bg-green-600 hover:bg-green-700',
+        },
+        pending: {
+            title: 'Mark as Pending',
+            description: 'This will set this user status to pending.',
+            confirmText: 'Set Pending',
+            confirmClassName: 'bg-[#FDB52A] hover:bg-[#E0A01F]',
+        },
+        unblock: {
+            title: 'Unblock User',
+            description: 'This will unblock this user account.',
+            confirmText: 'Unblock',
+            confirmClassName: 'bg-red-600 hover:bg-red-700',
+        },
+    };
 
     // Function to get styles for status
     const getStatusStyles = (status) => {
@@ -54,6 +78,20 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
             console.error('Error unblocking user:', error);
             setIsLoading(false);
         }
+    };
+
+    const handleActionConfirm = () => {
+        if (showActionModal === 'verify') {
+            onStatusAndApprovalChange("Active", "Approved");
+        }
+        if (showActionModal === 'pending') {
+            onStatusAndApprovalChange("Pending", "Pending");
+        }
+        if (showActionModal === 'unblock') {
+            handleUnblock();
+        }
+        setShowActionModal(null);
+        setActionNotes("");
     };
     return (
         <motion.div
@@ -107,8 +145,8 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 1 }}
-                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("verify").bg} ${getButtonColors("verify").hoverBg} ${getButtonColors("verify").text}`}
-                            onClick={() => onStatusAndApprovalChange("Active", "Approved")}
+                            className="bg-green-600 border border-[#05C16880] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-green-700 transition-colors duration-50 shadow-md"
+                            onClick={() => setShowActionModal('verify')}
                         >
                             Verify
                         </motion.button>
@@ -117,8 +155,8 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 1 }}
-                            className={`text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] transition-colors duration-50 shadow-md ${getButtonColors("pending").bg} ${getButtonColors("pending").hoverBg} ${getButtonColors("pending").text}`}
-                            onClick={() => onStatusAndApprovalChange("Pending", "Pending")}
+                            className="bg-[#FDB52A] text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-[#E0A01F] transition-colors duration-50 shadow-md"
+                            onClick={() => setShowActionModal('pending')}
                         >
                             Pending
                         </motion.button>
@@ -127,7 +165,7 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 1 }}
                         className="bg-red-600 text-[15px] w-[130px] px-[9px] py-[6px] rounded-[5px] hover:bg-red-700 transition-colors duration-50 shadow-md disabled:opacity-50"
-                        onClick={handleUnblock}
+                        onClick={() => setShowActionModal('unblock')}
                         disabled={isLoading}
                     >
                         {isLoading ? 'Processing...' : 'Unblock'}
@@ -141,6 +179,26 @@ const UserDetailsModal = ({ user, onClose, onStatusAndApprovalChange, isVerifyCl
                         Close
                     </motion.button>
                 </div>
+
+                <AnimatePresence>
+                    {showActionModal && actionConfig[showActionModal] && (
+                        <ActionModalTemplate
+                            title={actionConfig[showActionModal].title}
+                            description={actionConfig[showActionModal].description}
+                            notes={actionNotes}
+                            setNotes={setActionNotes}
+                            placeholder=""
+                            showNotes={false}
+                            notesRequired={false}
+                            processing={isLoading}
+                            processingText="Processing..."
+                            confirmText={actionConfig[showActionModal].confirmText}
+                            confirmClassName={actionConfig[showActionModal].confirmClassName}
+                            onClose={() => { setShowActionModal(null); setActionNotes(""); }}
+                            onConfirm={handleActionConfirm}
+                        />
+                    )}
+                </AnimatePresence>
             </motion.div>
         </motion.div>
     );
@@ -241,7 +299,7 @@ const BlockUsers = ({ vendors = [], statusFilter = "all", approvalFilter = "all"
             {/* Header */}
             <div className="flex flex-row justify-center items-center w-full h-[61px]">
                 <div className="flex flex-row justify-start items-start w-full px-[35px]">
-                    <div className="flex flex Abilities row justify-start items-center gap-4 w-[180px]">
+                    <div className="flex flex-row justify-start items-center gap-4 w-[180px]">
                         <h1 className="text-white text-[10px] font-400">User Name</h1>
                     </div>
                     <div>

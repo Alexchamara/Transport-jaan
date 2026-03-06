@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { router } from '@inertiajs/react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
+import ActionModalTemplate from "../Common/ActionModalTemplate";
 
 const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
-    const [showBulkModal, setShowBulkModal] = useState(null);
-    const [showNoteModal, setShowNoteModal] = useState(false);
+    const [showActionModal, setShowActionModal] = useState(null);
     const [adminNotes, setAdminNotes] = useState('');
     const [processing, setProcessing] = useState(false);
 
@@ -13,50 +13,112 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
     const rejectedCount = serviceRegistrations?.filter(r => r.status === 'rejected').length || 0;
     const totalCount = serviceRegistrations?.length || 0;
 
-    const handleBulkAction = (action) => {
+    const actionModalConfig = {
+        approve_all: {
+            title: 'Approve All Pending Services',
+            description: `This will approve all ${pendingCount} pending service registrations.`,
+            placeholder: 'Optional notes...',
+            confirmText: 'Confirm',
+            confirmClassName: 'bg-[#05C168] hover:bg-[#05C168]/80',
+            notesRequired: false,
+            showNotes: true,
+        },
+        reject_all: {
+            title: 'Reject All Pending Services',
+            description: `This will reject all ${pendingCount} pending service registrations. A reason is required.`,
+            placeholder: 'Reason for rejection (required)...',
+            confirmText: 'Reject All',
+            confirmClassName: 'bg-[#FF4757] hover:bg-[#FF4757]/80',
+            notesRequired: true,
+            showNotes: true,
+        },
+        request_revision: {
+            title: 'Request Revision for All',
+            description: `This will request revision for all ${pendingCount} pending services. Details are required.`,
+            placeholder: 'Describe what needs revision (required)...',
+            confirmText: 'Request Revision',
+            confirmClassName: 'bg-[#FDB52A] hover:bg-[#FDB52A]/80',
+            notesRequired: true,
+            showNotes: true,
+        },
+        block_vendor: {
+            title: 'Block Vendor',
+            description: 'This will block the vendor account from using the platform.',
+            placeholder: '',
+            confirmText: 'Block Vendor',
+            confirmClassName: 'bg-[#FF4757] hover:bg-[#FF4757]/80',
+            notesRequired: false,
+            showNotes: false,
+        },
+        unblock_vendor: {
+            title: 'Unblock Vendor',
+            description: 'This will unblock the vendor account and restore platform access.',
+            placeholder: '',
+            confirmText: 'Unblock Vendor',
+            confirmClassName: 'bg-[#05C168] hover:bg-[#05C168]/80',
+            notesRequired: false,
+            showNotes: false,
+        },
+        add_note: {
+            title: 'Add Admin Note',
+            description: "Add a note to this vendor's activity log.",
+            placeholder: 'Write your note here...',
+            confirmText: 'Save Note',
+            confirmClassName: 'bg-[#0E43FB] hover:bg-[#0A36D6]',
+            notesRequired: true,
+            showNotes: true,
+            processingText: 'Saving...',
+        },
+    };
+
+    const handleActionConfirm = (action) => {
+        const config = actionModalConfig[action];
+        if (!config) return;
+
         const routeMap = {
             approve_all: `/superadmin/users/service-providers/${vendor.id}/approve-all`,
             reject_all: `/superadmin/users/service-providers/${vendor.id}/reject-all`,
             request_revision: `/superadmin/users/service-providers/${vendor.id}/request-revision`,
+            add_note: `/superadmin/users/service-providers/${vendor.id}/add-note`,
         };
 
-        if (['reject_all', 'request_revision'].includes(action) && !adminNotes.trim()) return;
+        if (config.notesRequired && !adminNotes.trim()) return;
 
         setProcessing(true);
-        router.post(routeMap[action], { admin_notes: adminNotes }, {
+        if (['block_vendor', 'unblock_vendor'].includes(action)) {
+            const isBlockedAction = action === 'block_vendor';
+            const url = isBlockedAction
+                ? `/superadmin/users/service-providers/${vendor.id}/block`
+                : `/superadmin/users/service-providers/${vendor.id}/unblock`;
+
+            router.post(url, {}, {
+                preserveScroll: true,
+                onFinish: () => {
+                    setProcessing(false);
+                    setShowActionModal(null);
+                    setAdminNotes('');
+                },
+            });
+            return;
+        }
+
+        const payload = action === 'add_note'
+            ? { admin_notes: adminNotes }
+            : { admin_notes: adminNotes };
+
+        router.post(routeMap[action], payload, {
             preserveScroll: true,
             onFinish: () => {
                 setProcessing(false);
-                setShowBulkModal(null);
+                setShowActionModal(null);
                 setAdminNotes('');
             },
         });
     };
 
-    const handleAddNote = () => {
-        if (!adminNotes.trim()) return;
-        setProcessing(true);
-        router.post(`/superadmin/users/service-providers/${vendor.id}/add-note`, { note: adminNotes }, {
-            preserveScroll: true,
-            onFinish: () => {
-                setProcessing(false);
-                setShowNoteModal(false);
-                setAdminNotes('');
-            },
-        });
-    };
-
-    const handleBlockToggle = () => {
-        const isBlocked = vendor.status === 'blocked';
-        const url = isBlocked
-            ? `/superadmin/users/service-providers/${vendor.id}/unblock`
-            : `/superadmin/users/service-providers/${vendor.id}/block`;
-
-        setProcessing(true);
-        router.post(url, {}, {
-            preserveScroll: true,
-            onFinish: () => setProcessing(false),
-        });
+    const openActionModal = (action) => {
+        setShowActionModal(action);
+        setAdminNotes('');
     };
 
     return (
@@ -106,19 +168,19 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
                     <h3 className="text-white text-[13px] font-[600] mb-3">Bulk Actions</h3>
                     <div className="space-y-2">
                         <button
-                            onClick={() => setShowBulkModal('approve_all')}
+                            onClick={() => openActionModal('approve_all')}
                             className="w-full bg-[#05C168] text-white text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#05C168]/80 transition-colors"
                         >
                             Approve All Pending ({pendingCount})
                         </button>
                         <button
-                            onClick={() => setShowBulkModal('reject_all')}
+                            onClick={() => openActionModal('reject_all')}
                             className="w-full bg-[#FF4757] text-white text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#FF4757]/80 transition-colors"
                         >
                             Reject All Pending ({pendingCount})
                         </button>
                         <button
-                            onClick={() => setShowBulkModal('request_revision')}
+                            onClick={() => openActionModal('request_revision')}
                             className="w-full border border-[#FDB52A] text-[#FDB52A] text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#FDB52A20] transition-colors"
                         >
                             Request Revision
@@ -132,7 +194,7 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
                 <h3 className="text-white text-[13px] font-[600] mb-3">Admin Tools</h3>
                 <div className="space-y-2">
                     <button
-                        onClick={() => setShowNoteModal(true)}
+                        onClick={() => openActionModal('add_note')}
                         className="w-full border border-[#343B4F] text-[#AEB9E1] text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#343B4F30] transition-colors flex items-center justify-center gap-2"
                     >
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -142,7 +204,7 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
                     </button>
 
                     <button
-                        onClick={handleBlockToggle}
+                        onClick={() => openActionModal(vendor.status === 'blocked' ? 'unblock_vendor' : 'block_vendor')}
                         disabled={processing}
                         className={`w-full text-[12px] px-4 py-2 rounded-[5px] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 ${
                             vendor.status === 'blocked'
@@ -237,53 +299,71 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
             </AnimatePresence>
 
             {/* Add Note Modal */}
-            <AnimatePresence>
-                {showNoteModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center"
+           <AnimatePresence>
+    {showNoteModal && (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center"
+            onClick={() => { setShowNoteModal(false); setAdminNotes(''); }}
+        >
+            <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-6 rounded-2xl text-white w-[500px] max-w-[90vw] shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <h3 className="text-[18px] font-[600] mb-2">Add Admin Note</h3>
+                <p className="text-[#AEB9E1] text-[13px] mb-4">
+                    Add a note to this vendor's activity log.
+                </p>
+
+                <textarea
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Write your note here..."
+                    className="w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-24 resize-none focus:outline-none focus:ring-1 focus:ring-[#0E43FB] mb-4"
+                />
+
+                <div className="flex gap-3 justify-end">
+                    <button
                         onClick={() => { setShowNoteModal(false); setAdminNotes(''); }}
+                        className="border border-[#343B4F] text-[#AEB9E1] text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#343B4F30] transition-colors"
                     >
-                        <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, y: 20 }}
-                            className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-6 rounded-2xl text-white w-[500px] max-w-[90vw] shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <h3 className="text-[18px] font-[600] mb-2">Add Admin Note</h3>
-                            <p className="text-[#AEB9E1] text-[13px] mb-4">
-                                Add a note to this vendor's activity log.
-                            </p>
-
-                            <textarea
-                                value={adminNotes}
-                                onChange={(e) => setAdminNotes(e.target.value)}
-                                placeholder="Write your note here..."
-                                className="w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-24 resize-none focus:outline-none focus:ring-1 focus:ring-[#0E43FB] mb-4"
-                            />
-
-                            <div className="flex gap-3 justify-end">
-                                <button
-                                    onClick={() => { setShowNoteModal(false); setAdminNotes(''); }}
-                                    className="border border-[#343B4F] text-[#AEB9E1] text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#343B4F30] transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleAddNote}
-                                    disabled={processing || !adminNotes.trim()}
-                                    className="bg-[#0E43FB] text-white text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#0A36D6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {processing ? 'Saving...' : 'Save Note'}
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleAddNote}
+                        disabled={processing || !adminNotes.trim()}
+                        className="bg-[#0E43FB] text-white text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#0A36D6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {processing ? 'Saving...' : 'Save Note'}
+                    </button>
+                </div>
+            </motion.div>
+        </motion.div>
+    )}
+    
+    {showActionModal && actionModalConfig[showActionModal] && (
+        <ActionModalTemplate
+            title={actionModalConfig[showActionModal].title}
+            description={actionModalConfig[showActionModal].description}
+            notes={adminNotes}
+            setNotes={setAdminNotes}
+            placeholder={actionModalConfig[showActionModal].placeholder}
+            showNotes={actionModalConfig[showActionModal].showNotes}
+            notesRequired={actionModalConfig[showActionModal].notesRequired}
+            processing={processing}
+            processingText={actionModalConfig[showActionModal].processingText || 'Processing...'}
+            confirmText={actionModalConfig[showActionModal].confirmText}
+            confirmClassName={actionModalConfig[showActionModal].confirmClassName}
+            onClose={() => { setShowActionModal(null); setAdminNotes(''); }}
+            onConfirm={() => handleActionConfirm(showActionModal)}
+        />
+    )}
+</AnimatePresence>
         </div>
     );
 };

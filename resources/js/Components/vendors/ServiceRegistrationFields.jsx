@@ -151,11 +151,11 @@ const ServiceRegistrationFields = ({
                         <div className="flex items-start gap-2 mb-2">
                             <label className="text-sm font-semibold text-gray-700 flex-1">
                                 {field.label}
-                                {field.required && <span className="text-red-500 ml-1">*</span>}
+                                {field.required && field.type !== "checkbox" && <span className="text-red-500 ml-1">*</span>}
                             </label>
                             {field.type === "checkbox" && (
                                 <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
-                                    Tick to confirm
+                                    Optional
                                 </span>
                             )}
                             {(field.type === "file" || field.type === "file_with_dates") && (

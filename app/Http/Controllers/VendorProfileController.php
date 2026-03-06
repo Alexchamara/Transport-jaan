@@ -42,6 +42,7 @@ class VendorProfileController extends Controller
             'canEdit' => !$vendorProfile || $vendorProfile->canEdit(),
             'isRevisionRequested' => $vendorProfile?->isRevisionRequested() ?? false,
             'isRejected' => $vendorProfile?->isRejected() ?? false,
+            'canAddNewServices' => $vendorProfile && in_array($vendorProfile->submission_status, ['submitted', 'approved']),
         ]);
     }
 
@@ -65,6 +66,18 @@ class VendorProfileController extends Controller
             $logo = $request->file('logo');
             $logoPath = $logo->store('uploads/vendors/' . $user->id . '/logo', 'public');
             $data['logo'] = $logoPath;
+        }
+
+        // Handle empty/null values: numeric fields get NULL, string fields get empty string
+        $numericFields = ['established_year', 'employee_count'];
+        foreach ($data as $key => $value) {
+            if ($value === null || $value === '') {
+                if (in_array($key, $numericFields)) {
+                    $data[$key] = null;
+                } else {
+                    $data[$key] = '';
+                }
+            }
         }
 
         $vendorProfile = VendorProfile::updateOrCreate(
@@ -157,6 +170,7 @@ class VendorProfileController extends Controller
         }
 
         // Handle existing registrations
+        // Check profile status and existing registration
         $profile = VendorProfile::where('user_id', $user->id)->first();
         $existingReg = VendorServiceRegistration::where('user_id', $user->id)
             ->where('service_sub_category_id', $subCategory->id)
@@ -173,6 +187,14 @@ class VendorProfileController extends Controller
         if ($profile && $profile->submission_status === 'revision_requested') {
             if (!$existingReg || !in_array($existingReg->status, ['revision_requested', 'rejected'])) {
                 return redirect()->back()->with('error', 'You can only edit services that require revision or have been rejected.');
+            // Revision mode: only allow editing services with revision_requested status
+            if (!$existingReg || $existingReg->status !== 'revision_requested') {
+                return redirect()->back()->with('error', 'You can only edit services that require revision.');
+            }
+        } elseif ($profile && in_array($profile->submission_status, ['submitted', 'approved'])) {
+            // Submitted/approved: allow creating NEW services, block editing existing non-draft ones
+            if ($existingReg && $existingReg->status !== 'draft') {
+                return redirect()->back()->with('error', 'You cannot edit already submitted services. Only new services can be added.');
             }
         }
 
@@ -253,6 +275,9 @@ class VendorProfileController extends Controller
         // Block removal if service has been rejected - vendor should resubmit instead
         if ($registration && $registration->status === 'rejected') {
             return redirect()->back()->with('error', 'You cannot remove a rejected service. Please edit and resubmit it instead.');
+        // For submitted/approved profiles, only allow removing draft (new) services
+        if ($registration && $registration->status !== 'draft' && $profile && in_array($profile->submission_status, ['submitted', 'approved'])) {
+            return redirect()->back()->with('error', 'You cannot remove already submitted or approved services.');
         }
 
         if ($registration) {
@@ -319,11 +344,6 @@ class VendorProfileController extends Controller
                         break;
 
                     case 'checkbox':
-                        if (empty($fieldValues[$key])) {
-                            return redirect()->back()->withErrors([
-                                'services' => "Please confirm {$field['label']} for {$subCategory->name}"
-                            ]);
-                        }
                         break;
                 }
             }
@@ -365,6 +385,93 @@ class VendorProfileController extends Controller
         });
 
         return redirect()->route('vendorAllBookings')->with('success', 'Your profile has been submitted for review.');
+    }
+
+    /**
+     * Submit only new (draft) service registrations for review.
+     * Profile status stays unchanged (submitted/approved).
+     */
+    public function submitNewServices()
+    {
+        $user = Auth::user();
+        $vendorProfile = VendorProfile::where('user_id', $user->id)->first();
+
+        if (!$vendorProfile || !in_array($vendorProfile->submission_status, ['submitted', 'approved'])) {
+            return redirect()->back()->withErrors(['services' => 'You can only submit new services when your profile is submitted or approved.']);
+        }
+
+        $draftRegistrations = VendorServiceRegistration::where('user_id', $user->id)
+            ->where('status', 'draft')
+            ->get();
+
+        if ($draftRegistrations->isEmpty()) {
+            return redirect()->back()->withErrors(['services' => 'No new services to submit.']);
+        }
+
+        // Validate required fields for each draft service
+        foreach ($draftRegistrations as $registration) {
+            $subCategory = ServiceSubCategory::find($registration->service_sub_category_id);
+            if (!$subCategory) continue;
+
+            $requiredFields = $subCategory->required_fields;
+            $fieldValues = $registration->field_values ?? [];
+
+            foreach ($requiredFields as $field) {
+                if (!$field['required']) continue;
+                $key = $field['key'];
+                $type = $field['type'];
+
+                switch ($type) {
+                    case 'file':
+                    case 'file_optional':
+                        if (empty($fieldValues[$key]['file'])) {
+                            return redirect()->back()->withErrors([
+                                'services' => "Missing required document: {$field['label']} for {$subCategory->name}"
+                            ]);
+                        }
+                        break;
+                    case 'file_with_dates':
+                        if (empty($fieldValues[$key]['file'])) {
+                            return redirect()->back()->withErrors([
+                                'services' => "Missing required document: {$field['label']} for {$subCategory->name}"
+                            ]);
+                        }
+                        if (empty($fieldValues[$key]['effective_date']) || empty($fieldValues[$key]['expiry_date'])) {
+                            return redirect()->back()->withErrors([
+                                'services' => "Missing dates for {$field['label']} in {$subCategory->name}"
+                            ]);
+                        }
+                        break;
+                    case 'checkbox':
+                        if (empty($fieldValues[$key])) {
+                            return redirect()->back()->withErrors([
+                                'services' => "Please confirm {$field['label']} for {$subCategory->name}"
+                            ]);
+                        }
+                        break;
+                }
+            }
+        }
+
+        DB::transaction(function () use ($draftRegistrations, $user) {
+            foreach ($draftRegistrations as $registration) {
+                $registration->update([
+                    'status' => 'submitted',
+                    'submitted_at' => now(),
+                ]);
+            }
+
+            VendorActivityLog::create([
+                'vendor_id' => $user->id,
+                'action' => 'new_services_submitted',
+                'target_type' => 'vendor_service_registration',
+                'target_id' => $draftRegistrations->first()->id,
+                'description' => 'Vendor submitted ' . $draftRegistrations->count() . ' new service(s) for review.',
+                'metadata' => ['services_count' => $draftRegistrations->count()],
+            ]);
+        });
+
+        return redirect()->back()->with('success', 'New service(s) submitted for review successfully.');
     }
 
     /**
