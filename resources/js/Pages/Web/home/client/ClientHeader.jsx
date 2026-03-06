@@ -414,7 +414,7 @@ const ClientHeader = () => {
                             </div>
 
                             <a
-                                href="/warehouseBookingDashboard"
+                                href="/warehouseList"
                                 className="hover:text-[#0955AC]"
                             >
                                 Warehouse Booking

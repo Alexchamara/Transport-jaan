@@ -45,7 +45,7 @@ const ClientCardDashboard = () => {
       title: 'Warehouse Services',
       description: 'Find warehouse space and storage solutions.',
       icon: '🏢',
-      route: '/warehouse',
+      route: '/warehouseList',
       subOptions: [
         { name: 'Find Warehouses', route: '/warehouseList' },
         // { name: 'Book Storage', route: '/warehouse-bookings' },
