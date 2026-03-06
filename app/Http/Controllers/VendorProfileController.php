@@ -84,6 +84,19 @@ class VendorProfileController extends Controller
             array_merge($data, ['submission_status' => 'draft'])
         );
 
+        // Log activity
+        VendorActivityLog::create([
+            'vendor_id' => $user->id,
+            'action' => 'profile_updated',
+            'target_type' => 'vendor_profile',
+            'target_id' => $vendorProfile->id,
+            'description' => 'Vendor updated business profile information.',
+            'metadata' => [
+                'company_name' => $data['company_name'] ?? '',
+                'business_type' => $data['business_type'] ?? '',
+            ],
+        ]);
+
         return redirect()->back()->with('success', 'Business profile saved successfully.');
     }
 
@@ -186,7 +199,7 @@ class VendorProfileController extends Controller
             }
         }
 
-        VendorServiceRegistration::updateOrCreate(
+        $registration = VendorServiceRegistration::updateOrCreate(
             [
                 'user_id' => $user->id,
                 'service_sub_category_id' => $subCategory->id,
@@ -197,6 +210,19 @@ class VendorProfileController extends Controller
                 'status' => ($existingReg && $existingReg->status === 'revision_requested') ? 'revision_requested' : 'draft',
             ]
         );
+
+        // Log activity
+        VendorActivityLog::create([
+            'vendor_id' => $user->id,
+            'action' => 'service_updated',
+            'target_type' => 'vendor_service_registration',
+            'target_id' => $registration->id,
+            'description' => "Vendor updated service registration for '{$subCategory->name}'.",
+            'metadata' => [
+                'service_name' => $subCategory->name,
+                'category_name' => $subCategory->serviceCategory?->name,
+            ],
+        ]);
 
         return redirect()->back()->with('success', 'Service registration saved successfully.');
     }
@@ -224,6 +250,19 @@ class VendorProfileController extends Controller
         }
 
         if ($registration) {
+            // Log activity
+            VendorActivityLog::create([
+                'vendor_id' => $user->id,
+                'action' => 'service_removed',
+                'target_type' => 'vendor_service_registration',
+                'target_id' => $registration->id,
+                'description' => "Vendor removed service registration for '{$subCategory->name}'.",
+                'metadata' => [
+                    'service_name' => $subCategory->name,
+                    'category_name' => $subCategory->serviceCategory?->name,
+                ],
+            ]);
+
             $registration->delete();
         }
 
@@ -386,11 +425,7 @@ class VendorProfileController extends Controller
                         }
                         break;
                     case 'checkbox':
-                        if (empty($fieldValues[$key])) {
-                            return redirect()->back()->withErrors([
-                                'services' => "Please confirm {$field['label']} for {$subCategory->name}"
-                            ]);
-                        }
+                        // Checkboxes are treated as optional confirmations
                         break;
                 }
             }
@@ -428,6 +463,16 @@ class VendorProfileController extends Controller
         if ($vendorProfile && $vendorProfile->logo) {
             Storage::disk('public')->delete($vendorProfile->logo);
             $vendorProfile->update(['logo' => null]);
+
+            // Log activity
+            VendorActivityLog::create([
+                'vendor_id' => $user->id,
+                'action' => 'logo_removed',
+                'target_type' => 'vendor_profile',
+                'target_id' => $vendorProfile->id,
+                'description' => 'Vendor removed profile logo.',
+                'metadata' => [],
+            ]);
         }
 
         return redirect()->back()->with('success', 'Logo removed successfully.');
