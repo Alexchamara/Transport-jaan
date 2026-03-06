@@ -190,8 +190,10 @@ class VendorProfileController extends Controller
                 return redirect()->back()->with('error', 'You can only edit services that require revision or have been rejected.');
             }
         } elseif ($profile && in_array($profile->submission_status, ['submitted', 'approved'])) {
-            if ($existingReg && $existingReg->status !== 'draft') {
-                return redirect()->back()->with('error', 'You cannot edit already submitted services. Only new services can be added.');
+            // In submitted/approved mode, allow editing rejected services
+            // Only block editing of other non-draft services
+            if ($existingReg && $existingReg->status !== 'draft' && $existingReg->status !== 'rejected') {
+                return redirect()->back()->with('error', 'You cannot edit already submitted or approved services. Only new services or rejected services can be edited.');
             }
         }
 

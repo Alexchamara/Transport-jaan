@@ -474,12 +474,20 @@ const VendorProfile = () => {
         });
     };
 
-    const handleServiceRegistrationAction = (subCategory, isRevisionService, isRegistered) => {
+    const handleServiceRegistrationAction = (subCategory, isRevisionService, isRegistered, isRejectedService) => {
+        // For rejected services, directly save without modal
+        if (isRejectedService) {
+            saveServiceRegistration(subCategory);
+            return;
+        }
+
+        // For revision services or already registered services, open confirmation modal
         if (isRevisionService || isRegistered) {
             openActionModal("update_service", { subCategory, isRevisionService });
             return;
         }
 
+        // For new draft services, directly save
         saveServiceRegistration(subCategory);
     };
 
@@ -1330,7 +1338,8 @@ const VendorProfile = () => {
                                                 const isRejectedService = svcStatus === 'rejected';
                                                 const isDraftService = svcStatus === 'draft';
                                                 // In "add new services" mode: existing non-draft services are locked
-                                                const isLockedExisting = canAddNewServices && isRegistered && !isDraftService;
+                                                // BUT allow rejected and revision_requested services to be edited
+                                                const isLockedExisting = canAddNewServices && isRegistered && !isDraftService && !isRevisionService && !isRejectedService;
 
                                                 return (
                                                     <div
@@ -1387,9 +1396,25 @@ const VendorProfile = () => {
                                                                         Revision Needed
                                                                     </span>
                                                                 ) : isRejectedService ? (
-                                                                    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-semibold">
-                                                                        Rejected - Resubmit
-                                                                    </span>
+                                                                    <>
+                                                                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-semibold">
+                                                                            Rejected - Resubmit
+                                                                        </span>
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                // Expand parent category if not already expanded
+                                                                                if (!expandedCategories[category.id]) {
+                                                                                    setExpandedCategories((prev) => ({ ...prev, [category.id]: true }));
+                                                                                }
+                                                                                // Expand sub-category
+                                                                                toggleSubCategory(subCat.id);
+                                                                            }}
+                                                                            className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded font-semibold transition-colors"
+                                                                        >
+                                                                            Edit & Resubmit
+                                                                        </button>
+                                                                    </>
                                                                 ) : isLockedExisting ? (
                                                                     <span className={`text-xs px-2 py-0.5 rounded font-medium ${
                                                                         svcStatus === 'approved'
@@ -1421,10 +1446,16 @@ const VendorProfile = () => {
                                                             </div>
                                                         </div>
 
-                                                        {/* Admin notes for revision services */}
-                                                        {isRevisionService && registration?.admin_notes && (
-                                                            <div className="mx-4 mb-2 bg-white border border-amber-300 rounded-lg px-3 py-2">
-                                                                <p className="text-xs font-bold text-amber-800">Admin Notes:</p>
+                                                        {/* Admin notes for revision and rejected services */}
+                                                        {(isRevisionService || isRejectedService) && registration?.admin_notes && (
+                                                            <div className={`mx-4 mb-2 rounded-lg px-3 py-2 border ${
+                                                                isRejectedService 
+                                                                    ? 'bg-red-50 border-red-300'
+                                                                    : 'bg-white border-amber-300'
+                                                            }`}>
+                                                                <p className={`text-xs font-bold ${isRejectedService ? 'text-red-800' : 'text-amber-800'}`}>
+                                                                    {isRejectedService ? 'Rejection Reason:' : 'Admin Notes:'}
+                                                                </p>
                                                                 <p className="text-sm text-gray-800">{registration.admin_notes}</p>
                                                             </div>
                                                         )}
@@ -1481,7 +1512,8 @@ const VendorProfile = () => {
                                                                                 handleServiceRegistrationAction(
                                                                                     subCat,
                                                                                     isRevisionService,
-                                                                                    isRegistered
+                                                                                    isRegistered,
+                                                                                    isRejectedService
                                                                                 )
                                                                             }
                                                                             disabled={saving}

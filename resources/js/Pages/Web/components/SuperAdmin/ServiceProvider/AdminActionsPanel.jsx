@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { router } from '@inertiajs/react';
-import { AnimatePresence } from 'framer-motion';
 import ActionModalTemplate from "../Common/ActionModalTemplate";
 
 const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
@@ -234,136 +233,26 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
                 </div>
             </div>
 
-            {/* Bulk Action Modal */}
-            <AnimatePresence>
-                {showBulkModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center"
-                        onClick={() => { setShowBulkModal(null); setAdminNotes(''); }}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, y: 20 }}
-                            className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-6 rounded-2xl text-white w-[500px] max-w-[90vw] shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <h3 className="text-[18px] font-[600] mb-2">
-                                {showBulkModal === 'approve_all' && 'Approve All Pending Services'}
-                                {showBulkModal === 'reject_all' && 'Reject All Pending Services'}
-                                {showBulkModal === 'request_revision' && 'Request Revision for All'}
-                            </h3>
-                            <p className="text-[#AEB9E1] text-[13px] mb-4">
-                                {showBulkModal === 'approve_all' && `This will approve all ${pendingCount} pending service registrations.`}
-                                {showBulkModal === 'reject_all' && `This will reject all ${pendingCount} pending service registrations. A reason is required.`}
-                                {showBulkModal === 'request_revision' && `This will request revision for all ${pendingCount} pending services. Details are required.`}
-                            </p>
 
-                            {showBulkModal !== 'approve_all' && (
-                                <textarea
-                                    value={adminNotes}
-                                    onChange={(e) => setAdminNotes(e.target.value)}
-                                    placeholder={
-                                        showBulkModal === 'reject_all' ? 'Reason for rejection (required)...' :
-                                        'Describe what needs revision (required)...'
-                                    }
-                                    className="w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-24 resize-none focus:outline-none focus:ring-1 focus:ring-[#0E43FB] mb-4"
-                                />
-                            )}
 
-                            <div className="flex gap-3 justify-end">
-                                <button
-                                    onClick={() => { setShowBulkModal(null); setAdminNotes(''); }}
-                                    className="border border-[#343B4F] text-[#AEB9E1] text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#343B4F30] transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={() => handleBulkAction(showBulkModal)}
-                                    disabled={processing || (['reject_all', 'request_revision'].includes(showBulkModal) && !adminNotes.trim())}
-                                    className={`text-white text-[13px] px-4 py-2 rounded-[5px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                                        showBulkModal === 'approve_all' ? 'bg-[#05C168] hover:bg-[#05C168]/80' :
-                                        showBulkModal === 'reject_all' ? 'bg-[#FF4757] hover:bg-[#FF4757]/80' :
-                                        'bg-[#FDB52A] hover:bg-[#FDB52A]/80'
-                                    }`}
-                                >
-                                    {processing ? 'Processing...' : 'Confirm'}
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Add Note Modal */}
-           <AnimatePresence>
-    {showNoteModal && (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center"
-            onClick={() => { setShowNoteModal(false); setAdminNotes(''); }}
-        >
-            <motion.div
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                className="bg-gradient-to-br from-[#1A2233] to-[#2A344A] p-6 rounded-2xl text-white w-[500px] max-w-[90vw] shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <h3 className="text-[18px] font-[600] mb-2">Add Admin Note</h3>
-                <p className="text-[#AEB9E1] text-[13px] mb-4">
-                    Add a note to this vendor's activity log.
-                </p>
-
-                <textarea
-                    value={adminNotes}
-                    onChange={(e) => setAdminNotes(e.target.value)}
-                    placeholder="Write your note here..."
-                    className="w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-24 resize-none focus:outline-none focus:ring-1 focus:ring-[#0E43FB] mb-4"
+            {/* Action Modals */}
+            {showActionModal && actionModalConfig[showActionModal] && (
+                <ActionModalTemplate
+                    title={actionModalConfig[showActionModal].title}
+                    description={actionModalConfig[showActionModal].description}
+                    notes={adminNotes}
+                    setNotes={setAdminNotes}
+                    placeholder={actionModalConfig[showActionModal].placeholder}
+                    showNotes={actionModalConfig[showActionModal].showNotes}
+                    notesRequired={actionModalConfig[showActionModal].notesRequired}
+                    processing={processing}
+                    processingText={actionModalConfig[showActionModal].processingText || 'Processing...'}
+                    confirmText={actionModalConfig[showActionModal].confirmText}
+                    confirmClassName={actionModalConfig[showActionModal].confirmClassName}
+                    onClose={() => { setShowActionModal(null); setAdminNotes(''); }}
+                    onConfirm={() => handleActionConfirm(showActionModal)}
                 />
-
-                <div className="flex gap-3 justify-end">
-                    <button
-                        onClick={() => { setShowNoteModal(false); setAdminNotes(''); }}
-                        className="border border-[#343B4F] text-[#AEB9E1] text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#343B4F30] transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleAddNote}
-                        disabled={processing || !adminNotes.trim()}
-                        className="bg-[#0E43FB] text-white text-[13px] px-4 py-2 rounded-[5px] hover:bg-[#0A36D6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {processing ? 'Saving...' : 'Save Note'}
-                    </button>
-                </div>
-            </motion.div>
-        </motion.div>
-    )}
-    
-    {showActionModal && actionModalConfig[showActionModal] && (
-        <ActionModalTemplate
-            title={actionModalConfig[showActionModal].title}
-            description={actionModalConfig[showActionModal].description}
-            notes={adminNotes}
-            setNotes={setAdminNotes}
-            placeholder={actionModalConfig[showActionModal].placeholder}
-            showNotes={actionModalConfig[showActionModal].showNotes}
-            notesRequired={actionModalConfig[showActionModal].notesRequired}
-            processing={processing}
-            processingText={actionModalConfig[showActionModal].processingText || 'Processing...'}
-            confirmText={actionModalConfig[showActionModal].confirmText}
-            confirmClassName={actionModalConfig[showActionModal].confirmClassName}
-            onClose={() => { setShowActionModal(null); setAdminNotes(''); }}
-            onConfirm={() => handleActionConfirm(showActionModal)}
-        />
-    )}
-</AnimatePresence>
+            )}
         </div>
     );
 };
