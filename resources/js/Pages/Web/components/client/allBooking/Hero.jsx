@@ -562,7 +562,7 @@ const Hero = ({
                                     <Car className="w-4 h-4" /> Vehicle Rental
                                 </Link>
                                 <Link
-                                    href="/clientTicketBookingDashboard"
+                                    href="/multiModel/plan-journey"
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-lg text-[13px] font-medium transition-colors"
                                 >
                                     <Plane className="w-4 h-4" /> Ticket Booking

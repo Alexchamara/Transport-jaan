@@ -25,10 +25,10 @@ const ClientCardDashboard = () => {
       route: '/ticketBooking',
       subOptions: [
         // { name: 'Book New Tickets', route: '/ticketBooking' },
-        { name: 'Ticket Dashboard', route: '/clientTicketBookingDashboard' },
-        { name: 'Flight Tickets', route: '/ticketBooking?type=flight' },
-        { name: 'Train Tickets', route: '/ticketBooking?type=train' },
-        { name: 'Bus Tickets', route: '/ticketBooking?type=bus'}
+        { name: 'Ticket Dashboard', route: '/multiModel/plan-journey' },
+        { name: 'Flight Tickets', route: '/multiModel/plan-journey' },
+        { name: 'Train Tickets', route: '/multiModel/plan-journey' },
+        { name: 'Bus Tickets', route: '/multiModel/plan-journey'}
       ]
     },
     {

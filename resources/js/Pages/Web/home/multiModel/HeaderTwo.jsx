@@ -304,19 +304,19 @@ const HeaderTwo = () => {
                                         className="ml-4 mt-1 flex flex-col space-y-1"
                                     >
                                         <Link
-                                            href="/clientTicketBookingDashboard"
+                                            href="/multiModel/plan-journey"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Flight
                                         </Link>
                                         <Link
-                                            href="/clientTicketBookingDashboard"
+                                            href="/multiModel/plan-journey"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Train
                                         </Link>
                                         <Link
-                                            href="/clientTicketBookingDashboard"
+                                            href="/multiModel/plan-journey"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Bus
