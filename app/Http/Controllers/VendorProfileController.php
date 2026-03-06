@@ -237,7 +237,7 @@ class VendorProfileController extends Controller
             $updateData['resubmission_count'] = ($existingReg->resubmission_count ?? 0) + 1;
         }
 
-        VendorServiceRegistration::updateOrCreate(
+        $registration = VendorServiceRegistration::updateOrCreate(
             [
                 'user_id' => $user->id,
                 'service_sub_category_id' => $subCategory->id,
@@ -245,24 +245,46 @@ class VendorProfileController extends Controller
             $updateData
         );
 
-        // Log the resubmission activity
+        // Determine action type for logging
         if ($existingReg && $existingReg->status === 'rejected') {
-            VendorActivityLog::create([
-                'vendor_id' => $user->id,
-                'action' => 'service_resubmitted',
-                'target_type' => 'vendor_service_registration',
-                'target_id' => $existingReg->id,
-                'description' => "Service '{$subCategory->name}' resubmitted after rejection.",
-                'metadata' => [
-                    'service_name' => $subCategory->name,
-                    'resubmission_count' => ($existingReg->resubmission_count ?? 0) + 1,
-                ],
-            ]);
+            // Resubmitting a rejected service
+            $action = 'service_resubmitted';
+            $description = "Service '{$subCategory->name}' resubmitted after rejection.";
+            $metadata = [
+                'service_name' => $subCategory->name,
+                'category_name' => $subCategory->serviceCategory?->name,
+                'resubmission_count' => ($existingReg->resubmission_count ?? 0) + 1,
+            ];
+            $message = 'Service registration resubmitted successfully. It is now pending admin review.';
+        } elseif ($existingReg) {
+            // Updating existing service
+            $action = 'service_updated';
+            $description = "Vendor updated service registration for '{$subCategory->name}'.";
+            $metadata = [
+                'service_name' => $subCategory->name,
+                'category_name' => $subCategory->serviceCategory?->name,
+            ];
+            $message = 'Service registration updated successfully.';
+        } else {
+            // Creating new service
+            $action = 'service_created';
+            $description = "Vendor created new service registration for '{$subCategory->name}'.";
+            $metadata = [
+                'service_name' => $subCategory->name,
+                'category_name' => $subCategory->serviceCategory?->name,
+            ];
+            $message = 'Service registration saved successfully.';
         }
 
-        $message = $existingReg && $existingReg->status === 'rejected' 
-            ? 'Service registration resubmitted successfully. It is now pending admin review.'
-            : 'Service registration saved successfully.';
+        // Log activity
+        VendorActivityLog::create([
+            'vendor_id' => $user->id,
+            'action' => $action,
+            'target_type' => 'vendor_service_registration',
+            'target_id' => $registration->id,
+            'description' => $description,
+            'metadata' => $metadata,
+        ]);
 
         return redirect()->back()->with('success', $message);
     }
