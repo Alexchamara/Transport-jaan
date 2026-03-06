@@ -647,6 +647,55 @@ class ServiceProviderController extends Controller
     /**
      * Auto-approve vendor if all their services are approved.
      */
+    /**
+     * Handle resubmitted service review
+     */
+    public function handleResubmittedService(Request $request, VendorServiceRegistration $registration)
+    {
+        $request->validate([
+            'status' => 'required|in:approved,rejected,revision_requested',
+            'admin_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $admin = Auth::user();
+        $previousStatus = $registration->status;
+
+        $registration->update([
+            'status' => $request->input('status'),
+            'admin_notes' => $request->input('admin_notes', $registration->admin_notes),
+            'reviewed_at' => now(),
+            'reviewed_by' => $admin->id,
+        ]);
+
+        $actionMap = [
+            'approved' => 'service_approved',
+            'rejected' => 'service_rejected_on_resubmission',
+            'revision_requested' => 'service_revision_requested',
+        ];
+
+        VendorActivityLog::create([
+            'vendor_id' => $registration->user_id,
+            'admin_id' => $admin->id,
+            'action' => $actionMap[$request->input('status')],
+            'target_type' => 'vendor_service_registration',
+            'target_id' => $registration->id,
+            'description' => "Service '{$registration->serviceSubCategory?->name}' reviewed (resubmitted). Status: {$request->input('status')}. Previous resubmissions: {$registration->resubmission_count}",
+            'metadata' => [
+                'service_name' => $registration->serviceSubCategory?->name,
+                'previous_status' => $previousStatus,
+                'resubmission_count' => $registration->resubmission_count,
+                'admin_notes' => $request->input('admin_notes'),
+            ],
+        ]);
+
+        // Check if all services are now approved → auto-approve profile
+        if ($request->input('status') === 'approved') {
+            $this->checkAutoApproveVendor($registration->user_id, $admin);
+        }
+
+        return redirect()->back()->with('success', 'Resubmitted service reviewed successfully.');
+    }
+
     private function checkAutoApproveVendor(int $userId, $admin): void
     {
         $allRegistrations = VendorServiceRegistration::where('user_id', $userId)->get();

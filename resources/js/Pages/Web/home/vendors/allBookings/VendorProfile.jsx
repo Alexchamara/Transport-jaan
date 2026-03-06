@@ -1001,7 +1001,7 @@ const VendorProfile = () => {
                             const revisionSubs = needsRevision
                                 ? subCategories.filter((sc) => {
                                     const reg = getSubCatRegistration(sc.id);
-                                    return reg && reg.status === 'revision_requested';
+                                    return reg && (reg.status === 'revision_requested' || reg.status === 'rejected');
                                 })
                                 : null;
 
@@ -1076,6 +1076,7 @@ const VendorProfile = () => {
                                                 const isGovernment = requiredFields.length === 0;
                                                 const svcStatus = registration?.status;
                                                 const isRevisionService = svcStatus === 'revision_requested';
+                                                const isRejectedService = svcStatus === 'rejected';
 
                                                 return (
                                                     <div
@@ -1083,6 +1084,8 @@ const VendorProfile = () => {
                                                         className={`rounded-lg border transition-all ${
                                                             isRevisionService
                                                                 ? "border-amber-300 bg-amber-50"
+                                                                : isRejectedService
+                                                                ? "border-red-300 bg-red-50"
                                                                 : isRegistered
                                                                 ? "border-green-300 bg-green-50"
                                                                 : "border-gray-200 bg-white"
@@ -1097,6 +1100,10 @@ const VendorProfile = () => {
                                                                 {isRevisionService ? (
                                                                     <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
                                                                         <AlertCircle className="w-3.5 h-3.5 text-white" />
+                                                                    </div>
+                                                                ) : isRejectedService ? (
+                                                                    <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
+                                                                        <X className="w-3.5 h-3.5 text-white" />
                                                                     </div>
                                                                 ) : isRegistered ? (
                                                                     <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
@@ -1120,6 +1127,10 @@ const VendorProfile = () => {
                                                                 {isRevisionService ? (
                                                                     <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-semibold">
                                                                         Revision Needed
+                                                                    </span>
+                                                                ) : isRejectedService ? (
+                                                                    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-semibold">
+                                                                        Rejected - Resubmit
                                                                     </span>
                                                                 ) : isRegistered ? (
                                                                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">
@@ -1169,7 +1180,7 @@ const VendorProfile = () => {
                                                                 />
 
                                                                 {/* Sub-category actions */}
-                                                                {(!isReadOnly || isRevisionService) && (
+                                                                {(!isReadOnly || isRevisionService || isRejectedService) && (
                                                                     <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
                                                                         <button
                                                                             onClick={() =>
@@ -1177,8 +1188,8 @@ const VendorProfile = () => {
                                                                             }
                                                                             disabled={saving}
                                                                             className={`flex items-center gap-1.5 px-5 py-2 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50 ${
-                                                                                isRevisionService
-                                                                                    ? 'bg-amber-600 hover:bg-amber-700'
+                                                                                isRevisionService || isRejectedService
+                                                                                    ? 'bg-red-600 hover:bg-red-700'
                                                                                     : 'bg-[#0955AC] hover:bg-[#074a94]'
                                                                             }`}
                                                                         >
@@ -1187,7 +1198,7 @@ const VendorProfile = () => {
                                                                             ) : (
                                                                                 <Save className="w-3.5 h-3.5" />
                                                                             )}
-                                                                            {isRevisionService ? "Update & Fix" : isRegistered ? "Update" : "Save"}
+                                                                            {isRejectedService ? "Resubmit" : isRevisionService ? "Update & Fix" : isRegistered ? "Update" : "Save"}
                                                                         </button>
                                                                     </div>
                                                                 )}

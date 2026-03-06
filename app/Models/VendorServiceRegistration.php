@@ -19,6 +19,9 @@ class VendorServiceRegistration extends Model
         'admin_notes',
         'submitted_at',
         'reviewed_at',
+        'reviewed_by',
+        'resubmission_count',
+        'last_resubmitted_at',
     ];
 
     protected $casts = [
@@ -26,6 +29,7 @@ class VendorServiceRegistration extends Model
         'pre_revision_field_values' => 'array',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        'last_resubmitted_at' => 'datetime',
     ];
 
     public function user()
@@ -70,7 +74,14 @@ class VendorServiceRegistration extends Model
 
     public function canEdit(): bool
     {
-        return in_array($this->status, ['draft', 'revision_requested']);
+        // Allow editing if draft, revision_requested, or rejected
+        return in_array($this->status, ['draft', 'revision_requested', 'rejected']);
+    }
+
+    public function canResubmit(): bool
+    {
+        // Can resubmit if rejected or revision_requested
+        return in_array($this->status, ['rejected', 'revision_requested']);
     }
 
     public function reviewer()

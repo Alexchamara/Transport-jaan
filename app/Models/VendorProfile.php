@@ -78,6 +78,6 @@ class VendorProfile extends Model
 
     public function canEdit(): bool
     {
-        return in_array($this->submission_status, ['draft', 'revision_requested']);
+        return in_array($this->submission_status, ['draft', 'revision_requested', 'rejected']);
     }
 }

@@ -41,6 +41,7 @@ class VendorProfileController extends Controller
             'user' => $user,
             'canEdit' => !$vendorProfile || $vendorProfile->canEdit(),
             'isRevisionRequested' => $vendorProfile?->isRevisionRequested() ?? false,
+            'isRejected' => $vendorProfile?->isRejected() ?? false,
         ]);
     }
 
@@ -155,17 +156,51 @@ class VendorProfileController extends Controller
             }
         }
 
-        // During revision mode, only allow updating services that are revision_requested
+        // Handle existing registrations
         $profile = VendorProfile::where('user_id', $user->id)->first();
         $existingReg = VendorServiceRegistration::where('user_id', $user->id)
             ->where('service_sub_category_id', $subCategory->id)
             ->first();
 
+        // Determine if we can edit the service
+        $canEdit = !$existingReg || $existingReg->canEdit();
+
+        if (!$canEdit) {
+            return redirect()->back()->with('error', 'You cannot edit this service in its current status.');
+        }
+
+        // Validate editing during revision mode
         if ($profile && $profile->submission_status === 'revision_requested') {
-            // Only allow editing services with revision_requested status
-            if (!$existingReg || $existingReg->status !== 'revision_requested') {
-                return redirect()->back()->with('error', 'You can only edit services that require revision.');
+            if (!$existingReg || !in_array($existingReg->status, ['revision_requested', 'rejected'])) {
+                return redirect()->back()->with('error', 'You can only edit services that require revision or have been rejected.');
             }
+        }
+
+        // Determine new status based on existing status
+        $newStatus = 'draft';
+        if ($existingReg) {
+            if ($existingReg->status === 'rejected') {
+                // Resubmitting a rejected service
+                $newStatus = 'submitted';
+                $lastResubmittedAt = now();
+                $resubmissionCount = ($existingReg->resubmission_count ?? 0) + 1;
+            } elseif ($existingReg->status === 'revision_requested') {
+                $newStatus = 'revision_requested';
+            } else {
+                $newStatus = $existingReg->status;
+            }
+        }
+
+        $updateData = [
+            'service_category_id' => $subCategory->service_category_id,
+            'field_values' => $fieldValues,
+            'status' => $newStatus,
+        ];
+
+        // Add resubmission tracking if regenerating from rejected
+        if ($existingReg && $existingReg->status === 'rejected') {
+            $updateData['last_resubmitted_at'] = now();
+            $updateData['resubmission_count'] = ($existingReg->resubmission_count ?? 0) + 1;
         }
 
         VendorServiceRegistration::updateOrCreate(
@@ -173,14 +208,29 @@ class VendorProfileController extends Controller
                 'user_id' => $user->id,
                 'service_sub_category_id' => $subCategory->id,
             ],
-            [
-                'service_category_id' => $subCategory->service_category_id,
-                'field_values' => $fieldValues,
-                'status' => ($existingReg && $existingReg->status === 'revision_requested') ? 'revision_requested' : 'draft',
-            ]
+            $updateData
         );
 
-        return redirect()->back()->with('success', 'Service registration saved successfully.');
+        // Log the resubmission activity
+        if ($existingReg && $existingReg->status === 'rejected') {
+            VendorActivityLog::create([
+                'vendor_id' => $user->id,
+                'action' => 'service_resubmitted',
+                'target_type' => 'vendor_service_registration',
+                'target_id' => $existingReg->id,
+                'description' => "Service '{$subCategory->name}' resubmitted after rejection.",
+                'metadata' => [
+                    'service_name' => $subCategory->name,
+                    'resubmission_count' => ($existingReg->resubmission_count ?? 0) + 1,
+                ],
+            ]);
+        }
+
+        $message = $existingReg && $existingReg->status === 'rejected' 
+            ? 'Service registration resubmitted successfully. It is now pending admin review.'
+            : 'Service registration saved successfully.';
+
+        return redirect()->back()->with('success', $message);
     }
 
     /**
@@ -199,6 +249,11 @@ class VendorProfileController extends Controller
         $registration = VendorServiceRegistration::where('user_id', $user->id)
             ->where('service_sub_category_id', $subCategory->id)
             ->first();
+
+        // Block removal if service has been rejected - vendor should resubmit instead
+        if ($registration && $registration->status === 'rejected') {
+            return redirect()->back()->with('error', 'You cannot remove a rejected service. Please edit and resubmit it instead.');
+        }
 
         if ($registration) {
             $registration->delete();
@@ -275,7 +330,7 @@ class VendorProfileController extends Controller
         }
 
         DB::transaction(function () use ($vendorProfile, $registrations, $user) {
-            $isResubmission = $vendorProfile->isRevisionRequested();
+            $isResubmission = $vendorProfile->isRevisionRequested() || $vendorProfile->isRejected();
 
             // Update profile status
             $vendorProfile->update([
@@ -285,7 +340,7 @@ class VendorProfileController extends Controller
 
             // Update all editable service registrations
             foreach ($registrations as $registration) {
-                if (in_array($registration->status, ['draft', 'revision_requested'])) {
+                if (in_array($registration->status, ['draft', 'revision_requested', 'rejected'])) {
                     $registration->update([
                         'status' => 'submitted',
                         'submitted_at' => now(),
@@ -303,7 +358,7 @@ class VendorProfileController extends Controller
                 'target_type' => 'vendor_profile',
                 'target_id' => $vendorProfile->id,
                 'description' => $isResubmission
-                    ? 'Vendor resubmitted profile after revision request.'
+                    ? 'Vendor resubmitted profile after rejection or revision request.'
                     : 'Vendor submitted profile for review.',
                 'metadata' => ['services_count' => $registrations->count()],
             ]);

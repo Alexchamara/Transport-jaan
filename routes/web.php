@@ -375,6 +375,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::post('/service-providers/{registration}/approve-service', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'approveService'])->name('serviceProviders.approveService');
         Route::post('/service-providers/{registration}/reject-service', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'rejectService'])->name('serviceProviders.rejectService');
         Route::post('/service-providers/{registration}/request-service-revision', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'requestServiceRevision'])->name('serviceProviders.requestServiceRevision');
+        Route::post('/service-providers/{registration}/handle-resubmitted', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'handleResubmittedService'])->name('serviceProviders.handleResubmitted');
         Route::post('/service-providers/{user}/approve-all', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'approveAll'])->name('serviceProviders.approveAll');
         Route::post('/service-providers/{user}/reject-all', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'rejectAll'])->name('serviceProviders.rejectAll');
         Route::post('/service-providers/{user}/request-revision', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'requestRevision'])->name('serviceProviders.requestRevision');

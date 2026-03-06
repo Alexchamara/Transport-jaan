@@ -200,16 +200,17 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
                                 {showBulkModal === 'request_revision' && `This will request revision for all ${pendingCount} pending services. Details are required.`}
                             </p>
 
-                            <textarea
-                                value={adminNotes}
-                                onChange={(e) => setAdminNotes(e.target.value)}
-                                placeholder={
-                                    showBulkModal === 'approve_all' ? 'Optional notes...' :
-                                    showBulkModal === 'reject_all' ? 'Reason for rejection (required)...' :
-                                    'Describe what needs revision (required)...'
-                                }
-                                className="w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-24 resize-none focus:outline-none focus:ring-1 focus:ring-[#0E43FB] mb-4"
-                            />
+                            {showBulkModal !== 'approve_all' && (
+                                <textarea
+                                    value={adminNotes}
+                                    onChange={(e) => setAdminNotes(e.target.value)}
+                                    placeholder={
+                                        showBulkModal === 'reject_all' ? 'Reason for rejection (required)...' :
+                                        'Describe what needs revision (required)...'
+                                    }
+                                    className="w-full bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm h-24 resize-none focus:outline-none focus:ring-1 focus:ring-[#0E43FB] mb-4"
+                                />
+                            )}
 
                             <div className="flex gap-3 justify-end">
                                 <button
