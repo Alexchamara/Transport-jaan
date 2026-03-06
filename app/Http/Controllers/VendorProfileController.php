@@ -187,9 +187,6 @@ class VendorProfileController extends Controller
         if ($profile && $profile->submission_status === 'revision_requested') {
             if (!$existingReg || !in_array($existingReg->status, ['revision_requested', 'rejected'])) {
                 return redirect()->back()->with('error', 'You can only edit services that require revision or have been rejected.');
-            // Revision mode: only allow editing services with revision_requested status
-            if (!$existingReg || $existingReg->status !== 'revision_requested') {
-                return redirect()->back()->with('error', 'You can only edit services that require revision.');
             }
         } elseif ($profile && in_array($profile->submission_status, ['submitted', 'approved'])) {
             // Submitted/approved: allow creating NEW services, block editing existing non-draft ones
@@ -275,6 +272,8 @@ class VendorProfileController extends Controller
         // Block removal if service has been rejected - vendor should resubmit instead
         if ($registration && $registration->status === 'rejected') {
             return redirect()->back()->with('error', 'You cannot remove a rejected service. Please edit and resubmit it instead.');
+        }
+
         // For submitted/approved profiles, only allow removing draft (new) services
         if ($registration && $registration->status !== 'draft' && $profile && in_array($profile->submission_status, ['submitted', 'approved'])) {
             return redirect()->back()->with('error', 'You cannot remove already submitted or approved services.');
