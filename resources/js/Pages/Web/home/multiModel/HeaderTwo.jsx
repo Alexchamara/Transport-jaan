@@ -354,19 +354,13 @@ const HeaderTwo = () => {
                                             href="/courierBookingDashboard"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
-                                            Land
+                                            Domestic
                                         </Link>
                                         <Link
                                             href="/courierBookingDashboard"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
-                                            Air
-                                        </Link>
-                                        <Link
-                                            href="/courierBookingDashboard"
-                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
-                                        >
-                                            Sea
+                                            Logistic
                                         </Link>
                                     </div>
                                 )}

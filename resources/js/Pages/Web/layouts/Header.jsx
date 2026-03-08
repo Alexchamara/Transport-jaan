@@ -238,39 +238,160 @@ const Header = () => {
                             </svg>
                         </button>
 
-                        {/* ---------- Navigation (same as ClientHeader) ---------- */}
+                        {/* ---------- Navigation ---------- */}
                         <nav className="flex flex-col space-y-8 text-[#000000cc] text-[15px] font-[700]">
                             {/* Vehicle Rental */}
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleDropdown("vehicle")}
+                                    className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
+                                    aria-expanded={openDropdown.vehicle}
+                                    aria-controls="vehicle-dropdown"
+                                >
+                                    Vehicle Rental
+                                    <img
+                                        src={downArrow}
+                                        alt="dropdown"
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
+                                            openDropdown.vehicle
+                                                ? "rotate-180"
+                                                : ""
+                                        }`}
+                                    />
+                                </button>
+                                {openDropdown.vehicle && (
+                                    <div
+                                        id="vehicle-dropdown"
+                                        className="ml-4 mt-1 flex flex-col space-y-1"
+                                    >
+                                        <Link
+                                            href="/multiModel/plan-journey"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Land
+                                        </Link>
+                                        <Link
+                                            href="/multiModel/plan-journey"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Air
+                                        </Link>
+                                        <Link
+                                            href="/multiModel/plan-journey"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Sea
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Ticket Booking */}
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleDropdown("ticket")}
+                                    className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
+                                    aria-expanded={openDropdown.ticket}
+                                    aria-controls="ticket-dropdown"
+                                >
+                                    Ticket Booking
+                                    <img
+                                        src={downArrow}
+                                        alt="dropdown"
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
+                                            openDropdown.ticket
+                                                ? "rotate-180"
+                                                : ""
+                                        }`}
+                                    />
+                                </button>
+                                {openDropdown.ticket && (
+                                    <div
+                                        id="ticket-dropdown"
+                                        className="ml-4 mt-1 flex flex-col space-y-1"
+                                    >
+                                        <Link
+                                            href="/multiModel/plan-journey"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Flight
+                                        </Link>
+                                        <Link
+                                            href="/multiModel/plan-journey"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Train
+                                        </Link>
+                                        <Link
+                                            href="/multiModel/plan-journey"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Bus
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Courier Booking */}
+                            <div className="relative">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleDropdown("courier")}
+                                    className="hover:text-[#0955AC] flex items-center gap-5 cursor-pointer w-full text-left focus:outline-none"
+                                    aria-expanded={openDropdown.courier}
+                                    aria-controls="courier-dropdown"
+                                >
+                                    Courier Booking
+                                    <img
+                                        src={downArrow}
+                                        alt="dropdown"
+                                        className={`w-[8px] h-[5px] transition-transform duration-200 ${
+                                            openDropdown.courier
+                                                ? "rotate-180"
+                                                : ""
+                                        }`}
+                                    />
+                                </button>
+                                {openDropdown.courier && (
+                                    <div
+                                        id="courier-dropdown"
+                                        className="ml-4 mt-1 flex flex-col space-y-1"
+                                    >
+                                        <Link
+                                            href="/courierBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Domestic
+                                        </Link>
+                                        <Link
+                                            href="/courierBookingDashboard"
+                                            className="block text-sm text-gray-700 hover:text-[#0955AC]"
+                                        >
+                                            Logistic
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
+
                             <Link
-                                href="/vendors/dashbord"
-                                className="hover:text-[#0955AC]"
-                            >
-                                Vehicle Rental
-                            </Link>
-                            {/* Sidebar */}
-                            <Link
-                                href="/ticketBooking/dashboard"
-                                className="hover:text-[#0955AC]"
-                            >
-                                Ticket Booking
-                            </Link>
-                            <Link
-                                href="/vendors/warehouse/dashboard"
+                                href="/warehouseList"
                                 className="hover:text-[#0955AC]"
                             >
                                 Warehouse Booking
                             </Link>
                             <Link
-                                href="/vendors/freight/dashboard"
+                                href="/freightBookingDashboard"
                                 className="hover:text-[#0955AC]"
                             >
                                 Freight Booking
                             </Link>
                             <Link
-                                href="/vendors/multimodal/dashboard"
+                                href="/clientDashboardSettings"
                                 className="hover:text-[#0955AC]"
                             >
-                                Multimodal
+                                Settings
                             </Link>
 
                             {/* Keep the scroll-to-section links (Home, About Us, …) */}
