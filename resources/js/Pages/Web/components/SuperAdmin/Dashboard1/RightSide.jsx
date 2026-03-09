@@ -1637,10 +1637,18 @@ const RightSide = ({ userStats, landBookings = [], airBookings = [], seaBookings
                         {pendingVendorReviews.recentSubmissions && pendingVendorReviews.recentSubmissions.length > 0 && (
                             <div className="space-y-2">
                                 {pendingVendorReviews.recentSubmissions.map((sub) => (
-                                    <div key={sub.id} className="flex items-center justify-between bg-[#081028] rounded-lg px-3 py-2">
-                                        <div>
+                                    <div key={sub.key || `vendor-${sub.id}`} className="flex items-center justify-between bg-[#081028] rounded-lg px-3 py-2">
+                                        <div className="flex flex-col">
                                             <span className="text-[#E0E6F7] text-[13px]">{sub.company || sub.name}</span>
-                                            {sub.company && <span className="text-[#AEB9E1] text-[11px] ml-2">({sub.name})</span>}
+                                            <span className="text-[#AEB9E1] text-[11px]">
+                                                {sub.hasProfile && sub.serviceCount > 0
+                                                    ? `Profile + ${sub.serviceCount} service${sub.serviceCount > 1 ? 's' : ''} pending review`
+                                                    : sub.hasProfile
+                                                        ? 'Profile pending review'
+                                                        : `Service pending review: ${(sub.serviceLabels || []).join(', ')}`
+                                                }
+                                                {sub.company ? ` (${sub.name})` : ''}
+                                            </span>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <span className="text-[#AEB9E1] text-[11px]">{sub.submitted_at}</span>

@@ -22,7 +22,7 @@ import proPic from "../../../../assets/vendors/dashboard/proPic.svg"; // Added
 import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; // Added
 
 import AddUnit from "../../../../home/vendors/courierService/AddUnit";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 import UserDropdown from "../../UserDropdown";
 
@@ -271,12 +271,6 @@ const UnitContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30 ">
-<ServiceNavBar 
-    isVerified={isVerified}
-    settingsRoute={route("settingsPage")}
-/>        </div>
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
@@ -440,8 +434,8 @@ const UnitContent = () => {
                                     <button
                                         className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700]"
                                         onClick={() =>
-                                            (window.location.href =
-                                                "/courierService/unitDetails")
+                                        (window.location.href =
+                                            "/courierService/unitDetails")
                                         }
                                     >
                                         Assign
@@ -499,11 +493,10 @@ const UnitContent = () => {
                                 ) : (
                                     <button
                                         key={num}
-                                        className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
-                                            currentPage === num
+                                        className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num
                                                 ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                                 : "bg-[#F4F3F3]"
-                                        }`}
+                                            }`}
                                         onClick={() => goToPage(num)}
                                     >
                                         {num}
@@ -522,7 +515,6 @@ const UnitContent = () => {
                 </>
             )}
         </div>
-        </>
     );
 };
 

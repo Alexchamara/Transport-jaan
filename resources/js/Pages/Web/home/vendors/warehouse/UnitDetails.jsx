@@ -1,21 +1,15 @@
-import React from "react";
-import SideMenu from '../../../components/vendors/warehouse/SideMenu';
-import UnitDetailsContent from '../../../components/vendors/warehouse/units/UnitDetailsContent';
-import { usePage } from '@inertiajs/react';
+﻿import React from "react";
+import { usePage } from "@inertiajs/react";
+import VendorShellLayout from "../../../../../Components/vendors/VendorShellLayout";
+import UnitDetailsContent from "../../../components/vendors/warehouse/units/UnitDetailsContent";
 
 const UnitDetails = () => {
-    const { props } = usePage();
-    const { unitId } = props;
+    const { unitId } = usePage().props;
 
     return (
-        <div className="bg-[#E5E5E5] min-h-screen w-full flex gap-0">
-            <div className="h-screen w-64 flex-shrink-0 overflow-hidden">
-                <SideMenu />
-            </div>
-            <div className="flex-1 overflow-y-auto overflow-x-hidden h-screen">
-                <UnitDetailsContent unitId={unitId} />
-            </div>
-        </div>
+        <VendorShellLayout activeService="Warehousing">
+            <UnitDetailsContent unitId={unitId} />
+        </VendorShellLayout>
     );
 };
 

@@ -395,4 +395,159 @@ class VendorAllBookingsController extends Controller
             'bookingStats' => $bookingStats,
         ]);
     }
+
+    public function payment()
+    {
+        $vendorId = Auth::id();
+        $vendor   = Auth::user();
+
+        if ($vendor->role !== 'vendor') {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Aggregate payment transactions from vehicle bookings
+        $vehicleBookings = Booking::whereHas('vehicle', function ($q) use ($vendorId) {
+            $q->where('provider_id', $vendorId);
+        })
+            ->with(['vehicle', 'client', 'customer', 'payments'])
+            ->latest('created_at')
+            ->get();
+
+        $transactions   = [];
+        $totalRevenue   = 0;
+        $totalCompleted = 0;
+        $totalPending   = 0;
+        $completedCount = 0;
+        $pendingCount   = 0;
+
+        foreach ($vehicleBookings as $booking) {
+            $vehicle     = $booking->vehicle;
+            $client      = $booking->client ?? $booking->customer;
+            $vehicleName = $vehicle
+                ? trim(($vehicle->manufacturer ?? '') . ' ' . ($vehicle->model ?? ''))
+                : 'N/A';
+
+            foreach ($booking->payments as $payment) {
+                $status = strtolower($payment->status);
+                $isPaid = in_array($status, ['paid', 'completed', 'success']);
+
+                if ($isPaid) {
+                    $totalCompleted += (float) $payment->amount_paid;
+                    $completedCount++;
+                } else {
+                    $totalPending += (float) $payment->amount_paid;
+                    $pendingCount++;
+                }
+                $totalRevenue += (float) $payment->amount_paid;
+
+                $transactions[] = [
+                    'id'           => 'BK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                    'booking_id'   => $booking->id,
+                    'payment_id'   => $payment->id,
+                    'client'       => $client?->name ?? 'N/A',
+                    'car'          => $vehicleName ?: 'N/A',
+                    'rentPerDay'   => 'Rs. ' . number_format($booking->price_per_day ?? 0, 2),
+                    'days'         => $booking->rental_days ?? '0',
+                    'amount'       => 'Rs. ' . number_format($payment->amount_paid ?? 0, 2),
+                    'amount_raw'   => (float) ($payment->amount_paid ?? 0),
+                    'dueDate'      => $booking->created_at ? $booking->created_at->format('Y.m.d') : 'N/A',
+                    'paymentDate'  => $payment->created_at ? $payment->created_at->format('Y.m.d') : 'N/A',
+                    'method'       => $payment->method ?? 'N/A',
+                    'status'       => $isPaid ? 'Completed' : 'Pending',
+                    'statusColor'  => $isPaid ? '#50AE31' : '#F0BB0D',
+                    'statusBg'     => $isPaid ? '#6DB4464D' : '#FFCD294D',
+                    'tx_reference' => $payment->tx_reference ?? 'N/A',
+                    'service_name' => 'Vehicle Rental',
+                ];
+            }
+        }
+
+        // Also aggregate flight booking totals
+        $flightBookings = FlightBooking::latest('created_at')->get();
+        foreach ($flightBookings as $booking) {
+            $amount = (float) ($booking->total_amount ?? 0);
+            if ($amount <= 0) {
+                continue;
+            }
+            $isPaid = in_array(strtolower($booking->payment_status ?? ''), ['paid', 'completed']);
+            if ($isPaid) {
+                $totalCompleted += $amount;
+                $completedCount++;
+            } else {
+                $totalPending += $amount;
+                $pendingCount++;
+            }
+            $totalRevenue += $amount;
+
+            $transactions[] = [
+                'id'           => 'FL-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                'booking_id'   => $booking->id,
+                'payment_id'   => null,
+                'client'       => $booking->name ?? 'N/A',
+                'car'          => 'Flight Ticket',
+                'rentPerDay'   => '-',
+                'days'         => '-',
+                'amount'       => 'Rs. ' . number_format($amount, 2),
+                'amount_raw'   => $amount,
+                'dueDate'      => $booking->created_at ? $booking->created_at->format('Y.m.d') : 'N/A',
+                'paymentDate'  => $booking->created_at ? $booking->created_at->format('Y.m.d') : 'N/A',
+                'method'       => 'N/A',
+                'status'       => $isPaid ? 'Completed' : 'Pending',
+                'statusColor'  => $isPaid ? '#50AE31' : '#F0BB0D',
+                'statusBg'     => $isPaid ? '#6DB4464D' : '#FFCD294D',
+                'tx_reference' => 'N/A',
+                'service_name' => 'Air Ticket Booking',
+            ];
+        }
+
+        // Sort by date descending
+        usort($transactions, fn ($a, $b) => strcmp($b['dueDate'], $a['dueDate']));
+
+        // Monthly revenue chart (last 6 months)
+        $monthlyRevenue = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
+            $monthEnd   = Carbon::now()->subMonths($i)->endOfMonth();
+            $revenue    = Booking::whereHas('vehicle', function ($q) use ($vendorId) {
+                $q->where('provider_id', $vendorId);
+            })
+                ->whereBetween('created_at', [$monthStart, $monthEnd])
+                ->with('payments')
+                ->get()
+                ->flatMap(fn ($b) => $b->payments)
+                ->sum('amount_paid');
+
+            $monthlyRevenue[] = [
+                'month'   => $monthStart->format('M'),
+                'revenue' => (float) $revenue,
+            ];
+        }
+
+        $stats = [
+            'total_revenue'      => $totalRevenue,
+            'total_completed'    => $totalCompleted,
+            'total_pending'      => $totalPending,
+            'completed_count'    => $completedCount,
+            'pending_count'      => $pendingCount,
+            'total_transactions' => count($transactions),
+        ];
+
+        return Inertia::render('Web/home/vendors/allBookings/PaymentPage', [
+            'transactions'  => $transactions,
+            'stats'         => $stats,
+            'monthlyRevenue' => $monthlyRevenue,
+        ]);
+    }
+
+    public function expenses()
+    {
+        $vendorId = Auth::id();
+        $vendor   = Auth::user();
+
+        if ($vendor->role !== 'vendor') {
+            abort(403, 'Unauthorized access');
+        }
+
+        return Inertia::render('Web/home/vendors/allBookings/ExpensesPage');
+    }
 }

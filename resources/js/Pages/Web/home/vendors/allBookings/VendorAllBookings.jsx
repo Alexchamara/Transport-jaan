@@ -13,7 +13,7 @@ import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
 import UserDropdown from "../../../components/vendors/UserDropdown";
 import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
 import UnverifiedBanner from "./UnverifiedBanner";
-import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar";
+
 import { API_BASE_URL } from "../../../../../config/api";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
@@ -88,10 +88,10 @@ const VendorAllBookings = ({
     const displayStatistics = isVerified ? statistics : dummyStatistics;
 
     // Percentage changes: hardcoded when unverified, from statistics when verified
-    const pctTotalBookings  = isVerified ? (statistics.total_bookings_change  ?? 0) : 2.86;
+    const pctTotalBookings = isVerified ? (statistics.total_bookings_change ?? 0) : 2.86;
     const pctActiveBookings = isVerified ? (statistics.active_bookings_change ?? 0) : 1.73;
-    const pctTotalEarned    = isVerified ? (statistics.total_earned_change    ?? 0) : 2.86;
-    const pctThisMonth      = isVerified ? (statistics.this_month_change      ?? 0) : 0;
+    const pctTotalEarned = isVerified ? (statistics.total_earned_change ?? 0) : 2.86;
+    const pctThisMonth = isVerified ? (statistics.this_month_change ?? 0) : 0;
 
     const [isMobile, setIsMobile] = useState(true);
     const [notifications, setNotifications] = useState([]);
@@ -179,7 +179,7 @@ const VendorAllBookings = ({
             ]);
 
             const headers = [["Booking Code", "Type", "Customer", "Service", "Amount", "Status", "Date"]];
-            
+
             doc.setFontSize(16);
             doc.text("All Bookings Report", 14, 10);
             doc.setFontSize(10);
@@ -219,7 +219,7 @@ const VendorAllBookings = ({
             const data = [
                 ["Booking Code", "Type", "Customer", "Service", "Amount", "Status", "Date"]
             ];
-            
+
             filteredBookings.forEach(booking => {
                 data.push([
                     booking.booking_code || booking.id,
@@ -235,7 +235,7 @@ const VendorAllBookings = ({
             const worksheet = XLSX.utils.aoa_to_sheet(data);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "All Bookings");
-            
+
             const colWidths = [
                 { wch: 15 },
                 { wch: 12 },
@@ -246,7 +246,7 @@ const VendorAllBookings = ({
                 { wch: 15 }
             ];
             worksheet['!cols'] = colWidths;
-            
+
             XLSX.writeFile(workbook, `vendor-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
         } catch (error) {
             console.error("Error exporting to XLSX:", error);
@@ -267,17 +267,17 @@ const VendorAllBookings = ({
 
     // Map a booking to the field names AllBookingTable expects
     const mapToRow = (b) => ({
-        id:            b.id ?? b.booking_code,
-        date:          b.date ?? b.booking_date,
-        customer:      b.customer ?? b.customer_name,
-        transport:     b.transport ?? b.car ?? b.service_name,
-        details:       b.details ?? b.plate ?? b.booking_type,
-        duration:      b.duration ?? "—",
-        startDate:     b.startDate ?? b.start_date ?? "—",
-        endDate:       b.endDate ?? b.end_date ?? "—",
-        price:         b.price ?? (b.total_amount ? `Rs. ${Number(b.total_amount).toLocaleString()}` : "—"),
+        id: b.id ?? b.booking_code,
+        date: b.date ?? b.booking_date,
+        customer: b.customer ?? b.customer_name,
+        transport: b.transport ?? b.car ?? b.service_name,
+        details: b.details ?? b.plate ?? b.booking_type,
+        duration: b.duration ?? "—",
+        startDate: b.startDate ?? b.start_date ?? "—",
+        endDate: b.endDate ?? b.end_date ?? "—",
+        price: b.price ?? (b.total_amount ? `Rs. ${Number(b.total_amount).toLocaleString()}` : "—"),
         paymentStatus: b.paymentStatus ?? b.payment_status ?? "—",
-        status:        b.status ?? "—",
+        status: b.status ?? "—",
     });
 
     // Apply filters to bookings
@@ -314,15 +314,6 @@ const VendorAllBookings = ({
     };
 
     return (
-        <>
-        {/* ServiceNavBar - flush at top, no gap */}
-        <div className="sticky top-0 z-30">
-                <ServiceNavBar 
-                    isVerified={isVerified}
-                    settingsRoute={route("settingsPage")}
-                />
-        </div>
-
         <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-8 lg:pb-12">
             {/* Header section - matching DashContent */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center mb-6">
@@ -331,7 +322,7 @@ const VendorAllBookings = ({
                 </h1>
             </div>
 
-          
+
 
             {/* Unverified Warning */}
             <div className="mt-6">
@@ -459,179 +450,178 @@ const VendorAllBookings = ({
                 {/* Bookings Table Section - matching DashContent styling */}
                 <div className="w-full max-w-full overflow-hidden">
                     {/* Bookings table */}
-                        <div
-                            className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-15 px-3 md:px-10"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <div className="flex flex-col gap-4 w-full">
-                                {/* Header and Buttons */}
-                                <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 w-full">
-                                    <h1 className="text-[20px] md:text-[24px] font-[700]">
-                                        All Bookings
-                                    </h1>
+                    <div
+                        className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-15 px-3 md:px-10"
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    >
+                        <div className="flex flex-col gap-4 w-full">
+                            {/* Header and Buttons */}
+                            <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 w-full">
+                                <h1 className="text-[20px] md:text-[24px] font-[700]">
+                                    All Bookings
+                                </h1>
 
-                                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                                        <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
-                                            <img
-                                                src={miniSearchIcon}
-                                                className="shrink-0"
-                                            />
+                                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                    <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
+                                        <img
+                                            src={miniSearchIcon}
+                                            className="shrink-0"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full outline-none bg-transparent placeholder:text-[#7B7B7ACC] border-0 focus:ring-0 text-sm"
+                                            placeholder="Search client name, car, etc."
+                                        />
+                                    </div>
+
+                                    <button onClick={() => setShowFilters(!showFilters)}
+                                        className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
+                                        <img
+                                            src={filterIcon}
+                                            className="size-[14px] shrink-0 brightness-0 "
+                                        />
+                                        <span>Filter</span>
+                                    </button>
+
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setShowExportMenu(!showExportMenu)}
+                                            className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
+                                            <Download size={14} className="shrink-0" />
+                                            <span>Export</span>
+                                            <DropdownIcon size={12} />
+                                        </button>
+                                        {showExportMenu && (
+                                            <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
+                                                <button
+                                                    onClick={exportToCSV}
+                                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                                >
+                                                    Export to CSV
+                                                </button>
+                                                <button
+                                                    onClick={exportToPDF}
+                                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                                >
+                                                    Export to PDF
+                                                </button>
+                                                <button
+                                                    onClick={exportToXLSX}
+                                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px]"
+                                                >
+                                                    Export to XLSX
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Filter Panel */}
+                            {showFilters && (
+                                <div className="border border-gray-300 rounded-[8px] p-4 bg-gray-50 w-full">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-[600] text-[16px]">Filters</h3>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={handleResetFilters}
+                                                className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-blue-700 transition font-[500]"
+                                            >
+                                                Reset Filters
+                                            </button>
+                                            <button
+                                                onClick={() => setShowFilters(false)}
+                                                className="text-gray-500 hover:text-blue-700 text-[24px] font-bold"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                                        {/* Search */}
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[12px] font-[600] text-gray-700">Search</label>
                                             <input
                                                 type="text"
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="w-full outline-none bg-transparent placeholder:text-[#7B7B7ACC] border-0 focus:ring-0 text-sm"
-                                                placeholder="Search client name, car, etc."
+                                                placeholder="Customer, vehicle, ref..."
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
                                             />
                                         </div>
 
-                                        <button onClick={() => setShowFilters(!showFilters)} 
-                                            className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
-                                                    <img
-                                                    src={filterIcon}
-                                                    className="size-[14px] shrink-0 brightness-0 "
-                                                />
-                                            <span>Filter</span>
-                                        </button>
-
-                                        <div className="relative">
-                                            <button 
-                                                onClick={() => setShowExportMenu(!showExportMenu)} 
-                                                className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">    
-                                                <Download size={14} className="shrink-0" />
-                                                <span>Export</span>
-                                                <DropdownIcon size={12} />
-                                            </button>
-                                            {showExportMenu && (
-                                                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
-                                                    <button
-                                                        onClick={exportToCSV}
-                                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
-                                                    >
-                                                        Export to CSV
-                                                    </button>
-                                                    <button
-                                                        onClick={exportToPDF}
-                                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
-                                                    >
-                                                        Export to PDF
-                                                    </button>
-                                                    <button
-                                                        onClick={exportToXLSX}
-                                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px]"
-                                                    >
-                                                        Export to XLSX
-                                                    </button>
-                                                </div>
-                                            )}
+                                        {/* Status */}
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[12px] font-[600] text-gray-700">Status</label>
+                                            <select
+                                                value={statusFilter}
+                                                onChange={(e) => setStatusFilter(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                            >
+                                                <option value="All">All</option>
+                                                <option value="Pending">Pending</option>
+                                                <option value="Confirmed">Confirmed</option>
+                                                <option value="Ongoing">Ongoing</option>
+                                                <option value="Completed">Completed</option>
+                                                <option value="Cancelled">Cancelled</option>
+                                            </select>
                                         </div>
+
+                                        {/* Payment */}
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[12px] font-[600] text-gray-700">Payment</label>
+                                            <select
+                                                value={paymentStatusFilter}
+                                                onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                            >
+                                                <option value="All">All</option>
+                                                <option value="Paid">Paid</option>
+                                                <option value="Pending">Pending</option>
+                                            </select>
+                                        </div>
+
+                                        {/* From Date */}
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[12px] font-[600] text-gray-700">From Date</label>
+                                            <input
+                                                type="date"
+                                                value={dateFromFilter}
+                                                onChange={(e) => setDateFromFilter(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                            />
+                                        </div>
+
+                                        {/* To Date */}
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-[12px] font-[600] text-gray-700">To Date</label>
+                                            <input
+                                                type="date"
+                                                value={dateToFilter}
+                                                onChange={(e) => setDateToFilter(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Results count */}
+                                    <div className="mt-3 text-[12px] text-gray-500">
+                                        Showing {filteredBookings.length} of {displayBookings.length} bookings
                                     </div>
                                 </div>
-
-                                {/* Filter Panel */}
-                                {showFilters && (
-                                    <div className="border border-gray-300 rounded-[8px] p-4 bg-gray-50 w-full">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="font-[600] text-[16px]">Filters</h3>
-                                             <div className="flex items-center gap-2">
-                                                <button
-                                                onClick={handleResetFilters}
-                                                    className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-blue-700 transition font-[500]"
-                                                >
-                                                    Reset Filters
-                                                </button>
-                                                <button
-                                                    onClick={() => setShowFilters(false)}
-                                                    className="text-gray-500 hover:text-blue-700 text-[24px] font-bold"
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                                            {/* Search */}
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[12px] font-[600] text-gray-700">Search</label>
-                                                <input
-                                                    type="text"
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                    placeholder="Customer, vehicle, ref..."
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                                />
-                                            </div>
-
-                                            {/* Status */}
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[12px] font-[600] text-gray-700">Status</label>
-                                                <select
-                                                    value={statusFilter}
-                                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                                >
-                                                    <option value="All">All</option>
-                                                    <option value="Pending">Pending</option>
-                                                    <option value="Confirmed">Confirmed</option>
-                                                    <option value="Ongoing">Ongoing</option>
-                                                    <option value="Completed">Completed</option>
-                                                    <option value="Cancelled">Cancelled</option>
-                                                </select>
-                                            </div>
-
-                                            {/* Payment */}
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[12px] font-[600] text-gray-700">Payment</label>
-                                                <select
-                                                    value={paymentStatusFilter}
-                                                    onChange={(e) => setPaymentStatusFilter(e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                                >
-                                                    <option value="All">All</option>
-                                                    <option value="Paid">Paid</option>
-                                                    <option value="Pending">Pending</option>
-                                                </select>
-                                            </div>
-
-                                            {/* From Date */}
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[12px] font-[600] text-gray-700">From Date</label>
-                                                <input
-                                                    type="date"
-                                                    value={dateFromFilter}
-                                                    onChange={(e) => setDateFromFilter(e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                                />
-                                            </div>
-
-                                            {/* To Date */}
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[12px] font-[600] text-gray-700">To Date</label>
-                                                <input
-                                                    type="date"
-                                                    value={dateToFilter}
-                                                    onChange={(e) => setDateToFilter(e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Results count */}
-                                        <div className="mt-3 text-[12px] text-gray-500">
-                                            Showing {filteredBookings.length} of {displayBookings.length} bookings
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <AllBookingTable
-                                rows={filteredBookings}
-                            />
+                            )}
                         </div>
+
+                        <AllBookingTable
+                            rows={filteredBookings}
+                        />
+                    </div>
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

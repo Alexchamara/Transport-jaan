@@ -20,7 +20,7 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 
 import CarBookingTableTwo from "../../../../components/vendors/courierService/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 import { ChevronDown, Settings as SettingsIcon } from "lucide-react";
 
@@ -29,7 +29,7 @@ import UserDropdown from "../../UserDropdown";
 const BookingContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
-    const isVerified = user?.status === 'verified' || user?.status === 'Verified';   
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F314D", bg: "#ACE19957" },
@@ -184,12 +184,6 @@ const BookingContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />        </div>
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center mb-6">
@@ -565,7 +559,6 @@ const BookingContent = () => {
                 />
             </div>
         </div>
-        </>
     );
 };
 

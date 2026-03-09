@@ -10,8 +10,7 @@ import ClientTable from "../../../components/vendors/clients/ClientTable";
 
 import UserDropdown from "../../../components/vendors/UserDropdown";
 import UnverifiedBanner from "./UnverifiedBanner";
-import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar";
-import SideMenu from "./SideMenu";
+import VendorShellLayout from "../../../../../Components/vendors/VendorShellLayout";
 
 const AllClient = () => {
     const { auth } = usePage().props;
@@ -33,16 +32,8 @@ const AllClient = () => {
     };
 
     return (
-        <div className="flex flex-row gap-0 w-full h-full min-h-screen bg-[#F5F5F5]">
-            <SideMenu />
+        <VendorShellLayout activeService="All Bookings">
             <div className="flex-1 flex flex-col min-w-0">
-                {/* ServiceNavBar - sticky at top, flush with sidebar */}
-                <div className="sticky top-0 z-30">
-                    <ServiceNavBar 
-                        isVerified={isVerified}
-                        settingsRoute={route("settingsPage")}
-                    />
-                </div>
                 <div className="w-full h-auto px-5 py-6">
                     {/* Header section */}
                     <div className="flex flex-col lg:flex-row gap-5 justify-between items-center">
@@ -67,7 +58,7 @@ const AllClient = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </VendorShellLayout>
     );
 };
 

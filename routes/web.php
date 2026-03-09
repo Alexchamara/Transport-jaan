@@ -1335,6 +1335,14 @@ Route::get('/vendorAllBookings/bookings', [\App\Http\Controllers\VendorAllBookin
     ->middleware('auth')
     ->name('vendorAllBookingsPage');
 
+Route::get('/vendorAllBookings/payment', [\App\Http\Controllers\VendorAllBookingsController::class, 'payment'])
+    ->middleware('auth')
+    ->name('vendorAllBookingsPayment');
+
+Route::get('/vendorAllBookings/expenses', [\App\Http\Controllers\VendorAllBookingsController::class, 'expenses'])
+    ->middleware('auth')
+    ->name('vendorAllBookingsExpenses');
+
 // Vendor Profile & Service Registration Routes
 Route::middleware(['auth'])->prefix('vendor/profile')->name('vendor.profile.')->group(function () {
     Route::get('/', [\App\Http\Controllers\VendorProfileController::class, 'index'])->name('index');

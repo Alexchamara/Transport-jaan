@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 
 import UserDropdown from "../../UserDropdown";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
 
 const serviceTypes = [
     { name: "Standard Delivery", percent: 45, Icon: ClipboardList },
@@ -40,15 +39,8 @@ const DashContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-    
+
     return (
-        <>
-        <div className="sticky top-0 z-30 ">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full h-auto pr-5 lg:pl-4 lg:pr-5 pt-6 pb-10">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
@@ -534,8 +526,6 @@ const DashContent = () => {
                 </div>
             </div>
         </div>
-
-        </>
     );
 };
 

@@ -22,7 +22,7 @@ import proPic from "../../../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg";
 
 import UserDropdown from "../../UserDropdown";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 const TrackingContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
@@ -32,13 +32,6 @@ const TrackingContent = () => {
     const wrapperRef = useRef(null);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-           <ServiceNavBar 
-            isVerified={isVerified}
-            settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="pt-6 pb-12 lg:pl-4 lg:pr-5">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
@@ -234,7 +227,6 @@ const TrackingContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

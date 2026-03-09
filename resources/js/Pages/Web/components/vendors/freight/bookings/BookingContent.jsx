@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
@@ -24,20 +24,20 @@ import BookingBarChart from "./BookingBarChart";
 import UserDropdown from "../../UserDropdown";
 
 const BookingContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
-  const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-  const [isMobile, setIsMobile] = useState(false);
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
@@ -273,8 +273,8 @@ const BookingContent = () => {
 
     // Handle input changes for the form
     const handleInputChange = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const { name, value } = e.target;
         setNewBooking((prev) => ({ ...prev, [name]: value }));
@@ -282,8 +282,8 @@ const BookingContent = () => {
 
     // Handle form submission to add new booking
     const handleAddBooking = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const newBookingEntry = {
             ...newBooking,
@@ -314,12 +314,6 @@ const BookingContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-<ServiceNavBar 
-    isVerified={isVerified}
-    settingsRoute={route("settingsPage")}
-/>        </div>
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between xl:items-start items-center mb-6">
@@ -726,7 +720,6 @@ const BookingContent = () => {
             </div>
             {/* end */}
         </div>
-        </>
     );
 };
 

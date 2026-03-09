@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import WarehouseBookingService from "../../../../../../services/WarehouseBookingService";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import filterIcon from "../../../../assets/vendors/dashboard/icons/filterIcon.svg";
@@ -175,13 +175,6 @@ const BookingContent = () => {
   ];
 
   return (
-    <>
-    <div className="sticky top-0 z-30">
-      <ServiceNavBar 
-          isVerified={isVerified}
-          settingsRoute={route("settingsPage")}
-      />
-    </div>
     <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
       {/* Header section */}
       <div className="flex md:flex-row flex-col gap-5 justify-between items-center mb-6">
@@ -323,7 +316,6 @@ const BookingContent = () => {
         </div>
       </div>
     </div>
-    </>
   );
 };
 

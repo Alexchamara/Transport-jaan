@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { usePage, Link } from "@inertiajs/react";
 import axios from "axios";
-import SideMenu from "../../components/vendors/SideMenu";
+import VendorShellLayout from "../../../../Components/vendors/VendorShellLayout";
 import bell from "../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
@@ -152,246 +152,238 @@ const NotificationsPage = () => {
   };
 
   return (
-    <div className="bg-[#E5E5E5] min-h-screen">
-      <div className="flex flex-row gap-10">
-        <SideMenu />
+    <VendorShellLayout activeService="Vehicle Rental">
+      <div className="w-full h-auto pr-5 py-10">
+        {/* ==================== HEADER WITH DROPDOWN ==================== */}
+        <div className="flex flex-row gap-5 justify-between items-center mb-10">
+          <h1 className="figtree text-[35px] font-[700]">Notifications</h1>
 
-        <div className="w-full h-auto pr-5 py-10">
-          {/* ==================== HEADER WITH DROPDOWN ==================== */}
-          <div className="flex flex-row gap-5 justify-between items-center mb-10">
-            <h1 className="figtree text-[35px] font-[700]">Notifications</h1>
-
-            <div className="flex flex-row gap-5 items-center">
-              {/* Notification Bell
+          <div className="flex flex-row gap-5 items-center">
+            {/* Notification Bell
               <NotificationDropdown bellIcon={bell} unreadCount={unreadCount} /> */}
 
-              {/* USER PROFILE + DROPDOWN */}
-              <div
-                ref={dropdownRef}
-                className="flex flex-row gap-5 items-center cursor-pointer px-4 py-2 rounded-lg transition-all duration-200 group"
-                onClick={() => setShowUserDropdown((s) => !s)}
-              >
-                <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                  <img src={proPic} alt="Profile" />
-                </div>
-
-                <div className="figtree flex flex-col justify-center items-start">
-                  <h1 className="text-[20px] font-[700]">{user?.name || "Service Provider"}</h1>
-                  <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Service Provider</h1>
-                </div>
-
-                <ChevronDown
-                  className={`w-5 h-5 text-[#7B7B7A] transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
-                />
-
-                {/* DROPDOWN MENU */}
-                {showUserDropdown && (
-                  <div
-                    className="absolute top-[120px] right-[20px] w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
-                    onMouseEnter={() => setShowUserDropdown(true)}
-                    onMouseLeave={() => setShowUserDropdown(false)}
-                  >
-                    <Link
-                      href="/profile"
-                      className="w-full figtree flex flex-row justify-start items-center gap-3 cursor-pointer text-[16px] font-[500] text-[#000000CC] px-4 py-3 hover:bg-[#F3F4F6] transition-colors"
-                    >
-                      <img src={proPic} className="w-[20px] h-[20px] rounded-full" alt="profile" />
-                      <span>Profile</span>
-                    </Link>
-
-                    <div className="w-full h-[1px] bg-[#E5E7EB] my-1" />
-
-                    <Link
-                      href={route("logout")}
-                      method="post"
-                      as="button"
-                      className="w-full figtree flex flex-row justify-start items-center gap-3 cursor-pointer text-[16px] font-[500] text-[#DC2626] px-4 py-3 hover:bg-[#FEF2F2] transition-colors"
-                    >
-                      <img src={logOutLogo} className="w-[20px] h-[20px]" alt="logout" />
-                      <span>Logout</span>
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ==================== STATS & ACTIONS ==================== */}
-          <div className="bg-white rounded-[10px] px-8 py-6 mb-6 shadow-sm">
-            <div className="flex justify-between items-center">
-              <div className="flex gap-8">
-                <div>
-                  <p className="text-gray-500 text-sm">Total Notifications</p>
-                  <p className="text-2xl font-bold">{notifications.length}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm">Unread</p>
-                  <p className="text-2xl font-bold text-red-500">{unreadCount}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500 text-sm">Read</p>
-                  <p className="text-2xl font-bold text-green-500">
-                    {notifications.length - unreadCount}
-                  </p>
-                </div>
+            {/* USER PROFILE + DROPDOWN */}
+            <div
+              ref={dropdownRef}
+              className="flex flex-row gap-5 items-center cursor-pointer px-4 py-2 rounded-lg transition-all duration-200 group"
+              onClick={() => setShowUserDropdown((s) => !s)}
+            >
+              <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
+                <img src={proPic} alt="Profile" />
               </div>
 
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              <div className="figtree flex flex-col justify-center items-start">
+                <h1 className="text-[20px] font-[700]">{user?.name || "Service Provider"}</h1>
+                <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Service Provider</h1>
+              </div>
+
+              <ChevronDown
+                className={`w-5 h-5 text-[#7B7B7A] transition-transform duration-200 ${showUserDropdown ? "rotate-180" : ""}`}
+              />
+
+              {/* DROPDOWN MENU */}
+              {showUserDropdown && (
+                <div
+                  className="absolute top-[120px] right-[20px] w-[200px] bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50"
+                  onMouseEnter={() => setShowUserDropdown(true)}
+                  onMouseLeave={() => setShowUserDropdown(false)}
                 >
-                  Mark All as Read
-                </button>
+                  <Link
+                    href="/profile"
+                    className="w-full figtree flex flex-row justify-start items-center gap-3 cursor-pointer text-[16px] font-[500] text-[#000000CC] px-4 py-3 hover:bg-[#F3F4F6] transition-colors"
+                  >
+                    <img src={proPic} className="w-[20px] h-[20px] rounded-full" alt="profile" />
+                    <span>Profile</span>
+                  </Link>
+
+                  <div className="w-full h-[1px] bg-[#E5E7EB] my-1" />
+
+                  <Link
+                    href={route("logout")}
+                    method="post"
+                    as="button"
+                    className="w-full figtree flex flex-row justify-start items-center gap-3 cursor-pointer text-[16px] font-[500] text-[#DC2626] px-4 py-3 hover:bg-[#FEF2F2] transition-colors"
+                  >
+                    <img src={logOutLogo} className="w-[20px] h-[20px]" alt="logout" />
+                    <span>Logout</span>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
+        </div>
 
-          {/* ==================== FILTER TABS ==================== */}
-          <div className="bg-white rounded-[10px] px-8 py-4 mb-6 shadow-sm">
-            <div className="flex gap-4">
-              <button
-                onClick={() => setFilter("all")}
-                className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
-                  filter === "all"
-                    ? "bg-[#0955AC] text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                All ({notifications.length})
-              </button>
-              <button
-                onClick={() => setFilter("unread")}
-                className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
-                  filter === "unread"
-                    ? "bg-[#0955AC] text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Unread ({unreadCount})
-              </button>
-              <button
-                onClick={() => setFilter("read")}
-                className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
-                  filter === "read"
-                    ? "bg-[#0955AC] text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Read ({notifications.length - unreadCount})
-              </button>
+        {/* ==================== STATS & ACTIONS ==================== */}
+        <div className="bg-white rounded-[10px] px-8 py-6 mb-6 shadow-sm">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-8">
+              <div>
+                <p className="text-gray-500 text-sm">Total Notifications</p>
+                <p className="text-2xl font-bold">{notifications.length}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Unread</p>
+                <p className="text-2xl font-bold text-red-500">{unreadCount}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Read</p>
+                <p className="text-2xl font-bold text-green-500">
+                  {notifications.length - unreadCount}
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* ==================== NOTIFICATIONS LIST ==================== */}
-          <div className="bg-white rounded-[10px] shadow-sm">
-            {loading ? (
-              <div className="px-8 py-20 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading notifications...</p>
-              </div>
-            ) : filteredNotifications.length === 0 ? (
-              <div className="px-8 py-20 text-center">
-                <svg
-                  className="w-20 h-20 mx-auto mb-4 text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                <p className="text-gray-500 text-lg font-semibold">
-                  {filter === "all" ? "No notifications yet" : `No ${filter} notifications`}
-                </p>
-                <p className="text-gray-400 text-sm mt-2">
-                  {filter === "all"
-                    ? "When you receive notifications, they will appear here"
-                    : `You don't have any ${filter} notifications at the moment`}
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {filteredNotifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`px-8 py-6 hover:bg-gray-50 transition-colors ${
-                      !notification.is_read ? "bg-blue-50" : ""
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      {getNotificationIcon(notification.type)}
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p
-                              className={`text-base ${
-                                !notification.is_read
-                                  ? "font-semibold text-gray-900"
-                                  : "font-medium text-gray-700"
-                              }`}
-                            >
-                              {notification.message}
-                            </p>
-                            {notification.vehicle_name && (
-                              <p className="text-sm text-gray-500 mt-1">
-                                Vehicle: {notification.vehicle_name}
-                              </p>
-                            )}
-                            {notification.client_name && (
-                              <p className="text-sm text-gray-500 mt-1">
-                                Client: {notification.client_name}
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-400 mt-2">
-                              {notification.created_at}
-                            </p>
-                          </div>
-
-                          {!notification.is_read && (
-                            <div className="flex-shrink-0 w-3 h-3 bg-blue-600 rounded-full ml-4 mt-1"></div>
-                          )}
-                        </div>
-
-                        <div className="flex gap-3 mt-4">
-                          {!notification.is_read && (
-                            <button
-                              onClick={() => markAsRead(notification.id)}
-                              className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
-                            >
-                              Mark as Read
-                            </button>
-                          )}
-                          {notification.booking_id && (
-                            <button
-                              onClick={() => (window.location.href = "/vendors/bookings")}
-                              className="text-sm text-gray-600 hover:text-gray-800 font-semibold"
-                            >
-                              View Booking
-                            </button>
-                          )}
-                          <button
-                            onClick={() => deleteNotification(notification.id)}
-                            className="text-sm text-red-600 hover:text-red-800 font-semibold"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              >
+                Mark All as Read
+              </button>
             )}
           </div>
         </div>
+
+        {/* ==================== FILTER TABS ==================== */}
+        <div className="bg-white rounded-[10px] px-8 py-4 mb-6 shadow-sm">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setFilter("all")}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${filter === "all"
+                  ? "bg-[#0955AC] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+            >
+              All ({notifications.length})
+            </button>
+            <button
+              onClick={() => setFilter("unread")}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${filter === "unread"
+                  ? "bg-[#0955AC] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+            >
+              Unread ({unreadCount})
+            </button>
+            <button
+              onClick={() => setFilter("read")}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${filter === "read"
+                  ? "bg-[#0955AC] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+            >
+              Read ({notifications.length - unreadCount})
+            </button>
+          </div>
+        </div>
+
+        {/* ==================== NOTIFICATIONS LIST ==================== */}
+        <div className="bg-white rounded-[10px] shadow-sm">
+          {loading ? (
+            <div className="px-8 py-20 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading notifications...</p>
+            </div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="px-8 py-20 text-center">
+              <svg
+                className="w-20 h-20 mx-auto mb-4 text-gray-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+              <p className="text-gray-500 text-lg font-semibold">
+                {filter === "all" ? "No notifications yet" : `No ${filter} notifications`}
+              </p>
+              <p className="text-gray-400 text-sm mt-2">
+                {filter === "all"
+                  ? "When you receive notifications, they will appear here"
+                  : `You don't have any ${filter} notifications at the moment`}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {filteredNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`px-8 py-6 hover:bg-gray-50 transition-colors ${!notification.is_read ? "bg-blue-50" : ""
+                    }`}
+                >
+                  <div className="flex items-start gap-4">
+                    {getNotificationIcon(notification.type)}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p
+                            className={`text-base ${!notification.is_read
+                                ? "font-semibold text-gray-900"
+                                : "font-medium text-gray-700"
+                              }`}
+                          >
+                            {notification.message}
+                          </p>
+                          {notification.vehicle_name && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              Vehicle: {notification.vehicle_name}
+                            </p>
+                          )}
+                          {notification.client_name && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              Client: {notification.client_name}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-400 mt-2">
+                            {notification.created_at}
+                          </p>
+                        </div>
+
+                        {!notification.is_read && (
+                          <div className="flex-shrink-0 w-3 h-3 bg-blue-600 rounded-full ml-4 mt-1"></div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3 mt-4">
+                        {!notification.is_read && (
+                          <button
+                            onClick={() => markAsRead(notification.id)}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                          >
+                            Mark as Read
+                          </button>
+                        )}
+                        {notification.booking_id && (
+                          <button
+                            onClick={() => (window.location.href = "/vendors/bookings")}
+                            className="text-sm text-gray-600 hover:text-gray-800 font-semibold"
+                          >
+                            View Booking
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteNotification(notification.id)}
+                          className="text-sm text-red-600 hover:text-red-800 font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
+    </VendorShellLayout >
   );
 };
 
