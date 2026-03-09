@@ -3,12 +3,20 @@ import SideMenu from "../../components/SuperAdmin/Dashboard1/SideMenu";
 import { usePage, router, Link } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const DriverDetail = ({ driver, vendor }) => {
+const DriverDetail = ({ driver, vendor, trips = [], payments = [] }) => {
     const { flash } = usePage().props;
     const [showFlash, setShowFlash]       = useState(false);
     const [activeTab, setActiveTab]       = useState('profile');
     const [confirmAction, setConfirmAction] = useState(null);
     const [previewImg, setPreviewImg]     = useState(null);
+
+    // Trip History filters
+    const [tripSearch, setTripSearch]     = useState('');
+    const [tripStatus, setTripStatus]     = useState('');
+
+    // Payments filters
+    const [paySearch, setPaySearch]       = useState('');
+    const [payStatus, setPayStatus]       = useState('');
 
     React.useEffect(() => {
         if (flash?.success || flash?.error) {
@@ -207,6 +215,36 @@ const DriverDetail = ({ driver, vendor }) => {
                     </div>
                 )}
 
+                {/* Driver registration pending approval */}
+                {driver.status === 'Inactive' && !driver.driver_approved_at && !isExpired && (
+                    <div className="border border-[#14CA7480] bg-[#14CA7415] rounded-[10px] p-4 mb-6 flex items-start gap-3">
+                        <svg className="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M3 9C3 6.24 5.24 4 8 4C10.76 4 13 6.24 13 9C13 11.76 10.76 14 8 14C5.24 14 3 11.76 3 9Z" stroke="#14CA74" strokeWidth="1.4"/>
+                            <path d="M8 6V9H11" stroke="#14CA74" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <div className="flex-1">
+                            <p className="text-[#14CA74] text-[13px] font-[600]">Registration Pending Admin Approval</p>
+                            <p className="text-[#14CA74]/80 text-[12px] mt-0.5 leading-relaxed mb-3">
+                                This driver has been registered and is waiting for Super Admin approval. Once approved, the driver status will be set to Active and they will have full access to the system.
+                            </p>
+                            <button
+                                onClick={() => setConfirmAction({
+                                    title: 'Approve Driver Registration',
+                                    message: `Approve ${driver.full_name} as an active driver? Their status will be set to Active and they will have full system access.`,
+                                    iconBg: 'bg-[#14CA74]/20',
+                                    icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13.3 4.3L6 11.6L2.7 8.3" stroke="#14CA74" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                                    confirmLabel: 'Approve',
+                                    confirmStyle: 'bg-[#14CA74] text-white hover:bg-[#10A660]',
+                                    onConfirm: () => router.post(`/superadmin/users/drivers/${driver.id}/approve`),
+                                })}
+                                className="bg-[#14CA74] text-white text-[12px] px-4 py-2 rounded-[5px] hover:bg-[#10A660] transition-colors font-[500]"
+                            >
+                                Approve Driver
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Pending license review alert banner */}
                 {hasPendingReview && (
                     <div className="border border-[#5B8DEF80] bg-[#5B8DEF15] rounded-[10px] p-4 mb-6 flex items-start gap-3">
@@ -319,6 +357,241 @@ const DriverDetail = ({ driver, vendor }) => {
                                     )}
                                 </motion.div>
                             )}
+
+                            {activeTab === 'triphistory' && (() => {
+                                const filtered = trips.filter(t => {
+                                    const matchSearch = !tripSearch ||
+                                        t.booking_ref.toLowerCase().includes(tripSearch.toLowerCase()) ||
+                                        t.client_name.toLowerCase().includes(tripSearch.toLowerCase()) ||
+                                        t.vehicle_name.toLowerCase().includes(tripSearch.toLowerCase()) ||
+                                        t.vehicle_plate.toLowerCase().includes(tripSearch.toLowerCase());
+                                    const matchStatus = !tripStatus || t.status === tripStatus;
+                                    return matchSearch && matchStatus;
+                                });
+                                const total     = trips.length;
+                                const completed = trips.filter(t => t.status === 'completed').length;
+                                const cancelled = trips.filter(t => t.status === 'cancelled').length;
+                                const pending   = trips.filter(t => t.status === 'pending').length;
+
+                                const exportCSV = () => {
+                                    const header = ['Ref','Client','Vehicle','Plate','Pickup Location','Dropoff Location','Pickup Date','Return Date','Amount','Status'];
+                                    const rows = filtered.map(t => [
+                                        t.booking_ref, t.client_name, t.vehicle_name, t.vehicle_plate,
+                                        t.pickup_location, t.dropoff_location, t.pickup_at, t.dropoff_at,
+                                        `${t.currency} ${Number(t.total_amount).toLocaleString()}`, t.status,
+                                    ]);
+                                    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+                                    const a = document.createElement('a');
+                                    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                                    a.download = `trips_${driver.full_name.replace(/\s+/g, '_')}.csv`;
+                                    a.click();
+                                };
+
+                                return (
+                                    <motion.div key="triphistory" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="flex flex-col gap-5">
+                                        {/* Stats */}
+                                        <div className="grid grid-cols-4 gap-4">
+                                            {[
+                                                { label: 'Total Trips',  value: total,     color: '#5B8DEF' },
+                                                { label: 'Completed',    value: completed, color: '#14CA74' },
+                                                { label: 'Cancelled',    value: cancelled, color: '#FF4757' },
+                                                { label: 'Pending',      value: pending,   color: '#FDB52A' },
+                                            ].map(s => (
+                                                <div key={s.label} className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-4">
+                                                    <p className="text-[#AEB9E1] text-[11px] font-[500] mb-1">{s.label}</p>
+                                                    <p className="text-[24px] font-[700]" style={{ color: s.color }}>{s.value}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Table card */}
+                                        <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-6">
+                                            {/* Filter bar */}
+                                            <div className="flex items-center gap-3 mb-5 flex-wrap">
+                                                <input
+                                                    type="text"
+                                                    value={tripSearch}
+                                                    onChange={e => setTripSearch(e.target.value)}
+                                                    placeholder="Search trips..."
+                                                    className="flex-1 min-w-[160px] bg-[#081028] border border-[#343B4F] rounded-[7px] px-3 py-2 text-[13px] text-[#E0E6F7] placeholder-[#4A5578] focus:outline-none focus:border-[#5B8DEF]"
+                                                />
+                                                <select
+                                                    value={tripStatus}
+                                                    onChange={e => setTripStatus(e.target.value)}
+                                                    className="bg-[#081028] border border-[#343B4F] rounded-[7px] px-3 py-2 text-[13px] text-[#E0E6F7] focus:outline-none focus:border-[#5B8DEF]"
+                                                >
+                                                    <option value="">All Statuses</option>
+                                                    <option value="pending">Pending</option>
+                                                    <option value="confirmed">Confirmed</option>
+                                                    <option value="ongoing">Ongoing</option>
+                                                    <option value="completed">Completed</option>
+                                                    <option value="cancelled">Cancelled</option>
+                                                </select>
+                                                <button
+                                                    onClick={exportCSV}
+                                                    className="flex items-center gap-2 border border-[#343B4F] bg-[#0F1A3A] text-[#AEB9E1] text-[12px] px-4 py-2 rounded-[7px] hover:text-white hover:border-[#5B8DEF] transition-colors"
+                                                >
+                                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1V8M6.5 8L4 5.5M6.5 8L9 5.5M2 10.5H11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                                    Export CSV
+                                                </button>
+                                            </div>
+
+                                            {filtered.length === 0 ? (
+                                                <div className="text-center py-12 text-[#4A5578] text-[13px]">No trips found</div>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-[13px]">
+                                                        <thead>
+                                                            <tr className="border-b border-[#343B4F]">
+                                                                {['Ref', 'Client', 'Vehicle', 'Pickup', 'Dropoff', 'Date', 'Amount', 'Status'].map(h => (
+                                                                    <th key={h} className="text-left text-[#AEB9E1] text-[11px] font-[600] tracking-wider uppercase pb-3 pr-4">{h}</th>
+                                                                ))}
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {filtered.map(t => (
+                                                                <tr key={t.id} className="border-b border-[#343B4F]/50 hover:bg-[#0F1A3A] transition-colors">
+                                                                    <td className="py-3 pr-4 text-[#5B8DEF] font-[500]">{t.booking_ref}</td>
+                                                                    <td className="py-3 pr-4 text-[#E0E6F7]">{t.client_name}</td>
+                                                                    <td className="py-3 pr-4">
+                                                                        <div className="text-[#E0E6F7]">{t.vehicle_name}</div>
+                                                                        <div className="text-[#4A5578] text-[11px]">{t.vehicle_plate}</div>
+                                                                    </td>
+                                                                    <td className="py-3 pr-4">
+                                                                        <div className="text-[#E0E6F7]">{t.pickup_at}</div>
+                                                                        <div className="text-[#4A5578] text-[11px]">{t.pickup_location}</div>
+                                                                    </td>
+                                                                    <td className="py-3 pr-4">
+                                                                        <div className="text-[#E0E6F7]">{t.dropoff_at}</div>
+                                                                        <div className="text-[#4A5578] text-[11px]">{t.dropoff_location}</div>
+                                                                    </td>
+                                                                    <td className="py-3 pr-4 text-[#AEB9E1]">{t.created_at}</td>
+                                                                    <td className="py-3 pr-4 text-[#E0E6F7] font-[500]">{t.currency} {Number(t.total_amount).toLocaleString()}</td>
+                                                                    <td className="py-3">
+                                                                        <TripStatusBadge status={t.status} />
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                );
+                            })()}
+
+                            {activeTab === 'payments' && (() => {
+                                const filtered = payments.filter(p => {
+                                    const matchSearch = !paySearch ||
+                                        p.booking_ref.toLowerCase().includes(paySearch.toLowerCase()) ||
+                                        p.client_name.toLowerCase().includes(paySearch.toLowerCase()) ||
+                                        (p.tx_reference && p.tx_reference.toLowerCase().includes(paySearch.toLowerCase()));
+                                    const matchStatus = !payStatus || p.status === payStatus;
+                                    return matchSearch && matchStatus;
+                                });
+                                const totalRev  = payments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount_paid), 0);
+                                const paidCount = payments.filter(p => p.status === 'paid').length;
+                                const pendCount = payments.filter(p => p.status === 'pending').length;
+                                const currency  = payments[0]?.currency ?? 'LKR';
+
+                                const exportCSV = () => {
+                                    const header = ['Booking Ref','Client','Amount','Currency','Method','Option','Ref/Slip','Status','Date'];
+                                    const rows = filtered.map(p => [
+                                        p.booking_ref, p.client_name,
+                                        Number(p.amount_paid).toLocaleString(), p.currency,
+                                        p.method, p.option, p.tx_reference, p.status, p.paid_at,
+                                    ]);
+                                    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+                                    const a = document.createElement('a');
+                                    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+                                    a.download = `payments_${driver.full_name.replace(/\s+/g, '_')}.csv`;
+                                    a.click();
+                                };
+
+                                return (
+                                    <motion.div key="payments" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="flex flex-col gap-5">
+                                        {/* Stats */}
+                                        <div className="grid grid-cols-3 gap-4">
+                                            {[
+                                                { label: 'Total Revenue',  value: `${currency} ${totalRev.toLocaleString()}`, color: '#14CA74' },
+                                                { label: 'Paid',           value: paidCount,                                   color: '#5B8DEF' },
+                                                { label: 'Pending',        value: pendCount,                                   color: '#FDB52A' },
+                                            ].map(s => (
+                                                <div key={s.label} className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-4">
+                                                    <p className="text-[#AEB9E1] text-[11px] font-[500] mb-1">{s.label}</p>
+                                                    <p className="text-[20px] font-[700]" style={{ color: s.color }}>{s.value}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Table card */}
+                                        <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-6">
+                                            {/* Filter bar */}
+                                            <div className="flex items-center gap-3 mb-5 flex-wrap">
+                                                <input
+                                                    type="text"
+                                                    value={paySearch}
+                                                    onChange={e => setPaySearch(e.target.value)}
+                                                    placeholder="Search payments..."
+                                                    className="flex-1 min-w-[160px] bg-[#081028] border border-[#343B4F] rounded-[7px] px-3 py-2 text-[13px] text-[#E0E6F7] placeholder-[#4A5578] focus:outline-none focus:border-[#5B8DEF]"
+                                                />
+                                                <select
+                                                    value={payStatus}
+                                                    onChange={e => setPayStatus(e.target.value)}
+                                                    className="bg-[#081028] border border-[#343B4F] rounded-[7px] px-3 py-2 text-[13px] text-[#E0E6F7] focus:outline-none focus:border-[#5B8DEF]"
+                                                >
+                                                    <option value="">All Statuses</option>
+                                                    <option value="pending">Pending</option>
+                                                    <option value="paid">Paid</option>
+                                                    <option value="failed">Failed</option>
+                                                </select>
+                                                <button
+                                                    onClick={exportCSV}
+                                                    className="flex items-center gap-2 border border-[#343B4F] bg-[#0F1A3A] text-[#AEB9E1] text-[12px] px-4 py-2 rounded-[7px] hover:text-white hover:border-[#5B8DEF] transition-colors"
+                                                >
+                                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1V8M6.5 8L4 5.5M6.5 8L9 5.5M2 10.5H11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                                    Export CSV
+                                                </button>
+                                            </div>
+
+                                            {filtered.length === 0 ? (
+                                                <div className="text-center py-12 text-[#4A5578] text-[13px]">No payments found</div>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-[13px]">
+                                                        <thead>
+                                                            <tr className="border-b border-[#343B4F]">
+                                                                {['Booking Ref', 'Client', 'Amount', 'Method', 'Option', 'Reference', 'Date', 'Status'].map(h => (
+                                                                    <th key={h} className="text-left text-[#AEB9E1] text-[11px] font-[600] tracking-wider uppercase pb-3 pr-4">{h}</th>
+                                                                ))}
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {filtered.map(p => (
+                                                                <tr key={p.id} className="border-b border-[#343B4F]/50 hover:bg-[#0F1A3A] transition-colors">
+                                                                    <td className="py-3 pr-4 text-[#5B8DEF] font-[500]">{p.booking_ref}</td>
+                                                                    <td className="py-3 pr-4 text-[#E0E6F7]">{p.client_name}</td>
+                                                                    <td className="py-3 pr-4 text-[#E0E6F7] font-[500]">{p.currency} {Number(p.amount_paid).toLocaleString()}</td>
+                                                                    <td className="py-3 pr-4 text-[#AEB9E1]">{p.method}</td>
+                                                                    <td className="py-3 pr-4">
+                                                                        <span className="text-[10px] bg-[#5B8DEF20] text-[#5B8DEF] border border-[#5B8DEF80] px-1.5 py-0.5 rounded capitalize">{p.option}</span>
+                                                                    </td>
+                                                                    <td className="py-3 pr-4 text-[#AEB9E1] font-mono text-[11px]">{p.tx_reference}</td>
+                                                                    <td className="py-3 pr-4 text-[#AEB9E1]">{p.paid_at}</td>
+                                                                    <td className="py-3">
+                                                                        <PayStatusBadge status={p.status} />
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                );
+                            })()}
 
                             {activeTab === 'documents' && (
                                 <motion.div
@@ -571,6 +844,32 @@ const SummaryRow = ({ label, value, color }) => (
         <span className="text-[13px] font-[600]" style={{ color }}>{value}</span>
     </div>
 );
+
+const TripStatusBadge = ({ status }) => {
+    const map = {
+        pending:   { bg: 'bg-[#FDB52A20]', text: 'text-[#FDB52A]', border: 'border-[#FDB52A80]', label: 'Pending' },
+        confirmed: { bg: 'bg-[#5B8DEF20]', text: 'text-[#5B8DEF]', border: 'border-[#5B8DEF80]', label: 'Confirmed' },
+        ongoing:   { bg: 'bg-[#0E43FB20]', text: 'text-[#5B8DEF]', border: 'border-[#0E43FB80]', label: 'Ongoing' },
+        completed: { bg: 'bg-[#05C16820]', text: 'text-[#14CA74]', border: 'border-[#05C16880]', label: 'Completed' },
+        cancelled: { bg: 'bg-[#FF475720]', text: 'text-[#FF4757]', border: 'border-[#FF475780]', label: 'Cancelled' },
+    };
+    const s = map[status] || map.pending;
+    return (
+        <span className={`text-[10px] ${s.bg} ${s.text} border ${s.border} px-1.5 py-0.5 rounded font-[500]`}>{s.label}</span>
+    );
+};
+
+const PayStatusBadge = ({ status }) => {
+    const map = {
+        pending: { bg: 'bg-[#FDB52A20]', text: 'text-[#FDB52A]', border: 'border-[#FDB52A80]', label: 'Pending' },
+        paid:    { bg: 'bg-[#05C16820]', text: 'text-[#14CA74]', border: 'border-[#05C16880]', label: 'Paid' },
+        failed:  { bg: 'bg-[#FF475720]', text: 'text-[#FF4757]', border: 'border-[#FF475780]', label: 'Failed' },
+    };
+    const s = map[status] || map.pending;
+    return (
+        <span className={`text-[10px] ${s.bg} ${s.text} border ${s.border} px-1.5 py-0.5 rounded font-[500]`}>{s.label}</span>
+    );
+};
 
 const DocumentCard = ({ label, url, onPreview, highlight }) => (
     <div className={`border rounded-[8px] p-4 ${highlight ? 'border-[#FDB52A80] bg-[#FDB52A10]' : 'border-[#343B4F] bg-[#0F1A3A]'}`}>

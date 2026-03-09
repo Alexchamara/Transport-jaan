@@ -30,12 +30,16 @@ class Driver extends Model
         'pending_license_expiry',
         'pending_license_photo_path',
         'license_review_status',
+        // driver approval workflow
+        'driver_approved_by',
+        'driver_approved_at',
     ];
 
     // Format license_expiry as Y-m-d in JSON
     protected $casts = [
         'license_expiry'         => 'date:Y-m-d',
         'pending_license_expiry' => 'date:Y-m-d',
+        'driver_approved_at'     => 'datetime',
     ];
 
     // Don’t leak raw storage paths in API responses
@@ -57,6 +61,11 @@ class Driver extends Model
     public function user()
     {
         return $this->belongsTo(User::class);   
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'driver_approved_by');
     }
 
     // ---- License-expiry helpers ----

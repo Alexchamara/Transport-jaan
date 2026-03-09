@@ -393,6 +393,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::get('/drivers/{driver}', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'show'])->name('drivers.show');
         Route::post('/drivers/{driver}/status', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'changeStatus'])->name('drivers.changeStatus');
         Route::post('/drivers/{driver}/verify-license', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'verifyLicense'])->name('drivers.verifyLicense');
+        Route::post('/drivers/{driver}/approve', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'approveDriver'])->name('drivers.approve');
         Route::delete('/drivers/{driver}', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'destroy'])->name('drivers.destroy');
 
         Route::get('/create', [\App\Http\Controllers\SuperAdmin\UserController::class, 'create'])->name('create');

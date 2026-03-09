@@ -41,8 +41,20 @@ const DashContent = ({
     vendorUser,
     recentActivities, // <— NEW (from controller)
     unreadNotifications = 0, // NEW
+    drivers = [], // NEW - drivers list for expired license alerts
 }) => {
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+
+    // Helper to check if license is expired
+    const isLicenseExpired = (expiry) => {
+        if (!expiry) return false;
+        return new Date(expiry) < new Date();
+    };
+
+    // Filter drivers with expired licenses that are not pending review
+    const expiredDrivers = (drivers ?? []).filter(r => 
+        isLicenseExpired(r.license_expiry) && r.license_review_status !== 'pending_review'
+    );
 
     // Filter state
     const [showFilters, setShowFilters] = useState(false);
@@ -214,6 +226,33 @@ const DashContent = ({
                     Vehicle Rental Dashboard
                 </h1>
             </div>
+
+            {/* License Expired Alert */}
+            {expiredDrivers.length > 0 && (
+                <div className="bg-red-50 border border-red-300 rounded-lg p-4 flex items-start gap-3 mb-6">
+                    <svg className="flex-shrink-0 mt-0.5 text-red-500" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                    <div className="flex-1">
+                        <p className="font-semibold text-red-800 text-[14px]">License Expired — Action Required</p>
+                        <p className="text-red-700 text-[13px] mt-0.5">The following driver(s) have been deactivated due to an expired license. Submit a renewed license document for admin review to reactivate.</p>
+                        <ul className="mt-2 space-y-1">
+                            {expiredDrivers.map(r => (
+                                <li key={r.id} className="text-red-700 text-[12px] flex items-center gap-2">
+                                    <span className="font-semibold">{r.full_name}</span>
+                                    <span>— expired {r.license_expiry}</span>
+                                    <Link
+                                        href="/vendors/drivers"
+                                        className="ml-1 text-[11px] px-2 py-0.5 bg-red-100 border border-red-300 rounded text-red-700 hover:bg-red-200 font-semibold inline-block"
+                                    >
+                                        Renew License
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-col gap-5 w-full">
                 {/* Top Section: Cards + Car Availability */}

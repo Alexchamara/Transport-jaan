@@ -67,14 +67,22 @@ export default function Driver() {
   const driverDownload = (id, kind) => `/vendor/drivers/${id}/${kind}/download`; // direct download
   // --------------------------------
 
+  // Vehicle category to license type mapping
+  const licenseTypeMap = {
+    Land: ["Light Vehicle", "Heavy Vehicle"],
+    Air: ["Private Pilot", "Commercial Pilot", "Airline Transport Pilot", "Helicopter Pilot"],
+    Sea: ["Boat Operator", "Ship Captain", "Marine Engineer", "Fishing Vessel Operator"],
+  };
+
   const empty = {
     full_name: "",
     phone: "",
     email: "",
     license_no: "",
     license_expiry: "",
+    vehicle_category: "",
+    license_type: "",
     vehicle_type: "",
-    status: "Active",
     address: "",
     notes: "",
     license_photo: null,
@@ -322,7 +330,8 @@ export default function Driver() {
       }
     }
 
-    if (!form.vehicle_type.trim()) e.vehicle_type = "Vehicle type is required";
+    if (!form.vehicle_category.trim()) e.vehicle_category = "Vehicle category is required";
+    if (!form.license_type.trim()) e.license_type = "License type is required";
 
     // Vehicle number validation
     // if (!form.vehicle_no.trim()) {
@@ -386,8 +395,9 @@ export default function Driver() {
       email: r.email || "",
       license_no: r.license_no,
       license_expiry: r.license_expiry || "",
+      vehicle_category: r.vehicle_category || "",
+      license_type: r.license_type || "",
       vehicle_type: r.vehicle_type,
-      status: r.status || "Active",
       address: r.address || "",
       notes: r.notes || "",
       license_photo: null,
@@ -626,6 +636,17 @@ export default function Driver() {
             onSubmit={submit}
             className="bg-white rounded-lg p-5 border border-gray-200"
           >
+            {/* Approval Workflow Info */}
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+              <svg className="flex-shrink-0 mt-0.5 text-blue-500" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="text-blue-900 font-semibold text-[14px]">Driver Registration & Approval</p>
+                <p className="text-blue-700 text-[13px] mt-1">New drivers are registered in an <strong>inactive</strong> status and require <strong>Super Admin approval</strong> to become active. Once approved, the driver will have full access to the system.</p>
+              </div>
+            </div>
+
             <h2 className="text-[18px] font-[400] text-gray-800 mb-4">Driver Information</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -698,14 +719,46 @@ export default function Driver() {
               </div>
 
               <div className="space-y-1">
-                <Label>Vehicle Type <Req /></Label>
-                <input
-                  className={inputClasses(!!errors.vehicle_type)}
-                  value={form.vehicle_type}
-                  onChange={(e) => setForm({ ...form, vehicle_type: e.target.value })}
-                  placeholder="Van / Car / Truck / Bike"
-                />
-                {errors.vehicle_type && <span className="text-red-500 text-xs">{errors.vehicle_type}</span>}
+                <Label>Vehicle Category <Req /></Label>
+                <select
+                  className={selectClasses(!!errors.vehicle_category)}
+                  value={form.vehicle_category}
+                  onChange={(e) => {
+                    const selectedCategory = e.target.value;
+                    setForm({ ...form, vehicle_category: selectedCategory, license_type: "", vehicle_type: selectedCategory });
+                    if (errors.vehicle_category) setErrors({ ...errors, vehicle_category: '' });
+                  }}
+                >
+                  <option value="">-- Select Vehicle Category --</option>
+                  <option value="Land">Land</option>
+                  <option value="Air">Air</option>
+                  <option value="Sea">Sea</option>
+                </select>
+                {errors.vehicle_category && <span className="text-red-500 text-xs">{errors.vehicle_category}</span>}
+              </div>
+
+              <div className="space-y-1">
+                <Label>License Type <Req /></Label>
+                <select
+                  className={selectClasses(!!errors.license_type || !form.vehicle_category)}
+                  value={form.license_type}
+                  onChange={(e) => {
+                    setForm({ ...form, license_type: e.target.value });
+                    if (errors.license_type) setErrors({ ...errors, license_type: '' });
+                  }}
+                  disabled={!form.vehicle_category}
+                >
+                  <option value="">-- Select License Type --</option>
+                  {form.vehicle_category && licenseTypeMap[form.vehicle_category] && 
+                    licenseTypeMap[form.vehicle_category].map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))
+                  }
+                </select>
+                {!form.vehicle_category && <span className="text-gray-500 text-xs">First select a vehicle category</span>}
+                {errors.license_type && <span className="text-red-500 text-xs">{errors.license_type}</span>}
               </div>
 
               {/* <div className="space-y-1">
@@ -724,18 +777,6 @@ export default function Driver() {
                   <span className="text-gray-500 text-xs">Format: Province Code + Letters/Numbers (e.g., WP ABC-1234)</span>
                 )}
               </div> */}
-
-              <div className="space-y-1">
-                <Label>Status</Label>
-                <select
-                  className={selectClasses(false)}
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
-                >
-                  <option>Active</option>
-                  <option>Inactive</option>
-                </select>
-              </div>
 
               <ImageInput
                 label={<><span>Driver License Photo</span> <Req /></>}

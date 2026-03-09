@@ -16,6 +16,7 @@ const Dashboard = () => {
     vendorUser,
     recentActivities,
     unreadNotifications,
+    drivers,
   } = usePage().props;
 
   return (
@@ -32,6 +33,7 @@ const Dashboard = () => {
         vendorUser={vendorUser}
         recentActivities={recentActivities}
         unreadNotifications={unreadNotifications}
+        drivers={drivers}
       />
     </VendorLayout>
   );

@@ -57,7 +57,6 @@ class DriverController extends Controller
             'license_expiry' => 'nullable|date',
             'vehicle_type'   => 'required|string|max:100',
             'vehicle_no'     => ['nullable', 'string', 'max:100', 'regex:/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i', 'unique:drivers,vehicle_no'],
-            'status'         => ['nullable', Rule::in(['Active','Inactive'])],
             'address'        => 'nullable|string',
             'notes'          => 'nullable|string',
             'license_photo'  => 'required|image|max:4096',
@@ -72,8 +71,9 @@ class DriverController extends Controller
             'vehicle_no.unique' => 'This vehicle number is already registered.',
         ]);
 
-        // Assign the driver to the authenticated vendor
+        // Assign the driver to the authenticated vendor and set status to Inactive (pending admin approval)
         $data['user_id'] = auth()->id();
+        $data['status'] = 'Inactive'; // Driver must be approved by SuperAdmin before becoming Active
 
         if ($request->hasFile('license_photo')) {
             $data['license_photo_path'] = $request->file('license_photo')->store('drivers/licenses', 'public');

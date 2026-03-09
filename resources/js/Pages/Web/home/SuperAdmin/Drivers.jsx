@@ -262,7 +262,15 @@ const Drivers = ({ drivers, counts, filters, pagination, vehicleTypes }) => {
                                     </div>
 
                                     {/* Action */}
-                                    <div className="flex-[0.5] text-center">
+                                    <div className="flex-[0.8] flex gap-2">
+                                        {driver.status === 'Inactive' && !driver.driver_approved_at && (
+                                            <button
+                                                onClick={() => router.post(`/superadmin/users/drivers/${driver.id}/approve`)}
+                                                className="bg-green-600 text-white text-[12px] px-3 py-1.5 rounded-[5px] hover:bg-green-700 transition-colors"
+                                            >
+                                                Approve
+                                            </button>
+                                        )}
                                         <Link
                                             href={`/superadmin/users/drivers/${driver.id}`}
                                             className="bg-[#0E43FB] text-white text-[12px] px-3 py-1.5 rounded-[5px] hover:bg-[#0A36D6] transition-colors"
