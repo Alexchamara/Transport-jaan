@@ -20,12 +20,15 @@ const DriverDetail = ({ driver, vendor }) => {
 
     const tabs = [
         { key: 'profile',   label: 'Profile' },
-        { key: 'documents', label: 'Documents' },
+        { key: 'triphistory', label: 'Trip History' },
+        { key: 'payments', label: 'Payments' },
+        { key: 'documents', label: 'documents' },
     ];
 
     const isExpired    = driver.license_expiry && new Date(driver.license_expiry) < new Date();
     const expiringSoon = !isExpired && driver.license_expiry &&
         (new Date(driver.license_expiry) - new Date()) / (1000 * 60 * 60 * 24) <= 30;
+    const hasPendingReview = driver.license_review_status === 'pending_review';
 
     return (
         <div className="flex flex-row bg-[#081028] min-h-screen sm:flex-col md:flex-row lg:flex-row poppins">
@@ -187,7 +190,7 @@ const DriverDetail = ({ driver, vendor }) => {
                 </div>
 
                 {/* License-expired alert banner */}
-                {driver.status === 'Inactive' && isExpired && (
+                {driver.status === 'Inactive' && isExpired && !hasPendingReview && (
                     <div className="border border-[#FF475780] bg-[#FF475715] rounded-[10px] p-4 mb-6 flex items-start gap-3">
                         <svg className="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 18 18" fill="none">
                             <path d="M9 2L16.5 15H1.5L9 2Z" stroke="#FF4757" strokeWidth="1.4" strokeLinejoin="round"/>
@@ -199,6 +202,25 @@ const DriverDetail = ({ driver, vendor }) => {
                                 This driver was automatically deactivated because their driving license expired
                                 on <span className="font-[600]">{driver.license_expiry}</span>. The linked user account has been suspended.
                                 The vendor must upload a renewed license to re-activate this driver.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Pending license review alert banner */}
+                {hasPendingReview && (
+                    <div className="border border-[#5B8DEF80] bg-[#5B8DEF15] rounded-[10px] p-4 mb-6 flex items-start gap-3">
+                        <svg className="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <circle cx="9" cy="9" r="7.5" stroke="#5B8DEF" strokeWidth="1.4"/>
+                            <path d="M9 5.5V9.5M9 12V12.5" stroke="#5B8DEF" strokeWidth="1.4" strokeLinecap="round"/>
+                        </svg>
+                        <div>
+                            <p className="text-[#5B8DEF] text-[13px] font-[600]">License Renewal Awaiting Review</p>
+                            <p className="text-[#5B8DEF]/80 text-[12px] mt-0.5 leading-relaxed">
+                                The vendor has submitted a new license document for review.
+                                {driver.pending_license_no && <> New license no: <span className="font-[600]">{driver.pending_license_no}</span>.</>}
+                                {driver.pending_license_expiry && <> New expiry: <span className="font-[600]">{driver.pending_license_expiry}</span>.</>}
+                                {' '}Review the document below and approve or reject.
                             </p>
                         </div>
                     </div>
@@ -323,6 +345,23 @@ const DriverDetail = ({ driver, vendor }) => {
                                                 onPreview={() => setPreviewImg(driver.nic_photo_url)}
                                             />
                                         </div>
+                                        {/* Pending renewal document */}
+                                        {hasPendingReview && driver.pending_license_photo_url && (
+                                            <div className="mt-5 border-t border-[#343B4F] pt-5">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-2 h-2 rounded-full bg-[#FDB52A]" />
+                                                    <h4 className="text-[#FDB52A] text-[13px] font-[600]">Pending Renewal — New License Document</h4>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <DocumentCard
+                                                        label={`Submitted License${driver.pending_license_no ? ` (${driver.pending_license_no})` : ''}`}
+                                                        url={driver.pending_license_photo_url}
+                                                        onPreview={() => setPreviewImg(driver.pending_license_photo_url)}
+                                                        highlight
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </motion.div>
                             )}
@@ -353,6 +392,21 @@ const DriverDetail = ({ driver, vendor }) => {
                                         color={isExpired ? '#FF4757' : expiringSoon ? '#FDB52A' : '#AEB9E1'}
                                     />
                                 )}
+                                {driver.license_review_status && (
+                                    <SummaryRow
+                                        label="License Review"
+                                        value={
+                                            driver.license_review_status === 'pending_review' ? 'Pending Review'
+                                            : driver.license_review_status === 'approved'     ? 'Approved'
+                                            : 'Rejected'
+                                        }
+                                        color={
+                                            driver.license_review_status === 'pending_review' ? '#FDB52A'
+                                            : driver.license_review_status === 'approved'     ? '#14CA74'
+                                            : '#FF4757'
+                                        }
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -360,6 +414,53 @@ const DriverDetail = ({ driver, vendor }) => {
                         <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] p-5">
                             <h3 className="text-white text-[14px] font-[600] mb-4">Admin Tools</h3>
                             <div className="flex flex-col gap-3">
+
+                                {/* License Renewal Review — shown when vendor submitted a new license */}
+                                {hasPendingReview && (
+                                    <div className="border border-[#5B8DEF40] bg-[#5B8DEF10] rounded-[8px] p-4 mb-1">
+                                        <p className="text-[#5B8DEF] text-[12px] font-[600] mb-1">License Renewal Submitted</p>
+                                        <p className="text-[#AEB9E1] text-[11px] leading-relaxed mb-3">
+                                            Review the new license document in the{' '}
+                                            <button onClick={() => setActiveTab('documents')} className="text-[#5B8DEF] hover:underline">Documents tab</button>{' '}
+                                            then approve or reject.
+                                        </p>
+                                        <button
+                                            onClick={() => setConfirmAction({
+                                                title: 'Approve License Renewal',
+                                                message: `Approve the new license for ${driver.full_name}? The driver will be reactivated and their account restored.`,
+                                                confirmLabel: 'Approve',
+                                                confirmStyle: 'border border-[#05C16880] bg-[#05C16820] text-[#14CA74] hover:bg-[#05C16840]',
+                                                iconBg: 'bg-[#05C16820]',
+                                                icon: <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M2 7L5.5 10.5L12 3.5" stroke="#14CA74" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+                                                onConfirm: () => router.post(`/superadmin/users/drivers/${driver.id}/verify-license`, { action: 'approve' }),
+                                            })}
+                                            className="flex items-center justify-center gap-2 w-full border border-[#05C16880] bg-[#05C16820] text-[#14CA74] text-[13px] py-2 rounded-[7px] hover:bg-[#05C16840] transition-colors mb-2"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                                <path d="M2 7L5.5 10.5L12 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                            Approve &amp; Reactivate Driver
+                                        </button>
+                                        <button
+                                            onClick={() => setConfirmAction({
+                                                title: 'Reject License Renewal',
+                                                message: `Reject the submitted license for ${driver.full_name}? The vendor will need to submit a new document.`,
+                                                confirmLabel: 'Reject',
+                                                confirmStyle: 'border border-[#FF475780] bg-[#FF475720] text-[#FF4757] hover:bg-[#FF475740]',
+                                                iconBg: 'bg-[#FF475720]',
+                                                icon: <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M3 3L11 11M3 11L11 3" stroke="#FF4757" strokeWidth="1.4" strokeLinecap="round"/></svg>,
+                                                onConfirm: () => router.post(`/superadmin/users/drivers/${driver.id}/verify-license`, { action: 'reject' }),
+                                            })}
+                                            className="flex items-center justify-center gap-2 w-full border border-[#FF475780] bg-[#FF475720] text-[#FF4757] text-[13px] py-2 rounded-[7px] hover:bg-[#FF475740] transition-colors"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                                <path d="M3 3L11 11M3 11L11 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                                            </svg>
+                                            Reject Submission
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Activate / Deactivate toggle */}
                                 {driver.status === 'Active' ? (
                                     <button
@@ -471,8 +572,8 @@ const SummaryRow = ({ label, value, color }) => (
     </div>
 );
 
-const DocumentCard = ({ label, url, onPreview }) => (
-    <div className="border border-[#343B4F] bg-[#0F1A3A] rounded-[8px] p-4">
+const DocumentCard = ({ label, url, onPreview, highlight }) => (
+    <div className={`border rounded-[8px] p-4 ${highlight ? 'border-[#FDB52A80] bg-[#FDB52A10]' : 'border-[#343B4F] bg-[#0F1A3A]'}`}>
         <p className="text-[#AEB9E1] text-[11px] font-[600] tracking-wider uppercase mb-3">{label}</p>
         {url ? (
             <div className="flex flex-col gap-2">

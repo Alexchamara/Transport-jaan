@@ -255,7 +255,7 @@ const SideMenu = () => {
                                 : "max-h-0 opacity-0 py-0"
                         }`}
                     >
-                        {/* <Link
+                        <Link
                             href="/SuperAdmin/Analytics"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
                                 activeSubsection === "Analytics"
@@ -269,7 +269,7 @@ const SideMenu = () => {
                             onMouseLeave={() => setHoveredSection(null)}
                         >
                             Analytics
-                        </Link> */}
+                        </Link>
                     </div>
 
                     {/* Reports */}

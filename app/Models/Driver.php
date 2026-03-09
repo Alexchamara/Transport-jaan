@@ -25,11 +25,17 @@ class Driver extends Model
         // files
         'license_photo_path',
         'nic_photo_path',
+        // license renewal review
+        'pending_license_no',
+        'pending_license_expiry',
+        'pending_license_photo_path',
+        'license_review_status',
     ];
 
     // Format license_expiry as Y-m-d in JSON
     protected $casts = [
-        'license_expiry' => 'date:Y-m-d',
+        'license_expiry'         => 'date:Y-m-d',
+        'pending_license_expiry' => 'date:Y-m-d',
     ];
 
     // Don’t leak raw storage paths in API responses
@@ -72,10 +78,6 @@ class Driver extends Model
 
         if ($this->status !== 'Inactive') {
             $this->update(['status' => 'Inactive']);
-        }
-
-        if ($this->user && $this->user->status !== 'suspended') {
-            $this->user->update(['status' => 'suspended']);
         }
 
         return true;
@@ -127,5 +129,12 @@ class Driver extends Model
         } catch (\Throwable $e) {
             return Storage::disk('public')->url($this->nic_photo_path);
         }
+    }
+
+    public function getPendingLicensePhotoUrlAttribute(): ?string
+    {
+        if (!$this->pending_license_photo_path) return null;
+
+        return Storage::disk('public')->url($this->pending_license_photo_path);
     }
 }

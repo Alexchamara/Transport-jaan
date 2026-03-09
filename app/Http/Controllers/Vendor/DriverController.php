@@ -51,12 +51,12 @@ class DriverController extends Controller
     {
         $data = $request->validate([
             'full_name'      => 'required|string|max:255',
-            'phone'          => ['required', 'string', 'max:10', 'regex:/^\+?[0-9\s\-\(\)]{10,20}$/', 'unique:drivers,phone'],
+            'phone'          => ['required', 'string', 'max:50', 'regex:/^\+?[0-9\s\-\(\)]{10,20}$/', 'unique:drivers,phone'],
             'email'          => 'nullable|email|max:255|unique:drivers,email',
             'license_no'     => ['required', 'string', 'max:100', 'regex:/^[A-Z0-9\-\/\s]{5,20}$/i', 'unique:drivers,license_no'],
             'license_expiry' => 'nullable|date',
             'vehicle_type'   => 'required|string|max:100',
-            'vehicle_no'     => ['required', 'string', 'max:100', 'regex:/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i', 'unique:drivers,vehicle_no'],
+            'vehicle_no'     => ['nullable', 'string', 'max:100', 'regex:/^[A-Z]{1,3}[\s\-]?[A-Z0-9]{1,4}[\s\-]?[0-9]{1,4}$/i', 'unique:drivers,vehicle_no'],
             'status'         => ['nullable', Rule::in(['Active','Inactive'])],
             'address'        => 'nullable|string',
             'notes'          => 'nullable|string',
@@ -148,7 +148,7 @@ class DriverController extends Controller
         // Ensure the driver belongs to the authenticated vendor
         abort_unless($driver->user_id === auth()->id(), 403);
 
-        $data = $request->validate([
+        $validated = $request->validate([
             'license_no'     => ['required', 'string', 'max:100', 'regex:/^[A-Z0-9\-\/\s]{5,20}$/i'],
             'license_expiry' => 'required|date|after:today',
             'license_photo'  => 'required|image|max:4096',
@@ -156,25 +156,26 @@ class DriverController extends Controller
             'license_expiry.after' => 'The new license expiry date must be in the future.',
         ]);
 
-        // Replace the old license photo
-        if ($driver->license_photo_path) {
-            Storage::disk('public')->delete($driver->license_photo_path);
-        }
-        $data['license_photo_path'] = $request->file('license_photo')->store('drivers/licenses', 'public');
-        unset($data['license_photo']);
+        // Store the new license data as PENDING — the original license fields are
+        // intentionally left unchanged until the Super Admin approves the renewal.
+        // This prevents a vendor from bypassing expiry checks with a fake future date.
+        $pendingData = [
+            'pending_license_no'     => $validated['license_no'],
+            'pending_license_expiry' => $validated['license_expiry'],
+            'license_review_status'  => 'pending_review',
+        ];
 
-        // Re-activate driver since a valid license has been uploaded
-        $data['status'] = 'Active';
-        $driver->update($data);
-
-        // Restore the linked user account if it was suspended due to license expiry
-        $driver->load('user');
-        if ($driver->user && $driver->user->status === 'suspended') {
-            $driver->user->update(['status' => 'verified']);
+        // Store the new photo in a pending folder; delete any previous pending photo
+        if ($driver->pending_license_photo_path) {
+            Storage::disk('public')->delete($driver->pending_license_photo_path);
         }
+        $pendingData['pending_license_photo_path'] = $request->file('license_photo')
+            ->store('drivers/licenses/pending', 'public');
+
+        $driver->update($pendingData);
 
         return response()->json([
-            'message' => 'License renewed. Driver is now Active.',
+            'message' => 'License renewal submitted for admin review. The driver will be reactivated once the Super Admin approves.',
             'driver'  => $driver->fresh(),
         ]);
     }
