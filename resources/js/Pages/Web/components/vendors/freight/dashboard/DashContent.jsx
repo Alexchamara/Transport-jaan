@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -60,14 +60,6 @@ const DashContent = () => {
     }, []);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            
-           <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center">
@@ -704,7 +696,6 @@ const DashContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

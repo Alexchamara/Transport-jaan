@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import ServiceNavBar from "../../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -30,7 +30,7 @@ const ExpensesContent = () => {
     const user = auth?.user;
 
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-   
+
     const [warehouseNotifications, setWarehouseNotifications] = useState([]);
     const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
@@ -344,13 +344,6 @@ const ExpensesContent = () => {
     }, [auth?.user]);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="flex flex-col gap-6 lg:gap-10 w-full h-auto lg:pl-5 lg:pr-5 py-4 lg:py-10 pt-6 pb-12 bg-[#E5E5E5]">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
@@ -819,11 +812,10 @@ const ExpensesContent = () => {
                             ) : (
                                 <button
                                     key={num}
-                                    className={`px-2 sm:px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] w-[35px] h-[35px] sm:size-[40px] bg-[#F4F3F3] ${
-                                        currentPage === num
+                                    className={`px-2 sm:px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] w-[35px] h-[35px] sm:size-[40px] bg-[#F4F3F3] ${currentPage === num
                                             ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
-                                    }`}
+                                        }`}
                                     onClick={() => goToPage(num)}
                                 >
                                     {num}
@@ -841,7 +833,6 @@ const ExpensesContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

@@ -18,7 +18,7 @@ import CalendarGrid from "../../../components/vendors/calendar/CalendarGrid";
 
 import UserDropdown from "../../../components/vendors/UserDropdown";
 import UnverifiedBanner from "./UnverifiedBanner";
-import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar";
+
 
 
 // Define days, times, and events for the calendar
@@ -312,9 +312,8 @@ const CalendarContent = () => {
                 monday.setDate(weekDate.getDate() - ((dayOfWeek + 6) % 7));
                 const sunday = new Date(monday);
                 sunday.setDate(monday.getDate() + 6);
-                return `${
-                    monthNames[monday.getMonth()]
-                } ${monday.getDate()} - ${sunday.getDate()}`;
+                return `${monthNames[monday.getMonth()]
+                    } ${monday.getDate()} - ${sunday.getDate()}`;
             case "month":
                 return `${monthNames[currentMonth]} ${currentYear}`;
             case "year":
@@ -325,13 +324,6 @@ const CalendarContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col lg:flex-row gap-2 lg:gap-5 justify-between lg:items-start items-center mb-6">
@@ -348,7 +340,7 @@ const CalendarContent = () => {
           <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
             <img src={bell} alt="Notifications" />
           </div> */}
-{/* 
+                    {/* 
                     <div className="flex flex-row gap-5 relative items-center">
                         <UserDropdown
                             settingsRoute={route("ticketBooking.settingsPage")}
@@ -358,14 +350,14 @@ const CalendarContent = () => {
             </div>
             {/* end of header section */}
 
-           
+
 
             {/* Unverified Warning */}
             <div className="mt-6">
                 <UnverifiedBanner />
             </div>
 
-             <div
+            <div
                 className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
                 style={{ boxShadow: "4px 4px 4px #0000001A" }}
             >
@@ -438,7 +430,6 @@ const CalendarContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

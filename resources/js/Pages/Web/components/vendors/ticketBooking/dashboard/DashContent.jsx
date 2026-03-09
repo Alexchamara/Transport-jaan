@@ -18,7 +18,7 @@ import BookingOverviewBarChart from "./BookingOverviewBarChart";
 import EarningSummaryChart from "./EarningSummaryChart";
 import RealStatusPieChart from "./RealStatusPieChart";
 import FlightBookingTable from "./FlightBookingTable";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 import UserDropdown from "../../UserDropdown";
 
@@ -57,7 +57,7 @@ const DashContent = () => {
 
     const [isMobile, setIsMobile] = useState(true);
     const [showExportMenu, setShowExportMenu] = useState(false);
-    
+
     // Filter state for Flight Bookings
     const [showFlightFilters, setShowFlightFilters] = useState(false);
     const [flightSearchQuery, setFlightSearchQuery] = useState("");
@@ -130,7 +130,7 @@ const DashContent = () => {
             ]);
 
             const headers = [["Booking ID", "Date", "Passenger", "Flight Route", "Cabin", "Duration", "Price", "Payment", "Status"]];
-            
+
             doc.setFontSize(16);
             doc.text("Flight Bookings Report", 14, 10);
             doc.setFontSize(10);
@@ -170,7 +170,7 @@ const DashContent = () => {
             const data = [
                 ["Booking ID", "Booking Date", "Passenger", "Flight Route", "Cabin/Duration", "Start Date", "End Date", "Price", "Payment Status", "Status"]
             ];
-            
+
             filteredFlightBookings.forEach(booking => {
                 data.push([
                     booking.id,
@@ -189,7 +189,7 @@ const DashContent = () => {
             const worksheet = XLSX.utils.aoa_to_sheet(data);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Flight Bookings");
-            
+
             // Auto-size columns
             const colWidths = [
                 { wch: 15 }, // Booking ID
@@ -204,7 +204,7 @@ const DashContent = () => {
                 { wch: 12 }  // Status
             ];
             worksheet['!cols'] = colWidths;
-            
+
             XLSX.writeFile(workbook, `flight-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
         } catch (error) {
             console.error("Error exporting to XLSX:", error);
@@ -319,33 +319,26 @@ const DashContent = () => {
     // Apply filters to flight bookings
     const filteredFlightBookings = flightBookingsData.filter((booking) => {
         // Search filter
-        const matchesSearch = !flightSearchQuery || 
+        const matchesSearch = !flightSearchQuery ||
             booking.id?.toLowerCase().includes(flightSearchQuery.toLowerCase()) ||
             booking.customer?.toLowerCase().includes(flightSearchQuery.toLowerCase()) ||
             booking.transport?.toLowerCase().includes(flightSearchQuery.toLowerCase());
-        
+
         // Status filter
         const matchesStatus = flightStatusFilter === "All" || booking.status?.toLowerCase() === flightStatusFilter.toLowerCase();
-        
+
         // Payment filter
         const matchesPayment = flightPaymentFilter === "All" || booking.paymentStatus?.toLowerCase() === flightPaymentFilter.toLowerCase();
-        
+
         // Date filters
         const bookingDate = new Date(booking.date);
         const matchesFromDate = !flightDateFromFilter || bookingDate >= new Date(flightDateFromFilter);
         const matchesToDate = !flightDateToFilter || bookingDate <= new Date(flightDateToFilter);
-        
+
         return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
     });
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-            isVerified={isVerified}
-            settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center mb-6">
@@ -694,8 +687,8 @@ const DashContent = () => {
                                             <span>Filter</span>
                                         </button>
                                         <div className="relative">
-                                            <button 
-                                                onClick={() => setShowExportMenu(!showExportMenu)} 
+                                            <button
+                                                onClick={() => setShowExportMenu(!showExportMenu)}
                                                 className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]"
                                             >
                                                 <Download size={14} />
@@ -1013,7 +1006,6 @@ const DashContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

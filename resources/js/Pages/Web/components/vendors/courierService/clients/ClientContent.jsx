@@ -9,7 +9,7 @@ import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; //
 import { ChevronDown } from "lucide-react";
 
 import ClientTable from "./ClientTable";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 import UserDropdown from "../../UserDropdown";
 
@@ -43,13 +43,6 @@ const ClientContent = () => {
     }, []);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            /> 
-       </div>
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
@@ -81,7 +74,6 @@ const ClientContent = () => {
                 <ClientTable />
             </div>
         </div>
-        </>
     );
 };
 
