@@ -25,12 +25,18 @@ import {
     ArrowRight,
     Eye,
     Loader2,
+    MapPin,
 } from "lucide-react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import { Country, State, City } from "country-state-city";
 import ServiceRegistrationFields from "../../../../../Components/vendors/ServiceRegistrationFields";
 import VendorLayout from "../VendorLayout";
 import ActionModalTemplate from "../../../components/SuperAdmin/Common/ActionModalTemplate";
+
+const CITY_SEARCH_API_URL =
+    import.meta.env.VITE_CITY_SEARCH_API_URL || "https://nominatim.openstreetmap.org/search";
+const CITY_SEARCH_LIMIT = Number(import.meta.env.VITE_CITY_SEARCH_LIMIT || 8);
 
 // Map category slugs to icons
 const categoryIcons = {
@@ -83,6 +89,9 @@ const VendorProfile = () => {
     const [phoneValidationError, setPhoneValidationError] = useState("");
     const [actionModalState, setActionModalState] = useState({ isOpen: false, action: null, payload: null });
     const fileInputRef = useRef(null);
+    const cityDropdownRef = useRef(null);
+    const countryDropdownRef = useRef(null);
+    const citySearchTimeoutRef = useRef(null);
 
 
     // ─── Profile Form State ──────────────────────────────────
@@ -110,6 +119,178 @@ const VendorProfile = () => {
         vendorProfile?.logo ? `/storage/${vendorProfile.logo}` : null
     );
     const [serviceErrors, setServiceErrors] = useState({});
+    const [showCityDropdown, setShowCityDropdown] = useState(false);
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+    const [citySearchResults, setCitySearchResults] = useState([]);
+
+    const allCountries = Country.getAllCountries();
+
+    const getCountryCodeFromName = (countryName) => {
+        const matchedCountry = allCountries.find(
+            (country) => country.name.toLowerCase() === (countryName || "").toLowerCase()
+        );
+        return matchedCountry?.isoCode || "LK";
+    };
+
+    const [selectedCountryCode, setSelectedCountryCode] = useState(() =>
+        getCountryCodeFromName(vendorProfile?.country || "Sri Lanka")
+    );
+
+    const [selectedStateCode, setSelectedStateCode] = useState(() => {
+        const countryCode = getCountryCodeFromName(vendorProfile?.country || "Sri Lanka");
+        const states = State.getStatesOfCountry(countryCode);
+        const matchedState = states.find(
+            (state) => state.name.toLowerCase() === (vendorProfile?.state || "").toLowerCase()
+        );
+        return matchedState?.isoCode || "";
+    });
+
+    const availableStates = State.getStatesOfCountry(selectedCountryCode);
+    const availableCities = selectedStateCode
+        ? City.getCitiesOfState(selectedCountryCode, selectedStateCode)
+        : City.getCitiesOfCountry(selectedCountryCode);
+
+    const filteredCountryNames = allCountries
+        .map((country) => country.name)
+        .filter((countryName) => {
+            const query = (profileData.country || "").trim().toLowerCase();
+            if (!query) return true;
+            return countryName.toLowerCase().includes(query);
+        })
+        .slice(0, 100);
+
+    const handleCountryChange = (countryName) => {
+        handleProfileChange("country", countryName);
+
+        const matchedCountry = allCountries.find(
+            (country) => country.name.toLowerCase() === (countryName || "").trim().toLowerCase()
+        );
+
+        if (matchedCountry && matchedCountry.isoCode !== selectedCountryCode) {
+            setSelectedCountryCode(matchedCountry.isoCode);
+            setSelectedStateCode("");
+            handleProfileChange("state", "");
+            handleProfileChange("city", "");
+        }
+    };
+
+    const handleStateChange = (stateCode) => {
+        const state = availableStates.find((s) => s.isoCode === stateCode);
+        setSelectedStateCode(stateCode);
+        handleProfileChange("state", state?.name || "");
+    };
+
+    const handleCityChange = (cityName) => {
+        handleProfileChange("city", cityName);
+    };
+
+    const handleCityInputChange = (cityName) => {
+        handleCityChange(cityName);
+        setShowCityDropdown(true);
+
+        if (citySearchTimeoutRef.current) {
+            clearTimeout(citySearchTimeoutRef.current);
+        }
+
+        if (!cityName || cityName.trim().length < 2) {
+            setCitySearchResults([]);
+            return;
+        }
+
+        citySearchTimeoutRef.current = setTimeout(async () => {
+            try {
+                const response = await fetch(
+                    `${CITY_SEARCH_API_URL}?format=jsonv2&addressdetails=1&limit=${CITY_SEARCH_LIMIT}&city=${encodeURIComponent(cityName.trim())}`,
+                    {
+                        headers: {
+                            Accept: "application/json",
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    setCitySearchResults([]);
+                    return;
+                }
+
+                const data = await response.json();
+                const results = (Array.isArray(data) ? data : [])
+                    .map((item) => {
+                        const address = item?.address || {};
+                        const resolvedCity =
+                            address.city ||
+                            address.town ||
+                            address.village ||
+                            address.municipality ||
+                            address.county ||
+                            item?.name ||
+                            "";
+
+                        return {
+                            city: resolvedCity,
+                            state: address.state || address.region || "",
+                            country: address.country || "",
+                        };
+                    })
+                    .filter((item) => item.city)
+                    .filter(
+                        (item, index, arr) =>
+                            arr.findIndex(
+                                (c) =>
+                                    c.city.toLowerCase() === item.city.toLowerCase() &&
+                                    c.country.toLowerCase() === item.country.toLowerCase()
+                            ) === index
+                    );
+
+                setCitySearchResults(results);
+            } catch {
+                setCitySearchResults([]);
+            }
+        }, 250);
+    };
+
+    const handleCitySelect = (item) => {
+        handleProfileChange("city", item.city);
+        if (item.state) {
+            handleProfileChange("state", item.state);
+        }
+        if (item.country) {
+            handleProfileChange("country", item.country);
+
+            const matchedCountry = allCountries.find(
+                (country) => country.name.toLowerCase() === item.country.toLowerCase()
+            );
+            if (matchedCountry) {
+                setSelectedCountryCode(matchedCountry.isoCode);
+                setSelectedStateCode("");
+            }
+        }
+        setShowCityDropdown(false);
+    };
+
+    const handleCountrySelect = (countryName) => {
+        handleCountryChange(countryName);
+        setShowCountryDropdown(false);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target)) {
+                setShowCityDropdown(false);
+            }
+            if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target)) {
+                setShowCountryDropdown(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            if (citySearchTimeoutRef.current) {
+                clearTimeout(citySearchTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // ─── Phone Validation ────────────────────────────────────
     const validatePhone = (phone) => {
@@ -1075,16 +1256,37 @@ const VendorProfile = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         City <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.city}
-                                        onChange={(e) => handleProfileChange("city", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                            localErrors.city ? "border-red-400" : "border-gray-300"
-                                        }`}
-                                        placeholder="City"
-                                    />
+                                    <div className="relative" ref={cityDropdownRef}>
+                                        <input
+                                            type="text"
+                                            value={profileData.city}
+                                            onChange={(e) => handleCityInputChange(e.target.value)}
+                                            onFocus={() => setShowCityDropdown(true)}
+                                            disabled={isReadOnly}
+                                            className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
+                                                localErrors.city ? "border-red-400" : "border-gray-300"
+                                            }`}
+                                            placeholder="Type city"
+                                        />
+                                        {showCityDropdown && !isReadOnly && citySearchResults.length > 0 && (
+                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+                                                {citySearchResults.map((item, index) => (
+                                                    <button
+                                                        key={`${item.city}-${item.country}-${index}`}
+                                                        type="button"
+                                                        onClick={() => handleCitySelect(item)}
+                                                        className="w-full px-3 py-2 border-b border-gray-100 last:border-b-0 text-left hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                            <span className="text-sm font-medium text-gray-800">{item.city}</span>
+                                                            <span className="text-sm text-gray-500">{item.country}</span>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     {localErrors.city && (
                                         <p className="text-xs text-red-500 mt-1">{localErrors.city}</p>
                                     )}
@@ -1093,14 +1295,19 @@ const VendorProfile = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         State / Province
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.state}
-                                        onChange={(e) => handleProfileChange("state", e.target.value)}
+                                    <select
+                                        value={selectedStateCode}
+                                        onChange={(e) => handleStateChange(e.target.value)}
                                         disabled={isReadOnly}
                                         className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                        placeholder="State or Province"
-                                    />
+                                    >
+                                        <option value="">Select State / Province</option>
+                                        {availableStates.map((state) => (
+                                            <option key={state.isoCode} value={state.isoCode}>
+                                                {state.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1119,13 +1326,34 @@ const VendorProfile = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Country<span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.country}
-                                        onChange={(e) => handleProfileChange("country", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                    />
+                                    <div className="relative" ref={countryDropdownRef}>
+                                        <input
+                                            type="text"
+                                            value={profileData.country}
+                                            onChange={(e) => {
+                                                handleCountryChange(e.target.value);
+                                                setShowCountryDropdown(true);
+                                            }}
+                                            onFocus={() => setShowCountryDropdown(true)}
+                                            disabled={isReadOnly}
+                                            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                            placeholder="Type country"
+                                        />
+                                        {showCountryDropdown && !isReadOnly && filteredCountryNames.length > 0 && (
+                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+                                                {filteredCountryNames.map((countryName) => (
+                                                    <button
+                                                        key={countryName}
+                                                        type="button"
+                                                        onClick={() => handleCountrySelect(countryName)}
+                                                        className="w-full px-3 py-2 border-b border-gray-100 last:border-b-0 text-left text-sm text-gray-800 hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        {countryName}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
