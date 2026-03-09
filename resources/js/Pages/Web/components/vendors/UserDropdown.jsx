@@ -84,7 +84,7 @@ const UserDropdown = ({ settingsRoute }) => {
         className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 max-w-full"
         onClick={handleToggle}
       >
-        <div className="w-[40px] h-[40px] lg:w-[60px] lg:h-[60px] rounded-full lg:rounded-[10px] bg-[#E8E8EF] flex justify-center items-center overflow-hidden text-xl font-bold text-[#7B7B7A]">
+        <div className="w-[38px] h-[38px] lg:w-[32px] lg:h-[32px] rounded-full lg:rounded-[6px] bg-[#E8E8EF] flex justify-center items-center overflow-hidden text-xl font-bold text-[#7B7B7A]">
           {user?.image ? (
             <img
               src={user.image}
@@ -101,7 +101,7 @@ const UserDropdown = ({ settingsRoute }) => {
           )}
         </div>
 
-        <div className="hidden lg:flex flex-col justify-center min-w-0 flex-1">
+        <div className="hidden xl:flex flex-col justify-center min-w-0 flex-1">
           <h1 className="text-[14px] sm:text-[16px] md:text-[20px] font-[700] truncate">
             {user?.name || "User"}
           </h1>
@@ -111,7 +111,7 @@ const UserDropdown = ({ settingsRoute }) => {
         </div>
 
         <ChevronDown
-          className={`hidden lg:block w-4 h-4 sm:w-5 sm:h-5 text-[#7B7B7A] transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""
+          className={`hidden xl:block w-4 h-4 sm:w-5 sm:h-5 text-[#7B7B7A] transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""
             }`}
         />
       </div>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, usePage } from "@inertiajs/react";
+import { Link, usePage, router } from "@inertiajs/react";
 import { ArrowLeft, Menu, UserCircle } from "lucide-react";
 import CompanyLogo from "../../Pages/Web/components/CompanyLogo";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
@@ -22,87 +22,88 @@ import bellIcon from "../../Pages/Web/assets/vendors/dashboard/bell.svg";
  */
 const SERVICE_CONFIG = {
     "All Bookings": {
-        dashboard:  () => route("vendorAllBookings"),
-        bookings:   () => route("vendorAllBookingsPage"),
-        units:      null,
-        calendar:   () => route("vendorCalendar"),
-        clients:    () => route("vendorAllBookingsClients"),
-        drivers:    null,
-        payment:    () => route(""),
-        expenses:   () => route(""),
-        settings:   () => route(""),
-        profile:    () => route("vendor.profile.index"),
+        dashboard: () => route("vendorAllBookings"),
+        bookings: () => route("vendorAllBookingsPage"),
+        units: null,
+        calendar: () => route("vendorCalendar"),
+        clients: () => route("vendorAllBookingsClients"),
+        drivers: null,
+        payment: () => route(""),
+        expenses: () => route(""),
+        settings: () => route(""),
+        profile: () => route("vendor.profile.index"),
     },
     "Vehicle Rental": {
-        dashboard:  () => route("vendors.dashboard"),
-        bookings:   () => route("vendors.bookings"),
-        units:      () => route("vendors.units"),
-        calendar:   () => route("vendors.calendar"),
-        clients:    () => route("vendors.clients"),
-        drivers:    () => route("vendors.drivers"),
-        payment:    () => route("vendors.payment"),
-        expenses:   () => route("vendors.expenses"),
-        settings:   () => route(""),
-        profile:    () => route(""),
+        dashboard: () => route("vendors.dashboard"),
+        bookings: () => route("vendors.bookings"),
+        units: () => route("vendors.units"),
+        calendar: () => route("vendors.calendar"),
+        clients: () => route("vendors.clients"),
+        drivers: () => route("vendors.drivers"),
+        payment: () => route("vendors.payment"),
+        expenses: () => route("vendors.expenses"),
+        settings: () => route(""),
+        profile: () => route(""),
     },
     "Ticket Booking": {
-        dashboard:  () => route("ticketBooking.dashboard"),
-        bookings:   () => route("ticketBooking.bookings"),
-        units:      () => route("ticketBooking.units"),
-        calendar:   () => route("ticketBooking.calendar"),
-        clients:    () => route("ticketBooking.clients"),
-        drivers:    null,
-        payment:    () => route("ticketBooking.payment"),
-        expenses:   () => route("ticketBooking.expenses"),
-        settings:   () => route(""),
-        profile:    () => route(""),
+        dashboard: () => route("ticketBooking.dashboard"),
+        bookings: () => route("ticketBooking.bookings"),
+        units: () => route("ticketBooking.units"),
+        calendar: () => route("ticketBooking.calendar"),
+        clients: () => route("ticketBooking.clients"),
+        drivers: null,
+        payment: () => route("ticketBooking.payment"),
+        expenses: () => route("ticketBooking.expenses"),
+        settings: () => route(""),
+        profile: () => route(""),
     },
     "Courier Service": {
-        dashboard:  () => route("courierService.dashboard"),
-        bookings:   () => route("courierService.bookings"),
-        units:      () => route("courierService.units"),
-        calendar:   () => route("courierService.calendar"),
-        clients:    () => route("courierService.clients"),
-        drivers:    null,
-        payment:    () => route("courierService.payment"),
-        expenses:   () => route("courierService.expenses"),
-        settings:   () => route(""),
-        profile:    () => route(""),
+        dashboard: () => route("courierService.dashboard"),
+        bookings: () => route("courierService.bookings"),
+        units: () => route("courierService.units"),
+        calendar: () => route("courierService.calendar"),
+        clients: () => route("courierService.clients"),
+        drivers: null,
+        payment: () => route("courierService.payment"),
+        expenses: () => route("courierService.expenses"),
+        settings: () => route(""),
+        profile: () => route(""),
     },
     "Warehousing": {
-        dashboard:  () => route("vendors.warehouse.dashboard"),
-        bookings:   () => route("vendors.warehouse.bookings"),
-        units:      () => route("vendors.warehouse.units"),
-        calendar:   () => route("vendors.warehouse.calendar"),
-        clients:    () => route("vendors.warehouse.clients"),
-        drivers:    null,
-        payment:    () => route("vendors.warehouse.payment"),
-        expenses:   () => route("vendors.warehouse.expenses"),
-        settings:   () => route(""),
-        profile:    () => route(""),
+        dashboard: () => route("vendors.warehouse.dashboard"),
+        bookings: () => route("vendors.warehouse.reservations"),
+        bookingsLabel: "Reservations",
+        units: () => route("vendors.warehouse.units"),
+        calendar: () => route("vendors.warehouse.calendar"),
+        clients: () => route("vendors.warehouse.clients"),
+        drivers: null,
+        payment: () => route("vendors.warehouse.payment"),
+        expenses: () => route("vendors.warehouse.expenses"),
+        settings: () => route(""),
+        profile: () => route(""),
     },
     "Freight": {
-        dashboard:  () => route("freight.dashboard"),
-        bookings:   () => route("freight.bookings"),
-        units:      () => route("freight.units"),
-        calendar:   () => route("freight.calendar"),
-        clients:    () => route("freight.clients"),
-        drivers:    null,
-        payment:    () => route("freight.payment"),
-        expenses:   () => route("freight.expenses"),
-        settings:   () => route(""),
-        profile:    () => route(""),
+        dashboard: () => route("freight.dashboard"),
+        bookings: () => route("freight.bookings"),
+        units: () => route("freight.units"),
+        calendar: () => route("freight.calendar"),
+        clients: () => route("freight.clients"),
+        drivers: null,
+        payment: () => route("freight.payment"),
+        expenses: () => route("freight.expenses"),
+        settings: () => route(""),
+        profile: () => route(""),
     },
 };
 
 /** Top navbar tabs – order matters */
 const SERVICE_TABS = [
-    { name: "All Bookings",   routeKey: "vendorAllBookings" },
+    { name: "All Bookings", routeKey: "vendorAllBookings" },
     { name: "Vehicle Rental", routeKey: "vendors.dashboard" },
     { name: "Ticket Booking", routeKey: "ticketBooking.dashboard" },
-    { name: "Courier Service",routeKey: "courierService.dashboard" },
-    { name: "Warehousing",    routeKey: "vendors.warehouse.dashboard" },
-    { name: "Freight",        routeKey: "freight.dashboard" },
+    { name: "Courier Service", routeKey: "courierService.dashboard" },
+    { name: "Warehousing", routeKey: "vendors.warehouse.dashboard" },
+    { name: "Freight", routeKey: "freight.dashboard" },
 ];
 
 /** Safely extract the pathname from a Ziggy route URL */
@@ -134,9 +135,54 @@ const VendorShellLayout = ({
         : (user?.status === "verified" || user?.status === "Verified");
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [showFinancial, setShowFinancial]   = useState(false);
-    const [showAlert, setShowAlert]           = useState(false);
+    const [showFinancial, setShowFinancial] = useState(false);
+    const [showAlert, setShowAlert] = useState(false);
     const [showComingSoon, setShowComingSoon] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [blockedService, setBlockedService] = useState("");
+    const [isUnverifiedModal, setIsUnverifiedModal] = useState(false);
+
+    const approvedSlugs = user?.approved_service_slugs || [];
+
+    const canAccessService = (serviceName) => {
+        switch (serviceName) {
+            case "All Bookings": return true;
+            case "Vehicle Rental": return approvedSlugs.includes("vehicle-rental");
+            case "Ticket Booking": return approvedSlugs.includes("aviation-service") || approvedSlugs.includes("railway-service");
+            case "Courier Service": return approvedSlugs.includes("courier-services");
+            case "Warehousing": return approvedSlugs.includes("warehousing");
+            case "Freight": return approvedSlugs.includes("waterborne-transport");
+            default: return false;
+        }
+    };
+
+    const getServiceSlug = (serviceName) => {
+        const serviceMap = {
+            "Vehicle Rental": "vehicle-rental",
+            "Ticket Booking": "aviation-service",
+            "Courier Service": "courier-services",
+            "Warehousing": "warehousing",
+            "Freight": "waterborne-transport",
+        };
+        return serviceMap[serviceName] || "";
+    };
+
+    const handleNavbarClick = (serviceName, accountUnverified) => {
+        setBlockedService(serviceName);
+        setIsUnverifiedModal(accountUnverified);
+        setShowModal(true);
+    };
+
+    const handleRegister = () => {
+        const slug = getServiceSlug(blockedService);
+        setShowModal(false);
+        router.visit(`/vendor/profile?step=2&service=${slug}`);
+    };
+
+    const handleModalCancel = () => {
+        setShowModal(false);
+        setBlockedService("");
+    };
 
     const currentPath = window.location.pathname;
     const cfg = SERVICE_CONFIG[activeService] ?? SERVICE_CONFIG["Vehicle Rental"];
@@ -153,15 +199,17 @@ const VendorShellLayout = ({
     };
 
     const menuCls = (active) =>
-        `flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${
-            active
-                ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                : "text-[#00000066] hover:bg-gray-50"
+        `flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${active
+            ? "bg-[#0955AC29] text-[#000000] font-[700]"
+            : "text-[#00000066] hover:bg-gray-50"
         }`;
 
-    const handleUnverified = () => {
-        setShowAlert(true);
-        setTimeout(() => setShowAlert(false), 3000);
+    const handleUnverified = (serviceName) => {
+        if (!isVerified) {
+            handleNavbarClick(serviceName, true);
+        } else {
+            handleNavbarClick(serviceName, false);
+        }
     };
 
     const navigate = (routeFn) => {
@@ -175,17 +223,15 @@ const VendorShellLayout = ({
     };
 
     const tabLinkCls = (isActiveSvc) =>
-        `flex-1 lg:flex-none px-6 py-4 lg:px-8 text-center font-[500] text-[14px] whitespace-nowrap border-b-4 transition-all rounded-t-lg ${
-            isActiveSvc
-                ? "border-[#0955AC] bg-[#0955AC29] text-[#0955AC] font-[600]"
-                : "border-transparent text-[#666666] hover:bg-[#F3F3F3] hover:border-[#0955AC]"
+        `flex-1 lg:flex-none px-6 py-4 lg:px-8 text-center font-[500] text-[14px] whitespace-nowrap border-b-4 transition-all rounded-t-lg ${isActiveSvc
+            ? "border-[#0955AC] bg-[#0955AC29] text-[#0955AC] font-[600]"
+            : "border-transparent text-[#666666] hover:bg-[#F3F3F3] hover:border-[#0955AC]"
         }`;
 
     const pillCls = (isActiveSvc) =>
-        `px-3 py-1.5 text-[12px] font-[500] whitespace-nowrap rounded-full transition-all flex-shrink-0 ${
-            isActiveSvc
-                ? "bg-[#0955AC] text-white font-[600] shadow-sm"
-                : "bg-gray-100 text-gray-600"
+        `px-3 py-1.5 text-[12px] font-[500] whitespace-nowrap rounded-full transition-all flex-shrink-0 ${isActiveSvc
+            ? "bg-[#0955AC] text-white font-[600] shadow-sm"
+            : "bg-gray-100 text-gray-600"
         }`;
 
     return (
@@ -264,7 +310,7 @@ const VendorShellLayout = ({
                                 {cfg.bookings && (
                                     <div className={menuCls(isActive(cfg.bookings))} onClick={() => navigate(cfg.bookings)}>
                                         <img src={bookLogo} className="w-[22px]" alt="" />
-                                        <span>Bookings</span>
+                                        <span>{cfg.bookingsLabel || "Bookings"}</span>
                                     </div>
                                 )}
 
@@ -300,7 +346,7 @@ const VendorShellLayout = ({
                                     <>
                                         <div
                                             className={menuCls(
-                                                (cfg.payment  && isActive(cfg.payment)) ||
+                                                (cfg.payment && isActive(cfg.payment)) ||
                                                 (cfg.expenses && isActive(cfg.expenses))
                                             )}
                                             onClick={() => setShowFinancial((v) => !v)}
@@ -319,11 +365,10 @@ const VendorShellLayout = ({
                                             <div className="ml-8 w-full flex flex-col gap-1 text-[16px] font-[500]">
                                                 {cfg.payment && (
                                                     <div
-                                                        className={`px-3 py-2 cursor-pointer rounded-lg ${
-                                                            isActive(cfg.payment)
-                                                                ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                                                                : "text-[#00000066] hover:bg-gray-50"
-                                                        }`}
+                                                        className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.payment)
+                                                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                                            : "text-[#00000066] hover:bg-gray-50"
+                                                            }`}
                                                         onClick={() => navigate(cfg.payment)}
                                                     >
                                                         Payment
@@ -331,11 +376,10 @@ const VendorShellLayout = ({
                                                 )}
                                                 {cfg.expenses && (
                                                     <div
-                                                        className={`px-3 py-2 cursor-pointer rounded-lg ${
-                                                            isActive(cfg.expenses)
-                                                                ? "bg-[#0955AC29] text-[#000000] font-[700]"
-                                                                : "text-[#00000066] hover:bg-gray-50"
-                                                        }`}
+                                                        className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.expenses)
+                                                            ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                                            : "text-[#00000066] hover:bg-gray-50"
+                                                            }`}
                                                         onClick={() => navigate(cfg.expenses)}
                                                     >
                                                         Expenses
@@ -391,12 +435,12 @@ const VendorShellLayout = ({
                         <div className="overflow-x-auto pill-scroll border-t border-gray-100">
                             <div className="flex gap-2 px-3 py-2 min-w-max">
                                 {SERVICE_TABS.map((tab, idx) =>
-                                    isVerified ? (
+                                    isVerified && canAccessService(tab.name) ? (
                                         <Link key={idx} href={route(tab.routeKey)} className={pillCls(activeService === tab.name)}>
                                             {tab.name}
                                         </Link>
                                     ) : (
-                                        <button key={idx} onClick={handleUnverified} className={`${pillCls(activeService === tab.name)} cursor-not-allowed opacity-60`}>
+                                        <button key={idx} onClick={() => handleUnverified(tab.name)} className={`${pillCls(activeService === tab.name)} cursor-not-allowed opacity-60`}>
                                             {tab.name}
                                         </button>
                                     )
@@ -407,14 +451,14 @@ const VendorShellLayout = ({
 
                     {/* ── DESKTOP TAB NAVBAR ── */}
                     <div className="hidden lg:flex flex-shrink-0 sticky top-0 z-30 bg-white items-center justify-between px-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
-                        <div className="flex flex-row gap-0 flex-1">
+                        <div className="flex flex-row gap-0 overflow-x-auto min-w-0 flex-1">
                             {SERVICE_TABS.map((tab, idx) =>
-                                isVerified ? (
+                                isVerified && canAccessService(tab.name) ? (
                                     <Link key={idx} href={route(tab.routeKey)} className={tabLinkCls(activeService === tab.name)}>
                                         {tab.name}
                                     </Link>
                                 ) : (
-                                    <button key={idx} onClick={handleUnverified} className={`${tabLinkCls(activeService === tab.name)} cursor-not-allowed opacity-60`}>
+                                    <button key={idx} onClick={() => handleUnverified(tab.name)} className={`${tabLinkCls(activeService === tab.name)} cursor-not-allowed opacity-60`}>
                                         {tab.name}
                                     </button>
                                 )
@@ -433,12 +477,35 @@ const VendorShellLayout = ({
                 </div>
             </div>
 
-            {/* Unverified toast */}
-            {showAlert && (
-                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50">
-                    <div className="bg-[#F87171] text-white px-6 py-3 rounded-lg shadow-lg font-[500] flex items-center gap-3">
-                        <span>⚠️</span>
-                        <span>Please verify your account to access all features</span>
+            {/* Access Denied Modal */}
+            {showModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                            {isUnverifiedModal ? "Account Not Verified" : "Service Not Registered"}
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                            {isUnverifiedModal
+                                ? "Please verify your account to access all dashboard features."
+                                : `To access ${blockedService}, please register this service and wait for admin verification.`
+                            }
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={handleModalCancel}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition"
+                            >
+                                Cancel
+                            </button>
+                            {!isUnverifiedModal && (
+                                <button
+                                    onClick={handleRegister}
+                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-lg hover:bg-[#074291] font-medium transition"
+                                >
+                                    Register Service
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

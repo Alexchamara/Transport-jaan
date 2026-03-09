@@ -31,7 +31,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { Country, State, City } from "country-state-city";
 import ServiceRegistrationFields from "../../../../../Components/vendors/ServiceRegistrationFields";
-import VendorLayout from "../VendorLayout";
+import VendorShellLayout from "../../../../../Components/vendors/VendorShellLayout";
 import ActionModalTemplate from "../../../components/SuperAdmin/Common/ActionModalTemplate";
 
 const CITY_SEARCH_API_URL =
@@ -302,30 +302,30 @@ const VendorProfile = () => {
         try {
             // Add + prefix if not present for proper validation
             const phoneWithPlus = phone.startsWith('+') ? phone : '+' + phone;
-            
+
             // Validate using libphonenumber-js
             if (!isValidPhoneNumber(phoneWithPlus)) {
-                return { 
-                    valid: false, 
+                return {
+                    valid: false,
                     message: 'Please enter a valid phone number'
                 };
             }
 
             // Parse the phone number to get more details
             const phoneNumber = parsePhoneNumber(phoneWithPlus);
-            
+
             // Additional check to ensure it's a valid mobile/fixed line
             if (!phoneNumber.isValid()) {
-                return { 
-                    valid: false, 
+                return {
+                    valid: false,
                     message: 'Please enter a valid phone number'
                 };
             }
 
             return { valid: true, message: '' };
         } catch (error) {
-            return { 
-                valid: false, 
+            return {
+                valid: false,
                 message: 'Please enter a valid phone number with country code'
             };
         }
@@ -359,8 +359,8 @@ const VendorProfile = () => {
             return { valid: true, message: '' };
         }
 
-        return { 
-            valid: false, 
+        return {
+            valid: false,
             message: 'Invalid NIC format. Please enter either 9 digits + letter (V,X,Y,W) or 12 digits'
         };
     };
@@ -368,12 +368,12 @@ const VendorProfile = () => {
     const handleNICChange = (value) => {
         // Remove any invalid characters - allow only digits and letters V, X, Y, W
         const cleanedValue = value.replace(/[^0-9VXYW]/gi, '').toUpperCase();
-        
+
         // Enforce max length: 12 for new format
         const limitedValue = cleanedValue.slice(0, 12);
-        
+
         handleProfileChange('business_registration_no', limitedValue);
-        
+
         // Clear error if valid
         if (limitedValue && validateNIC(limitedValue).valid) {
             setLocalErrors((prev) => {
@@ -428,7 +428,7 @@ const VendorProfile = () => {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const serviceSlug = params.get('service');
-        
+
         if (serviceSlug && serviceCategories) {
             setCurrentStep(2);
 
@@ -436,11 +436,11 @@ const VendorProfile = () => {
             const matchingCategory = serviceCategories.find(
                 cat => cat.slug === serviceSlug
             );
-            
+
             if (matchingCategory) {
                 // Auto-expand this category
                 setExpandedCategories(prev => ({ ...prev, [matchingCategory.id]: true }));
-                
+
                 // Scroll to the category after a short delay (to ensure DOM is ready)
                 setTimeout(() => {
                     const categoryElement = document.getElementById(`category-${matchingCategory.id}`);
@@ -636,7 +636,7 @@ const VendorProfile = () => {
         const requiredFields = subCategory.required_fields || [];
         const values = serviceFieldValues[subCategory.id] || {};
         const fieldErrors = validateServiceFields(requiredFields, values);
-        
+
         if (Object.keys(fieldErrors).length > 0) {
             setServiceErrors((prev) => ({ ...prev, [subCategory.id]: fieldErrors }));
             setErrorMessage("Please fill in all required fields before saving.");
@@ -880,1291 +880,1272 @@ const VendorProfile = () => {
 
     // ─── RENDER ───────────────────────────────────────────────
     return (
-        <VendorLayout activeService="Profile">
-        <div className="w-full">
+        <VendorShellLayout activeService="All Bookings">
+            <div className="w-full">
 
-            {/* Page Title */}
-            <div className="bg-white border-b border-gray-200 shadow-sm">
-                <div className="px-4 sm:px-6 lg:px-8 xl:pl-6 py-4 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-xl font-bold text-gray-800">Service Provider Registration</h1>
-                        <p className="text-sm text-gray-500">Complete your business profile and register for services</p>
-                    </div>
-                    {vendorProfile?.submission_status && (
-                        <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                vendorProfile.submission_status === "draft"
-                                    ? "bg-gray-100 text-gray-600"
-                                    : vendorProfile.submission_status === "submitted"
-                                    ? "bg-blue-100 text-blue-700"
-                                    : vendorProfile.submission_status === "approved"
-                                    ? "bg-green-100 text-green-700"
-                                    : vendorProfile.submission_status === "revision_requested"
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-red-100 text-red-700"
-                            }`}
-                        >
-                            {vendorProfile.submission_status === "draft" && "Draft"}
-                            {vendorProfile.submission_status === "submitted" && "Under Review"}
-                            {vendorProfile.submission_status === "approved" && "Approved"}
-                            {vendorProfile.submission_status === "revision_requested" && "Revision Requested"}
-                            {vendorProfile.submission_status === "rejected" && "Rejected"}
-                        </span>
-                    )}
-                </div>
-            </div>
-
-            {/* Step Indicator */}
-            <div className="bg-white border-b border-gray-100">
-                <div className="px-4 sm:px-6 lg:px-8 xl:pl-6 py-4">
-                    <div className="flex items-center justify-between">
-                        {steps.map((step, idx) => {
-                            const StepIcon = step.icon;
-                            const isActive = currentStep === step.num;
-                            const isCompleted = currentStep > step.num;
-
-                            return (
-                                <React.Fragment key={step.num}>
-                                    <button
-                                        onClick={() => {
-                                            if (isReadOnly && !canAddNewServices) return;
-                                            
-                                            // Validate when moving forward from step 1 to step 2
-                                            if (step.num === 2 && currentStep === 1) {
-                                                if (!validateProfile()) {
-                                                    setErrorMessage("Please fill in all required fields to continue.");
-                                                    setTimeout(() => setErrorMessage(""), 4000);
-                                                    return;
-                                                }
-                                            }
-                                            
-                                            // Validate when moving forward from step 2 to step 3
-                                            if (step.num === 3 && currentStep === 2) {
-                                                if (registeredServiceCount === 0) {
-                                                    setErrorMessage("Please register for at least one service before proceeding.");
-                                                    setTimeout(() => setErrorMessage(""), 4000);
-                                                    return;
-                                                }
-                                            }
-                                            
-                                            setCurrentStep(step.num);
-                                        }}
-                                        disabled={isReadOnly && !canAddNewServices}
-                                        className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl transition-all ${
-                                            isActive
-                                                ? "bg-[#0955AC] text-white shadow-lg shadow-blue-200"
-                                                : isCompleted
-                                                ? "bg-green-50 text-green-700 hover:bg-green-100"
-                                                : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                                        } ${(isReadOnly && !canAddNewServices) ? "cursor-default" : "cursor-pointer"}`}
-                                    >
-                                        <div
-                                            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                                isActive
-                                                    ? "bg-white text-[#0955AC]"
-                                                    : isCompleted
-                                                    ? "bg-green-500 text-white"
-                                                    : "bg-gray-200 text-gray-500"
-                                            }`}
-                                        >
-                                            {isCompleted ? (
-                                                <Check className="w-4 h-4" />
-                                            ) : (
-                                                step.num
-                                            )}
-                                        </div>
-                                        <div className="hidden sm:block text-left">
-                                            <p className="text-xs font-medium opacity-70">
-                                                Step {step.num}
-                                            </p>
-                                            <p className="text-sm font-semibold">
-                                                {step.label}
-                                            </p>
-                                        </div>
-                                    </button>
-                                    {idx < steps.length - 1 && (
-                                        <div
-                                            className={`flex-1 h-[2px] mx-2 ${
-                                                currentStep > step.num
-                                                    ? "bg-green-400"
-                                                    : "bg-gray-200"
-                                            }`}
-                                        />
-                                    )}
-                                </React.Fragment>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
-
-            {/* Toast Messages */}
-            {successMessage && (
-                <div className="fixed top-4 right-4 z-50 animate-fade-in">
-                    <div className="bg-green-500 text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-2">
-                        <Check className="w-4 h-4" />
-                        <span className="text-sm font-medium">{successMessage}</span>
-                        <button onClick={() => setSuccessMessage("")} className="ml-2">
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            )}
-            {errorMessage && (
-                <div className="fixed top-4 right-4 z-50 animate-fade-in">
-                    <div className="bg-red-500 text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4" />
-                        <span className="text-sm font-medium">{errorMessage}</span>
-                        <button onClick={() => setErrorMessage("")} className="ml-2">
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* Content */}
-            <div className="px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-8 lg:pb-12">
-                {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ STEP 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-                {currentStep === 1 && (
-                    <div className="space-y-6">
-                        {/* Company Logo — business only */}
-                        {isBusiness && (
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <Building2 className="w-5 h-5 text-[#0955AC]" />
-                                Company Logo
-                            </h2>
-                            <div className="flex items-center gap-5">
-                                {logoPreview ? (
-                                    <div className="relative">
-                                        <img
-                                            src={logoPreview}
-                                            alt="Logo"
-                                            className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200"
-                                        />
-                                        {!isReadOnly && (
-                                            <button
-                                                type="button"
-                                                onClick={removeLogo}
-                                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 shadow"
-                                            >
-                                                <X className="w-3 h-3" />
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <label className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#0955AC] hover:bg-blue-50 transition-colors">
-                                        <Upload className="w-6 h-6 text-gray-400" />
-                                        <span className="text-[10px] text-gray-400 mt-1">
-                                            Upload
-                                        </span>
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            className="hidden"
-                                            accept="image/*"
-                                            onChange={handleLogoChange}
-                                            disabled={isReadOnly}
-                                        />
-                                    </label>
-                                )}
-                                <div className="text-sm text-gray-500">
-                                    <p className="font-medium text-gray-700">Upload your company logo</p>
-                                    <p className="text-xs mt-1">Recommended: 200×200px, PNG or JPG, max 2MB</p>
-                                </div>
-                            </div>
+                {/* Page Title */}
+                <div className="bg-white border-b border-gray-200 shadow-sm">
+                    <div className="px-4 sm:px-6 lg:px-8 xl:pl-6 py-4 flex items-center justify-between">
+                        <div>
+                            <h1 className="text-xl font-bold text-gray-800">Service Provider Registration</h1>
+                            <p className="text-sm text-gray-500">Complete your business profile and register for services</p>
                         </div>
-                        )}
-
-                        {/* Business / Personal Information */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <Building2 className="w-5 h-5 text-[#0955AC]" />
-                                {isBusiness ? "Business Information" : "Personal Information"}
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Company Name / Full Name */}
-                                <div className={isBusiness ? "md:col-span-2" : ""}>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {isBusiness ? "Company Name" : "Full Name"} <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.company_name}
-                                        onChange={(e) => handleProfileChange("company_name", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                            localErrors.company_name ? "border-red-400" : "border-gray-300"
-                                        }`}
-                                        placeholder={isBusiness ? "Enter your company name" : "Enter your full name"}
-                                    />
-                                    {localErrors.company_name && (
-                                        <p className="text-xs text-red-500 mt-1">{localErrors.company_name}</p>
-                                    )}
-                                </div>
-
-                                {/* NIC Number — individual only */}
-                                {!isBusiness && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        NIC Number <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.business_registration_no}
-                                        onChange={(e) => handleNICChange(e.target.value)}
-                                        disabled={isReadOnly}
-                                        maxLength="12"
-                                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                            localErrors.business_registration_no ? "border-red-400" : "border-gray-300"
-                                        }`}
-                                        placeholder="Enter your NIC number "
-                                    />
-                                    {localErrors.business_registration_no && (
-                                        <p className="text-xs text-red-500 mt-1">{localErrors.business_registration_no}</p>
-                                    )}
-                                </div>
-                                )}
-
-                                {/* Business Registration — business only */}
-                                {isBusiness && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Business Registration No. <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.business_registration_no}
-                                        onChange={(e) => handleProfileChange("business_registration_no", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                            localErrors.business_registration_no ? "border-red-400" : "border-gray-300"
-                                        }`}
-                                        placeholder="e.g. PV00012345"
-                                    />
-                                    {localErrors.business_registration_no && (
-                                        <p className="text-xs text-red-500 mt-1">{localErrors.business_registration_no}</p>
-                                    )}
-                                </div>
-                                )}
-
-                                {/* Tax ID — business only */}
-                                {isBusiness && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Tax Identification Number
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.tax_id}
-                                        onChange={(e) => handleProfileChange("tax_id", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                        placeholder="Tax ID (optional)"
-                                    />
-                                </div>
-                                )}
-
-                                {/* Business Type — business only */}
-                                {isBusiness && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Business Type
-                                    </label>
-                                    <select
-                                        value={profileData.business_type}
-                                        onChange={(e) => handleProfileChange("business_type", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                    >
-                                        <option value="company">Company (Pvt Ltd)</option>
-                                        <option value="partnership">Partnership</option>
-                                    </select>
-                                </div>
-                                )}
-
-                                {/* Established Year — business only */}
-                                {isBusiness && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Year Established
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="1900"
-                                        max={new Date().getFullYear()}
-                                        value={profileData.established_year}
-                                        onChange={(e) => handleProfileChange("established_year", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                        placeholder="e.g. 2010"
-                                    />
-                                </div>
-                                )}
-
-                                {/* Employee Count — business only */}
-                                {isBusiness && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Number of Employees
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={profileData.employee_count}
-                                        onChange={(e) => handleProfileChange("employee_count", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                        placeholder="Number of employees"
-                                    />
-                                </div>
-                                )}
-
-                                {/* Website — business only */}
-                                {isBusiness && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Website
-                                    </label>
-                                    <input
-                                        type="url"
-                                        value={profileData.website}
-                                        onChange={(e) => handleProfileChange("website", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                        placeholder="https://example.com"
-                                    />
-                                </div>
-                                )}
-
-                                {/* Description */}
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        {isBusiness ? "Business Description" : "About Yourself"}
-                                    </label>
-                                    <textarea
-                                        rows={3}
-                                        value={profileData.description}
-                                        onChange={(e) => handleProfileChange("description", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent resize-none"
-                                        placeholder={isBusiness ? "Briefly describe your business..." : "Briefly describe your services..."}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Address */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-bold text-gray-800 mb-4">{isBusiness ? "Business Address" : "Residential Address"}</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Address Line 1 <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.address_line1}
-                                        onChange={(e) => handleProfileChange("address_line1", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                            localErrors.address_line1 ? "border-red-400" : "border-gray-300"
-                                        }`}
-                                        placeholder="Street address"
-                                    />
-                                    {localErrors.address_line1 && (
-                                        <p className="text-xs text-red-500 mt-1">{localErrors.address_line1}</p>
-                                    )}
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Address Line 2
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.address_line2}
-                                        onChange={(e) => handleProfileChange("address_line2", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                        placeholder="Suite, floor, etc. (optional)"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        City <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="relative" ref={cityDropdownRef}>
-                                        <input
-                                            type="text"
-                                            value={profileData.city}
-                                            onChange={(e) => handleCityInputChange(e.target.value)}
-                                            onFocus={() => setShowCityDropdown(true)}
-                                            disabled={isReadOnly}
-                                            className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                                localErrors.city ? "border-red-400" : "border-gray-300"
-                                            }`}
-                                            placeholder="Type city"
-                                        />
-                                        {showCityDropdown && !isReadOnly && citySearchResults.length > 0 && (
-                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
-                                                {citySearchResults.map((item, index) => (
-                                                    <button
-                                                        key={`${item.city}-${item.country}-${index}`}
-                                                        type="button"
-                                                        onClick={() => handleCitySelect(item)}
-                                                        className="w-full px-3 py-2 border-b border-gray-100 last:border-b-0 text-left hover:bg-gray-50 transition-colors"
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                                            <span className="text-sm font-medium text-gray-800">{item.city}</span>
-                                                            <span className="text-sm text-gray-500">{item.country}</span>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                    {localErrors.city && (
-                                        <p className="text-xs text-red-500 mt-1">{localErrors.city}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        State / Province
-                                    </label>
-                                    <select
-                                        value={selectedStateCode}
-                                        onChange={(e) => handleStateChange(e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                    >
-                                        <option value="">Select State / Province</option>
-                                        {availableStates.map((state) => (
-                                            <option key={state.isoCode} value={state.isoCode}>
-                                                {state.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Postal Code
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.postal_code}
-                                        onChange={(e) => handleProfileChange("postal_code", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                        placeholder="Postal code"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Country<span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="relative" ref={countryDropdownRef}>
-                                        <input
-                                            type="text"
-                                            value={profileData.country}
-                                            onChange={(e) => {
-                                                handleCountryChange(e.target.value);
-                                                setShowCountryDropdown(true);
-                                            }}
-                                            onFocus={() => setShowCountryDropdown(true)}
-                                            disabled={isReadOnly}
-                                            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
-                                            placeholder="Type country"
-                                        />
-                                        {showCountryDropdown && !isReadOnly && filteredCountryNames.length > 0 && (
-                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
-                                                {filteredCountryNames.map((countryName) => (
-                                                    <button
-                                                        key={countryName}
-                                                        type="button"
-                                                        onClick={() => handleCountrySelect(countryName)}
-                                                        className="w-full px-3 py-2 border-b border-gray-100 last:border-b-0 text-left text-sm text-gray-800 hover:bg-gray-50 transition-colors"
-                                                    >
-                                                        {countryName}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Contact Info */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h2 className="text-lg font-bold text-gray-800 mb-4">Contact Information</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Contact Person <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={profileData.contact_person}
-                                        onChange={(e) => handleProfileChange("contact_person", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                            localErrors.contact_person ? "border-red-400" : "border-gray-300"
-                                        }`}
-                                        placeholder="Full name"
-                                    />
-                                    {localErrors.contact_person && (
-                                        <p className="text-xs text-red-500 mt-1">{localErrors.contact_person}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Phone Number <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="w-full">
-                                        <PhoneInput
-                                            country={'lk'}
-                                            value={profileData.contact_phone}
-                                            onChange={handlePhoneChange}
-                                            countryCodeEditable={false}
-                                            disabled={isReadOnly}
-                                            containerClass="custom-phone-input"
-                                            inputClass="form-control"
-                                            buttonClass="flag-dropdown"
-                                            dropdownClass="text-gray-800 bg-white"
-                                            searchClass="text-gray-800"
-                                            preferredCountries={['lk', 'in', 'us', 'gb', 'ca', 'au']}
-                                            enableSearch={true}
-                                            placeholder="Enter your phone number"
-                                        />
-                                    </div>
-                                    {phoneValidationError && (
-                                        <p className="text-xs text-red-500 mt-1">
-                                            {phoneValidationError}
-                                        </p>
-                                    )}
-                                    {localErrors.contact_phone && (
-                                        <p className="text-xs text-red-500 mt-1">
-                                            {localErrors.contact_phone}
-                                        </p>
-                                    )}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Email <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="email"
-                                        value={profileData.contact_email}
-                                        onChange={(e) => handleProfileChange("contact_email", e.target.value)}
-                                        disabled={isReadOnly}
-                                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${
-                                            localErrors.contact_email ? "border-red-400" : "border-gray-300"
-                                        }`}
-                                        placeholder="contact@company.lk"
-                                    />
-                                    {localErrors.contact_email && (
-                                        <p className="text-xs text-red-500 mt-1">{localErrors.contact_email}</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Step 1 Actions */}
-                        <div className="flex items-center justify-end">
-                            <button
-                                onClick={saveProfileAndNavigate}
-                                disabled={saving}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm disabled:opacity-50"
+                        {vendorProfile?.submission_status && (
+                            <span
+                                className={`px-3 py-1 rounded-full text-xs font-semibold ${vendorProfile.submission_status === "draft"
+                                        ? "bg-gray-100 text-gray-600"
+                                        : vendorProfile.submission_status === "submitted"
+                                            ? "bg-blue-100 text-blue-700"
+                                            : vendorProfile.submission_status === "approved"
+                                                ? "bg-green-100 text-green-700"
+                                                : vendorProfile.submission_status === "revision_requested"
+                                                    ? "bg-amber-100 text-amber-700"
+                                                    : "bg-red-100 text-red-700"
+                                    }`}
                             >
-                                {saving ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span>Saving...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        Next: Services
-                                        <ArrowRight className="w-4 h-4" />
-                                    </>
-                                )}
+                                {vendorProfile.submission_status === "draft" && "Draft"}
+                                {vendorProfile.submission_status === "submitted" && "Under Review"}
+                                {vendorProfile.submission_status === "approved" && "Approved"}
+                                {vendorProfile.submission_status === "revision_requested" && "Revision Requested"}
+                                {vendorProfile.submission_status === "rejected" && "Rejected"}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Step Indicator */}
+                <div className="bg-white border-b border-gray-100">
+                    <div className="px-4 sm:px-6 lg:px-8 xl:pl-6 py-4">
+                        <div className="flex items-center justify-between">
+                            {steps.map((step, idx) => {
+                                const StepIcon = step.icon;
+                                const isActive = currentStep === step.num;
+                                const isCompleted = currentStep > step.num;
+
+                                return (
+                                    <React.Fragment key={step.num}>
+                                        <button
+                                            onClick={() => {
+                                                if (isReadOnly && !canAddNewServices) return;
+
+                                                // Validate when moving forward from step 1 to step 2
+                                                if (step.num === 2 && currentStep === 1) {
+                                                    if (!validateProfile()) {
+                                                        setErrorMessage("Please fill in all required fields to continue.");
+                                                        setTimeout(() => setErrorMessage(""), 4000);
+                                                        return;
+                                                    }
+                                                }
+
+                                                // Validate when moving forward from step 2 to step 3
+                                                if (step.num === 3 && currentStep === 2) {
+                                                    if (registeredServiceCount === 0) {
+                                                        setErrorMessage("Please register for at least one service before proceeding.");
+                                                        setTimeout(() => setErrorMessage(""), 4000);
+                                                        return;
+                                                    }
+                                                }
+
+                                                setCurrentStep(step.num);
+                                            }}
+                                            disabled={isReadOnly && !canAddNewServices}
+                                            className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl transition-all ${isActive
+                                                    ? "bg-[#0955AC] text-white shadow-lg shadow-blue-200"
+                                                    : isCompleted
+                                                        ? "bg-green-50 text-green-700 hover:bg-green-100"
+                                                        : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                                                } ${(isReadOnly && !canAddNewServices) ? "cursor-default" : "cursor-pointer"}`}
+                                        >
+                                            <div
+                                                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isActive
+                                                        ? "bg-white text-[#0955AC]"
+                                                        : isCompleted
+                                                            ? "bg-green-500 text-white"
+                                                            : "bg-gray-200 text-gray-500"
+                                                    }`}
+                                            >
+                                                {isCompleted ? (
+                                                    <Check className="w-4 h-4" />
+                                                ) : (
+                                                    step.num
+                                                )}
+                                            </div>
+                                            <div className="hidden sm:block text-left">
+                                                <p className="text-xs font-medium opacity-70">
+                                                    Step {step.num}
+                                                </p>
+                                                <p className="text-sm font-semibold">
+                                                    {step.label}
+                                                </p>
+                                            </div>
+                                        </button>
+                                        {idx < steps.length - 1 && (
+                                            <div
+                                                className={`flex-1 h-[2px] mx-2 ${currentStep > step.num
+                                                        ? "bg-green-400"
+                                                        : "bg-gray-200"
+                                                    }`}
+                                            />
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Toast Messages */}
+                {successMessage && (
+                    <div className="fixed top-4 right-4 z-50 animate-fade-in">
+                        <div className="bg-green-500 text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-2">
+                            <Check className="w-4 h-4" />
+                            <span className="text-sm font-medium">{successMessage}</span>
+                            <button onClick={() => setSuccessMessage("")} className="ml-2">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {errorMessage && (
+                    <div className="fixed top-4 right-4 z-50 animate-fade-in">
+                        <div className="bg-red-500 text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4" />
+                            <span className="text-sm font-medium">{errorMessage}</span>
+                            <button onClick={() => setErrorMessage("")} className="ml-2">
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
                 )}
 
-                {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ STEP 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-                {currentStep === 2 && (
-                    <div className="space-y-6">
-                        {/* Info banner */}
-                        {needsRevision ? (
-                            <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-4 flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                                <div>
-                                    <p className="text-sm font-bold text-amber-800">
-                                        Revision Mode — Only flagged services can be edited
-                                    </p>
-                                    <p className="text-xs text-amber-700 mt-0.5">
-                                        Update the services marked as "Revision Needed" and go back to Review &amp; Resubmit. You cannot add new services or modify other services during revision.
-                                    </p>
+                {/* Content */}
+                <div className="px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-8 lg:pb-12">
+                    {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ STEP 1 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+                    {currentStep === 1 && (
+                        <div className="space-y-6">
+                            {/* Company Logo — business only */}
+                            {isBusiness && (
+                                <div className="bg-white rounded-xl shadow-sm p-6">
+                                    <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <Building2 className="w-5 h-5 text-[#0955AC]" />
+                                        Company Logo
+                                    </h2>
+                                    <div className="flex items-center gap-5">
+                                        {logoPreview ? (
+                                            <div className="relative">
+                                                <img
+                                                    src={logoPreview}
+                                                    alt="Logo"
+                                                    className="w-24 h-24 rounded-xl object-cover border-2 border-gray-200"
+                                                />
+                                                {!isReadOnly && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={removeLogo}
+                                                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 shadow"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <label className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#0955AC] hover:bg-blue-50 transition-colors">
+                                                <Upload className="w-6 h-6 text-gray-400" />
+                                                <span className="text-[10px] text-gray-400 mt-1">
+                                                    Upload
+                                                </span>
+                                                <input
+                                                    type="file"
+                                                    ref={fileInputRef}
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={handleLogoChange}
+                                                    disabled={isReadOnly}
+                                                />
+                                            </label>
+                                        )}
+                                        <div className="text-sm text-gray-500">
+                                            <p className="font-medium text-gray-700">Upload your company logo</p>
+                                            <p className="text-xs mt-1">Recommended: 200×200px, PNG or JPG, max 2MB</p>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        ) : canAddNewServices ? (
-                            <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
-                                <Info className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                                <div>
-                                    <p className="text-sm font-medium text-green-800">
-                                        Add New Services
-                                    </p>
-                                    <p className="text-xs text-green-600 mt-0.5">
-                                        Your existing services are shown below (read-only). You can register for additional services — 
-                                        expand a category, fill in the documents, and save. Then submit only your new services for review.
-                                    </p>
-                                </div>
-                            </div>
-                        ) : null}
+                            )}
 
-                        {/* Service Categories */}
-                        {serviceCategories?.map((category) => {
-                            const IconComp = categoryIcons[category.slug] || Building2;
-                            const colors = categoryColors[category.slug] || categoryColors.warehousing;
-                            const isExpanded = expandedCategories[category.id];
-                            const subCategories = category.active_sub_categories || [];
-                            const registeredCount = subCategories.filter((sc) =>
-                                isSubCategoryRegistered(sc.id)
-                            ).length;
+                            {/* Business / Personal Information */}
+                            <div className="bg-white rounded-xl shadow-sm p-6">
+                                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <Building2 className="w-5 h-5 text-[#0955AC]" />
+                                    {isBusiness ? "Business Information" : "Personal Information"}
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Company Name / Full Name */}
+                                    <div className={isBusiness ? "md:col-span-2" : ""}>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {isBusiness ? "Company Name" : "Full Name"} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={profileData.company_name}
+                                            onChange={(e) => handleProfileChange("company_name", e.target.value)}
+                                            disabled={isReadOnly}
+                                            className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${localErrors.company_name ? "border-red-400" : "border-gray-300"
+                                                }`}
+                                            placeholder={isBusiness ? "Enter your company name" : "Enter your full name"}
+                                        />
+                                        {localErrors.company_name && (
+                                            <p className="text-xs text-red-500 mt-1">{localErrors.company_name}</p>
+                                        )}
+                                    </div>
 
-                            // In revision mode, only show categories that have revision_requested services
-                            const revisionSubs = needsRevision
-                                ? subCategories.filter((sc) => {
-                                    const reg = getSubCatRegistration(sc.id);
-                                    return reg && (reg.status === 'revision_requested' || reg.status === 'rejected');
-                                })
-                                : null;
+                                    {/* NIC Number — individual only */}
+                                    {!isBusiness && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                NIC Number <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={profileData.business_registration_no}
+                                                onChange={(e) => handleNICChange(e.target.value)}
+                                                disabled={isReadOnly}
+                                                maxLength="12"
+                                                className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${localErrors.business_registration_no ? "border-red-400" : "border-gray-300"
+                                                    }`}
+                                                placeholder="Enter your NIC number "
+                                            />
+                                            {localErrors.business_registration_no && (
+                                                <p className="text-xs text-red-500 mt-1">{localErrors.business_registration_no}</p>
+                                            )}
+                                        </div>
+                                    )}
 
-                            if (needsRevision && (!revisionSubs || revisionSubs.length === 0)) return null;
+                                    {/* Business Registration — business only */}
+                                    {isBusiness && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Business Registration No. <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={profileData.business_registration_no}
+                                                onChange={(e) => handleProfileChange("business_registration_no", e.target.value)}
+                                                disabled={isReadOnly}
+                                                className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${localErrors.business_registration_no ? "border-red-400" : "border-gray-300"
+                                                    }`}
+                                                placeholder="e.g. PV00012345"
+                                            />
+                                            {localErrors.business_registration_no && (
+                                                <p className="text-xs text-red-500 mt-1">{localErrors.business_registration_no}</p>
+                                            )}
+                                        </div>
+                                    )}
 
-                            return (
-                                <div
-                                    key={category.id}
-                                    id={`category-${category.id}`}
-                                    className={`rounded-xl border transition-all ${
-                                        isExpanded ? `${colors.border} ${colors.bg}` : "border-gray-200 bg-white"
-                                    }`}
-                                >
-                                    {/* Category Header */}
-                                    <button
-                                        onClick={() => toggleCategory(category.id)}
-                                        className="w-full flex items-center justify-between px-5 py-4 text-left"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors.iconBg}`}
+                                    {/* Tax ID — business only */}
+                                    {isBusiness && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Tax Identification Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={profileData.tax_id}
+                                                onChange={(e) => handleProfileChange("tax_id", e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                placeholder="Tax ID (optional)"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Business Type — business only */}
+                                    {isBusiness && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Business Type
+                                            </label>
+                                            <select
+                                                value={profileData.business_type}
+                                                onChange={(e) => handleProfileChange("business_type", e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
                                             >
-                                                <IconComp className={`w-5 h-5 ${colors.text}`} />
+                                                <option value="company">Company (Pvt Ltd)</option>
+                                                <option value="partnership">Partnership</option>
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {/* Established Year — business only */}
+                                    {isBusiness && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Year Established
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="1900"
+                                                max={new Date().getFullYear()}
+                                                value={profileData.established_year}
+                                                onChange={(e) => handleProfileChange("established_year", e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                placeholder="e.g. 2010"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Employee Count — business only */}
+                                    {isBusiness && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Number of Employees
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={profileData.employee_count}
+                                                onChange={(e) => handleProfileChange("employee_count", e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                placeholder="Number of employees"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Website — business only */}
+                                    {isBusiness && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Website
+                                            </label>
+                                            <input
+                                                type="url"
+                                                value={profileData.website}
+                                                onChange={(e) => handleProfileChange("website", e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                placeholder="https://example.com"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Description */}
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            {isBusiness ? "Business Description" : "About Yourself"}
+                                        </label>
+                                        <textarea
+                                            rows={3}
+                                            value={profileData.description}
+                                            onChange={(e) => handleProfileChange("description", e.target.value)}
+                                            disabled={isReadOnly}
+                                            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent resize-none"
+                                            placeholder={isBusiness ? "Briefly describe your business..." : "Briefly describe your services..."}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Address */}
+                            <div className="bg-white rounded-xl shadow-sm p-6">
+                                <h2 className="text-lg font-bold text-gray-800 mb-4">{isBusiness ? "Business Address" : "Residential Address"}</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Address Line 1 <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={profileData.address_line1}
+                                            onChange={(e) => handleProfileChange("address_line1", e.target.value)}
+                                            disabled={isReadOnly}
+                                            className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${localErrors.address_line1 ? "border-red-400" : "border-gray-300"
+                                                }`}
+                                            placeholder="Street address"
+                                        />
+                                        {localErrors.address_line1 && (
+                                            <p className="text-xs text-red-500 mt-1">{localErrors.address_line1}</p>
+                                        )}
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Address Line 2
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={profileData.address_line2}
+                                            onChange={(e) => handleProfileChange("address_line2", e.target.value)}
+                                            disabled={isReadOnly}
+                                            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                            placeholder="Suite, floor, etc. (optional)"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            City <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="relative" ref={cityDropdownRef}>
+                                            <input
+                                                type="text"
+                                                value={profileData.city}
+                                                onChange={(e) => handleCityInputChange(e.target.value)}
+                                                onFocus={() => setShowCityDropdown(true)}
+                                                disabled={isReadOnly}
+                                                className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${localErrors.city ? "border-red-400" : "border-gray-300"
+                                                    }`}
+                                                placeholder="Type city"
+                                            />
+                                            {showCityDropdown && !isReadOnly && citySearchResults.length > 0 && (
+                                                <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+                                                    {citySearchResults.map((item, index) => (
+                                                        <button
+                                                            key={`${item.city}-${item.country}-${index}`}
+                                                            type="button"
+                                                            onClick={() => handleCitySelect(item)}
+                                                            className="w-full px-3 py-2 border-b border-gray-100 last:border-b-0 text-left hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                                <span className="text-sm font-medium text-gray-800">{item.city}</span>
+                                                                <span className="text-sm text-gray-500">{item.country}</span>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {localErrors.city && (
+                                            <p className="text-xs text-red-500 mt-1">{localErrors.city}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            State / Province
+                                        </label>
+                                        <select
+                                            value={selectedStateCode}
+                                            onChange={(e) => handleStateChange(e.target.value)}
+                                            disabled={isReadOnly}
+                                            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                        >
+                                            <option value="">Select State / Province</option>
+                                            {availableStates.map((state) => (
+                                                <option key={state.isoCode} value={state.isoCode}>
+                                                    {state.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Postal Code
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={profileData.postal_code}
+                                            onChange={(e) => handleProfileChange("postal_code", e.target.value)}
+                                            disabled={isReadOnly}
+                                            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                            placeholder="Postal code"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Country<span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="relative" ref={countryDropdownRef}>
+                                            <input
+                                                type="text"
+                                                value={profileData.country}
+                                                onChange={(e) => {
+                                                    handleCountryChange(e.target.value);
+                                                    setShowCountryDropdown(true);
+                                                }}
+                                                onFocus={() => setShowCountryDropdown(true)}
+                                                disabled={isReadOnly}
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                placeholder="Type country"
+                                            />
+                                            {showCountryDropdown && !isReadOnly && filteredCountryNames.length > 0 && (
+                                                <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+                                                    {filteredCountryNames.map((countryName) => (
+                                                        <button
+                                                            key={countryName}
+                                                            type="button"
+                                                            onClick={() => handleCountrySelect(countryName)}
+                                                            className="w-full px-3 py-2 border-b border-gray-100 last:border-b-0 text-left text-sm text-gray-800 hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            {countryName}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Contact Info */}
+                            <div className="bg-white rounded-xl shadow-sm p-6">
+                                <h2 className="text-lg font-bold text-gray-800 mb-4">Contact Information</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Contact Person <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={profileData.contact_person}
+                                            onChange={(e) => handleProfileChange("contact_person", e.target.value)}
+                                            disabled={isReadOnly}
+                                            className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${localErrors.contact_person ? "border-red-400" : "border-gray-300"
+                                                }`}
+                                            placeholder="Full name"
+                                        />
+                                        {localErrors.contact_person && (
+                                            <p className="text-xs text-red-500 mt-1">{localErrors.contact_person}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Phone Number <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="w-full">
+                                            <PhoneInput
+                                                country={'lk'}
+                                                value={profileData.contact_phone}
+                                                onChange={handlePhoneChange}
+                                                countryCodeEditable={false}
+                                                disabled={isReadOnly}
+                                                containerClass="custom-phone-input"
+                                                inputClass="form-control"
+                                                buttonClass="flag-dropdown"
+                                                dropdownClass="text-gray-800 bg-white"
+                                                searchClass="text-gray-800"
+                                                preferredCountries={['lk', 'in', 'us', 'gb', 'ca', 'au']}
+                                                enableSearch={true}
+                                                placeholder="Enter your phone number"
+                                            />
+                                        </div>
+                                        {phoneValidationError && (
+                                            <p className="text-xs text-red-500 mt-1">
+                                                {phoneValidationError}
+                                            </p>
+                                        )}
+                                        {localErrors.contact_phone && (
+                                            <p className="text-xs text-red-500 mt-1">
+                                                {localErrors.contact_phone}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Email <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={profileData.contact_email}
+                                            onChange={(e) => handleProfileChange("contact_email", e.target.value)}
+                                            disabled={isReadOnly}
+                                            className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:border-transparent ${localErrors.contact_email ? "border-red-400" : "border-gray-300"
+                                                }`}
+                                            placeholder="contact@company.lk"
+                                        />
+                                        {localErrors.contact_email && (
+                                            <p className="text-xs text-red-500 mt-1">{localErrors.contact_email}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Step 1 Actions */}
+                            <div className="flex items-center justify-end">
+                                <button
+                                    onClick={saveProfileAndNavigate}
+                                    disabled={saving}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm disabled:opacity-50"
+                                >
+                                    {saving ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <span>Saving...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            Next: Services
+                                            <ArrowRight className="w-4 h-4" />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ STEP 2 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+                    {currentStep === 2 && (
+                        <div className="space-y-6">
+                            {/* Info banner */}
+                            {needsRevision ? (
+                                <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-4 flex items-start gap-3">
+                                    <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-sm font-bold text-amber-800">
+                                            Revision Mode — Only flagged services can be edited
+                                        </p>
+                                        <p className="text-xs text-amber-700 mt-0.5">
+                                            Update the services marked as "Revision Needed" and go back to Review &amp; Resubmit. You cannot add new services or modify other services during revision.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : canAddNewServices ? (
+                                <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+                                    <Info className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-sm font-medium text-green-800">
+                                            Add New Services
+                                        </p>
+                                        <p className="text-xs text-green-600 mt-0.5">
+                                            Your existing services are shown below (read-only). You can register for additional services —
+                                            expand a category, fill in the documents, and save. Then submit only your new services for review.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {/* Service Categories */}
+                            {serviceCategories?.map((category) => {
+                                const IconComp = categoryIcons[category.slug] || Building2;
+                                const colors = categoryColors[category.slug] || categoryColors.warehousing;
+                                const isExpanded = expandedCategories[category.id];
+                                const subCategories = category.active_sub_categories || [];
+                                const registeredCount = subCategories.filter((sc) =>
+                                    isSubCategoryRegistered(sc.id)
+                                ).length;
+
+                                // In revision mode, only show categories that have revision_requested services
+                                const revisionSubs = needsRevision
+                                    ? subCategories.filter((sc) => {
+                                        const reg = getSubCatRegistration(sc.id);
+                                        return reg && (reg.status === 'revision_requested' || reg.status === 'rejected');
+                                    })
+                                    : null;
+
+                                if (needsRevision && (!revisionSubs || revisionSubs.length === 0)) return null;
+
+                                return (
+                                    <div
+                                        key={category.id}
+                                        id={`category-${category.id}`}
+                                        className={`rounded-xl border transition-all ${isExpanded ? `${colors.border} ${colors.bg}` : "border-gray-200 bg-white"
+                                            }`}
+                                    >
+                                        {/* Category Header */}
+                                        <button
+                                            onClick={() => toggleCategory(category.id)}
+                                            className="w-full flex items-center justify-between px-5 py-4 text-left"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${colors.iconBg}`}
+                                                >
+                                                    <IconComp className={`w-5 h-5 ${colors.text}`} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-base font-bold text-gray-800">
+                                                        {category.name}
+                                                    </h3>
+                                                    <p className="text-xs text-gray-500">
+                                                        {needsRevision ? (
+                                                            <span className="text-amber-600 font-medium">
+                                                                {revisionSubs.length} service(s) need revision
+                                                            </span>
+                                                        ) : (
+                                                            <>
+                                                                {subCategories.length} sub-categories
+                                                                {registeredCount > 0 && (
+                                                                    <span className="ml-2 text-green-600 font-medium">
+                                                                        • {registeredCount} registered
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {needsRevision ? (
+                                                    <span className="bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                                                        Revision
+                                                    </span>
+                                                ) : registeredCount > 0 ? (
+                                                    <span className="bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                                                        {registeredCount}
+                                                    </span>
+                                                ) : null}
+                                                {isExpanded ? (
+                                                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                                                ) : (
+                                                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                                                )}
+                                            </div>
+                                        </button>
+
+                                        {/* Sub-categories */}
+                                        {isExpanded && (
+                                            <div className="px-5 pb-5 space-y-3">
+                                                {(needsRevision ? revisionSubs : subCategories).map((subCat) => {
+                                                    const isRegistered = isSubCategoryRegistered(subCat.id);
+                                                    const registration = getSubCatRegistration(subCat.id);
+                                                    const isSubExpanded = expandedSubCategories[subCat.id];
+                                                    const requiredFields = subCat.required_fields || [];
+                                                    const isGovernment = requiredFields.length === 0;
+                                                    const svcStatus = registration?.status;
+                                                    const isRevisionService = svcStatus === 'revision_requested';
+                                                    const isRejectedService = svcStatus === 'rejected';
+                                                    const isDraftService = svcStatus === 'draft';
+                                                    // In "add new services" mode: existing non-draft services are locked
+                                                    // BUT allow rejected and revision_requested services to be edited
+                                                    const isLockedExisting = canAddNewServices && isRegistered && !isDraftService && !isRevisionService && !isRejectedService;
+
+                                                    return (
+                                                        <div
+                                                            key={subCat.id}
+                                                            className={`rounded-lg border transition-all ${isRevisionService
+                                                                    ? "border-amber-300 bg-amber-50"
+                                                                    : isRejectedService
+                                                                        ? "border-red-300 bg-red-50"
+                                                                        : isDraftService
+                                                                            ? "border-blue-300 bg-blue-50"
+                                                                            : isLockedExisting
+                                                                                ? "border-gray-200 bg-gray-50 opacity-75"
+                                                                                : isRegistered
+                                                                                    ? "border-green-300 bg-green-50"
+                                                                                    : "border-gray-200 bg-white"
+                                                                }`}
+                                                        >
+                                                            {/* Sub-category header */}
+                                                            <div
+                                                                className={`flex items-center justify-between px-4 py-3 ${isLockedExisting ? 'cursor-default' : 'cursor-pointer'}`}
+                                                                onClick={() => !isLockedExisting && toggleSubCategory(subCat.id)}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    {isRevisionService ? (
+                                                                        <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
+                                                                            <AlertCircle className="w-3.5 h-3.5 text-white" />
+                                                                        </div>
+                                                                    ) : isRejectedService ? (
+                                                                        <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
+                                                                            <X className="w-3.5 h-3.5 text-white" />
+                                                                        </div>
+                                                                    ) : isRegistered ? (
+                                                                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                                                                            <Check className="w-3.5 h-3.5 text-white" />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                                                                    )}
+                                                                    <div>
+                                                                        <p className="text-sm font-semibold text-gray-800">
+                                                                            {subCat.name}
+                                                                        </p>
+                                                                        <p className="text-xs text-gray-500">
+                                                                            {isGovernment
+                                                                                ? "Government-operated — No registration required"
+                                                                                : `${requiredFields.length} field(s) required`}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    {isRevisionService ? (
+                                                                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-semibold">
+                                                                            Revision Needed
+                                                                        </span>
+                                                                    ) : isRejectedService ? (
+                                                                        <>
+                                                                            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-semibold">
+                                                                                Rejected - Resubmit
+                                                                            </span>
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    // Expand parent category if not already expanded
+                                                                                    if (!expandedCategories[category.id]) {
+                                                                                        setExpandedCategories((prev) => ({ ...prev, [category.id]: true }));
+                                                                                    }
+                                                                                    // Expand sub-category
+                                                                                    toggleSubCategory(subCat.id);
+                                                                                }}
+                                                                                className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded font-semibold transition-colors"
+                                                                            >
+                                                                                Edit & Resubmit
+                                                                            </button>
+                                                                        </>
+                                                                    ) : isLockedExisting ? (
+                                                                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${svcStatus === 'approved'
+                                                                                ? 'bg-green-100 text-green-700'
+                                                                                : svcStatus === 'submitted'
+                                                                                    ? 'bg-blue-100 text-blue-700'
+                                                                                    : svcStatus === 'rejected'
+                                                                                        ? 'bg-red-100 text-red-700'
+                                                                                        : 'bg-gray-100 text-gray-600'
+                                                                            }`}>
+                                                                            {svcStatus === 'approved' ? 'Approved' : svcStatus === 'submitted' ? 'Under Review' : svcStatus === 'rejected' ? 'Rejected' : svcStatus}
+                                                                        </span>
+                                                                    ) : isDraftService ? (
+                                                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">
+                                                                            New — Draft
+                                                                        </span>
+                                                                    ) : isRegistered ? (
+                                                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">
+                                                                            Saved
+                                                                        </span>
+                                                                    ) : null}
+                                                                    {!isGovernment && !isLockedExisting && (
+                                                                        isSubExpanded ? (
+                                                                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                                                                        ) : (
+                                                                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Admin notes for revision and rejected services */}
+                                                            {(isRevisionService || isRejectedService) && registration?.admin_notes && (
+                                                                <div className={`mx-4 mb-2 rounded-lg px-3 py-2 border ${isRejectedService
+                                                                        ? 'bg-red-50 border-red-300'
+                                                                        : 'bg-white border-amber-300'
+                                                                    }`}>
+                                                                    <p className={`text-xs font-bold ${isRejectedService ? 'text-red-800' : 'text-amber-800'}`}>
+                                                                        {isRejectedService ? 'Rejection Reason:' : 'Admin Notes:'}
+                                                                    </p>
+                                                                    <p className="text-sm text-gray-800">{registration.admin_notes}</p>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Sub-category form — hidden for locked existing services */}
+                                                            {isSubExpanded && !isGovernment && !isLockedExisting && (
+                                                                <div className="px-4 pb-4 border-t border-gray-100 pt-4">
+                                                                    <ServiceRegistrationFields
+                                                                        requiredFields={requiredFields}
+                                                                        existingValues={
+                                                                            registration?.field_values ||
+                                                                            serviceFieldValues[subCat.id] ||
+                                                                            {}
+                                                                        }
+                                                                        onChange={(values) => {
+                                                                            handleServiceFieldChange(subCat.id, values);
+                                                                            // Clear errors when user makes changes
+                                                                            if (serviceErrors[subCat.id]) {
+                                                                                setServiceErrors((prev) => {
+                                                                                    const next = { ...prev };
+                                                                                    delete next[subCat.id];
+                                                                                    return next;
+                                                                                });
+                                                                            }
+                                                                        }}
+                                                                        errors={serviceErrors[subCat.id] || {}}
+                                                                    />
+
+                                                                    {/* Sub-category actions */}
+                                                                    {(!isReadOnly || isRevisionService || canAddNewServices) && (
+                                                                        <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
+                                                                            <div>
+                                                                                {/* Remove button: only for draft services or normal mode non-read-only */}
+                                                                                {isDraftService && canAddNewServices ? (
+                                                                                    <button
+                                                                                        onClick={() => removeServiceRegistration(subCat)}
+                                                                                        className="flex items-center gap-1.5 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                                                                                    >
+                                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                                        Remove
+                                                                                    </button>
+                                                                                ) : !isReadOnly && isRegistered && !isRevisionService ? (
+                                                                                    <button
+                                                                                        onClick={() => removeServiceRegistration(subCat)}
+                                                                                        className="flex items-center gap-1.5 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+                                                                                    >
+                                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                                        Remove
+                                                                                    </button>
+                                                                                ) : <div />}
+                                                                            </div>
+                                                                            <button
+                                                                                onClick={() =>
+                                                                                    handleServiceRegistrationAction(
+                                                                                        subCat,
+                                                                                        isRevisionService,
+                                                                                        isRegistered,
+                                                                                        isRejectedService
+                                                                                    )
+                                                                                }
+                                                                                disabled={saving}
+                                                                                className={`flex items-center gap-1.5 px-5 py-2 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50 ${isRevisionService || isRejectedService
+                                                                                        ? 'bg-red-600 hover:bg-red-700'
+                                                                                        : 'bg-[#0955AC] hover:bg-[#074a94]'
+                                                                                    }`}
+                                                                            >
+                                                                                {saving ? (
+                                                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                                                ) : (
+                                                                                    <Save className="w-3.5 h-3.5" />
+                                                                                )}
+                                                                                {isRejectedService ? "Resubmit" : isRevisionService ? "Update & Fix" : isRegistered ? "Update" : "Save"}
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            {/* Step 2 Actions */}
+                            <div className="flex items-center justify-between">
+                                <button
+                                    onClick={() => setCurrentStep(1)}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                    Back: Profile
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (registeredServiceCount === 0) {
+                                            setErrorMessage("Please register for at least one service before proceeding.");
+                                            setTimeout(() => setErrorMessage(""), 4000);
+                                        } else {
+                                            setCurrentStep(3);
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
+                                >
+                                    Next: Review
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ STEP 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+                    {currentStep === 3 && (
+                        <div className="space-y-6">
+                            {/* Revision Requested Banner */}
+                            {needsRevision && (
+                                <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-5 shadow-sm">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center">
+                                            <AlertCircle className="w-6 h-6 text-amber-700" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-base font-bold text-amber-900 mb-1">Action Required — Revision Requested</p>
+                                            <p className="text-sm text-amber-800">
+                                                The admin has reviewed your submission and requested changes. Please review the notes below, update the flagged services using the <strong>Edit</strong> buttons, and click <strong>Resubmit for Review</strong>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {vendorProfile?.admin_notes && (
+                                        <div className="mt-3 bg-white border border-amber-300 rounded-lg px-4 py-3">
+                                            <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Admin Notes</p>
+                                            <p className="text-sm text-gray-800 leading-relaxed">{vendorProfile.admin_notes}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Submitted / Under Review notice */}
+                            {isReadOnly && !canAddNewServices && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                                    <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                                    <div>
+                                        <p className="text-sm font-medium text-blue-800">
+                                            {vendorProfile?.submission_status === "submitted"
+                                                ? "Your profile is under review. You cannot make changes while it's being reviewed."
+                                                : "Your profile has been approved."}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Add New Services prompt for submitted/approved vendors */}
+                            {canAddNewServices && (
+                                <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+                                    <Info className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-green-800">
+                                            {vendorProfile?.submission_status === "approved"
+                                                ? "Your profile is approved! You can add new services anytime."
+                                                : "Your profile is under review. You can still add new services independently."}
+                                        </p>
+                                        <p className="text-xs text-green-600 mt-0.5">
+                                            New services will be submitted separately for admin review without affecting your existing services.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setCurrentStep(2)}
+                                        className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                                    >
+                                        <FileText className="w-3.5 h-3.5" />
+                                        Add New Service
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* New Services Pending Submission */}
+                            {canAddNewServices && hasDraftServices && (
+                                <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center">
+                                                <FileText className="w-4 h-4 text-blue-700" />
                                             </div>
                                             <div>
-                                                <h3 className="text-base font-bold text-gray-800">
-                                                    {category.name}
-                                                </h3>
-                                                <p className="text-xs text-gray-500">
-                                                    {needsRevision ? (
-                                                        <span className="text-amber-600 font-medium">
-                                                            {revisionSubs.length} service(s) need revision
-                                                        </span>
-                                                    ) : (
-                                                        <>
-                                                            {subCategories.length} sub-categories
-                                                            {registeredCount > 0 && (
-                                                                <span className="ml-2 text-green-600 font-medium">
-                                                                    • {registeredCount} registered
-                                                                </span>
-                                                            )}
-                                                        </>
-                                                    )}
+                                                <p className="text-sm font-bold text-blue-900">{draftServiceCount} New Service{draftServiceCount > 1 ? 's' : ''} Ready to Submit</p>
+                                                <p className="text-xs text-blue-700 mt-0.5">
+                                                    You have {draftServiceCount} new service{draftServiceCount > 1 ? 's' : ''} saved as draft. Submit them for admin review.
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {needsRevision ? (
-                                                <span className="bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                                                    Revision
-                                                </span>
-                                            ) : registeredCount > 0 ? (
-                                                <span className="bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                                                    {registeredCount}
-                                                </span>
-                                            ) : null}
-                                            {isExpanded ? (
-                                                <ChevronDown className="w-5 h-5 text-gray-400" />
+                                        <button
+                                            onClick={submitNewServices}
+                                            disabled={submitting}
+                                            className="flex items-center gap-2 px-6 py-2.5 bg-[#0955AC] text-white rounded-lg hover:bg-[#074a94] transition-colors font-semibold text-sm disabled:opacity-50 shadow-lg shadow-blue-200"
+                                        >
+                                            {submitting ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
                                             ) : (
-                                                <ChevronRight className="w-5 h-5 text-gray-400" />
+                                                <Send className="w-4 h-4" />
                                             )}
-                                        </div>
-                                    </button>
+                                            Submit New Services
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
-                                    {/* Sub-categories */}
-                                    {isExpanded && (
-                                        <div className="px-5 pb-5 space-y-3">
-                                            {(needsRevision ? revisionSubs : subCategories).map((subCat) => {
-                                                const isRegistered = isSubCategoryRegistered(subCat.id);
-                                                const registration = getSubCatRegistration(subCat.id);
-                                                const isSubExpanded = expandedSubCategories[subCat.id];
-                                                const requiredFields = subCat.required_fields || [];
-                                                const isGovernment = requiredFields.length === 0;
-                                                const svcStatus = registration?.status;
-                                                const isRevisionService = svcStatus === 'revision_requested';
-                                                const isRejectedService = svcStatus === 'rejected';
-                                                const isDraftService = svcStatus === 'draft';
-                                                // In "add new services" mode: existing non-draft services are locked
-                                                // BUT allow rejected and revision_requested services to be edited
-                                                const isLockedExisting = canAddNewServices && isRegistered && !isDraftService && !isRevisionService && !isRejectedService;
-
-                                                return (
-                                                    <div
-                                                        key={subCat.id}
-                                                        className={`rounded-lg border transition-all ${
-                                                            isRevisionService
-                                                                ? "border-amber-300 bg-amber-50"
-                                                                : isRejectedService
-                                                                ? "border-red-300 bg-red-50"
-                                                                : isDraftService
-                                                                ? "border-blue-300 bg-blue-50"
-                                                                : isLockedExisting
-                                                                ? "border-gray-200 bg-gray-50 opacity-75"
-                                                                : isRegistered
-                                                                ? "border-green-300 bg-green-50"
-                                                                : "border-gray-200 bg-white"
-                                                        }`}
-                                                    >
-                                                        {/* Sub-category header */}
-                                                        <div
-                                                            className={`flex items-center justify-between px-4 py-3 ${isLockedExisting ? 'cursor-default' : 'cursor-pointer'}`}
-                                                            onClick={() => !isLockedExisting && toggleSubCategory(subCat.id)}
-                                                        >
-                                                            <div className="flex items-center gap-3">
-                                                                {isRevisionService ? (
-                                                                    <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center">
-                                                                        <AlertCircle className="w-3.5 h-3.5 text-white" />
-                                                                    </div>
-                                                                ) : isRejectedService ? (
-                                                                    <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
-                                                                        <X className="w-3.5 h-3.5 text-white" />
-                                                                    </div>
-                                                                ) : isRegistered ? (
-                                                                    <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                                                                        <Check className="w-3.5 h-3.5 text-white" />
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" />
-                                                                )}
-                                                                <div>
-                                                                    <p className="text-sm font-semibold text-gray-800">
-                                                                        {subCat.name}
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-500">
-                                                                        {isGovernment
-                                                                            ? "Government-operated — No registration required"
-                                                                            : `${requiredFields.length} field(s) required`}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-2">
-                                                                {isRevisionService ? (
-                                                                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-semibold">
-                                                                        Revision Needed
-                                                                    </span>
-                                                                ) : isRejectedService ? (
-                                                                    <>
-                                                                        <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-semibold">
-                                                                            Rejected - Resubmit
-                                                                        </span>
-                                                                        <button
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                // Expand parent category if not already expanded
-                                                                                if (!expandedCategories[category.id]) {
-                                                                                    setExpandedCategories((prev) => ({ ...prev, [category.id]: true }));
-                                                                                }
-                                                                                // Expand sub-category
-                                                                                toggleSubCategory(subCat.id);
-                                                                            }}
-                                                                            className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded font-semibold transition-colors"
-                                                                        >
-                                                                            Edit & Resubmit
-                                                                        </button>
-                                                                    </>
-                                                                ) : isLockedExisting ? (
-                                                                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-                                                                        svcStatus === 'approved'
-                                                                            ? 'bg-green-100 text-green-700'
-                                                                            : svcStatus === 'submitted'
-                                                                            ? 'bg-blue-100 text-blue-700'
-                                                                            : svcStatus === 'rejected'
-                                                                            ? 'bg-red-100 text-red-700'
-                                                                            : 'bg-gray-100 text-gray-600'
-                                                                    }`}>
-                                                                        {svcStatus === 'approved' ? 'Approved' : svcStatus === 'submitted' ? 'Under Review' : svcStatus === 'rejected' ? 'Rejected' : svcStatus}
-                                                                    </span>
-                                                                ) : isDraftService ? (
-                                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-medium">
-                                                                        New — Draft
-                                                                    </span>
-                                                                ) : isRegistered ? (
-                                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">
-                                                                        Saved
-                                                                    </span>
-                                                                ) : null}
-                                                                {!isGovernment && !isLockedExisting && (
-                                                                    isSubExpanded ? (
-                                                                        <ChevronDown className="w-4 h-4 text-gray-400" />
-                                                                    ) : (
-                                                                        <ChevronRight className="w-4 h-4 text-gray-400" />
-                                                                    )
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Admin notes for revision and rejected services */}
-                                                        {(isRevisionService || isRejectedService) && registration?.admin_notes && (
-                                                            <div className={`mx-4 mb-2 rounded-lg px-3 py-2 border ${
-                                                                isRejectedService 
-                                                                    ? 'bg-red-50 border-red-300'
-                                                                    : 'bg-white border-amber-300'
-                                                            }`}>
-                                                                <p className={`text-xs font-bold ${isRejectedService ? 'text-red-800' : 'text-amber-800'}`}>
-                                                                    {isRejectedService ? 'Rejection Reason:' : 'Admin Notes:'}
-                                                                </p>
-                                                                <p className="text-sm text-gray-800">{registration.admin_notes}</p>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Sub-category form — hidden for locked existing services */}
-                                                        {isSubExpanded && !isGovernment && !isLockedExisting && (
-                                                            <div className="px-4 pb-4 border-t border-gray-100 pt-4">
-                                                                <ServiceRegistrationFields
-                                                                    requiredFields={requiredFields}
-                                                                    existingValues={
-                                                                        registration?.field_values ||
-                                                                        serviceFieldValues[subCat.id] ||
-                                                                        {}
-                                                                    }
-                                                                    onChange={(values) => {
-                                                                        handleServiceFieldChange(subCat.id, values);
-                                                                        // Clear errors when user makes changes
-                                                                        if (serviceErrors[subCat.id]) {
-                                                                            setServiceErrors((prev) => {
-                                                                                const next = { ...prev };
-                                                                                delete next[subCat.id];
-                                                                                return next;
-                                                                            });
-                                                                        }
-                                                                    }}
-                                                                    errors={serviceErrors[subCat.id] || {}}
-                                                                />
-
-                                                                {/* Sub-category actions */}
-                                                                {(!isReadOnly || isRevisionService || canAddNewServices) && (
-                                                                    <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
-                                                                        <div>
-                                                                            {/* Remove button: only for draft services or normal mode non-read-only */}
-                                                                            {isDraftService && canAddNewServices ? (
-                                                                                <button
-                                                                                    onClick={() => removeServiceRegistration(subCat)}
-                                                                                    className="flex items-center gap-1.5 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
-                                                                                >
-                                                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                                                    Remove
-                                                                                </button>
-                                                                            ) : !isReadOnly && isRegistered && !isRevisionService ? (
-                                                                                <button
-                                                                                    onClick={() => removeServiceRegistration(subCat)}
-                                                                                    className="flex items-center gap-1.5 px-4 py-2 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
-                                                                                >
-                                                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                                                    Remove
-                                                                                </button>
-                                                                            ) : <div />}
-                                                                        </div>
-                                                                        <button
-                                                                            onClick={() =>
-                                                                                handleServiceRegistrationAction(
-                                                                                    subCat,
-                                                                                    isRevisionService,
-                                                                                    isRegistered,
-                                                                                    isRejectedService
-                                                                                )
-                                                                            }
-                                                                            disabled={saving}
-                                                                            className={`flex items-center gap-1.5 px-5 py-2 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50 ${
-                                                                                isRevisionService || isRejectedService
-                                                                                    ? 'bg-red-600 hover:bg-red-700'
-                                                                                    : 'bg-[#0955AC] hover:bg-[#074a94]'
-                                                                            }`}
-                                                                        >
-                                                                            {saving ? (
-                                                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                                            ) : (
-                                                                                <Save className="w-3.5 h-3.5" />
-                                                                            )}
-                                                                            {isRejectedService ? "Resubmit" : isRevisionService ? "Update & Fix" : isRegistered ? "Update" : "Save"}
-                                                                        </button>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
+                            {/* Profile Summary */}
+                            <div className="bg-white rounded-xl shadow-sm p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                        <Eye className="w-5 h-5 text-[#0955AC]" />
+                                        {isBusiness ? "Business Profile Summary" : "Personal Profile Summary"}
+                                    </h2>
+                                    {!isReadOnly && !needsRevision && (
+                                        <button
+                                            onClick={() => setCurrentStep(1)}
+                                            className="text-sm font-medium text-[#0955AC] hover:underline"
+                                        >
+                                            Edit
+                                        </button>
                                     )}
                                 </div>
-                            );
-                        })}
 
-                        {/* Step 2 Actions */}
-                        <div className="flex items-center justify-between">
-                            <button
-                                onClick={() => setCurrentStep(1)}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                Back: Profile
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (registeredServiceCount === 0) {
-                                        setErrorMessage("Please register for at least one service before proceeding.");
-                                        setTimeout(() => setErrorMessage(""), 4000);
-                                    } else {
-                                        setCurrentStep(3);
-                                    }
-                                }}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
-                            >
-                                Next: Review
-                                <ArrowRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ STEP 3 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-                {currentStep === 3 && (
-                    <div className="space-y-6">
-                        {/* Revision Requested Banner */}
-                        {needsRevision && (
-                            <div className="bg-amber-50 border-2 border-amber-400 rounded-xl p-5 shadow-sm">
-                                <div className="flex items-start gap-3">
-                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center">
-                                        <AlertCircle className="w-6 h-6 text-amber-700" />
+                                {vendorProfile ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                        {logoPreview && (
+                                            <div className="md:col-span-2 mb-2">
+                                                <img
+                                                    src={logoPreview}
+                                                    alt="Company Logo"
+                                                    className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                                                />
+                                            </div>
+                                        )}
+                                        <SummaryItem label={isBusiness ? "Company Name" : "Full Name"} value={vendorProfile.company_name} />
+                                        <SummaryItem label={isBusiness ? "Registration No." : "NIC Number"} value={vendorProfile.business_registration_no} />
+                                        {isBusiness && <SummaryItem label="Tax ID" value={vendorProfile.tax_id} />}
+                                        {isBusiness && <SummaryItem label="Business Type" value={vendorProfile.business_type} />}
+                                        {isBusiness && <SummaryItem label="Established" value={vendorProfile.established_year} />}
+                                        {isBusiness && <SummaryItem label="Employees" value={vendorProfile.employee_count} />}
+                                        <SummaryItem
+                                            label="Address"
+                                            value={[
+                                                vendorProfile.address_line1,
+                                                vendorProfile.address_line2,
+                                                vendorProfile.city,
+                                                vendorProfile.state,
+                                                vendorProfile.postal_code,
+                                                vendorProfile.country,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(", ")}
+                                        />
+                                        <SummaryItem label="Contact Person" value={vendorProfile.contact_person} />
+                                        <SummaryItem label="Phone" value={vendorProfile.contact_phone} />
+                                        <SummaryItem label="Email" value={vendorProfile.contact_email} />
+                                        {vendorProfile.website && (
+                                            <SummaryItem label="Website" value={vendorProfile.website} />
+                                        )}
+                                        {vendorProfile.description && (
+                                            <div className="md:col-span-2">
+                                                <SummaryItem label="Description" value={vendorProfile.description} />
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="text-base font-bold text-amber-900 mb-1">Action Required — Revision Requested</p>
-                                        <p className="text-sm text-amber-800">
-                                            The admin has reviewed your submission and requested changes. Please review the notes below, update the flagged services using the <strong>Edit</strong> buttons, and click <strong>Resubmit for Review</strong>.
-                                        </p>
-                                    </div>
-                                </div>
-                                {vendorProfile?.admin_notes && (
-                                    <div className="mt-3 bg-white border border-amber-300 rounded-lg px-4 py-3">
-                                        <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Admin Notes</p>
-                                        <p className="text-sm text-gray-800 leading-relaxed">{vendorProfile.admin_notes}</p>
+                                ) : (
+                                    <div className="text-center py-8 text-gray-400">
+                                        <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                                        <p className="text-sm">No profile data yet. Please complete Step 1.</p>
                                     </div>
                                 )}
                             </div>
-                        )}
 
-                        {/* Submitted / Under Review notice */}
-                        {isReadOnly && !canAddNewServices && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-                                <Info className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                                <div>
-                                    <p className="text-sm font-medium text-blue-800">
-                                        {vendorProfile?.submission_status === "submitted"
-                                            ? "Your profile is under review. You cannot make changes while it's being reviewed."
-                                            : "Your profile has been approved."}
-                                    </p>
+                            {/* Registered Services Summary */}
+                            <div className="bg-white rounded-xl shadow-sm p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-[#0955AC]" />
+                                        Registered Services ({registeredServiceCount})
+                                    </h2>
+                                    {(!isReadOnly || needsRevision || canAddNewServices) && (
+                                        <button
+                                            onClick={() => setCurrentStep(2)}
+                                            className={`text-sm font-medium px-3 py-1 rounded-lg transition-colors ${needsRevision
+                                                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                                    : canAddNewServices
+                                                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                        : 'text-[#0955AC] hover:underline'
+                                                }`}
+                                        >
+                                            {canAddNewServices ? 'Add New Service' : 'Edit Services'}
+                                        </button>
+                                    )}
                                 </div>
-                            </div>
-                        )}
 
-                        {/* Add New Services prompt for submitted/approved vendors */}
-                        {canAddNewServices && (
-                            <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
-                                <Info className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-green-800">
-                                        {vendorProfile?.submission_status === "approved"
-                                            ? "Your profile is approved! You can add new services anytime."
-                                            : "Your profile is under review. You can still add new services independently."}
-                                    </p>
-                                    <p className="text-xs text-green-600 mt-0.5">
-                                        New services will be submitted separately for admin review without affecting your existing services.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setCurrentStep(2)}
-                                    className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                                >
-                                    <FileText className="w-3.5 h-3.5" />
-                                    Add New Service
-                                </button>
-                            </div>
-                        )}
+                                {registeredServiceCount > 0 ? (
+                                    <div className="space-y-3">
+                                        {serviceCategories?.map((category) => {
+                                            const subCategories = category.active_sub_categories || [];
+                                            const registeredSubs = subCategories.filter((sc) =>
+                                                isSubCategoryRegistered(sc.id)
+                                            );
 
-                        {/* New Services Pending Submission */}
-                        {canAddNewServices && hasDraftServices && (
-                            <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-start gap-3">
-                                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center">
-                                            <FileText className="w-4 h-4 text-blue-700" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-blue-900">{draftServiceCount} New Service{draftServiceCount > 1 ? 's' : ''} Ready to Submit</p>
-                                            <p className="text-xs text-blue-700 mt-0.5">
-                                                You have {draftServiceCount} new service{draftServiceCount > 1 ? 's' : ''} saved as draft. Submit them for admin review.
-                                            </p>
-                                        </div>
+                                            if (registeredSubs.length === 0) return null;
+
+                                            const IconComp = categoryIcons[category.slug] || Building2;
+                                            const colors = categoryColors[category.slug] || categoryColors.warehousing;
+
+                                            return (
+                                                <div
+                                                    key={category.id}
+                                                    className={`rounded-lg border p-4 ${colors.border} ${colors.bg}`}
+                                                >
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <IconComp className={`w-4 h-4 ${colors.text}`} />
+                                                        <h3 className={`text-sm font-bold ${colors.text}`}>
+                                                            {category.name}
+                                                        </h3>
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        {registeredSubs.map((sub) => {
+                                                            const reg = getSubCatRegistration(sub.id);
+                                                            const fieldCount = Object.keys(reg?.field_values || {}).length;
+                                                            const svcStatus = reg?.status;
+                                                            const svcStatusConfig = {
+                                                                approved: { bg: 'bg-green-100', text: 'text-green-700', label: 'Approved' },
+                                                                submitted: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Pending' },
+                                                                revision_requested: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Revision Needed' },
+                                                                rejected: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejected' },
+                                                                draft: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Draft' },
+                                                            };
+                                                            const statusStyle = svcStatusConfig[svcStatus] || svcStatusConfig.draft;
+                                                            return (
+                                                                <div key={sub.id} className="bg-white rounded-md px-3 py-2">
+                                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                                                                        <Check className="w-4 h-4 text-green-500" />
+                                                                        <span className="font-medium">{sub.name}</span>
+                                                                        <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
+                                                                            {statusStyle.label}
+                                                                        </span>
+                                                                    </div>
+                                                                    {reg?.admin_notes && (svcStatus === 'revision_requested' || svcStatus === 'rejected') && (
+                                                                        <div className={`mt-1.5 ml-6 text-xs px-2.5 py-1.5 rounded ${svcStatus === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                                                            }`}>
+                                                                            <span className="font-semibold">Admin: </span>{reg.admin_notes}
+                                                                        </div>
+                                                                    )}
+                                                                    <span className="text-xs text-gray-400 ml-6">
+                                                                        {fieldCount} field(s) completed
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
+                                ) : (
+                                    <div className="text-center py-8 text-gray-400">
+                                        <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+                                        <p className="text-sm">No services registered yet. Please complete Step 2.</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Step 3 Actions */}
+                            <div className="flex items-center justify-between">
+                                {(!isReadOnly || canAddNewServices || needsRevision) ? (
                                     <button
-                                        onClick={submitNewServices}
-                                        disabled={submitting}
-                                        className="flex items-center gap-2 px-6 py-2.5 bg-[#0955AC] text-white rounded-lg hover:bg-[#074a94] transition-colors font-semibold text-sm disabled:opacity-50 shadow-lg shadow-blue-200"
+                                        onClick={() => setCurrentStep(2)}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
+                                    >
+                                        <ArrowLeft className="w-4 h-4" />
+                                        {canAddNewServices ? 'Add Services' : 'Back: Services'}
+                                    </button>
+                                ) : <div />}
+
+                                {(!isReadOnly || needsRevision) && (
+                                    <button
+                                        onClick={submitForReview}
+                                        disabled={submitting || !vendorProfile || registeredServiceCount === 0}
+                                        className={`flex items-center gap-2 px-8 py-3 text-white rounded-lg transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${needsRevision
+                                                ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
+                                                : 'bg-green-600 hover:bg-green-700 shadow-green-200'
+                                            }`}
                                     >
                                         {submitting ? (
                                             <Loader2 className="w-4 h-4 animate-spin" />
                                         ) : (
                                             <Send className="w-4 h-4" />
                                         )}
-                                        Submit New Services
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Profile Summary */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                    <Eye className="w-5 h-5 text-[#0955AC]" />
-                                    {isBusiness ? "Business Profile Summary" : "Personal Profile Summary"}
-                                </h2>
-                                {!isReadOnly && !needsRevision && (
-                                    <button
-                                        onClick={() => setCurrentStep(1)}
-                                        className="text-sm font-medium text-[#0955AC] hover:underline"
-                                    >
-                                        Edit
+                                        {needsRevision ? 'Resubmit for Review' : 'Submit for Review'}
                                     </button>
                                 )}
                             </div>
-
-                            {vendorProfile ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    {logoPreview && (
-                                        <div className="md:col-span-2 mb-2">
-                                            <img
-                                                src={logoPreview}
-                                                alt="Company Logo"
-                                                className="w-16 h-16 rounded-lg object-cover border border-gray-200"
-                                            />
-                                        </div>
-                                    )}
-                                    <SummaryItem label={isBusiness ? "Company Name" : "Full Name"} value={vendorProfile.company_name} />
-                                    <SummaryItem label={isBusiness ? "Registration No." : "NIC Number"} value={vendorProfile.business_registration_no} />
-                                    {isBusiness && <SummaryItem label="Tax ID" value={vendorProfile.tax_id} />}
-                                    {isBusiness && <SummaryItem label="Business Type" value={vendorProfile.business_type} />}
-                                    {isBusiness && <SummaryItem label="Established" value={vendorProfile.established_year} />}
-                                    {isBusiness && <SummaryItem label="Employees" value={vendorProfile.employee_count} />}
-                                    <SummaryItem
-                                        label="Address"
-                                        value={[
-                                            vendorProfile.address_line1,
-                                            vendorProfile.address_line2,
-                                            vendorProfile.city,
-                                            vendorProfile.state,
-                                            vendorProfile.postal_code,
-                                            vendorProfile.country,
-                                        ]
-                                            .filter(Boolean)
-                                            .join(", ")}
-                                    />
-                                    <SummaryItem label="Contact Person" value={vendorProfile.contact_person} />
-                                    <SummaryItem label="Phone" value={vendorProfile.contact_phone} />
-                                    <SummaryItem label="Email" value={vendorProfile.contact_email} />
-                                    {vendorProfile.website && (
-                                        <SummaryItem label="Website" value={vendorProfile.website} />
-                                    )}
-                                    {vendorProfile.description && (
-                                        <div className="md:col-span-2">
-                                            <SummaryItem label="Description" value={vendorProfile.description} />
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 text-gray-400">
-                                    <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-                                    <p className="text-sm">No profile data yet. Please complete Step 1.</p>
-                                </div>
-                            )}
                         </div>
+                    )}
+                </div>
 
-                        {/* Registered Services Summary */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-[#0955AC]" />
-                                    Registered Services ({registeredServiceCount})
-                                </h2>
-                                {(!isReadOnly || needsRevision || canAddNewServices) && (
-                                    <button
-                                        onClick={() => setCurrentStep(2)}
-                                        className={`text-sm font-medium px-3 py-1 rounded-lg transition-colors ${
-                                            needsRevision
-                                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                                : canAddNewServices
-                                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                                : 'text-[#0955AC] hover:underline'
-                                        }`}
-                                    >
-                                        {canAddNewServices ? 'Add New Service' : 'Edit Services'}
-                                    </button>
-                                )}
-                            </div>
+                <AnimatePresence>
+                    {actionModalState.isOpen && actionModalConfig && (
+                        <ActionModalTemplate
+                            title={actionModalConfig.title}
+                            description={actionModalConfig.description}
+                            processing={
+                                actionModalState.action === "submit_profile"
+                                    ? submitting
+                                    : actionModalState.action === "update_service"
+                                        ? saving
+                                        : false
+                            }
+                            processingText={actionModalConfig.processingText}
+                            confirmText={actionModalConfig.confirmText}
+                            confirmClassName={actionModalConfig.confirmClassName}
+                            onClose={closeActionModal}
+                            onConfirm={handleActionConfirm}
+                            theme="light"
+                        />
+                    )}
+                </AnimatePresence>
 
-                            {registeredServiceCount > 0 ? (
-                                <div className="space-y-3">
-                                    {serviceCategories?.map((category) => {
-                                        const subCategories = category.active_sub_categories || [];
-                                        const registeredSubs = subCategories.filter((sc) =>
-                                            isSubCategoryRegistered(sc.id)
-                                        );
-
-                                        if (registeredSubs.length === 0) return null;
-
-                                        const IconComp = categoryIcons[category.slug] || Building2;
-                                        const colors = categoryColors[category.slug] || categoryColors.warehousing;
-
-                                        return (
-                                            <div
-                                                key={category.id}
-                                                className={`rounded-lg border p-4 ${colors.border} ${colors.bg}`}
-                                            >
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <IconComp className={`w-4 h-4 ${colors.text}`} />
-                                                    <h3 className={`text-sm font-bold ${colors.text}`}>
-                                                        {category.name}
-                                                    </h3>
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    {registeredSubs.map((sub) => {
-                                                        const reg = getSubCatRegistration(sub.id);
-                                                        const fieldCount = Object.keys(reg?.field_values || {}).length;
-                                                        const svcStatus = reg?.status;
-                                                        const svcStatusConfig = {
-                                                            approved: { bg: 'bg-green-100', text: 'text-green-700', label: 'Approved' },
-                                                            submitted: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Pending' },
-                                                            revision_requested: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Revision Needed' },
-                                                            rejected: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejected' },
-                                                            draft: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Draft' },
-                                                        };
-                                                        const statusStyle = svcStatusConfig[svcStatus] || svcStatusConfig.draft;
-                                                        return (
-                                                            <div key={sub.id} className="bg-white rounded-md px-3 py-2">
-                                                                <div className="flex items-center gap-2 text-sm text-gray-700">
-                                                                    <Check className="w-4 h-4 text-green-500" />
-                                                                    <span className="font-medium">{sub.name}</span>
-                                                                    <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle.bg} ${statusStyle.text}`}>
-                                                                        {statusStyle.label}
-                                                                    </span>
-                                                                </div>
-                                                                {reg?.admin_notes && (svcStatus === 'revision_requested' || svcStatus === 'rejected') && (
-                                                                    <div className={`mt-1.5 ml-6 text-xs px-2.5 py-1.5 rounded ${
-                                                                        svcStatus === 'rejected' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                                                    }`}>
-                                                                        <span className="font-semibold">Admin: </span>{reg.admin_notes}
-                                                                    </div>
-                                                                )}
-                                                                <span className="text-xs text-gray-400 ml-6">
-                                                                    {fieldCount} field(s) completed
-                                                                </span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 text-gray-400">
-                                    <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-                                    <p className="text-sm">No services registered yet. Please complete Step 2.</p>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Step 3 Actions */}
-                        <div className="flex items-center justify-between">
-                            {(!isReadOnly || canAddNewServices || needsRevision) ? (
-                                <button
-                                    onClick={() => setCurrentStep(2)}
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
-                                >
-                                    <ArrowLeft className="w-4 h-4" />
-                                    {canAddNewServices ? 'Add Services' : 'Back: Services'}
-                                </button>
-                            ) : <div />}
-
-                            {(!isReadOnly || needsRevision) && (
-                                <button
-                                    onClick={submitForReview}
-                                    disabled={submitting || !vendorProfile || registeredServiceCount === 0}
-                                    className={`flex items-center gap-2 px-8 py-3 text-white rounded-lg transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${
-                                        needsRevision
-                                            ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-200'
-                                            : 'bg-green-600 hover:bg-green-700 shadow-green-200'
-                                    }`}
-                                >
-                                    {submitting ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <Send className="w-4 h-4" />
-                                    )}
-                                    {needsRevision ? 'Resubmit for Review' : 'Submit for Review'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <AnimatePresence>
-                {actionModalState.isOpen && actionModalConfig && (
-                    <ActionModalTemplate
-                        title={actionModalConfig.title}
-                        description={actionModalConfig.description}
-                        processing={
-                            actionModalState.action === "submit_profile"
-                                ? submitting
-                                : actionModalState.action === "update_service"
-                                    ? saving
-                                    : false
-                        }
-                        processingText={actionModalConfig.processingText}
-                        confirmText={actionModalConfig.confirmText}
-                        confirmClassName={actionModalConfig.confirmClassName}
-                        onClose={closeActionModal}
-                        onConfirm={handleActionConfirm}
-                        theme="light"
-                    />
-                )}
-            </AnimatePresence>
-
-            {/* Animations */}
-            <style>{`
+                {/* Animations */}
+                <style>{`
                 @keyframes fade-in {
                     from { opacity: 0; transform: translateY(-10px); }
                     to { opacity: 1; transform: translateY(0); }
@@ -2173,8 +2154,8 @@ const VendorProfile = () => {
                     animation: fade-in 0.3s ease-out;
                 }
             `}</style>
-        </div>
-        </VendorLayout>
+            </div>
+        </VendorShellLayout>
     );
 };
 

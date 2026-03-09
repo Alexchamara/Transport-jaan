@@ -90,7 +90,7 @@ const NotificationDropdown = ({ bellIcon, unreadCount: initialUnreadCount = 0 })
       {/* Bell Icon Button */}
       <button
         onClick={toggleDropdown}
-        className="size-[60px] rounded-[10px] bg-[#E8E8EF] flex justify-center items-center relative hover:bg-[#dde0e6] transition-colors"
+        className="size-[38px] lg:size-[32px] rounded-[8px] bg-[#E8E8EF] flex justify-center items-center relative hover:bg-[#dde0e6] transition-colors"
       >
         <img src={bellIcon} alt="Notifications" />
 
@@ -104,7 +104,7 @@ const NotificationDropdown = ({ bellIcon, unreadCount: initialUnreadCount = 0 })
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 top-[70px] w-[400px] bg-white rounded-[10px] shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-[-70px] top-[48px] w-[92vw] sm:w-[400px] bg-white rounded-[10px] shadow-2xl z-50 overflow-hidden">
           {/* Header */}
           <div className="px-5 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
             <h3 className="text-[18px] font-[700] text-gray-800">Notifications</h3>
@@ -147,9 +147,8 @@ const NotificationDropdown = ({ bellIcon, unreadCount: initialUnreadCount = 0 })
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`px-5 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
-                    !notification.is_read ? "bg-blue-50" : ""
-                  }`}
+                  className={`px-5 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${!notification.is_read ? "bg-blue-50" : ""
+                    }`}
                   onClick={() => {
                     if (!notification.is_read) {
                       markAsRead(notification.id);
@@ -163,13 +162,12 @@ const NotificationDropdown = ({ bellIcon, unreadCount: initialUnreadCount = 0 })
                   <div className="flex items-start gap-3">
                     {/* Icon based on notification type */}
                     <div
-                      className={`flex-shrink-0 size-[40px] rounded-full flex items-center justify-center ${
-                        notification.type === "new_booking"
+                      className={`flex-shrink-0 size-[40px] rounded-full flex items-center justify-center ${notification.type === "new_booking"
                           ? "bg-green-100"
                           : notification.type === "booking_cancelled"
-                          ? "bg-red-100"
-                          : "bg-blue-100"
-                      }`}
+                            ? "bg-red-100"
+                            : "bg-blue-100"
+                        }`}
                     >
                       {notification.type === "new_booking" ? (
                         <svg
@@ -210,9 +208,8 @@ const NotificationDropdown = ({ bellIcon, unreadCount: initialUnreadCount = 0 })
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <p
-                        className={`text-[14px] ${
-                          !notification.is_read ? "font-[600] text-gray-900" : "font-[500] text-gray-700"
-                        }`}
+                        className={`text-[14px] ${!notification.is_read ? "font-[600] text-gray-900" : "font-[500] text-gray-700"
+                          }`}
                       >
                         {notification.message}
                       </p>
