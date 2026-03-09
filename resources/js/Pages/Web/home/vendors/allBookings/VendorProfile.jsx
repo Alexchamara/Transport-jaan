@@ -386,6 +386,7 @@ const VendorProfile = () => {
 
     // ─── Constants (Defined early for use in effects) ────────
     const isReadOnly = vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved";
+    const isApprovedVendor = vendorProfile?.submission_status === "approved";
     const registeredServiceCount = vendorRegistrations ? Object.keys(vendorRegistrations).length : 0;
 
     // Auto-clear success messages
@@ -921,12 +922,14 @@ const VendorProfile = () => {
                                 const StepIcon = step.icon;
                                 const isActive = currentStep === step.num;
                                 const isCompleted = currentStep > step.num;
+                                const isStepDisabled = (isReadOnly && !canAddNewServices)
+                                    || (isApprovedVendor && (step.num === 1 || step.num === 2));
 
                                 return (
                                     <React.Fragment key={step.num}>
                                         <button
                                             onClick={() => {
-                                                if (isReadOnly && !canAddNewServices) return;
+                                                if (isStepDisabled) return;
 
                                                 // Validate when moving forward from step 1 to step 2
                                                 if (step.num === 2 && currentStep === 1) {
@@ -948,13 +951,13 @@ const VendorProfile = () => {
 
                                                 setCurrentStep(step.num);
                                             }}
-                                            disabled={isReadOnly && !canAddNewServices}
+                                            disabled={isStepDisabled}
                                             className={`flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl transition-all ${isActive
                                                     ? "bg-[#0955AC] text-white shadow-lg shadow-blue-200"
                                                     : isCompleted
                                                         ? "bg-green-50 text-green-700 hover:bg-green-100"
                                                         : "bg-gray-50 text-gray-400 hover:bg-gray-100"
-                                                } ${(isReadOnly && !canAddNewServices) ? "cursor-default" : "cursor-pointer"}`}
+                                                } ${isStepDisabled ? "cursor-default" : "cursor-pointer"}`}
                                         >
                                             <div
                                                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isActive
@@ -1809,11 +1812,11 @@ const VendorProfile = () => {
                             {/* Step 2 Actions */}
                             <div className="flex items-center justify-between">
                                 <button
-                                    onClick={() => setCurrentStep(1)}
+                                    onClick={() => setCurrentStep(isApprovedVendor ? 3 : 1)}
                                     className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
                                 >
                                     <ArrowLeft className="w-4 h-4" />
-                                    Back: Profile
+                                    {isApprovedVendor ? "Back: Review" : "Back: Profile"}
                                 </button>
                                 <button
                                     onClick={() => {
@@ -2090,13 +2093,13 @@ const VendorProfile = () => {
 
                             {/* Step 3 Actions */}
                             <div className="flex items-center justify-between">
-                                {(!isReadOnly || canAddNewServices || needsRevision) ? (
+                                {(!isReadOnly || needsRevision) ? (
                                     <button
                                         onClick={() => setCurrentStep(2)}
                                         className="flex items-center gap-2 px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm"
                                     >
                                         <ArrowLeft className="w-4 h-4" />
-                                        {canAddNewServices ? 'Add Services' : 'Back: Services'}
+                                        Back: Services
                                     </button>
                                 ) : <div />}
 
