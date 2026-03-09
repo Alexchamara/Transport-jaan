@@ -263,17 +263,67 @@ class SuperAdminDashboardController extends Controller
         $pendingProfiles = VendorProfile::where('submission_status', 'submitted')->count();
         $pendingServices = VendorServiceRegistration::where('status', 'submitted')->count();
 
-        $recentSubmissions = VendorProfile::where('submission_status', 'submitted')
+        $profileSubmissions = VendorProfile::where('submission_status', 'submitted')
             ->with('user:id,name,email')
             ->orderBy('submitted_at', 'desc')
-            ->limit(5)
+            ->limit(10)
             ->get()
             ->map(fn($profile) => [
                 'id' => $profile->user_id,
                 'name' => $profile->user->name ?? 'N/A',
                 'company' => $profile->company_name,
-                'submitted_at' => $profile->submitted_at?->diffForHumans(),
+                'type' => 'profile',
+                'label' => 'Business Profile',
+                'submitted_at_raw' => $profile->submitted_at ?? $profile->created_at,
             ]);
+
+        $serviceSubmissions = VendorServiceRegistration::where('status', 'submitted')
+            ->with(['user:id,name,email', 'serviceCategory:id,name'])
+            ->orderBy('submitted_at', 'desc')
+            ->limit(20)
+            ->get()
+            ->map(fn($registration) => [
+                'id' => $registration->user_id,
+                'name' => $registration->user->name ?? 'N/A',
+                'company' => null,
+                'type' => 'service',
+                'label' => $registration->serviceCategory?->name ?? 'Service Registration',
+                'submitted_at_raw' => $registration->submitted_at ?? $registration->created_at,
+            ]);
+
+        $recentSubmissions = $profileSubmissions
+            ->concat($serviceSubmissions)
+            ->groupBy('id')
+            ->map(function ($items, $vendorId) {
+                $first = $items->first();
+                $hasProfile = $items->contains(fn($item) => $item['type'] === 'profile');
+                $serviceLabels = $items
+                    ->filter(fn($item) => $item['type'] === 'service')
+                    ->pluck('label')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                $latestSubmittedAt = $items->max('submitted_at_raw');
+
+                return [
+                    'key' => 'vendor-' . $vendorId,
+                    'id' => (int) $vendorId,
+                    'name' => $first['name'] ?? 'N/A',
+                    'company' => $items->pluck('company')->filter()->first(),
+                    'hasProfile' => $hasProfile,
+                    'serviceLabels' => $serviceLabels,
+                    'serviceCount' => count($serviceLabels),
+                    'submitted_at' => $latestSubmittedAt?->diffForHumans(),
+                    'submitted_at_raw' => $latestSubmittedAt,
+                ];
+            })
+            ->sortByDesc('submitted_at_raw')
+            ->values()
+            ->take(10)
+            ->map(fn($item) => collect($item)->except(['submitted_at_raw'])->toArray())
+            ->toArray();
 
         return [
             'pendingProfiles' => $pendingProfiles,
