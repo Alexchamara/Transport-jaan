@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useForm } from '@inertiajs/react';
 import bg from "../../assets/landingPages/bg.svg";
 import CompanyLogo from "../../components/CompanyLogo";
-import eye from "../../assets/auth/eye.svg";
 import google from "../../assets/auth/google.svg";
+import { Eye, EyeOff } from "lucide-react";
 
 const Signup = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -86,12 +86,18 @@ const Signup = () => {
                                             placeholder="Enter your password"
                                             required
                                         />
-                                        <img 
-                                            src={eye} 
-                                            className="cursor-pointer size-[14px] xl:size-auto" 
+                                        <button
+                                            type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            alt="Toggle password visibility"
-                                        />
+                                            className="cursor-pointer text-white/80 hover:text-white"
+                                            aria-label="Toggle password visibility"
+                                        >
+                                            {showPassword ? (
+                                                <Eye className="w-4 h-4 xl:w-5 xl:h-5" />
+                                            ) : (
+                                                <EyeOff className="w-4 h-4 xl:w-5 xl:h-5" />
+                                            )}
+                                        </button>
                                     </div>
                                     {errors.password && (
                                         <div className="text-red-500 text-sm px-10 mt-1 max-md:px-4 max-md:text-xs">

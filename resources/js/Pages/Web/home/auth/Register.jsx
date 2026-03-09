@@ -5,8 +5,8 @@ import "react-phone-input-2/lib/style.css";
 import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
 import CompanyLogo from "../../components/CompanyLogo";
 import bg from "../../assets/landingPages/bg.svg";
-import eye from "../../assets/auth/eye.svg";
 import google from "../../assets/auth/google.svg";
+import { Eye, EyeOff } from "lucide-react";
 
 const Register = ({ role = "client" }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -293,11 +293,18 @@ const Register = ({ role = "client" }) => {
                                                     placeholder="Enter your password"
                                                     required
                                                 />
-                                                <img
-                                                    src={eye}
+                                                <button
+                                                    type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
-                                                    className="cursor-pointer"
-                                                />
+                                                    className="cursor-pointer text-white/80 hover:text-white"
+                                                    aria-label="Toggle password visibility"
+                                                >
+                                                    {showPassword ? (
+                                                        <Eye className="w-5 h-5" />
+                                                    ) : (
+                                                        <EyeOff className="w-5 h-5" />
+                                                    )}
+                                                </button>
                                             </div>
                                             {errors.password && (
                                                 <div className="text-red-500 text-sm px-10 mt-1">
@@ -319,11 +326,18 @@ const Register = ({ role = "client" }) => {
                                                     placeholder="Confirm your password"
                                                     required
                                                 />
-                                                <img
-                                                    src={eye}
+                                                <button
+                                                    type="button"
                                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                    className="cursor-pointer"
-                                                />
+                                                    className="cursor-pointer text-white/80 hover:text-white"
+                                                    aria-label="Toggle confirm password visibility"
+                                                >
+                                                    {showConfirmPassword ? (
+                                                        <Eye className="w-5 h-5" />
+                                                    ) : (
+                                                        <EyeOff className="w-5 h-5" />
+                                                    )}
+                                                </button>
                                             </div>
                                             {errors.password_confirmation && (
                                                 <div className="text-red-500 text-sm px-10 mt-1">
@@ -460,11 +474,18 @@ const Register = ({ role = "client" }) => {
                                                     placeholder="Enter your password"
                                                     required
                                                 />
-                                                <img
-                                                    src={eye}
+                                                <button
+                                                    type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
-                                                    className="cursor-pointer"
-                                                />
+                                                    className="cursor-pointer text-white/80 hover:text-white"
+                                                    aria-label="Toggle password visibility"
+                                                >
+                                                    {showPassword ? (
+                                                        <Eye className="w-5 h-5" />
+                                                    ) : (
+                                                        <EyeOff className="w-5 h-5" />
+                                                    )}
+                                                </button>
                                             </div>
                                             {errors.password && (
                                                 <div className="text-red-500 text-sm px-10 mt-1">
@@ -486,11 +507,18 @@ const Register = ({ role = "client" }) => {
                                                     placeholder="Confirm your password"
                                                     required
                                                 />
-                                                <img
-                                                    src={eye}
+                                                <button
+                                                    type="button"
                                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                    className="cursor-pointer"
-                                                />
+                                                    className="cursor-pointer text-white/80 hover:text-white"
+                                                    aria-label="Toggle confirm password visibility"
+                                                >
+                                                    {showConfirmPassword ? (
+                                                        <Eye className="w-5 h-5" />
+                                                    ) : (
+                                                        <EyeOff className="w-5 h-5" />
+                                                    )}
+                                                </button>
                                             </div>
                                             {errors.password_confirmation && (
                                                 <div className="text-red-500 text-sm px-10 mt-1">
