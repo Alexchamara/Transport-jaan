@@ -1,26 +1,39 @@
-import React, { useEffect, useState } from 'react'
-import { usePage } from '@inertiajs/react';
+import React, { useState } from 'react'
+import { usePage, router } from '@inertiajs/react';
 import Card from "./Card";
 
 const CardDashboard = () => {
   const { auth } = usePage().props;
   const approvedSlugs = auth?.user?.approved_service_slugs || [];
-  const [toastMessage, setToastMessage] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [blockedService, setBlockedService] = useState('');
 
-  useEffect(() => {
-    if (!toastMessage) {
-      return;
-    }
+  const showAccessMessage = (serviceName) => {
+    setBlockedService(serviceName);
+    setShowModal(true);
+  };
 
-    const timer = setTimeout(() => {
-      setToastMessage('');
-    }, 3000);
+  const getServiceSlug = (serviceName) => {
+    const serviceMap = {
+      'Vehicle Rental': 'vehicle-rental',
+      'Ticket Booking': 'aviation-service',
+      'Courier Service': 'courier-services',
+      'Warehousing': 'warehousing',
+      'Freight': 'waterborne-transport',
+      'Multimodal': 'multimodal',
+    };
+    return serviceMap[serviceName] || '';
+  };
 
-    return () => clearTimeout(timer);
-  }, [toastMessage]);
+  const handleRegister = () => {
+    const serviceSlug = getServiceSlug(blockedService);
+    setShowModal(false);
+    router.visit(`/vendor/profile?step=2&service=${serviceSlug}`);
+  };
 
-  const showAccessMessage = (message) => {
-    setToastMessage(message || 'To access this service, please register and wait for admin verification.');
+  const handleCancel = () => {
+    setShowModal(false);
+    setBlockedService('');
   };
 
   const canAccessService = (serviceKey) => {
@@ -61,9 +74,29 @@ const CardDashboard = () => {
 
   return (
     <div className='flex flex-col justify-start items-center px-10 py-20 relative h-full'>
-      {toastMessage && (
-        <div className='fixed top-6 right-6 z-50 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 shadow-md'>
-          {toastMessage}
+      {/* Access Denied Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-3">Service Not Registered</h3>
+            <p className="text-gray-600 mb-6">
+              To access <span className="font-semibold text-[#0955AC]">{blockedService}</span>, please register this service and wait for admin verification.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRegister}
+                className="px-4 py-2 bg-[#0955AC] text-white rounded-lg hover:bg-[#074291] font-medium transition"
+              >
+                Register Service
+              </button>
+            </div>
+          </div>
         </div>
       )}
       <h1 className="text-[40px] font-[700] text-[#0955AC] absolute top-0 xl:left-20 poppins">Dashboard</h1>

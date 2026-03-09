@@ -410,10 +410,47 @@ const VendorProfile = () => {
     // If profile is submitted or approved, auto-navigate to step 3 (review)
     // If revision_requested, also go to step 3 so vendor sees the banner first
     useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const stepParam = params.get('step');
+        const serviceParam = params.get('service');
+
+        if (stepParam === '2' || serviceParam) {
+            setCurrentStep(2);
+            return;
+        }
+
         if (vendorProfile?.submission_status === "submitted" || vendorProfile?.submission_status === "approved" || vendorProfile?.submission_status === "revision_requested") {
             setCurrentStep(3);
         }
-    }, []);
+    }, [vendorProfile?.submission_status]);
+
+    // Auto-expand service category from URL query parameter
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const serviceSlug = params.get('service');
+        
+        if (serviceSlug && serviceCategories) {
+            setCurrentStep(2);
+
+            // Find the category with matching slug
+            const matchingCategory = serviceCategories.find(
+                cat => cat.slug === serviceSlug
+            );
+            
+            if (matchingCategory) {
+                // Auto-expand this category
+                setExpandedCategories(prev => ({ ...prev, [matchingCategory.id]: true }));
+                
+                // Scroll to the category after a short delay (to ensure DOM is ready)
+                setTimeout(() => {
+                    const categoryElement = document.getElementById(`category-${matchingCategory.id}`);
+                    if (categoryElement) {
+                        categoryElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
+            }
+        }
+    }, [serviceCategories]);
 
     // ─── Helpers ──────────────────────────────────────────────
 
@@ -1510,6 +1547,7 @@ const VendorProfile = () => {
                             return (
                                 <div
                                     key={category.id}
+                                    id={`category-${category.id}`}
                                     className={`rounded-xl border transition-all ${
                                         isExpanded ? `${colors.border} ${colors.bg}` : "border-gray-200 bg-white"
                                     }`}

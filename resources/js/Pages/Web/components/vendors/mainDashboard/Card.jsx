@@ -3,7 +3,7 @@ import { router } from "@inertiajs/react";
 const Card = ({ title, description, index, subOptions, canAccess = true, onAccessDenied }) => {
     const handleNavigate = (option = null) => {
         if (!canAccess) {
-            onAccessDenied?.("To access this service, please register and wait for admin verification.");
+            onAccessDenied?.(title);
             return;
         }
 

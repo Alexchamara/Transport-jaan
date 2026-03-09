@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, usePage } from "@inertiajs/react";
+import { Link, usePage, router } from "@inertiajs/react";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import bellIcon from "../../Pages/Web/assets/vendors/dashboard/bell.svg";
@@ -13,8 +13,9 @@ const ServiceNavBar = ({
 }) => {
     const { url, props } = usePage();
     const approvedSlugs = props?.auth?.user?.approved_service_slugs || [];
-    const [showUnverifiedAlert, setShowUnverifiedAlert] = useState(false);
-    const [alertMessage, setAlertMessage] = useState("Please verify your account to access all features");
+    const [showModal, setShowModal] = useState(false);
+    const [blockedService, setBlockedService] = useState('');
+    const [isUnverified, setIsUnverified] = useState(false);
 
     // All available services (centralized definition)
     const allServices = [
@@ -68,15 +69,37 @@ const ServiceNavBar = ({
         }
     };
 
-    const handleNavbarClick = (e, message) => {
+    const handleNavbarClick = (e, serviceName, isAccountUnverified) => {
         e.preventDefault();
-        setAlertMessage(message);
-        setShowUnverifiedAlert(true);
-        setTimeout(() => setShowUnverifiedAlert(false), 3000);
+        setBlockedService(serviceName);
+        setIsUnverified(isAccountUnverified);
+        setShowModal(true);
 
         if (onUnverifiedClick) {
             onUnverifiedClick();
         }
+    };
+
+    const getServiceSlug = (serviceName) => {
+        const serviceMap = {
+            'Vehicle Rental': 'vehicle-rental',
+            'Ticket Booking': 'aviation-service',
+            'Courier Service': 'courier-services',
+            'Warehousing': 'warehousing',
+            'Freight': 'waterborne-transport',
+        };
+        return serviceMap[serviceName] || '';
+    };
+
+    const handleRegister = () => {
+        const serviceSlug = getServiceSlug(blockedService);
+        setShowModal(false);
+        router.visit(`/vendor/profile?step=2&service=${serviceSlug}`);
+    };
+
+    const handleCancel = () => {
+        setShowModal(false);
+        setBlockedService('');
     };
 
     return (
@@ -89,9 +112,6 @@ const ServiceNavBar = ({
                 <div className="flex flex-row gap-0 min-w-max lg:min-w-0 flex-1 overflow-x-auto">
                     {allServices.map((service, idx) => {
                         const isServiceAllowed = isVerified && canAccessService(service.name);
-                        const blockedMessage = !isVerified
-                            ? "Please verify your account to access all features"
-                            : "To access this service, please register and wait for admin verification.";
 
                         return isServiceAllowed ? (
                             <Link
@@ -108,7 +128,7 @@ const ServiceNavBar = ({
                         ) : (
                             <button
                                 key={idx}
-                                onClick={(e) => handleNavbarClick(e, blockedMessage)}
+                                onClick={(e) => handleNavbarClick(e, service.name, !isVerified)}
                                 className={`flex-1 lg:flex-none px-6 py-4 lg:px-8 lg:py-4 text-center font-[500] text-[14px] whitespace-nowrap border-b-4 transition-all rounded-t-lg cursor-not-allowed opacity-60 ${
                                     currentActiveService === service.name 
                                         ? 'border-b-4 border-[#0955AC] bg-[#0955AC29] text-[#0955AC] font-[600]'
@@ -130,10 +150,36 @@ const ServiceNavBar = ({
                 </div>
             </div>
 
-            {/* Access Alert Toast */}
-            {showUnverifiedAlert && (
-                <div className="fixed top-6 right-6 z-50 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 shadow-md">
-                    {alertMessage}
+            {/* Access Denied Modal */}
+            {showModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                            {isUnverified ? 'Account Not Verified' : 'Service Not Registered'}
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                            {isUnverified 
+                                ? 'Please verify your account to access all dashboard features.'
+                                : `To access ${blockedService}, please register this service and wait for admin verification.`
+                            }
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={handleCancel}
+                                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition"
+                            >
+                                Cancel
+                            </button>
+                            {!isUnverified && (
+                                <button
+                                    onClick={handleRegister}
+                                    className="px-4 py-2 bg-[#0955AC] text-white rounded-lg hover:bg-[#074291] font-medium transition"
+                                >
+                                    Register Service
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </>
