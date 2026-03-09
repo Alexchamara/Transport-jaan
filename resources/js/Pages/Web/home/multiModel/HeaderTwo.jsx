@@ -257,19 +257,19 @@ const HeaderTwo = () => {
                                         className="ml-4 mt-1 flex flex-col space-y-1"
                                     >
                                         <Link
-                                            href="/multiModel/plan-journey"
+                                            href="/multiModel/plan-journey?tab=rental&subTab=land"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Land
                                         </Link>
                                         <Link
-                                            href="/multiModel/plan-journey"
+                                            href="/multiModel/plan-journey?tab=rental&subTab=air"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Air
                                         </Link>
                                         <Link
-                                            href="/multiModel/plan-journey"
+                                            href="/multiModel/plan-journey?tab=rental&subTab=sea"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Sea
@@ -304,19 +304,19 @@ const HeaderTwo = () => {
                                         className="ml-4 mt-1 flex flex-col space-y-1"
                                     >
                                         <Link
-                                            href="/multiModel/plan-journey"
+                                            href="/multiModel/plan-journey?tab=ticket&subTab=flight"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Flight
                                         </Link>
                                         <Link
-                                            href="/multiModel/plan-journey"
+                                            href="/multiModel/plan-journey?tab=ticket&subTab=train"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Train
                                         </Link>
                                         <Link
-                                            href="/multiModel/plan-journey"
+                                            href="/multiModel/plan-journey?tab=ticket&subTab=bus"
                                             className="block text-sm text-gray-700 hover:text-[#0955AC]"
                                         >
                                             Bus
