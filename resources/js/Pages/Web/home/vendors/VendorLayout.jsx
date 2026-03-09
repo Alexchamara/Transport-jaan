@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { usePage } from "@inertiajs/react";
 import { Menu } from "lucide-react";
-import SideMenu from "./allBookings/SideMenu";
+import SideMenu from "../../components/vendors/SideMenu";
 import ServiceNavBar from "../../../../Components/vendors/ServiceNavBar";
 
 /**

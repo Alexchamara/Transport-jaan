@@ -137,6 +137,48 @@ class DriverController extends Controller
         return response()->json(null, 204);
     }
 
+    /**
+     * Vendor re-uploads a new driving license.
+     * Validates that the new expiry is in the future, stores the photo,
+     * sets driver status back to Active, and restores the linked user account
+     * from 'suspended' to 'verified'.
+     */
+    public function renewLicense(Request $request, Driver $driver)
+    {
+        // Ensure the driver belongs to the authenticated vendor
+        abort_unless($driver->user_id === auth()->id(), 403);
+
+        $data = $request->validate([
+            'license_no'     => ['required', 'string', 'max:100', 'regex:/^[A-Z0-9\-\/\s]{5,20}$/i'],
+            'license_expiry' => 'required|date|after:today',
+            'license_photo'  => 'required|image|max:4096',
+        ], [
+            'license_expiry.after' => 'The new license expiry date must be in the future.',
+        ]);
+
+        // Replace the old license photo
+        if ($driver->license_photo_path) {
+            Storage::disk('public')->delete($driver->license_photo_path);
+        }
+        $data['license_photo_path'] = $request->file('license_photo')->store('drivers/licenses', 'public');
+        unset($data['license_photo']);
+
+        // Re-activate driver since a valid license has been uploaded
+        $data['status'] = 'Active';
+        $driver->update($data);
+
+        // Restore the linked user account if it was suspended due to license expiry
+        $driver->load('user');
+        if ($driver->user && $driver->user->status === 'suspended') {
+            $driver->user->update(['status' => 'verified']);
+        }
+
+        return response()->json([
+            'message' => 'License renewed. Driver is now Active.',
+            'driver'  => $driver->fresh(),
+        ]);
+    }
+
     public function streamLicense(Driver $driver)
     {
         abort_unless($driver->license_photo_path, 404);

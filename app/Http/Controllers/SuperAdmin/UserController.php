@@ -34,8 +34,8 @@ class UserController extends Controller
             'wants_json' => $request->wantsJson()
         ]);
 
-        // Get all users except admin and superadmin
-        $query = User::whereNotIn('role', ['admin', 'SuperAdmin']);
+        // Get all client users
+        $query = User::where('role', 'client');
 
         // Apply search filter
         if ($search) {
@@ -130,19 +130,73 @@ class UserController extends Controller
             return redirect()->back()->with('error', 'Access denied');
         }
 
-        return response()->json([
+        // Booking counts
+        $totalBookings   = \App\Models\Booking::where('client_id', $user->id)->count();
+        $activeBookings  = \App\Models\Booking::where('client_id', $user->id)->whereIn('status', ['confirmed', 'pending', 'in_progress'])->count();
+        $completedBookings = \App\Models\Booking::where('client_id', $user->id)->where('status', 'completed')->count();
+        $cancelledBookings = \App\Models\Booking::where('client_id', $user->id)->where('status', 'cancelled')->count();
+
+        // Recent bookings
+        $recentBookings = \App\Models\Booking::where('client_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function ($b) {
+                return [
+                    'id'         => $b->id,
+                    'status'     => $b->status,
+                    'total_amount' => $b->total_amount,
+                    'currency'   => $b->currency ?? 'USD',
+                    'created_at' => $b->created_at->format('M d, Y'),
+                ];
+            });
+
+        // Activity — reuse VendorActivityLog if exists for this user, else empty
+        $activityLogs = \App\Models\VendorActivityLog::where('vendor_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->take(20)
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id'         => $log->id,
+                    'action'     => $log->action,
+                    'description'=> $log->description ?? '',
+                    'performed_by' => $log->performed_by ?? 'System',
+                    'created_at' => $log->created_at->format('M d, Y H:i'),
+                    'created_at_human' => $log->created_at->diffForHumans(),
+                ];
+            });
+
+        return Inertia::render('Web/home/SuperAdmin/UserDetail', [
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
+                'first_name' => $user->first_name ?? '',
+                'last_name' => $user->last_name ?? '',
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'address' => $user->address,
+                'address_line1' => $user->address_line1 ?? null,
+                'address_line2' => $user->address_line2 ?? null,
+                'city' => $user->city ?? null,
+                'state' => $user->state ?? null,
+                'postal_code' => $user->postal_code ?? null,
                 'country' => $user->country,
                 'date_of_birth' => $user->date_of_birth,
                 'role' => $user->role,
                 'status' => $user->status,
-                'created_at' => $user->created_at->format('Y-m-d H:i:s'),
-            ]
+                'avatar' => $user->avatar ?? $user->image ?? null,
+                'created_at' => $user->created_at->format('M d, Y'),
+                'created_at_human' => $user->created_at->diffForHumans(),
+            ],
+            'bookingCounts' => [
+                'total'     => $totalBookings,
+                'active'    => $activeBookings,
+                'completed' => $completedBookings,
+                'cancelled' => $cancelledBookings,
+            ],
+            'recentBookings' => $recentBookings,
+            'activityLogs'   => $activityLogs,
         ]);
     }
 
@@ -324,7 +378,7 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => ['required', Rule::in(['verified', 'unverified', 'blocked', 'rejected'])]
+            'status' => ['required', Rule::in(['verified', 'unverified', 'suspended', 'blocked', 'rejected'])]
         ]);
 
         $user->update(['status' => $validated['status']]);
@@ -347,6 +401,8 @@ class UserController extends Controller
     {
         $search = $request->get('search', '');
         $statusFilter = $request->get('status', 'all');
+        $dateFrom = $request->get('date_from', '');
+        $dateTo = $request->get('date_to', '');
         $perPage = $request->get('per_page', 10);
 
         // Get all clients
@@ -366,27 +422,43 @@ class UserController extends Controller
             $query->where('status', $statusFilter);
         }
 
+        // Apply date range filter
+        if ($dateFrom) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+        if ($dateTo) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
         $paginatedUsers = $query->orderBy('created_at', 'desc')->paginate($perPage);
-        
+
         $users = $paginatedUsers->getCollection()->map(function ($user) {
             return [
                 'id' => $user->id,
                 'name' => $user->name,
+                'first_name' => $user->first_name ?? '',
+                'last_name' => $user->last_name ?? '',
                 'email' => $user->email,
                 'phone' => $user->phone ?? 'N/A',
-                'address' => $user->address ?? 'N/A',
-                'country' => $user->country ?? 'N/A',
-                'date_of_birth' => $user->date_of_birth ?? 'N/A',
+                'city' => $user->city ?? null,
+                'country' => $user->country ?? null,
                 'role' => $user->role,
                 'status' => $user->status,
-                'regDate' => $user->created_at->format('Y-m-d'),
+                'regDate' => $user->created_at->format('M d, Y'),
                 'created_at' => $user->created_at->diffForHumans(),
+                'avatar' => $user->avatar ?? $user->image ?? null,
             ];
         });
 
-        $totalUsers = User::where('role', 'client')->count();
+        $totalClients = User::where('role', 'client')->count();
         $verifiedCount = User::where('role', 'client')->where('status', 'verified')->count();
         $unverifiedCount = User::where('role', 'client')->where('status', 'unverified')->count();
+        $blockedCount = User::where('role', 'client')->whereIn('status', ['blocked', 'rejected'])->count();
+        $inReviewCount = User::where('role', 'client')->where('status', 'inreview')->count();
+        $newThisMonth = User::where('role', 'client')
+            ->whereYear('created_at', now()->year)
+            ->whereMonth('created_at', now()->month)
+            ->count();
 
         return Inertia::render('Web/home/SuperAdmin/Clients', [
             'users' => $users->values(),
@@ -399,17 +471,19 @@ class UserController extends Controller
                 'to' => $paginatedUsers->lastItem(),
             ],
             'counts' => [
-                'total' => $totalUsers,
-                'clients' => $totalUsers,
-                'vendors' => 0,
+                'total' => $totalClients,
                 'verified' => $verifiedCount,
                 'unverified' => $unverifiedCount,
-                'blocked' => 0,
+                'blocked' => $blockedCount,
+                'inreview' => $inReviewCount,
+                'new_this_month' => $newThisMonth,
             ],
             'filters' => [
                 'search' => $search,
                 'role' => 'client',
                 'status' => $statusFilter,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
                 'per_page' => $perPage,
             ]
         ]);
