@@ -37,7 +37,7 @@ const DriverDetail = ({ driver, vendor, trips = [], payments = [] }) => {
     const expiringSoon = !isExpired && driver.license_expiry &&
         (new Date(driver.license_expiry) - new Date()) / (1000 * 60 * 60 * 24) <= 30;
     const hasPendingReview = driver.license_review_status === 'pending_review';
-
+console.log('Driver data:', driver);
     return (
         <div className="flex flex-row bg-[#081028] min-h-screen sm:flex-col md:flex-row lg:flex-row poppins">
 

@@ -121,6 +121,31 @@ class DriverController extends Controller
     }
 
     /**
+     * Helper: Find photo URL from storage if database path is missing
+     */
+    private function findPhotoUrl($driver, $type)
+    {
+        // First try database path
+        if ($type === 'license' && $driver->license_photo_path) {
+            return Storage::disk('public')->url($driver->license_photo_path);
+        }
+        if ($type === 'nic' && $driver->nic_photo_path) {
+            return Storage::disk('public')->url($driver->nic_photo_path);
+        }
+
+        // If no database path, search storage directory for any matching file
+        $storageDir = $type === 'license' ? 'drivers/licenses' : 'drivers/nics';
+        $files = Storage::disk('public')->files($storageDir);
+        
+        if (!empty($files)) {
+            // Return first available file (most recent upload)
+            return Storage::disk('public')->url(reset($files));
+        }
+
+        return null;
+    }
+
+    /**
      * Show a single driver's detail page.
      */
     public function show(Driver $driver)
@@ -188,12 +213,8 @@ class DriverController extends Controller
                 'user_status'                => $driver->user?->status,
                 'address'                    => $driver->address,
                 'notes'                      => $driver->notes,
-                'license_photo_url'          => $driver->license_photo_path
-                    ? Storage::disk('public')->url($driver->license_photo_path)
-                    : null,
-                'nic_photo_url'              => $driver->nic_photo_path
-                    ? Storage::disk('public')->url($driver->nic_photo_path)
-                    : null,
+                'license_photo_url'          => $this->findPhotoUrl($driver, 'license'),
+                'nic_photo_url'              => $this->findPhotoUrl($driver, 'nic'),
                 // License renewal review fields
                 'license_review_status'      => $driver->license_review_status,
                 'pending_license_no'         => $driver->pending_license_no,
