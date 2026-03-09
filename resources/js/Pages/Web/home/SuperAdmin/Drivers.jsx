@@ -253,10 +253,24 @@ const Drivers = ({ drivers, counts, filters, pagination, vehicleTypes }) => {
                                             <div className={`w-1.5 h-1.5 rounded-full ${ss.dot}`} />
                                             <span className={`${ss.text} text-[11px] font-[500]`}>{driver.status}</span>
                                         </div>
+                                        {driver.license_review_status === 'pending_review' && (
+                                            <div className="mt-1 inline-flex items-center gap-1 border border-[#FDB52A80] bg-[#FDB52A20] px-[8px] py-[3px] rounded-[5px]">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-[#FDB52A]" />
+                                                <span className="text-[#FDB52A] text-[10px] font-[500]">License Review</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Action */}
-                                    <div className="flex-[0.5] text-center">
+                                    <div className="flex-[0.8] flex gap-2">
+                                        {driver.status === 'Inactive' && !driver.driver_approved_at && (
+                                            <button
+                                                onClick={() => router.post(`/superadmin/users/drivers/${driver.id}/approve`)}
+                                                className="bg-green-600 text-white text-[12px] px-3 py-1.5 rounded-[5px] hover:bg-green-700 transition-colors"
+                                            >
+                                                Approve
+                                            </button>
+                                        )}
                                         <Link
                                             href={`/superadmin/users/drivers/${driver.id}`}
                                             className="bg-[#0E43FB] text-white text-[12px] px-3 py-1.5 rounded-[5px] hover:bg-[#0A36D6] transition-colors"

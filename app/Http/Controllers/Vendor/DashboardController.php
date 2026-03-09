@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\BookingPayment;
 use App\Models\BookingSchedule;
 use App\Models\Vehicle;
+use App\Models\Driver;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -252,6 +253,12 @@ class DashboardController extends Controller
         // Get unread notification count
         $unreadNotifications = Notification::where('user_id', $vendorId)->unread()->count();
 
+        // Get drivers for this vendor to show expired license alerts
+        $drivers = Driver::where('user_id', $vendorId)
+            ->select('id', 'full_name', 'license_expiry', 'license_review_status', 'license_no')
+            ->get()
+            ->toArray();
+
         return Inertia::render('Web/home/vendors/Dashboard', [
             'cards' => [
                 'totalRevenue' => round($totalRevenue, 2),
@@ -272,6 +279,7 @@ class DashboardController extends Controller
             ],
             'recentActivities'=> $recentActivities,
             'unreadNotifications' => $unreadNotifications,
+            'drivers' => $drivers,
         ]);
     }
 }

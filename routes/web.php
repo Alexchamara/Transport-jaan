@@ -367,7 +367,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/Users', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('Users');
 
     // User Management Routes
-    Route::prefix('users')->name('users.')->group(function () {
+    Route::prefix('users')->name('users.')->group(function () { 
         Route::get('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'index'])->name('index');
         Route::get('/clients', [\App\Http\Controllers\SuperAdmin\UserController::class, 'clients'])->name('clients');
         Route::get('/service-providers', [\App\Http\Controllers\SuperAdmin\ServiceProviderController::class, 'index'])->name('serviceProviders');
@@ -392,6 +392,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::get('/drivers', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'index'])->name('drivers');
         Route::get('/drivers/{driver}', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'show'])->name('drivers.show');
         Route::post('/drivers/{driver}/status', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'changeStatus'])->name('drivers.changeStatus');
+        Route::post('/drivers/{driver}/verify-license', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'verifyLicense'])->name('drivers.verifyLicense');
+        Route::post('/drivers/{driver}/approve', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'approveDriver'])->name('drivers.approve');
         Route::delete('/drivers/{driver}', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'destroy'])->name('drivers.destroy');
 
         Route::get('/create', [\App\Http\Controllers\SuperAdmin\UserController::class, 'create'])->name('create');
