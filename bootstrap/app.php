@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\RefreshSessionOnAuth::class,
+            \App\Http\Middleware\EnsureVendorHasApprovedServiceAccess::class,
         ]);
 
         // Exclude specific URIs from CSRF verification
@@ -39,6 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\CheckRole::class,
             'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'vendor.verified' => \App\Http\Middleware\VendorVerificationCheck::class,
+            'vendor.service.approved' => \App\Http\Middleware\EnsureVendorHasApprovedServiceAccess::class,
         ]);
 
         //

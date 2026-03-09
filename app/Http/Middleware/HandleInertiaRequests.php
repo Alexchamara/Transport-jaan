@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\VendorServiceRegistration;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -23,6 +24,20 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
+        $approvedServiceSlugs = [];
+        if ($user && $user->role === 'vendor') {
+            $approvedServiceSlugs = VendorServiceRegistration::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->with('serviceCategory:id,slug')
+                ->get()
+                ->pluck('serviceCategory.slug')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+        }
+
         return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $user ? [
@@ -32,6 +47,7 @@ class HandleInertiaRequests extends Middleware
                     'role' => $user->role,
                     'vendor_type' => $user->vendor_type,
                     'status' => $user->status,
+                    'approved_service_slugs' => $approvedServiceSlugs,
                     // Only include these when needed - reduces data size
                     'phone' => $user->phone,
                     'image' => $user->image ? asset('storage/' . $user->image) : null,
