@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import ServiceNavBar from "../../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -368,13 +368,6 @@ const PaymentContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="flex flex-col gap-5 md:gap-10 w-full h-auto lg:pr-5 lg:pl-5 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
@@ -401,7 +394,7 @@ const PaymentContent = () => {
                             </h1>
                         </div>
                     </div> */}
-                    {/* <div className="flex flex-row gap-5 relative items-center">
+                {/* <div className="flex flex-row gap-5 relative items-center">
                         <UserDropdown settingsRoute={route("freight.settingsPage")} />
                     </div> */}
             </div>
@@ -559,130 +552,130 @@ const PaymentContent = () => {
 
                 {/* expenses table */}
                 <div className="hidden md:block">
-                {/* table headings */}
-                <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
-                    <div className="flex flex-row gap-3 items-center">
-                        <input
-                            type="checkbox"
-                            className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                            checked={
-                                selectedRows.size ===
-                                    currentTransactions.length &&
-                                currentTransactions.length > 0
-                            }
-                            onChange={handleSelectAll}
-                        />
-                        <h1>Invoice Id</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Client Name</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Car Model</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center ml-5">
-                        <h1>Rent Per Day</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center ml-10">
-                        <h1>Days</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Amount</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>DueDate</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Status</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                    <div className="flex flex-row gap-2 items-center">
-                        <h1>Action</h1>
-                        <div className="flex flex-col justify-center items-center">
-                            <img src={miniUp} className="w-[6px] h-[4px]" />
-                            <img src={miniDown} className="w-[6px] h-[4px]" />
-                        </div>
-                    </div>
-                </div>
-                {/* end */}
-                {currentTransactions.map((txn, idx) => (
-                    <div
-                        key={startIdx + idx}
-                        className="grid grid-cols-9 h-[100px] justify-center items-center text-[15px] font-[500] px-10 border-b-[1.5px] border-[#00000033]"
-                        style={{
-                            backgroundColor: selectedRows.has(startIdx + idx)
-                                ? "#CCCCCC4F"
-                                : "transparent",
-                        }}
-                    >
-                        <div className="flex flex-row items-center gap-5">
+                    {/* table headings */}
+                    <div className="figtree grid grid-cols-9 bg-[#D8E4F2] h-[42px] justify-center items-center rounded-[8px] text-[14px] font-[600] px-10 mt-10">
+                        <div className="flex flex-row gap-3 items-center">
                             <input
                                 type="checkbox"
                                 className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
-                                checked={selectedRows.has(startIdx + idx)}
-                                onChange={() => handleRowSelection(idx)}
+                                checked={
+                                    selectedRows.size ===
+                                    currentTransactions.length &&
+                                    currentTransactions.length > 0
+                                }
+                                onChange={handleSelectAll}
                             />
-                            <h1>{txn.id}</h1>
-                        </div>
-                        <div className="">{txn.client}</div>
-                        <div>{txn.car}</div>
-                        <div className="ml-5">{txn.rentPerDay}</div>
-                        <div className="ml-10">{txn.days}</div>
-                        <div>{txn.amount}</div>
-                        <div>{txn.dueDate}</div>
-                        <div>
-                            <div
-                                className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
-                                style={{
-                                    border: `1px solid ${txn.statusColor}`,
-                                    background: txn.statusBg,
-                                    color: txn.statusColor,
-                                }}
-                            >
-                                {txn.status}
+                            <h1>Invoice Id</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img src={miniUp} className="w-[6px] h-[4px]" />
+                                <img src={miniDown} className="w-[6px] h-[4px]" />
                             </div>
                         </div>
-                        <div className="flex flex-row justify-center items-center gap-2">
-                            <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
-                                Edit
+                        <div className="flex flex-row gap-2 items-center">
+                            <h1>Client Name</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img src={miniUp} className="w-[6px] h-[4px]" />
+                                <img src={miniDown} className="w-[6px] h-[4px]" />
                             </div>
-                            <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
-                                Delete
+                        </div>
+                        <div className="flex flex-row gap-2 items-center">
+                            <h1>Car Model</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img src={miniUp} className="w-[6px] h-[4px]" />
+                                <img src={miniDown} className="w-[6px] h-[4px]" />
+                            </div>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center ml-5">
+                            <h1>Rent Per Day</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img src={miniUp} className="w-[6px] h-[4px]" />
+                                <img src={miniDown} className="w-[6px] h-[4px]" />
+                            </div>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center ml-10">
+                            <h1>Days</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img src={miniUp} className="w-[6px] h-[4px]" />
+                                <img src={miniDown} className="w-[6px] h-[4px]" />
+                            </div>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center">
+                            <h1>Amount</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img src={miniUp} className="w-[6px] h-[4px]" />
+                                <img src={miniDown} className="w-[6px] h-[4px]" />
+                            </div>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center">
+                            <h1>DueDate</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img src={miniUp} className="w-[6px] h-[4px]" />
+                                <img src={miniDown} className="w-[6px] h-[4px]" />
+                            </div>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center">
+                            <h1>Status</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img src={miniUp} className="w-[6px] h-[4px]" />
+                                <img src={miniDown} className="w-[6px] h-[4px]" />
+                            </div>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center">
+                            <h1>Action</h1>
+                            <div className="flex flex-col justify-center items-center">
+                                <img src={miniUp} className="w-[6px] h-[4px]" />
+                                <img src={miniDown} className="w-[6px] h-[4px]" />
                             </div>
                         </div>
                     </div>
-                ))}
+                    {/* end */}
+                    {currentTransactions.map((txn, idx) => (
+                        <div
+                            key={startIdx + idx}
+                            className="grid grid-cols-9 h-[100px] justify-center items-center text-[15px] font-[500] px-10 border-b-[1.5px] border-[#00000033]"
+                            style={{
+                                backgroundColor: selectedRows.has(startIdx + idx)
+                                    ? "#CCCCCC4F"
+                                    : "transparent",
+                            }}
+                        >
+                            <div className="flex flex-row items-center gap-5">
+                                <input
+                                    type="checkbox"
+                                    className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
+                                    checked={selectedRows.has(startIdx + idx)}
+                                    onChange={() => handleRowSelection(idx)}
+                                />
+                                <h1>{txn.id}</h1>
+                            </div>
+                            <div className="">{txn.client}</div>
+                            <div>{txn.car}</div>
+                            <div className="ml-5">{txn.rentPerDay}</div>
+                            <div className="ml-10">{txn.days}</div>
+                            <div>{txn.amount}</div>
+                            <div>{txn.dueDate}</div>
+                            <div>
+                                <div
+                                    className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
+                                    style={{
+                                        border: `1px solid ${txn.statusColor}`,
+                                        background: txn.statusBg,
+                                        color: txn.statusColor,
+                                    }}
+                                >
+                                    {txn.status}
+                                </div>
+                            </div>
+                            <div className="flex flex-row justify-center items-center gap-2">
+                                <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
+                                    Edit
+                                </div>
+                                <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
+                                    Delete
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
                 {/* Pagination Controls and Results per page inline */}
                 <div className="flex md:flex-row flex-col justify-between items-center gap-2 mt-20">
@@ -722,11 +715,10 @@ const PaymentContent = () => {
                             ) : (
                                 <button
                                     key={num}
-                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
-                                        currentPage === num
+                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num
                                             ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
-                                    }`}
+                                        }`}
                                     onClick={() => goToPage(num)}
                                 >
                                     {num}
@@ -744,7 +736,6 @@ const PaymentContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

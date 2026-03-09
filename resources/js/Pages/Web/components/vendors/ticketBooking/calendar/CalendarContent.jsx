@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { usePage, Link } from "@inertiajs/react";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -292,9 +292,8 @@ const CalendarContent = () => {
                 monday.setDate(weekDate.getDate() - ((dayOfWeek + 6) % 7));
                 const sunday = new Date(monday);
                 sunday.setDate(monday.getDate() + 6);
-                return `${
-                    monthNames[monday.getMonth()]
-                } ${monday.getDate()} - ${sunday.getDate()}`;
+                return `${monthNames[monday.getMonth()]
+                    } ${monday.getDate()} - ${sunday.getDate()}`;
             case "month":
                 return `${monthNames[currentMonth]} ${currentYear}`;
             case "year":
@@ -305,12 +304,6 @@ const CalendarContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-<ServiceNavBar 
-    isVerified={isVerified}
-    settingsRoute={route("settingsPage")}
-/>        </div>
         <div className="w-full h-auto px-5 lg:pl-4 lg:pr-5 py-5 lg:py-10 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col lg:flex-row gap-2 lg:gap-5 justify-between lg:items-start items-center">
@@ -328,7 +321,7 @@ const CalendarContent = () => {
             <img src={bell} alt="Notifications" />
           </div> */}
 
-                        {/* <div className="flex flex-row gap-5 relative items-center">
+                    {/* <div className="flex flex-row gap-5 relative items-center">
                             <UserDropdown
                                 settingsRoute={route("ticketBooking.settingsPage")}
                             />
@@ -393,10 +386,10 @@ const CalendarContent = () => {
                     </div>
                 </div>
                 <div
-                className="xl:max-w-[300px] xl:min-w-[349px] w-full h-auto xl:min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
-                style={{
-                    boxShadow: "4px 4px 4px #0000001A",
-                }}
+                    className="xl:max-w-[300px] xl:min-w-[349px] w-full h-auto xl:min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-5 lg:px-10 py-10"
+                    style={{
+                        boxShadow: "4px 4px 4px #0000001A",
+                    }}
                 >
                     {/* Reminder section  */}
                     <div className="flex flex-row items-center justify-between w-full">
@@ -505,41 +498,37 @@ const CalendarContent = () => {
                         </div>
                         <div className="flex flex-row justify-center items-center text-[14px] font-[600]">
                             <div
-                                className={`md:w-[70px] md:h-[35px] rounded-l-[6px] flex justify-center px-2 py-2 items-center cursor-pointer transition-colors ${
-                                    currentView === "day"
+                                className={`md:w-[70px] md:h-[35px] rounded-l-[6px] flex justify-center px-2 py-2 items-center cursor-pointer transition-colors ${currentView === "day"
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
-                                }`}
+                                    }`}
                                 onClick={() => setCurrentView("day")}
                             >
                                 Day
                             </div>
                             <div
-                                className={`md:w-[70px] md:h-[35px] px-2 py-2 flex justify-center items-center cursor-pointer transition-colors ${
-                                    currentView === "week"
+                                className={`md:w-[70px] md:h-[35px] px-2 py-2 flex justify-center items-center cursor-pointer transition-colors ${currentView === "week"
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
-                                }`}
+                                    }`}
                                 onClick={() => setCurrentView("week")}
                             >
                                 Week
                             </div>
                             <div
-                                className={`md:w-[70px] md:h-[35px] px-2 py-2 flex justify-center items-center cursor-pointer transition-colors ${
-                                    currentView === "month"
+                                className={`md:w-[70px] md:h-[35px] px-2 py-2 flex justify-center items-center cursor-pointer transition-colors ${currentView === "month"
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
-                                }`}
+                                    }`}
                                 onClick={() => setCurrentView("month")}
                             >
                                 Month
                             </div>
                             <div
-                                className={`md:w-[70px] md:h-[35px] px-2 py-2 rounded-r-[6px] flex justify-center items-center cursor-pointer transition-colors ${
-                                    currentView === "year"
+                                className={`md:w-[70px] md:h-[35px] px-2 py-2 rounded-r-[6px] flex justify-center items-center cursor-pointer transition-colors ${currentView === "year"
                                         ? "bg-[#0955AC] text-white"
                                         : "bg-[#F3F3F3] text-[#00000080] hover:bg-[#E0E0E0]"
-                                }`}
+                                    }`}
                                 onClick={() => setCurrentView("year")}
                             >
                                 Year
@@ -577,7 +566,6 @@ const CalendarContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

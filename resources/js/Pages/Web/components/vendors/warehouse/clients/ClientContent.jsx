@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import { API_BASE_URL } from "../../../../../../config/api";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -46,13 +46,6 @@ const ClientContent = () => {
     }, [auth?.user]);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full h-auto  lg:pl-5 lg:pr-5  pt-6 pb-12">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
@@ -103,7 +96,6 @@ const ClientContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

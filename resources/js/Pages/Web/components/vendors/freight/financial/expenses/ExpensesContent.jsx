@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { usePage } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import ServiceNavBar from "../../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -313,12 +313,6 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-<ServiceNavBar 
-    isVerified={isVerified}
-    settingsRoute={route("settingsPage")}
-/>        </div>
         <div className="flex flex-col gap-10 w-full h-auto lg:pr-5 lg:pl-5 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between items-center">
@@ -730,11 +724,10 @@ const ExpensesContent = () => {
                             ) : (
                                 <button
                                     key={num}
-                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
-                                        currentPage === num
+                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num
                                             ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
-                                    }`}
+                                        }`}
                                     onClick={() => goToPage(num)}
                                 >
                                     {num}
@@ -752,7 +745,6 @@ const ExpensesContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

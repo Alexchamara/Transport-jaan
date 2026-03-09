@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -279,13 +279,6 @@ const UnitContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full h-auto lg:pr-5 py-10 px-5 lg:px-0 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
@@ -430,8 +423,8 @@ const UnitContent = () => {
                                     <button
                                         className="figtree min-w-[120px] md:min-w-[140px] h-[40px] md:h-[44px] bg-[#0955AC] rounded-[5px] text-[16px] md:text-[20px] text-[#FFFFFF] font-[700]"
                                         onClick={() =>
-                                            (window.location.href =
-                                                "/freight/unitDetails")
+                                        (window.location.href =
+                                            "/freight/unitDetails")
                                         }
                                     >
                                         View
@@ -496,11 +489,10 @@ const UnitContent = () => {
                                 ) : (
                                     <button
                                         key={num}
-                                        className={`px-3 py-1 text-[14px] md:text-[16px] font-[600] rounded-[4px] size-[35px] md:size-[40px] bg-[#F4F3F3] ${
-                                            currentPage === num
+                                        className={`px-3 py-1 text-[14px] md:text-[16px] font-[600] rounded-[4px] size-[35px] md:size-[40px] bg-[#F4F3F3] ${currentPage === num
                                                 ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                                 : "bg-[#F4F3F3]"
-                                        }`}
+                                            }`}
                                         onClick={() => goToPage(num)}
                                     >
                                         {num}
@@ -519,7 +511,6 @@ const UnitContent = () => {
                 </>
             )}
         </div>
-        </>
     );
 };
 

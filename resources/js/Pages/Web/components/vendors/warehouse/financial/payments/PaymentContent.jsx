@@ -3,7 +3,7 @@ import { usePage, router } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { API_BASE_URL } from "../../../../../../../config/api";
-import ServiceNavBar from "../../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -274,13 +274,6 @@ const PaymentContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="flex flex-col gap-10 w-full h-auto  lg:pr-5 lg:pl-5 pt-6 pb-12">
             {/* Header section */}
             <div className="flex lg:flex-row flex-col gap-5 justify-between items-center md:gap-3 mt-10 lg:mt-0">
@@ -336,13 +329,12 @@ const PaymentContent = () => {
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                        <div 
-                            className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${
-                                stats.balance.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
-                            }`}
+                        <div
+                            className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${stats.balance.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
+                                }`}
                         >
-                            <img 
-                                src={upArrow} 
+                            <img
+                                src={upArrow}
                                 className={`size-[19px] ${!stats.balance.isPositive ? 'rotate-180' : ''}`}
                             />
                             <h1>{stats.balance.isPositive ? '+' : ''}{stats.balance.growth}%</h1>
@@ -371,13 +363,12 @@ const PaymentContent = () => {
                         </div>
                     </div>
                     <div className="flex flex-col gap-2 items-end text-[12px] font-[500]">
-                        <div 
-                            className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${
-                                stats.income.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
-                            }`}
+                        <div
+                            className={`w-[81px] h-[26px] rounded-[5px] flex flex-row justify-center items-center ${stats.income.isPositive ? 'bg-[#D8E4F2]' : 'bg-[#FF888880]'
+                                }`}
                         >
-                            <img 
-                                src={upArrow} 
+                            <img
+                                src={upArrow}
                                 className={`size-[19px] ${!stats.income.isPositive ? 'rotate-180' : ''}`}
                             />
                             <h1>{stats.income.isPositive ? '+' : ''}{stats.income.growth}%</h1>
@@ -491,7 +482,7 @@ const PaymentContent = () => {
                             className="size-[20px] rounded-[4px] bg-[#CCCCCC73]"
                             checked={
                                 selectedRows.size ===
-                                    currentTransactions.length &&
+                                currentTransactions.length &&
                                 currentTransactions.length > 0
                             }
                             onChange={handleSelectAll}
@@ -560,7 +551,7 @@ const PaymentContent = () => {
                     </div>
                 </div>
                 {/* end */}
-                
+
                 {loading ? (
                     <div className="flex justify-center items-center h-[400px]">
                         <div className="text-center">
@@ -580,45 +571,45 @@ const PaymentContent = () => {
                         {/* Desktop table view */}
                         <div className="hidden xl:block">
                             {currentTransactions.map((txn, idx) => (
-                    <div
-                        className="min-w-[250px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
-                        style={{
-                            boxShadow: "4px 4px 4px #0000001A",
-                        }}
-                    >
-                        <div className="flex flex-row gap-5 justify-center items-center">
-                            <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
-                                <img src={income} />
-                            </div>
-                            <div>
-                                <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
-                                    Income
-                                </h1>
-                                <h1 className="text-[26px] font-[700]">LKR {stats.income.amount}</h1>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
-                            <div
-                                className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
-                                style={{
-                                    border: `1px solid ${txn.statusColor}`,
-                                    background: txn.statusBg,
-                                    color: txn.statusColor,
-                                }}
-                            >
-                                {txn.status}
-                            </div>
-                        </div>
-                        <div className="flex flex-row justify-center items-center gap-2">
-                            <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
-                                Edit
-                            </div>
-                            <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
-                                Delete
-                            </div>
-                        </div>
-                    </div>
-                ))}
+                                <div
+                                    className="min-w-[250px] w-full min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    style={{
+                                        boxShadow: "4px 4px 4px #0000001A",
+                                    }}
+                                >
+                                    <div className="flex flex-row gap-5 justify-center items-center">
+                                        <div className="size-[50px] bg-[#D8E4F2] rounded-full flex justify-center items-center">
+                                            <img src={income} />
+                                        </div>
+                                        <div>
+                                            <h1 className="text-[16px] font-[500] text-[#7B7B7A]">
+                                                Income
+                                            </h1>
+                                            <h1 className="text-[26px] font-[700]">LKR {stats.income.amount}</h1>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                        <div
+                                            className="w-[72px] h-[20px] text-[10px] font-[700] rounded-[4px] flex justify-center items-center"
+                                            style={{
+                                                border: `1px solid ${txn.statusColor}`,
+                                                background: txn.statusBg,
+                                                color: txn.statusColor,
+                                            }}
+                                        >
+                                            {txn.status}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-row justify-center items-center gap-2">
+                                        <div className="w-[54px] h-[20px] border-[1px] border-[#0955AC] rounded-[4px] text-[10px] text-[#0955AC] font-500 flex justify-center items-center cursor-pointer">
+                                            Edit
+                                        </div>
+                                        <div className="w-[54px] h-[20px] border-[1px] border-[#FF0000] rounded-[4px] text-[10px] text-[#FF0000] font-500 flex justify-center items-center cursor-pointer">
+                                            Delete
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                         {/* Mobile/Tablet card view */}
                         <div className="xl:hidden block mt-4">
@@ -730,11 +721,10 @@ const PaymentContent = () => {
                             ) : (
                                 <button
                                     key={num}
-                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] md:size-[35px] md:text-[14px] ${
-                                        currentPage === num
+                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] md:size-[35px] md:text-[14px] ${currentPage === num
                                             ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
-                                    }`}
+                                        }`}
                                     onClick={() => goToPage(num)}
                                 >
                                     {num}
@@ -752,7 +742,6 @@ const PaymentContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

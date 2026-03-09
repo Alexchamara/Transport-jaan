@@ -19,12 +19,12 @@ import {
 } from "lucide-react";
 import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
-import ServiceNavBar from "@/Components/vendors/ServiceNavBar";
+
 const ExpensesContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-   
+
     const expensesData = [
         {
             name: "Oil Change",
@@ -325,12 +325,6 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-<ServiceNavBar 
-    isVerified={isVerified}
-    settingsRoute={route("settingsPage")}
-/>        </div>
         <div className="flex flex-col gap-10 w-full h-auto lg:pl-4 lg:pr-5  pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
@@ -649,11 +643,10 @@ const ExpensesContent = () => {
                             ) : (
                                 <button
                                     key={num}
-                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
-                                        currentPage === num
+                                    className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num
                                             ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
-                                    }`}
+                                        }`}
                                     onClick={() => goToPage(num)}
                                 >
                                     {num}
@@ -671,7 +664,6 @@ const ExpensesContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 
