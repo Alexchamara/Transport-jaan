@@ -85,6 +85,19 @@ class VendorProfileController extends Controller
             array_merge($data, ['submission_status' => 'draft'])
         );
 
+        // Log activity
+        VendorActivityLog::create([
+            'vendor_id' => $user->id,
+            'action' => 'profile_updated',
+            'target_type' => 'vendor_profile',
+            'target_id' => $vendorProfile->id,
+            'description' => 'Vendor updated business profile information.',
+            'metadata' => [
+                'company_name' => $data['company_name'] ?? '',
+                'business_type' => $data['business_type'] ?? '',
+            ],
+        ]);
+
         return redirect()->back()->with('success', 'Business profile saved successfully.');
     }
 
@@ -224,7 +237,7 @@ class VendorProfileController extends Controller
             $updateData['resubmission_count'] = ($existingReg->resubmission_count ?? 0) + 1;
         }
 
-        VendorServiceRegistration::updateOrCreate(
+        $registration = VendorServiceRegistration::updateOrCreate(
             [
                 'user_id' => $user->id,
                 'service_sub_category_id' => $subCategory->id,
@@ -232,24 +245,46 @@ class VendorProfileController extends Controller
             $updateData
         );
 
-        // Log the resubmission activity
+        // Determine action type for logging
         if ($existingReg && $existingReg->status === 'rejected') {
-            VendorActivityLog::create([
-                'vendor_id' => $user->id,
-                'action' => 'service_resubmitted',
-                'target_type' => 'vendor_service_registration',
-                'target_id' => $existingReg->id,
-                'description' => "Service '{$subCategory->name}' resubmitted after rejection.",
-                'metadata' => [
-                    'service_name' => $subCategory->name,
-                    'resubmission_count' => ($existingReg->resubmission_count ?? 0) + 1,
-                ],
-            ]);
+            // Resubmitting a rejected service
+            $action = 'service_resubmitted';
+            $description = "Service '{$subCategory->name}' resubmitted after rejection.";
+            $metadata = [
+                'service_name' => $subCategory->name,
+                'category_name' => $subCategory->serviceCategory?->name,
+                'resubmission_count' => ($existingReg->resubmission_count ?? 0) + 1,
+            ];
+            $message = 'Service registration resubmitted successfully. It is now pending admin review.';
+        } elseif ($existingReg) {
+            // Updating existing service
+            $action = 'service_updated';
+            $description = "Vendor updated service registration for '{$subCategory->name}'.";
+            $metadata = [
+                'service_name' => $subCategory->name,
+                'category_name' => $subCategory->serviceCategory?->name,
+            ];
+            $message = 'Service registration updated successfully.';
+        } else {
+            // Creating new service
+            $action = 'service_created';
+            $description = "Vendor created new service registration for '{$subCategory->name}'.";
+            $metadata = [
+                'service_name' => $subCategory->name,
+                'category_name' => $subCategory->serviceCategory?->name,
+            ];
+            $message = 'Service registration saved successfully.';
         }
 
-        $message = $existingReg && $existingReg->status === 'rejected' 
-            ? 'Service registration resubmitted successfully. It is now pending admin review.'
-            : 'Service registration saved successfully.';
+        // Log activity
+        VendorActivityLog::create([
+            'vendor_id' => $user->id,
+            'action' => $action,
+            'target_type' => 'vendor_service_registration',
+            'target_id' => $registration->id,
+            'description' => $description,
+            'metadata' => $metadata,
+        ]);
 
         return redirect()->back()->with('success', $message);
     }
@@ -282,6 +317,19 @@ class VendorProfileController extends Controller
         }
 
         if ($registration) {
+            // Log activity
+            VendorActivityLog::create([
+                'vendor_id' => $user->id,
+                'action' => 'service_removed',
+                'target_type' => 'vendor_service_registration',
+                'target_id' => $registration->id,
+                'description' => "Vendor removed service registration for '{$subCategory->name}'.",
+                'metadata' => [
+                    'service_name' => $subCategory->name,
+                    'category_name' => $subCategory->serviceCategory?->name,
+                ],
+            ]);
+
             $registration->delete();
         }
 
@@ -444,11 +492,7 @@ class VendorProfileController extends Controller
                         }
                         break;
                     case 'checkbox':
-                        if (empty($fieldValues[$key])) {
-                            return redirect()->back()->withErrors([
-                                'services' => "Please confirm {$field['label']} for {$subCategory->name}"
-                            ]);
-                        }
+                        // Checkboxes are treated as optional confirmations
                         break;
                 }
             }
@@ -486,6 +530,16 @@ class VendorProfileController extends Controller
         if ($vendorProfile && $vendorProfile->logo) {
             Storage::disk('public')->delete($vendorProfile->logo);
             $vendorProfile->update(['logo' => null]);
+
+            // Log activity
+            VendorActivityLog::create([
+                'vendor_id' => $user->id,
+                'action' => 'logo_removed',
+                'target_type' => 'vendor_profile',
+                'target_id' => $vendorProfile->id,
+                'description' => 'Vendor removed profile logo.',
+                'metadata' => [],
+            ]);
         }
 
         return redirect()->back()->with('success', 'Logo removed successfully.');

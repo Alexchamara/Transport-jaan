@@ -537,6 +537,16 @@ const VendorProfile = () => {
             };
         }
 
+        if (actionModalState.action === "submit_new_services") {
+            return {
+                title: "Confirm New Services Submission",
+                description: `Submit ${draftServiceCount} new service(s) for admin review? Your existing services are not affected.`,
+                confirmText: "Submit",
+                confirmClassName: "bg-blue-600 hover:bg-blue-700",
+                processingText: "Submitting...",
+            };
+        }
+
         return null;
     };
 
@@ -588,6 +598,25 @@ const VendorProfile = () => {
             }
 
             saveServiceRegistration(subCategory, true);
+            return;
+        }
+
+        if (actionModalState.action === "submit_new_services") {
+            setSubmitting(true);
+            router.post(route("vendor.profile.submit-new-services"), {}, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSubmitting(false);
+                    closeActionModal();
+                },
+                onError: (errors) => {
+                    setSubmitting(false);
+                    const firstError = Object.values(errors)[0];
+                    setErrorMessage(typeof firstError === "string" ? firstError : "Submission failed.");
+                    setTimeout(() => setErrorMessage(""), 5000);
+                    closeActionModal();
+                },
+            });
         }
     };
 
@@ -619,23 +648,7 @@ const VendorProfile = () => {
             return;
         }
 
-        if (!confirm(`Submit ${draftServiceCount} new service(s) for admin review? Your existing services are not affected.`)) {
-            return;
-        }
-
-        setSubmitting(true);
-        router.post(route("vendor.profile.submit-new-services"), {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSubmitting(false);
-            },
-            onError: (errors) => {
-                setSubmitting(false);
-                const firstError = Object.values(errors)[0];
-                setErrorMessage(typeof firstError === "string" ? firstError : "Submission failed.");
-                setTimeout(() => setErrorMessage(""), 5000);
-            },
-        });
+        openActionModal("submit_new_services");
     };
 
     // ─── STEP INDICATOR ───────────────────────────────────────

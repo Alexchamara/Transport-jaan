@@ -13,6 +13,7 @@ import JourneyPlanner from "./JourneyPlanner";
 import MapComponent from "./MapComponent";
 import AvailableVehicles from "./AvailableVehicles";
 import FilterSidebar from "../../vehicleList/FilterSidebar";
+import BackButton from "../../BackBtn";
 import VehicleListContent from "../../vehicleList/VehicleListContent";
 import SearchForm from "../../vehicleList/SearchForm";
 import SeaFilterSidebar from "../../seaVehicleList/FilterSidebar";
@@ -27,10 +28,20 @@ import FlightForm from "../../ticketBooking/FlightForm";
 
 const Hero = () => {
     // Active tab state: 'rental', 'ticket', or 'multimodal'
-    const [activeTab, setActiveTab] = useState('rental');
+    const getInitialTab = () => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        return ['rental', 'ticket', 'multimodal'].includes(tab) ? tab : 'rental';
+    };
+    const [activeTab, setActiveTab] = useState(getInitialTab);
 
     // Vehicle Rental inline view state
-    const [rentalSubTab, setRentalSubTab] = useState('land');
+    const getInitialRentalSubTab = () => {
+        const params = new URLSearchParams(window.location.search);
+        const subTab = params.get('subTab');
+        return ['land', 'sea', 'air'].includes(subTab) ? subTab : 'land';
+    };
+    const [rentalSubTab, setRentalSubTab] = useState(getInitialRentalSubTab);
     const [vehicleListData, setVehicleListData] = useState(null);
     const [isLoadingRental, setIsLoadingRental] = useState(false);
     const [seaVehicleData, setSeaVehicleData] = useState(null);
@@ -47,13 +58,39 @@ const Hero = () => {
         pickupLocation: "", pickupDate: "", dropoffLocation: "", dropoffDate: "", brand: "", bodyType: "",
     });
 
-    // Auto-fetch land vehicle list on mount
+    // Auto-fetch data on mount based on initial tab/subTab from URL
     useEffect(() => {
-        fetchLandVehicles();
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        const subTab = params.get('subTab');
+
+        if (tab === 'ticket') {
+            if (subTab === 'train') {
+                fetchTrainData();
+            } else if (subTab === 'flight') {
+                // flight tab uses FlightForm, no fetch needed
+            } else {
+                fetchBusData(); // default bus
+            }
+        } else if (tab === 'rental') {
+            if (subTab === 'sea') {
+                fetchSeaVehicles();
+            } else if (subTab === 'air') {
+                fetchAirVehicles();
+            } else {
+                fetchLandVehicles(); // default land
+            }
+        } else {
+            fetchLandVehicles(); // default fallback
+        }
     }, []);
 
     // Ticket Booking inline view state
-    const [ticketSubTab, setTicketSubTab] = useState('bus');
+    const [ticketSubTab, setTicketSubTab] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        const subTab = params.get('subTab');
+        return ['bus', 'train', 'flight'].includes(subTab) ? subTab : 'bus';
+    });
     const [ticketData, setTicketData] = useState(null);
     const [isLoadingTicket, setIsLoadingTicket] = useState(false);
     const [trainData, setTrainData] = useState(null);
@@ -578,35 +615,44 @@ const Hero = () => {
     };
     return (
         <>
-            {/* Top Navigation Buttons */}
-            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 pt-6 sm:pt-8 px-3 sm:px-5">
-                <button
-                    onClick={handleVehicleRentalClick}
-                    className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'rental'
-                        ? 'bg-[#0955AC] text-white'
-                        : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                        }`}
-                >
-                    Vehicle Rental
-                </button>
-                <button
-                    onClick={handleTicketBookingClick}
-                    className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'ticket'
-                        ? 'bg-[#0955AC] text-white'
-                        : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                        }`}
-                >
-                    Ticket Booking
-                </button>
-                <button
-                    onClick={() => setActiveTab('multimodal')}
-                    className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'multimodal'
-                        ? 'bg-[#0955AC] text-white shadow-md'
-                        : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
-                        }`}
-                >
-                    Multimodal
-                </button>
+
+            <div className="relative flex items-center pt-6 sm:pt-8 px-5 md:px-10">
+                {/* Back Button - left corner */}
+                <div className="absolute left-5 md:left-[70px]">
+                    <BackButton />
+                </div>
+
+                {/* Top Navigation Buttons - centered */}
+                <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full">
+                    <button
+                        onClick={handleVehicleRentalClick}
+                        className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'rental'
+                            ? 'bg-[#0955AC] text-white'
+                            : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                            }`}
+                    >
+                        Vehicle Rental
+                    </button>
+                    <button
+                        onClick={handleTicketBookingClick}
+                        className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'ticket'
+                            ? 'bg-[#0955AC] text-white'
+                            : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                            }`}
+                    >
+                        Ticket Booking
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('multimodal')}
+                        className={`flex-1 sm:flex-none min-w-[100px] px-3 sm:px-6 py-2 sm:py-2.5 rounded-full border-2 border-[#0955AC] font-[600] text-[11px] sm:text-[14px] poppins transition-colors ${activeTab === 'multimodal'
+                            ? 'bg-[#0955AC] text-white shadow-md'
+                            : 'text-[#0955AC] hover:bg-[#0955AC] hover:text-white'
+                            }`}
+                    >
+                        Multimodal
+                    </button>
+                </div>
+
             </div>
 
             {/* Vehicle Rental Inline View */}

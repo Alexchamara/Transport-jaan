@@ -12,10 +12,10 @@ const ClientCardDashboard = () => {
       icon: '🚗',
       route: '/clientRent',
       subOptions: [
-        { name: 'Cars & SUVs', route: '/clientRent?type=land' },
-        { name: 'Aircraft', route: '/clientRent?type=air' },
+        { name: 'Cars & SUVs', route: '/multiModel/plan-journey' },
+        { name: 'Aircraft', route: '/multiModel/plan-journey' },
         { name: 'Vehicle Dashboard', route: '/clientVehicleDashboard' },
-        { name: 'Boats & Ships', route: '/clientRent?type=sea' }
+        { name: 'Boats & Ships', route: '/multiModel/plan-journey' }
       ]
     },
     {
@@ -25,10 +25,10 @@ const ClientCardDashboard = () => {
       route: '/ticketBooking',
       subOptions: [
         // { name: 'Book New Tickets', route: '/ticketBooking' },
-        { name: 'Ticket Dashboard', route: '/clientTicketBookingDashboard' },
-        { name: 'Flight Tickets', route: '/ticketBooking?type=flight' },
-        { name: 'Train Tickets', route: '/ticketBooking?type=train' },
-        { name: 'Bus Tickets', route: '/ticketBooking?type=bus'}
+        { name: 'Ticket Dashboard', route: '/multiModel/plan-journey' },
+        { name: 'Flight Tickets', route: '/multiModel/plan-journey' },
+        { name: 'Train Tickets', route: '/multiModel/plan-journey' },
+        { name: 'Bus Tickets', route: '/multiModel/plan-journey'}
       ]
     },
     {
@@ -45,7 +45,7 @@ const ClientCardDashboard = () => {
       title: 'Warehouse Services',
       description: 'Find warehouse space and storage solutions.',
       icon: '🏢',
-      route: '/warehouse',
+      route: '/warehouseList',
       subOptions: [
         { name: 'Find Warehouses', route: '/warehouseList' },
         // { name: 'Book Storage', route: '/warehouse-bookings' },

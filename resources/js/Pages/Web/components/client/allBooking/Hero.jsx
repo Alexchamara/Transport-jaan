@@ -1075,7 +1075,7 @@ const Hero = ({
                             </div>
                             <div className="px-4 sm:px-6 pb-6 sm:pb-8 space-y-2 font-medium">
                                 <Link
-                                    href="/clientRent?type=land"
+                                    href="/multiModel/plan-journey"
                                     className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <Car className="h-5 w-5 text-[#0955AC]" />
