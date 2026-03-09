@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { usePage, Link } from "@inertiajs/react";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -305,12 +305,6 @@ const CalendarContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-<ServiceNavBar 
-    isVerified={isVerified}
-    settingsRoute={route("settingsPage")}
-/>        </div>
         <div className="w-full h-auto px-5 lg:pl-4 lg:pr-5 py-5 lg:py-10 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col lg:flex-row gap-2 lg:gap-5 justify-between lg:items-start items-center">
@@ -577,7 +571,6 @@ const CalendarContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

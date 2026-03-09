@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { usePage, Link } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import ServiceNavBar from "../../../../../../../Components/vendors/ServiceNavBar";
+
 
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
@@ -337,13 +337,6 @@ const PaymentContent = () => {
   }, [itemsPerPage]);
 
   return (
-    <>
-    <div className="sticky top-0 z-30">
-    <ServiceNavBar 
-        isVerified={isVerified}
-        settingsRoute={route("settingsPage")}
-    />
-    </div>
     <div className="flex flex-col gap-10 w-full h-auto px-5 py-10 mt-5 xl:mt-0 pt-6 pb-12">
       {/* Header section */}
       <div className="flex flex-col lg:flex-row gap-5 justify-between items-center">
@@ -707,7 +700,6 @@ const PaymentContent = () => {
         </div>
       </div>
     </div>
-    </>
   );
 };
 

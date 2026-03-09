@@ -13,17 +13,14 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
-import SideMenu from "./SideMenu";
-import UserDropdown from "../../../components/vendors/UserDropdown";
-import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
-import UnverifiedBanner from "./UnverifiedBanner";
-import { API_BASE_URL } from "../../../../../config/api";
+import VendorShellLayout from "../../../../../Components/vendors/VendorShellLayout";
 import icon1 from "../../../assets/vendors/booking/icons/icon1.svg";
 import icon2 from "../../../assets/vendors/booking/icons/icon2.svg";
 import icon3 from "../../../assets/vendors/booking/icons/icon3.svg";
 import icon4 from "../../../assets/vendors/booking/icons/icon4.svg";
 import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
-import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar";
+import UnverifiedBanner from "./UnverifiedBanner";
+import { API_BASE_URL } from "../../../../../config/api";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
 import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
@@ -214,18 +211,7 @@ const BookingPage = () => {
 
     // ── render ────────────────────────────────────────────────────────────────
     return (
-        <div className="poppins flex flex-row w-full min-h-screen bg-[#E5E5E5]">
-            <SideMenu />
-
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* ServiceNavBar - sticky at the top, flush with sidebar */}
-                <div className="sticky top-0 z-30">
-                    <ServiceNavBar 
-                        isVerified={isVerified}
-                        settingsRoute={route("settingsPage")}
-                />
-                </div>
-
+        <VendorShellLayout activeService="All Bookings">
             <div className="px-5 lg:pr-5 lg:pl-6 pt-6 pb-10">
                 {/* ── Header ── */}
                 <div className="flex md:flex-row flex-col gap-5 justify-between items-center mb-6">
@@ -404,8 +390,7 @@ const BookingPage = () => {
                     </div>
                 </div>
             )}
-            </div>{/* closes flex-1 flex flex-col */}
-        </div>
+        </VendorShellLayout>
     );
 };
 

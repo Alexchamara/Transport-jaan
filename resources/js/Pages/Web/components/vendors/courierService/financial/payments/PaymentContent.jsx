@@ -17,7 +17,7 @@ import {
 
     ChevronsUpDown,
 } from "lucide-react";
-import ServiceNavBar from "@/Components/vendors/ServiceNavBar";
+
 const PaymentContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
@@ -211,12 +211,6 @@ const PaymentContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />        </div>
         <div className="pt-6 pb-12">
         <div className="flex flex-col gap-10 w-full h-auto lg:pl-4 lg:pr-5 ">
             {/* Header section */}
@@ -527,7 +521,6 @@ const PaymentContent = () => {
             </div>
         </div>
         </div>
-        </>
     );
 };
 

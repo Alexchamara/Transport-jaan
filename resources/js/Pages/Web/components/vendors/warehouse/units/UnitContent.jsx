@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { API_BASE_URL } from "../../../../../../config/api";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 // Assets
 import miniSearchIcon from "../../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
@@ -845,13 +845,6 @@ const UnitContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full h-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 lg:pl-4 lg:pl-5">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
@@ -1136,7 +1129,6 @@ const UnitContent = () => {
                 </div>
             )}
         </div>
-        </>
     );
 };
 

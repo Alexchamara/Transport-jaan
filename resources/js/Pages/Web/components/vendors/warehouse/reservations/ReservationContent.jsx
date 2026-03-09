@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { usePage } from "@inertiajs/react";
 import axios from "axios";
 import { API_BASE_URL } from "../../../../../../config/api";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 import upArrow from "../../../../assets/vendors/dashboard/icons/upArrow.svg";
 import miniUp from "../../../../assets/vendors/dashboard/icons/miniUp.svg";
@@ -361,13 +361,6 @@ const ReservationContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-        <ServiceNavBar 
-            isVerified={isVerified}
-            settingsRoute={route("settingsPage")}
-        /> 
-       </div>
         <div className="w-full h-auto lg:pr-5 lg:pl-4 px-5 pb-2">
             {/* Header */}
             <div className="flex lg:flex-row flex-col gap-5 justify-between items-center mt-10">
@@ -1409,7 +1402,6 @@ const ReservationContent = () => {
                 </div>
             )}
         </div>
-        </>
     );
 };
 

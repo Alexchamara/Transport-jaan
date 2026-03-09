@@ -1,6 +1,6 @@
 // resources/js/Pages/Web/components/vendors/driver/Driver.jsx
 import React, { useEffect, useRef, useState } from "react";
-import SideMenu from "../SideMenu.jsx";
+import VendorShellLayout from "../../../../../Components/vendors/VendorShellLayout";
 import { usePage, Link } from "@inertiajs/react";
 
 import bell from "../../../assets/vendors/dashboard/bell.svg";
@@ -8,7 +8,6 @@ import proPic from "../../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
 
 import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
-import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar.jsx";
 import { Download } from "lucide-react"; // ← NEW
 
 const PAGE_SIZE = 8;
@@ -493,29 +492,8 @@ export default function Driver() {
   };
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
-    <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <SideMenu />
-      </div>
-
-            {/* Overlay for mobile when sidebar is open */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-30 z-20 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        ></div>
-      )}
-
-      <main className="flex-1 w-full flex flex-col min-w-0">
-        {/* ServiceNavBar - sticky at top */}
-        <div className="sticky top-0 z-30">
-          <ServiceNavBar 
-    isVerified={isVerified}
-    settingsRoute={route("settingsPage")}
-/>
-        </div>
-
-        <div className="flex-1 py-8">
+    <VendorShellLayout activeService="Vehicle Rental" isVerified={isVerified}>
+      <div className="flex-1 py-8">
         {/* ==================== HEADER WITH DROPDOWN ==================== */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
            {/* Hamburger button for mobile */}
@@ -949,8 +927,7 @@ export default function Driver() {
             </div>
           </div>
         </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </VendorShellLayout>
   );
 }

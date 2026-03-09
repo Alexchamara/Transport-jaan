@@ -26,7 +26,7 @@ import * as XLSX from "xlsx";
 import axios from "axios";
 import { API_BASE_URL } from "../../../../../../config/api";
 import { PieChart, Pie, Cell } from "recharts";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 import UserDropdown from "../../UserDropdown";
 import NotificationDropdown from "../NotificationDropdown";
@@ -1348,13 +1348,6 @@ const DashContent = () => {
     }
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Real-time notifications */}
             {notifications.length > 0 && (
@@ -2226,7 +2219,6 @@ const DashContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

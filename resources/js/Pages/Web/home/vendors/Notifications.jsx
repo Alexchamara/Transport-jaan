@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { usePage, Link } from "@inertiajs/react";
 import axios from "axios";
-import SideMenu from "../../components/vendors/SideMenu";
+import VendorShellLayout from "../../../../Components/vendors/VendorShellLayout";
 import bell from "../../assets/vendors/dashboard/bell.svg";
 import proPic from "../../assets/vendors/dashboard/proPic.svg";
 import logOutLogo from "../../assets/vendors/dashboard/logOutLogo.svg"; // ← NEW
@@ -152,11 +152,8 @@ const NotificationsPage = () => {
   };
 
   return (
-    <div className="bg-[#E5E5E5] min-h-screen">
-      <div className="flex flex-row gap-10">
-        <SideMenu />
-
-        <div className="w-full h-auto pr-5 py-10">
+    <VendorShellLayout activeService="Vehicle Rental">
+      <div className="w-full h-auto pr-5 py-10">
           {/* ==================== HEADER WITH DROPDOWN ==================== */}
           <div className="flex flex-row gap-5 justify-between items-center mb-10">
             <h1 className="figtree text-[35px] font-[700]">Notifications</h1>
@@ -391,7 +388,7 @@ const NotificationsPage = () => {
           </div>
         </div>
       </div>
-    </div>
+    </VendorShellLayout>
   );
 };
 

@@ -18,7 +18,7 @@ import BookingOverviewBarChart from "./BookingOverviewBarChart";
 import EarningSummaryChart from "./EarningSummaryChart";
 import RealStatusPieChart from "./RealStatusPieChart";
 import FlightBookingTable from "./FlightBookingTable";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 
 import UserDropdown from "../../UserDropdown";
 
@@ -339,13 +339,6 @@ const DashContent = () => {
     });
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-            isVerified={isVerified}
-            settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center mb-6">
@@ -1013,7 +1006,6 @@ const DashContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

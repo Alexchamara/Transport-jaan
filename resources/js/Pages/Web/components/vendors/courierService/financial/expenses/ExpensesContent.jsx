@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import CashflowChart from "./CashflowChart";
 import ExpensesPieChart from "./ExpensesPieChart";
-import ServiceNavBar from "@/Components/vendors/ServiceNavBar";
+
 const ExpensesContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
@@ -325,12 +325,6 @@ const ExpensesContent = () => {
     }, [itemsPerPage]);
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-<ServiceNavBar 
-    isVerified={isVerified}
-    settingsRoute={route("settingsPage")}
-/>        </div>
         <div className="flex flex-col gap-10 w-full h-auto lg:pl-4 lg:pr-5  pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-row gap-5 justify-between items-center">
@@ -671,7 +665,6 @@ const ExpensesContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

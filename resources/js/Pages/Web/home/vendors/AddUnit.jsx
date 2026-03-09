@@ -1,9 +1,7 @@
 // resources/js/Pages/vendors/units/AddUnit.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-
-/* —— SideMenu: keep minimal to avoid layout diffs —— */
-const SideMenu = ({ active }) => null;
+import VendorShellLayout from "../../../../Components/vendors/VendorShellLayout";
 
 /* helpers */
 const Req = () => <span className="text-red-600 ml-0.5">*</span>;
@@ -1112,8 +1110,7 @@ const AddUnit = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
-      <SideMenu active="units" />
+    <VendorShellLayout activeService="Vehicle Rental">
       <main className="flex-1">
         {!isEdit && (
           <header className="sticky top-0 z-20 bg-white border-b border-gray-200">
@@ -1138,7 +1135,7 @@ const AddUnit = () => {
           </EditModalShell>
         )}
       </main>
-    </div>
+    </VendorShellLayout>
   );
 };
 

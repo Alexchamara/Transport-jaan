@@ -35,7 +35,7 @@ const transportIconForUnit = (unit, size = 120) => {
     return <BusFront size={size} />;
 };
 import UserDropdown from "../../UserDropdown";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar.jsx";
+
 
 import AddUnit from "../../../../home/vendors/ticketBooking/AddUnit";
 
@@ -291,13 +291,6 @@ const UnitContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-           <ServiceNavBar 
-    isVerified={isVerified}
-    settingsRoute={route("settingsPage")}
-/>
-        </div>
         <div className="w-full h-auto px-5 py-5 lg:pl-4 lg:pr-5 lg:py-10">
 
             {/* Header section */}
@@ -494,7 +487,6 @@ const UnitContent = () => {
                 </>
             )}
         </div>
-        </>
     );
 };
 

@@ -3,7 +3,7 @@ import { usePage, router } from "@inertiajs/react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { API_BASE_URL } from "../../../../../../../config/api";
-import ServiceNavBar from "../../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../../assets/vendors/dashboard/bell.svg";
@@ -274,13 +274,6 @@ const PaymentContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="flex flex-col gap-10 w-full h-auto  lg:pr-5 lg:pl-5 pt-6 pb-12">
             {/* Header section */}
             <div className="flex lg:flex-row flex-col gap-5 justify-between items-center md:gap-3 mt-10 lg:mt-0">
@@ -752,7 +745,6 @@ const PaymentContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

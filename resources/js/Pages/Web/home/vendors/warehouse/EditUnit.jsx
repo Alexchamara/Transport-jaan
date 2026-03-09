@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Inertia } from '@inertiajs/inertia';
 import { usePage } from '@inertiajs/react';
-import SideMenu from '../../../components/vendors/warehouse/SideMenu';
+import VendorShellLayout from '../../../../../Components/vendors/VendorShellLayout';
 import { API_BASE_URL } from '../../../../../config/api';
 
 // Header icons
@@ -789,47 +789,17 @@ const EditUnit = () => {
 
   if (loading) {
     return (
-      <div className="bg-[#E5E5E5] h-auto">
-        <div className="flex flex-row gap-10 h-auto">
-          <SideMenu />
-          <div className="w-full h-auto pr-5 py-10 poppins">
-            <div className="flex items-center justify-center h-64">
-              <div className="text-lg text-gray-600">Loading warehouse data...</div>
-            </div>
-          </div>
+      <VendorShellLayout activeService="Warehousing">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg text-gray-600">Loading warehouse data...</div>
         </div>
-      </div>
+      </VendorShellLayout>
     );
   }
 
   return (
-    <div className="bg-[#E5E5E5] h-auto">
-      <div className="flex flex-row gap-10 h-auto">
-        <SideMenu />
-        <div className="w-full h-auto pr-5 py-10 poppins">
-      {/* Header section */}
-      <div className="flex flex-row gap-5 justify-between items-center">
-        <h1 className="figtree text-[35px] font-[700]">Warehouse Units</h1>
-        <div className="flex flex-row gap-5">
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <img src={search} alt="Search" />
-          </div>
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <img src={settings} alt="Settings" />
-          </div>
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <img src={bell} alt="Notifications" />
-          </div>
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <img src={proPic} alt="Profile" />
-          </div>
-          <div className="figtree flex flex-col justify-center items-start">
-            <h1 className="text-[20px] font-[700]">Steve Gibson</h1>
-            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">Service Provider</h1>
-          </div>
-        </div>
-      </div>
-      {/* end of header section */}
+    <VendorShellLayout activeService="Warehousing">
+      <div className="w-full h-auto pr-5 py-10 poppins">
       
       {/* Breadcrumb navigation */}
       <div className="pt-6">
@@ -1539,8 +1509,7 @@ const EditUnit = () => {
         </div>
       )}
         </div>
-      </div>
-    </div>
+    </VendorShellLayout>
   );
 };
 

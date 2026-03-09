@@ -13,7 +13,7 @@ import upArrow from "../../../assets/vendors/dashboard/icons/upArrow.svg";
 import UserDropdown from "../../../components/vendors/UserDropdown";
 import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
 import UnverifiedBanner from "./UnverifiedBanner";
-import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar";
+
 import { API_BASE_URL } from "../../../../../config/api";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
@@ -314,15 +314,6 @@ const VendorAllBookings = ({
     };
 
     return (
-        <>
-        {/* ServiceNavBar - flush at top, no gap */}
-        <div className="sticky top-0 z-30">
-                <ServiceNavBar 
-                    isVerified={isVerified}
-                    settingsRoute={route("settingsPage")}
-                />
-        </div>
-
         <div className="w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-8 lg:pb-12">
             {/* Header section - matching DashContent */}
             <div className="flex xl:flex-row flex-col gap-5 justify-between items-center mb-6">
@@ -631,7 +622,6 @@ const VendorAllBookings = ({
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

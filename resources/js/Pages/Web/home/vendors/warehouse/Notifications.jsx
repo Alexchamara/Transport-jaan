@@ -1,20 +1,19 @@
-import React from "react";
+﻿import React from "react";
 import { Head } from "@inertiajs/react";
-import SideMenu from "../../../components/vendors/warehouse/SideMenu";
-import NotificationDropdown from "../../../components/vendors/warehouse/NotificationDropdown";
+import VendorShellLayout from "../../../../../Components/vendors/VendorShellLayout";
 import { Bell, CheckCircle, AlertCircle, Info, Package, Clock } from "lucide-react";
 
 const Notifications = ({ notifications, unreadCount }) => {
     const getNotificationIcon = (type) => {
         switch (type) {
-            case 'warehouse_approval':
-            case 'approved':
+            case "warehouse_approval":
+            case "approved":
                 return <CheckCircle size={32} className="text-green-500" />;
-            case 'warehouse_rejection':
-            case 'rejected':
+            case "warehouse_rejection":
+            case "rejected":
                 return <AlertCircle size={32} className="text-red-500" />;
-            case 'warehouse_new_booking':
-            case 'new_booking':
+            case "warehouse_new_booking":
+            case "new_booking":
                 return <Package size={32} className="text-blue-500" />;
             default:
                 return <Info size={32} className="text-gray-500" />;
@@ -23,17 +22,17 @@ const Notifications = ({ notifications, unreadCount }) => {
 
     const getNotificationColor = (type) => {
         switch (type) {
-            case 'warehouse_approval':
-            case 'approved':
-                return 'border-l-green-500 bg-green-50';
-            case 'warehouse_rejection':
-            case 'rejected':
-                return 'border-l-red-500 bg-red-50';
-            case 'warehouse_new_booking':
-            case 'new_booking':
-                return 'border-l-blue-500 bg-blue-50';
+            case "warehouse_approval":
+            case "approved":
+                return "border-l-green-500 bg-green-50";
+            case "warehouse_rejection":
+            case "rejected":
+                return "border-l-red-500 bg-red-50";
+            case "warehouse_new_booking":
+            case "new_booking":
+                return "border-l-blue-500 bg-blue-50";
             default:
-                return 'border-l-gray-500 bg-gray-50';
+                return "border-l-gray-500 bg-gray-50";
         }
     };
 
@@ -42,45 +41,36 @@ const Notifications = ({ notifications, unreadCount }) => {
         const now = new Date();
         const diffInSeconds = Math.floor((now - date) / 1000);
 
-        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 60) return "Just now";
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
         if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
-        
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric',
-            month: 'long', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+
+        return date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
         });
     };
 
     return (
         <>
             <Head title="Notifications - Warehouse" />
-            
-            <div className="bg-[#E5E5E5] min-h-screen w-full flex gap-0">
-                <div className="h-screen w-64 flex-shrink-0 overflow-hidden sticky top-0">
-                    <SideMenu />
-                </div>
-                
-                <div className="flex-1 overflow-y-auto overflow-x-hidden h-screen p-8">
+            <VendorShellLayout activeService="Warehousing">
+                <div className="p-8">
                     {/* Header */}
                     <div className="mb-8">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                                    <Bell size={32} className="text-blue-600" />
-                                    Notifications
-                                </h1>
-                                <p className="text-gray-600 mt-2">
-                                    {unreadCount > 0 
-                                        ? `You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
-                                        : 'You\'re all caught up!'}
-                                </p>
-                            </div>
-                        </div>
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                            <Bell size={32} className="text-blue-600" />
+                            Notifications
+                        </h1>
+                        <p className="text-gray-600 mt-2">
+                            {unreadCount > 0
+                                ? `You have ${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}`
+                                : "You're all caught up!"}
+                        </p>
                     </div>
 
                     {/* Notifications List */}
@@ -92,7 +82,7 @@ const Notifications = ({ notifications, unreadCount }) => {
                                         key={notification.id}
                                         className={`relative border-l-4 rounded-lg shadow-sm p-6 transition-all hover:shadow-md ${
                                             getNotificationColor(notification.type)
-                                        } ${!notification.read_at ? 'border-2 border-blue-200' : ''}`}
+                                        } ${!notification.read_at ? "border-2 border-blue-200" : ""}`}
                                     >
                                         <div className="flex gap-4">
                                             <div className="flex-shrink-0">
@@ -100,10 +90,8 @@ const Notifications = ({ notifications, unreadCount }) => {
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-start justify-between mb-2">
-                                                    <h3 className={`text-lg font-semibold text-gray-900 ${
-                                                        !notification.read_at ? 'font-bold' : ''
-                                                    }`}>
-                                                        {notification.data?.title || 'Notification'}
+                                                    <h3 className={`text-lg font-semibold text-gray-900 ${!notification.read_at ? "font-bold" : ""}`}>
+                                                        {notification.data?.title || "Notification"}
                                                     </h3>
                                                     {!notification.read_at && (
                                                         <span className="flex-shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -111,9 +99,7 @@ const Notifications = ({ notifications, unreadCount }) => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-gray-700 mb-3">
-                                                    {notification.data?.message || ''}
-                                                </p>
+                                                <p className="text-gray-700 mb-3">{notification.data?.message || ""}</p>
                                                 <div className="flex items-center gap-4 text-sm text-gray-500">
                                                     <div className="flex items-center gap-1">
                                                         <Clock size={14} />
@@ -129,7 +115,8 @@ const Notifications = ({ notifications, unreadCount }) => {
                                                     )}
                                                     {notification.data?.booking_id && (
                                                         <div className="text-gray-600">
-                                                            <span className="font-medium">Ref:</span> {notification.data.booking_id}
+                                                            <span className="font-medium">Ref:</span>{" "}
+                                                            {notification.data.booking_id}
                                                         </div>
                                                     )}
                                                 </div>
@@ -144,11 +131,9 @@ const Notifications = ({ notifications, unreadCount }) => {
                         ) : (
                             <div className="bg-white rounded-lg shadow-sm p-12 text-center">
                                 <Bell size={64} className="text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                                    No Notifications
-                                </h3>
+                                <h3 className="text-xl font-semibold text-gray-700 mb-2">No Notifications</h3>
                                 <p className="text-gray-500">
-                                    You don't have any notifications yet. When you receive notifications about your warehouse bookings, they'll appear here.
+                                    You don`t have any notifications yet. When you receive notifications about your warehouse bookings, they`ll appear here.
                                 </p>
                             </div>
                         )}
@@ -159,12 +144,12 @@ const Notifications = ({ notifications, unreadCount }) => {
                                 {notifications.links.map((link, index) => (
                                     <a
                                         key={index}
-                                        href={link.url || '#'}
+                                        href={link.url || "#"}
                                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                                             link.active
-                                                ? 'bg-blue-600 text-white'
-                                                : 'bg-white text-gray-700 hover:bg-gray-100'
-                                        } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                ? "bg-blue-600 text-white"
+                                                : "bg-white text-gray-700 hover:bg-gray-100"
+                                        } ${!link.url ? "opacity-50 cursor-not-allowed" : ""}`}
                                         dangerouslySetInnerHTML={{ __html: link.label }}
                                     />
                                 ))}
@@ -172,7 +157,7 @@ const Notifications = ({ notifications, unreadCount }) => {
                         )}
                     </div>
                 </div>
-            </div>
+            </VendorShellLayout>
         </>
     );
 };

@@ -1,0 +1,466 @@
+import React, { useState } from "react";
+import { Link, usePage } from "@inertiajs/react";
+import { ArrowLeft, Menu, UserCircle } from "lucide-react";
+import CompanyLogo from "../../Pages/Web/components/CompanyLogo";
+import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
+import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
+
+import dashLogo from "../../Pages/Web/assets/vendors/dashboard/dashLogo.svg";
+import bookLogo from "../../Pages/Web/assets/vendors/dashboard/bookLogo.svg";
+import uniLogo from "../../Pages/Web/assets/vendors/dashboard/uniLogo.svg";
+import calendarLogo from "../../Pages/Web/assets/vendors/dashboard/calendarLogo.svg";
+import clientsLogo from "../../Pages/Web/assets/vendors/dashboard/clientsLogo.svg";
+import driversLogo from "../../Pages/Web/assets/vendors/dashboard/driversLogo.svg";
+import finLogo from "../../Pages/Web/assets/vendors/dashboard/finLogo.svg";
+import settingsLogo from "../../Pages/Web/assets/vendors/dashboard/settings.svg";
+import bellIcon from "../../Pages/Web/assets/vendors/dashboard/bell.svg";
+
+/**
+ * Per-service sidebar menu configuration.
+ * Each value is a plain object of named route-getter functions.
+ * Keys that are null/undefined mean that item won't be rendered.
+ */
+const SERVICE_CONFIG = {
+    "All Bookings": {
+        dashboard:  () => route("vendorAllBookings"),
+        bookings:   () => route("vendorAllBookingsPage"),
+        units:      null,
+        calendar:   () => route("vendorCalendar"),
+        clients:    () => route("vendorAllBookingsClients"),
+        drivers:    null,
+        payment:    () => route(""),
+        expenses:   () => route(""),
+        settings:   () => route(""),
+        profile:    () => route("vendor.profile.index"),
+    },
+    "Vehicle Rental": {
+        dashboard:  () => route("vendors.dashboard"),
+        bookings:   () => route("vendors.bookings"),
+        units:      () => route("vendors.units"),
+        calendar:   () => route("vendors.calendar"),
+        clients:    () => route("vendors.clients"),
+        drivers:    () => route("vendors.drivers"),
+        payment:    () => route("vendors.payment"),
+        expenses:   () => route("vendors.expenses"),
+        settings:   () => route(""),
+        profile:    () => route(""),
+    },
+    "Ticket Booking": {
+        dashboard:  () => route("ticketBooking.dashboard"),
+        bookings:   () => route("ticketBooking.bookings"),
+        units:      () => route("ticketBooking.units"),
+        calendar:   () => route("ticketBooking.calendar"),
+        clients:    () => route("ticketBooking.clients"),
+        drivers:    null,
+        payment:    () => route("ticketBooking.payment"),
+        expenses:   () => route("ticketBooking.expenses"),
+        settings:   () => route(""),
+        profile:    () => route(""),
+    },
+    "Courier Service": {
+        dashboard:  () => route("courierService.dashboard"),
+        bookings:   () => route("courierService.bookings"),
+        units:      () => route("courierService.units"),
+        calendar:   () => route("courierService.calendar"),
+        clients:    () => route("courierService.clients"),
+        drivers:    null,
+        payment:    () => route("courierService.payment"),
+        expenses:   () => route("courierService.expenses"),
+        settings:   () => route(""),
+        profile:    () => route(""),
+    },
+    "Warehousing": {
+        dashboard:  () => route("vendors.warehouse.dashboard"),
+        bookings:   () => route("vendors.warehouse.bookings"),
+        units:      () => route("vendors.warehouse.units"),
+        calendar:   () => route("vendors.warehouse.calendar"),
+        clients:    () => route("vendors.warehouse.clients"),
+        drivers:    null,
+        payment:    () => route("vendors.warehouse.payment"),
+        expenses:   () => route("vendors.warehouse.expenses"),
+        settings:   () => route(""),
+        profile:    () => route(""),
+    },
+    "Freight": {
+        dashboard:  () => route("freight.dashboard"),
+        bookings:   () => route("freight.bookings"),
+        units:      () => route("freight.units"),
+        calendar:   () => route("freight.calendar"),
+        clients:    () => route("freight.clients"),
+        drivers:    null,
+        payment:    () => route("freight.payment"),
+        expenses:   () => route("freight.expenses"),
+        settings:   () => route(""),
+        profile:    () => route(""),
+    },
+};
+
+/** Top navbar tabs – order matters */
+const SERVICE_TABS = [
+    { name: "All Bookings",   routeKey: "vendorAllBookings" },
+    { name: "Vehicle Rental", routeKey: "vendors.dashboard" },
+    { name: "Ticket Booking", routeKey: "ticketBooking.dashboard" },
+    { name: "Courier Service",routeKey: "courierService.dashboard" },
+    { name: "Warehousing",    routeKey: "vendors.warehouse.dashboard" },
+    { name: "Freight",        routeKey: "freight.dashboard" },
+];
+
+/** Safely extract the pathname from a Ziggy route URL */
+const routePath = (routeFn) => {
+    try {
+        return new URL(routeFn()).pathname;
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * Combined Sidebar + Service TopNav layout for all vendor portals.
+ *
+ * Props:
+ *  - children      – page content
+ *  - activeService – one of the SERVICE_CONFIG keys (default "Vehicle Rental")
+ *  - isVerified    – whether the vendor is verified; gates service-tab navigation
+ */
+const VendorShellLayout = ({
+    children,
+    activeService = "Vehicle Rental",
+    isVerified: isVerifiedProp,
+}) => {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+    const isVerified = isVerifiedProp !== undefined
+        ? isVerifiedProp
+        : (user?.status === "verified" || user?.status === "Verified");
+
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showFinancial, setShowFinancial]   = useState(false);
+    const [showAlert, setShowAlert]           = useState(false);
+    const [showComingSoon, setShowComingSoon] = useState(false);
+
+    const currentPath = window.location.pathname;
+    const cfg = SERVICE_CONFIG[activeService] ?? SERVICE_CONFIG["Vehicle Rental"];
+
+    // Resolve the settings route for this service
+    const settingsRoute = cfg.settings ? cfg.settings() : null;
+
+    /** True when the current URL matches a given route-getter */
+    const isActive = (routeFn) => {
+        if (!routeFn) return false;
+        const p = routePath(routeFn);
+        if (!p) return false;
+        return currentPath === p;
+    };
+
+    const menuCls = (active) =>
+        `flex items-center gap-5 w-full rounded-lg px-3 py-1.5 cursor-pointer transition-colors ${
+            active
+                ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                : "text-[#00000066] hover:bg-gray-50"
+        }`;
+
+    const handleUnverified = () => {
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
+    };
+
+    const navigate = (routeFn) => {
+        const p = routePath(routeFn);
+        if (!p) {
+            setShowComingSoon(true);
+            return;
+        }
+        setIsSidebarOpen(false);
+        window.location.href = p;
+    };
+
+    const tabLinkCls = (isActiveSvc) =>
+        `flex-1 lg:flex-none px-6 py-4 lg:px-8 text-center font-[500] text-[14px] whitespace-nowrap border-b-4 transition-all rounded-t-lg ${
+            isActiveSvc
+                ? "border-[#0955AC] bg-[#0955AC29] text-[#0955AC] font-[600]"
+                : "border-transparent text-[#666666] hover:bg-[#F3F3F3] hover:border-[#0955AC]"
+        }`;
+
+    const pillCls = (isActiveSvc) =>
+        `px-3 py-1.5 text-[12px] font-[500] whitespace-nowrap rounded-full transition-all flex-shrink-0 ${
+            isActiveSvc
+                ? "bg-[#0955AC] text-white font-[600] shadow-sm"
+                : "bg-gray-100 text-gray-600"
+        }`;
+
+    return (
+        <div className="bg-[#E5E5E5] min-h-screen">
+            <style>{`
+                .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+                .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+                .sidebar-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+                .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+                .sidebar-scroll { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
+                .pill-scroll::-webkit-scrollbar { display: none; }
+                .pill-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+            `}</style>
+
+            <div className="flex flex-row h-screen overflow-hidden">
+
+                {/* ── Mobile overlay ── */}
+                {isSidebarOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+                        onClick={() => setIsSidebarOpen(false)}
+                    />
+                )}
+
+                {/* ════════════════════════════
+                    SIDEBAR
+                ════════════════════════════ */}
+                <div
+                    className={`fixed lg:static top-0 left-0 h-screen z-40 flex-shrink-0 transition-transform duration-300
+                        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+                        lg:translate-x-0`}
+                >
+                    <div className="poppins min-w-[250px] h-screen bg-white flex flex-col py-4 px-6 rounded-tr-[10px] rounded-br-[10px] shadow-lg overflow-hidden">
+
+                        {/* Logo + back + close (mobile) */}
+                        <div className="flex-shrink-0 mb-4 flex items-center justify-center relative">
+                            <button
+                                onClick={() => (window.location.href = "/")}
+                                className="absolute left-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Go to home"
+                            >
+                                <ArrowLeft className="w-5 h-5 text-gray-600" />
+                            </button>
+                            <CompanyLogo
+                                className="h-[40px] object-contain"
+                                fallbackClassName="text-[20px] font-[700] poppins uppercase"
+                            />
+                            {/* Close button — only on mobile */}
+                            <button
+                                className="lg:hidden absolute right-0 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                onClick={() => setIsSidebarOpen(false)}
+                            >
+                                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Active service badge on mobile */}
+                        <div className="lg:hidden mb-3 px-3 py-2 bg-[#0955AC0D] rounded-lg border border-[#0955AC29]">
+                            <p className="text-[11px] text-gray-400 uppercase tracking-wide font-[500] mb-0.5">Current service</p>
+                            <p className="text-[14px] text-[#0955AC] font-[700]">{activeService}</p>
+                        </div>
+
+                        {/* Scrollable menu */}
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">
+                            <div className="figtree flex flex-col items-start gap-3 text-[18px] font-[500]">
+
+                                {cfg.dashboard && (
+                                    <div className={menuCls(isActive(cfg.dashboard))} onClick={() => navigate(cfg.dashboard)}>
+                                        <img src={dashLogo} className="w-[22px]" alt="" />
+                                        <span>Dashboard</span>
+                                    </div>
+                                )}
+
+                                {cfg.bookings && (
+                                    <div className={menuCls(isActive(cfg.bookings))} onClick={() => navigate(cfg.bookings)}>
+                                        <img src={bookLogo} className="w-[22px]" alt="" />
+                                        <span>Bookings</span>
+                                    </div>
+                                )}
+
+                                {cfg.units && (
+                                    <div className={menuCls(isActive(cfg.units))} onClick={() => navigate(cfg.units)}>
+                                        <img src={uniLogo} className="w-[22px]" alt="" />
+                                        <span>Units</span>
+                                    </div>
+                                )}
+
+                                {cfg.calendar && (
+                                    <div className={menuCls(isActive(cfg.calendar))} onClick={() => navigate(cfg.calendar)}>
+                                        <img src={calendarLogo} className="w-[22px]" alt="" />
+                                        <span>Calendar</span>
+                                    </div>
+                                )}
+
+                                {cfg.clients && (
+                                    <div className={menuCls(isActive(cfg.clients))} onClick={() => navigate(cfg.clients)}>
+                                        <img src={clientsLogo} className="w-[22px]" alt="" />
+                                        <span>Clients</span>
+                                    </div>
+                                )}
+
+                                {cfg.drivers && (
+                                    <div className={menuCls(isActive(cfg.drivers))} onClick={() => navigate(cfg.drivers)}>
+                                        <img src={driversLogo} className="w-[22px]" alt="" />
+                                        <span>Drivers</span>
+                                    </div>
+                                )}
+
+                                {(cfg.payment || cfg.expenses) && (
+                                    <>
+                                        <div
+                                            className={menuCls(
+                                                (cfg.payment  && isActive(cfg.payment)) ||
+                                                (cfg.expenses && isActive(cfg.expenses))
+                                            )}
+                                            onClick={() => setShowFinancial((v) => !v)}
+                                        >
+                                            <img src={finLogo} className="w-[22px]" alt="" />
+                                            <span>Financial</span>
+                                            <svg
+                                                className={`ml-auto w-4 h-4 text-gray-400 transition-transform ${showFinancial ? "rotate-180" : ""}`}
+                                                fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+                                            >
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </div>
+
+                                        {showFinancial && (
+                                            <div className="ml-8 w-full flex flex-col gap-1 text-[16px] font-[500]">
+                                                {cfg.payment && (
+                                                    <div
+                                                        className={`px-3 py-2 cursor-pointer rounded-lg ${
+                                                            isActive(cfg.payment)
+                                                                ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                                                : "text-[#00000066] hover:bg-gray-50"
+                                                        }`}
+                                                        onClick={() => navigate(cfg.payment)}
+                                                    >
+                                                        Payment
+                                                    </div>
+                                                )}
+                                                {cfg.expenses && (
+                                                    <div
+                                                        className={`px-3 py-2 cursor-pointer rounded-lg ${
+                                                            isActive(cfg.expenses)
+                                                                ? "bg-[#0955AC29] text-[#000000] font-[700]"
+                                                                : "text-[#00000066] hover:bg-gray-50"
+                                                        }`}
+                                                        onClick={() => navigate(cfg.expenses)}
+                                                    >
+                                                        Expenses
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+
+                                {cfg.settings && (
+                                    <div className={menuCls(isActive(cfg.settings))} onClick={() => navigate(cfg.settings)}>
+                                        <img src={settingsLogo} className="w-[22px] opacity-60" alt="" />
+                                        <span>Settings</span>
+                                    </div>
+                                )}
+
+                                {cfg.profile && (
+                                    <div className={menuCls(isActive(cfg.profile))} onClick={() => navigate(cfg.profile)}>
+                                        <UserCircle className="w-[22px] h-[22px] text-gray-500" />
+                                        <span>Profile</span>
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ════════════════════════════
+                    MAIN CONTENT COLUMN
+                ════════════════════════════ */}
+                <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+                    {/* ── MOBILE HEADER ── */}
+                    <div className="lg:hidden flex-shrink-0 sticky top-0 z-30 bg-white" style={{ boxShadow: "0 2px 8px #0000001A" }}>
+                        {/* Top row: hamburger + service name + actions */}
+                        <div className="flex items-center gap-3 px-4 py-3">
+                            <button
+                                onClick={() => setIsSidebarOpen((v) => !v)}
+                                className="p-2 -ml-1 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                            >
+                                <Menu size={22} className="text-gray-700" />
+                            </button>
+                            <span className="flex-1 font-[600] text-[15px] text-gray-800 truncate">{activeService}</span>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                                <NotificationDropdown bellIcon={bellIcon} />
+                                {settingsRoute && <UserDropdown settingsRoute={settingsRoute} />}
+                            </div>
+                        </div>
+
+                        {/* Service pill tabs strip */}
+                        <div className="overflow-x-auto pill-scroll border-t border-gray-100">
+                            <div className="flex gap-2 px-3 py-2 min-w-max">
+                                {SERVICE_TABS.map((tab, idx) =>
+                                    isVerified ? (
+                                        <Link key={idx} href={route(tab.routeKey)} className={pillCls(activeService === tab.name)}>
+                                            {tab.name}
+                                        </Link>
+                                    ) : (
+                                        <button key={idx} onClick={handleUnverified} className={`${pillCls(activeService === tab.name)} cursor-not-allowed opacity-60`}>
+                                            {tab.name}
+                                        </button>
+                                    )
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ── DESKTOP TAB NAVBAR ── */}
+                    <div className="hidden lg:flex flex-shrink-0 sticky top-0 z-30 bg-white items-center justify-between px-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                        <div className="flex flex-row gap-0 flex-1">
+                            {SERVICE_TABS.map((tab, idx) =>
+                                isVerified ? (
+                                    <Link key={idx} href={route(tab.routeKey)} className={tabLinkCls(activeService === tab.name)}>
+                                        {tab.name}
+                                    </Link>
+                                ) : (
+                                    <button key={idx} onClick={handleUnverified} className={`${tabLinkCls(activeService === tab.name)} cursor-not-allowed opacity-60`}>
+                                        {tab.name}
+                                    </button>
+                                )
+                            )}
+                        </div>
+                        <div className="flex-shrink-0 flex items-center gap-2 ml-3 border-l border-gray-200 pl-3">
+                            <NotificationDropdown bellIcon={bellIcon} />
+                            {settingsRoute && <UserDropdown settingsRoute={settingsRoute} />}
+                        </div>
+                    </div>
+
+                    {/* ── Page content ── */}
+                    <div className="flex-1 bg-[#E5E5E5] overflow-y-auto">
+                        {children}
+                    </div>
+                </div>
+            </div>
+
+            {/* Unverified toast */}
+            {showAlert && (
+                <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50">
+                    <div className="bg-[#F87171] text-white px-6 py-3 rounded-lg shadow-lg font-[500] flex items-center gap-3">
+                        <span>⚠️</span>
+                        <span>Please verify your account to access all features</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Coming Soon modal */}
+            {showComingSoon && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
+                    <div className="bg-white rounded-2xl shadow-2xl px-12 py-10 flex flex-col items-center gap-4 max-w-sm w-full mx-4">
+                        <span className="text-5xl">🚧</span>
+                        <h2 className="text-[22px] font-[700] text-[#0955AC] poppins">Coming Soon</h2>
+                        <p className="text-[15px] text-gray-500 text-center font-[400]">This feature is currently under construction and will be available soon.</p>
+                        <button
+                            onClick={() => setShowComingSoon(false)}
+                            className="mt-2 px-8 py-2.5 bg-[#0955AC] text-white rounded-lg font-[600] text-[14px] hover:bg-[#0744a0] transition-colors"
+                        >
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default VendorShellLayout;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { usePage } from "@inertiajs/react";
 import { Inertia } from "@inertiajs/inertia";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar";
+
 import search from "../../../../assets/vendors/dashboard/searchIcon.svg";
 import settings from "../../../../assets/vendors/dashboard/settings.svg";
 import bell from "../../../../assets/vendors/dashboard/bell.svg";
@@ -279,13 +279,6 @@ const UnitContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full h-auto lg:pr-5 py-10 px-5 lg:px-0 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col md:flex-row gap-5 justify-between md:items-start items-center">
@@ -519,7 +512,6 @@ const UnitContent = () => {
                 </>
             )}
         </div>
-        </>
     );
 };
 

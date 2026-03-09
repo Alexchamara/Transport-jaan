@@ -18,7 +18,7 @@ import CalendarGrid from "../../../components/vendors/calendar/CalendarGrid";
 
 import UserDropdown from "../../../components/vendors/UserDropdown";
 import UnverifiedBanner from "./UnverifiedBanner";
-import ServiceNavBar from "../../../../../Components/vendors/ServiceNavBar";
+
 
 
 // Define days, times, and events for the calendar
@@ -325,13 +325,6 @@ const CalendarContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col lg:flex-row gap-2 lg:gap-5 justify-between lg:items-start items-center mb-6">
@@ -438,7 +431,6 @@ const CalendarContent = () => {
                 </div>
             </div>
         </div>
-        </>
     );
 };
 

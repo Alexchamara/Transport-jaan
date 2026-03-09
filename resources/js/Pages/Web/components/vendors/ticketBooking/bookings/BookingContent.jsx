@@ -20,7 +20,7 @@ import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownAr
 
 import CarBookingTableTwo from "../../../../components/vendors/ticketBooking/bookings/CarBookingTableTwo";
 import BookingBarChart from "./BookingBarChart";
-import ServiceNavBar from "../../../../../../Components/vendors/ServiceNavBar.jsx";
+
 
 import UserDropdown from "../../UserDropdown";
 
@@ -258,13 +258,6 @@ const BookingContent = () => {
     };
 
     return (
-        <>
-        <div className="sticky top-0 z-30 ">
-            <ServiceNavBar 
-                isVerified={isVerified}
-                settingsRoute={route("settingsPage")}
-            />
-        </div>
         <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pb-12">
             {/* Header section */}
             <div className="flex flex-col lg:flex-row gap-5 justify-between items-center mb-6">
@@ -700,7 +693,6 @@ const BookingContent = () => {
             </div>
             {/* end */}
         </div>
-        </>
     );
 };
 
