@@ -991,6 +991,10 @@ Route::get('/SuperAdmin/reports/courier', [\App\Http\Controllers\SuperAdmin\Repo
 
 Route::get('/SuperAdmin/reports/freight', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'freightBookings'])->name('SuperAdmin.reports.freight');
 
+Route::get('/SuperAdmin/reports/client', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'clientReport'])->name('SuperAdmin.reports.client');
+
+Route::get('/SuperAdmin/reports/service-provider', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'serviceProviderReport'])->name('SuperAdmin.reports.service-provider');
+
 // vendor - warehouse rent
 Route::get('/warehouse/unit', function () {
     return Inertia::render('Web/home/vendors/warehouse/Unit');

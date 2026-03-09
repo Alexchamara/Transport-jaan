@@ -513,4 +513,28 @@ class ReportsController extends Controller
             'freightStatuses' => ['pending', 'quoted', 'accepted', 'rejected', 'expired'],
         ]);
     }
+
+    /**
+     * Display client report
+     */
+    public function clientReport()
+    {
+        // Placeholder - will show client-related data
+        return Inertia::render('Web/home/SuperAdmin/ClientReport', [
+            'stats' => [],
+            'data' => [],
+        ]);
+    }
+
+    /**
+     * Display service provider report
+     */
+    public function serviceProviderReport()
+    {
+        // Placeholder - will show service provider-related data
+        return Inertia::render('Web/home/SuperAdmin/ServiceProviderReport', [
+            'stats' => [],
+            'data' => [],
+        ]);
+    }
 }
