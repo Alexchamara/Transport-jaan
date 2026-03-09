@@ -264,7 +264,7 @@ const BookingContent = () => {
                 <h1 className="figtree text-[35px] sm:text-[28px] font-[700]">
                     Ticket Bookings
                 </h1>
-                
+
             </div>
             {/* end of header section */}
 

@@ -29,29 +29,29 @@ import AllBookingTableTwo from "./AllBookingTableTwo";
 
 // ─── dummy data for unverified vendors ───────────────────────────────────────
 const DUMMY_BOOKINGS = [
-    { id: 1,  booking_code: "BK-001", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Kasun Perera",        customer_email: "kasun@gmail.com",  customer_phone: "+94 77 123 4567", total_amount: 5000,   status: "Confirmed", payment_status: "Paid",    booking_date: "2025-06-10", start_date: "2025-07-01", end_date: "2025-07-03" },
-    { id: 2,  booking_code: "FL-201", booking_type: "flight",  service_name: "Flight Ticket",     customer_name: "Nimal Fernando",      customer_email: "nimal@yahoo.com",  customer_phone: "+94 71 234 5678", total_amount: 15000,  status: "Paid",      payment_status: "Paid",    booking_date: "2025-06-08", start_date: "2025-06-20", end_date: "2025-06-20" },
-    { id: 3,  booking_code: "BK-002", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Dilani Wickramasinghe", customer_email: "dilani@outlook.com",customer_phone: "+94 76 345 6789", total_amount: 8500,   status: "Pending",   payment_status: "Pending", booking_date: "2025-06-12", start_date: "2025-07-10", end_date: "2025-07-12" },
-    { id: 4,  booking_code: "FL-202", booking_type: "flight",  service_name: "Flight Ticket",     customer_name: "Roshan Jayawardena",  customer_email: "roshan@gmail.com", customer_phone: "+94 78 456 7890", total_amount: 82500,  status: "Completed", payment_status: "Paid",    booking_date: "2025-05-29", start_date: "2025-06-05", end_date: "2025-06-07" },
-    { id: 5,  booking_code: "BK-003", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Sachini Silva",       customer_email: "sachini@gmail.com",customer_phone: "+94 70 567 8901", total_amount: 12000,  status: "Confirmed", payment_status: "Paid",    booking_date: "2025-06-11", start_date: "2025-07-15", end_date: "2025-07-18" },
-    { id: 6,  booking_code: "BK-004", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Tharindu Bandara",    customer_email: "tharindu@live.com",customer_phone: "+94 75 678 9012", total_amount: 6800,   status: "Cancelled", payment_status: "Pending", booking_date: "2025-06-05", start_date: "2025-06-25", end_date: "2025-06-26" },
-    { id: 7,  booking_code: "FL-203", booking_type: "flight",  service_name: "Flight Ticket",     customer_name: "Priya Rajapaksa",     customer_email: "priya@gmail.com",  customer_phone: "+94 72 789 0123", total_amount: 98000,  status: "Pending",   payment_status: "Pending", booking_date: "2025-06-09", start_date: "2025-08-01", end_date: "2025-08-03" },
-    { id: 8,  booking_code: "BK-005", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Chamara Gunasekara",  customer_email: "chamara@gmail.com",customer_phone: "+94 74 890 1234", total_amount: 4200,   status: "Completed", payment_status: "Paid",    booking_date: "2025-05-20", start_date: "2025-06-10", end_date: "2025-06-11" },
-    { id: 9,  booking_code: "FL-204", booking_type: "flight",  service_name: "Flight Ticket",     customer_name: "Sanduni Rathnayake", customer_email: "sanduni@gmail.com",customer_phone: "+94 77 901 2345", total_amount: 52500,  status: "Confirmed", payment_status: "Paid",    booking_date: "2025-06-14", start_date: "2025-07-20", end_date: "2025-07-22" },
-    { id: 10, booking_code: "BK-006", booking_type: "vehicle", service_name: "Vehicle Rental",   customer_name: "Isuru Dissanayake",   customer_email: "isuru@gmail.com",  customer_phone: "+94 71 012 3456", total_amount: 9500,   status: "Active",    payment_status: "Paid",    booking_date: "2025-06-13", start_date: "2025-06-13", end_date: "2025-06-15" },
+    { id: 1, booking_code: "BK-001", booking_type: "vehicle", service_name: "Vehicle Rental", customer_name: "Kasun Perera", customer_email: "kasun@gmail.com", customer_phone: "+94 77 123 4567", total_amount: 5000, status: "Confirmed", payment_status: "Paid", booking_date: "2025-06-10", start_date: "2025-07-01", end_date: "2025-07-03" },
+    { id: 2, booking_code: "FL-201", booking_type: "flight", service_name: "Flight Ticket", customer_name: "Nimal Fernando", customer_email: "nimal@yahoo.com", customer_phone: "+94 71 234 5678", total_amount: 15000, status: "Paid", payment_status: "Paid", booking_date: "2025-06-08", start_date: "2025-06-20", end_date: "2025-06-20" },
+    { id: 3, booking_code: "BK-002", booking_type: "vehicle", service_name: "Vehicle Rental", customer_name: "Dilani Wickramasinghe", customer_email: "dilani@outlook.com", customer_phone: "+94 76 345 6789", total_amount: 8500, status: "Pending", payment_status: "Pending", booking_date: "2025-06-12", start_date: "2025-07-10", end_date: "2025-07-12" },
+    { id: 4, booking_code: "FL-202", booking_type: "flight", service_name: "Flight Ticket", customer_name: "Roshan Jayawardena", customer_email: "roshan@gmail.com", customer_phone: "+94 78 456 7890", total_amount: 82500, status: "Completed", payment_status: "Paid", booking_date: "2025-05-29", start_date: "2025-06-05", end_date: "2025-06-07" },
+    { id: 5, booking_code: "BK-003", booking_type: "vehicle", service_name: "Vehicle Rental", customer_name: "Sachini Silva", customer_email: "sachini@gmail.com", customer_phone: "+94 70 567 8901", total_amount: 12000, status: "Confirmed", payment_status: "Paid", booking_date: "2025-06-11", start_date: "2025-07-15", end_date: "2025-07-18" },
+    { id: 6, booking_code: "BK-004", booking_type: "vehicle", service_name: "Vehicle Rental", customer_name: "Tharindu Bandara", customer_email: "tharindu@live.com", customer_phone: "+94 75 678 9012", total_amount: 6800, status: "Cancelled", payment_status: "Pending", booking_date: "2025-06-05", start_date: "2025-06-25", end_date: "2025-06-26" },
+    { id: 7, booking_code: "FL-203", booking_type: "flight", service_name: "Flight Ticket", customer_name: "Priya Rajapaksa", customer_email: "priya@gmail.com", customer_phone: "+94 72 789 0123", total_amount: 98000, status: "Pending", payment_status: "Pending", booking_date: "2025-06-09", start_date: "2025-08-01", end_date: "2025-08-03" },
+    { id: 8, booking_code: "BK-005", booking_type: "vehicle", service_name: "Vehicle Rental", customer_name: "Chamara Gunasekara", customer_email: "chamara@gmail.com", customer_phone: "+94 74 890 1234", total_amount: 4200, status: "Completed", payment_status: "Paid", booking_date: "2025-05-20", start_date: "2025-06-10", end_date: "2025-06-11" },
+    { id: 9, booking_code: "FL-204", booking_type: "flight", service_name: "Flight Ticket", customer_name: "Sanduni Rathnayake", customer_email: "sanduni@gmail.com", customer_phone: "+94 77 901 2345", total_amount: 52500, status: "Confirmed", payment_status: "Paid", booking_date: "2025-06-14", start_date: "2025-07-20", end_date: "2025-07-22" },
+    { id: 10, booking_code: "BK-006", booking_type: "vehicle", service_name: "Vehicle Rental", customer_name: "Isuru Dissanayake", customer_email: "isuru@gmail.com", customer_phone: "+94 71 012 3456", total_amount: 9500, status: "Active", payment_status: "Paid", booking_date: "2025-06-13", start_date: "2025-06-13", end_date: "2025-06-15" },
 ];
 
 const DUMMY_STATS = { upcoming: 4, pending: 3, cancelled: 1, completed: 2 };
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 const STATUS_STYLES = {
-    confirmed:  { bg: "#D8E4F2",   text: "#000000",   border: "#0000004D" },
-    paid:       { bg: "#ACE19957", text: "#3B8F31",   border: "#3B8F314D" },
-    pending:    { bg: "#FFF7ED",   text: "#EA580C",   border: "#EA580C4D" },
-    completed:  { bg: "#D1FAE5",   text: "#059669",   border: "#06B6D44D" },
-    cancelled:  { bg: "#F87171",   text: "#FFFFFF",   border: "#B91C1C"   },
-    active:     { bg: "#E8F5E9",   text: "#2E7D32",   border: "#2E7D324D" },
-    returned:   { bg: "#D1FAE5",   text: "#059669",   border: "#06B6D44D" },
+    confirmed: { bg: "#D8E4F2", text: "#000000", border: "#0000004D" },
+    paid: { bg: "#ACE19957", text: "#3B8F31", border: "#3B8F314D" },
+    pending: { bg: "#FFF7ED", text: "#EA580C", border: "#EA580C4D" },
+    completed: { bg: "#D1FAE5", text: "#059669", border: "#06B6D44D" },
+    cancelled: { bg: "#F87171", text: "#FFFFFF", border: "#B91C1C" },
+    active: { bg: "#E8F5E9", text: "#2E7D32", border: "#2E7D324D" },
+    returned: { bg: "#D1FAE5", text: "#059669", border: "#06B6D44D" },
 };
 const getStatusStyle = (status) =>
     STATUS_STYLES[status?.toLowerCase()] ?? STATUS_STYLES["pending"];
@@ -63,7 +63,7 @@ const typeBadge = (type) =>
 
 // ─── component ───────────────────────────────────────────────────────────────
 const BookingPage = () => {
-    
+
     const { auth, allBookings: propBookings, bookingStats: propStats } = usePage().props;
     const currentComponent = usePage().component;
     const user = auth?.user;
@@ -102,10 +102,10 @@ const BookingPage = () => {
     }, [isVerified, propStats]);
 
     // Percentage changes: hardcoded when unverified, from propStats when verified
-    const pctUpcoming   = isVerified ? (propStats?.upcoming_change   ?? 0) : 2.86;
-    const pctPending    = isVerified ? (propStats?.pending_change    ?? 0) : 1.42;
-    const pctCancelled  = isVerified ? (propStats?.cancelled_change  ?? 0) : -0.50;
-    const pctCompleted  = isVerified ? (propStats?.completed_change  ?? 0) : 3.12;
+    const pctUpcoming = isVerified ? (propStats?.upcoming_change ?? 0) : 2.86;
+    const pctPending = isVerified ? (propStats?.pending_change ?? 0) : 1.42;
+    const pctCancelled = isVerified ? (propStats?.cancelled_change ?? 0) : -0.50;
+    const pctCompleted = isVerified ? (propStats?.completed_change ?? 0) : 3.12;
 
     // ── filter state ──
     const [search, setSearch] = useState("");
@@ -126,12 +126,12 @@ const BookingPage = () => {
     // ── bookings table state ──
     const [bookings, setBookings] = useState(rawBookings);
     const statusColors = {
-        Confirmed: { bg: "#D8E4F2",   text: "#000000" },
-        Paid:      { bg: "#ACE19957", text: "#3B8F31" },
-        Pending:   { bg: "#FFF7ED",   text: "#EA580C" },
-        Completed: { bg: "#D1FAE5",   text: "#059669" },
-        Cancelled: { bg: "#F87171",   text: "#FFFFFF" },
-        Active:    { bg: "#E8F5E9",   text: "#2E7D32" },
+        Confirmed: { bg: "#D8E4F2", text: "#000000" },
+        Paid: { bg: "#ACE19957", text: "#3B8F31" },
+        Pending: { bg: "#FFF7ED", text: "#EA580C" },
+        Completed: { bg: "#D1FAE5", text: "#059669" },
+        Cancelled: { bg: "#F87171", text: "#FFFFFF" },
+        Active: { bg: "#E8F5E9", text: "#2E7D32" },
     };
 
     const resetPage = () => setPage(1);
@@ -146,16 +146,16 @@ const BookingPage = () => {
                 b.service_name?.toLowerCase().includes(q) ||
                 b.customer_email?.toLowerCase().includes(q);
             const matchStatus = statusFilter === "All" || b.status?.toLowerCase() === statusFilter.toLowerCase();
-            const matchType   = typeFilter === "All" || b.booking_type === typeFilter;
+            const matchType = typeFilter === "All" || b.booking_type === typeFilter;
             const bd = b.booking_date ? new Date(b.booking_date) : null;
             const matchFrom = !dateFrom || !bd || bd >= new Date(dateFrom);
-            const matchTo   = !dateTo   || !bd || bd <= new Date(dateTo);
+            const matchTo = !dateTo || !bd || bd <= new Date(dateTo);
             return matchSearch && matchStatus && matchType && matchFrom && matchTo;
         });
     }, [rawBookings, search, statusFilter, typeFilter, dateFrom, dateTo]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS));
-    const paginated  = filtered.slice((page - 1) * ROWS, page * ROWS);
+    const paginated = filtered.slice((page - 1) * ROWS, page * ROWS);
 
     const handleResetFilters = () => {
         setSearch(""); setStatusFilter("All"); setTypeFilter("All");
@@ -167,7 +167,7 @@ const BookingPage = () => {
         const headers = ["Booking Code", "Type", "Service", "Customer", "Phone", "Amount", "Status", "Payment", "Date"];
         const rows = filtered.map((b) =>
             [b.booking_code, b.booking_type, b.service_name, b.customer_name, b.customer_phone,
-             b.total_amount, b.status, b.payment_status, b.booking_date]
+            b.total_amount, b.status, b.payment_status, b.booking_date]
                 .map((v) => `"${v ?? ""}"`)
                 .join(",")
         );
@@ -181,10 +181,10 @@ const BookingPage = () => {
         const data = [
             ["Booking Code", "Type", "Service", "Customer", "Phone", "Amount", "Status", "Payment", "Date"],
             ...filtered.map((b) => [b.booking_code, b.booking_type, b.service_name, b.customer_name,
-                b.customer_phone, b.total_amount, b.status, b.payment_status, b.booking_date]),
+            b.customer_phone, b.total_amount, b.status, b.payment_status, b.booking_date]),
         ];
         const ws = XLSX.utils.aoa_to_sheet(data);
-        ws["!cols"] = [14,10,18,20,16,12,12,12,14].map((w) => ({ wch: w }));
+        ws["!cols"] = [14, 10, 18, 20, 16, 12, 12, 12, 14].map((w) => ({ wch: w }));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Bookings");
         XLSX.writeFile(wb, `bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -200,7 +200,7 @@ const BookingPage = () => {
         autoTable(doc, {
             head: [["Code", "Type", "Service", "Customer", "Phone", "Amount", "Status", "Payment", "Date"]],
             body: filtered.map((b) => [b.booking_code, b.booking_type, b.service_name, b.customer_name,
-                b.customer_phone, `Rs. ${(b.total_amount || 0).toLocaleString()}`, b.status, b.payment_status, b.booking_date]),
+            b.customer_phone, `Rs. ${(b.total_amount || 0).toLocaleString()}`, b.status, b.payment_status, b.booking_date]),
             startY: 25,
             headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: "bold" },
             alternateRowStyles: { fillColor: [230, 240, 250] },
@@ -235,8 +235,8 @@ const BookingPage = () => {
                 <div className="flex flex-col gap-5 mt-14">
                     <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
                         {[
-                            { icon: icon1, label: "Upcoming",  value: stats.upcoming,  pct: pctUpcoming },
-                            { icon: icon2, label: "Pending",   value: stats.pending,   pct: pctPending  },
+                            { icon: icon1, label: "Upcoming", value: stats.upcoming, pct: pctUpcoming },
+                            { icon: icon2, label: "Pending", value: stats.pending, pct: pctPending },
                         ].map(({ icon, label, value, pct }) => (
                             <div
                                 key={label}
@@ -299,57 +299,57 @@ const BookingPage = () => {
                     className="w-full bg-white rounded-[10px] px-5 py-6 mt-6"
                     style={{ boxShadow: "4px 4px 4px #0000001A" }}
                 >
-                     {/* car booking section */}
-            <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-5 sm:px-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
-            >
-                <div className="flex xl:flex-row flex-col justify-between">
-                    <h1 className="text-[24px] font-[700]">All Bookings</h1>
-                    <div className="flex xl:flex-row flex-col gap-5 mt-5 xl:mt-0">
-                        <div className="xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
-                            <img src={miniSearchIcon} alt="Search" />
-                            <input
-                                type="text"
-                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] truncate"
-                                placeholder={
-                                    "Search client name, airline, etc."
-                                }
-                            />
+                    {/* car booking section */}
+                    <div
+                        className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-5 sm:px-10"
+                        style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                    >
+                        <div className="flex xl:flex-row flex-col justify-between">
+                            <h1 className="text-[24px] font-[700]">All Bookings</h1>
+                            <div className="flex xl:flex-row flex-col gap-5 mt-5 xl:mt-0">
+                                <div className="xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                                    <img src={miniSearchIcon} alt="Search" />
+                                    <input
+                                        type="text"
+                                        className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] truncate"
+                                        placeholder={
+                                            "Search client name, airline, etc."
+                                        }
+                                    />
+                                </div>
+                                <div className="xl:w-[155px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                                    <img
+                                        src={filterIcon}
+                                        className="size-[12px]"
+                                        alt="Filter"
+                                    />
+                                    <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
+                                        Service Type
+                                    </h1>
+                                    <img src={miniDownArrow} alt="Dropdown" />
+                                </div>
+                                <div className="xl:w-[125px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                                    <img
+                                        src={filterIcon}
+                                        className="size-[12px]"
+                                        alt="Filter"
+                                    />
+                                    <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
+                                        Status
+                                    </h1>
+                                    <img src={miniDownArrow} alt="Dropdown" />
+                                </div>
+                            </div>
                         </div>
-                        <div className="xl:w-[155px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img
-                                src={filterIcon}
-                                className="size-[12px]"
-                                alt="Filter"
-                            />
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Service Type
-                            </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
-                        </div>
-                        <div className="xl:w-[125px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                            <img
-                                src={filterIcon}
-                                className="size-[12px]"
-                                alt="Filter"
-                            />
-                            <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                Status
-                            </h1>
-                            <img src={miniDownArrow} alt="Dropdown" />
-                        </div>
-                    </div>
-                </div>
 
-                <AllBookingTableTwo
-                    bookings={bookings}
-                    setBookings={setBookings}
-                    statusColors={statusColors}
-                    bookingType="All"
-                />
-            </div>
-            {/* end */}  
+                        <AllBookingTableTwo
+                            bookings={bookings}
+                            setBookings={setBookings}
+                            statusColors={statusColors}
+                            bookingType="All"
+                        />
+                    </div>
+                    {/* end */}
                 </div>
             </div>
 
@@ -368,18 +368,18 @@ const BookingPage = () => {
                         </div>
                         <div className="flex flex-col gap-3 text-[14px]">
                             {[
-                                ["Booking Code",  modal.booking_code],
-                                ["Type",          modal.booking_type === "flight" ? "✈ Flight" : "🚗 Vehicle"],
-                                ["Service",       modal.service_name],
-                                ["Customer",      modal.customer_name],
-                                ["Email",         modal.customer_email],
-                                ["Phone",         modal.customer_phone],
-                                ["Amount",        `Rs. ${(modal.total_amount || 0).toLocaleString()}`],
-                                ["Status",        modal.status],
-                                ["Payment",       modal.payment_status],
-                                ["Booking Date",  modal.booking_date],
-                                ["Start Date",    modal.start_date ?? "—"],
-                                ["End Date",      modal.end_date ?? "—"],
+                                ["Booking Code", modal.booking_code],
+                                ["Type", modal.booking_type === "flight" ? "✈ Flight" : "🚗 Vehicle"],
+                                ["Service", modal.service_name],
+                                ["Customer", modal.customer_name],
+                                ["Email", modal.customer_email],
+                                ["Phone", modal.customer_phone],
+                                ["Amount", `Rs. ${(modal.total_amount || 0).toLocaleString()}`],
+                                ["Status", modal.status],
+                                ["Payment", modal.payment_status],
+                                ["Booking Date", modal.booking_date],
+                                ["Start Date", modal.start_date ?? "—"],
+                                ["End Date", modal.end_date ?? "—"],
                             ].map(([label, value]) => (
                                 <div key={label} className="flex justify-between border-b border-gray-50 pb-2">
                                     <span className="text-gray-500 font-[500]">{label}</span>

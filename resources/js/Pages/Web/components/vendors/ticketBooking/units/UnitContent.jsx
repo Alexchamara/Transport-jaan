@@ -406,8 +406,8 @@ const UnitContent = () => {
                                     <button
                                         className="figtree w-full lg:min-w-[100px] h-[44px] bg-[#0955AC] rounded-[5px] text-[16px] sm:text-[20px] text-[#FFFFFF] font-[700] mt-4 lg:mt-0"
                                         onClick={() =>
-                                            (window.location.href =
-                                                "/ticketBooking/unitDetails")
+                                        (window.location.href =
+                                            "/ticketBooking/unitDetails")
                                         }
                                     >
                                         View
@@ -464,11 +464,10 @@ const UnitContent = () => {
                                 ) : (
                                     <button
                                         key={num}
-                                        className={`px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
-                                            currentPage === num
+                                        className={`px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num
                                                 ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                                 : "bg-[#F4F3F3]"
-                                        }`}
+                                            }`}
                                         onClick={() => goToPage(num)}
                                     >
                                         {num}

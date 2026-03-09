@@ -34,7 +34,7 @@ import NotificationDropdown from "../NotificationDropdown";
 const DashContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
-        const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -83,7 +83,7 @@ const DashContent = () => {
     const [selectedPeriod, setSelectedPeriod] = useState("Last 8 months");
     const [statusFilter, setStatusFilter] = useState("This Week");
     const [activeFilter, setActiveFilter] = useState("all");
-    
+
     // Warehouse bookings filter state
     const [showWarehouseFilters, setShowWarehouseFilters] = useState(false);
     const [showWarehouseExportMenu, setShowWarehouseExportMenu] = useState(false);
@@ -902,19 +902,19 @@ const DashContent = () => {
     // Export warehouse bookings to CSV
     const exportWarehouseToCSV = () => {
         const filteredData = bookings.filter((booking) => {
-            const matchesSearch = !warehouseSearchQuery || 
+            const matchesSearch = !warehouseSearchQuery ||
                 booking.booking_reference?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
                 booking.contact_person?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
                 booking.company_name?.toLowerCase().includes(warehouseSearchQuery.toLowerCase());
-            
+
             const matchesStatus = warehouseStatusFilter === "All" || booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase();
-            
+
             const matchesPayment = warehousePaymentFilter === "All" || booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase();
-            
+
             const bookingDate = new Date(booking.start_date);
             const matchesFromDate = !warehouseDateFromFilter || bookingDate >= new Date(warehouseDateFromFilter);
             const matchesToDate = !warehouseDateToFilter || bookingDate <= new Date(warehouseDateToFilter);
-            
+
             return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
         });
 
@@ -949,19 +949,19 @@ const DashContent = () => {
     // Export warehouse bookings to PDF
     const exportWarehouseToPDF = () => {
         const filteredData = bookings.filter((booking) => {
-            const matchesSearch = !warehouseSearchQuery || 
+            const matchesSearch = !warehouseSearchQuery ||
                 booking.booking_reference?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
                 booking.contact_person?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
                 booking.company_name?.toLowerCase().includes(warehouseSearchQuery.toLowerCase());
-            
+
             const matchesStatus = warehouseStatusFilter === "All" || booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase();
-            
+
             const matchesPayment = warehousePaymentFilter === "All" || booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase();
-            
+
             const bookingDate = new Date(booking.start_date);
             const matchesFromDate = !warehouseDateFromFilter || bookingDate >= new Date(warehouseDateFromFilter);
             const matchesToDate = !warehouseDateToFilter || bookingDate <= new Date(warehouseDateToFilter);
-            
+
             return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
         });
 
@@ -1012,19 +1012,19 @@ const DashContent = () => {
     const exportWarehouseToXLSX = () => {
         try {
             const filteredData = bookings.filter((booking) => {
-                const matchesSearch = !warehouseSearchQuery || 
+                const matchesSearch = !warehouseSearchQuery ||
                     booking.booking_reference?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
                     booking.contact_person?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
                     booking.company_name?.toLowerCase().includes(warehouseSearchQuery.toLowerCase());
-                
+
                 const matchesStatus = warehouseStatusFilter === "All" || booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase();
-                
+
                 const matchesPayment = warehousePaymentFilter === "All" || booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase();
-                
+
                 const bookingDate = new Date(booking.start_date);
                 const matchesFromDate = !warehouseDateFromFilter || bookingDate >= new Date(warehouseDateFromFilter);
                 const matchesToDate = !warehouseDateToFilter || bookingDate <= new Date(warehouseDateToFilter);
-                
+
                 return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
             });
 
@@ -1074,7 +1074,7 @@ const DashContent = () => {
         const chartHeight = 217; // px
         // Find the index of the highest bookings
         const maxIndex = bookingData.reduce((maxIdx, d, idx, arr) => (d.bookings || 0) > (arr[maxIdx]?.bookings || 0) ? idx : maxIdx, 0);
-        
+
         if (bookingData.length === 0) {
             return (
                 <div className="w-[600px] h-[217px] flex items-center justify-center text-gray-500">
@@ -1082,7 +1082,7 @@ const DashContent = () => {
                 </div>
             );
         }
-        
+
         return (
             <div className="w-[850px] mx-auto h-auto flex flex-col items-stretch relative">
                 {/* Chart area: grid lines and bars, fixed height */}
@@ -1097,7 +1097,7 @@ const DashContent = () => {
                                     className="w-full absolute flex items-center"
                                     style={{ bottom: `${percentFromBottom}%` }}
                                 >
-                                    <span className="text-[14px] text-gray-400 absolute -left-12 -top-7 w-8 text-left" style={{transform: 'translateY(50%)'}}>{v === 1000 ? '1K' : v}</span>
+                                    <span className="text-[14px] text-gray-400 absolute -left-12 -top-7 w-8 text-left" style={{ transform: 'translateY(50%)' }}>{v === 1000 ? '1K' : v}</span>
                                     <div className={`w-full border-t`}></div>
                                 </div>
                             );
@@ -1128,7 +1128,7 @@ const DashContent = () => {
                 {/* Month labels below chart area */}
                 <div className="flex flex-row items-end w-full z-10 relative" style={{ marginTop: '8px' }}>
                     {bookingData.map((d) => (
-                        <div key={d.name} className="flex-1 flex justify-center" style={{minWidth: '36px'}}>
+                        <div key={d.name} className="flex-1 flex justify-center" style={{ minWidth: '36px' }}>
                             <div className="text-[14px] font-[500] text-[#7B7B7A]">{d.name}</div>
                         </div>
                     ))}
@@ -1155,7 +1155,7 @@ const DashContent = () => {
         const getX = (index) => {
             return padding + (index * (chartWidth - 2 * padding)) / (earningData.length - 1);
         };
-        
+
         const getY = (value) => {
             return chartHeight - padding - (value * (chartHeight - 2 * padding)) / maxValue;
         };
@@ -1381,7 +1381,7 @@ const DashContent = () => {
             )}
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
-                 
+
                 <div className="flex items-center gap-4">
                     <h1 className="figtree text-[24px] md:text-[30px] font-[700] text-center md:text-left  md:mt-0">
                         Warehouse Dashboard
@@ -1561,532 +1561,532 @@ const DashContent = () => {
                         </div>
 
                         {/* end of 4 mini cards */}
- {/* vendors section */}
+                        {/* vendors section */}
 
-                <div
-                    className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-15 px-3 md:px-10"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                >
-                    <div className="flex flex-col gap-4 w-full">
-                        {/* Header and Buttons */}
-                        <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 w-full">
-                            <h1 className="text-[20px] md:text-[24px] font-[700]">
-                                Warehouse Clients
-                            </h1>
+                        <div
+                            className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-15 px-3 md:px-10"
+                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
+                        >
+                            <div className="flex flex-col gap-4 w-full">
+                                {/* Header and Buttons */}
+                                <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 w-full">
+                                    <h1 className="text-[20px] md:text-[24px] font-[700]">
+                                        Warehouse Clients
+                                    </h1>
 
-                            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                                <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
-                                    <Search size={16} className="shrink-0" />
-                                    <input
-                                        type="text"
-                                        value={warehouseSearchQuery}
-                                        onChange={(e) => setWarehouseSearchQuery(e.target.value)}
-                                        className="w-full outline-none bg-transparent placeholder:text-[#7B7B7ACC] border-0 focus:ring-0 text-sm ml-2"
-                                        placeholder="Search client name, company, etc."
-                                    />
-                                </div>
-
-                                <button onClick={() => setShowWarehouseFilters(!showWarehouseFilters)} 
-                                    className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] border border-gray-300">
-                                    <Filter size={14} className="shrink-0" />
-                                    <span>Filter</span>
-                                </button>
-
-                                <div className="relative">
-                                    <button 
-                                        onClick={() => setShowWarehouseExportMenu(!showWarehouseExportMenu)} 
-                                        className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] border border-gray-300">    
-                                        <Download size={14} className="shrink-0" />
-                                        <span>Export</span>
-                                        <DropdownIcon size={12} />
-                                    </button>
-                                    {showWarehouseExportMenu && (
-                                        <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
-                                            <button
-                                                onClick={exportWarehouseToCSV}
-                                                className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
-                                            >
-                                                Export to CSV
-                                            </button>
-                                            <button
-                                                onClick={exportWarehouseToPDF}
-                                                className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
-                                            >
-                                                Export to PDF
-                                            </button>
-                                            <button
-                                                onClick={exportWarehouseToXLSX}
-                                                className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px]"
-                                            >
-                                                Export to XLSX
-                                            </button>
+                                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                        <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
+                                            <Search size={16} className="shrink-0" />
+                                            <input
+                                                type="text"
+                                                value={warehouseSearchQuery}
+                                                onChange={(e) => setWarehouseSearchQuery(e.target.value)}
+                                                className="w-full outline-none bg-transparent placeholder:text-[#7B7B7ACC] border-0 focus:ring-0 text-sm ml-2"
+                                                placeholder="Search client name, company, etc."
+                                            />
                                         </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
 
-                        {/* Filter Panel */}
-                        {showWarehouseFilters && (
-                            <div className="border border-gray-300 rounded-[8px] p-4 bg-gray-50 w-full">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-[600] text-[16px]">Filters</h3>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={handleResetWarehouseFilters}
-                                            className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-gray-100 transition font-[500]"
-                                        >
-                                            Reset Filters
+                                        <button onClick={() => setShowWarehouseFilters(!showWarehouseFilters)}
+                                            className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] border border-gray-300">
+                                            <Filter size={14} className="shrink-0" />
+                                            <span>Filter</span>
                                         </button>
-                                        <button
-                                            onClick={() => setShowWarehouseFilters(false)}
-                                            className="text-gray-500 hover:text-gray-700 text-[24px] font-bold"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                                    {/* Search */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[12px] font-[600] text-gray-700">Search</label>
-                                        <input
-                                            type="text"
-                                            value={warehouseSearchQuery}
-                                            onChange={(e) => setWarehouseSearchQuery(e.target.value)}
-                                            placeholder="Booking ID, Client..."
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                        />
-                                    </div>
-
-                                    {/* Status Filter */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[12px] font-[600] text-gray-700">Status</label>
-                                        <select
-                                            value={warehouseStatusFilter}
-                                            onChange={(e) => setWarehouseStatusFilter(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                        >
-                                            <option value="All">All</option>
-                                            <option value="Active">Active</option>
-                                            <option value="Pending">Pending</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Cancelled">Cancelled</option>
-                                        </select>
-                                    </div>
-
-                                    {/* Payment Status Filter */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[12px] font-[600] text-gray-700">Payment Status</label>
-                                        <select
-                                            value={warehousePaymentFilter}
-                                            onChange={(e) => setWarehousePaymentFilter(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                        >
-                                            <option value="All">All</option>
-                                            <option value="Paid">Paid</option>
-                                            <option value="Pending">Pending</option>
-                                        </select>
-                                    </div>
-
-                                    {/* From Date */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[12px] font-[600] text-gray-700">From Date</label>
-                                        <input
-                                            type="date"
-                                            value={warehouseDateFromFilter}
-                                            onChange={(e) => setWarehouseDateFromFilter(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                        />
-                                    </div>
-
-                                    {/* To Date */}
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[12px] font-[600] text-gray-700">To Date</label>
-                                        <input
-                                            type="date"
-                                            value={warehouseDateToFilter}
-                                            onChange={(e) => setWarehouseDateToFilter(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="py-10 w-full">
-                        {/* DESKTOP/TABLET TABLE */}
-                        <div className="hidden md:block overflow-auto">
-                            {/* table headings */}
-                            <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[14px] font-[600] px-12 py-3 gap-x-6 min-w-[1200px]">
-                                <div className="flex flex-row gap-2 items-center">
-                                    <h1>Booking ID</h1>
-                                    <div className="flex flex-col justify-center items-center">
-                                        <ChevronUp className="w-[6px] h-[10px]" />
-                                        <ChevronDown className="w-[6px] h-[10px]" />
-                                    </div>
-                                </div>
-                                <div className="flex flex-row gap-2 items-center">
-                                    <h1>Booking Date</h1>
-                                    <div className="flex flex-col justify-center items-center">
-                                        <ChevronUp className="w-[6px] h-[10px]" />
-                                        <ChevronDown className="w-[6px] h-[10px]" />
-                                    </div>
-                                </div>
-                                <div className="flex flex-row gap-2 items-center">
-                                    <h1>Client Name</h1>
-                                    <div className="flex flex-col justify-center items-center">
-                                        <ChevronUp className="w-[6px] h-[10px]" />
-                                        <ChevronDown className="w-[6px] h-[10px]" />
-                                    </div>
-                                </div>
-                                <div className="flex flex-row gap-2 items-center">
-                                    <h1>Company / Unit</h1>
-                                    <div className="flex flex-col justify-center items-center">
-                                        <ChevronUp className="w-[6px] h-[10px]" />
-                                        <ChevronDown className="w-[6px] h-[10px]" />
-                                    </div>
-                                </div>
-                                <div className="flex flex-row gap-2 items-center">
-                                    <h1>Term</h1>
-                                    <div className="flex flex-col justify-center items-center">
-                                        <ChevronUp className="w-[6px] h-[10px]" />
-                                        <ChevronDown className="w-[6px] h-[10px]" />
-                                    </div>
-                                </div>
-                                <div className="flex flex-row gap-2 items-center">
-                                    <h1>Dates</h1>
-                                    <div className="flex flex-col justify-center items-center">
-                                        <ChevronUp className="w-[6px] h-[10px]" />
-                                        <ChevronDown className="w-[6px] h-[10px]" />
-                                    </div>
-                                </div>
-                                <div className="flex flex-row gap-2 items-center ml-10">
-                                    <h1>Payment</h1>
-                                    <div className="flex flex-col justify-center items-center">
-                                        <ChevronUp className="w-[6px] h-[10px]" />
-                                        <ChevronDown className="w-[6px] h-[10px]" />
-                                    </div>
-                                </div>
-                                <div className="flex flex-row gap-2 items-center">
-                                    <h1>Status</h1>
-                                    <div className="flex flex-col justify-center items-center">
-                                        <ChevronUp className="w-[6px] h-[10px]" />
-                                        <ChevronDown className="w-[6px] h-[10px]" />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                {isSearching && bookings.length === 0 ? (
-                                    <div className="py-10 flex items-center justify-center h-64">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                        <span className="ml-3 text-gray-600">Loading bookings...</span>
-                                    </div>
-                                ) : bookings.length === 0 ? (
-                                    <div className="py-10 flex flex-col items-center justify-center h-64 text-gray-500">
-                                        <Package size={48} className="mb-4 text-gray-400" />
-                                        <span className="text-lg font-medium">No bookings found</span>
-                                        <span className="text-sm text-gray-400">Your warehouse bookings will appear here</span>
-                                    </div>
-                                ) : (
-                                    bookings.map((booking, index) => {
-                                        const parseDate = (dateValue) => {
-                                            if (!dateValue) return new Date();
-                                            try {
-                                                return new Date(dateValue);
-                                            } catch {
-                                                return new Date();
-                                            }
-                                        };
-
-                                        const getStatusBg = (status) => {
-                                            switch(status?.toLowerCase()) {
-                                                case 'confirmed': 
-                                                case 'active': return '#FFCD29';
-                                                case 'completed': return '#ACE19957';
-                                                case 'cancelled': return 'transparent';
-                                                default: return '#FFCD29';
-                                            }
-                                        };
-                                        
-                                        const getStatusBorder = (status) => {
-                                            switch(status?.toLowerCase()) {
-                                                case 'confirmed':
-                                                case 'active': return '#0000004D';
-                                                case 'completed': return '#3B8F314D';
-                                                case 'cancelled': return '#FF6060';
-                                                default: return '#0000004D';
-                                            }
-                                        };
-                                        
-                                        const getStatusText = (status) => {
-                                            switch(status?.toLowerCase()) {
-                                                case 'confirmed':
-                                                case 'active': return '#000000';
-                                                case 'completed': return '#3B8F31';
-                                                case 'cancelled': return '#FF6060';
-                                                default: return '#000000';
-                                            }
-                                        };
-
-                                        const displayData = {
-                                            id: booking.id || booking.booking_reference || 'N/A',
-                                            createdAt: parseDate(booking.bookingDate || booking.created_at).toLocaleDateString('en-US', { 
-                                                year: 'numeric', 
-                                                month: 'short', 
-                                                day: '2-digit' 
-                                            }),
-                                            vendor: booking.contactPerson || booking.contact_person || booking.clientName || 'Unknown',
-                                            company: booking.company_name || booking.companyName || 'N/A',
-                                            unit: booking.warehouseUnit || booking.warehouse_unit || 'N/A',
-                                            term: `${booking.durationMonths || booking.duration_months || booking.durationValue || 1} ${((booking.durationMonths || booking.duration_months || booking.durationValue || 1) === 1) ? 'month' : 'months'}`,
-                                            startDate: parseDate(booking.startDate || booking.start_date).toLocaleDateString('en-US', { 
-                                                month: 'short', 
-                                                day: '2-digit', 
-                                                year: 'numeric' 
-                                            }),
-                                            endDate: parseDate(booking.endDate || booking.end_date).toLocaleDateString('en-US', { 
-                                                month: 'short', 
-                                                day: '2-digit', 
-                                                year: 'numeric' 
-                                            }),
-                                            rate: `LKR ${(booking.monthlyRate || booking.monthly_rate || 0).toLocaleString()}/mo`,
-                                            paymentStatus: booking.paymentStatus || (booking.payment_status === 'paid' ? 'Paid' : 'Pending'),
-                                            paymentColor: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#3B8F314D' : '#FF6060',
-                                            paymentBg: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#ACE19957' : '#FF60608C',
-                                            status: booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Pending',
-                                            statusBg: getStatusBg(booking.status),
-                                            statusBorder: getStatusBorder(booking.status),
-                                            statusText: getStatusText(booking.status)
-                                        };
-
-                                        return (
-                                            <div
-                                                key={displayData.id || index}
-                                                className="grid grid-cols-8 border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[15px] font-[500] px-12 py-4 gap-x-6 min-w-[1200px]"
-                                            >
-                                                <div>{displayData.id}</div>
-                                                <div>{displayData.createdAt}</div>
-                                                <div>{displayData.vendor}</div>
-                                                <div className="flex flex-col gap-2">
-                                                    <h1>{displayData.company}</h1>
-                                                    <div className="w-[120px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
-                                                        {displayData.unit}
-                                                    </div>
-                                                </div>
-                                                <div>{displayData.term}</div>
-                                                <div className="text-[14px] font-[500] text-[#939392] space-y-2">
-                                                    <div className="flex flex-row gap-2 justify-start items-center">
-                                                        <h1>Start</h1>
-                                                        <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                                            {displayData.startDate}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex flex-row gap-4 justify-start items-center">
-                                                        <h1>End</h1>
-                                                        <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                                            {displayData.endDate}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col justify-center items-center gap-2">
-                                                    <h1>{displayData.rate}</h1>
-                                                    <div
-                                                        className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
-                                                        style={{
-                                                            border: `0.5px solid ${displayData.paymentColor}`,
-                                                            backgroundColor: displayData.paymentBg,
-                                                        }}
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setShowWarehouseExportMenu(!showWarehouseExportMenu)}
+                                                className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] border border-gray-300">
+                                                <Download size={14} className="shrink-0" />
+                                                <span>Export</span>
+                                                <DropdownIcon size={12} />
+                                            </button>
+                                            {showWarehouseExportMenu && (
+                                                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
+                                                    <button
+                                                        onClick={exportWarehouseToCSV}
+                                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
                                                     >
-                                                        {displayData.paymentStatus}
-                                                    </div>
+                                                        Export to CSV
+                                                    </button>
+                                                    <button
+                                                        onClick={exportWarehouseToPDF}
+                                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                                    >
+                                                        Export to PDF
+                                                    </button>
+                                                    <button
+                                                        onClick={exportWarehouseToXLSX}
+                                                        className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px]"
+                                                    >
+                                                        Export to XLSX
+                                                    </button>
                                                 </div>
-                                                <div
-                                                    className="w-[75px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
-                                                    style={{
-                                                        backgroundColor: displayData.statusBg,
-                                                        border: `1px solid ${displayData.statusBorder}`,
-                                                        color: displayData.statusText,
-                                                    }}
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Filter Panel */}
+                                {showWarehouseFilters && (
+                                    <div className="border border-gray-300 rounded-[8px] p-4 bg-gray-50 w-full">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="font-[600] text-[16px]">Filters</h3>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={handleResetWarehouseFilters}
+                                                    className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-gray-100 transition font-[500]"
                                                 >
-                                                    {displayData.status}
-                                                </div>
+                                                    Reset Filters
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowWarehouseFilters(false)}
+                                                    className="text-gray-500 hover:text-gray-700 text-[24px] font-bold"
+                                                >
+                                                    ×
+                                                </button>
                                             </div>
-                                        );
-                                    })
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                                            {/* Search */}
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[12px] font-[600] text-gray-700">Search</label>
+                                                <input
+                                                    type="text"
+                                                    value={warehouseSearchQuery}
+                                                    onChange={(e) => setWarehouseSearchQuery(e.target.value)}
+                                                    placeholder="Booking ID, Client..."
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                                />
+                                            </div>
+
+                                            {/* Status Filter */}
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[12px] font-[600] text-gray-700">Status</label>
+                                                <select
+                                                    value={warehouseStatusFilter}
+                                                    onChange={(e) => setWarehouseStatusFilter(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                                >
+                                                    <option value="All">All</option>
+                                                    <option value="Active">Active</option>
+                                                    <option value="Pending">Pending</option>
+                                                    <option value="Completed">Completed</option>
+                                                    <option value="Cancelled">Cancelled</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Payment Status Filter */}
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[12px] font-[600] text-gray-700">Payment Status</label>
+                                                <select
+                                                    value={warehousePaymentFilter}
+                                                    onChange={(e) => setWarehousePaymentFilter(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                                >
+                                                    <option value="All">All</option>
+                                                    <option value="Paid">Paid</option>
+                                                    <option value="Pending">Pending</option>
+                                                </select>
+                                            </div>
+
+                                            {/* From Date */}
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[12px] font-[600] text-gray-700">From Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={warehouseDateFromFilter}
+                                                    onChange={(e) => setWarehouseDateFromFilter(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                                />
+                                            </div>
+
+                                            {/* To Date */}
+                                            <div className="flex flex-col gap-2">
+                                                <label className="text-[12px] font-[600] text-gray-700">To Date</label>
+                                                <input
+                                                    type="date"
+                                                    value={warehouseDateToFilter}
+                                                    onChange={(e) => setWarehouseDateToFilter(e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
-                            </div>
-                        </div>
 
-                        {/* MOBILE VIEW: stacked cards */}
-                        <div className="md:hidden space-y-4">
-                            {isSearching && bookings.length === 0 ? (
-                                <div className="py-10 flex items-center justify-center h-64">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                    <span className="ml-3 text-gray-600">Loading bookings...</span>
-                                </div>
-                            ) : bookings.length === 0 ? (
-                                <div className="py-10 flex flex-col items-center justify-center h-64 text-gray-500">
-                                    <Package size={48} className="mb-4 text-gray-400" />
-                                    <span className="text-lg font-medium">No bookings found</span>
-                                    <span className="text-sm text-gray-400">Your warehouse bookings will appear here</span>
-                                </div>
-                            ) : (
-                                bookings.map((booking, index) => {
-                                    const parseDate = (dateValue) => {
-                                        if (!dateValue) return new Date();
-                                        try {
-                                            return new Date(dateValue);
-                                        } catch {
-                                            return new Date();
-                                        }
-                                    };
-
-                                    const getStatusBg = (status) => {
-                                        switch(status?.toLowerCase()) {
-                                            case 'confirmed': 
-                                            case 'active': return '#FFCD29';
-                                            case 'completed': return '#ACE19957';
-                                            case 'cancelled': return 'transparent';
-                                            default: return '#FFCD29';
-                                        }
-                                    };
-                                    
-                                    const getStatusBorder = (status) => {
-                                        switch(status?.toLowerCase()) {
-                                            case 'confirmed':
-                                            case 'active': return '#0000004D';
-                                            case 'completed': return '#3B8F314D';
-                                            case 'cancelled': return '#FF6060';
-                                            default: return '#0000004D';
-                                        }
-                                    };
-                                    
-                                    const getStatusText = (status) => {
-                                        switch(status?.toLowerCase()) {
-                                            case 'confirmed':
-                                            case 'active': return '#000000';
-                                            case 'completed': return '#3B8F31';
-                                            case 'cancelled': return '#FF6060';
-                                            default: return '#000000';
-                                        }
-                                    };
-
-                                    const displayData = {
-                                        id: booking.id || booking.booking_reference || 'N/A',
-                                        createdAt: parseDate(booking.bookingDate || booking.created_at).toLocaleDateString('en-US', { 
-                                            year: 'numeric', 
-                                            month: 'short', 
-                                            day: '2-digit' 
-                                        }),
-                                        vendor: booking.contactPerson || booking.contact_person || booking.clientName || 'Unknown',
-                                        company: booking.company_name || booking.companyName || 'N/A',
-                                        unit: booking.warehouseUnit || booking.warehouse_unit || 'N/A',
-                                        term: `${booking.durationMonths || booking.duration_months || booking.durationValue || 1} ${((booking.durationMonths || booking.duration_months || booking.durationValue || 1) === 1) ? 'month' : 'months'}`,
-                                        startDate: parseDate(booking.startDate || booking.start_date).toLocaleDateString('en-US', { 
-                                            month: 'short', 
-                                            day: '2-digit', 
-                                            year: 'numeric' 
-                                        }),
-                                        endDate: parseDate(booking.endDate || booking.end_date).toLocaleDateString('en-US', { 
-                                            month: 'short', 
-                                            day: '2-digit', 
-                                            year: 'numeric' 
-                                        }),
-                                        rate: `LKR ${(booking.monthlyRate || booking.monthly_rate || 0).toLocaleString()}/mo`,
-                                        paymentStatus: booking.paymentStatus || (booking.payment_status === 'paid' ? 'Paid' : 'Pending'),
-                                        paymentColor: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#3B8F314D' : '#FF6060',
-                                        paymentBg: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#ACE19957' : '#FF60608C',
-                                        status: booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Pending',
-                                        statusBg: getStatusBg(booking.status),
-                                        statusBorder: getStatusBorder(booking.status),
-                                        statusText: getStatusText(booking.status)
-                                    };
-
-                                    return (
-                                        <div
-                                            key={index}
-                                            className="border border-[#00000033] rounded-[8px] p-4 text-[14px] font-[500] space-y-2 bg-white"
-                                        >
-                                            <div className="flex justify-between">
-                                                <span className="font-[600]">Booking ID</span>
-                                                <span className="text-gray-600">{displayData.id}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="font-[600]">Booking Date</span>
-                                                <span className="text-gray-600">{displayData.createdAt}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="font-[600]">Client</span>
-                                                <span className="text-gray-600">{displayData.vendor}</span>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <span className="font-[600]">Company / Unit</span>
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-gray-600">{displayData.company}</span>
-                                                    <div className="w-[120px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
-                                                        {displayData.unit}
-                                                    </div>
+                                <div className="py-10 w-full">
+                                    {/* DESKTOP/TABLET TABLE */}
+                                    <div className="hidden md:block overflow-auto">
+                                        {/* table headings */}
+                                        <div className="grid grid-cols-8 bg-[#D8E4F2] min-h-[48px] items-center rounded-[8px] text-[14px] font-[600] px-12 py-3 gap-x-6 min-w-[1200px]">
+                                            <div className="flex flex-row gap-2 items-center">
+                                                <h1>Booking ID</h1>
+                                                <div className="flex flex-col justify-center items-center">
+                                                    <ChevronUp className="w-[6px] h-[10px]" />
+                                                    <ChevronDown className="w-[6px] h-[10px]" />
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="font-[600]">Term</span>
-                                                <span className="text-gray-600">{displayData.term}</span>
-                                            </div>
-                                            <div className="space-y-1 text-[#939392]">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="font-[600] text-black">Start</span>
-                                                    <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                                        {displayData.startDate}
-                                                    </div>
-                                                </div>
-                                                <div className="flex justify-between items-center">
-                                                    <span className="font-[600] text-black">End</span>
-                                                    <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
-                                                        {displayData.endDate}
-                                                    </div>
+                                            <div className="flex flex-row gap-2 items-center">
+                                                <h1>Booking Date</h1>
+                                                <div className="flex flex-col justify-center items-center">
+                                                    <ChevronUp className="w-[6px] h-[10px]" />
+                                                    <ChevronDown className="w-[6px] h-[10px]" />
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="font-[600]">Price</span>
-                                                <div className="flex flex-col items-end gap-1">
-                                                    <span className="text-gray-600">{displayData.rate}</span>
-                                                    <div
-                                                        className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
-                                                        style={{
-                                                            border: `0.5px solid ${displayData.paymentColor}`,
-                                                            backgroundColor: displayData.paymentBg,
-                                                        }}
-                                                    >
-                                                        {displayData.paymentStatus}
-                                                    </div>
+                                            <div className="flex flex-row gap-2 items-center">
+                                                <h1>Client Name</h1>
+                                                <div className="flex flex-col justify-center items-center">
+                                                    <ChevronUp className="w-[6px] h-[10px]" />
+                                                    <ChevronDown className="w-[6px] h-[10px]" />
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="font-[600]">Status</span>
-                                                <div
-                                                    className="w-[75px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
-                                                    style={{
-                                                        backgroundColor: displayData.statusBg,
-                                                        border: `1px solid ${displayData.statusBorder}`,
-                                                        color: displayData.statusText,
-                                                    }}
-                                                >
-                                                    {displayData.status}
+                                            <div className="flex flex-row gap-2 items-center">
+                                                <h1>Company / Unit</h1>
+                                                <div className="flex flex-col justify-center items-center">
+                                                    <ChevronUp className="w-[6px] h-[10px]" />
+                                                    <ChevronDown className="w-[6px] h-[10px]" />
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-row gap-2 items-center">
+                                                <h1>Term</h1>
+                                                <div className="flex flex-col justify-center items-center">
+                                                    <ChevronUp className="w-[6px] h-[10px]" />
+                                                    <ChevronDown className="w-[6px] h-[10px]" />
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-row gap-2 items-center">
+                                                <h1>Dates</h1>
+                                                <div className="flex flex-col justify-center items-center">
+                                                    <ChevronUp className="w-[6px] h-[10px]" />
+                                                    <ChevronDown className="w-[6px] h-[10px]" />
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-row gap-2 items-center ml-10">
+                                                <h1>Payment</h1>
+                                                <div className="flex flex-col justify-center items-center">
+                                                    <ChevronUp className="w-[6px] h-[10px]" />
+                                                    <ChevronDown className="w-[6px] h-[10px]" />
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-row gap-2 items-center">
+                                                <h1>Status</h1>
+                                                <div className="flex flex-col justify-center items-center">
+                                                    <ChevronUp className="w-[6px] h-[10px]" />
+                                                    <ChevronDown className="w-[6px] h-[10px]" />
                                                 </div>
                                             </div>
                                         </div>
-                                    );
-                                })
-                            )}
-                        </div>
-                    </div>
-                    </div>
 
-                </div>
-                {/* end */}
+                                        <div>
+                                            {isSearching && bookings.length === 0 ? (
+                                                <div className="py-10 flex items-center justify-center h-64">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                                    <span className="ml-3 text-gray-600">Loading bookings...</span>
+                                                </div>
+                                            ) : bookings.length === 0 ? (
+                                                <div className="py-10 flex flex-col items-center justify-center h-64 text-gray-500">
+                                                    <Package size={48} className="mb-4 text-gray-400" />
+                                                    <span className="text-lg font-medium">No bookings found</span>
+                                                    <span className="text-sm text-gray-400">Your warehouse bookings will appear here</span>
+                                                </div>
+                                            ) : (
+                                                bookings.map((booking, index) => {
+                                                    const parseDate = (dateValue) => {
+                                                        if (!dateValue) return new Date();
+                                                        try {
+                                                            return new Date(dateValue);
+                                                        } catch {
+                                                            return new Date();
+                                                        }
+                                                    };
+
+                                                    const getStatusBg = (status) => {
+                                                        switch (status?.toLowerCase()) {
+                                                            case 'confirmed':
+                                                            case 'active': return '#FFCD29';
+                                                            case 'completed': return '#ACE19957';
+                                                            case 'cancelled': return 'transparent';
+                                                            default: return '#FFCD29';
+                                                        }
+                                                    };
+
+                                                    const getStatusBorder = (status) => {
+                                                        switch (status?.toLowerCase()) {
+                                                            case 'confirmed':
+                                                            case 'active': return '#0000004D';
+                                                            case 'completed': return '#3B8F314D';
+                                                            case 'cancelled': return '#FF6060';
+                                                            default: return '#0000004D';
+                                                        }
+                                                    };
+
+                                                    const getStatusText = (status) => {
+                                                        switch (status?.toLowerCase()) {
+                                                            case 'confirmed':
+                                                            case 'active': return '#000000';
+                                                            case 'completed': return '#3B8F31';
+                                                            case 'cancelled': return '#FF6060';
+                                                            default: return '#000000';
+                                                        }
+                                                    };
+
+                                                    const displayData = {
+                                                        id: booking.id || booking.booking_reference || 'N/A',
+                                                        createdAt: parseDate(booking.bookingDate || booking.created_at).toLocaleDateString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: '2-digit'
+                                                        }),
+                                                        vendor: booking.contactPerson || booking.contact_person || booking.clientName || 'Unknown',
+                                                        company: booking.company_name || booking.companyName || 'N/A',
+                                                        unit: booking.warehouseUnit || booking.warehouse_unit || 'N/A',
+                                                        term: `${booking.durationMonths || booking.duration_months || booking.durationValue || 1} ${((booking.durationMonths || booking.duration_months || booking.durationValue || 1) === 1) ? 'month' : 'months'}`,
+                                                        startDate: parseDate(booking.startDate || booking.start_date).toLocaleDateString('en-US', {
+                                                            month: 'short',
+                                                            day: '2-digit',
+                                                            year: 'numeric'
+                                                        }),
+                                                        endDate: parseDate(booking.endDate || booking.end_date).toLocaleDateString('en-US', {
+                                                            month: 'short',
+                                                            day: '2-digit',
+                                                            year: 'numeric'
+                                                        }),
+                                                        rate: `LKR ${(booking.monthlyRate || booking.monthly_rate || 0).toLocaleString()}/mo`,
+                                                        paymentStatus: booking.paymentStatus || (booking.payment_status === 'paid' ? 'Paid' : 'Pending'),
+                                                        paymentColor: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#3B8F314D' : '#FF6060',
+                                                        paymentBg: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#ACE19957' : '#FF60608C',
+                                                        status: booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Pending',
+                                                        statusBg: getStatusBg(booking.status),
+                                                        statusBorder: getStatusBorder(booking.status),
+                                                        statusText: getStatusText(booking.status)
+                                                    };
+
+                                                    return (
+                                                        <div
+                                                            key={displayData.id || index}
+                                                            className="grid grid-cols-8 border-b-[1.5px] border-[#00000033] min-h-[110px] items-center text-[15px] font-[500] px-12 py-4 gap-x-6 min-w-[1200px]"
+                                                        >
+                                                            <div>{displayData.id}</div>
+                                                            <div>{displayData.createdAt}</div>
+                                                            <div>{displayData.vendor}</div>
+                                                            <div className="flex flex-col gap-2">
+                                                                <h1>{displayData.company}</h1>
+                                                                <div className="w-[120px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                                                    {displayData.unit}
+                                                                </div>
+                                                            </div>
+                                                            <div>{displayData.term}</div>
+                                                            <div className="text-[14px] font-[500] text-[#939392] space-y-2">
+                                                                <div className="flex flex-row gap-2 justify-start items-center">
+                                                                    <h1>Start</h1>
+                                                                    <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                                                        {displayData.startDate}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-row gap-4 justify-start items-center">
+                                                                    <h1>End</h1>
+                                                                    <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                                                        {displayData.endDate}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex flex-col justify-center items-center gap-2">
+                                                                <h1>{displayData.rate}</h1>
+                                                                <div
+                                                                    className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                                                    style={{
+                                                                        border: `0.5px solid ${displayData.paymentColor}`,
+                                                                        backgroundColor: displayData.paymentBg,
+                                                                    }}
+                                                                >
+                                                                    {displayData.paymentStatus}
+                                                                </div>
+                                                            </div>
+                                                            <div
+                                                                className="w-[75px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                                                                style={{
+                                                                    backgroundColor: displayData.statusBg,
+                                                                    border: `1px solid ${displayData.statusBorder}`,
+                                                                    color: displayData.statusText,
+                                                                }}
+                                                            >
+                                                                {displayData.status}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* MOBILE VIEW: stacked cards */}
+                                    <div className="md:hidden space-y-4">
+                                        {isSearching && bookings.length === 0 ? (
+                                            <div className="py-10 flex items-center justify-center h-64">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                                <span className="ml-3 text-gray-600">Loading bookings...</span>
+                                            </div>
+                                        ) : bookings.length === 0 ? (
+                                            <div className="py-10 flex flex-col items-center justify-center h-64 text-gray-500">
+                                                <Package size={48} className="mb-4 text-gray-400" />
+                                                <span className="text-lg font-medium">No bookings found</span>
+                                                <span className="text-sm text-gray-400">Your warehouse bookings will appear here</span>
+                                            </div>
+                                        ) : (
+                                            bookings.map((booking, index) => {
+                                                const parseDate = (dateValue) => {
+                                                    if (!dateValue) return new Date();
+                                                    try {
+                                                        return new Date(dateValue);
+                                                    } catch {
+                                                        return new Date();
+                                                    }
+                                                };
+
+                                                const getStatusBg = (status) => {
+                                                    switch (status?.toLowerCase()) {
+                                                        case 'confirmed':
+                                                        case 'active': return '#FFCD29';
+                                                        case 'completed': return '#ACE19957';
+                                                        case 'cancelled': return 'transparent';
+                                                        default: return '#FFCD29';
+                                                    }
+                                                };
+
+                                                const getStatusBorder = (status) => {
+                                                    switch (status?.toLowerCase()) {
+                                                        case 'confirmed':
+                                                        case 'active': return '#0000004D';
+                                                        case 'completed': return '#3B8F314D';
+                                                        case 'cancelled': return '#FF6060';
+                                                        default: return '#0000004D';
+                                                    }
+                                                };
+
+                                                const getStatusText = (status) => {
+                                                    switch (status?.toLowerCase()) {
+                                                        case 'confirmed':
+                                                        case 'active': return '#000000';
+                                                        case 'completed': return '#3B8F31';
+                                                        case 'cancelled': return '#FF6060';
+                                                        default: return '#000000';
+                                                    }
+                                                };
+
+                                                const displayData = {
+                                                    id: booking.id || booking.booking_reference || 'N/A',
+                                                    createdAt: parseDate(booking.bookingDate || booking.created_at).toLocaleDateString('en-US', {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: '2-digit'
+                                                    }),
+                                                    vendor: booking.contactPerson || booking.contact_person || booking.clientName || 'Unknown',
+                                                    company: booking.company_name || booking.companyName || 'N/A',
+                                                    unit: booking.warehouseUnit || booking.warehouse_unit || 'N/A',
+                                                    term: `${booking.durationMonths || booking.duration_months || booking.durationValue || 1} ${((booking.durationMonths || booking.duration_months || booking.durationValue || 1) === 1) ? 'month' : 'months'}`,
+                                                    startDate: parseDate(booking.startDate || booking.start_date).toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: '2-digit',
+                                                        year: 'numeric'
+                                                    }),
+                                                    endDate: parseDate(booking.endDate || booking.end_date).toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: '2-digit',
+                                                        year: 'numeric'
+                                                    }),
+                                                    rate: `LKR ${(booking.monthlyRate || booking.monthly_rate || 0).toLocaleString()}/mo`,
+                                                    paymentStatus: booking.paymentStatus || (booking.payment_status === 'paid' ? 'Paid' : 'Pending'),
+                                                    paymentColor: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#3B8F314D' : '#FF6060',
+                                                    paymentBg: (booking.payment_status === 'paid' || booking.paymentStatus === 'Paid') ? '#ACE19957' : '#FF60608C',
+                                                    status: booking.status ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1) : 'Pending',
+                                                    statusBg: getStatusBg(booking.status),
+                                                    statusBorder: getStatusBorder(booking.status),
+                                                    statusText: getStatusText(booking.status)
+                                                };
+
+                                                return (
+                                                    <div
+                                                        key={index}
+                                                        className="border border-[#00000033] rounded-[8px] p-4 text-[14px] font-[500] space-y-2 bg-white"
+                                                    >
+                                                        <div className="flex justify-between">
+                                                            <span className="font-[600]">Booking ID</span>
+                                                            <span className="text-gray-600">{displayData.id}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="font-[600]">Booking Date</span>
+                                                            <span className="text-gray-600">{displayData.createdAt}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="font-[600]">Client</span>
+                                                            <span className="text-gray-600">{displayData.vendor}</span>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <span className="font-[600]">Company / Unit</span>
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="text-gray-600">{displayData.company}</span>
+                                                                <div className="w-[120px] h-[22px] rounded-[4px] bg-[#D9D9D957] border-[1.5px] border-[#0000004D] flex justify-center items-center text-[#00000099] text-[13px]">
+                                                                    {displayData.unit}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="font-[600]">Term</span>
+                                                            <span className="text-gray-600">{displayData.term}</span>
+                                                        </div>
+                                                        <div className="space-y-1 text-[#939392]">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="font-[600] text-black">Start</span>
+                                                                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                                                    {displayData.startDate}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="font-[600] text-black">End</span>
+                                                                <div className="w-[90px] h-[19px] border-[0.5px] bg-[#D9D9D957] border-[#0000004D] text-[10px] font-[500] text-[#00000099] flex justify-center items-center rounded-[4px]">
+                                                                    {displayData.endDate}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="font-[600]">Price</span>
+                                                            <div className="flex flex-col items-end gap-1">
+                                                                <span className="text-gray-600">{displayData.rate}</span>
+                                                                <div
+                                                                    className="w-[66px] h-[19px] rounded-[4px] text-[10px] text-[#00000099] font-[500] flex justify-center items-center"
+                                                                    style={{
+                                                                        border: `0.5px solid ${displayData.paymentColor}`,
+                                                                        backgroundColor: displayData.paymentBg,
+                                                                    }}
+                                                                >
+                                                                    {displayData.paymentStatus}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="font-[600]">Status</span>
+                                                            <div
+                                                                className="w-[75px] h-[19px] rounded-[4px] flex justify-center items-center text-[10px] font-[700]"
+                                                                style={{
+                                                                    backgroundColor: displayData.statusBg,
+                                                                    border: `1px solid ${displayData.statusBorder}`,
+                                                                    color: displayData.statusText,
+                                                                }}
+                                                            >
+                                                                {displayData.status}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        {/* end */}
                         {/* booking chart */}
                         <div
                             className="hidden md:block md:w-full md:min-w-[742px] min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10 overflow-hidden"

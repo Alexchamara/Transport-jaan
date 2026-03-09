@@ -434,8 +434,8 @@ const UnitContent = () => {
                                     <button
                                         className="figtree min-w-[140px] h-[44px] bg-[#0955AC] rounded-[5px] text-[18px] text-[#FFFFFF] font-[700]"
                                         onClick={() =>
-                                            (window.location.href =
-                                                "/courierService/unitDetails")
+                                        (window.location.href =
+                                            "/courierService/unitDetails")
                                         }
                                     >
                                         Assign
@@ -493,11 +493,10 @@ const UnitContent = () => {
                                 ) : (
                                     <button
                                         key={num}
-                                        className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${
-                                            currentPage === num
+                                        className={`px-3 py-1 text-[16px] font-[600] rounded-[4px] size-[40px] bg-[#F4F3F3] ${currentPage === num
                                                 ? "text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                                 : "bg-[#F4F3F3]"
-                                        }`}
+                                            }`}
                                         onClick={() => goToPage(num)}
                                     >
                                         {num}

@@ -39,7 +39,7 @@ const DashContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-    
+
     return (
         <div className="w-full h-auto pr-5 lg:pl-4 lg:pr-5 pt-6 pb-10">
             {/* Header section */}

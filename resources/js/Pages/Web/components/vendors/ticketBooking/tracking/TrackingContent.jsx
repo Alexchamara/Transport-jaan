@@ -34,7 +34,7 @@ const TrackingContent = () => {
                 <h1 className="figtree text-[28px] md:text-[35px] font-[700]">
                     Ticket Tracking
                 </h1>
-                    {/* <div className="flex flex-row gap-5 relative items-center">
+                {/* <div className="flex flex-row gap-5 relative items-center">
                         <UserDropdown
                             settingsRoute={route("freight.settingsPage")}
                         />

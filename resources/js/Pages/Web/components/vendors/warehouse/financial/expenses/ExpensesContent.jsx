@@ -30,7 +30,7 @@ const ExpensesContent = () => {
     const user = auth?.user;
 
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-   
+
     const [warehouseNotifications, setWarehouseNotifications] = useState([]);
     const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
@@ -812,11 +812,10 @@ const ExpensesContent = () => {
                             ) : (
                                 <button
                                     key={num}
-                                    className={`px-2 sm:px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] w-[35px] h-[35px] sm:size-[40px] bg-[#F4F3F3] ${
-                                        currentPage === num
+                                    className={`px-2 sm:px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] w-[35px] h-[35px] sm:size-[40px] bg-[#F4F3F3] ${currentPage === num
                                             ? " text-[#0955AC] font-[600] border-[2px] border-[#0955AC]"
                                             : "bg-[#F4F3F3]"
-                                    }`}
+                                        }`}
                                     onClick={() => goToPage(num)}
                                 >
                                     {num}

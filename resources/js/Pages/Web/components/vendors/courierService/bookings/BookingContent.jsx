@@ -29,7 +29,7 @@ import UserDropdown from "../../UserDropdown";
 const BookingContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
-    const isVerified = user?.status === 'verified' || user?.status === 'Verified';   
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F314D", bg: "#ACE19957" },

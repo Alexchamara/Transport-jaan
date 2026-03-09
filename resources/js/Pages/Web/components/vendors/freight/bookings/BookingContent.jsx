@@ -24,20 +24,20 @@ import BookingBarChart from "./BookingBarChart";
 import UserDropdown from "../../UserDropdown";
 
 const BookingContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
-  const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-  const [isMobile, setIsMobile] = useState(false);
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768); // md breakpoint
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const paymentStatusColors = {
         Paid: { color: "#3B8F31", bg: "#ACE199" }, // Solid colors for Paid
@@ -273,8 +273,8 @@ const BookingContent = () => {
 
     // Handle input changes for the form
     const handleInputChange = (e) => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const { name, value } = e.target;
         setNewBooking((prev) => ({ ...prev, [name]: value }));
@@ -282,8 +282,8 @@ const BookingContent = () => {
 
     // Handle form submission to add new booking
     const handleAddBooking = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+        const { auth } = usePage().props;
+        const user = auth?.user;
 
         const newBookingEntry = {
             ...newBooking,

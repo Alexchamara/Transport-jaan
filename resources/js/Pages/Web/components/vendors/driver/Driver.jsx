@@ -15,10 +15,9 @@ const PAGE_SIZE = 8;
 /* ---- UI helpers aligned with AddUnit ---- */
 const Req = () => <span className="text-red-600 ml-0.5">*</span>;
 const inputClasses = (hasError = false) =>
-  `w-full rounded-lg px-4 py-2 transition ${
-    hasError
-      ? "border border-red-500 focus:ring-red-500 focus:border-red-500"
-      : "border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+  `w-full rounded-lg px-4 py-2 transition ${hasError
+    ? "border border-red-500 focus:ring-red-500 focus:border-red-500"
+    : "border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
   }`;
 const selectClasses = inputClasses;
 /* ---------------------------------------- */
@@ -94,7 +93,7 @@ export default function Driver() {
     if (!existing) {
       try {
         await fetch("/sanctum/csrf-cookie", { method: "GET", credentials: "same-origin" });
-      } catch {}
+      } catch { }
     }
     gotCsrf.current = true;
   }
@@ -127,7 +126,7 @@ export default function Driver() {
 
     if (!res.ok) {
       let payload = null;
-      try { payload = await res.json(); } catch {}
+      try { payload = await res.json(); } catch { }
       const message = payload?.message || `HTTP ${res.status}`;
       if (payload?.errors) throw { validation: payload.errors, message };
       throw new Error(message);
@@ -174,48 +173,48 @@ export default function Driver() {
     }
   };
 
-      
-      
-// Export functionality
-    const handleExport = () => {
-        // Combine all clients from different categories
-        const allClients = [
-            ...(clientsData?.land || []),
-            ...(clientsData?.air || []),
-            ...(clientsData?.sea || [])
-        ];
 
-        if (allClients.length === 0) {
-            alert("No clients to export");
-            return;
-        }
 
-        const headers = ["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"];
-        const data = allClients.map(client => [
-            client.name || "",
-            client.email || "",
-            client.phone || "",
-            client.type || "Rental",
-            client.totalBookings || 0,
-            client.totalSpent || "LKR 0",
-            client.joinDate || ""
-        ]);
+  // Export functionality
+  const handleExport = () => {
+    // Combine all clients from different categories
+    const allClients = [
+      ...(clientsData?.land || []),
+      ...(clientsData?.air || []),
+      ...(clientsData?.sea || [])
+    ];
 
-        const csvContent = [
-            headers.join(","),
-            ...data.map(row => row.map(cell => `"${cell}"`).join(","))
-        ].join("\n");
+    if (allClients.length === 0) {
+      alert("No clients to export");
+      return;
+    }
 
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `clients-${new Date().toISOString().slice(0, 10)}.csv`);
-        link.style.visibility = "hidden";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+    const headers = ["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"];
+    const data = allClients.map(client => [
+      client.name || "",
+      client.email || "",
+      client.phone || "",
+      client.type || "Rental",
+      client.totalBookings || 0,
+      client.totalSpent || "LKR 0",
+      client.joinDate || ""
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...data.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `clients-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   useEffect(() => {
     fetchData(1);
@@ -409,8 +408,8 @@ export default function Driver() {
     const previewSrc = file
       ? URL.createObjectURL(file)
       : editing
-      ? `${driverStream(editing, kind)}&refresh=${imageRefreshKey}`
-      : (form[urlField] ? toAbsoluteUrl(form[urlField]) : "");
+        ? `${driverStream(editing, kind)}&refresh=${imageRefreshKey}`
+        : (form[urlField] ? toAbsoluteUrl(form[urlField]) : "");
 
     return (
       <div className="space-y-1">
@@ -496,7 +495,7 @@ export default function Driver() {
       <div className="flex-1 py-8">
         {/* ==================== HEADER WITH DROPDOWN ==================== */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-           {/* Hamburger button for mobile */}
+          {/* Hamburger button for mobile */}
           <button
             className="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-200"
             onClick={() => setSidebarOpen(true)}
@@ -739,12 +738,12 @@ export default function Driver() {
                   <span className="text-[#0955AC]">• {meta.total}</span>
                 </div>
                 <button
-                            onClick={handleExport}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#3B8F31] text-white rounded-[6px] hover:bg-[#2d6b25] transition text-[14px] sm:text-[16px]"
-                        >
-                            <Download size={18} />
-                            <span>Export</span>
-                        </button>
+                  onClick={handleExport}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#3B8F31] text-white rounded-[6px] hover:bg-[#2d6b25] transition text-[14px] sm:text-[16px]"
+                >
+                  <Download size={18} />
+                  <span>Export</span>
+                </button>
               </div>
 
               <div className="h-0 md:h-auto" />
@@ -797,7 +796,7 @@ export default function Driver() {
                             <td className="px-4 sm:px-6 py-3 whitespace-nowrap">{r.license_no}</td>
                             <td className="px-4 sm:px-6 py-3 whitespace-nowrap">{r.license_expiry ?? "-"}</td>
                             <td className="px-4 sm:px-6 py-3 whitespace-nowrap">
-                              <span className={`px-2.5 py-1 rounded-md text-xs figtree ${r.status==="Active"?"bg-[#C5E6F9] text-[#0955AC]":"bg-[#FFDBDF] text-[#7B7B7A]"}`}>{r.status}</span>
+                              <span className={`px-2.5 py-1 rounded-md text-xs figtree ${r.status === "Active" ? "bg-[#C5E6F9] text-[#0955AC]" : "bg-[#FFDBDF] text-[#7B7B7A]"}`}>{r.status}</span>
                             </td>
                             <td className="px-4 sm:px-6 py-3 whitespace-nowrap">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "-"}</td>
 
@@ -888,7 +887,7 @@ export default function Driver() {
                                   <div className="space-y-1">
                                     <div className="text-xs text-gray-500">Meta</div>
                                     <div className="text-sm text-gray-900">
-                                      Status: <span className="font-semibold">{r.status}</span><br/>
+                                      Status: <span className="font-semibold">{r.status}</span><br />
                                       Created: {r.created_at ? new Date(r.created_at).toLocaleString() : "-"}
                                     </div>
                                   </div>

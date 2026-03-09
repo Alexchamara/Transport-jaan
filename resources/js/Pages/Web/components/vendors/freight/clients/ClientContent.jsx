@@ -11,11 +11,11 @@ import ClientTable from "./ClientTable";
 import UserDropdown from "../../UserDropdown";
 
 const ClientContent = () => {
-  const { auth } = usePage().props;
-  const user = auth?.user;
+    const { auth } = usePage().props;
+    const user = auth?.user;
 
-  const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-  
+    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+
 
 
     return (
@@ -57,7 +57,7 @@ const ClientContent = () => {
                 }}
             >
 
-              <ClientTable />
+                <ClientTable />
 
             </div>
         </div>

@@ -62,10 +62,10 @@ const ReservationContent = () => {
             try {
                 setLoading(true);
                 const response = await axios.get(`${API_BASE_URL}vendors/warehouse/api/reservations`);
-                
+
                 if (response.data.success) {
                     console.log("Fetched reservations:", response.data.data);
-                    
+
                     // Decorate reservations with display properties
                     const decorated = response.data.data.map(res => {
                         const paymentStatusColors = {
@@ -73,10 +73,10 @@ const ReservationContent = () => {
                             pending: { color: "#FF6060", bg: "#FF60608C" },
                             failed: { color: "#FF0000", bg: "#FF00004D" },
                         };
-                        
+
                         const status = res.status?.toLowerCase() || "pending";
                         const paymentStatus = res.payment_status?.toLowerCase() || "pending";
-                        
+
                         return {
                             ...res,
                             paymentStatusColor: paymentStatusColors[paymentStatus]?.color || "#7B7B7A",
@@ -85,7 +85,7 @@ const ReservationContent = () => {
                             statusText: statusColors[status]?.text || "#000000",
                         };
                     });
-                    
+
                     setReservations(decorated);
                 }
             } catch (error) {
@@ -251,7 +251,7 @@ const ReservationContent = () => {
             if (response.data.success) {
                 // Refresh the reservations list
                 const fetchResponse = await axios.get(`${API_BASE_URL}vendors/warehouse/api/reservations`);
-                
+
                 if (fetchResponse.data.success) {
                     const decorated = fetchResponse.data.data.map(res => {
                         const paymentStatusColors = {
@@ -259,10 +259,10 @@ const ReservationContent = () => {
                             pending: { color: "#FF6060", bg: "#FF60608C" },
                             failed: { color: "#FF0000", bg: "#FF00004D" },
                         };
-                        
+
                         const status = res.status?.toLowerCase() || "pending";
                         const paymentStatus = res.payment_status?.toLowerCase() || "pending";
-                        
+
                         return {
                             ...res,
                             paymentStatusColor: paymentStatusColors[paymentStatus]?.color || "#7B7B7A",
@@ -271,12 +271,12 @@ const ReservationContent = () => {
                             statusText: statusColors[status]?.text || "#000000",
                         };
                     });
-                    
+
                     setReservations(decorated);
                 }
-                
+
                 closeCancelModal();
-                
+
                 // Show success message with refund details
                 const refundAmount = response.data.booking?.refund_amount || response.data.data?.refund_amount;
                 const refundPercentage = response.data.booking?.refund_percentage || response.data.data?.refund_percentage || 100;
@@ -573,20 +573,18 @@ const ReservationContent = () => {
                                                             {reservation.status || 'pending'}
                                                         </span>
                                                         {reservation.status?.toLowerCase() === 'cancelled' && reservation.cancelled_by && (
-                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-[600] inline-block ${
-                                                                reservation.cancelled_by === 'vendor' 
-                                                                    ? 'bg-orange-100 text-orange-700' 
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-[600] inline-block ${reservation.cancelled_by === 'vendor'
+                                                                    ? 'bg-orange-100 text-orange-700'
                                                                     : 'bg-blue-100 text-blue-700'
-                                                            }`}>
+                                                                }`}>
                                                                 By: {reservation.cancelled_by === 'vendor' ? 'Service Provider' : 'Customer'}
                                                             </span>
                                                         )}
                                                         {reservation.status?.toLowerCase() === 'cancelled' && reservation.refund_percentage !== undefined && (
-                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-[600] inline-block ${
-                                                                reservation.refund_percentage === 100 
-                                                                    ? 'bg-green-100 text-green-700' 
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-[600] inline-block ${reservation.refund_percentage === 100
+                                                                    ? 'bg-green-100 text-green-700'
                                                                     : 'bg-amber-100 text-amber-700'
-                                                            }`}>
+                                                                }`}>
                                                                 {reservation.refund_percentage}% Refund
                                                             </span>
                                                         )}
@@ -656,11 +654,10 @@ const ReservationContent = () => {
                                         ) : (
                                             <button
                                                 key={`p-${num}`}
-                                                className={`size-[40px] rounded-[4px] text-[16px] font-[600] ${
-                                                    currentPage === num
+                                                className={`size-[40px] rounded-[4px] text-[16px] font-[600] ${currentPage === num
                                                         ? "bg-white border-2 border-[#0955AC] text-[#0955AC]"
                                                         : "bg-[#F4F3F3]"
-                                                }`}
+                                                    }`}
                                                 onClick={() => goToPage(num)}
                                             >
                                                 {num}
@@ -725,20 +722,18 @@ const ReservationContent = () => {
                                                 {reservation.status?.toLowerCase() === 'cancelled' && (
                                                     <div className="flex flex-col gap-1">
                                                         {reservation.cancelled_by && (
-                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-[600] inline-block text-center ${
-                                                                reservation.cancelled_by === 'vendor' 
-                                                                    ? 'bg-orange-100 text-orange-700' 
+                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-[600] inline-block text-center ${reservation.cancelled_by === 'vendor'
+                                                                    ? 'bg-orange-100 text-orange-700'
                                                                     : 'bg-blue-100 text-blue-700'
-                                                            }`}>
+                                                                }`}>
                                                                 By: {reservation.cancelled_by === 'vendor' ? 'Service Provider' : 'Customer'}
                                                             </span>
                                                         )}
                                                         {reservation.refund_percentage !== undefined && (
-                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-[600] inline-block text-center ${
-                                                                reservation.refund_percentage === 100 
-                                                                    ? 'bg-green-100 text-green-700' 
+                                                            <span className={`px-2 py-0.5 rounded text-[9px] font-[600] inline-block text-center ${reservation.refund_percentage === 100
+                                                                    ? 'bg-green-100 text-green-700'
                                                                     : 'bg-amber-100 text-amber-700'
-                                                            }`}>
+                                                                }`}>
                                                                 {reservation.refund_percentage}% Refund
                                                             </span>
                                                         )}
@@ -830,11 +825,10 @@ const ReservationContent = () => {
                                             ) : (
                                                 <button
                                                     key={`p-${num}`}
-                                                    className={`size-[40px] rounded-[4px] text-[16px] font-[600] ${
-                                                        currentPage === num
+                                                    className={`size-[40px] rounded-[4px] text-[16px] font-[600] ${currentPage === num
                                                             ? "bg-white border-2 border-[#0955AC] text-[#0955AC]"
                                                             : "bg-[#F4F3F3]"
-                                                    }`}
+                                                        }`}
                                                     onClick={() => goToPage(num)}
                                                 >
                                                     {num}
@@ -1036,7 +1030,7 @@ const ReservationContent = () => {
                                     <h3 className="text-[16px] font-[700] text-red-600">
                                         Cancellation Information
                                     </h3>
-                                    
+
                                     <div className="grid grid-cols-2 gap-4">
                                         {selectedReservation.cancelled_by && (
                                             <div>
@@ -1044,17 +1038,16 @@ const ReservationContent = () => {
                                                     Cancelled By
                                                 </label>
                                                 <div className="text-[14px] font-[600]">
-                                                    <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-[700] ${
-                                                        selectedReservation.cancelled_by === 'vendor' 
-                                                            ? 'bg-orange-100 text-orange-700' 
+                                                    <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-[700] ${selectedReservation.cancelled_by === 'vendor'
+                                                            ? 'bg-orange-100 text-orange-700'
                                                             : 'bg-blue-100 text-blue-700'
-                                                    }`}>
+                                                        }`}>
                                                         {selectedReservation.cancelled_by === 'vendor' ? 'Service Provider' : 'Customer'}
                                                     </span>
                                                 </div>
                                             </div>
                                         )}
-                                        
+
                                         {selectedReservation.cancelled_at && (
                                             <div>
                                                 <label className="text-[12px] font-[500] text-[#7B7B7A]">
@@ -1074,23 +1067,22 @@ const ReservationContent = () => {
                                                     Refund Percentage
                                                 </label>
                                                 <div className="text-[14px] font-[600]">
-                                                    <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-[700] ${
-                                                        selectedReservation.refund_percentage === 100 
-                                                            ? 'bg-green-100 text-green-700' 
+                                                    <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-[700] ${selectedReservation.refund_percentage === 100
+                                                            ? 'bg-green-100 text-green-700'
                                                             : 'bg-amber-100 text-amber-700'
-                                                    }`}>
+                                                        }`}>
                                                         {selectedReservation.refund_percentage}% Refund
                                                     </span>
                                                 </div>
                                             </div>
-                                            
+
                                             {selectedReservation.refund_amount !== undefined && (
                                                 <div>
                                                     <label className="text-[12px] font-[500] text-[#7B7B7A]">
                                                         Refund Amount
                                                     </label>
                                                     <div className="text-[16px] font-[700] text-green-600">
-                                                        Rs {parseFloat(selectedReservation.refund_amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                                        Rs {parseFloat(selectedReservation.refund_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </div>
                                                 </div>
                                             )}
@@ -1148,13 +1140,13 @@ const ReservationContent = () => {
                             {["confirmed", "active"].includes(
                                 selectedReservation.status?.toLowerCase()
                             ) && (
-                                <button
-                                    onClick={handleComplete}
-                                    className="px-4 py-2 bg-[#3B8F31] text-white rounded-[5px] text-[14px] font-[700]"
-                                >
-                                    Mark as Completed
-                                </button>
-                            )}
+                                    <button
+                                        onClick={handleComplete}
+                                        className="px-4 py-2 bg-[#3B8F31] text-white rounded-[5px] text-[14px] font-[700]"
+                                    >
+                                        Mark as Completed
+                                    </button>
+                                )}
 
                             <button
                                 onClick={handleUpdate}
@@ -1273,42 +1265,37 @@ const ReservationContent = () => {
                         {/* Modal Body */}
                         <div className="px-6 py-5 space-y-4">
                             {/* Cancellation Info Alert */}
-                            <div className={`border rounded-lg p-4 ${
-                                cancellationToView.cancelled_by === 'vendor' 
-                                    ? 'bg-orange-50 border-orange-200' 
+                            <div className={`border rounded-lg p-4 ${cancellationToView.cancelled_by === 'vendor'
+                                    ? 'bg-orange-50 border-orange-200'
                                     : 'bg-blue-50 border-blue-200'
-                            }`}>
+                                }`}>
                                 <div className="flex items-start gap-3">
                                     <div className="flex-shrink-0">
-                                        <svg className={`w-6 h-6 ${
-                                            cancellationToView.cancelled_by === 'vendor' 
-                                                ? 'text-orange-600' 
+                                        <svg className={`w-6 h-6 ${cancellationToView.cancelled_by === 'vendor'
+                                                ? 'text-orange-600'
                                                 : 'text-blue-600'
-                                        }`} fill="currentColor" viewBox="0 0 20 20">
+                                            }`} fill="currentColor" viewBox="0 0 20 20">
                                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                         </svg>
                                     </div>
                                     <div className="flex-1">
-                                        <p className={`text-[15px] font-[700] mb-2 ${
-                                            cancellationToView.cancelled_by === 'vendor' 
-                                                ? 'text-orange-800' 
+                                        <p className={`text-[15px] font-[700] mb-2 ${cancellationToView.cancelled_by === 'vendor'
+                                                ? 'text-orange-800'
                                                 : 'text-blue-800'
-                                        }`}>
+                                            }`}>
                                             Cancelled by: {cancellationToView.cancelled_by === 'vendor' ? 'Service Provider' : 'Customer'}
                                         </p>
                                         <div className="space-y-1">
-                                            <p className={`text-[13px] ${
-                                                cancellationToView.cancelled_by === 'vendor' 
-                                                    ? 'text-orange-700' 
+                                            <p className={`text-[13px] ${cancellationToView.cancelled_by === 'vendor'
+                                                    ? 'text-orange-700'
                                                     : 'text-blue-700'
-                                            }`}>
+                                                }`}>
                                                 <span className="font-[600]">Date:</span> {cancellationToView.cancelled_at ? new Date(cancellationToView.cancelled_at).toLocaleString() : 'N/A'}
                                             </p>
-                                            <p className={`text-[13px] ${
-                                                cancellationToView.cancelled_by === 'vendor' 
-                                                    ? 'text-orange-700' 
+                                            <p className={`text-[13px] ${cancellationToView.cancelled_by === 'vendor'
+                                                    ? 'text-orange-700'
                                                     : 'text-blue-700'
-                                            }`}>
+                                                }`}>
                                                 <span className="font-[600]">Refund:</span> {cancellationToView.refund_percentage || 0}% - Rs {parseFloat(cancellationToView.refund_amount || 0).toFixed(2)}
                                             </p>
                                         </div>
@@ -1319,7 +1306,7 @@ const ReservationContent = () => {
                             {/* Reservation Details */}
                             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                 <h3 className="text-[14px] font-[700] text-gray-800 border-b pb-2">Reservation Details</h3>
-                                
+
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <p className="text-[12px] text-gray-600">Client Name</p>
