@@ -50,7 +50,35 @@ class Driver extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class);   
+    }
+
+    // ---- License-expiry helpers ----
+
+    public function isLicenseExpired(): bool
+    {
+        return $this->license_expiry && $this->license_expiry->isPast();
+    }
+
+    /**
+     * If the license is expired, mark this driver as Inactive and suspend
+     * the linked user account. Returns true when a change was made.
+     */
+    public function suspendIfExpired(): bool
+    {
+        if (!$this->isLicenseExpired()) {
+            return false;
+        }
+
+        if ($this->status !== 'Inactive') {
+            $this->update(['status' => 'Inactive']);
+        }
+
+        if ($this->user && $this->user->status !== 'suspended') {
+            $this->user->update(['status' => 'suspended']);
+        }
+
+        return true;
     }
 
     // ---- Accessors (prefer controller routes; fallback to public URL) ----

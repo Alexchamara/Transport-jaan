@@ -182,7 +182,7 @@ const RightSide = ({ users = [], counts = {}, filters = {}, pagination = {}, pag
                             </div>
                             <div>
                                 <h1 className="text-white text-[16px] font-500">
-                                    Total Users
+                                    Total Users   
                                 </h1>
                                 <h2 className="text-[#AEB9E1] text-[12px] font-400">
                                     {counts.total || 0}

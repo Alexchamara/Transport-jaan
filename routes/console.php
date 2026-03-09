@@ -13,3 +13,9 @@ Schedule::command('bookings:expire')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Suspend drivers whose driving license has expired (runs daily at 00:05)
+Schedule::command('drivers:check-license-expiry')
+    ->dailyAt('00:05')
+    ->withoutOverlapping()
+    ->runInBackground();

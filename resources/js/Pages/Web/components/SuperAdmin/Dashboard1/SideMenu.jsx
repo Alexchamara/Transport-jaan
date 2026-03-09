@@ -49,6 +49,9 @@ const SideMenu = () => {
         } else if (pathname === "/superadmin/users/service-providers") {
             setActiveSubsection("ServiceProviders");
             setIsUsersOpen(true);
+        } else if (pathname === "/superadmin/users/drivers" || pathname.startsWith("/superadmin/users/drivers/")) {
+            setActiveSubsection("Drivers");
+            setIsUsersOpen(true);
         } else if (pathname === "/SuperAdmin/reports/vehicles") {
             setActiveSubsection("VehicleReports");
             setIsReportsOpen(true);
@@ -663,6 +666,23 @@ const SideMenu = () => {
                             preserveScroll
                         >
                             Service Providers
+                        </Link>
+                        <Link
+                            href="/superadmin/users/drivers"
+                            className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
+                                activeSubsection === "Drivers"
+                                    ? "text-white border-l-[#0955AC] bg-[#181A2A] border border-[#0A1330]"
+                                    : hoveredSection === "Drivers"
+                                    ? "text-white bg-[#181A2A] border-l-transparent"
+                                    : "text-[#AEB9E1] border-l-transparent"
+                            }`}
+                            onClick={() => setActiveSubsection("Drivers")}
+                            onMouseEnter={() => setHoveredSection("Drivers")}
+                            onMouseLeave={() => setHoveredSection(null)}
+                            preserveState
+                            preserveScroll
+                        >
+                            Drivers
                         </Link>
                     </div>
 

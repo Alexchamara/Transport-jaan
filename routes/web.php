@@ -387,6 +387,13 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         Route::get('/export', [\App\Http\Controllers\SuperAdmin\UserController::class, 'export'])->name('export');
         Route::get('/clients/export', [\App\Http\Controllers\SuperAdmin\UserController::class, 'export'])->name('clients.export');
         Route::get('/service-providers/export', [\App\Http\Controllers\SuperAdmin\UserController::class, 'export'])->name('serviceProviders.export');
+
+        // Driver Management Routes
+        Route::get('/drivers', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'index'])->name('drivers');
+        Route::get('/drivers/{driver}', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'show'])->name('drivers.show');
+        Route::post('/drivers/{driver}/status', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'changeStatus'])->name('drivers.changeStatus');
+        Route::delete('/drivers/{driver}', [\App\Http\Controllers\SuperAdmin\DriverController::class, 'destroy'])->name('drivers.destroy');
+
         Route::get('/create', [\App\Http\Controllers\SuperAdmin\UserController::class, 'create'])->name('create');
         Route::post('/', [\App\Http\Controllers\SuperAdmin\UserController::class, 'store'])->name('store');
         Route::get('/{user}', [\App\Http\Controllers\SuperAdmin\UserController::class, 'show'])->name('show');
@@ -708,6 +715,7 @@ Route::middleware(['auth']) // remove 'auth' here temporarily if testing unauthe
         Route::get('/drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');
         Route::match(['put', 'post'], '/drivers/{driver}', [DriverController::class, 'update'])->name('drivers.update');
         Route::delete('/drivers/{driver}', [DriverController::class, 'destroy'])->name('drivers.destroy');
+        Route::post('/drivers/{driver}/renew-license', [DriverController::class, 'renewLicense'])->name('drivers.renew-license');
 
         // Image preview + download (auth-aware)
         Route::get('/drivers/{driver}/license/stream',   [DriverController::class, 'streamLicense'])->name('drivers.license.stream');

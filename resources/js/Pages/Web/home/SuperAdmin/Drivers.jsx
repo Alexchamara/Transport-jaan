@@ -3,15 +3,14 @@ import SideMenu from "../../components/SuperAdmin/Dashboard1/SideMenu";
 import { usePage, router, Link } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const Clients = ({ users, counts, filters, pagination }) => {
+const Drivers = ({ drivers, counts, filters, pagination, vehicleTypes }) => {
     const { flash } = usePage().props;
 
-    const [searchTerm, setSearchTerm] = useState(filters?.search || '');
-    const [statusFilter, setStatusFilter] = useState(filters?.status || 'all');
-    const [dateFrom, setDateFrom] = useState(filters?.date_from || '');
-    const [dateTo, setDateTo] = useState(filters?.date_to || '');
-    const [perPage, setPerPage] = useState(filters?.per_page || 10);
-    const [showFlash, setShowFlash] = useState(false);
+    const [searchTerm, setSearchTerm]         = useState(filters?.search || '');
+    const [statusFilter, setStatusFilter]     = useState(filters?.status || 'all');
+    const [vehicleTypeFilter, setVehicleTypeFilter] = useState(filters?.vehicle_type || 'all');
+    const [perPage, setPerPage]               = useState(filters?.per_page || 10);
+    const [showFlash, setShowFlash]           = useState(false);
 
     useEffect(() => {
         if (flash?.success || flash?.error) {
@@ -22,72 +21,59 @@ const Clients = ({ users, counts, filters, pagination }) => {
     }, [flash]);
 
     const performSearch = useCallback(() => {
-        router.get('/superadmin/users/clients', {
-            search: searchTerm,
-            status: statusFilter,
-            date_from: dateFrom,
-            date_to: dateTo,
-            per_page: perPage,
+        router.get('/superadmin/users/drivers', {
+            search:       searchTerm,
+            status:       statusFilter,
+            vehicle_type: vehicleTypeFilter,
+            per_page:     perPage,
         }, {
-            preserveState: true,
+            preserveState:  true,
             preserveScroll: true,
-            replace: true,
+            replace:        true,
         });
-    }, [searchTerm, statusFilter, dateFrom, dateTo, perPage]);
+    }, [searchTerm, statusFilter, vehicleTypeFilter, perPage]);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            performSearch();
-        }, 500);
+        const timer = setTimeout(() => { performSearch(); }, 500);
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
     useEffect(() => {
         performSearch();
-    }, [statusFilter, dateFrom, dateTo, perPage]);
+    }, [statusFilter, vehicleTypeFilter, perPage]);
 
     const handlePageChange = (page) => {
-        router.get('/superadmin/users/clients', {
+        router.get('/superadmin/users/drivers', {
             ...filters,
             page,
         }, {
-            preserveState: true,
+            preserveState:  true,
             preserveScroll: true,
-            replace: true,
+            replace:        true,
         });
     };
 
     const getStatusStyles = (status) => {
         switch (status) {
-            case 'verified':
+            case 'Active':
                 return { border: "border-[#05C16880]", bg: "bg-[#05C16833]", dot: "bg-[#14CA74]", text: "text-[#14CA74]" };
-            case 'inreview':
-                return { border: "border-[#FDB52A80]", bg: "bg-[#FDB52A33]", dot: "bg-[#FDB52A]", text: "text-[#FDB52A]" };
-            case 'unverified':
-                return { border: "border-[#AEB9E180]", bg: "bg-[#AEB9E133]", dot: "bg-[#AEB9E1]", text: "text-[#AEB9E1]" };
-            case 'blocked':
-            case 'rejected':
+            case 'Inactive':
                 return { border: "border-[#FF475780]", bg: "bg-[#FF475733]", dot: "bg-[#FF4757]", text: "text-[#FF4757]" };
             default:
                 return { border: "border-[#AEB9E180]", bg: "bg-[#AEB9E133]", dot: "bg-[#AEB9E1]", text: "text-[#AEB9E1]" };
         }
     };
 
-    const formatStatus = (status) => {
-        const map = {
-            verified: 'Verified',
-            unverified: 'Unverified',
-            inreview: 'In Review',
-            blocked: 'Blocked',
-            rejected: 'Rejected',
-        };
-        return map[status] || status;
+    const isLicenseExpiringSoon = (expiry) => {
+        if (!expiry) return false;
+        const exp = new Date(expiry);
+        const diff = (exp - new Date()) / (1000 * 60 * 60 * 24);
+        return diff >= 0 && diff <= 30;
     };
 
-    const getInitials = (user) => {
-        const first = user.first_name || user.name?.split(' ')[0] || '';
-        const last = user.last_name || user.name?.split(' ')[1] || '';
-        return `${first[0] || ''}${last[0] || ''}`.toUpperCase() || '?';
+    const isLicenseExpired = (expiry) => {
+        if (!expiry) return false;
+        return new Date(expiry) < new Date();
     };
 
     return (
@@ -123,19 +109,14 @@ const Clients = ({ users, counts, filters, pagination }) => {
             <div className="flex-1 px-6 py-6">
                 {/* Header */}
                 <div className="flex flex-row justify-between items-center mb-6">
-                    <div>
-                        <h1 className="text-white text-[24px] font-[600]">Clients</h1>
-                        <p className="text-[#AEB9E1] text-[13px] mt-0.5">Manage and monitor all registered clients</p>
-                    </div>
+                    <h1 className="text-white text-[24px] font-[600]">Drivers</h1>
                 </div>
 
                 {/* Stats Cards */}
                 <div className="flex flex-row gap-[22px] mb-6 flex-wrap">
-                    <StatsCard label="Total Clients" count={counts?.total || 0} color="#CB3CFF" />
-                    <StatsCard label="Verified" count={counts?.verified || 0} color="#05C168" />
-                    <StatsCard label="Unverified" count={counts?.unverified || 0} color="#AEB9E1" />
-                    <StatsCard label="Blocked / Rejected" count={counts?.blocked || 0} color="#FF4757" />
-                    <StatsCard label="New This Month" count={counts?.new_this_month || 0} color="#FDB52A" />
+                    <StatsCard label="Total Drivers"    count={counts?.total    || 0} color="#CB3CFF" />
+                    <StatsCard label="Active Drivers"   count={counts?.active   || 0} color="#05C168" />
+                    <StatsCard label="Inactive Drivers" count={counts?.inactive || 0} color="#FF4757" />
                 </div>
 
                 {/* Filters */}
@@ -143,7 +124,7 @@ const Clients = ({ users, counts, filters, pagination }) => {
                     <div className="flex flex-wrap gap-4 items-center">
                         <input
                             type="text"
-                            placeholder="Search by name, email, phone..."
+                            placeholder="Search by name, email, phone, vehicle no, license no..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="flex-1 min-w-[200px] bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0E43FB]"
@@ -154,39 +135,27 @@ const Clients = ({ users, counts, filters, pagination }) => {
                             className="bg-[#0B1739] border border-gray-700 text-white rounded-md px-4 py-2 text-sm"
                         >
                             <option value="all">All Status</option>
-                            <option value="verified">Verified</option>
-                            <option value="inreview">In Review</option>
-                            <option value="unverified">Unverified</option>
-                            <option value="blocked">Blocked</option>
-                            <option value="rejected">Rejected</option>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
                         </select>
-                        <div className="flex items-center gap-2">
-                            <label className="text-[#AEB9E1] text-[12px] whitespace-nowrap">From:</label>
-                            <input
-                                type="date"
-                                value={dateFrom}
-                                onChange={(e) => setDateFrom(e.target.value)}
-                                className="bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0E43FB]"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-[#AEB9E1] text-[12px] whitespace-nowrap">To:</label>
-                            <input
-                                type="date"
-                                value={dateTo}
-                                onChange={(e) => setDateTo(e.target.value)}
-                                className="bg-[#0B1739] border border-gray-700 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0E43FB]"
-                            />
-                        </div>
-                        {(searchTerm || statusFilter !== 'all' || dateFrom || dateTo) && (
+                        <select
+                            value={vehicleTypeFilter}
+                            onChange={(e) => setVehicleTypeFilter(e.target.value)}
+                            className="bg-[#0B1739] border border-gray-700 text-white rounded-md px-4 py-2 text-sm"
+                        >
+                            <option value="all">All Vehicle Types</option>
+                            {(vehicleTypes || []).map((vt, i) => (
+                                <option key={i} value={vt}>{vt}</option>
+                            ))}
+                        </select>
+                        {(searchTerm || statusFilter !== 'all' || vehicleTypeFilter !== 'all') && (
                             <button
                                 onClick={() => {
                                     setSearchTerm('');
                                     setStatusFilter('all');
-                                    setDateFrom('');
-                                    setDateTo('');
+                                    setVehicleTypeFilter('all');
                                 }}
-                                className="text-[#AEB9E1] text-[12px] hover:text-white transition-colors px-3 py-2 border border-[#343B4F] rounded-md"
+                                className="text-[#AEB9E1] hover:text-white text-[13px] border border-[#343B4F] px-3 py-2 rounded-md transition-colors"
                             >
                                 Clear Filters
                             </button>
@@ -198,20 +167,17 @@ const Clients = ({ users, counts, filters, pagination }) => {
                 <div className="border border-[#343B4F] bg-[#0B1739] rounded-[10px] overflow-hidden">
                     {/* Table Header */}
                     <div className="flex flex-row w-full h-[50px] bg-[#0F1A3A] border-b border-[#343B4F] items-center px-[24px]">
-                        <div className="flex-[1.5]">
-                            <h1 className="text-white text-[13px] font-[600]">Client</h1>
+                        <div className="flex-[1.4]">
+                            <h1 className="text-white text-[13px] font-[600]">Driver</h1>
                         </div>
-                        <div className="flex-[1.2]">
-                            <h1 className="text-white text-[13px] font-[600]">Email</h1>
+                        <div className="flex-[1]">
+                            <h1 className="text-white text-[13px] font-[600]">Service Provider</h1>
                         </div>
-                        <div className="flex-[0.8]">
-                            <h1 className="text-white text-[13px] font-[600]">Phone</h1>
+                        <div className="flex-[0.9]">
+                            <h1 className="text-white text-[13px] font-[600]">Vehicle Type</h1>
                         </div>
-                        <div className="flex-[0.8]">
-                            <h1 className="text-white text-[13px] font-[600]">Location</h1>
-                        </div>
-                        <div className="flex-[0.8]">
-                            <h1 className="text-white text-[13px] font-[600]">Registered</h1>
+                        <div className="flex-[1]">
+                            <h1 className="text-white text-[13px] font-[600]">License Expiry</h1>
                         </div>
                         <div className="flex-[0.8]">
                             <h1 className="text-white text-[13px] font-[600]">Status</h1>
@@ -222,82 +188,77 @@ const Clients = ({ users, counts, filters, pagination }) => {
                     </div>
 
                     {/* Table Body */}
-                    {(!users || users.length === 0) ? (
+                    {(!drivers || drivers.length === 0) ? (
                         <div className="flex justify-center items-center py-12">
-                            <p className="text-[#AEB9E1] text-[14px]">No clients found.</p>
+                            <p className="text-[#AEB9E1] text-[14px]">No drivers found.</p>
                         </div>
                     ) : (
-                        users.map((user) => {
-                            const statusStyles = getStatusStyles(user.status);
+                        drivers.map((driver) => {
+                            const ss = getStatusStyles(driver.status);
+                            const expired    = isLicenseExpired(driver.license_expiry);
+                            const expiringSoon = !expired && isLicenseExpiringSoon(driver.license_expiry);
                             return (
                                 <div
-                                    key={user.id}
+                                    key={driver.id}
                                     className="flex flex-row w-full border-b border-[#343B4F] items-center px-[24px] py-[14px] hover:bg-[#0F1A3A]/50 transition-colors"
                                 >
-                                    {/* Client Info */}
-                                    <div className="flex-[1.5] flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-full bg-[#0E43FB33] border border-[#0E43FB50] flex items-center justify-center flex-shrink-0">
-                                            {user.avatar ? (
-                                                <img
-                                                    src={`/uploads/${user.avatar}`}
-                                                    alt={user.name}
-                                                    className="w-9 h-9 rounded-full object-cover"
-                                                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                                                />
-                                            ) : null}
-                                            <span className="text-[#5B8DEF] text-[12px] font-[600]" style={{ display: user.avatar ? 'none' : 'flex' }}>
-                                                {getInitials(user)}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <h1 className="text-[#E0E6F7] text-[13px] font-[500]">{user.name}</h1>
-                                            <p className="text-[#AEB9E1] text-[11px]">{user.created_at}</p>
-                                        </div>
+                                    {/* Driver Info */}
+                                    <div className="flex-[1.4]">
+                                        <h1 className="text-[#E0E6F7] text-[13px] font-[500]">{driver.full_name}</h1>
+                                        <p className="text-[#AEB9E1] text-[11px]">{driver.email}</p>
+                                        <p className="text-[#AEB9E1] text-[11px]">{driver.phone}</p>
                                     </div>
 
-                                    {/* Email */}
-                                    <div className="flex-[1.2]">
-                                        <p className="text-[#AEB9E1] text-[12px] truncate max-w-[180px]">{user.email}</p>
+                                    {/* Vendor */}
+                                    <div className="flex-[1]">
+                                        {driver.vendor_id ? (
+                                            <Link
+                                                href={`/superadmin/users/service-providers/${driver.vendor_id}/review`}
+                                                className="text-[#5B8DEF] text-[12px] hover:text-[#0E43FB] transition-colors"
+                                            >
+                                                {driver.vendor_name}
+                                            </Link>
+                                        ) : (
+                                            <span className="text-[#AEB9E1] text-[12px]">N/A</span>
+                                        )}
                                     </div>
 
-                                    {/* Phone */}
-                                    <div className="flex-[0.8]">
-                                        <span className="text-[#AEB9E1] text-[12px]">
-                                            {user.phone && user.phone !== 'N/A' ? user.phone : (
-                                                <span className="text-[#343B4F]">—</span>
-                                            )}
-                                        </span>
+                                    {/* Vehicle Type */}
+                                    <div className="flex-[0.9]">
+                                        <span className="text-[#AEB9E1] text-[12px]">{driver.vehicle_type || '—'}</span>
                                     </div>
 
-                                    {/* Location */}
-                                    <div className="flex-[0.8]">
-                                        <span className="text-[#AEB9E1] text-[12px]">
-                                            {user.city && user.country
-                                                ? `${user.city}, ${user.country}`
-                                                : user.country || user.city || (
-                                                    <span className="text-[#343B4F]">—</span>
-                                                )
-                                            }
-                                        </span>
-                                    </div>
-
-                                    {/* Registration Date */}
-                                    <div className="flex-[0.8]">
-                                        <span className="text-[#AEB9E1] text-[12px]">{user.regDate}</span>
+                                    {/* License Expiry */}
+                                    <div className="flex-[1]">
+                                        {driver.license_expiry ? (
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className={`text-[12px] font-[500] ${expired ? 'text-[#FF4757]' : expiringSoon ? 'text-[#FDB52A]' : 'text-[#AEB9E1]'}`}>
+                                                    {driver.license_expiry}
+                                                </span>
+                                                {expired && (
+                                                    <span className="text-[#FF4757] text-[10px]">Expired</span>
+                                                )}
+                                                {expiringSoon && (
+                                                    <span className="text-[#FDB52A] text-[10px]">Expiring soon</span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-[#AEB9E1] text-[12px]">—</span>
+                                        )}
                                     </div>
 
                                     {/* Status */}
                                     <div className="flex-[0.8]">
-                                        <div className={`inline-flex items-center gap-1.5 border ${statusStyles.border} ${statusStyles.bg} px-[10px] py-[4px] rounded-[6px]`}>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${statusStyles.dot}`} />
-                                            <span className={`${statusStyles.text} text-[11px] font-[500]`}>{formatStatus(user.status)}</span>
+                                        <div className={`inline-flex items-center gap-1.5 border ${ss.border} ${ss.bg} px-[10px] py-[4px] rounded-[6px]`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${ss.dot}`} />
+                                            <span className={`${ss.text} text-[11px] font-[500]`}>{driver.status}</span>
                                         </div>
                                     </div>
 
                                     {/* Action */}
                                     <div className="flex-[0.5] text-center">
                                         <Link
-                                            href={`/superadmin/users/${user.id}`}
+                                            href={`/superadmin/users/drivers/${driver.id}`}
                                             className="bg-[#0E43FB] text-white text-[12px] px-3 py-1.5 rounded-[5px] hover:bg-[#0A36D6] transition-colors"
                                         >
                                             View
@@ -310,7 +271,7 @@ const Clients = ({ users, counts, filters, pagination }) => {
                 </div>
 
                 {/* Pagination */}
-                {pagination && (
+                {pagination && pagination.last_page > 1 && (
                     <div className="flex flex-row justify-between items-center mt-5">
                         <h1 className="text-white text-[12px]">
                             {pagination.from || 0} - {pagination.to || 0} of {pagination.total || 0}
@@ -392,4 +353,4 @@ const StatsCard = ({ label, count, color }) => (
     </div>
 );
 
-export default Clients;
+export default Drivers;
