@@ -13,6 +13,7 @@ const actionConfig = {
     vendor_unblocked: { icon: '🔓', color: 'text-[#14CA74]', bgColor: 'bg-[#05C16820]' },
     note_added: { icon: '📌', color: 'text-[#AEB9E1]', bgColor: 'bg-[#AEB9E120]' },
     vendor_auto_verified: { icon: '⭐', color: 'text-[#14CA74]', bgColor: 'bg-[#05C16820]' },
+    vendor_button_click: { icon: '🖱️', color: 'text-[#5B8DEF]', bgColor: 'bg-[#0E43FB20]' },
 };
 
 const defaultConfig = { icon: '📄', color: 'text-[#AEB9E1]', bgColor: 'bg-[#AEB9E120]' };
@@ -28,12 +29,37 @@ const ActivityTimeline = ({ activityLogs }) => {
         );
     }
 
+    const getLogDate = (log) => {
+        const raw = log.created_at_iso || log.created_at;
+        if (!raw) return null;
+        const parsed = new Date(raw);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const formatLocalDate = (log) => {
+        const parsed = getLogDate(log);
+        if (!parsed) return log.created_at_date || '';
+        return parsed.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+    };
+
+    const formatLocalTime = (log) => {
+        const parsed = getLogDate(log);
+        if (!parsed) return log.created_at_time || '';
+        return parsed.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        });
+    };
+
     const groupByDate = (logs) => {
         const groups = {};
         logs.forEach((log) => {
-            const date = log.created_at_date || new Date(log.created_at).toLocaleDateString('en-US', {
-                year: 'numeric', month: 'long', day: 'numeric'
-            });
+            const date = formatLocalDate(log);
             if (!groups[date]) groups[date] = [];
             groups[date].push(log);
         });
@@ -79,12 +105,19 @@ const ActivityTimeline = ({ activityLogs }) => {
                                                 {log.metadata.target_name}
                                             </span>
                                         )}
+                                        {log.action === 'vendor_button_click' && log.metadata?.button_name && (
+                                            <div className="mt-1">
+                                                <span className="text-[#5B8DEF] text-[11px]">
+                                                    Button: {log.metadata.button_name}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Admin & Time */}
                                     <div className="text-right flex-shrink-0">
                                         <p className="text-[#AEB9E1] text-[11px]">{log.admin?.name || 'System'}</p>
-                                        <p className="text-[#AEB9E1]/60 text-[10px]">{log.created_at_time || ''}</p>
+                                        <p className="text-[#AEB9E1]/60 text-[10px]">{formatLocalTime(log)}</p>
                                     </div>
                                 </div>
                             );

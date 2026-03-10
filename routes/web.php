@@ -1346,6 +1346,7 @@ Route::get('/vendorAllBookings/expenses', [\App\Http\Controllers\VendorAllBookin
 // Vendor Profile & Service Registration Routes
 Route::middleware(['auth'])->prefix('vendor/profile')->name('vendor.profile.')->group(function () {
     Route::get('/', [\App\Http\Controllers\VendorProfileController::class, 'index'])->name('index');
+    Route::post('/activity-click', [\App\Http\Controllers\VendorProfileController::class, 'logButtonClick'])->name('activity-click');
     Route::post('/save', [\App\Http\Controllers\VendorProfileController::class, 'saveProfile'])->name('save');
     Route::post('/service/{subCategory}', [\App\Http\Controllers\VendorProfileController::class, 'saveServiceRegistration'])->name('service.save');
     Route::delete('/service/{subCategory}', [\App\Http\Controllers\VendorProfileController::class, 'removeServiceRegistration'])->name('service.remove');

@@ -16,6 +16,44 @@ use Inertia\Inertia;
 
 class VendorProfileController extends Controller
 {
+    public function logButtonClick(Request $request)
+    {
+        $user = Auth::user();
+
+        $data = $request->validate([
+            'button_name' => ['required', 'string', 'max:120'],
+            'screen' => ['nullable', 'string', 'max:120'],
+            'step' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'service_name' => ['nullable', 'string', 'max:180'],
+            'target_type' => ['nullable', 'string', 'max:120'],
+            'target_id' => ['nullable', 'integer', 'min:1'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'metadata' => ['nullable', 'array'],
+        ]);
+
+        $description = $data['description']
+            ?? "Vendor clicked '{$data['button_name']}' button" . (!empty($data['screen']) ? " on {$data['screen']}" : '') . '.';
+
+        VendorActivityLog::create([
+            'vendor_id' => $user->id,
+            'action' => 'vendor_button_click',
+            'target_type' => $data['target_type'] ?? 'ui_button',
+            'target_id' => $data['target_id'] ?? null,
+            'description' => $description,
+            'metadata' => array_merge(
+                [
+                    'button_name' => $data['button_name'],
+                    'screen' => $data['screen'] ?? null,
+                    'step' => $data['step'] ?? null,
+                    'service_name' => $data['service_name'] ?? null,
+                ],
+                $data['metadata'] ?? []
+            ),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
     /**
      * Show the vendor registration page
      */

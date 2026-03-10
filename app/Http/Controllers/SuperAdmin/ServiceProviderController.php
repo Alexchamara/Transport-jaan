@@ -181,9 +181,16 @@ class ServiceProviderController extends Controller
                     'id' => $log->id,
                     'action' => $log->action,
                     'description' => $log->description,
+                    'admin' => $log->admin ? [
+                        'id' => $log->admin->id,
+                        'name' => $log->admin->name,
+                    ] : null,
                     'admin_name' => $log->admin?->name ?? 'System',
                     'metadata' => $log->metadata,
                     'created_at' => $log->created_at->format('Y-m-d H:i'),
+                    'created_at_iso' => $log->created_at->copy()->utc()->toIso8601String(),
+                    'created_at_date' => $log->created_at->format('F j, Y'),
+                    'created_at_time' => $log->created_at->format('h:i A'),
                     'time_ago' => $log->created_at->diffForHumans(),
                 ];
             });

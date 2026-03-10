@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
 import { ArrowLeft, Menu, UserCircle } from "lucide-react";
 import CompanyLogo from "../../Pages/Web/components/CompanyLogo";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
+import { installGlobalVendorButtonTracking, logVendorButtonClick } from "../../utils/vendorActivityLogger";
 
 import dashLogo from "../../Pages/Web/assets/vendors/dashboard/dashLogo.svg";
 import bookLogo from "../../Pages/Web/assets/vendors/dashboard/bookLogo.svg";
@@ -142,6 +143,14 @@ const VendorShellLayout = ({
     const [blockedService, setBlockedService] = useState("");
     const [isUnverifiedModal, setIsUnverifiedModal] = useState(false);
 
+    useEffect(() => {
+        const cleanup = installGlobalVendorButtonTracking({
+            screen: "vendor_shell_layout",
+        });
+
+        return cleanup;
+    }, []);
+
     const approvedSlugs = user?.approved_service_slugs || [];
 
     const canAccessService = (serviceName) => {
@@ -168,6 +177,13 @@ const VendorShellLayout = ({
     };
 
     const handleNavbarClick = (serviceName, accountUnverified) => {
+        logVendorButtonClick("blocked_shell_tab_click", {
+            screen: "vendor_shell_layout",
+            serviceName,
+            metadata: { account_unverified: Boolean(accountUnverified) },
+            description: `Vendor clicked blocked shell tab: ${serviceName}.`,
+        });
+
         setBlockedService(serviceName);
         setIsUnverifiedModal(accountUnverified);
         setShowModal(true);
@@ -175,11 +191,24 @@ const VendorShellLayout = ({
 
     const handleRegister = () => {
         const slug = getServiceSlug(blockedService);
+        logVendorButtonClick("register_from_shell_modal", {
+            screen: "vendor_shell_layout",
+            serviceName: blockedService,
+            metadata: { service_slug: slug },
+            description: `Vendor clicked Register Service from shell modal for ${blockedService}.`,
+        });
+
         setShowModal(false);
         router.visit(`/vendor/profile?step=2&service=${slug}`);
     };
 
     const handleModalCancel = () => {
+        logVendorButtonClick("cancel_shell_modal", {
+            screen: "vendor_shell_layout",
+            serviceName: blockedService,
+            description: `Vendor cancelled shell blocked-service modal for ${blockedService}.`,
+        });
+
         setShowModal(false);
         setBlockedService("");
     };
@@ -215,9 +244,20 @@ const VendorShellLayout = ({
     const navigate = (routeFn) => {
         const p = routePath(routeFn);
         if (!p) {
+            logVendorButtonClick("open_coming_soon", {
+                screen: "vendor_shell_layout",
+                description: "Vendor clicked a sidebar item without an active route.",
+            });
             setShowComingSoon(true);
             return;
         }
+
+        logVendorButtonClick("sidebar_navigation_click", {
+            screen: "vendor_shell_layout",
+            metadata: { path: p },
+            description: `Vendor clicked sidebar navigation to ${p}.`,
+        });
+
         setIsSidebarOpen(false);
         window.location.href = p;
     };
@@ -436,7 +476,16 @@ const VendorShellLayout = ({
                             <div className="flex gap-2 px-3 py-2 min-w-max">
                                 {SERVICE_TABS.map((tab, idx) =>
                                     isVerified && canAccessService(tab.name) ? (
-                                        <Link key={idx} href={route(tab.routeKey)} className={pillCls(activeService === tab.name)}>
+                                        <Link
+                                            key={idx}
+                                            href={route(tab.routeKey)}
+                                            onClick={() => logVendorButtonClick("mobile_service_pill_click", {
+                                                screen: "vendor_shell_layout",
+                                                serviceName: tab.name,
+                                                description: `Vendor clicked mobile service tab: ${tab.name}.`,
+                                            })}
+                                            className={pillCls(activeService === tab.name)}
+                                        >
                                             {tab.name}
                                         </Link>
                                     ) : (
@@ -454,7 +503,16 @@ const VendorShellLayout = ({
                         <div className="flex flex-row gap-0 overflow-x-auto min-w-0 flex-1">
                             {SERVICE_TABS.map((tab, idx) =>
                                 isVerified && canAccessService(tab.name) ? (
-                                    <Link key={idx} href={route(tab.routeKey)} className={tabLinkCls(activeService === tab.name)}>
+                                    <Link
+                                        key={idx}
+                                        href={route(tab.routeKey)}
+                                        onClick={() => logVendorButtonClick("desktop_service_tab_click", {
+                                            screen: "vendor_shell_layout",
+                                            serviceName: tab.name,
+                                            description: `Vendor clicked desktop service tab: ${tab.name}.`,
+                                        })}
+                                        className={tabLinkCls(activeService === tab.name)}
+                                    >
                                         {tab.name}
                                     </Link>
                                 ) : (

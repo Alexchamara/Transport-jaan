@@ -34,6 +34,7 @@ import { Country, State, City } from "country-state-city";
 import ServiceRegistrationFields from "../../../../../Components/vendors/ServiceRegistrationFields";
 import VendorShellLayout from "../../../../../Components/vendors/VendorShellLayout";
 import ActionModalTemplate from "../../../components/SuperAdmin/Common/ActionModalTemplate";
+import { logVendorButtonClick } from "../../../../../utils/vendorActivityLogger";
 
 const CITY_SEARCH_API_URL =
     import.meta.env.VITE_CITY_SEARCH_API_URL || "https://nominatim.openstreetmap.org/search";
@@ -391,6 +392,14 @@ const VendorProfile = () => {
     const isApprovedVendor = vendorProfile?.submission_status === "approved";
     const registeredServiceCount = vendorRegistrations ? Object.keys(vendorRegistrations).length : 0;
 
+    const logButtonActivity = (buttonName, extra = {}) => {
+        logVendorButtonClick(buttonName, {
+            screen: "vendor_profile",
+            step: currentStep,
+            ...extra,
+        });
+    };
+
     // Auto-clear success messages
     useEffect(() => {
         if (flash?.success) {
@@ -490,6 +499,8 @@ const VendorProfile = () => {
     };
 
     const saveProfileOnly = () => {
+        logButtonActivity("save_profile_summary");
+
         if (!validateProfile()) {
             setErrorMessage("Please fill in all required fields.");
             setTimeout(() => setErrorMessage(""), 4000);
@@ -527,6 +538,8 @@ const VendorProfile = () => {
     };
 
     const saveProfileAndNavigate = () => {
+        logButtonActivity("save_profile_continue", { targetType: "step", targetId: 2 });
+
         if (!validateProfile()) {
             setErrorMessage("Please fill in all required fields to continue.");
             setTimeout(() => setErrorMessage(""), 4000);
@@ -573,6 +586,11 @@ const VendorProfile = () => {
     };
 
     const removeLogo = () => {
+        logButtonActivity("remove_logo", {
+            targetType: "vendor_profile",
+            targetId: vendorProfile?.id || null,
+        });
+
         if (vendorProfile?.logo) {
             router.delete(route("vendor.profile.logo.remove"), {
                 preserveScroll: true,
@@ -673,6 +691,12 @@ const VendorProfile = () => {
     };
 
     const saveServiceRegistration = (subCategory, closeModalOnFinish = false) => {
+        logButtonActivity("save_service_registration", {
+            serviceName: subCategory?.name,
+            targetType: "vendor_service_registration",
+            targetId: subCategory?.id,
+        });
+
         const requiredFields = subCategory.required_fields || [];
         const values = serviceFieldValues[subCategory.id] || {};
         const fieldErrors = validateServiceFields(requiredFields, values);
@@ -810,6 +834,12 @@ const VendorProfile = () => {
 
     const handleActionConfirm = () => {
         if (actionModalState.action === "remove_service") {
+            logButtonActivity("confirm_remove_service", {
+                serviceName: actionModalState.payload?.name,
+                targetType: "vendor_service_registration",
+                targetId: actionModalState.payload?.id,
+            });
+
             const subCategory = actionModalState.payload;
             if (!subCategory) {
                 closeActionModal();
@@ -830,6 +860,11 @@ const VendorProfile = () => {
         }
 
         if (actionModalState.action === "submit_profile") {
+            logButtonActivity("confirm_submit_profile", {
+                targetType: "vendor_profile",
+                targetId: vendorProfile?.id || null,
+            });
+
             setSubmitting(true);
             router.post(route("vendor.profile.submit"), {}, {
                 preserveScroll: true,
@@ -849,6 +884,12 @@ const VendorProfile = () => {
         }
 
         if (actionModalState.action === "update_service") {
+            logButtonActivity("confirm_update_service", {
+                serviceName: actionModalState.payload?.subCategory?.name,
+                targetType: "vendor_service_registration",
+                targetId: actionModalState.payload?.subCategory?.id,
+            });
+
             const subCategory = actionModalState.payload?.subCategory;
             if (!subCategory) {
                 closeActionModal();
@@ -860,6 +901,10 @@ const VendorProfile = () => {
         }
 
         if (actionModalState.action === "submit_new_services") {
+            logButtonActivity("confirm_submit_new_services", {
+                metadata: { draft_service_count: draftServiceCount },
+            });
+
             setSubmitting(true);
             router.post(route("vendor.profile.submit-new-services"), {}, {
                 preserveScroll: true,
@@ -879,11 +924,18 @@ const VendorProfile = () => {
     };
 
     const removeServiceRegistration = (subCategory) => {
+        logButtonActivity("remove_service_registration", {
+            serviceName: subCategory?.name,
+            targetType: "vendor_service_registration",
+            targetId: subCategory?.id,
+        });
         openActionModal("remove_service", subCategory);
     };
 
     // ─── Step 3: Submit for Review ────────────────────────────
     const submitForReview = () => {
+        logButtonActivity("submit_for_review", { targetType: "vendor_profile", targetId: vendorProfile?.id || null });
+
         if (!vendorProfile) {
             setErrorMessage("Please complete your business profile first (Step 1).");
             setTimeout(() => setErrorMessage(""), 4000);
@@ -900,6 +952,8 @@ const VendorProfile = () => {
 
     // ─── Submit New Services (for submitted/approved vendors) ──
     const submitNewServices = () => {
+        logButtonActivity("submit_new_services", { metadata: { draft_service_count: draftServiceCount } });
+
         if (!hasDraftServices) {
             setErrorMessage("No new services to submit.");
             setTimeout(() => setErrorMessage(""), 4000);
@@ -969,6 +1023,12 @@ const VendorProfile = () => {
                                         <button
                                             onClick={() => {
                                                 if (isStepDisabled) return;
+
+                                                logButtonActivity("stepper_click", {
+                                                    targetType: "step",
+                                                    targetId: step.num,
+                                                    description: `Vendor clicked Step ${step.num}: ${step.label}.`,
+                                                });
 
                                                 // Validate when moving forward from step 1 to step 2
                                                 if (step.num === 2 && currentStep === 1) {
@@ -1979,7 +2039,13 @@ const VendorProfile = () => {
                                     </h2>
                                     {!isEditingProfileSummary && (!needsRevision || isReadOnly) && (
                                         <button
-                                            onClick={() => setIsEditingProfileSummary(true)}
+                                            onClick={() => {
+                                                logButtonActivity("edit_profile_summary", {
+                                                    targetType: "vendor_profile",
+                                                    targetId: vendorProfile?.id || null,
+                                                });
+                                                setIsEditingProfileSummary(true);
+                                            }}
                                             className="h-9 w-9 rounded-lg border border-blue-200 text-[#0955AC] hover:bg-blue-50 flex items-center justify-center"
                                             aria-label="Edit profile summary"
                                             title="Edit"
@@ -1991,6 +2057,11 @@ const VendorProfile = () => {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => {
+                                                    logButtonActivity("cancel_profile_summary_edit", {
+                                                        targetType: "vendor_profile",
+                                                        targetId: vendorProfile?.id || null,
+                                                    });
+
                                                     setIsEditingProfileSummary(false);
                                                     // Reset to original values
                                                     setProfileData({
