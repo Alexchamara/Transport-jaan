@@ -30,7 +30,14 @@ class ServiceProviderController extends Controller
         $perPage = $request->get('per_page', 10);
 
         $query = User::where('role', 'vendor')
-            ->with(['vendorProfile', 'serviceRegistrations.serviceCategory', 'serviceRegistrations.serviceSubCategory']);
+            ->with(['vendorProfile', 'serviceRegistrations.serviceCategory', 'serviceRegistrations.serviceSubCategory'])
+            ->leftJoin('vendor_profiles as vp', 'vp.user_id', '=', 'users.id')
+            ->select('users.*')
+            ->withCount([
+                'serviceRegistrations as services_pending_count' => function ($q) {
+                    $q->where('status', 'submitted');
+                },
+            ]);
 
         // Search filter
         if ($search) {
@@ -68,7 +75,12 @@ class ServiceProviderController extends Controller
             $query->where('vendor_type', $vendorTypeFilter);
         }
 
-        $paginatedUsers = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        $paginatedUsers = $query
+            ->orderByRaw("CASE WHEN users.status = 'inreview' OR vp.submission_status = 'submitted' OR services_pending_count > 0 THEN 0 ELSE 1 END ASC")
+            ->orderByRaw("CASE WHEN users.status = 'inreview' THEN 1 ELSE 0 END DESC")
+            ->orderByDesc('services_pending_count')
+            ->orderBy('users.created_at', 'desc')
+            ->paginate($perPage);
 
         $users = $paginatedUsers->getCollection()->map(function ($user) {
             $profile = $user->vendorProfile;
