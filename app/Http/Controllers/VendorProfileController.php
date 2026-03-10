@@ -56,10 +56,8 @@ class VendorProfileController extends Controller
 
         $existingProfile = VendorProfile::where('user_id', $user->id)->first();
 
-        // Only allow edit if draft or revision_requested
-        if ($existingProfile && !$existingProfile->canEdit()) {
-            return redirect()->back()->withErrors(['profile' => 'Profile cannot be edited in its current status.']);
-        }
+        // Allow editing for all statuses - no restriction
+        // Profile updates won't change submission status
 
         // Handle logo upload
         if ($request->hasFile('logo')) {
@@ -80,9 +78,12 @@ class VendorProfileController extends Controller
             }
         }
 
+        // Preserve existing submission_status if profile exists, otherwise set to draft
+        $submissionStatus = $existingProfile ? $existingProfile->submission_status : 'draft';
+
         $vendorProfile = VendorProfile::updateOrCreate(
             ['user_id' => $user->id],
-            array_merge($data, ['submission_status' => 'draft'])
+            array_merge($data, ['submission_status' => $submissionStatus])
         );
 
         // Log activity
