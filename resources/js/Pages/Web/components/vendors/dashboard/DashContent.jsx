@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Download, ChevronDown as DropdownIcon } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -59,11 +59,77 @@ const DashContent = ({
     // Filter state
     const [showFilters, setShowFilters] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const exportMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+                setShowExportMenu(false);
+            }
+        };
+        if (showExportMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [showExportMenu]);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
     const [dateFromFilter, setDateFromFilter] = useState("");
     const [dateToFilter, setDateToFilter] = useState("");
+
+    const normalizedBookings = useMemo(() => {
+        if (Array.isArray(bookings)) return bookings;
+        if (Array.isArray(bookings?.data)) return bookings.data;
+        return [];
+    }, [bookings]);
+
+    const parseDateSafe = (value) => {
+        if (!value) return null;
+        const dateObj = new Date(value);
+        if (!Number.isNaN(dateObj.getTime())) return dateObj;
+
+        const normalized = String(value).replace(/,/g, "").trim();
+        const retry = new Date(normalized);
+        if (!Number.isNaN(retry.getTime())) return retry;
+
+        return null;
+    };
+
+    const filteredBookings = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        const fromDate = dateFromFilter ? new Date(`${dateFromFilter}T00:00:00`) : null;
+        const toDate = dateToFilter ? new Date(`${dateToFilter}T23:59:59`) : null;
+
+        return normalizedBookings.filter((row) => {
+            const rowStatus = String(row?.status ?? "");
+            const rowPayment = String(row?.paymentStatus ?? "");
+
+            const rowDate = parseDateSafe(row?.date) || parseDateSafe(row?.startDate);
+
+            const haystack = [
+                row?.id,
+                row?.customer,
+                row?.car,
+                row?.plate,
+                row?.status,
+                row?.paymentStatus,
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            const matchesSearch = !query || haystack.includes(query);
+            const matchesStatus = statusFilter === "All" || rowStatus.toLowerCase() === statusFilter.toLowerCase();
+            const matchesPayment =
+                paymentStatusFilter === "All" ||
+                rowPayment.toLowerCase() === paymentStatusFilter.toLowerCase();
+            const matchesFrom = !fromDate || (rowDate && rowDate >= fromDate);
+            const matchesTo = !toDate || (rowDate && rowDate <= toDate);
+
+            return matchesSearch && matchesStatus && matchesPayment && matchesFrom && matchesTo;
+        });
+    }, [normalizedBookings, searchQuery, statusFilter, paymentStatusFilter, dateFromFilter, dateToFilter]);
 
     useLayoutEffect(() => {
         const checkMobile = () => {
@@ -75,21 +141,24 @@ const DashContent = ({
 
     // Export bookings to CSV
     const exportToCSV = () => {
-        if (!bookings || bookings.length === 0) {
+        if (!filteredBookings || filteredBookings.length === 0) {
             alert("No bookings to export");
             return;
         }
 
-        const headers = ["Booking Ref", "Customer", "Car", "Start Date", "End Date", "Status", "Payment Status", "Total"];
-        const data = bookings.map(b => [
-            b.bookingRef || "",
-            b.customerName || "",
-            b.carName || "",
+        const headers = ["Booking Ref", "Booking Date", "Client Name", "Vehicle", "Plate", "Plan", "Start Date", "End Date", "Payment", "Payment Status", "Status"];
+        const data = filteredBookings.map(b => [
+            b.id || "",
+            b.date || "",
+            b.customer || "",
+            b.car || "",
+            b.plate || "",
+            b.duration || "",
             b.startDate || "",
             b.endDate || "",
-            b.status || "",
+            b.price || "",
             b.paymentStatus || "",
-            b.totalPrice || ""
+            b.status || ""
         ]);
 
         const csvContent = [
@@ -101,7 +170,7 @@ const DashContent = ({
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `car-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.setAttribute("download", `vehicle-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
         link.style.visibility = "hidden";
         document.body.appendChild(link);
         link.click();
@@ -111,27 +180,30 @@ const DashContent = ({
 
     // Export bookings to PDF
     const exportToPDF = () => {
-        if (!bookings || bookings.length === 0) {
+        if (!filteredBookings || filteredBookings.length === 0) {
             alert("No bookings to export");
             return;
         }
 
-        const doc = new jsPDF();
-        const data = bookings.map(b => [
-            b.bookingRef || "",
-            b.customerName || "",
-            b.carName || "",
+        const doc = new jsPDF({ orientation: 'landscape' });
+        const data = filteredBookings.map(b => [
+            b.id || "",
+            b.date || "",
+            b.customer || "",
+            b.car || "",
+            b.plate || "",
+            b.duration || "",
             b.startDate || "",
             b.endDate || "",
-            b.status || "",
+            b.price || "",
             b.paymentStatus || "",
-            b.totalPrice || ""
+            b.status || ""
         ]);
 
-        const headers = [["Booking Ref", "Customer", "Car", "Start Date", "End Date", "Status", "Payment Status", "Total"]];
+        const headers = [["Booking Ref", "Booking Date", "Client Name", "Vehicle", "Plate", "Plan", "Start Date", "End Date", "Payment", "Pay. Status", "Status"]];
 
         doc.setFontSize(16);
-        doc.text("Car Bookings Report", 14, 10);
+        doc.text("Vehicle Bookings Report", 14, 10);
         doc.setFontSize(10);
         doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
 
@@ -143,7 +215,7 @@ const DashContent = ({
             headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
             alternateRowStyles: { fillColor: [230, 240, 250] },
             didDrawPage: (data) => {
-                const pageCount = doc.internal.getPages().length;
+                const pageCount = doc.internal.getNumberOfPages();
                 doc.setFontSize(9);
                 doc.text(
                     `Page ${data.pageNumber} of ${pageCount}`,
@@ -154,37 +226,40 @@ const DashContent = ({
             }
         });
 
-        doc.save(`car-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
+        doc.save(`vehicle-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
         setShowExportMenu(false);
     };
 
     // Export bookings to XLSX
     const exportToXLSX = () => {
         try {
-            if (!bookings || bookings.length === 0) {
+            if (!filteredBookings || filteredBookings.length === 0) {
                 alert("No bookings to export");
                 return;
             }
 
             const data = [
-                ["Booking Ref", "Customer", "Car", "Start Date", "End Date", "Status", "Payment Status", "Total"],
-                ...bookings.map(b => [
-                    b.bookingRef || "",
-                    b.customerName || "",
-                    b.carName || "",
+                ["Booking Ref", "Booking Date", "Client Name", "Vehicle", "Plate", "Plan", "Start Date", "End Date", "Payment", "Payment Status", "Status"],
+                ...filteredBookings.map(b => [
+                    b.id || "",
+                    b.date || "",
+                    b.customer || "",
+                    b.car || "",
+                    b.plate || "",
+                    b.duration || "",
                     b.startDate || "",
                     b.endDate || "",
-                    b.status || "",
+                    b.price || "",
                     b.paymentStatus || "",
-                    b.totalPrice || ""
+                    b.status || ""
                 ])
             ];
 
             const worksheet = XLSX.utils.aoa_to_sheet(data);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Car Bookings");
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Vehicle Bookings");
 
-            XLSX.writeFile(workbook, `car-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
+            XLSX.writeFile(workbook, `vehicle-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
         } catch (error) {
             console.error("Error exporting to XLSX:", error);
             alert("Error exporting to XLSX. Please try again.");
@@ -456,18 +531,18 @@ const DashContent = ({
                                         </div>
 
                                         <button onClick={() => setShowFilters(!showFilters)} 
-                                            className="w-full sm:w-auto min-w-[110px] h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
+                                            className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">
                                                     <img
                                                     src={filterIcon}
-                                                    className="size-[14px] shrink-0 brightness-0 "
+                                                    className="size-[14px] shrink-0 brightness-0 group-hover:brightness-0 group-hover:invert"
                                                 />
                                             <span>Filter</span>
                                         </button>
 
-                                        <div className="relative">
+                                        <div className="relative" ref={exportMenuRef}>
                                             <button 
                                                 onClick={() => setShowExportMenu(!showExportMenu)} 
-                                                className="w-full sm:w-auto min-w-[110px] h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">    
+                                                className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">    
                                                 <Download size={14} className="shrink-0" />
                                                 <span>Export</span>
                                                 <DropdownIcon size={12} />
@@ -506,7 +581,7 @@ const DashContent = ({
                                              <div className="flex items-center gap-2">
                                                 <button
                                                 onClick={handleResetFilters}
-                                                    className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-blue-700 transition font-[500]"
+                                                    className="px-3 py-2 text-[14px] bg-white border border-gray-300 rounded-[6px] text-gray-700 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500]"
                                                 >
                                                     Reset Filters
                                                 </button>
@@ -519,19 +594,8 @@ const DashContent = ({
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                                            {/* Search */}
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[12px] font-[600] text-gray-700">Search</label>
-                                                <input
-                                                    type="text"
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                    placeholder="Customer, vehicle, ref..."
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                                />
-                                            </div>
-
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                                            
                                             {/* Status */}
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-[12px] font-[600] text-gray-700">Status</label>
@@ -588,14 +652,14 @@ const DashContent = ({
 
                                         {/* Results count */}
                                         <div className="mt-3 text-[12px] text-gray-500">
-                                            Showing {bookings?.length || 0} of {bookings?.length || 0} bookings
+                                            Showing {filteredBookings.length} of {normalizedBookings.length} bookings
                                         </div>
                                     </div>
                                 )}
                             </div>
 
                             <CarBookingTable
-                                rows={bookings ?? []}
+                                rows={filteredBookings}
                             />
                         </div>
 
