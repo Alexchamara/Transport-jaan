@@ -219,10 +219,10 @@ const DashContent = ({
             : n;
 
     return (
-        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
+        <div className="w-full max-w-full px-3 sm:px-5 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12 overflow-x-hidden">
             {/* Header */}
-            <div className="flex md:flex-row flex-col gap-5 justify-between xl:items-start items-center mb-6">
-                <h1 className="figtree text-[24px] sm:text-[28px] md:text-[35px] font-[700] text-center">
+            <div className="flex md:flex-row flex-col gap-5 justify-between xl:items-start items-start mb-6">
+                <h1 className="figtree text-[24px] sm:text-[28px] md:text-[35px] font-[700] text-left break-words">
                     Vehicle Rental Dashboard
                 </h1>
             </div>
@@ -238,7 +238,7 @@ const DashContent = ({
                         <p className="text-red-700 text-[13px] mt-0.5">The following driver(s) have been deactivated due to an expired license. Submit a renewed license document for admin review to reactivate.</p>
                         <ul className="mt-2 space-y-1">
                             {expiredDrivers.map(r => (
-                                <li key={r.id} className="text-red-700 text-[12px] flex items-center gap-2">
+                                <li key={r.id} className="text-red-700 text-[12px] flex flex-wrap items-start gap-2">
                                     <span className="font-semibold">{r.full_name}</span>
                                     <span>— expired {r.license_expiry}</span>
                                     <Link
@@ -255,16 +255,16 @@ const DashContent = ({
             )}
 
             <div className="flex flex-col gap-5 w-full">
-                {/* Top Section: Cards + Car Availability */}
-                <div className="flex flex-col xl:flex-row gap-5 w-full">
-                    {/* Left - Cards */}
-                    <div className="flex flex-col gap-10 w-full xl:w-1/2">
+                {/* Top Section: KPI Cards */}
+                <div className="flex flex-col xl:flex-row gap-5 w-full xl:items-start">
+                    {/* Cards */}
+                    <div className="flex flex-col gap-10 w-full">
                         {/* Cards */}
                         <div className="flex flex-col gap-5">
-                            <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
                                 {/* Total Revenue */}
                                 <div
-                                    className="w-full xl:min-w-[300px] min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -280,7 +280,7 @@ const DashContent = ({
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
                                                 Total Revenue
                                             </h1>
-                                            <h1 className="text-[18px] md:text-[24px] font-[700] truncate">
+                                            <h1 className="text-[18px] md:text-[24px] font-[700] leading-tight">
                                                 {fmtMoney(
                                                     cards?.totalRevenue ?? 0
                                                 )}
@@ -305,7 +305,7 @@ const DashContent = ({
 
                                 {/* New Bookings */}
                                 <div
-                                    className="w-full xl:min-w-[300px] min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -343,10 +343,10 @@ const DashContent = ({
                                 </div>
                             </div>
 
-                            <div className="flex xl:flex-row flex-col gap-5 w-full">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
                                 {/* Rented Cars */}
                                 <div
-                                    className="w-full xl:min-w-[300px] min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -385,7 +385,7 @@ const DashContent = ({
 
                                 {/* Total Cars */}
                                 <div
-                                    className="w-full xl:min-w-[300px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -424,62 +424,13 @@ const DashContent = ({
                             </div>
                         </div>
                     </div>
-
-                    {/* Right - Car Availability */}
-                    <div className="flex flex-col w-full xl:w-1/2">
-                        <div
-                            className="hidden xl:flex bg-[#D8E4F2] flex-col px-5 py-5 justify-center items-center rounded-[10px] w-full"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <h1 className="text-[20px] md:text-[24px] font-[700] mb-3">
-                                Car Availability
-                            </h1>
-                            <div className="flex flex-col gap-3 w-full max-w-[283px] items-center">
-                                <div className="w-full xl:w-[283px] xl:h-[35px] flex flex-row items-center gap-2 rounded-[6px] px-3 py-2 bg-white">
-                                    <img src={car} className="size-[20px]" />
-                                    <input
-                                        className="w-full outline-none bg-transparent border-0 focus:ring-0"
-                                        placeholder="Car Type"
-                                    />
-                                    <img src={miniDownArrow} />
-                                </div>
-
-                                <div className="flex flex-row gap-3 w-full">
-                                    <div className="flex-1 xl:w-[137px] xl:h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
-                                        <img
-                                            src={date}
-                                            className="size-[20px] shrink-0"
-                                        />
-                                        <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
-                                            placeholder="Start date"
-                                        />
-                                    </div>
-                                    <div className="flex-1 xl:w-[137px] h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
-                                        <img
-                                            src={clock}
-                                            className="size-[16px] shrink-0"
-                                        />
-                                        <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
-                                            placeholder="Start time"
-                                        />
-                                    </div>
-                                </div>
-
-                                <button className="w-full xl:w-[283px] xl:h-[40px] bg-[#0955AC] rounded-[6px] text-[14px] md:text-[16px] font-[700] text-white border-0 focus:ring-0 py-2">
-                                    Check Availability
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Bottom Section: Booking, Overview & Earning */}
                 <div className="flex flex-col gap-10 w-full">
                         {/* Bookings table */}
                         <div
-                            className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-15 px-3 md:px-10"
+                            className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-10 px-3 sm:px-5 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col gap-4 w-full">
@@ -505,7 +456,7 @@ const DashContent = ({
                                         </div>
 
                                         <button onClick={() => setShowFilters(!showFilters)} 
-                                            className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
+                                            className="w-full sm:w-auto min-w-[110px] h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
                                                     <img
                                                     src={filterIcon}
                                                     className="size-[14px] shrink-0 brightness-0 "
@@ -516,7 +467,7 @@ const DashContent = ({
                                         <div className="relative">
                                             <button 
                                                 onClick={() => setShowExportMenu(!showExportMenu)} 
-                                                className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">    
+                                                className="w-full sm:w-auto min-w-[110px] h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">    
                                                 <Download size={14} className="shrink-0" />
                                                 <span>Export</span>
                                                 <DropdownIcon size={12} />
@@ -650,7 +601,7 @@ const DashContent = ({
 
                         {/* Booking Overview */}
                         <div
-                            className="w-full max-w-full h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
+                            className="w-full max-w-full h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-8 md:py-10 px-4 sm:px-6 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-16 w-full gap-4">
@@ -686,7 +637,7 @@ const DashContent = ({
 
                         {/* Earning Summary */}
                         <div
-                            className="w-full max-w-full min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10"
+                            className="w-full max-w-full min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-8 md:py-10 px-4 sm:px-6 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-12 w-full gap-4">
