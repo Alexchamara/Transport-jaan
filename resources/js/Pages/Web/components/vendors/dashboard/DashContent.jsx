@@ -360,7 +360,7 @@ const DashContent = ({
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
-                                                Rented Cars
+                                                Rented Vehicles
                                             </h1>
                                             <h1 className="text-[18px] md:text-[24px] font-[700]">
                                                 {cards?.rentedCars ?? 0} Units
@@ -399,7 +399,7 @@ const DashContent = ({
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
-                                                Total Cars
+                                                Total Vehicles
                                             </h1>
                                             <h1 className="text-[18px] md:text-[24px] font-[700]">
                                                 {cards?.totalCars ?? 0} Units
@@ -437,7 +437,7 @@ const DashContent = ({
                                 {/* Header and Buttons */}
                                 <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 w-full">
                                     <h1 className="text-[20px] md:text-[24px] font-[700]">
-                                        Car Booking
+                                        Vehicle Booking
                                     </h1>
 
                                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">

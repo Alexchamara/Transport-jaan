@@ -39,7 +39,7 @@ const CarBookingTable = ({ rows = [] }) => {
                 <span className="text-sm">{row.customer}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-gray-700">Car Model:</span>
+                <span className="font-semibold text-gray-700">Vehicle Model:</span>
                 <span className="text-sm">{row.car}</span>
               </div>
               <div className="flex justify-between items-center">
@@ -130,7 +130,7 @@ const CarBookingTable = ({ rows = [] }) => {
               "Book id",
               "Booking Date",
               "Client Name",
-              "Car Model",
+              "Vehicle Model",
               "Plan",
               "Date",
               "Payment",
