@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { usePage, Link } from "@inertiajs/react";
 import { Download, ChevronDown as DropdownIcon, Plane, Car, Search as SearchIcon, Filter as FilterIcon, ChevronDown, Zap, Calendar } from "lucide-react";
 import jsPDF from "jspdf";
@@ -104,6 +104,7 @@ const VendorAllBookings = ({
     const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
     const [dateFromFilter, setDateFromFilter] = useState("");
     const [dateToFilter, setDateToFilter] = useState("");
+    const exportMenuRef = useRef(null);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -129,18 +130,32 @@ const VendorAllBookings = ({
         return () => clearInterval(interval);
     }, [auth?.user]);
 
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+                setShowExportMenu(false);
+            }
+        };
+
+        if (showExportMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [showExportMenu]);
+
     // Export bookings to CSV
     const exportToCSV = () => {
         try {
-            const headers = ["Booking Code", "Type", "Customer", "Service", "Amount", "Status", "Date"];
+            const headers = ["Booking ID", "Booking Date", "Client Name", "Service", "Travel Dates", "Payment Status", "Status"];
             const data = filteredBookings.map(booking => [
-                booking.booking_code || booking.id,
-                booking.booking_type,
-                booking.customer_name,
-                booking.service_name,
-                booking.total_amount,
-                booking.status,
-                booking.booking_date
+                booking.id || "—",
+                booking.date || "—",
+                booking.customer || "—",
+                booking.transport || "—",
+                `Start: ${booking.startDate || "—"} | End: ${booking.endDate || "—"}`,
+                booking.paymentStatus || "—",
+                booking.status || "—"
             ]);
 
             const csvContent = [
@@ -169,16 +184,16 @@ const VendorAllBookings = ({
         try {
             const doc = new jsPDF();
             const data = filteredBookings.map(booking => [
-                booking.booking_code || booking.id,
-                booking.booking_type,
-                booking.customer_name,
-                booking.service_name,
-                booking.total_amount,
-                booking.status,
-                booking.booking_date
+                booking.id || "—",
+                booking.date || "—",
+                booking.customer || "—",
+                booking.transport || "—",
+                `Start: ${booking.startDate || "—"} | End: ${booking.endDate || "—"}`,
+                booking.paymentStatus || "—",
+                booking.status || "—"
             ]);
 
-            const headers = [["Booking Code", "Type", "Customer", "Service", "Amount", "Status", "Date"]];
+            const headers = [["Booking ID", "Booking Date", "Client Name", "Service", "Travel Dates", "Payment Status", "Status"]];
 
             doc.setFontSize(16);
             doc.text("All Bookings Report", 14, 10);
@@ -217,18 +232,18 @@ const VendorAllBookings = ({
     const exportToXLSX = () => {
         try {
             const data = [
-                ["Booking Code", "Type", "Customer", "Service", "Amount", "Status", "Date"]
+                ["Booking ID", "Booking Date", "Client Name", "Service", "Travel Dates", "Payment Status", "Status"]
             ];
 
             filteredBookings.forEach(booking => {
                 data.push([
-                    booking.booking_code || booking.id,
-                    booking.booking_type,
-                    booking.customer_name,
-                    booking.service_name,
-                    booking.total_amount,
-                    booking.status,
-                    booking.booking_date
+                    booking.id || "—",
+                    booking.date || "—",
+                    booking.customer || "—",
+                    booking.transport || "—",
+                    `Start: ${booking.startDate || "—"} | End: ${booking.endDate || "—"}`,
+                    booking.paymentStatus || "—",
+                    booking.status || "—"
                 ]);
             });
 
@@ -265,16 +280,23 @@ const VendorAllBookings = ({
         setDateToFilter("");
     };
 
+    const formatDisplayDate = (value) => {
+        if (!value) return "—";
+        const text = String(value);
+        if (text.includes("T")) return text.split("T")[0];
+        return text;
+    };
+
     // Map a booking to the field names AllBookingTable expects
     const mapToRow = (b) => ({
         id: b.id ?? b.booking_code,
-        date: b.date ?? b.booking_date,
+        date: formatDisplayDate(b.date ?? b.booking_date),
         customer: b.customer ?? b.customer_name,
         transport: b.transport ?? b.car ?? b.service_name,
         details: b.details ?? b.plate ?? b.booking_type,
         duration: b.duration ?? "—",
-        startDate: b.startDate ?? b.start_date ?? "—",
-        endDate: b.endDate ?? b.end_date ?? "—",
+        startDate: formatDisplayDate(b.startDate ?? b.start_date),
+        endDate: formatDisplayDate(b.endDate ?? b.end_date),
         price: b.price ?? (b.total_amount ? `Rs. ${Number(b.total_amount).toLocaleString()}` : "—"),
         paymentStatus: b.paymentStatus ?? b.payment_status ?? "—",
         status: b.status ?? "—",
@@ -477,18 +499,18 @@ const VendorAllBookings = ({
                                     </div>
 
                                     <button onClick={() => setShowFilters(!showFilters)}
-                                        className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
+                                        className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">
                                         <img
                                             src={filterIcon}
-                                            className="size-[14px] shrink-0 brightness-0 "
+                                            className="size-[14px] shrink-0 brightness-0 group-hover:brightness-0 group-hover:invert"
                                         />
                                         <span>Filter</span>
                                     </button>
 
-                                    <div className="relative">
+                                    <div className="relative" ref={exportMenuRef}>
                                         <button
                                             onClick={() => setShowExportMenu(!showExportMenu)}
-                                            className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
+                                            className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">
                                             <Download size={14} className="shrink-0" />
                                             <span>Export</span>
                                             <DropdownIcon size={12} />
@@ -527,7 +549,7 @@ const VendorAllBookings = ({
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={handleResetFilters}
-                                                className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-blue-700 transition font-[500]"
+                                                className="px-3 py-2 text-[14px] bg-white border border-gray-300 rounded-[6px] text-gray-700 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500]"
                                             >
                                                 Reset Filters
                                             </button>
