@@ -1649,18 +1649,8 @@ const DashContent = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                                            {/* Search */}
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[12px] font-[600] text-gray-700">Search</label>
-                                                <input
-                                                    type="text"
-                                                    value={warehouseSearchQuery}
-                                                    onChange={(e) => setWarehouseSearchQuery(e.target.value)}
-                                                    placeholder="Booking ID, Client..."
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                                />
-                                            </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                                           
 
                                             {/* Status Filter */}
                                             <div className="flex flex-col gap-2">
