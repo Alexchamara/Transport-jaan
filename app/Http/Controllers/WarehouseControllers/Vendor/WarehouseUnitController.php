@@ -249,6 +249,16 @@ class WarehouseUnitController extends Controller
             return ($value === '' || $value === null) ? null : $value;
         };
 
+        $normalizeTaxRate = function($value) use ($nullIfEmpty) {
+            $clean = $nullIfEmpty($value);
+            if ($clean === null) {
+                return null;
+            }
+
+            $numeric = (float) $clean;
+            return $numeric > 1 ? ($numeric / 100) : $numeric;
+        };
+
         // Parse amenities if they come as JSON string
         $amenities = [];
         if (isset($validated['amenities'])) {
@@ -276,7 +286,7 @@ class WarehouseUnitController extends Controller
             'monthly_rate' => $nullIfEmpty($validated['monthly_rate'] ?? null),
             'security_deposit' => $nullIfEmpty($validated['security_deposit'] ?? null),
             'setup_fee' => $nullIfEmpty($validated['setup_fee'] ?? null),
-            'tax_rate' => $nullIfEmpty($validated['tax_rate'] ?? null),
+            'tax_rate' => $normalizeTaxRate($validated['tax_rate'] ?? null),
             'total_amount' => $nullIfEmpty($validated['total_amount'] ?? null),
             'tax_amount' => $nullIfEmpty($validated['tax_amount'] ?? null),
             'final_amount' => $nullIfEmpty($validated['final_amount'] ?? null),
@@ -737,6 +747,16 @@ class WarehouseUnitController extends Controller
                 return ($value === '' || $value === null) ? null : $value;
             };
 
+            $normalizeTaxRate = function($value) use ($nullIfEmpty) {
+                $clean = $nullIfEmpty($value);
+                if ($clean === null) {
+                    return null;
+                }
+
+                $numeric = (float) $clean;
+                return $numeric > 1 ? ($numeric / 100) : $numeric;
+            };
+
             // Update amenities
             if (!empty($amenities)) {
                 // Delete existing amenities
@@ -773,7 +793,7 @@ class WarehouseUnitController extends Controller
                 'monthly_rate' => $nullIfEmpty($validated['monthly_rate'] ?? null),
                 'security_deposit' => $nullIfEmpty($validated['security_deposit'] ?? null),
                 'setup_fee' => $nullIfEmpty($validated['setup_fee'] ?? null),
-                'tax_rate' => $nullIfEmpty($validated['tax_rate'] ?? null),
+                'tax_rate' => $normalizeTaxRate($validated['tax_rate'] ?? null),
                 'total_amount' => $nullIfEmpty($validated['total_amount'] ?? null),
                 'tax_amount' => $nullIfEmpty($validated['tax_amount'] ?? null),
                 'final_amount' => $nullIfEmpty($validated['final_amount'] ?? null),

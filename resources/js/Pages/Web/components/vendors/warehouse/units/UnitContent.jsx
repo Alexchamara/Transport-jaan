@@ -212,6 +212,7 @@ const InlineAddUnit = ({ onCancel, onCreated }) => {
         payload.append("capacity", form.capacity || "");
         payload.append("type", form.type);
         payload.append("pricing_model", form.pricing_model);
+        payload.append("base_price", form.price || "");
         payload.append("price", form.price || "");
         payload.append("monthly_rate", form.monthly_rate || "");
         payload.append("security_deposit", form.security_deposit || "");
@@ -234,6 +235,7 @@ const InlineAddUnit = ({ onCancel, onCreated }) => {
                 method: "POST",
                 headers: {
                     Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
                     "X-CSRF-TOKEN": csrfToken,
                 },
                 body: payload,
@@ -243,7 +245,17 @@ const InlineAddUnit = ({ onCancel, onCreated }) => {
             if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
                 if (response.status === 422 && data?.errors) {
-                    setErrors(Object.fromEntries(Object.entries(data.errors).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])));
+                    const mappedErrors = Object.fromEntries(
+                        Object.entries(data.errors).map(([key, value]) => [
+                            key === "base_price" ? "price" : key,
+                            Array.isArray(value) ? value[0] : value,
+                        ])
+                    );
+                    setErrors(mappedErrors);
+                    const firstError = Object.values(mappedErrors)[0];
+                    if (firstError) {
+                        alert(String(firstError));
+                    }
                 } else {
                     alert(data?.message || "Failed to create warehouse unit.");
                 }
@@ -675,8 +687,8 @@ const UnitContent = () => {
                 per_page: perPage.toString(),
             });
             if (search) params.append("search", search);
-            if (type) params.append("type", type);
-            if (status) params.append("status", status);
+            if (type) params.append("type_filter", type);
+            if (status) params.append("status_filter", status);
 
             const response = await fetch(`${API_BASE_URL}vendors/warehouse/api/units?${params}`, {
                 method: "GET",
