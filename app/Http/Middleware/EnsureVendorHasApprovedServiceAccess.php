@@ -88,7 +88,7 @@ class EnsureVendorHasApprovedServiceAccess
             return ['vehicle-rental', 'aviation-service', 'railway-service', 'waterborne-transport'];
         }
 
-        if (str_starts_with($routeName, 'warehouse.') && $routeName !== 'warehouse.home') {
+        if (str_starts_with($routeName, 'warehouse.') && !in_array($routeName, ['warehouse.home', 'warehouse.list', 'warehouse.details'], true)) {
             return ['warehousing'];
         }
 
