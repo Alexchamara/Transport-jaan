@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { usePage } from "@inertiajs/react";
 import {
     Search,
@@ -92,6 +92,7 @@ const DashContent = () => {
     const [warehousePaymentFilter, setWarehousePaymentFilter] = useState("All");
     const [warehouseDateFromFilter, setWarehouseDateFromFilter] = useState("");
     const [warehouseDateToFilter, setWarehouseDateToFilter] = useState("");
+    const warehouseExportMenuRef = useRef(null);
 
     // Real-time update state
     const autoRefresh = true;
@@ -672,60 +673,30 @@ const DashContent = () => {
         }
     }, [selectedPeriod, loading, fetchChartData]);
 
-    // Real-time search effect
     useEffect(() => {
-        if (!loading && allBookings.length > 0) {
-            let filtered = allBookings;
-
-            if (activeFilter !== "all") {
-                switch (activeFilter) {
-                    case "active":
-                        filtered = filtered.filter((b) =>
-                            ["confirmed", "active"].includes(b.status)
-                        );
-                        break;
-                    case "pending":
-                        filtered = filtered.filter(
-                            (b) => b.status === "pending"
-                        );
-                        break;
-                    case "completed":
-                        filtered = filtered.filter(
-                            (b) => b.status === "completed"
-                        );
-                        break;
-                    case "cancelled":
-                        filtered = filtered.filter(
-                            (b) => b.status === "cancelled"
-                        );
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            if (searchQuery.trim()) {
-                const searchTerm = searchQuery.toLowerCase();
-                filtered = filtered.filter(
-                    (booking) =>
-                        booking.contact_person
-                            ?.toLowerCase()
-                            .includes(searchTerm) ||
-                        booking.company_name
-                            ?.toLowerCase()
-                            .includes(searchTerm) ||
-                        booking.email?.toLowerCase().includes(searchTerm) ||
-                        booking.phone?.includes(searchTerm) ||
-                        booking.booking_reference
-                            ?.toLowerCase()
-                            .includes(searchTerm) ||
-                        booking.status?.toLowerCase().includes(searchTerm)
-                );
-            }
-
-            setBookings(filtered);
+        if (!loading) {
+            applyCurrentFilters(allBookings);
         }
-    }, [searchQuery, activeFilter, loading, allBookings]);
+    }, [loading, allBookings, applyCurrentFilters]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (
+                warehouseExportMenuRef.current &&
+                !warehouseExportMenuRef.current.contains(event.target)
+            ) {
+                setShowWarehouseExportMenu(false);
+            }
+        };
+
+        if (showWarehouseExportMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showWarehouseExportMenu]);
 
     // Real-time auto-refresh effect
     useEffect(() => {
@@ -899,37 +870,86 @@ const DashContent = () => {
         }
     }, [liveMode, showNotification]);
 
+    const parseDateSafe = (dateValue) => {
+        if (!dateValue) return null;
+        const d = new Date(dateValue);
+        return Number.isNaN(d.getTime()) ? null : d;
+    };
+
+    const formatShortDate = (dateValue) => {
+        const d = parseDateSafe(dateValue);
+        return d
+            ? d.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "2-digit",
+            })
+            : "N/A";
+    };
+
+    const mapWarehouseDisplayData = (booking) => {
+        const durationValue =
+            booking.durationMonths ||
+            booking.duration_months ||
+            booking.durationValue ||
+            1;
+        const rateValue =
+            booking.monthlyRate ||
+            booking.monthly_rate ||
+            booking.total_price ||
+            0;
+        const paid =
+            booking.payment_status === "paid" ||
+            booking.paymentStatus === "Paid";
+
+        return {
+            id: booking.id || booking.booking_reference || "N/A",
+            createdAt: formatShortDate(booking.bookingDate || booking.created_at),
+            vendor:
+                booking.contactPerson ||
+                booking.contact_person ||
+                booking.clientName ||
+                "Unknown",
+            company: booking.company_name || booking.companyName || "N/A",
+            unit:
+                booking.warehouseUnit ||
+                booking.warehouse_unit ||
+                booking.unit_type ||
+                "N/A",
+            term: `${durationValue} ${durationValue === 1 ? "month" : "months"}`,
+            startDate: formatShortDate(booking.startDate || booking.start_date),
+            endDate: formatShortDate(booking.endDate || booking.end_date),
+            rate: `LKR ${Number(rateValue).toLocaleString()}/mo`,
+            paymentStatus: booking.paymentStatus || (paid ? "Paid" : "Pending"),
+            status: booking.status
+                ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
+                : "Pending",
+        };
+    };
+
     // Export warehouse bookings to CSV
     const exportWarehouseToCSV = () => {
-        const filteredData = bookings.filter((booking) => {
-            const matchesSearch = !warehouseSearchQuery ||
-                booking.booking_reference?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
-                booking.contact_person?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
-                booking.company_name?.toLowerCase().includes(warehouseSearchQuery.toLowerCase());
-
-            const matchesStatus = warehouseStatusFilter === "All" || booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase();
-
-            const matchesPayment = warehousePaymentFilter === "All" || booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase();
-
-            const bookingDate = new Date(booking.start_date);
-            const matchesFromDate = !warehouseDateFromFilter || bookingDate >= new Date(warehouseDateFromFilter);
-            const matchesToDate = !warehouseDateToFilter || bookingDate <= new Date(warehouseDateToFilter);
-
-            return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
-        });
+        const rows = bookings.map(mapWarehouseDisplayData);
+        if (!rows.length) {
+            alert("No bookings to export");
+            setShowWarehouseExportMenu(false);
+            return;
+        }
 
         const csvContent = [
-            ["Booking ID", "Client", "Company", "Unit", "Start Date", "End Date", "Status", "Payment", "Price"],
-            ...filteredData.map((booking) => [
-                booking.booking_reference || "N/A",
-                booking.contact_person || "N/A",
-                booking.company_name || "N/A",
-                booking.unit_type || "N/A",
-                new Date(booking.start_date).toLocaleDateString() || "N/A",
-                new Date(booking.end_date).toLocaleDateString() || "N/A",
-                booking.status || "N/A",
-                booking.payment_status || "N/A",
-                `LKR ${booking.total_price?.toLocaleString() || 0}`,
+            ["Booking ID", "Booking Date", "Client Name", "Company", "Unit", "Term", "Start Date", "End Date", "Rate", "Payment Status", "Status"],
+            ...rows.map((booking) => [
+                booking.id,
+                booking.createdAt,
+                booking.vendor,
+                booking.company,
+                booking.unit,
+                booking.term,
+                booking.startDate,
+                booking.endDate,
+                booking.rate,
+                booking.paymentStatus,
+                booking.status,
             ]),
         ]
             .map((row) => row.map((cell) => `"${cell}"`).join(","))
@@ -948,37 +968,29 @@ const DashContent = () => {
 
     // Export warehouse bookings to PDF
     const exportWarehouseToPDF = () => {
-        const filteredData = bookings.filter((booking) => {
-            const matchesSearch = !warehouseSearchQuery ||
-                booking.booking_reference?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
-                booking.contact_person?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
-                booking.company_name?.toLowerCase().includes(warehouseSearchQuery.toLowerCase());
+        const rows = bookings.map(mapWarehouseDisplayData);
+        if (!rows.length) {
+            alert("No bookings to export");
+            setShowWarehouseExportMenu(false);
+            return;
+        }
 
-            const matchesStatus = warehouseStatusFilter === "All" || booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase();
-
-            const matchesPayment = warehousePaymentFilter === "All" || booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase();
-
-            const bookingDate = new Date(booking.start_date);
-            const matchesFromDate = !warehouseDateFromFilter || bookingDate >= new Date(warehouseDateFromFilter);
-            const matchesToDate = !warehouseDateToFilter || bookingDate <= new Date(warehouseDateToFilter);
-
-            return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
-        });
-
-        const doc = new jsPDF();
-        const data = filteredData.map((booking) => [
-            booking.booking_reference || "N/A",
-            booking.contact_person || "N/A",
-            booking.company_name || "N/A",
-            booking.unit_type || "N/A",
-            new Date(booking.start_date).toLocaleDateString() || "N/A",
-            new Date(booking.end_date).toLocaleDateString() || "N/A",
-            booking.status || "N/A",
-            booking.payment_status || "N/A",
-            `LKR ${booking.total_price?.toLocaleString() || 0}`,
+        const doc = new jsPDF({ orientation: "landscape" });
+        const data = rows.map((booking) => [
+            booking.id,
+            booking.createdAt,
+            booking.vendor,
+            booking.company,
+            booking.unit,
+            booking.term,
+            booking.startDate,
+            booking.endDate,
+            booking.rate,
+            booking.paymentStatus,
+            booking.status,
         ]);
 
-        const headers = [["Booking ID", "Client", "Company", "Unit", "Start Date", "End Date", "Status", "Payment", "Price"]];
+        const headers = [["Booking ID", "Booking Date", "Client Name", "Company", "Unit", "Term", "Start Date", "End Date", "Rate", "Payment Status", "Status"]];
 
         doc.setFontSize(16);
         doc.text("Warehouse Bookings Report", 14, 10);
@@ -993,7 +1005,7 @@ const DashContent = () => {
             headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
             alternateRowStyles: { fillColor: [230, 240, 250] },
             didDrawPage: (data) => {
-                const pageCount = doc.internal.getPages().length;
+                const pageCount = doc.internal.getNumberOfPages();
                 doc.setFontSize(9);
                 doc.text(
                     `Page ${data.pageNumber} of ${pageCount}`,
@@ -1011,35 +1023,27 @@ const DashContent = () => {
     // Export warehouse bookings to XLSX
     const exportWarehouseToXLSX = () => {
         try {
-            const filteredData = bookings.filter((booking) => {
-                const matchesSearch = !warehouseSearchQuery ||
-                    booking.booking_reference?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
-                    booking.contact_person?.toLowerCase().includes(warehouseSearchQuery.toLowerCase()) ||
-                    booking.company_name?.toLowerCase().includes(warehouseSearchQuery.toLowerCase());
-
-                const matchesStatus = warehouseStatusFilter === "All" || booking.status?.toLowerCase() === warehouseStatusFilter.toLowerCase();
-
-                const matchesPayment = warehousePaymentFilter === "All" || booking.payment_status?.toLowerCase() === warehousePaymentFilter.toLowerCase();
-
-                const bookingDate = new Date(booking.start_date);
-                const matchesFromDate = !warehouseDateFromFilter || bookingDate >= new Date(warehouseDateFromFilter);
-                const matchesToDate = !warehouseDateToFilter || bookingDate <= new Date(warehouseDateToFilter);
-
-                return matchesSearch && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
-            });
+            const rows = bookings.map(mapWarehouseDisplayData);
+            if (!rows.length) {
+                alert("No bookings to export");
+                setShowWarehouseExportMenu(false);
+                return;
+            }
 
             const data = [
-                ["Booking ID", "Client", "Company", "Unit", "Start Date", "End Date", "Status", "Payment", "Price"],
-                ...filteredData.map((booking) => [
-                    booking.booking_reference || "N/A",
-                    booking.contact_person || "N/A",
-                    booking.company_name || "N/A",
-                    booking.unit_type || "N/A",
-                    new Date(booking.start_date).toLocaleDateString() || "N/A",
-                    new Date(booking.end_date).toLocaleDateString() || "N/A",
-                    booking.status || "N/A",
-                    booking.payment_status || "N/A",
-                    `LKR ${booking.total_price?.toLocaleString() || 0}`,
+                ["Booking ID", "Booking Date", "Client Name", "Company", "Unit", "Term", "Start Date", "End Date", "Rate", "Payment Status", "Status"],
+                ...rows.map((booking) => [
+                    booking.id,
+                    booking.createdAt,
+                    booking.vendor,
+                    booking.company,
+                    booking.unit,
+                    booking.term,
+                    booking.startDate,
+                    booking.endDate,
+                    booking.rate,
+                    booking.paymentStatus,
+                    booking.status,
                 ])
             ];
 
@@ -1062,9 +1066,7 @@ const DashContent = () => {
         setWarehousePaymentFilter("All");
         setWarehouseDateFromFilter("");
         setWarehouseDateToFilter("");
-        setShowWarehouseFilters(false);
-        showNotification("Filters reset", "success");
-    }, [showNotification]);
+    }, []);
 
     // Inline BookingOverviewBarChart Component
     const BookingOverviewBarChart = ({ data = [] }) => {
@@ -1592,7 +1594,7 @@ const DashContent = () => {
                                             <span>Filter</span>
                                         </button>
 
-                                        <div className="relative">
+                                        <div className="relative" ref={warehouseExportMenuRef}>
                                             <button
                                                 onClick={() => setShowWarehouseExportMenu(!showWarehouseExportMenu)}
                                                 className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white transition font-[500] text-[14px] border border-gray-300">
@@ -1634,7 +1636,7 @@ const DashContent = () => {
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={handleResetWarehouseFilters}
-                                                    className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-gray-100 transition font-[500]"
+                                                    className="px-3 py-2 text-[14px] bg-white border border-gray-300 rounded-[6px] text-gray-700 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500]"
                                                 >
                                                     Reset Filters
                                                 </button>
