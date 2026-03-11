@@ -4,21 +4,25 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Warehouse\WarehouseUnit;
+use App\Models\Warehouse\WarehouseBooking;
 use App\Models\Warehouse\WarehouseApproval;
+use App\Models\Warehouse\WarehouseReview;
+use App\Models\WarehouseBookingCancellation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
+use Carbon\Carbon;
 
 class WarehouseController extends Controller
 {
     /**
-     * Display warehouse management page with actual data
+     * Display warehouse management page with dashboard analytics
      */
     public function index(Request $request)
     {
         try {
-            // Get query parameters
             $search = $request->get('search');
             $typeFilter = $request->get('type_filter');
             $statusFilter = $request->get('status_filter');
@@ -26,7 +30,6 @@ class WarehouseController extends Controller
             // Build query for warehouse units
             $query = WarehouseUnit::query();
 
-            // Apply search filter
             if ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -38,42 +41,29 @@ class WarehouseController extends Controller
                 });
             }
 
-            // Apply type filter
             if ($typeFilter && $typeFilter !== 'all') {
                 $query->where('type', '=', trim($typeFilter));
             }
 
-            // Apply status filter based on approval status
             if ($statusFilter && $statusFilter !== 'all') {
                 $query->where(function ($q) use ($statusFilter) {
-                    // Check warehouses with approval records
                     $q->whereHas('currentApproval', function ($subQ) use ($statusFilter) {
                         $subQ->where('status', trim($statusFilter));
                     });
-
-                    // If filtering for pending, also include warehouses without approval records
                     if (trim($statusFilter) === 'pending') {
                         $q->orWhereDoesntHave('approvals');
                     }
                 });
             }
 
-            // Add relationships after filters to avoid query issues
-            $query->with([
-                'owner:id,name,email',
-                'currentApproval'
-            ]);
+            $query->with(['owner:id,name,email', 'currentApproval']);
 
-            // Get paginated results
             $warehouses = $query->latest()
                 ->paginate(10)
                 ->withQueryString();
 
-            // Transform data for frontend
             $warehouses->getCollection()->transform(function ($warehouse) {
-                // Get status from currentApproval if it exists, otherwise default to 'pending'
                 $status = $warehouse->currentApproval ? $warehouse->currentApproval->status : 'pending';
-                
                 return [
                     'id' => $warehouse->id,
                     'name' => $warehouse->name,
@@ -101,13 +91,17 @@ class WarehouseController extends Controller
                 ];
             });
 
+            // Dashboard analytics data
+            $dashboardData = $this->getDashboardData();
+
             return Inertia::render('Web/home/SuperAdmin/Warehouse', [
                 'warehouses' => $warehouses,
                 'filters' => [
                     'search' => $search,
                     'type_filter' => $typeFilter,
                     'status_filter' => $statusFilter
-                ]
+                ],
+                'dashboardData' => $dashboardData,
             ]);
 
         } catch (\Exception $e) {
@@ -116,9 +110,312 @@ class WarehouseController extends Controller
             return Inertia::render('Web/home/SuperAdmin/Warehouse', [
                 'warehouses' => [],
                 'filters' => [],
+                'dashboardData' => $this->getEmptyDashboardData(),
                 'error' => 'Failed to load warehouse data'
             ]);
         }
+    }
+
+    /**
+     * Comprehensive dashboard analytics
+     */
+    private function getDashboardData()
+    {
+        $now = Carbon::now();
+        $startOfMonth = $now->copy()->startOfMonth();
+        $lastMonth = $now->copy()->subMonth();
+
+        // --- Overview Stats ---
+        $totalUnits = WarehouseUnit::count();
+        $approvedUnits = WarehouseUnit::whereHas('currentApproval', fn($q) => $q->where('status', 'approved'))->count();
+        $pendingUnits = WarehouseUnit::where(function ($q) {
+            $q->whereHas('currentApproval', fn($sq) => $sq->where('status', 'pending'))
+              ->orWhereDoesntHave('approvals');
+        })->count();
+        $suspendedUnits = WarehouseUnit::whereHas('currentApproval', fn($q) => $q->where('status', 'suspended'))->count();
+        $rejectedUnits = WarehouseUnit::whereHas('currentApproval', fn($q) => $q->where('status', 'rejected'))->count();
+
+        $totalBookings = WarehouseBooking::count();
+        $activeBookings = WarehouseBooking::where('status', 'confirmed')->count();
+        $pendingBookings = WarehouseBooking::where('status', 'pending')->count();
+        $cancelledBookings = WarehouseBooking::where('status', 'cancelled')->count();
+
+        $totalRevenue = WarehouseBooking::where('payment_status', 'paid')->sum('final_amount') ?? 0;
+        $monthlyRevenue = WarehouseBooking::where('payment_status', 'paid')
+            ->where('created_at', '>=', $startOfMonth)
+            ->sum('final_amount') ?? 0;
+        $lastMonthRevenue = WarehouseBooking::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$lastMonth->copy()->startOfMonth(), $lastMonth->copy()->endOfMonth()])
+            ->sum('final_amount') ?? 0;
+
+        $revenueChange = $lastMonthRevenue > 0
+            ? round((($monthlyRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 1)
+            : ($monthlyRevenue > 0 ? 100 : 0);
+
+        $thisMonthBookings = WarehouseBooking::where('created_at', '>=', $startOfMonth)->count();
+        $lastMonthBookings = WarehouseBooking::whereBetween('created_at', [$lastMonth->copy()->startOfMonth(), $lastMonth->copy()->endOfMonth()])->count();
+        $bookingsChange = $lastMonthBookings > 0
+            ? round((($thisMonthBookings - $lastMonthBookings) / $lastMonthBookings) * 100, 1)
+            : ($thisMonthBookings > 0 ? 100 : 0);
+
+        $occupancyRate = $totalUnits > 0 ? round(($approvedUnits / $totalUnits) * 100, 1) : 0;
+
+        $avgRating = WarehouseReview::where('is_active', true)->avg('rating') ?? 0;
+        $totalReviews = WarehouseReview::where('is_active', true)->count();
+
+        // --- Monthly Booking Trends (last 12 months) ---
+        $bookingTrends = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $month = $now->copy()->subMonths($i);
+            $monthStart = $month->copy()->startOfMonth();
+            $monthEnd = $month->copy()->endOfMonth();
+
+            $confirmed = WarehouseBooking::where('status', 'confirmed')
+                ->whereBetween('created_at', [$monthStart, $monthEnd])->count();
+            $pending = WarehouseBooking::where('status', 'pending')
+                ->whereBetween('created_at', [$monthStart, $monthEnd])->count();
+            $cancelled = WarehouseBooking::where('status', 'cancelled')
+                ->whereBetween('created_at', [$monthStart, $monthEnd])->count();
+
+            $bookingTrends[] = [
+                'month' => $month->format('M'),
+                'year' => $month->format('Y'),
+                'confirmed' => $confirmed,
+                'pending' => $pending,
+                'cancelled' => $cancelled,
+                'total' => $confirmed + $pending + $cancelled,
+            ];
+        }
+
+        // --- Monthly Revenue Trends (last 12 months) ---
+        $revenueTrends = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $month = $now->copy()->subMonths($i);
+            $monthStart = $month->copy()->startOfMonth();
+            $monthEnd = $month->copy()->endOfMonth();
+
+            $revenue = WarehouseBooking::where('payment_status', 'paid')
+                ->whereBetween('created_at', [$monthStart, $monthEnd])
+                ->sum('final_amount') ?? 0;
+
+            $revenueTrends[] = [
+                'month' => $month->format('M'),
+                'year' => $month->format('Y'),
+                'revenue' => round((float)$revenue, 2),
+            ];
+        }
+
+        // --- Type Distribution ---
+        $typeDistribution = WarehouseUnit::select('type', DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->get()
+            ->map(fn($item) => [
+                'type' => $item->type ?? 'unknown',
+                'count' => $item->count,
+                'label' => $this->formatTypeName($item->type),
+            ])
+            ->toArray();
+
+        // --- Booking Status Distribution ---
+        $statusDistribution = WarehouseBooking::select('status', DB::raw('count(*) as count'))
+            ->groupBy('status')
+            ->get()
+            ->map(fn($item) => [
+                'status' => $item->status ?? 'unknown',
+                'count' => $item->count,
+            ])
+            ->toArray();
+
+        // --- Payment Status Distribution ---
+        $paymentDistribution = WarehouseBooking::select('payment_status', DB::raw('count(*) as count'))
+            ->groupBy('payment_status')
+            ->get()
+            ->map(fn($item) => [
+                'status' => $item->payment_status ?? 'unknown',
+                'count' => $item->count,
+            ])
+            ->toArray();
+
+        // --- Top Performing Warehouses ---
+        $topWarehouses = WarehouseUnit::withCount(['reviews'])
+            ->with(['owner:id,name'])
+            ->has('reviews')
+            ->get()
+            ->map(function ($unit) {
+                $bookingCount = WarehouseBooking::where('warehouse_unit_id', $unit->id)->count();
+                $revenue = WarehouseBooking::where('warehouse_unit_id', $unit->id)
+                    ->where('payment_status', 'paid')
+                    ->sum('final_amount') ?? 0;
+                return [
+                    'id' => $unit->id,
+                    'name' => $unit->name,
+                    'type' => $unit->type,
+                    'owner' => $unit->owner->name ?? 'N/A',
+                    'bookings' => $bookingCount,
+                    'revenue' => round((float)$revenue, 2),
+                    'rating' => round((float)$unit->averageRating(), 1),
+                    'reviews_count' => $unit->reviews_count,
+                ];
+            })
+            ->sortByDesc('revenue')
+            ->take(5)
+            ->values()
+            ->toArray();
+
+        // If no reviews exist, fallback to top by bookings
+        if (empty($topWarehouses)) {
+            $topWarehouses = WarehouseUnit::with(['owner:id,name'])
+                ->get()
+                ->map(function ($unit) {
+                    $bookingCount = WarehouseBooking::where('warehouse_unit_id', $unit->id)->count();
+                    $revenue = WarehouseBooking::where('warehouse_unit_id', $unit->id)
+                        ->where('payment_status', 'paid')
+                        ->sum('final_amount') ?? 0;
+                    return [
+                        'id' => $unit->id,
+                        'name' => $unit->name,
+                        'type' => $unit->type,
+                        'owner' => $unit->owner->name ?? 'N/A',
+                        'bookings' => $bookingCount,
+                        'revenue' => round((float)$revenue, 2),
+                        'rating' => 0,
+                        'reviews_count' => 0,
+                    ];
+                })
+                ->sortByDesc('bookings')
+                ->take(5)
+                ->values()
+                ->toArray();
+        }
+
+        // --- Recent Bookings ---
+        $recentBookings = WarehouseBooking::with(['user:id,name,email', 'warehouseUnit:id,name,type'])
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(fn($b) => [
+                'id' => $b->id,
+                'reference' => $b->booking_reference,
+                'customer' => $b->user->name ?? $b->company_name ?? 'N/A',
+                'email' => $b->user->email ?? $b->company_email ?? 'N/A',
+                'warehouse' => $b->warehouseUnit->name ?? 'N/A',
+                'warehouse_type' => $b->warehouseUnit->type ?? 'N/A',
+                'status' => $b->status,
+                'payment_status' => $b->payment_status,
+                'amount' => round((float)($b->final_amount ?? 0), 2),
+                'start_date' => $b->start_date ? Carbon::parse($b->start_date)->format('M d, Y') : 'N/A',
+                'end_date' => $b->end_date ? Carbon::parse($b->end_date)->format('M d, Y') : 'N/A',
+                'created_at' => $b->created_at->format('M d, Y H:i'),
+            ])
+            ->toArray();
+
+        // --- Pending Approvals ---
+        $pendingApprovals = WarehouseUnit::with(['owner:id,name,email'])
+            ->where(function ($q) {
+                $q->whereHas('currentApproval', fn($sq) => $sq->where('status', 'pending'))
+                  ->orWhereDoesntHave('approvals');
+            })
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(fn($w) => [
+                'id' => $w->id,
+                'name' => $w->name,
+                'type' => $w->type,
+                'owner' => $w->owner->name ?? 'N/A',
+                'owner_email' => $w->owner->email ?? 'N/A',
+                'created_at' => $w->created_at->format('M d, Y'),
+            ])
+            ->toArray();
+
+        // --- Cancellation Analytics ---
+        $totalCancellations = WarehouseBookingCancellation::count();
+        $totalRefunded = WarehouseBookingCancellation::where('refund_status', 'completed')->sum('refund_amount') ?? 0;
+        $pendingRefunds = WarehouseBookingCancellation::where('refund_status', 'pending')->count();
+
+        // --- Storage Type Demand ---
+        $storageTypeDemand = WarehouseBooking::select('storage_type', DB::raw('count(*) as demand'))
+            ->whereNotNull('storage_type')
+            ->groupBy('storage_type')
+            ->orderByDesc('demand')
+            ->get()
+            ->map(fn($item) => [
+                'type' => $item->storage_type,
+                'demand' => $item->demand,
+            ])
+            ->toArray();
+
+        return [
+            'overview' => [
+                'totalUnits' => $totalUnits,
+                'approvedUnits' => $approvedUnits,
+                'pendingUnits' => $pendingUnits,
+                'suspendedUnits' => $suspendedUnits,
+                'rejectedUnits' => $rejectedUnits,
+                'totalBookings' => $totalBookings,
+                'activeBookings' => $activeBookings,
+                'pendingBookings' => $pendingBookings,
+                'cancelledBookings' => $cancelledBookings,
+                'totalRevenue' => round((float)$totalRevenue, 2),
+                'monthlyRevenue' => round((float)$monthlyRevenue, 2),
+                'revenueChange' => $revenueChange,
+                'bookingsChange' => $bookingsChange,
+                'occupancyRate' => $occupancyRate,
+                'avgRating' => round((float)$avgRating, 1),
+                'totalReviews' => $totalReviews,
+            ],
+            'bookingTrends' => $bookingTrends,
+            'revenueTrends' => $revenueTrends,
+            'typeDistribution' => $typeDistribution,
+            'statusDistribution' => $statusDistribution,
+            'paymentDistribution' => $paymentDistribution,
+            'topWarehouses' => $topWarehouses,
+            'recentBookings' => $recentBookings,
+            'pendingApprovals' => $pendingApprovals,
+            'cancellationAnalytics' => [
+                'totalCancellations' => $totalCancellations,
+                'totalRefunded' => round((float)$totalRefunded, 2),
+                'pendingRefunds' => $pendingRefunds,
+            ],
+            'storageTypeDemand' => $storageTypeDemand,
+        ];
+    }
+
+    private function getEmptyDashboardData()
+    {
+        return [
+            'overview' => [
+                'totalUnits' => 0, 'approvedUnits' => 0, 'pendingUnits' => 0,
+                'suspendedUnits' => 0, 'rejectedUnits' => 0,
+                'totalBookings' => 0, 'activeBookings' => 0, 'pendingBookings' => 0,
+                'cancelledBookings' => 0, 'totalRevenue' => 0, 'monthlyRevenue' => 0,
+                'revenueChange' => 0, 'bookingsChange' => 0, 'occupancyRate' => 0,
+                'avgRating' => 0, 'totalReviews' => 0,
+            ],
+            'bookingTrends' => [],
+            'revenueTrends' => [],
+            'typeDistribution' => [],
+            'statusDistribution' => [],
+            'paymentDistribution' => [],
+            'topWarehouses' => [],
+            'recentBookings' => [],
+            'pendingApprovals' => [],
+            'cancellationAnalytics' => ['totalCancellations' => 0, 'totalRefunded' => 0, 'pendingRefunds' => 0],
+            'storageTypeDemand' => [],
+        ];
+    }
+
+    private function formatTypeName($type)
+    {
+        $map = [
+            'cold_storage' => 'Cold Storage',
+            'dry' => 'Dry Storage',
+            'bonded' => 'Bonded Warehouse',
+            'open_yard' => 'Open Yard',
+            'climate_controlled' => 'Climate Controlled',
+            'hazmat' => 'Hazmat Storage',
+        ];
+        return $map[$type] ?? ucfirst(str_replace('_', ' ', $type ?? 'Unknown'));
     }
 
     /**
