@@ -141,21 +141,24 @@ const DashContent = ({
 
     // Export bookings to CSV
     const exportToCSV = () => {
-        if (!bookings || bookings.length === 0) {
+        if (!filteredBookings || filteredBookings.length === 0) {
             alert("No bookings to export");
             return;
         }
 
-        const headers = ["Booking Ref", "Customer", "Car", "Start Date", "End Date", "Status", "Payment Status", "Total"];
-        const data = bookings.map(b => [
-            b.bookingRef || "",
-            b.customerName || "",
-            b.carName || "",
+        const headers = ["Booking Ref", "Booking Date", "Client Name", "Vehicle", "Plate", "Plan", "Start Date", "End Date", "Payment", "Payment Status", "Status"];
+        const data = filteredBookings.map(b => [
+            b.id || "",
+            b.date || "",
+            b.customer || "",
+            b.car || "",
+            b.plate || "",
+            b.duration || "",
             b.startDate || "",
             b.endDate || "",
-            b.status || "",
+            b.price || "",
             b.paymentStatus || "",
-            b.totalPrice || ""
+            b.status || ""
         ]);
 
         const csvContent = [
@@ -167,7 +170,7 @@ const DashContent = ({
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `car-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.setAttribute("download", `vehicle-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
         link.style.visibility = "hidden";
         document.body.appendChild(link);
         link.click();
@@ -177,27 +180,30 @@ const DashContent = ({
 
     // Export bookings to PDF
     const exportToPDF = () => {
-        if (!bookings || bookings.length === 0) {
+        if (!filteredBookings || filteredBookings.length === 0) {
             alert("No bookings to export");
             return;
         }
 
-        const doc = new jsPDF();
-        const data = bookings.map(b => [
-            b.bookingRef || "",
-            b.customerName || "",
-            b.carName || "",
+        const doc = new jsPDF({ orientation: 'landscape' });
+        const data = filteredBookings.map(b => [
+            b.id || "",
+            b.date || "",
+            b.customer || "",
+            b.car || "",
+            b.plate || "",
+            b.duration || "",
             b.startDate || "",
             b.endDate || "",
-            b.status || "",
+            b.price || "",
             b.paymentStatus || "",
-            b.totalPrice || ""
+            b.status || ""
         ]);
 
-        const headers = [["Booking Ref", "Customer", "Car", "Start Date", "End Date", "Status", "Payment Status", "Total"]];
+        const headers = [["Booking Ref", "Booking Date", "Client Name", "Vehicle", "Plate", "Plan", "Start Date", "End Date", "Payment", "Pay. Status", "Status"]];
 
         doc.setFontSize(16);
-        doc.text("Car Bookings Report", 14, 10);
+        doc.text("Vehicle Bookings Report", 14, 10);
         doc.setFontSize(10);
         doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
 
@@ -209,7 +215,7 @@ const DashContent = ({
             headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
             alternateRowStyles: { fillColor: [230, 240, 250] },
             didDrawPage: (data) => {
-                const pageCount = doc.internal.getPages().length;
+                const pageCount = doc.internal.getNumberOfPages();
                 doc.setFontSize(9);
                 doc.text(
                     `Page ${data.pageNumber} of ${pageCount}`,
@@ -220,37 +226,40 @@ const DashContent = ({
             }
         });
 
-        doc.save(`car-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
+        doc.save(`vehicle-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
         setShowExportMenu(false);
     };
 
     // Export bookings to XLSX
     const exportToXLSX = () => {
         try {
-            if (!bookings || bookings.length === 0) {
+            if (!filteredBookings || filteredBookings.length === 0) {
                 alert("No bookings to export");
                 return;
             }
 
             const data = [
-                ["Booking Ref", "Customer", "Car", "Start Date", "End Date", "Status", "Payment Status", "Total"],
-                ...bookings.map(b => [
-                    b.bookingRef || "",
-                    b.customerName || "",
-                    b.carName || "",
+                ["Booking Ref", "Booking Date", "Client Name", "Vehicle", "Plate", "Plan", "Start Date", "End Date", "Payment", "Payment Status", "Status"],
+                ...filteredBookings.map(b => [
+                    b.id || "",
+                    b.date || "",
+                    b.customer || "",
+                    b.car || "",
+                    b.plate || "",
+                    b.duration || "",
                     b.startDate || "",
                     b.endDate || "",
-                    b.status || "",
+                    b.price || "",
                     b.paymentStatus || "",
-                    b.totalPrice || ""
+                    b.status || ""
                 ])
             ];
 
             const worksheet = XLSX.utils.aoa_to_sheet(data);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Car Bookings");
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Vehicle Bookings");
 
-            XLSX.writeFile(workbook, `car-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
+            XLSX.writeFile(workbook, `vehicle-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
         } catch (error) {
             console.error("Error exporting to XLSX:", error);
             alert("Error exporting to XLSX. Please try again.");
