@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const earningData = [
+const defaultEarningData = [
   { name: "Jan", value: 5000 },
   { name: "Feb", value: 7000 },
   { name: "Mar", value: 6000 },
@@ -15,17 +15,9 @@ const earningData = [
   { name: "Dec", value: 21000 },
 ];
 
-const maxValue = 24000;
-const chartHeight = 250;
+const chartHeight = 230;
 const chartWidth = 650;
 const padding = 40;
-
-function getX(index) {
-  return padding + (index * (chartWidth - 2 * padding)) / (earningData.length - 1);
-}
-function getY(value) {
-  return chartHeight - padding - (value * (chartHeight - 2 * padding)) / maxValue;
-}
 
 // Helper function to generate smooth curve
 function generateSmoothPath(points) {
@@ -45,16 +37,32 @@ function generateSmoothPath(points) {
   return path.join(" ");
 }
 
-const EarningSummaryChart = () => {
+const EarningSummaryChart = ({ data = [] }) => {
+  const earningData = data && data.length > 0 ? data : defaultEarningData;
+  
+  if (!earningData || earningData.length === 0) {
+    return <div className="w-full h-[250px] flex items-center justify-center text-gray-500">No data available</div>;
+  }
+  
+  const maxValue = Math.max(...earningData.map(d => d.value || 0), 24000);
+
+  function getX(index) {
+    return padding + (index * (chartWidth - 2 * padding)) / Math.max(earningData.length - 1, 1);
+  }
+  
+  function getY(value) {
+    return chartHeight - padding - (value * (chartHeight - 2 * padding)) / Math.max(maxValue, 1);
+  }
+
   // Find the index of the highest value
   const highestIndex = earningData.reduce(
-    (maxIdx, d, idx, arr) => d.value > arr[maxIdx].value ? idx : maxIdx,
+    (maxIdx, d, idx, arr) => (d.value || 0) > (arr[maxIdx]?.value || 0) ? idx : maxIdx,
     0
   );
-  const [hovered, setHovered] = useState(highestIndex);
+  const [hovered, setHovered] = useState(Math.max(0, Math.min(highestIndex, earningData.length - 1)));
 
   // Generate points for the paths
-  const points = earningData.map((d, i) => [getX(i), getY(d.value)]);
+  const points = earningData.map((d, i) => [getX(i), getY(d.value || 0)]);
   
   // Build the smooth line path
   const linePath = generateSmoothPath(points);
@@ -67,6 +75,13 @@ const EarningSummaryChart = () => {
     "Z",
   ].join(" ");
 
+  // Generate Y axis grid values dynamically
+  const gridValues = [];
+  const step = Math.max(Math.ceil(maxValue / 4 / 1000) * 1000, 1000);
+  for (let i = 0; i <= maxValue; i += step) {
+    gridValues.push(i);
+  }
+
   return (
     <div className="w-full overflow-auto">
       <svg width={chartWidth} height={chartHeight} className="block mx-auto">
@@ -78,7 +93,7 @@ const EarningSummaryChart = () => {
           </linearGradient>
         </defs>
         {/* Y axis grid lines and labels */}
-        {[0, 6000, 12000, 18000, 24000].map((val, i) => {
+        {gridValues.map((val, i) => {
           const y = getY(val);
           return (
             <g key={i}>
@@ -99,7 +114,7 @@ const EarningSummaryChart = () => {
             {/* Invisible larger circle for better click detection */}
             <circle
               cx={getX(i)}
-              cy={getY(d.value)}
+              cy={getY(d.value || 0)}
               r={15}
               fill="transparent"
               className="cursor-pointer"
@@ -109,7 +124,7 @@ const EarningSummaryChart = () => {
             {hovered === i && (
               <circle
                 cx={getX(i)}
-                cy={getY(d.value)}
+                cy={getY(d.value || 0)}
                 r={6}
                 fill="rgba(9, 85, 172, 1)"
                 strokeWidth={2}
@@ -118,11 +133,14 @@ const EarningSummaryChart = () => {
           </g>
         ))}
         {/* Single Tooltip rendered outside the map to prevent flicker */}
-        {hovered !== null && (() => {
+        {hovered !== null && hovered < earningData.length && (() => {
+          const hoveredData = earningData[hovered];
+          if (!hoveredData) return null;
+          
           const tooltipWidth = 108;
           const tooltipHeight = 55;
           const pointX = getX(hovered);
-          const pointY = getY(earningData[hovered].value);
+          const pointY = getY(hoveredData.value || 0);
           let tooltipX = pointX - tooltipWidth / 2;
           let tooltipY = pointY - tooltipHeight - 15; // 15px above the point
 
@@ -138,8 +156,8 @@ const EarningSummaryChart = () => {
           return (
             <foreignObject x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} pointerEvents="none">
               <div className="bg-[#D8E4F2] w-[108px] h-[55px] rounded-[5px] shadow-lg px-4 py-2 flex flex-col items-center">
-                <span className="text-[14px] font-[500] mb-1">{earningData[hovered].name} 2025</span>
-                <span className="text-[16px] font-[700]">${earningData[hovered].value.toLocaleString()}</span>
+                <span className="text-[14px] font-[500] mb-1">{hoveredData.name} 2025</span>
+                <span className="text-[16px] font-[700]">${(hoveredData.value || 0).toLocaleString()}</span>
               </div>
             </foreignObject>
           );
