@@ -18,14 +18,14 @@ const Create = () => {
     const { flash } = props;
     const recentShipmentId = props.recentShipmentId;
     const packageSectionDescription = "Add one entry per parcel or grouped items.";
-    
+
     // Currency conversion state
     const [displayCurrency, setDisplayCurrency] = useState('LKR');
     const USD_TO_LKR_RATE = 325; // Exchange rate (you can make this dynamic later)
-    
+
     // Active package for courier selection
     const [activePackageIndex, setActivePackageIndex] = useState(0);
-    
+
     const [isPlacing, setIsPlacing] = useState(false);
     const [activeCategory, setActiveCategory] = useState('domestic');
 
@@ -98,9 +98,9 @@ const Create = () => {
         const nextPackages = data.packages.map((item, idx) =>
             idx === index
                 ? {
-                      ...item,
-                      [field]: value,
-                  }
+                    ...item,
+                    [field]: value,
+                }
                 : item
         );
         setData("packages", nextPackages);
@@ -164,15 +164,15 @@ const Create = () => {
         if (!Number.isFinite(value)) {
             return currencyFormatter.format(0);
         }
-        
+
         let convertedValue = value;
         if (displayCurrency === 'LKR') {
             convertedValue = value * USD_TO_LKR_RATE;
         }
-        
+
         return currencyFormatter.format(convertedValue);
     };
-    
+
     const toggleCurrency = () => {
         const nextCurrency = displayCurrency === 'USD' ? 'LKR' : 'USD';
         setDisplayCurrency(nextCurrency);
@@ -181,7 +181,7 @@ const Create = () => {
             currency: nextCurrency,
         });
     };
-    
+
     const quoteMatrix = useMemo(
         () => buildQuoteMatrix(data.packages, { metrics: packageMetrics }),
         [data.packages, packageMetrics]
@@ -381,7 +381,7 @@ const Create = () => {
                                                     </p>
                                                 )}
                                             </div>
-        
+
                                             <div>
                                                 <label className="mb-2 block text-sm font-medium">
                                                     Quantity *
@@ -602,25 +602,23 @@ const Create = () => {
                                                 {quoteMatrix.map((packageQuotes) => {
                                                     const isActive = activePackageIndex === packageQuotes.packageIndex;
                                                     const hasSelection = data.packages[packageQuotes.packageIndex]?.courierProvider;
-                                                    
+
                                                     return (
                                                         <button
                                                             key={packageQuotes.packageIndex}
                                                             type="button"
                                                             onClick={() => setActivePackageIndex(packageQuotes.packageIndex)}
-                                                            className={`flex items-center gap-3 whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
-                                                                isActive
+                                                            className={`flex items-center gap-3 whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors ${isActive
                                                                     ? 'border-[#0955AC] text-[#0955AC]'
                                                                     : 'border-transparent text-[#5B6887] hover:border-[#D6DEEB] hover:text-[#0B1739]'
-                                                            }`}
+                                                                }`}
                                                         >
-                                                            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
-                                                                isActive 
-                                                                    ? 'bg-[#0955AC] text-white' 
-                                                                    : hasSelection 
+                                                            <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${isActive
+                                                                    ? 'bg-[#0955AC] text-white'
+                                                                    : hasSelection
                                                                         ? 'bg-green-500 text-white'
                                                                         : 'bg-[#E8F0FE] text-[#5B6887]'
-                                                            }`}>
+                                                                }`}>
                                                                 {hasSelection && !isActive ? (
                                                                     <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -651,14 +649,14 @@ const Create = () => {
 
                                         const TIER_IDS = ['economy', 'express', 'priority'];
                                         const TIER_META = {
-                                            economy:  { label: 'Economy',  color: 'text-emerald-700' },
-                                            express:  { label: 'Express',  color: 'text-blue-700'    },
-                                            priority: { label: 'Priority', color: 'text-purple-700'  },
+                                            economy: { label: 'Economy', color: 'text-emerald-700' },
+                                            express: { label: 'Express', color: 'text-blue-700' },
+                                            priority: { label: 'Priority', color: 'text-purple-700' },
                                         };
 
                                         const domesticProviders = activePackageQuotes.providers.filter(p => p.category === 'domestic');
                                         const logisticProviders = activePackageQuotes.providers.filter(p => p.category === 'logistic');
-                                        const currentPackage    = data.packages[activePackageQuotes.packageIndex];
+                                        const currentPackage = data.packages[activePackageQuotes.packageIndex];
 
                                         const cheapestByTierInGroup = (providers, tierId) => {
                                             const prices = providers
@@ -697,10 +695,10 @@ const Create = () => {
                                                                         const tier = provider.tiers.find(t => t.id === tierId);
                                                                         if (!tier) return null;
                                                                         const isBest = tier.price === cheapest[tierId];
-                                                                        const diff   = tier.price - cheapest[tierId];
+                                                                        const diff = tier.price - cheapest[tierId];
                                                                         const isSelected =
                                                                             currentPackage?.courierProvider === provider.id &&
-                                                                            currentPackage?.serviceLevel    === tierId;
+                                                                            currentPackage?.serviceLevel === tierId;
                                                                         return (
                                                                             <button
                                                                                 key={tierId}
@@ -710,17 +708,16 @@ const Create = () => {
                                                                                     updatedPackages[activePackageQuotes.packageIndex] = {
                                                                                         ...updatedPackages[activePackageQuotes.packageIndex],
                                                                                         courierProvider: provider.id,
-                                                                                        serviceLevel:    tierId,
+                                                                                        serviceLevel: tierId,
                                                                                     };
                                                                                     setData('packages', updatedPackages);
                                                                                 }}
-                                                                                className={`flex w-full items-center px-3 py-2 text-left transition-colors ${
-                                                                                    isSelected
+                                                                                className={`flex w-full items-center px-3 py-2 text-left transition-colors ${isSelected
                                                                                         ? 'bg-[#0955AC]'
                                                                                         : isBest
                                                                                             ? 'bg-emerald-50 active:bg-emerald-100'
                                                                                             : 'bg-white active:bg-[#F0F7FF]'
-                                                                                }`}
+                                                                                    }`}
                                                                             >
                                                                                 {/* Tier label — fixed width */}
                                                                                 <span className={`text-[11px] font-semibold shrink-0 w-[62px] ${isSelected ? 'text-white' : TIER_META[tierId].color}`}>
@@ -784,10 +781,10 @@ const Create = () => {
                                                                             const tier = provider.tiers.find(t => t.id === tierId);
                                                                             if (!tier) return <td key={tierId} className="px-2 py-2 text-center text-[#C5CDE0]">—</td>;
                                                                             const isBest = tier.price === cheapest[tierId];
-                                                                            const diff   = tier.price - cheapest[tierId];
+                                                                            const diff = tier.price - cheapest[tierId];
                                                                             const isSelected =
                                                                                 currentPackage?.courierProvider === provider.id &&
-                                                                                currentPackage?.serviceLevel    === tierId;
+                                                                                currentPackage?.serviceLevel === tierId;
                                                                             return (
                                                                                 <td key={tierId} className="px-1.5 py-1.5 text-center">
                                                                                     <button
@@ -798,17 +795,16 @@ const Create = () => {
                                                                                             updatedPackages[activePackageQuotes.packageIndex] = {
                                                                                                 ...updatedPackages[activePackageQuotes.packageIndex],
                                                                                                 courierProvider: provider.id,
-                                                                                                serviceLevel:    tierId,
+                                                                                                serviceLevel: tierId,
                                                                                             };
                                                                                             setData('packages', updatedPackages);
                                                                                         }}
-                                                                                        className={`inline-flex w-full flex-col items-center rounded-lg border px-1.5 py-1.5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1 ${
-                                                                                            isSelected
+                                                                                        className={`inline-flex w-full flex-col items-center rounded-lg border px-1.5 py-1.5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1 ${isSelected
                                                                                                 ? 'border-[#0955AC] bg-[#0955AC] shadow-sm'
                                                                                                 : isBest
                                                                                                     ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
                                                                                                     : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF]'
-                                                                                        }`}
+                                                                                            }`}
                                                                                     >
                                                                                         <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
                                                                                             {formatCurrency(tier.price)}
@@ -836,11 +832,11 @@ const Create = () => {
                                             );
                                         };
 
-                                        const hasDomestic  = domesticProviders.length > 0;
-                                        const hasLogistic  = logisticProviders.length > 0;
+                                        const hasDomestic = domesticProviders.length > 0;
+                                        const hasLogistic = logisticProviders.length > 0;
                                         const currentCategory = (activeCategory === 'domestic' && hasDomestic) ? 'domestic'
-                                                              : (activeCategory === 'logistic' && hasLogistic) ? 'logistic'
-                                                              : hasDomestic ? 'domestic' : 'logistic';
+                                            : (activeCategory === 'logistic' && hasLogistic) ? 'logistic'
+                                                : hasDomestic ? 'domestic' : 'logistic';
 
                                         return (
                                             <div className="space-y-3">
@@ -852,11 +848,10 @@ const Create = () => {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setActiveCategory('domestic')}
-                                                                className={`flex-1 sm:flex-none rounded-md px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${
-                                                                    currentCategory === 'domestic'
+                                                                className={`flex-1 sm:flex-none rounded-md px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${currentCategory === 'domestic'
                                                                         ? 'bg-white text-[#2563EB] shadow-sm'
                                                                         : 'text-[#5B6887] hover:text-[#0B1739]'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 Domestic
                                                             </button>
@@ -865,11 +860,10 @@ const Create = () => {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setActiveCategory('logistic')}
-                                                                className={`flex-1 sm:flex-none rounded-md px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${
-                                                                    currentCategory === 'logistic'
+                                                                className={`flex-1 sm:flex-none rounded-md px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${currentCategory === 'logistic'
                                                                         ? 'bg-white text-[#0955AC] shadow-sm'
                                                                         : 'text-[#5B6887] hover:text-[#0B1739]'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 Logistic
                                                             </button>
@@ -947,9 +941,8 @@ const Create = () => {
                                 type="button"
                                 onClick={handlePlaceCourier}
                                 disabled={!isReadyToPlace || isPlacing}
-                                className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${
-                                    !isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
-                                }`}
+                                className={`w-full max-w-sm rounded-lg bg-[#0955AC] px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition focus:outline-none focus:ring-2 focus:ring-[#0a4b93] focus:ring-offset-2 ${!isReadyToPlace || isPlacing ? 'cursor-not-allowed opacity-50' : 'hover:bg-[#0a4b93]'
+                                    }`}
                             >
                                 {isPlacing ? 'Preparing summary...' : 'Continue'}
                             </button>

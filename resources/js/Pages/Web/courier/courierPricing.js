@@ -1,10 +1,16 @@
-const dhlLogo = "https://1000logos.net/wp-content/uploads/2018/08/DHL-emblem.jpg";
-const fedexLogo = "https://1000logos.net/wp-content/uploads/2021/04/Fedex-logo.png";
+const dhlLogo =
+    "https://1000logos.net/wp-content/uploads/2018/08/DHL-emblem.jpg";
+const fedexLogo =
+    "https://1000logos.net/wp-content/uploads/2021/04/Fedex-logo.png";
 const upsLogo = "https://1000logos.net/wp-content/uploads/2017/06/UPS-logo.jpg";
-const aramexLogo = "https://www.securitycargonetwork.com/wp-content/uploads/2024/09/aramex.jpg";
-const sfLogo = "https://logowik.com/content/uploads/images/sf-express9821.logowik.com.webp";
-const dpdLogo = "https://logos-world.net/wp-content/uploads/2021/02/DPD-Dynamic-Parcel-Distribution-Logo-2015-present.jpg";
-const tntLogo = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/TNT_Express_Logo.svg/2560px-TNT_Express_Logo.svg.png";
+const aramexLogo =
+    "https://www.securitycargonetwork.com/wp-content/uploads/2024/09/aramex.jpg";
+const sfLogo =
+    "https://logowik.com/content/uploads/images/sf-express9821.logowik.com.webp";
+const dpdLogo =
+    "https://logos-world.net/wp-content/uploads/2021/02/DPD-Dynamic-Parcel-Distribution-Logo-2015-present.jpg";
+const tntLogo =
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/TNT_Express_Logo.svg/2560px-TNT_Express_Logo.svg.png";
 
 export const COURIER_SERVICES = [
     // ── DOMESTIC SERVICES ──────────────────────────────────────────────────────
@@ -124,7 +130,8 @@ export const COURIER_SERVICES = [
                 base: 9.5,
                 perKg: 0.98,
                 eta: "Same-day by 6 PM",
-                description: "Fastest domestic option with fragile-safe handling.",
+                description:
+                    "Fastest domestic option with fragile-safe handling.",
             },
         ],
     },
@@ -150,7 +157,8 @@ export const COURIER_SERVICES = [
                 base: 18,
                 perKg: 1.35,
                 eta: "3-6 business days",
-                description: "Cost-effective door-to-door international delivery.",
+                description:
+                    "Cost-effective door-to-door international delivery.",
             },
             {
                 id: "express",
@@ -158,7 +166,8 @@ export const COURIER_SERVICES = [
                 base: 32,
                 perKg: 2.05,
                 eta: "1-3 business days",
-                description: "Balanced speed for most time-sensitive shipments.",
+                description:
+                    "Balanced speed for most time-sensitive shipments.",
             },
             {
                 id: "priority",
@@ -450,10 +459,14 @@ export const computePackageMetrics = (packages = []) => {
         }
 
         if (length > 0 && width > 0 && height > 0 && quantity > 0) {
-            volumetricWeight += ((length * width * height) / VOLUMETRIC_DIVISOR) * quantity;
+            volumetricWeight +=
+                ((length * width * height) / VOLUMETRIC_DIVISOR) * quantity;
         }
 
-        if (pkg?.packageType === "temperature_controlled" || pkg?.packageType === "freight") {
+        if (
+            pkg?.packageType === "temperature_controlled" ||
+            pkg?.packageType === "freight"
+        ) {
             requiresSpecialHandling = true;
         }
     });
@@ -491,23 +504,40 @@ export const buildQuoteMatrix = (packages = [], options = {}) => {
             }
 
             const packageWeight = weight * quantity;
-            const volumetricWeight = length > 0 && width > 0 && height > 0
-                ? ((length * width * height) / VOLUMETRIC_DIVISOR) * quantity
-                : 0;
+            const volumetricWeight =
+                length > 0 && width > 0 && height > 0
+                    ? ((length * width * height) / VOLUMETRIC_DIVISOR) *
+                      quantity
+                    : 0;
             const billableWeight = Math.max(packageWeight, volumetricWeight);
-            const oversizedSurcharge = billableWeight > 25 ? (billableWeight - 25) * 0.75 : 0;
-            const specialHandlingFee = pkg?.packageType === "temperature_controlled" || pkg?.packageType === "freight" ? 12 : 0;
+            const oversizedSurcharge =
+                billableWeight > 25 ? (billableWeight - 25) * 0.75 : 0;
+            const specialHandlingFee =
+                pkg?.packageType === "temperature_controlled" ||
+                pkg?.packageType === "freight"
+                    ? 12
+                    : 0;
 
             const providers = services.map((provider) => {
                 const tiers = (provider.tiers || []).map((tier) => {
                     const baseComponent = tier.base;
                     const weightComponent = billableWeight * tier.perKg;
-                    const adjustmentsComponent = oversizedSurcharge + specialHandlingFee + (tier.flatMarkup || 0);
-                    const subtotal = baseComponent + weightComponent + adjustmentsComponent;
-                    const providerPremium = subtotal * ((provider.rateMultiplier || 1) - 1);
-                    const fuelComponent = subtotal * (provider.fuelSurcharge || 0);
+                    const adjustmentsComponent =
+                        oversizedSurcharge +
+                        specialHandlingFee +
+                        (tier.flatMarkup || 0);
+                    const subtotal =
+                        baseComponent + weightComponent + adjustmentsComponent;
+                    const providerPremium =
+                        subtotal * ((provider.rateMultiplier || 1) - 1);
+                    const fuelComponent =
+                        subtotal * (provider.fuelSurcharge || 0);
                     const customsComponent = provider.customsBuffer || 0;
-                    const total = subtotal + providerPremium + fuelComponent + customsComponent;
+                    const total =
+                        subtotal +
+                        providerPremium +
+                        fuelComponent +
+                        customsComponent;
 
                     return {
                         ...tier,
@@ -516,7 +546,12 @@ export const buildQuoteMatrix = (packages = [], options = {}) => {
                             base: Number(baseComponent.toFixed(2)),
                             weight: Number(weightComponent.toFixed(2)),
                             adjustments: Number(
-                                (adjustmentsComponent + providerPremium + fuelComponent + customsComponent).toFixed(2)
+                                (
+                                    adjustmentsComponent +
+                                    providerPremium +
+                                    fuelComponent +
+                                    customsComponent
+                                ).toFixed(2),
                             ),
                         },
                     };
@@ -538,7 +573,10 @@ export const buildQuoteMatrix = (packages = [], options = {}) => {
                 providers,
             };
         })
-        .filter((item) => Array.isArray(item.providers) && item.providers.length > 0);
+        .filter(
+            (item) =>
+                Array.isArray(item.providers) && item.providers.length > 0,
+        );
 };
 
 export const resolveDetailedQuotes = (packages = [], quoteMatrix = []) => {
@@ -552,17 +590,23 @@ export const resolveDetailedQuotes = (packages = [], quoteMatrix = []) => {
                 return null;
             }
 
-            const packageQuotes = quoteMatrix.find((item) => item.packageIndex === index);
+            const packageQuotes = quoteMatrix.find(
+                (item) => item.packageIndex === index,
+            );
             if (!packageQuotes) {
                 return null;
             }
 
-            const provider = (packageQuotes.providers || []).find((p) => p.id === pkg.courierProvider);
+            const provider = (packageQuotes.providers || []).find(
+                (p) => p.id === pkg.courierProvider,
+            );
             if (!provider) {
                 return null;
             }
 
-            const tier = (provider.tiers || []).find((t) => t.id === pkg.serviceLevel);
+            const tier = (provider.tiers || []).find(
+                (t) => t.id === pkg.serviceLevel,
+            );
             if (!tier) {
                 return null;
             }
@@ -579,17 +623,26 @@ export const resolveDetailedQuotes = (packages = [], quoteMatrix = []) => {
 
 export const summarizeDetailedQuotes = (detailedQuotes = []) => {
     return detailedQuotes.map((quote, index) => {
-        const label = quote?.packageInfo?.label || `Package ${quote?.packageIndex + 1 || index + 1}`;
+        const label =
+            quote?.packageInfo?.label ||
+            `Package ${quote?.packageIndex + 1 || index + 1}`;
         const weight = quote?.packageInfo?.weight;
         const billableWeight = quote?.packageInfo?.billableWeight;
         const provider = quote?.provider || {};
         const tier = quote?.tier || {};
 
         return {
-            packageIndex: typeof quote?.packageIndex === "number" ? quote.packageIndex : index,
+            packageIndex:
+                typeof quote?.packageIndex === "number"
+                    ? quote.packageIndex
+                    : index,
             label,
-            weight: weight !== undefined && weight !== null ? Number(weight) : null,
-            billableWeight: billableWeight !== undefined && billableWeight !== null ? Number(billableWeight) : null,
+            weight:
+                weight !== undefined && weight !== null ? Number(weight) : null,
+            billableWeight:
+                billableWeight !== undefined && billableWeight !== null
+                    ? Number(billableWeight)
+                    : null,
             providerId: provider.id || null,
             providerName: provider.name || "",
             serviceLevel: tier.id || "",
@@ -601,9 +654,15 @@ export const summarizeDetailedQuotes = (detailedQuotes = []) => {
     });
 };
 
-export const buildReviewContext = (detailedQuotes = [], displayCurrency = "LKR") => {
+export const buildReviewContext = (
+    detailedQuotes = [],
+    displayCurrency = "LKR",
+) => {
     const selectedQuotes = summarizeDetailedQuotes(detailedQuotes);
-    const totalPriceUSD = selectedQuotes.reduce((total, item) => total + (Number(item.priceUSD) || 0), 0);
+    const totalPriceUSD = selectedQuotes.reduce(
+        (total, item) => total + (Number(item.priceUSD) || 0),
+        0,
+    );
 
     return {
         selectedQuotes,
