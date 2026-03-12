@@ -10,7 +10,7 @@ import gas from "../../assets/rentAVehicle/collection/gas.png";
 import heartFill from "../../assets/rentAVehicle/collection/heartFill.png";
 import heart from "../../assets/rentAVehicle/collection/heart.png";
 
-const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleIds }) => {
+const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleIds, searchParams }) => {
   
   // normalize input (paginator or array)
   const vehicles = useMemo(
@@ -65,7 +65,20 @@ const VehicleListContent = ({ vehicles: initialVehicles, authUser, likedVehicleI
 };
 
  const view = (id) => {
-    const search = window.location.search || "";
+    // Build search string from searchParams prop (for inline use on other pages)
+    // Fall back to window.location.search when on the vehicleList page itself
+    let search = "";
+    if (searchParams && Object.values(searchParams).some(Boolean)) {
+      const p = new URLSearchParams();
+      if (searchParams.pickupLocation) p.set("pickupLocation", searchParams.pickupLocation);
+      if (searchParams.pickupDate) p.set("pickupDate", searchParams.pickupDate);
+      if (searchParams.dropoffLocation) p.set("dropoffLocation", searchParams.dropoffLocation);
+      if (searchParams.dropoffDate) p.set("dropoffDate", searchParams.dropoffDate);
+      const qs = p.toString();
+      if (qs) search = `?${qs}`;
+    } else {
+      search = window.location.search || "";
+    }
     router.visit(`/vehicleDetails/${id}${search}`);
   };
 
