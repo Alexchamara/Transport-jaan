@@ -63,7 +63,7 @@ class VehicleMedia extends Model
 
         // Root-relative path starting with /?
         if (Str::startsWith($path, '/')) {
-            return asset(ltrim($path, '/'));
+            return '/' . ltrim($path, '/');
         }
 
         // Normalize common saved prefixes
@@ -77,18 +77,18 @@ class VehicleMedia extends Model
 
         // Check if file exists in public storage
         if (Storage::disk('public')->exists($cleanPath)) {
-            return Storage::disk('public')->url($cleanPath);
+            return '/storage/' . ltrim($cleanPath, '/');
         }
 
         // Check if file exists in public directory
         if (file_exists(public_path($cleanPath))) {
-            return asset($cleanPath);
+            return '/' . ltrim($cleanPath, '/');
         }
 
         // If none of the above worked, try to serve the path as-is through storage
         // This handles paths like "vehicles/1/images/filename.jpg"
         if (Storage::disk('public')->exists('storage/' . $cleanPath) || Storage::disk('public')->exists($cleanPath)) {
-            return Storage::disk('public')->url($cleanPath);
+            return '/storage/' . ltrim($cleanPath, '/');
         }
 
         // Return default image if file doesn't exist
