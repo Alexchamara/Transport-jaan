@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { router } from '@inertiajs/react';
+import { CheckCircle, Clock3, FileEdit, ShieldCheck, ShieldX, XCircle } from "lucide-react";
 import ActionModalTemplate from "../Common/ActionModalTemplate";
 
 const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
@@ -21,6 +22,8 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
             confirmClassName: 'bg-[#05C168] hover:bg-[#05C168]/80',
             notesRequired: false,
             showNotes: true,
+            icon: <CheckCircle size={16} className="text-[#14CA74]" />,
+            iconBg: 'bg-[#05C16820]',
         },
         reject_all: {
             title: 'Reject All Pending Services',
@@ -30,6 +33,8 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
             confirmClassName: 'bg-[#FF4757] hover:bg-[#FF4757]/80',
             notesRequired: true,
             showNotes: true,
+            icon: <XCircle size={16} className="text-[#FF4757]" />,
+            iconBg: 'bg-[#FF475720]',
         },
         request_revision: {
             title: 'Request Revision for All',
@@ -39,6 +44,8 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
             confirmClassName: 'bg-[#FDB52A] hover:bg-[#FDB52A]/80',
             notesRequired: true,
             showNotes: true,
+            icon: <Clock3 size={16} className="text-[#FDB52A]" />,
+            iconBg: 'bg-[#FDB52A20]',
         },
         block_vendor: {
             title: 'Block Vendor',
@@ -48,6 +55,8 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
             confirmClassName: 'bg-[#FF4757] hover:bg-[#FF4757]/80',
             notesRequired: false,
             showNotes: false,
+            icon: <ShieldX size={16} className="text-[#FF4757]" />,
+            iconBg: 'bg-[#FF475720]',
         },
         unblock_vendor: {
             title: 'Unblock Vendor',
@@ -57,6 +66,8 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
             confirmClassName: 'bg-[#05C168] hover:bg-[#05C168]/80',
             notesRequired: false,
             showNotes: false,
+            icon: <ShieldCheck size={16} className="text-[#14CA74]" />,
+            iconBg: 'bg-[#05C16820]',
         },
         add_note: {
             title: 'Add Admin Note',
@@ -67,6 +78,8 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
             notesRequired: true,
             showNotes: true,
             processingText: 'Saving...',
+            icon: <FileEdit size={16} className="text-[#5B8DEF]" />,
+            iconBg: 'bg-[#0E43FB20]',
         },
     };
 
@@ -249,6 +262,9 @@ const AdminActionsPanel = ({ vendor, serviceRegistrations, vendorProfile }) => {
                     processingText={actionModalConfig[showActionModal].processingText || 'Processing...'}
                     confirmText={actionModalConfig[showActionModal].confirmText}
                     confirmClassName={actionModalConfig[showActionModal].confirmClassName}
+                    styleVariant="superadmin-confirm"
+                    headerIcon={actionModalConfig[showActionModal].icon}
+                    headerIconBg={actionModalConfig[showActionModal].iconBg}
                     onClose={() => { setShowActionModal(null); setAdminNotes(''); }}
                     onConfirm={() => handleActionConfirm(showActionModal)}
                 />

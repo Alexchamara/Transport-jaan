@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
     Search,
     Eye,
@@ -80,6 +80,7 @@ const WarehouseListTab = ({ warehouses = {}, filters = {}, error }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedWarehouse, setSelectedWarehouse] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [confirmAction, setConfirmAction] = useState(null);
 
     const applyFilters = (overrides = {}) => {
         const params = {
@@ -137,6 +138,52 @@ const WarehouseListTab = ({ warehouses = {}, filters = {}, error }) => {
 
     return (
         <div className="flex flex-col gap-4">
+            <AnimatePresence>
+                {confirmAction && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="bg-[#0B1739] border border-[#343B4F] rounded-[12px] p-6 w-[380px] max-w-[90vw] shadow-2xl"
+                        >
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${confirmAction.iconBg}`}>
+                                    {confirmAction.icon}
+                                </div>
+                                <h3 className="text-white text-[16px] font-[600]">{confirmAction.title}</h3>
+                            </div>
+                            <p className="text-[#AEB9E1] text-[13px] mb-6 leading-relaxed">
+                                {confirmAction.message}
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setConfirmAction(null)}
+                                    className="flex-1 border border-[#343B4F] bg-[#0F1A3A] text-[#AEB9E1] text-[13px] py-2.5 rounded-[7px] hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        confirmAction.onConfirm();
+                                        setConfirmAction(null);
+                                    }}
+                                    className={`flex-1 text-[13px] py-2.5 rounded-[7px] font-[500] transition-colors ${confirmAction.confirmStyle}`}
+                                >
+                                    {confirmAction.confirmLabel}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Filters Bar */}
             <div className="flex flex-wrap gap-3 items-center bg-[#0B1739] border border-[#343B4F] rounded-lg p-4">
                 <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-[#081028] border border-[#343B4F] rounded-md px-3">
@@ -389,7 +436,39 @@ const WarehouseListTab = ({ warehouses = {}, filters = {}, error }) => {
                                             whileHover={{ scale: loading ? 1 : 1.03 }}
                                             disabled={loading}
                                             className={`flex items-center gap-1.5 text-xs px-4 py-2 rounded-md border transition-colors duration-150 ${bc.bg} ${bc.hover} ${bc.text} ${bc.border} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                                            onClick={() => handleStatusChange(selectedWarehouse.id, targetStatus)}
+                                            onClick={() =>
+                                                setConfirmAction({
+                                                    title: `${labels[targetStatus]} Warehouse`,
+                                                    message: `Are you sure you want to ${labels[targetStatus].toLowerCase()} ${selectedWarehouse.name || "this warehouse"}?`,
+                                                    confirmLabel: labels[targetStatus],
+                                                    confirmStyle:
+                                                        targetStatus === "approved"
+                                                            ? "border border-[#05C16880] bg-[#05C16820] text-[#14CA74] hover:bg-[#05C16840]"
+                                                            : targetStatus === "rejected"
+                                                            ? "border border-[#FF572280] bg-[#FF572220] text-[#FF5722] hover:bg-[#FF572240]"
+                                                            : targetStatus === "suspended"
+                                                            ? "border border-[#FF5A6580] bg-[#FF5A6520] text-[#FF5A65] hover:bg-[#FF5A6540]"
+                                                            : "border border-[#FFB01680] bg-[#FFB01620] text-[#FDB52A] hover:bg-[#FFB01640]",
+                                                    iconBg:
+                                                        targetStatus === "approved"
+                                                            ? "bg-[#05C16820]"
+                                                            : targetStatus === "rejected"
+                                                            ? "bg-[#FF572220]"
+                                                            : targetStatus === "suspended"
+                                                            ? "bg-[#FF5A6520]"
+                                                            : "bg-[#FFB01620]",
+                                                    icon: <Icon size={16} className={
+                                                        targetStatus === "approved"
+                                                            ? "text-[#14CA74]"
+                                                            : targetStatus === "rejected"
+                                                            ? "text-[#FF5722]"
+                                                            : targetStatus === "suspended"
+                                                            ? "text-[#FF5A65]"
+                                                            : "text-[#FDB52A]"
+                                                    } />,
+                                                    onConfirm: () => handleStatusChange(selectedWarehouse.id, targetStatus),
+                                                })
+                                            }
                                         >
                                             <Icon size={12} /> {labels[targetStatus]}
                                         </motion.button>
