@@ -191,7 +191,8 @@ const Summary = () => {
 
             {/* travel summary */}
             <div>
-              <h1 className="text-[20px]/[24px] font-[700] poppins">Travel Summary</h1>
+              <h1 className="text-[20px]/[24px] font-[700] poppins">Warehouse Management
+</h1>
               <h1 className="text-[14px]/[24px] font-[600px] mb-10 poppins">
                 <span className="text-[10px]">#{booking?.id}</span> {vehicle?.manufacturer} {vehicle?.model}
               </h1>
