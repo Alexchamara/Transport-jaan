@@ -57,6 +57,7 @@ const DashContent = () => {
 
     const [isMobile, setIsMobile] = useState(true);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const exportMenuRef = useRef(null);
 
     // Filter state for Flight Bookings
     const [showFlightFilters, setShowFlightFilters] = useState(false);
@@ -74,6 +75,20 @@ const DashContent = () => {
         window.addEventListener("resize", checkMobile);
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+                setShowExportMenu(false);
+            }
+        };
+
+        if (showExportMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [showExportMenu]);
 
     // Export flight bookings to CSV
     const exportToCSV = () => {
@@ -122,14 +137,15 @@ const DashContent = () => {
                 booking.date,
                 booking.customer,
                 booking.transport,
-                booking.details,
-                booking.duration,
+                booking.details + " / " + booking.duration,
+                booking.startDate,
+                booking.endDate,
                 booking.price,
                 booking.paymentStatus,
                 booking.status
             ]);
 
-            const headers = [["Booking ID", "Date", "Passenger", "Flight Route", "Cabin", "Duration", "Price", "Payment", "Status"]];
+            const headers = [["Booking ID", "Booking Date", "Passenger", "Flight Route", "Cabin/Duration", "Start Date", "End Date", "Price", "Payment Status", "Status"]];
 
             doc.setFontSize(16);
             doc.text("Flight Bookings Report", 14, 10);
@@ -143,7 +159,7 @@ const DashContent = () => {
                 margin: { top: 20, right: 10, bottom: 10, left: 10 },
                 headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
                 alternateRowStyles: { fillColor: [230, 240, 250] },
-                columnStyles: { 0: { halign: 'center' }, 5: { halign: 'center' } },
+                columnStyles: { 0: { halign: 'center' }, 5: { halign: 'center' }, 6: { halign: 'center' } },
                 didDrawPage: (data) => {
                     const pageCount = doc.getNumberOfPages();
                     doc.setFontSize(9);
@@ -682,21 +698,24 @@ const DashContent = () => {
                                                 placeholder="Search passenger, flight no., route..."
                                             />
                                         </div>
-                                        <button onClick={() => setShowFlightFilters(!showFlightFilters)} className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
-                                            <FilterIcon className="size-[14px]" />
+
+                                        <button onClick={() => setShowFlightFilters(!showFlightFilters)}
+                                            className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">
+                                            <FilterIcon className="size-[14px] shrink-0" />
                                             <span>Filter</span>
                                         </button>
-                                        <div className="relative">
+
+                                        <div className="relative" ref={exportMenuRef}>
                                             <button
                                                 onClick={() => setShowExportMenu(!showExportMenu)}
-                                                className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]"
+                                                className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group"
                                             >
-                                                <Download size={14} />
+                                                <Download size={14} className="shrink-0" />
                                                 <span>Export</span>
                                                 <DropdownIcon size={12} />
                                             </button>
                                             {showExportMenu && (
-                                                <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
+                                                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
                                                     <button
                                                         onClick={exportToCSV}
                                                         className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
@@ -729,7 +748,7 @@ const DashContent = () => {
                                             <div className="flex items-center gap-2">
                                                 <button
                                                     onClick={handleResetFlightFilters}
-                                                    className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-blue-700 transition font-[500]"
+                                                    className="px-3 py-2 text-[14px] bg-white border border-gray-300 rounded-[6px] text-gray-700 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500]"
                                                 >
                                                     Reset Filters
                                                 </button>
@@ -742,18 +761,8 @@ const DashContent = () => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[12px] font-[600] text-gray-700">Search</label>
-                                                <input
-                                                    type="text"
-                                                    value={flightSearchQuery}
-                                                    onChange={(e) => setFlightSearchQuery(e.target.value)}
-                                                    placeholder="Passenger, flight no..."
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                                />
-                                            </div>
-
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                                            {/* Status */}
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-[12px] font-[600] text-gray-700">Status</label>
                                                 <select
@@ -769,6 +778,7 @@ const DashContent = () => {
                                                 </select>
                                             </div>
 
+                                            {/* Payment */}
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-[12px] font-[600] text-gray-700">Payment</label>
                                                 <select
@@ -782,6 +792,7 @@ const DashContent = () => {
                                                 </select>
                                             </div>
 
+                                            {/* From Date */}
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-[12px] font-[600] text-gray-700">From Date</label>
                                                 <input
@@ -792,6 +803,7 @@ const DashContent = () => {
                                                 />
                                             </div>
 
+                                            {/* To Date */}
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-[12px] font-[600] text-gray-700">To Date</label>
                                                 <input
@@ -801,6 +813,11 @@ const DashContent = () => {
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
                                                 />
                                             </div>
+                                        </div>
+
+                                        {/* Results count */}
+                                        <div className="mt-3 text-[12px] text-gray-500">
+                                            Showing {filteredFlightBookings.length} of {flightBookingsData.length} bookings
                                         </div>
                                     </div>
                                 )}
