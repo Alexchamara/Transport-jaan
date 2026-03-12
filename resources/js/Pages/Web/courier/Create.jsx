@@ -26,11 +26,8 @@ const Create = () => {
     // Active package for courier selection
     const [activePackageIndex, setActivePackageIndex] = useState(0);
     
-    // Comparison modal state
-    const [showComparison, setShowComparison] = useState(false);
-    const [comparisonServices, setComparisonServices] = useState([]);
-    const [comparisonPackageIndex, setComparisonPackageIndex] = useState(null);
     const [isPlacing, setIsPlacing] = useState(false);
+    const [activeCategory, setActiveCategory] = useState('domestic');
 
     const scrollToTop = () => {
         if (typeof window !== "undefined") {
@@ -185,29 +182,6 @@ const Create = () => {
         });
     };
     
-    const openComparison = (packageIndex) => {
-        setComparisonPackageIndex(packageIndex);
-        setComparisonServices([]);
-        setShowComparison(true);
-    };
-    
-    const addToComparison = (provider, tier) => {
-        if (comparisonServices.length < 2) {
-            const service = { provider, tier };
-            setComparisonServices(prev => [...prev, service]);
-        }
-    };
-    
-    const removeFromComparison = (index) => {
-        setComparisonServices(prev => prev.filter((_, i) => i !== index));
-    };
-    
-    const closeComparison = () => {
-        setShowComparison(false);
-        setComparisonServices([]);
-        setComparisonPackageIndex(null);
-    };
-
     const quoteMatrix = useMemo(
         () => buildQuoteMatrix(data.packages, { metrics: packageMetrics }),
         [data.packages, packageMetrics]
@@ -670,215 +644,248 @@ const Create = () => {
                                         </div>
                                     )}
 
-                                    {/* Active Package Content */}
+                                    {/* Inline Comparison Table — Compact */}
                                     {(() => {
                                         const activePackageQuotes = quoteMatrix.find(item => item.packageIndex === activePackageIndex) || quoteMatrix[0];
                                         if (!activePackageQuotes) return null;
 
+                                        const TIER_IDS = ['economy', 'express', 'priority'];
+                                        const TIER_META = {
+                                            economy:  { label: 'Economy',  color: 'text-emerald-700' },
+                                            express:  { label: 'Express',  color: 'text-blue-700'    },
+                                            priority: { label: 'Priority', color: 'text-purple-700'  },
+                                        };
+
+                                        const domesticProviders = activePackageQuotes.providers.filter(p => p.category === 'domestic');
+                                        const logisticProviders = activePackageQuotes.providers.filter(p => p.category === 'logistic');
+                                        const currentPackage    = data.packages[activePackageQuotes.packageIndex];
+
+                                        const cheapestByTierInGroup = (providers, tierId) => {
+                                            const prices = providers
+                                                .map(p => (p.tiers.find(t => t.id === tierId) || {}).price)
+                                                .filter(v => v !== undefined);
+                                            return prices.length ? Math.min(...prices) : Infinity;
+                                        };
+
+                                        const renderCategoryTable = (providers, categoryLabel, accentColor, accentBg) => {
+                                            if (!providers.length) return null;
+                                            const cheapest = Object.fromEntries(TIER_IDS.map(id => [id, cheapestByTierInGroup(providers, id)]));
+
+                                            return (
+                                                <div className="rounded-xl border border-[#E8F0FE] overflow-hidden">
+                                                    {/* ── Mobile: provider card, tier rows ── */}
+                                                    <div className="sm:hidden divide-y divide-[#F0F4F8]">
+                                                        {providers.map((provider) => (
+                                                            <div key={provider.id} className="bg-white">
+                                                                {/* Provider header strip */}
+                                                                <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: accentBg }}>
+                                                                    {provider.logo ? (
+                                                                        <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[38px] object-contain" loading="lazy" />
+                                                                    ) : (
+                                                                        <div className="flex h-5 w-8 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: provider.brandColor }}>
+                                                                            {provider.name.slice(0, 2).toUpperCase()}
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="min-w-0">
+                                                                        <div className="text-xs font-semibold text-[#0B1739] truncate">{provider.name}</div>
+                                                                        <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
+                                                                    </div>
+                                                                </div>
+                                                                {/* Tier rows */}
+                                                                <div className="divide-y divide-[#F7F9FC]">
+                                                                    {TIER_IDS.map(tierId => {
+                                                                        const tier = provider.tiers.find(t => t.id === tierId);
+                                                                        if (!tier) return null;
+                                                                        const isBest = tier.price === cheapest[tierId];
+                                                                        const diff   = tier.price - cheapest[tierId];
+                                                                        const isSelected =
+                                                                            currentPackage?.courierProvider === provider.id &&
+                                                                            currentPackage?.serviceLevel    === tierId;
+                                                                        return (
+                                                                            <button
+                                                                                key={tierId}
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    const updatedPackages = [...data.packages];
+                                                                                    updatedPackages[activePackageQuotes.packageIndex] = {
+                                                                                        ...updatedPackages[activePackageQuotes.packageIndex],
+                                                                                        courierProvider: provider.id,
+                                                                                        serviceLevel:    tierId,
+                                                                                    };
+                                                                                    setData('packages', updatedPackages);
+                                                                                }}
+                                                                                className={`flex w-full items-center px-3 py-2 text-left transition-colors ${
+                                                                                    isSelected
+                                                                                        ? 'bg-[#0955AC]'
+                                                                                        : isBest
+                                                                                            ? 'bg-emerald-50 active:bg-emerald-100'
+                                                                                            : 'bg-white active:bg-[#F0F7FF]'
+                                                                                }`}
+                                                                            >
+                                                                                {/* Tier label — fixed width */}
+                                                                                <span className={`text-[11px] font-semibold shrink-0 w-[62px] ${isSelected ? 'text-white' : TIER_META[tierId].color}`}>
+                                                                                    {TIER_META[tierId].label}
+                                                                                </span>
+                                                                                {/* Spacer */}
+                                                                                <span className="flex-1" />
+                                                                                {/* Price + status stacked, fixed width */}
+                                                                                <div className="shrink-0 text-right ml-2 w-[90px]">
+                                                                                    <div className={`text-[11px] font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
+                                                                                        {formatCurrency(tier.price)}
+                                                                                    </div>
+                                                                                    {isSelected ? (
+                                                                                        <div className="text-[9px] text-white/70">✓ Selected</div>
+                                                                                    ) : isBest ? (
+                                                                                        <div className="text-[9px] font-bold text-emerald-700">● best price</div>
+                                                                                    ) : diff > 0 ? (
+                                                                                        <div className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</div>
+                                                                                    ) : null}
+                                                                                </div>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    {/* ── Desktop: compact table ── */}
+                                                    <div className="hidden sm:block overflow-x-auto">
+                                                        <table className="w-full border-collapse text-xs">
+                                                            <thead>
+                                                                <tr style={{ backgroundColor: accentBg }}>
+                                                                    <th className="px-3 py-2 text-left text-[#0B1739] font-semibold w-40">Provider</th>
+                                                                    {TIER_IDS.map(id => (
+                                                                        <th key={id} className={`px-2 py-2 text-center font-semibold ${TIER_META[id].color}`}>
+                                                                            {TIER_META[id].label}
+                                                                        </th>
+                                                                    ))}
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {providers.map((provider, rowIdx) => (
+                                                                    <tr key={provider.id} className={`transition-colors hover:bg-[#F9FBFF] ${rowIdx < providers.length - 1 ? 'border-b border-[#F0F4F8]' : ''}`}>
+                                                                        <td className="px-3 py-2">
+                                                                            <div className="flex items-center gap-2">
+                                                                                {provider.logo ? (
+                                                                                    <img src={provider.logo} alt={provider.name} className="h-5 w-auto max-w-[40px] object-contain" loading="lazy" />
+                                                                                ) : (
+                                                                                    <div className="flex h-5 w-8 shrink-0 items-center justify-center rounded text-[9px] font-bold text-white" style={{ backgroundColor: provider.brandColor }}>
+                                                                                        {provider.name.slice(0, 2).toUpperCase()}
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="min-w-0">
+                                                                                    <div className="font-semibold text-[#0B1739] truncate leading-tight">{provider.name}</div>
+                                                                                    <div className="text-[10px] text-[#6B7893] truncate">{provider.coverage}</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </td>
+                                                                        {TIER_IDS.map(tierId => {
+                                                                            const tier = provider.tiers.find(t => t.id === tierId);
+                                                                            if (!tier) return <td key={tierId} className="px-2 py-2 text-center text-[#C5CDE0]">—</td>;
+                                                                            const isBest = tier.price === cheapest[tierId];
+                                                                            const diff   = tier.price - cheapest[tierId];
+                                                                            const isSelected =
+                                                                                currentPackage?.courierProvider === provider.id &&
+                                                                                currentPackage?.serviceLevel    === tierId;
+                                                                            return (
+                                                                                <td key={tierId} className="px-1.5 py-1.5 text-center">
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        title={`${provider.name} — ${TIER_META[tierId].label} · ${tier.eta}`}
+                                                                                        onClick={() => {
+                                                                                            const updatedPackages = [...data.packages];
+                                                                                            updatedPackages[activePackageQuotes.packageIndex] = {
+                                                                                                ...updatedPackages[activePackageQuotes.packageIndex],
+                                                                                                courierProvider: provider.id,
+                                                                                                serviceLevel:    tierId,
+                                                                                            };
+                                                                                            setData('packages', updatedPackages);
+                                                                                        }}
+                                                                                        className={`inline-flex w-full flex-col items-center rounded-lg border px-1.5 py-1.5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#0955AC] focus:ring-offset-1 ${
+                                                                                            isSelected
+                                                                                                ? 'border-[#0955AC] bg-[#0955AC] shadow-sm'
+                                                                                                : isBest
+                                                                                                    ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
+                                                                                                    : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF]'
+                                                                                        }`}
+                                                                                    >
+                                                                                        <span className={`text-xs font-bold leading-tight ${isSelected ? 'text-white' : 'text-[#0B1739]'}`}>
+                                                                                            {formatCurrency(tier.price)}
+                                                                                        </span>
+                                                                                        <span className={`text-[9px] leading-tight ${isSelected ? 'text-white/70' : 'text-[#6B7893]'}`}>
+                                                                                            {tier.eta}
+                                                                                        </span>
+                                                                                        {isSelected ? (
+                                                                                            <span className="text-[9px] text-white/80">✓</span>
+                                                                                        ) : isBest ? (
+                                                                                            <span className="text-[9px] font-bold text-emerald-700">best</span>
+                                                                                        ) : diff > 0 ? (
+                                                                                            <span className="text-[9px] text-[#8C97B0]">+{formatCurrency(diff)}</span>
+                                                                                        ) : null}
+                                                                                    </button>
+                                                                                </td>
+                                                                            );
+                                                                        })}
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            );
+                                        };
+
+                                        const hasDomestic  = domesticProviders.length > 0;
+                                        const hasLogistic  = logisticProviders.length > 0;
+                                        const currentCategory = (activeCategory === 'domestic' && hasDomestic) ? 'domestic'
+                                                              : (activeCategory === 'logistic' && hasLogistic) ? 'logistic'
+                                                              : hasDomestic ? 'domestic' : 'logistic';
+
                                         return (
-                                            <div className="space-y-6">
-                                                {/* Package Info Header */}
-                                                <div className="rounded-xl border border-[#E8F0FE] bg-white p-4">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0955AC] text-white font-bold">
-                                                                {activePackageQuotes.packageIndex + 1}
-                                                            </div>
-                                                            <div>
-                                                                <h3 className="text-lg font-semibold text-[#0B1739]">
-                                                                    {activePackageQuotes.packageInfo.label}
-                                                                </h3>
-                                                                <p className="text-sm text-[#5B6887]">
-                                                                    Weight: {activePackageQuotes.packageInfo.weight.toFixed(2)} kg
-                                                                    {activePackageQuotes.packageInfo.billableWeight !== activePackageQuotes.packageInfo.weight && 
-                                                                        ` • Billable: ${activePackageQuotes.packageInfo.billableWeight.toFixed(2)} kg`
-                                                                    }
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => openComparison(activePackageQuotes.packageIndex)}
-                                                            className="inline-flex items-center gap-2 rounded-lg border border-[#0955AC] bg-white px-4 py-2 text-sm font-semibold text-[#0955AC] transition hover:bg-[#0955AC] hover:text-white"
-                                                        >
-                                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                                            </svg>
-                                                            Compare Services
-                                                        </button>
+                                            <div className="space-y-3">
+                                                {/* Category switch + legend row */}
+                                                <div className="flex flex-col md:flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                    {/* Switch buttons — full width on mobile */}
+                                                    <div className="flex w-full sm:w-auto rounded-lg border border-[#E8F0FE] bg-[#F4F7FB] p-0.5">
+                                                        {hasDomestic && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setActiveCategory('domestic')}
+                                                                className={`flex-1 sm:flex-none rounded-md px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                                                                    currentCategory === 'domestic'
+                                                                        ? 'bg-white text-[#2563EB] shadow-sm'
+                                                                        : 'text-[#5B6887] hover:text-[#0B1739]'
+                                                                }`}
+                                                            >
+                                                                Domestic
+                                                            </button>
+                                                        )}
+                                                        {hasLogistic && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setActiveCategory('logistic')}
+                                                                className={`flex-1 sm:flex-none rounded-md px-4 py-1.5 text-xs font-semibold transition-all duration-150 ${
+                                                                    currentCategory === 'logistic'
+                                                                        ? 'bg-white text-[#0955AC] shadow-sm'
+                                                                        : 'text-[#5B6887] hover:text-[#0B1739]'
+                                                                }`}
+                                                            >
+                                                                Logistic
+                                                            </button>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Compact legend */}
+                                                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11px] text-[#6B7893]">
+                                                        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>Best price</span>
+                                                        <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-[#0955AC]"></span>Selected</span>
+                                                        <span className="hidden sm:inline text-[#9CA3AF]">· Hover for ETA</span>
                                                     </div>
                                                 </div>
 
-                                                {/* Courier Grid - Compact 2x4 Layout */}
-                                                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                                                    {activePackageQuotes.providers.map((provider) => (
-                                                        <div
-                                                            key={`${activePackageQuotes.packageIndex}-${provider.id}`}
-                                                            className="rounded-2xl border-2 border-[#E8F0FE] bg-white p-5 shadow-sm transition-all duration-300 hover:border-[#0955AC]/20 hover:shadow-md"
-                                                        >
-                                                            {/* Provider Header - Compact */}
-                                                            <div className="mb-4 flex items-center gap-3">
-                                                                {provider.logo && (
-                                                                    <div className="flex h-12 w-16 items-center justify-center rounded-lg border border-[#F0F4F8] bg-white">
-                                                                        <img
-                                                                            src={provider.logo}
-                                                                            alt={`${provider.name} logo`}
-                                                                            className="h-8 w-auto object-contain"
-                                                                            loading="lazy"
-                                                                        />
-                                                                    </div>
-                                                                )}
-                                                                <div className="flex-1">
-                                                                    <h4 className="font-bold text-[#0B1739]">{provider.name}</h4>
-                                                                    <p className="text-xs text-[#6B7893]">{provider.coverage}</p>
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Service Tiers - Horizontal Layout */}
-                                                            <div className="space-y-3">
-                                                                {provider.tiers.map((tier) => {
-                                                                    const currentPackage = data.packages[activePackageQuotes.packageIndex];
-                                                                    const isSelected =
-                                                                        provider.id === currentPackage?.courierProvider &&
-                                                                        tier.id === currentPackage?.serviceLevel;
-
-                                                                    return (
-                                                                        <button
-                                                                            type="button"
-                                                                            key={`${activePackageQuotes.packageIndex}-${provider.id}-${tier.id}`}
-                                                                            onClick={() => {
-                                                                                const updatedPackages = [...data.packages];
-                                                                                updatedPackages[activePackageQuotes.packageIndex] = {
-                                                                                    ...updatedPackages[activePackageQuotes.packageIndex],
-                                                                                    courierProvider: provider.id,
-                                                                                    serviceLevel: tier.id,
-                                                                                };
-                                                                                setData("packages", updatedPackages);
-                                                                            }}
-                                                                            className={`w-full rounded-xl border-2 p-4 text-left transition-all duration-200 ${ 
-                                                                                isSelected
-                                                                                    ? 'border-[#0955AC] bg-[#0955AC] text-white shadow-lg'
-                                                                                    : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF] hover:shadow-sm'
-                                                                            }`}
-                                                                        >
-                                                                            {/* Header Row */}
-                                                                            <div className="flex items-center justify-between mb-4">
-                                                                                <div className="flex items-center gap-3">
-                                                                                    <span 
-                                                                                        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${ 
-                                                                                            isSelected ? 'bg-white text-[#0955AC]' : 'text-white'
-                                                                                        }`}
-                                                                                        style={{ backgroundColor: isSelected ? 'white' : provider.brandColor }}
-                                                                                    >
-                                                                                        {tier.label.charAt(0)}
-                                                                                    </span>
-                                                                                    <div>
-                                                                                        <div className={`font-bold text-base ${ 
-                                                                                            isSelected ? 'text-white' : 'text-[#0B1739]'
-                                                                                        }`}>
-                                                                                            {tier.label}
-                                                                                        </div>
-                                                                                        <div className={`text-sm font-medium ${ 
-                                                                                            isSelected ? 'text-white/90' : 'text-[#0955AC]'
-                                                                                        }`}>
-                                                                                            {tier.eta}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div className="text-right">
-                                                                                    <div className={`text-xl font-black ${ 
-                                                                                        isSelected ? 'text-white' : 'text-[#0B1739]'
-                                                                                    }`}>
-                                                                                        {formatCurrency(tier.price)}
-                                                                                    </div>
-                                                                                    {isSelected && (
-                                                                                        <div className="text-xs text-white/80 font-medium">SELECTED</div>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
-
-                                                                            {/* Description */}
-                                                                            <div className={`text-sm leading-relaxed mb-4 ${ 
-                                                                                isSelected ? 'text-white/90' : 'text-[#5B6887]'
-                                                                            }`}>
-                                                                                {tier.description}
-                                                                            </div>
-
-                                                                            {/* Price Breakdown - Detailed */}
-                                                                            <div className={`rounded-lg p-3 ${ 
-                                                                                isSelected ? 'bg-white/10 backdrop-blur-sm' : 'bg-[#F8FAFC]'
-                                                                            }`}>
-                                                                                <h4 className={`text-xs font-semibold uppercase tracking-wide mb-3 ${ 
-                                                                                    isSelected ? 'text-white/80' : 'text-[#5B6887]'
-                                                                                }`}>
-                                                                                    Price Calculation
-                                                                                </h4>
-                                                                                <div className={`space-y-2 text-sm ${ 
-                                                                                    isSelected ? 'text-white/90' : 'text-[#6B7893]'
-                                                                                }`}>
-                                                                                    <div className="flex justify-between items-center">
-                                                                                        <span>Base Rate</span>
-                                                                                        <span className={`font-medium ${ 
-                                                                                            isSelected ? 'text-white' : 'text-[#0B1739]'
-                                                                                        }`}>
-                                                                                            {formatCurrency(tier.breakdown.base)}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    <div className="flex justify-between items-center">
-                                                                                        <span>Weight ({activePackageQuotes.packageInfo.billableWeight.toFixed(1)}kg × {formatCurrency(tier.perKg)}/kg)</span>
-                                                                                        <span className={`font-medium ${ 
-                                                                                            isSelected ? 'text-white' : 'text-[#0B1739]'
-                                                                                        }`}>
-                                                                                            {formatCurrency(tier.breakdown.weight)}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    {activePackageQuotes.packageInfo.billableWeight > 25 && (
-                                                                                        <div className="flex justify-between items-center">
-                                                                                            <span>Oversized Fee (&gt;25kg)</span>
-                                                                                            <span className={`font-medium ${ 
-                                                                                                isSelected ? 'text-white' : 'text-[#0B1739]'
-                                                                                            }`}>
-                                                                                                {formatCurrency((activePackageQuotes.packageInfo.billableWeight - 25) * 0.75)}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    )}
-                                                                                    {data.packages[activePackageQuotes.packageIndex]?.packageType === 'temperature_controlled' && (
-                                                                                        <div className="flex justify-between items-center">
-                                                                                            <span>Special Handling</span>
-                                                                                            <span className={`font-medium ${ 
-                                                                                                isSelected ? 'text-white' : 'text-[#0B1739]'
-                                                                                            }`}>
-                                                                                                {formatCurrency(12)}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    )}
-                                                                                    {data.packages[activePackageQuotes.packageIndex]?.packageType === 'freight' && (
-                                                                                        <div className="flex justify-between items-center">
-                                                                                            <span>Freight Handling</span>
-                                                                                            <span className={`font-medium ${ 
-                                                                                                isSelected ? 'text-white' : 'text-[#0B1739]'
-                                                                                            }`}>
-                                                                                                {formatCurrency(12)}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                    )}
-                                                                                    <div className={`pt-2 border-t flex justify-between items-center font-bold text-base ${ 
-                                                                                        isSelected 
-                                                                                            ? 'border-white/20 text-white' 
-                                                                                            : 'border-[#E8F0FE] text-[#0B1739]'
-                                                                                    }`}>
-                                                                                        <span>Total Cost</span>
-                                                                                        <span>{formatCurrency(tier.price)}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                {currentCategory === 'domestic' && renderCategoryTable(domesticProviders, 'Domestic', '#2563EB', '#EFF6FF')}
+                                                {currentCategory === 'logistic' && renderCategoryTable(logisticProviders, 'Logistic', '#0955AC', '#F0F7FF')}
                                             </div>
                                         );
                                     })()}
@@ -955,221 +962,6 @@ const Create = () => {
                     </form>
                 </div>
             </main>
-
-            {/* Comparison Modal */}
-            {showComparison && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-                    <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
-                        <div className="sticky top-0 z-10 border-b border-[#E8F0FE] bg-white px-6 py-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-xl font-semibold text-[#0B1739]">Compare Courier Services</h2>
-                                    <p className="text-sm text-[#5B6887]">
-                                        {comparisonPackageIndex !== null && quoteMatrix.find(item => item.packageIndex === comparisonPackageIndex)?.packageInfo.label}
-                                        {comparisonServices.length < 2 && ` - Select ${2 - comparisonServices.length} more service${2 - comparisonServices.length === 1 ? '' : 's'} to compare`}
-                                    </p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={closeComparison}
-                                    className="rounded-lg p-2 text-[#5B6887] transition hover:bg-[#F0F4F8] hover:text-[#0B1739]"
-                                >
-                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="p-6">
-                            {comparisonServices.length === 0 && (
-                                <div className="text-center py-8">
-                                    <p className="text-[#5B6887] mb-4">Select courier services to compare their pricing and features</p>
-                                    <div className="text-sm text-[#6B7893]">Click on any service tier below to add it to comparison</div>
-                                </div>
-                            )}
-
-                            {comparisonServices.length > 0 && (
-                                <div className="mb-8">
-                                    <h3 className="text-lg font-semibold text-[#0B1739] mb-4">Selected Services</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {comparisonServices.map((service, index) => {
-                                            const packageQuotes = quoteMatrix.find(item => item.packageIndex === comparisonPackageIndex);
-                                            return (
-                                                <div key={index} className="rounded-xl border-2 border-[#0955AC] bg-white p-6">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <div className="flex items-center gap-3">
-                                                            {service.provider.logo && (
-                                                                <img
-                                                                    src={service.provider.logo}
-                                                                    alt={`${service.provider.name} logo`}
-                                                                    className="h-8 w-auto object-contain"
-                                                                    loading="lazy"
-                                                                />
-                                                            )}
-                                                            <div>
-                                                                <h4 className="font-bold text-[#0B1739]">{service.provider.name}</h4>
-                                                                <p className="text-sm text-[#5B6887]">{service.tier.label} - {service.tier.eta}</p>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeFromComparison(index)}
-                                                            className="text-red-500 hover:text-red-600 p-1"
-                                                        >
-                                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="space-y-3">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-2xl font-black text-[#0B1739]">{formatCurrency(service.tier.price)}</span>
-                                                            <span className="text-sm font-medium text-[#0955AC]">{service.tier.eta}</span>
-                                                        </div>
-
-                                                        <div className="text-sm text-[#5B6887]">{service.tier.description}</div>
-
-                                                        <div className="rounded-lg bg-[#F8FAFC] p-3">
-                                                            <h5 className="text-xs font-semibold uppercase tracking-wide text-[#5B6887] mb-2">Price Breakdown</h5>
-                                                            <div className="space-y-1.5 text-sm text-[#6B7893]">
-                                                                <div className="flex justify-between">
-                                                                    <span>Base Rate</span>
-                                                                    <span className="font-medium">{formatCurrency(service.tier.breakdown.base)}</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span>Weight ({packageQuotes?.packageInfo.billableWeight.toFixed(1)}kg × {formatCurrency(service.tier.perKg)}/kg)</span>
-                                                                    <span className="font-medium">{formatCurrency(service.tier.breakdown.weight)}</span>
-                                                                </div>
-                                                                {packageQuotes?.packageInfo.billableWeight > 25 && (
-                                                                    <div className="flex justify-between">
-                                                                        <span>Oversized Fee</span>
-                                                                        <span className="font-medium">{formatCurrency((packageQuotes.packageInfo.billableWeight - 25) * 0.75)}</span>
-                                                                    </div>
-                                                                )}
-                                                                <div className="border-t border-[#E8F0FE] pt-1.5 flex justify-between font-semibold text-[#0B1739]">
-                                                                    <span>Total</span>
-                                                                    <span>{formatCurrency(service.tier.price)}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="pt-3 border-t border-[#E8F0FE]">
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {service.provider.badges?.map((badge) => (
-                                                                    <span
-                                                                        key={badge}
-                                                                        className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
-                                                                        style={{
-                                                                            backgroundColor: service.provider.badgeColor,
-                                                                            color: service.provider.brandColor,
-                                                                        }}
-                                                                    >
-                                                                        {badge}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    
-                                    {comparisonServices.length === 2 && (
-                                        <div className="mt-6 p-4 rounded-lg bg-[#F0F7FF] border border-[#0955AC]/20">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <h4 className="font-semibold text-[#0B1739]">Price Difference</h4>
-                                                    <p className="text-sm text-[#5B6887]">Cost difference between selected services</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-xl font-bold text-[#0955AC]">
-                                                        {formatCurrency(Math.abs(comparisonServices[0].tier.price - comparisonServices[1].tier.price))}
-                                                    </div>
-                                                    <div className="text-xs text-[#6B7893]">
-                                                        {comparisonServices[0].tier.price > comparisonServices[1].tier.price 
-                                                            ? `${comparisonServices[1].provider.name} is cheaper`
-                                                            : `${comparisonServices[0].provider.name} is cheaper`
-                                                        }
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {comparisonServices.length < 2 && comparisonPackageIndex !== null && (
-                                <div>
-                                    <h3 className="text-lg font-semibold text-[#0B1739] mb-4">Available Services</h3>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                        {(() => {
-                                            const packageQuotes = quoteMatrix.find(item => item.packageIndex === comparisonPackageIndex);
-                                            if (!packageQuotes) return null;
-                                            
-                                            return packageQuotes.providers.map((provider) => (
-                                                <div key={provider.id} className="rounded-xl border border-[#E8F0FE] bg-white p-4">
-                                                    <div className="mb-3 flex items-center gap-3">
-                                                        {provider.logo && (
-                                                            <img
-                                                                src={provider.logo}
-                                                                alt={`${provider.name} logo`}
-                                                                className="h-8 w-auto object-contain"
-                                                                loading="lazy"
-                                                            />
-                                                        )}
-                                                        <div>
-                                                            <h4 className="font-bold text-[#0B1739]">{provider.name}</h4>
-                                                            <p className="text-xs text-[#6B7893]">{provider.coverage}</p>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="space-y-2">
-                                                        {provider.tiers.map((tier) => {
-                                                            const isAlreadySelected = comparisonServices.some(
-                                                                service => service.provider.id === provider.id && service.tier.id === tier.id
-                                                            );
-                                                            
-                                                            return (
-                                                                <button
-                                                                    key={tier.id}
-                                                                    type="button"
-                                                                    onClick={() => addToComparison(provider, tier)}
-                                                                    disabled={isAlreadySelected}
-                                                                    className={`w-full rounded-lg border p-3 text-left transition ${
-                                                                        isAlreadySelected
-                                                                            ? 'border-[#E8F0FE] bg-[#F8FAFC] text-[#6B7893] cursor-not-allowed'
-                                                                            : 'border-[#E8F0FE] bg-white hover:border-[#0955AC]/30 hover:bg-[#F9FBFF]'
-                                                                    }`}
-                                                                >
-                                                                    <div className="flex justify-between items-center">
-                                                                        <div>
-                                                                            <div className="font-semibold text-sm text-[#0B1739]">{tier.label}</div>
-                                                                            <div className="text-xs text-[#6B7893]">{tier.eta}</div>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <div className="font-bold text-[#0B1739]">{formatCurrency(tier.price)}</div>
-                                                                            {isAlreadySelected && (
-                                                                                <div className="text-xs text-[#6B7893]">Selected</div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            ));
-                                        })()}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <Footer />
         </div>
