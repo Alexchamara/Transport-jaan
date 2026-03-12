@@ -611,9 +611,9 @@ const UnitContent = () => {
     const editUnit = (unit) => router.visit(`/vendors/addUnit/${unit.id}`);
 
     return (
-        <div className="flex flex-col gap-10 w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
+        <div className="flex flex-col gap-6 w-full h-auto px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
             {/* ==================== HEADER WITH DROPDOWN (Fully Responsive) ==================== */}
-            <div className="flex flex-col md:flex-row justify-between lg:items-start items-center gap-4 sm:gap-6 mb-8">
+            <div className="flex flex-col md:flex-row justify-between lg:items-start items-center gap-4 sm:gap-6 mb-2">
                 {/* Title */}
                 <h1 className="figtree text-[28px] leading-tight sm:text-[35px] font-[700] text-gray-900">
                     Vehicle Rental Units
@@ -622,9 +622,9 @@ const UnitContent = () => {
             </div>
 
             {/* ==================== SEARCH / FILTERS (Responsive Layout) ==================== */}
-            <div className="mt-8 mb-4">
-                <div className="flex flex-wrap items-center justify-between gap-4 w-full">
-                    <div className="flex flex-wrap gap-4">
+            <div className="mt-2 mb-2">
+                <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+                    <div className="flex flex-wrap items-center gap-3">
                         <div className="w-full min-w-40 sm:w-[240px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-3">
                             <img
                                 src={miniSearchIcon}
@@ -642,7 +642,7 @@ const UnitContent = () => {
                         </div>
 
                         {/* Category Select */}
-                        <div className="w-[170px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-2">
+                        <div className="w-[170px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-2 shrink-0">
                             <img
                                 src={filterIcon}
                                 className="size-[12px] mr-2"
@@ -663,7 +663,7 @@ const UnitContent = () => {
                         </div>
 
                         {/* Status Select */}
-                        <div className="w-[170px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-2">
+                        <div className="w-[170px] h-[34px] bg-[#F3F3F3] rounded-[6px] flex items-center py-1 px-2 shrink-0">
                             <img
                                 src={filterIcon}
                                 className="size-[12px] mr-2"
@@ -684,7 +684,7 @@ const UnitContent = () => {
 
                     {!showAddUnit && (
                         <button
-                            className="w-[120px] h-[34px] bg-[#0955AC] text-[13px] rounded-[6px] text-white font-[700] shrink-0" // shrink-0 prevents button from collapsing
+                            className="w-[120px] h-[34px] bg-[#0955AC] text-[13px] rounded-[6px] text-white font-[700] shrink-0"
                             onClick={handleAddUnitClick}
                         >
                             Add Unit
@@ -712,16 +712,21 @@ const UnitContent = () => {
                     {unitsPage.data.map((unit) => (
                         <div
                             key={unit.id}
-                            className="relative w-auto  bg-white rounded-[10px] my-6 shadow-[4px_4px_4px_#0000001A]"
+                            className="relative w-full bg-white rounded-[10px] my-4 shadow-[4px_4px_4px_#0000001A] overflow-hidden"
                         >
-                            <div className="flex flex-col md:flex-row items-stretch">
+                            <div className="flex flex-col lg:flex-row items-stretch">
                                 {/* Image container */}
-                                <div className="shrink-0 w-full h-[200px] md:w-[260px] md:h-auto overflow-hidden md:rounded-l-[10px] rounded-t-[10px] md:rounded-t-none self-stretch">
+                                <div className="shrink-0 w-full h-[190px] lg:w-[250px] lg:h-auto overflow-hidden self-stretch bg-[#F3F3F3]">
                                     <img
                                         src={unit.image || car1}
                                         alt="Vehicle"
                                         className="block w-full h-full object-cover"
                                         loading="lazy"
+                                        onError={(e) => {
+                                            if (e.currentTarget.src !== car1) {
+                                                e.currentTarget.src = car1;
+                                            }
+                                        }}
                                     />
                                 </div>
 
@@ -781,7 +786,7 @@ const UnitContent = () => {
                                         </div>
                                     </div>
 
-                                    <div className="mt-5 flex flex-wrap justify-start items-center gap-x-6 gap-y-3">
+                                    <div className="mt-4 flex flex-wrap justify-start items-center gap-x-6 gap-y-3">
                                         <Spec
                                             icon={icon1}
                                             alt="Mileage"
@@ -813,7 +818,7 @@ const UnitContent = () => {
                                     </div>
                                 </div>
 
-                                <div className="w-full md:w-[150px] bg-[#D8E4F2] md:rounded-r-[10px] rounded-b-[10px] md:rounded-b-none py-4 px-6 md:px-0 flex flex-row md:flex-col justify-center items-center gap-4">
+                                <div className="w-full lg:w-[130px] bg-[#D8E4F2] py-4 px-6 lg:px-0 flex flex-row lg:flex-col justify-center items-center gap-4">
                                     <button
                                         type="button"
                                         className="size-[40px] border-[1.5px] border-[#0955AC] bg-[#D8E4F2] rounded-[6px] flex justify-center items-center"
