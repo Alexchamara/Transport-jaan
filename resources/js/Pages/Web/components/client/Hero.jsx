@@ -584,7 +584,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                 {/* Fleets & Upcoming */}
                 <div className="mb-3 md:mb-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2">
-                        <div className="mb-3 flex items-center justify-between">
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                             <h2 className="text-[20px] font-[600]">
                                 My Booked Vehicles
                             </h2>
@@ -621,15 +621,15 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                             <button
                                                 key={val}
                                                 onClick={() => setMode(val)}
-                                                className={`px-8 py-2 rounded-xl border text-[12px] font-[600] transition ${
+                                                className={`h-[44px] min-w-[100px] px-4 rounded-xl border text-[13px] font-[600] transition flex items-center justify-center ${
                                                     active
                                                         ? "bg-[#0955AC] text-white border-[#0955AC]"
                                                         : "border-slate-200 hover:bg-slate-100"
                                                 }`}
                                             >
-                                                <span className="inline-flex items-center gap-2">
+                                                <span className="inline-flex items-center gap-1.5">
                                                     {Icon ? (
-                                                        <Icon className="h-8 w-8" />
+                                                        <Icon className="h-4 w-4" />
                                                     ) : null}
                                                     {label}
                                                 </span>
@@ -641,32 +641,33 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                         </div>
 
                         {/* Fleet grid */}
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 items-stretch">
                             {filteredFleets.map((f) => (
                                 <motion.div
                                     key={f.id}
                                     initial={{ opacity: 0, y: 8 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.25 }}
+                                    className="h-full"
                                 >
-                                    <div className="group rounded-2xl bg-white border border-slate-200 shadow-sm">
-                                        <div className="px-10 pt-10 pb-5">
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <h3 className="text-[18px] font-semibold leading-none tracking-tight">
+                                    <div className="group h-full rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col">
+                                        <div className="px-4 pt-4 pb-3 flex-1">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <h3 className="text-[15px] font-semibold leading-tight tracking-tight break-words">
                                                         {f.name}
                                                     </h3>
-                                                    <p className="mt-1 flex items-center gap-2 text-[12px] text-slate-500">
-                                                        <MapPin className="h-3.5 w-3.5" />
+                                                    <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-slate-500">
+                                                        <MapPin className="h-3.5 w-3.5 shrink-0" />
                                                         {f.location}
                                                     </p>
-                                                    <p className="mt-1 flex items-center gap-2 text-[12px] text-slate-600">
-                                                        <Calendar className="h-3.5 w-3.5" />
+                                                    <p className="mt-1 flex items-center gap-1.5 text-[12px] text-slate-600 leading-tight">
+                                                        <Calendar className="h-3.5 w-3.5 shrink-0" />
                                                         {f.startDate} → {f.endDate}
                                                     </p>
                                                 </div>
                                                 {/* Status badge */}
-                                                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[12px] font-semibold ${
+                                                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
                                                     statusMap[f.status?.toLowerCase()]?.tone || statusMap.pending.tone
                                                 }`}>
                                                     {statusMap[f.status?.toLowerCase()]?.label || f.status || 'Pending'}
@@ -674,26 +675,23 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                             </div>
                                         </div>
 
-                                        <div className="px-10 pb-10 flex items-end justify-between gap-2">
-                                            <div className="text-[14px] text-slate-600">
-                                                <div className="flex items-center gap-2 text-slate-700">
-                                                    <CreditCard className="h-4 w-4" />
-                                                    <span className="font-medium">
-                                                        ${f.price.toFixed(2)}
-                                                    </span>{" "}
-                                                    total
+                                        <div className="px-4 pb-4 pt-3 border-t border-slate-100 flex flex-col gap-2.5">
+                                            <div className="text-slate-600">
+                                                <div className="flex items-center gap-1.5 text-slate-700 text-[13px] leading-tight">
+                                                    <CreditCard className="h-3.5 w-3.5 shrink-0" />
+                                                    <span className="font-semibold">${f.price.toFixed(2)}</span>{" "}total
                                                 </div>
-                                                <div className="mt-1 flex items-center gap-2 text-slate-500 text-[12px]">
+                                                <div className="mt-0.5 text-slate-400 text-[11px]">
                                                     Ref: {f.bookingCode}
                                                 </div>
                                             </div>
                                             <div className="flex gap-2">
                                                 <Link
                                                     href={`/client/bookings/${f.id}/summary`}
-                                                    className="h-10 px-4 rounded-xl bg-[#0955AC] text-white text-[14px] font-medium hover:bg-[#0744a0]"
+                                                    className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-[#0955AC] text-white text-[12px] font-medium hover:bg-[#0744a0] transition"
                                                 >
-                                                    View Details{" "}
-                                                    <ChevronRight className="ml-1 h-4 w-4 inline-block" />
+                                                    View Details
+                                                    <ChevronRight className="ml-1 h-3 w-3" />
                                                 </Link>
                                                 {['confirmed', 'pending', 'paid'].includes(f.status?.toLowerCase()) && (
                                                     <button
@@ -701,7 +699,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                                             setBookingToCancell(f);
                                                             setShowCancellationModal(true);
                                                         }}
-                                                        className="h-10 px-4 rounded-xl bg-rose-500 text-white text-[14px] font-medium hover:bg-rose-600 transition"
+                                                        className="h-8 px-3 rounded-lg bg-rose-500 text-white text-[12px] font-medium hover:bg-rose-600 transition"
                                                     >
                                                         Cancel
                                                     </button>
@@ -713,10 +711,8 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                             ))}
 
                             {filteredFleets.length === 0 && (
-                                <div className="rounded-2xl border-dashed border border-slate-200 bg-white">
-                                    <div className="px-4 py-10 text-center text-slate-500">
-                                        No bookings found. Try changing filters or book a new vehicle.
-                                    </div>
+                                <div className="md:col-span-2 flex items-center justify-center py-16 text-slate-400 text-[15px]">
+                                    No bookings found. Try changing filters or book a new vehicle.
                                 </div>
                             )}
                         </div>
@@ -734,7 +730,8 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                     Next trips and rentals
                                 </p>
                             </div>
-                            <div className="px-10 pb-10 space-y-6 text-[14px]">
+                            <div className="px-10 pb-10 text-[14px]">
+                                <div className="space-y-4 max-h-[220px] overflow-y-auto pr-1">
                                 {upcoming.length > 0 ? (
                                     upcoming.map((r) => (
                                         <div
@@ -786,6 +783,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                         No upcoming reservations
                                     </div>
                                 )}
+                                </div>
                             </div>
                         </div>
 
