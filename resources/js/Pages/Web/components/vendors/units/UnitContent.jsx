@@ -21,7 +21,6 @@ import icon4 from "../../../assets/vendors/units/icons/icon4.svg"; // fuel
 import editIcon from "../../../assets/vendors/units/edit.svg";
 import deleteIcon from "../../../assets/vendors/units/delete.svg";
 
-import AddUnit from "../../../home/vendors/AddUnit";
 import { ChevronDown } from "lucide-react";
 
 import UserDropdown from "../../../components/vendors/UserDropdown.jsx";
@@ -439,8 +438,6 @@ const UnitContent = () => {
     const { auth } = usePage().props;
     const user = auth?.user;
 
-    const [showAddUnit, setShowAddUnit] = useState(false);
-
     // Filters
     const [searchTerm, setSearchTerm] = useState("");
     const [status, setStatus] = useState("");
@@ -532,7 +529,7 @@ const UnitContent = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchTerm, status, category, itemsPerPage, unitsPage.current_page]);
 
-    const handleAddUnitClick = () => setShowAddUnit(true);
+    const handleAddUnitClick = () => router.visit('/vendors/addUnit');
 
     const goToLink = (link) => {
         if (link?.url && !link.active) {
@@ -682,22 +679,17 @@ const UnitContent = () => {
                         </div>
                     </div>
 
-                    {!showAddUnit && (
-                        <button
-                            className="w-[120px] h-[34px] bg-[#0955AC] text-[13px] rounded-[6px] text-white font-[700] shrink-0"
-                            onClick={handleAddUnitClick}
-                        >
-                            Add Unit
-                        </button>
-                    )}
+                    <button
+                        className="w-[120px] h-[34px] bg-[#0955AC] text-[13px] rounded-[6px] text-white font-[700] shrink-0"
+                        onClick={handleAddUnitClick}
+                    >
+                        Add Unit
+                    </button>
                 </div>
             </div>
 
             {/* ==================== BODY ==================== */}
-            {showAddUnit ? (
-                <AddUnit />
-            ) : (
-                <>
+            <>
                     {loading && (
                         <div className="text-sm text-gray-600 my-3">
                             Loading units…
@@ -915,7 +907,6 @@ const UnitContent = () => {
                         </div>
                     </div>
                 </>
-            )}
 
             {/* Action Modal */}
             <MaintenanceActionModal
