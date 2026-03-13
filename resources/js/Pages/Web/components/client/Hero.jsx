@@ -351,6 +351,13 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
         window.location.reload();
     };
 
+    const handleCancelAction = (fleetBooking) => {
+        const booking = fleetBooking?.vehicle || fleetBooking;
+        if (!booking?.id) return;
+        setBookingToCancell(booking);
+        setShowCancellationModal(true);
+    };
+
     // const handleExport = () => {
     //     alert('Export functionality will be implemented');
     // };
@@ -644,7 +651,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 items-stretch">
                             {filteredFleets.map((f) => (
                                 <motion.div
-                                    key={f.id}
+                                    key={f.vehicle?.unique_key || f.id}
                                     initial={{ opacity: 0, y: 8 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.25 }}
@@ -687,18 +694,15 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                             </div>
                                             <div className="flex gap-2">
                                                 <Link
-                                                    href={`/client/bookings/${f.id}/summary`}
+                                                    href={f.vehicle?.summary_url || `/client/bookings/${f.id}/summary`}
                                                     className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-[#0955AC] text-white text-[12px] font-medium hover:bg-[#0744a0] transition"
                                                 >
                                                     View Details
                                                     <ChevronRight className="ml-1 h-3 w-3" />
                                                 </Link>
-                                                {['confirmed', 'pending', 'paid'].includes(f.status?.toLowerCase()) && (
+                                                {['confirmed', 'pending', 'paid'].includes(f.status?.toLowerCase()) && Boolean(f.vehicle?.can_cancel) && (
                                                     <button
-                                                        onClick={() => {
-                                                            setBookingToCancell(f);
-                                                            setShowCancellationModal(true);
-                                                        }}
+                                                        onClick={() => handleCancelAction(f)}
                                                         className="h-8 px-3 rounded-lg bg-rose-500 text-white text-[12px] font-medium hover:bg-rose-600 transition"
                                                     >
                                                         Cancel
@@ -735,7 +739,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                 {upcoming.length > 0 ? (
                                     upcoming.map((r) => (
                                         <div
-                                            key={r.id || r.code}
+                                            key={r.unique_key || r.id || r.code}
                                             className="rounded-2xl border p-5"
                                         >
                                             <div className="flex items-center justify-between">
@@ -770,7 +774,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                                     Ref: {r.booking_code || r.code || `BK-${r.id}`}
                                                 </span>
                                                 <Link
-                                                    href={`/client/bookings/${r.id}/summary`}
+                                                    href={r.summary_url || `/client/bookings/${r.id}/summary`}
                                                     className="h-8 px-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-sm inline-flex items-center"
                                                 >
                                                     Manage
@@ -857,7 +861,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                     {bookings.length > 0 ? (
                                         bookings.map((r) => (
                                             <tr
-                                                key={r.id || r.code}
+                                                key={r.unique_key || r.id || r.code}
                                                 className="rounded-xl bg-white shadow-sm"
                                             >
                                                 <td className="px-3 py-3">
