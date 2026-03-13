@@ -61,9 +61,12 @@ const Summary = () => {
     router.visit("/vehicleList", { method: "get", preserveScroll: true });
   };
 
-  // DONE → go to /clientRent
+  // DONE → go to /multiModel/plan-journey?subTab=air&tab=rental
   const handleDone = () => {
-    router.visit("/clientRent", { method: "get", preserveScroll: true });
+    router.visit("/multiModel/plan-journey?subTab=air&tab=rental", {
+      method: "get",
+      preserveScroll: true,
+    });
   };
 
   const onlyDate = (dt) => (dt ? new Date(dt).toLocaleDateString() : "—");
