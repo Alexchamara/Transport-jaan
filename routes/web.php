@@ -662,6 +662,8 @@ Route::middleware(['auth', 'vendor.verified'])
         // Vendor booking cancellation API routes
         Route::get('/bookings/{booking}/vendor/cancellation-policy', [ClientBookingController::class, 'getVendorCancellationPolicy'])->name('bookings.vendor.cancellation-policy');
         Route::post('/bookings/{booking}/vendor/cancel-booking', [ClientBookingController::class, 'cancelBookingAsVendor'])->name('bookings.vendor.cancel-booking');
+        Route::get('/bookings/{bookingType}/{bookingId}/vendor/cancellation-policy', [VendorBookingController::class, 'getVendorCancellationPolicyByType'])->name('bookings.vendor.cancellation-policy.type');
+        Route::post('/bookings/{bookingType}/{bookingId}/vendor/cancel-booking', [VendorBookingController::class, 'cancelBookingAsVendorByType'])->name('bookings.vendor.cancel-booking.type');
 
         // Other pages (shells)
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
