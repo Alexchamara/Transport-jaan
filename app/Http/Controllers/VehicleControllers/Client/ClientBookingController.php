@@ -1087,6 +1087,38 @@ class ClientBookingController extends Controller
         ]);
     }
 
+    public function seaVehicleQuote(Request $request)
+    {
+        [$vehicle, $pickup, $dropoff, $addonsReq] = $this->validateInputsForQuote($request);
+
+        $excludeId = $request->integer('exclude_booking_id');
+        $userId    = Auth::id();
+
+        $overlap = SeaVehicleBookings::where('vehicle_id', $vehicle->id)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->when($userId, function ($q) use ($userId) {
+                $q->where(function ($qq) use ($userId) {
+                    $qq->where('client_id', '!=', $userId)
+                       ->orWhere('status', 'confirmed');
+                });
+            })
+            ->whereHas('schedule', function ($q) use ($pickup, $dropoff) {
+                $q->where('pickup_at', '<', $dropoff)
+                  ->where('dropoff_at', '>', $pickup);
+            })
+            ->exists();
+
+        if ($overlap) {
+            return response()->json([
+                'message' => 'Vehicle is not available for the selected dates.'
+            ], 422);
+        }
+
+        $calc = $this->calculateTotals($vehicle, $pickup, $dropoff, $addonsReq);
+        return response()->json($calc);
+    }
+
     public function seaVehicleStore(Request $request)
     {
         $userId = Auth::id();
