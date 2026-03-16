@@ -104,6 +104,9 @@ const VendorAllBookings = ({
     const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
     const [dateFromFilter, setDateFromFilter] = useState("");
     const [dateToFilter, setDateToFilter] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const perPageOptions = [10, 20, 50];
     const exportMenuRef = useRef(null);
 
     useEffect(() => {
@@ -278,6 +281,7 @@ const VendorAllBookings = ({
         setPaymentStatusFilter("All");
         setDateFromFilter("");
         setDateToFilter("");
+        setCurrentPage(1);
     };
 
     const formatDisplayDate = (value) => {
@@ -320,6 +324,39 @@ const VendorAllBookings = ({
 
         return matchesSearch && matchesType && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
     }).map(mapToRow);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter, typeFilter, paymentStatusFilter, dateFromFilter, dateToFilter]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [rowsPerPage]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredBookings.length / rowsPerPage));
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginatedBookings = filteredBookings.slice(startIndex, endIndex);
+
+    const getPageNumbers = () => {
+        const pages = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 3) {
+            pages.push(1, 2, 3, "...", totalPages);
+        } else if (currentPage >= totalPages - 2) {
+            pages.push(1, "...", totalPages - 2, totalPages - 1, totalPages);
+        } else {
+            pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
+        }
+        return pages;
+    };
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     // Get status styling (matching DashContent)
     const getStatusStyle = (status) => {
@@ -620,15 +657,71 @@ const VendorAllBookings = ({
 
                                     {/* Results count */}
                                     <div className="mt-3 text-[12px] text-gray-500">
-                                        Showing {filteredBookings.length} of {displayBookings.length} bookings
+                                        Showing {filteredBookings.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filteredBookings.length)} of {filteredBookings.length} bookings
                                     </div>
                                 </div>
                             )}
                         </div>
 
                         <AllBookingTable
-                            rows={filteredBookings}
+                            rows={paginatedBookings}
                         />
+
+                        {filteredBookings.length > 0 && (
+                            <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-2 mt-6 sm:mt-8 px-1">
+                                <div className="flex items-center">
+                                    <span className="mr-2 sm:mr-3 text-[#00000080] text-[13px] sm:text-[15px]">Results per page</span>
+                                    <select
+                                        value={rowsPerPage}
+                                        onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                                        className="rounded px-2 sm:px-3 py-2 font-[600] text-[14px] sm:text-[16px] bg-[#F4F3F3] border border-[#BEBEBE] w-[70px] sm:w-[90px] h-[36px] sm:h-[40px] focus:outline-none"
+                                    >
+                                        {perPageOptions.map((opt) => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto max-w-full">
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="size-[36px] sm:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 flex-shrink-0"
+                                        aria-label="Previous page"
+                                    >
+                                        {'<'}
+                                    </button>
+
+                                    {getPageNumbers().map((num, i) =>
+                                        num === "..." ? (
+                                            <span key={`dots-${i}`} className="px-1 sm:px-2">...</span>
+                                        ) : (
+                                            <button
+                                                key={`p-${num}`}
+                                                className={`size-[36px] sm:size-[40px] rounded-[4px] text-[14px] sm:text-[16px] font-[600] flex-shrink-0 ${
+                                                    currentPage === num
+                                                        ? "bg-white border-2 border-[#0955AC] text-[#0955AC]"
+                                                        : "bg-[#F4F3F3]"
+                                                }`}
+                                                onClick={() => setCurrentPage(num)}
+                                                aria-current={currentPage === num ? "page" : undefined}
+                                            >
+                                                {num}
+                                            </button>
+                                        )
+                                    )}
+
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="size-[36px] sm:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 flex-shrink-0"
+                                        aria-label="Next page"
+                                    >
+                                        {'>'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

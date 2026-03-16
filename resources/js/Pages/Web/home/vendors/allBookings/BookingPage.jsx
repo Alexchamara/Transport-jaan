@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { usePage } from "@inertiajs/react";
 import {
     Download,
@@ -7,7 +7,6 @@ import {
     ChevronRight,
     Eye,
     X,
-    Filter,
     ChevronDown as DropdownIcon,
 } from "lucide-react";
 import jsPDF from "jspdf";
@@ -23,7 +22,6 @@ import UnverifiedBanner from "./UnverifiedBanner";
 import { API_BASE_URL } from "../../../../../config/api";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import filterIcon from "../../../assets/vendors/dashboard/icons/filterIcon.svg";
-import miniDownArrow from "../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 import AllBookingTableTwo from "./AllBookingTableTwo";
 
 
@@ -111,10 +109,12 @@ const BookingPage = () => {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [typeFilter, setTypeFilter] = useState("All");
+    const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
     const [showFilters, setShowFilters] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const exportMenuRef = useRef(null);
 
     // ── pagination ──
     const [page, setPage] = useState(1);
@@ -138,7 +138,9 @@ const BookingPage = () => {
 
     const filtered = useMemo(() => {
         const q = search.toLowerCase();
-        return rawBookings.filter((b) => {
+        return rawBookings
+            .map((b, sourceIndex) => ({ ...b, __sourceIndex: sourceIndex }))
+            .filter((b) => {
             const matchSearch =
                 !q ||
                 b.booking_code?.toLowerCase().includes(q) ||
@@ -147,20 +149,39 @@ const BookingPage = () => {
                 b.customer_email?.toLowerCase().includes(q);
             const matchStatus = statusFilter === "All" || b.status?.toLowerCase() === statusFilter.toLowerCase();
             const matchType = typeFilter === "All" || b.booking_type === typeFilter;
+            const paymentStatus = (b.payment_status ?? "").toString().toLowerCase();
+            const matchPayment = paymentStatusFilter === "All" || paymentStatus === paymentStatusFilter.toLowerCase();
             const bd = b.booking_date ? new Date(b.booking_date) : null;
             const matchFrom = !dateFrom || !bd || bd >= new Date(dateFrom);
             const matchTo = !dateTo || !bd || bd <= new Date(dateTo);
-            return matchSearch && matchStatus && matchType && matchFrom && matchTo;
+            return matchSearch && matchStatus && matchType && matchPayment && matchFrom && matchTo;
         });
-    }, [rawBookings, search, statusFilter, typeFilter, dateFrom, dateTo]);
+    }, [rawBookings, search, statusFilter, typeFilter, paymentStatusFilter, dateFrom, dateTo]);
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / ROWS));
     const paginated = filtered.slice((page - 1) * ROWS, page * ROWS);
 
     const handleResetFilters = () => {
         setSearch(""); setStatusFilter("All"); setTypeFilter("All");
+        setPaymentStatusFilter("All");
         setDateFrom(""); setDateTo(""); resetPage();
     };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+                setShowExportMenu(false);
+            }
+        };
+
+        if (showExportMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showExportMenu]);
 
     // ── exports ──
     const exportCSV = () => {
@@ -304,46 +325,162 @@ const BookingPage = () => {
                         className="w-full h-auto bg-[#FFFFFF] rounded-[10px] py-10 px-5 sm:px-10"
                         style={{ boxShadow: "4px 4px 4px #0000001A" }}
                     >
-                        <div className="flex xl:flex-row flex-col justify-between">
+                        <div className="flex xl:flex-row flex-col justify-between gap-4">
                             <h1 className="text-[24px] font-[700]">All Bookings</h1>
-                            <div className="flex xl:flex-row flex-col gap-5 mt-5 xl:mt-0">
-                                <div className="xl:w-[253px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row justify-center items-center py-2 px-5">
+                            <div className="flex flex-col sm:flex-row gap-3 mt-5 xl:mt-0 w-full sm:w-auto">
+                                <div className="w-full sm:w-[253px] h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center py-2 px-4">
                                     <img src={miniSearchIcon} alt="Search" />
                                     <input
                                         type="text"
+                                        value={search}
+                                        onChange={(e) => {
+                                            setSearch(e.target.value);
+                                            resetPage();
+                                        }}
                                         className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none placeholder:text-[#7B7B7ACC] truncate"
                                         placeholder={
                                             "Search client name, airline, etc."
                                         }
                                     />
                                 </div>
-                                <div className="xl:w-[155px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
+                                <button onClick={() => setShowFilters((prev) => !prev)}
+                                    className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">
                                     <img
                                         src={filterIcon}
-                                        className="size-[12px]"
+                                        className="size-[14px] shrink-0 brightness-0 group-hover:brightness-0 group-hover:invert"
                                         alt="Filter"
                                     />
-                                    <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                        Service Type
-                                    </h1>
-                                    <img src={miniDownArrow} alt="Dropdown" />
-                                </div>
-                                <div className="xl:w-[125px] xl:h-[35px] bg-[#F3F3F3] rounded-[6px] flex flex-row items-center justify-between py-2 px-5">
-                                    <img
-                                        src={filterIcon}
-                                        className="size-[12px]"
-                                        alt="Filter"
-                                    />
-                                    <h1 className="text-[14px] font-[500] text-[#7B7B7ACC]">
-                                        Status
-                                    </h1>
-                                    <img src={miniDownArrow} alt="Dropdown" />
+                                    <span>Filter</span>
+                                </button>
+
+                                <div className="relative" ref={exportMenuRef}>
+                                    <button
+                                        onClick={() => setShowExportMenu((prev) => !prev)}
+                                        className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group"
+                                    >
+                                        <Download size={14} className="shrink-0" />
+                                        <span>Export</span>
+                                        <DropdownIcon size={12} />
+                                    </button>
+
+                                    {showExportMenu && (
+                                        <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-300 rounded-[6px] shadow-lg z-50">
+                                            <button
+                                                onClick={exportCSV}
+                                                className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                            >
+                                                Export to CSV
+                                            </button>
+                                            <button
+                                                onClick={exportPDF}
+                                                className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px] border-b border-gray-200"
+                                            >
+                                                Export to PDF
+                                            </button>
+                                            <button
+                                                onClick={exportXLSX}
+                                                className="w-full text-left px-4 py-2 hover:bg-gray-100 font-[500] text-[14px]"
+                                            >
+                                                Export to XLSX
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
+                        {showFilters && (
+                            <div className="border border-gray-300 rounded-[8px] p-4 bg-gray-50 w-full mt-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-[600] text-[16px]">Filters</h3>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleResetFilters}
+                                            className="px-3 py-2 text-[14px] bg-white border border-gray-300 rounded-[6px] text-gray-700 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500]"
+                                        >
+                                            Reset Filters
+                                        </button>
+                                        <button
+                                            onClick={() => setShowFilters(false)}
+                                            className="text-gray-500 hover:text-blue-700 text-[24px] font-bold"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[12px] font-[600] text-gray-700">Status</label>
+                                        <select
+                                            value={statusFilter}
+                                            onChange={(e) => {
+                                                setStatusFilter(e.target.value);
+                                                resetPage();
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        >
+                                            <option value="All">All</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Confirmed">Confirmed</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Completed">Completed</option>
+                                            <option value="Cancelled">Cancelled</option>
+                                            <option value="Paid">Paid</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[12px] font-[600] text-gray-700">Payment</label>
+                                        <select
+                                            value={paymentStatusFilter}
+                                            onChange={(e) => {
+                                                setPaymentStatusFilter(e.target.value);
+                                                resetPage();
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        >
+                                            <option value="All">All</option>
+                                            <option value="Paid">Paid</option>
+                                            <option value="Pending">Pending</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[12px] font-[600] text-gray-700">From Date</label>
+                                        <input
+                                            type="date"
+                                            value={dateFrom}
+                                            onChange={(e) => {
+                                                setDateFrom(e.target.value);
+                                                resetPage();
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[12px] font-[600] text-gray-700">To Date</label>
+                                        <input
+                                            type="date"
+                                            value={dateTo}
+                                            onChange={(e) => {
+                                                setDateTo(e.target.value);
+                                                resetPage();
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 text-[12px] text-gray-500">
+                                    Showing {filtered.length === 0 ? 0 : (page - 1) * ROWS + 1} to {Math.min(page * ROWS, filtered.length)} of {filtered.length} bookings
+                                </div>
+                            </div>
+                        )}
+
                         <AllBookingTableTwo
-                            bookings={bookings}
+                            bookings={paginated}
                             setBookings={setBookings}
                             statusColors={statusColors}
                             bookingType="All"
