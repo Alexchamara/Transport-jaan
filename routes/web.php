@@ -1046,7 +1046,27 @@ Route::get('/ticketBooking/units', function () {
 })->name('ticketBooking.units');
 
 Route::get('/ticketBooking/dashboard', function () {
-    return Inertia::render('Web/home/vendors/ticketBooking/Dashboard');
+    $userId = \Illuminate\Support\Facades\Auth::id();
+    $baseQuery = \App\Models\FlightBooking::query();
+
+    if ($userId) {
+        $baseQuery->where('user_id', $userId);
+    }
+
+    $totalBookings = (clone $baseQuery)->count();
+    $newBookings = (clone $baseQuery)
+        ->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])
+        ->count();
+    $confirmedBookings = (clone $baseQuery)->where('status', 'confirmed')->count();
+
+    return Inertia::render('Web/home/vendors/ticketBooking/Dashboard', [
+        'ticketStats' => [
+            'totalRevenue' => 0,
+            'newBookings' => $newBookings,
+            'confirmedBookings' => $confirmedBookings,
+            'totalBookings' => $totalBookings,
+        ],
+    ]);
 })->name('ticketBooking.dashboard');
 
 Route::get('/ticketBooking/clients', function () {
