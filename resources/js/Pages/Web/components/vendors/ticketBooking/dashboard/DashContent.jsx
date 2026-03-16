@@ -51,9 +51,10 @@ const transportTypes = [
 ];
 
 const DashContent = () => {
-    const { auth } = usePage().props;
+    const { auth, ticketStats } = usePage().props;
     const user = auth?.user;
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
+    const stats = ticketStats ?? {};
 
     const [isMobile, setIsMobile] = useState(true);
     const [showExportMenu, setShowExportMenu] = useState(false);
@@ -442,7 +443,7 @@ const DashContent = () => {
                                     Total Revenue
                                 </h1>
                                 <h1 className="text-[20px] font-[700]">
-                                    $8,450
+                                    ${Number(stats.totalRevenue ?? 0).toLocaleString()}
                                 </h1>
                             </div>
                         </div>
@@ -477,7 +478,7 @@ const DashContent = () => {
                                     New Bookings
                                 </h1>
                                 <h1 className="text-[20px] font-[700]">
-                                    350
+                                    {stats.newBookings ?? 0}
                                 </h1>
                             </div>
                         </div>
@@ -512,7 +513,7 @@ const DashContent = () => {
                                     Rented Cars
                                 </h1>
                                 <h1 className="text-[20px] font-[700]">
-                                    24 Units
+                                    {stats.confirmedBookings ?? 0} Bookings
                                 </h1>
                             </div>
                         </div>
@@ -544,10 +545,10 @@ const DashContent = () => {
                             </div>
                             <div>
                                 <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
-                                    Total Revenue
+                                    Total Bookings
                                 </h1>
                                 <h1 className="text-[20px] font-[700]">
-                                    89 Units
+                                    {stats.totalBookings ?? 0} Bookings
                                 </h1>
                             </div>
                         </div>

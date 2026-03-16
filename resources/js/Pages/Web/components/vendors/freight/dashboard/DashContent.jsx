@@ -67,8 +67,9 @@ const carTypes = [
 ];
 
 const DashContent = () => {
-    const { auth } = usePage().props;
+    const { auth, freightStats } = usePage().props;
     const user = auth?.user;
+    const totalUnits = Number(freightStats?.totalUnits ?? 0);
 
     const isVerified = user?.status === 'verified' || user?.status === 'Verified';
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -506,7 +507,7 @@ const DashContent = () => {
                                                 Total Units
                                             </h1>
                                             <h1 className="text-[22px] md:text-[26px] font-[700]">
-                                                89 Units
+                                                {totalUnits} Units
                                             </h1>
                                         </div>
                                     </div>

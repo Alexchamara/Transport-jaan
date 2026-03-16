@@ -267,10 +267,7 @@ const DashContent = () => {
                         activeBookings:
                             stats.pending_bookings + stats.upcoming_bookings,
                         occupiedUnits: `${stats.upcoming_bookings} Units`,
-                        totalUnits: `${stats.upcoming_bookings +
-                            stats.completed_bookings +
-                            20
-                            } Units`,
+                        totalUnits: `${stats.total_units ?? 0} Units`,
                         revenueChange: calculateChange(
                             dashboardStats.activeBookings,
                             stats.pending_bookings + stats.upcoming_bookings
