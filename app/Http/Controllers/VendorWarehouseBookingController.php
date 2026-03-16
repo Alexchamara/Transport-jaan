@@ -182,6 +182,10 @@ class VendorWarehouseBookingController extends Controller
                     ->where('status', 'completed')
                     ->whereBetween('updated_at', [$currentWeekStart, $currentWeekEnd])
                     ->count(),
+
+                'total_units' => WarehouseUnit::query()
+                    ->where('user_id', $user->id)
+                    ->count(),
             ];
             
             // Calculate previous week stats for growth comparison
