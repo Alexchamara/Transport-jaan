@@ -7,6 +7,66 @@ const CarBookingTable = ({ rows = [] }) => {
   const safe = Array.isArray(data) ? data : [];
 
   const [isMobile, setIsMobile] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const totalPages = Math.max(1, Math.ceil(safe.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRows = safe.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [rows]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [itemsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const getPageNumbers = () => {
+    if (totalPages <= 4) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    if (currentPage <= 2) {
+      return [1, 2, 3, 4];
+    }
+
+    if (currentPage >= totalPages - 1) {
+      return [totalPages - 3, totalPages - 2, totalPages - 1, totalPages].filter(
+        (page, index, pages) => pages.indexOf(page) === index && page > 0
+      );
+    }
+
+    return [currentPage - 1, currentPage, currentPage + 1];
+  };
+
+  const handleItemsPerPageChange = (e) => {
+    const value = Number(e.target.value);
+    if (Number.isFinite(value) && value > 0) {
+      setItemsPerPage(value);
+    }
+  };
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)');
@@ -16,11 +76,13 @@ const CarBookingTable = ({ rows = [] }) => {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
+  const currentPageRows = safe.length === 0 ? 0 : Math.min(endIndex, safe.length);
+
   if (isMobile) {
     // Mobile Card View
     return (
       <div className="py-10 space-y-4">
-        {safe.map((row, index) => (
+        {paginatedRows.map((row, index) => (
           <div
             key={index}
             className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
@@ -44,7 +106,7 @@ const CarBookingTable = ({ rows = [] }) => {
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-gray-700">Plate:</span>
-                <span className="text-sm bg-gray-100 px-2 py-1 rounded text-xs">{row.plate}</span>
+                <span className="bg-gray-100 px-2 py-1 rounded text-xs">{row.plate}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-gray-700">Plan:</span>
@@ -113,6 +175,48 @@ const CarBookingTable = ({ rows = [] }) => {
             No bookings yet.
           </div>
         )}
+
+        {safe.length > 0 && (
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[14px] text-[#7A7A7A]">Results per page</span>
+              <select
+                value={itemsPerPage}
+                onChange={handleItemsPerPageChange}
+                className="h-[38px] rounded-[8px] border border-[#D6D6D6] bg-[#F3F3F3] px-3 text-[16px] font-[500] text-[#1E1E1E]"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="w-[42px] h-[38px] rounded-[8px] bg-[#F3F3F3] text-[#7A7A7A] text-[20px] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &lt;
+              </button>
+
+              <button
+                className="w-[42px] h-[38px] rounded-[8px] border-[2px] border-[#0955AC] text-[#0955AC] text-[16px] font-[600] bg-[#F3F3F3]"
+              >
+                {currentPage}
+              </button>
+
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="w-[42px] h-[38px] rounded-[8px] bg-[#F3F3F3] text-[#7A7A7A] text-[20px] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &gt;
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -148,7 +252,7 @@ const CarBookingTable = ({ rows = [] }) => {
 
           {/* rows */}
           <div>
-            {safe.map((row, index) => (
+            {paginatedRows.map((row, index) => (
               <div
                 key={index}
                 className="grid grid-cols-8 border-b-[1.5px] border-[#00000033] h-[100px] items-center text-[15px] font-[500] px-10"
@@ -229,6 +333,58 @@ const CarBookingTable = ({ rows = [] }) => {
             {safe.length === 0 && (
               <div className="text-sm text-gray-500 px-10 py-6">
                 No bookings yet.
+              </div>
+            )}
+
+            {safe.length > 0 && (
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-8 py-4">
+                <div className="flex items-center">
+                  <span className="mr-3 text-[#00000080] text-[14px] sm:text-[15px]">
+                    Results per page
+                  </span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    className="rounded px-3 py-1 font-[600] text-[14px] sm:text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[80px] h-[36px] focus:outline-none"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 size-[36px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="text-lg">&#60;</span>
+                  </button>
+
+                  {getPageNumbers().map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      className={`px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] size-[36px] bg-[#F4F3F3] ${
+                        currentPage === pageNumber
+                          ? "text-[#0955AC] border-[2px] border-[#0955AC]"
+                          : "text-black"
+                      }`}
+                      onClick={() => goToPage(pageNumber)}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 size-[36px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="text-lg">&#62;</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

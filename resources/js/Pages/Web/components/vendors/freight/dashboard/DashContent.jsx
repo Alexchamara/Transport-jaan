@@ -84,6 +84,10 @@ const DashContent = () => {
     const [freightDateToFilter, setFreightDateToFilter] = useState("");
     const freightExportMenuRef = useRef(null);
 
+    // Freight pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
     // Mock bookings data - replace with real data fetching
     const [allBookings] = useState([
         {
@@ -174,6 +178,47 @@ const DashContent = () => {
     useEffect(() => {
         applyFilters();
     }, [applyFilters]);
+
+    // Reset page when filters update booking set
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [bookings]);
+
+    // Reset page when page size changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [itemsPerPage]);
+
+    const totalPages = Math.max(1, Math.ceil(bookings.length / itemsPerPage));
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedBookings = bookings.slice(startIndex, endIndex);
+
+    const handleItemsPerPageChange = (e) => {
+        setItemsPerPage(parseInt(e.target.value, 10));
+    };
+
+    const goToPage = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+        }
+    };
+
+    const getPageNumbers = () => {
+        if (totalPages <= 4) {
+            return Array.from({ length: totalPages }, (_, index) => index + 1);
+        }
+
+        if (currentPage <= 2) {
+            return [1, 2, 3, 4];
+        }
+
+        if (currentPage >= totalPages - 1) {
+            return [totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        }
+
+        return [currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
+    };
 
     useEffect(() => {
         const checkMobile = () => {
@@ -964,7 +1009,7 @@ const DashContent = () => {
                                             <span className="text-sm text-gray-400">Your freight bookings will appear here</span>
                                         </div>
                                     ) : (
-                                        bookings.map((booking, index) => (
+                                        paginatedBookings.map((booking, index) => (
                                             <div
                                                 key={booking.id}
                                                 className={`grid grid-cols-8 min-h-[58px] items-center rounded-[8px] text-[12px] px-12 py-3 gap-x-6 min-w-[1200px] ${
@@ -1024,7 +1069,7 @@ const DashContent = () => {
                                         <span className="text-sm text-gray-400">Your freight bookings will appear here</span>
                                     </div>
                                 ) : (
-                                    bookings.map((booking, index) => (
+                                    paginatedBookings.map((booking, index) => (
                                         <div key={booking.id} className="bg-white border border-gray-200 rounded-[8px] p-4 shadow-sm">
                                             <div className="flex justify-between items-start mb-3">
                                                 <div className="font-[600] text-[#0955AC] text-[16px]">
@@ -1074,6 +1119,58 @@ const DashContent = () => {
                                     ))
                                 )}
                             </div>
+
+                            {bookings.length > 0 && (
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 px-8 py-4">
+                                    <div className="flex items-center">
+                                        <span className="mr-3 text-[#00000080] text-[14px] sm:text-[15px]">
+                                            Results per page
+                                        </span>
+                                        <select
+                                            value={itemsPerPage}
+                                            onChange={handleItemsPerPageChange}
+                                            className="rounded px-3 py-1 font-[600] text-[14px] sm:text-[16px] bg-[#F4F3F3] border-[1px] border-[#BEBEBE] w-[80px] h-[36px] focus:outline-none"
+                                        >
+                                            <option value={5}>5</option>
+                                            <option value={10}>10</option>
+                                            <option value={25}>25</option>
+                                            <option value={50}>50</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <button
+                                            onClick={() => goToPage(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1 size-[36px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="text-lg">&#60;</span>
+                                        </button>
+
+                                        {getPageNumbers().map((pageNumber) => (
+                                            <button
+                                                key={pageNumber}
+                                                className={`px-3 py-1 text-[14px] sm:text-[16px] font-[600] rounded-[4px] size-[36px] bg-[#F4F3F3] ${
+                                                    currentPage === pageNumber
+                                                        ? "text-[#0955AC] border-[2px] border-[#0955AC]"
+                                                        : "text-black"
+                                                }`}
+                                                onClick={() => goToPage(pageNumber)}
+                                            >
+                                                {pageNumber}
+                                            </button>
+                                        ))}
+
+                                        <button
+                                            onClick={() => goToPage(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-1 size-[36px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span className="text-lg">&#62;</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
