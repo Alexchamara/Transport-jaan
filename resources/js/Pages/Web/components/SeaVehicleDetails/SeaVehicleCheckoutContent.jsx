@@ -116,7 +116,7 @@ const SeaVehicleCheckoutContent = () => {
         });
 
         // ✅ use prefixed route name
-        const res = await fetch(`${route("client.airBookings.quote")}?${params.toString()}`, {
+        const res = await fetch(`${route("client.seaBookings.quote")}?${params.toString()}`, {
           headers: { Accept: "application/json" },
         });
 

@@ -2,22 +2,6 @@ import React from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
 import miniDownArrow from "../../../../assets/vendors/dashboard/icons/miniDownArrow.svg";
 
-const bookingData = [
-  { name: "Jan", bookings: 450 },
-  { name: "Feb", bookings: 670 },
-  { name: "Mar", bookings: 540 },
-  { name: "Apr", bookings: 900 },
-  { name: "May", bookings: 800 },
-  { name: "Jun", bookings: 200 },
-  { name: "Jul", bookings: 340 },
-  { name: "Aug", bookings: 859 },
-  { name: "Sep", bookings: 670 },
-  { name: "Oct", bookings: 570 },
-  { name: "Nov", bookings: 400 },
-  { name: "Dec", bookings: 900 },
-];
-const maxBookings = 1000;
-
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -30,18 +14,33 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-function BookingOverviewBarChart() {
-  const colors = bookingData.map((d, i) => i === 7 ? '#39CEF3' : '#2957C6');
+function BookingOverviewBarChart({ data = [] }) {
+  const chartData = data && data.length > 0 ? data : [
+    { name: "Jan", bookings: 450 },
+    { name: "Feb", bookings: 670 },
+    { name: "Mar", bookings: 540 },
+    { name: "Apr", bookings: 900 },
+    { name: "May", bookings: 800 },
+    { name: "Jun", bookings: 200 },
+    { name: "Jul", bookings: 340 },
+    { name: "Aug", bookings: 859 },
+    { name: "Sep", bookings: 670 },
+    { name: "Oct", bookings: 570 },
+    { name: "Nov", bookings: 400 },
+    { name: "Dec", bookings: 900 },
+  ];
+  
+  if (!chartData || chartData.length === 0) {
+    return <div className="w-full h-[300px] flex items-center justify-center text-gray-500">No data available</div>;
+  }
+  
+  const maxBookings = Math.max(...chartData.map(d => d.bookings || 0), 1000);
+  const colors = chartData.map((d, i) => i === 7 ? '#39CEF3' : '#2957C6');
+  
   return (
     <div className="w-full flex flex-col items-center">
         <div className="w-[600px] h-auto flex flex-col items-stretch relative">
-        <div className="figtree text-[32px] font-[700] mb-2 ml-2"> Flight Booking Overview</div>
-        <div className="absolute right-0 top-0">
-          <button className="bg-[#F6F8FA] rounded-[8px] px-5 py-2 text-[16px] font-[600] text-[#00000080] flex items-center gap-2">
-            This Year <span className="ml-2">▼</span>
-          </button>
-        </div>
-          <BarChart width={600} height={300} data={bookingData} margin={{ top: 40, right: 20, left: 0, bottom: 0 }} barCategoryGap={30}>
+          <BarChart width={600} height={300} data={chartData} margin={{ top: 40, right: 20, left: 0, bottom: 0 }} barCategoryGap={30}>
           <CartesianGrid stroke="#BDBDBD" strokeWidth={1} vertical={false} />
           <XAxis
             dataKey="name"
@@ -74,7 +73,7 @@ function BookingOverviewBarChart() {
             position={{ y: 30 }}
           />
           <Bar dataKey="bookings" radius={[8, 8, 8, 8]} barSize={32} >
-            {bookingData.map((entry, index) => (
+            {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={colors[index]} />
             ))}
           </Bar>

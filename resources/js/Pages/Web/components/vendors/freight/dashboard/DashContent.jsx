@@ -379,15 +379,15 @@ const DashContent = () => {
             {/* end of header section */}
 
             <div className="flex flex-col gap-5 py-10">
-                <div className="flex flex-col xl:flex-row gap-5">
+                <div className="flex flex-col gap-5">
                     {/* mini left section */}
                     <div className="flex flex-col gap-5 w-full">
                         {/* mini 4 cards */}
                         <div className="flex flex-col gap-5">
-                            <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
+                            <div className="flex xl:flex-row flex-col gap-5 xl:w-full">
                                 {/* card 1 */}
                                 <div
-                                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:min-w-[300px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -397,15 +397,15 @@ const DashContent = () => {
                                             <img src={dollarIcon} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
                                                 Total Revenue
                                             </h1>
-                                            <h1 className="text-[20px] font-[700]">
-                                                $8,450
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
+                                                LKR 8,450
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="xl:w-[81px] xl:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
@@ -422,7 +422,7 @@ const DashContent = () => {
 
                                 {/* card 2 */}
                                 <div
-                                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:min-w-[300px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -432,15 +432,15 @@ const DashContent = () => {
                                             <img src={bookingIcon} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
-                                                New Bookings
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
+                                                Active Bookings
                                             </h1>
-                                            <h1 className="text-[20px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 350
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="xl:w-[81px] xl:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
@@ -458,7 +458,7 @@ const DashContent = () => {
                             <div className="flex xl:flex-row flex-col gap-5 w-full">
                                 {/* card 3 */}
                                 <div
-                                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:min-w-[300px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -468,15 +468,15 @@ const DashContent = () => {
                                             <img src={wheelIcon} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
-                                                Rented Cars
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
+                                                Occupied Units
                                             </h1>
-                                            <h1 className="text-[20px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 24 Units
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="xl:w-[81px] xl:h-[26px] bg-[#FF888880] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
@@ -492,7 +492,7 @@ const DashContent = () => {
                                 {/* end of card 3 */}
                                 {/* card 4 */}
                                 <div
-                                    className="w-full xl:min-h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
+                                    className="xl:min-w-[300px] w-full xl:h-[91px] bg-[#FFFFFF] rounded-[8px] flex justify-between items-center gap-2 px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -502,15 +502,15 @@ const DashContent = () => {
                                             <img src={carIcon} />
                                         </div>
                                         <div>
-                                            <h1 className="text-[14px] font-[500] text-[#7B7B7A]">
-                                                Total Revenue
+                                            <h1 className="text-[12px] md:text-[16px] font-[500] text-[#7B7B7A]">
+                                                Total Units
                                             </h1>
-                                            <h1 className="text-[20px] font-[700]">
+                                            <h1 className="text-[22px] md:text-[26px] font-[700]">
                                                 89 Units
                                             </h1>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2 items-end text-[14px] font-[500]">
+                                    <div className="flex flex-col gap-2 items-end text-[10px] md:text-[14px] font-[500]">
                                         <div className="xl:w-[81px] xl:h-[26px] bg-[#D8E4F2] rounded-[5px] flex flex-row justify-center items-center">
                                             <img
                                                 src={upArrow}
@@ -632,58 +632,10 @@ const DashContent = () => {
                             )}
                         </div>
                     </div>
-                    {/* mini right section */}
-                    <div className="flex flex-col items-center gap-5 w-full">
-                        <div
-                            className="w-full min-h-[206px] bg-[#D8E4F2] flex flex-col px-10 py-5 justify-center items-center rounded-[10px]"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <h1 className="text-[24px] font-[700] mb-3">
-                                Car Availability
-                            </h1>
+                </div>
 
-                            <div className="flex flex-col gap-3">
-                                <div className="w-full xl:h-[35px] flex flex-row justify-center items-center gap-2 rounded-[6px] px-3 py-2 bg-[#FFFFFF] placeholder:text-[#7B7B7ACC] placeholder:text-[14px] placeholder:font-[500]">
-                                    <img src={car} className="size-[20px]" />
-                                    <input
-                                        type="text"
-                                        className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none"
-                                        placeholder="Car Type"
-                                    />
-                                    <img src={miniDownArrow} />
-                                </div>
-
-                                <div className="flex flex-row gap-3">
-                                    <div className="w-full xl:h-[35px] bg-[#FFFFFF] rounded-[6px] flex flex-row justify-center items-center gap-2 py-2 px-3">
-                                        <img
-                                            src={date}
-                                            className="size-[20px]"
-                                        />
-                                        <input
-                                            type="text"
-                                            className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none"
-                                            placeholder="Car Type"
-                                        />
-                                    </div>
-                                    <div className="w-full xl:h-[35px] bg-[#FFFFFF] rounded-[6px]">
-                                        <div className="w-full xl:h-[35px] bg-[#FFFFFF] rounded-[6px] flex flex-row justify-center gap-2 items-center py-2 px-3">
-                                            <img
-                                                src={clock}
-                                                className="size-[16px]"
-                                            />
-                                            <input
-                                                type="text"
-                                                className="w-full outline-none bg-transparent shadow-none focus:ring-0 border-none"
-                                                placeholder="Car Type"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <button className="w-full xl:h-[40px] bg-[#0955AC] rounded-[6px] flex justify-center items-center text-[16px] font-[700] text-[#FFFFFF] cursor-pointer py-2 px-4">
-                                    Check Availability
-                                </button>
-                            </div>
-                        </div>
+                {/* mini right section */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 w-full items-start">
                         <div
                             className="w-full xl:min-h-[427px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
@@ -753,7 +705,7 @@ const DashContent = () => {
 
                         {/* Reminder section  */}
                         <div
-                            className="w-full xl:min-h-[335px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
+                            className="w-full xl:min-h-[427px] bg-[#FFFFFF] rounded-[10px] py-5 px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-row items-center justify-between w-full">
@@ -795,7 +747,6 @@ const DashContent = () => {
                             </div>
                         </div>
                         {/* end */}
-                    </div>
                 </div>
 
                 {/* car booking section */}

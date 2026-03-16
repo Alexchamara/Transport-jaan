@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { router, Link } from "@inertiajs/react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
     Search,
     Eye,
@@ -98,6 +98,7 @@ const VehicleListTab = ({ vehicles = {}, filters = {}, stats = {} }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [confirmAction, setConfirmAction] = useState(null);
 
     const applyFilters = (overrides = {}) => {
         const params = {};
@@ -178,6 +179,52 @@ const VehicleListTab = ({ vehicles = {}, filters = {}, stats = {} }) => {
 
     return (
         <div className="flex flex-col gap-4">
+            <AnimatePresence>
+                {confirmAction && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="bg-[#0B1739] border border-[#343B4F] rounded-[12px] p-6 w-[380px] max-w-[90vw] shadow-2xl"
+                        >
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${confirmAction.iconBg}`}>
+                                    {confirmAction.icon}
+                                </div>
+                                <h3 className="text-white text-[16px] font-[600]">{confirmAction.title}</h3>
+                            </div>
+                            <p className="text-[#AEB9E1] text-[13px] mb-6 leading-relaxed">
+                                {confirmAction.message}
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setConfirmAction(null)}
+                                    className="flex-1 border border-[#343B4F] bg-[#0F1A3A] text-[#AEB9E1] text-[13px] py-2.5 rounded-[7px] hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        confirmAction.onConfirm();
+                                        setConfirmAction(null);
+                                    }}
+                                    className={`flex-1 text-[13px] py-2.5 rounded-[7px] font-[500] transition-colors ${confirmAction.confirmStyle}`}
+                                >
+                                    {confirmAction.confirmLabel}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Filters Bar */}
             <div className="flex flex-wrap gap-3 items-center bg-[#0B1739] border border-[#343B4F] rounded-lg p-4">
                 <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-[#081028] border border-[#343B4F] rounded-md px-3">
@@ -476,7 +523,17 @@ const VehicleListTab = ({ vehicles = {}, filters = {}, stats = {} }) => {
                                     whileHover={{ scale: loading ? 1 : 1.03 }}
                                     disabled={loading}
                                     className={`flex items-center gap-1.5 text-xs px-4 py-2 rounded-md border transition-colors duration-150 ${getActionColors('approve').bg} ${getActionColors('approve').hover} ${getActionColors('approve').text} ${getActionColors('approve').border} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                                    onClick={() => handleApprovalChange(selectedVehicle.id, "approved")}
+                                    onClick={() =>
+                                        setConfirmAction({
+                                            title: "Approve Vehicle",
+                                            message: `Are you sure you want to approve ${selectedVehicle.manufacturer || ""} ${selectedVehicle.model || "this vehicle"}? It will be marked as approved on the platform.`,
+                                            confirmLabel: "Approve",
+                                            confirmStyle: "border border-[#05C16880] bg-[#05C16820] text-[#14CA74] hover:bg-[#05C16840]",
+                                            iconBg: "bg-[#05C16820]",
+                                            icon: <CheckCircle size={16} className="text-[#14CA74]" />,
+                                            onConfirm: () => handleApprovalChange(selectedVehicle.id, "approved"),
+                                        })
+                                    }
                                 >
                                     <CheckCircle size={12} /> Approve
                                 </motion.button>
@@ -486,10 +543,20 @@ const VehicleListTab = ({ vehicles = {}, filters = {}, stats = {} }) => {
                                     whileHover={{ scale: loading ? 1 : 1.03 }}
                                     disabled={loading}
                                     className={`flex items-center gap-1.5 text-xs px-4 py-2 rounded-md border transition-colors duration-150 ${getActionColors('reject').bg} ${getActionColors('reject').hover} ${getActionColors('reject').text} ${getActionColors('reject').border} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                                    onClick={() => {
-                                        const reason = prompt("Rejection reason:");
-                                        if (reason) handleApprovalChange(selectedVehicle.id, "rejected", reason);
-                                    }}
+                                    onClick={() =>
+                                        setConfirmAction({
+                                            title: "Reject Vehicle",
+                                            message: `Are you sure you want to reject ${selectedVehicle.manufacturer || ""} ${selectedVehicle.model || "this vehicle"}?`,
+                                            confirmLabel: "Reject",
+                                            confirmStyle: "border border-[#FF572280] bg-[#FF572220] text-[#FF5722] hover:bg-[#FF572240]",
+                                            iconBg: "bg-[#FF572220]",
+                                            icon: <XCircle size={16} className="text-[#FF5722]" />,
+                                            onConfirm: () => {
+                                                const reason = prompt("Rejection reason:");
+                                                if (reason) handleApprovalChange(selectedVehicle.id, "rejected", reason);
+                                            },
+                                        })
+                                    }
                                 >
                                     <XCircle size={12} /> Reject
                                 </motion.button>
@@ -501,7 +568,17 @@ const VehicleListTab = ({ vehicles = {}, filters = {}, stats = {} }) => {
                                     whileHover={{ scale: loading ? 1 : 1.03 }}
                                     disabled={loading}
                                     className={`flex items-center gap-1.5 text-xs px-4 py-2 rounded-md border transition-colors duration-150 ${getActionColors('activate').bg} ${getActionColors('activate').hover} ${getActionColors('activate').text} ${getActionColors('activate').border} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                                    onClick={() => handleStatusChange(selectedVehicle.id, "active")}
+                                    onClick={() =>
+                                        setConfirmAction({
+                                            title: "Activate Vehicle",
+                                            message: `Are you sure you want to activate ${selectedVehicle.manufacturer || ""} ${selectedVehicle.model || "this vehicle"}?`,
+                                            confirmLabel: "Activate",
+                                            confirmStyle: "border border-[#0E43FB80] bg-[#0E43FB20] text-[#0E43FB] hover:bg-[#0E43FB40]",
+                                            iconBg: "bg-[#0E43FB20]",
+                                            icon: <CheckCircle size={16} className="text-[#0E43FB]" />,
+                                            onConfirm: () => handleStatusChange(selectedVehicle.id, "active"),
+                                        })
+                                    }
                                 >
                                     <CheckCircle size={12} /> Activate
                                 </motion.button>
@@ -511,7 +588,17 @@ const VehicleListTab = ({ vehicles = {}, filters = {}, stats = {} }) => {
                                     whileHover={{ scale: loading ? 1 : 1.03 }}
                                     disabled={loading}
                                     className={`flex items-center gap-1.5 text-xs px-4 py-2 rounded-md border transition-colors duration-150 ${getActionColors('deactivate').bg} ${getActionColors('deactivate').hover} ${getActionColors('deactivate').text} ${getActionColors('deactivate').border} ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                                    onClick={() => handleStatusChange(selectedVehicle.id, "inactive")}
+                                    onClick={() =>
+                                        setConfirmAction({
+                                            title: "Deactivate Vehicle",
+                                            message: `Are you sure you want to deactivate ${selectedVehicle.manufacturer || ""} ${selectedVehicle.model || "this vehicle"}?`,
+                                            confirmLabel: "Deactivate",
+                                            confirmStyle: "border border-[#FF5A6580] bg-[#FF5A6520] text-[#FF5A65] hover:bg-[#FF5A6540]",
+                                            iconBg: "bg-[#FF5A6520]",
+                                            icon: <XCircle size={16} className="text-[#FF5A65]" />,
+                                            onConfirm: () => handleStatusChange(selectedVehicle.id, "inactive"),
+                                        })
+                                    }
                                 >
                                     <XCircle size={12} /> Deactivate
                                 </motion.button>

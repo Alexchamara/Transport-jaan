@@ -324,6 +324,7 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/airBookings/{airVehicleBooking}/payments', [ClientBookingController::class, 'airVehiclePayments'])->name('airBookings.payments');
         Route::post('/airBookings/{airVehicleBooking}/confirm', [ClientBookingController::class, 'airVehicleConfirm'])->name('airBookings.confirm');
         Route::get('/airBookings/{airVehicleBooking}/summary', [ClientBookingController::class, 'airVehicleSummary'])->name('airBookings.summary');
+        Route::get('/airBookings/{airVehicleBooking}/cancellation-policy', [ClientBookingController::class, 'getAirVehicleCancellationPolicy'])->name('airBookings.cancellation-policy');
         Route::post('/airBookings/{airVehicleBooking}/cancel', [ClientBookingController::class, 'airVehicleCancel'])->name('airBookings.cancel');
 
         // Sea Vehicle Booking Routes
@@ -335,6 +336,7 @@ Route::prefix('client')->as('client.')->group(function () {
         Route::get('/seaBookings/{seaVehicleBooking}/payments', [ClientBookingController::class, 'seaVehiclePayments'])->name('seaBookings.payments');
         Route::post('/seaBookings/{seaVehicleBooking}/confirm', [ClientBookingController::class, 'seaVehicleConfirm'])->name('seaBookings.confirm');
         Route::get('/seaBookings/{seaVehicleBooking}/summary', [ClientBookingController::class, 'seaVehicleSummary'])->name('seaBookings.summary');
+        Route::get('/seaBookings/{seaVehicleBooking}/cancellation-policy', [ClientBookingController::class, 'getSeaVehicleCancellationPolicy'])->name('seaBookings.cancellation-policy');
         Route::post('/seaBookings/{seaVehicleBooking}/cancel', [ClientBookingController::class, 'seaVehicleCancel'])->name('seaBookings.cancel');
 
 
@@ -660,6 +662,8 @@ Route::middleware(['auth', 'vendor.verified'])
         // Vendor booking cancellation API routes
         Route::get('/bookings/{booking}/vendor/cancellation-policy', [ClientBookingController::class, 'getVendorCancellationPolicy'])->name('bookings.vendor.cancellation-policy');
         Route::post('/bookings/{booking}/vendor/cancel-booking', [ClientBookingController::class, 'cancelBookingAsVendor'])->name('bookings.vendor.cancel-booking');
+        Route::get('/bookings/{bookingType}/{bookingId}/vendor/cancellation-policy', [VendorBookingController::class, 'getVendorCancellationPolicyByType'])->name('bookings.vendor.cancellation-policy.type');
+        Route::post('/bookings/{bookingType}/{bookingId}/vendor/cancel-booking', [VendorBookingController::class, 'cancelBookingAsVendorByType'])->name('bookings.vendor.cancel-booking.type');
 
         // Other pages (shells)
         Route::get('/mainDashboard', fn() => Inertia::render('Web/home/vendors/MainDashboard'))->name('mainDashboard');
@@ -1244,25 +1248,94 @@ Route::get('/clientTicketBookingDashboard', [UserDashboardController::class, 'ti
 Route::get('/clientVehicleDashboard', function () {
     $user = Auth::user();
     
-    // Get user's vehicle bookings
-    $bookings = \App\Models\Booking::with(['vehicle', 'client'])
+    // Land bookings
+    $landBookings = \App\Models\Booking::with(['vehicle', 'client'])
+        ->where('client_id', $user->id)
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($booking) {
+            $createdAt = $booking->created_at;
+            return [
+                'id' => $booking->id,
+                'unique_key' => 'land-' . $booking->id,
+                'booking_type' => 'land',
+                'vehicle_name' => $booking->vehicle->name ?? $booking->vehicle->model ?? 'Vehicle',
+                'vehicle_category' => $booking->vehicle->vehicle_category ?? 'land',
+                'start_date' => $createdAt?->format('Y-m-d H:i'),
+                'end_date' => $createdAt?->copy()?->addDays($booking->rental_days ?? 1)?->format('Y-m-d H:i'),
+                'pickup_location' => $booking->vehicle->location ?? 'N/A',
+                'status' => $booking->status,
+                'total_amount' => $booking->total_amount,
+                'hours' => 0,
+                'created_at' => $booking->created_at,
+                'booking_code' => $booking->booking_code ?? ('BK-' . $booking->id),
+                'summary_url' => '/client/bookings/' . $booking->id . '/summary',
+                'policy_url' => '/client/bookings/' . $booking->id . '/cancellation-policy',
+                'cancel_url' => '/client/bookings/' . $booking->id . '/cancel-booking',
+                'can_cancel' => true,
+            ];
+        });
+
+    // Air bookings
+    $airBookings = \App\Models\AirVehicleBookings::with(['vehicle', 'schedule'])
         ->where('client_id', $user->id)
         ->orderBy('created_at', 'desc')
         ->get()
         ->map(function($booking) {
             return [
                 'id' => $booking->id,
-                'vehicle_name' => $booking->vehicle->name ?? $booking->vehicle->model ?? 'Vehicle',
-                'vehicle_category' => $booking->vehicle->vehicle_category ?? 'land',
-                'start_date' => $booking->created_at->format('Y-m-d H:i'),
-                'end_date' => $booking->created_at->addDays($booking->rental_days ?? 1)->format('Y-m-d H:i'),
-                'pickup_location' => $booking->vehicle->location ?? 'N/A',
+                'unique_key' => 'air-' . $booking->id,
+                'booking_type' => 'air',
+                'vehicle_name' => $booking->vehicle->name ?? $booking->vehicle->model ?? 'Air Vehicle',
+                'vehicle_category' => 'air',
+                'start_date' => $booking->schedule?->pickup_at ? \Carbon\Carbon::parse($booking->schedule->pickup_at)->format('Y-m-d H:i') : ($booking->created_at?->format('Y-m-d H:i')),
+                'end_date' => $booking->schedule?->dropoff_at ? \Carbon\Carbon::parse($booking->schedule->dropoff_at)->format('Y-m-d H:i') : ($booking->created_at?->copy()?->addDays($booking->rental_days ?? 1)?->format('Y-m-d H:i')),
+                'pickup_location' => $booking->schedule?->pickup_location ?? $booking->vehicle->location ?? 'N/A',
                 'status' => $booking->status,
                 'total_amount' => $booking->total_amount,
                 'hours' => 0,
                 'created_at' => $booking->created_at,
+                'booking_code' => 'ABK-' . $booking->id,
+                'summary_url' => '/client/airBookings/' . $booking->id . '/summary',
+                'policy_url' => '/client/airBookings/' . $booking->id . '/cancellation-policy',
+                'cancel_url' => '/client/airBookings/' . $booking->id . '/cancel',
+                'can_cancel' => true,
             ];
         });
+
+    // Sea bookings
+    $seaBookings = \App\Models\SeaVehicleBookings::with(['vehicle', 'schedule'])
+        ->where('client_id', $user->id)
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($booking) {
+            return [
+                'id' => $booking->id,
+                'unique_key' => 'sea-' . $booking->id,
+                'booking_type' => 'sea',
+                'vehicle_name' => $booking->vehicle->name ?? $booking->vehicle->model ?? 'Sea Vehicle',
+                'vehicle_category' => 'sea',
+                'start_date' => $booking->schedule?->pickup_at ? \Carbon\Carbon::parse($booking->schedule->pickup_at)->format('Y-m-d H:i') : ($booking->created_at?->format('Y-m-d H:i')),
+                'end_date' => $booking->schedule?->dropoff_at ? \Carbon\Carbon::parse($booking->schedule->dropoff_at)->format('Y-m-d H:i') : ($booking->created_at?->copy()?->addDays($booking->rental_days ?? 1)?->format('Y-m-d H:i')),
+                'pickup_location' => $booking->schedule?->pickup_location ?? $booking->vehicle->location ?? 'N/A',
+                'status' => $booking->status,
+                'total_amount' => $booking->total_amount,
+                'hours' => 0,
+                'created_at' => $booking->created_at,
+                'booking_code' => 'SBK-' . $booking->id,
+                'summary_url' => '/client/seaBookings/' . $booking->id . '/summary',
+                'policy_url' => '/client/seaBookings/' . $booking->id . '/cancellation-policy',
+                'cancel_url' => '/client/seaBookings/' . $booking->id . '/cancel',
+                'can_cancel' => true,
+            ];
+        });
+
+    // Merge all booking types
+    $bookings = $landBookings
+        ->concat($airBookings)
+        ->concat($seaBookings)
+        ->sortByDesc('created_at')
+        ->values();
     
     // Get available vehicles
     $vehicles = \App\Models\Vehicle::with(['provider'])
@@ -1283,30 +1356,36 @@ Route::get('/clientVehicleDashboard', function () {
             ];
         });
     
-    // Calculate monthly booking data
+    // Calculate monthly booking data (all booking types)
     $monthlyData = [];
     for ($i = 0; $i < 12; $i++) {
         $month = now()->subMonths(11 - $i);
-        $monthBookings = \App\Models\Booking::with('vehicle')
+        $monthLandBookings = \App\Models\Booking::with('vehicle')
             ->where('client_id', $user->id)
             ->whereYear('created_at', $month->year)
             ->whereMonth('created_at', $month->month)
             ->get();
+
+        $monthAirCount = \App\Models\AirVehicleBookings::query()
+            ->where('client_id', $user->id)
+            ->whereYear('created_at', $month->year)
+            ->whereMonth('created_at', $month->month)
+            ->count();
+
+        $monthSeaCount = \App\Models\SeaVehicleBookings::query()
+            ->where('client_id', $user->id)
+            ->whereYear('created_at', $month->year)
+            ->whereMonth('created_at', $month->month)
+            ->count();
         
         $monthlyData[] = [
             'month' => $month->format('M'),
-            'land' => $monthBookings->filter(function($b) {
+            'land' => $monthLandBookings->filter(function($b) {
                 $category = $b->vehicle->vehicle_category ?? 'land';
                 return !in_array(strtolower($category), ['air', 'sea']);
             })->count(),
-            'air' => $monthBookings->filter(function($b) {
-                $category = $b->vehicle->vehicle_category ?? '';
-                return strtolower($category) === 'air';
-            })->count(),
-            'sea' => $monthBookings->filter(function($b) {
-                $category = $b->vehicle->vehicle_category ?? '';
-                return strtolower($category) === 'sea';
-            })->count(),
+            'air' => $monthAirCount,
+            'sea' => $monthSeaCount,
         ];
     }
     
@@ -1421,6 +1500,126 @@ Route::get('/clientAllBookings', function () {
                 'payment_status' => $booking->payments->first()->status ?? $booking->status,
                 
                 // Additional Details
+                'notes' => $booking->notes,
+                'subtotal' => $booking->subtotal,
+                'deposit_amount' => $booking->deposit_amount,
+                'price_per_day' => $booking->price_per_day,
+                'rental_days' => $booking->rental_days,
+            ];
+        });
+
+    $airVehicleBookings = \App\Models\AirVehicleBookings::where('client_id', $clientId)
+        ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
+        ->get()
+        ->map(function($booking) {
+            $vehicle = $booking->vehicle;
+            $provider = $vehicle?->provider;
+            $client = $booking->client;
+            $customer = $booking->customer;
+            $schedule = $booking->schedule;
+
+            return [
+                'id' => 'air-' . $booking->id,
+                'source_id' => $booking->id,
+                'booking_type' => 'air',
+                'service_name' => $vehicle->name ?? $vehicle->model ?? 'Air Vehicle Rental',
+                'vehicle_name' => $vehicle->name ?? $vehicle->model ?? 'Air Vehicle',
+                'vehicle_category' => 'air',
+                'status' => $booking->status,
+                'total_amount' => $booking->total_amount,
+                'amount' => $booking->total_amount,
+                'booking_date' => $booking->created_at?->format('Y-m-d'),
+                'start_date' => $schedule?->pickup_at,
+                'end_date' => $schedule?->dropoff_at,
+                'pickup_location' => $schedule->pickup_location ?? null,
+                'dropoff_location' => $schedule->dropoff_location ?? null,
+                'booking_code' => 'ABK-' . $booking->id,
+                'reference_number' => 'ABK-' . $booking->id,
+                'currency' => $booking->currency ?? 'LKR',
+                'created_at' => $booking->created_at,
+                'user' => $client ? [
+                    'name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                    'address' => $client->address,
+                ] : null,
+                'customer_name' => $customer->name ?? $client->name ?? null,
+                'customer_email' => $customer->email ?? $client->email ?? null,
+                'customer_phone' => $customer->phone ?? $client->phone ?? null,
+                'customer_address' => $customer->address ?? $client->address ?? null,
+                'vendor' => $provider ? [
+                    'name' => $provider->name,
+                    'email' => $provider->email,
+                    'phone' => $provider->phone,
+                    'address' => $provider->address,
+                ] : null,
+                'vendor_name' => $provider->name ?? null,
+                'vendor_email' => $provider->email ?? null,
+                'vendor_phone' => $provider->phone ?? null,
+                'vendor_address' => $provider->address ?? null,
+                'company_name' => $provider->company_name ?? $provider->name ?? null,
+                'payment_method' => $booking->payments->first()->method ?? 'Not specified',
+                'payment_status' => $booking->payments->first()->status ?? $booking->status,
+                'notes' => $booking->notes,
+                'subtotal' => $booking->subtotal,
+                'deposit_amount' => $booking->deposit_amount,
+                'price_per_day' => $booking->price_per_day,
+                'rental_days' => $booking->rental_days,
+            ];
+        });
+
+    $seaVehicleBookings = \App\Models\SeaVehicleBookings::where('client_id', $clientId)
+        ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
+        ->get()
+        ->map(function($booking) {
+            $vehicle = $booking->vehicle;
+            $provider = $vehicle?->provider;
+            $client = $booking->client;
+            $customer = $booking->customer;
+            $schedule = $booking->schedule;
+
+            return [
+                'id' => 'sea-' . $booking->id,
+                'source_id' => $booking->id,
+                'booking_type' => 'sea',
+                'service_name' => $vehicle->name ?? $vehicle->model ?? 'Sea Vehicle Rental',
+                'vehicle_name' => $vehicle->name ?? $vehicle->model ?? 'Sea Vehicle',
+                'vehicle_category' => 'sea',
+                'status' => $booking->status,
+                'total_amount' => $booking->total_amount,
+                'amount' => $booking->total_amount,
+                'booking_date' => $booking->created_at?->format('Y-m-d'),
+                'start_date' => $schedule?->pickup_at,
+                'end_date' => $schedule?->dropoff_at,
+                'pickup_location' => $schedule->pickup_location ?? null,
+                'dropoff_location' => $schedule->dropoff_location ?? null,
+                'booking_code' => 'SBK-' . $booking->id,
+                'reference_number' => 'SBK-' . $booking->id,
+                'currency' => $booking->currency ?? 'LKR',
+                'created_at' => $booking->created_at,
+                'user' => $client ? [
+                    'name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                    'address' => $client->address,
+                ] : null,
+                'customer_name' => $customer->name ?? $client->name ?? null,
+                'customer_email' => $customer->email ?? $client->email ?? null,
+                'customer_phone' => $customer->phone ?? $client->phone ?? null,
+                'customer_address' => $customer->address ?? $client->address ?? null,
+                'vendor' => $provider ? [
+                    'name' => $provider->name,
+                    'email' => $provider->email,
+                    'phone' => $provider->phone,
+                    'address' => $provider->address,
+                ] : null,
+                'vendor_name' => $provider->name ?? null,
+                'vendor_email' => $provider->email ?? null,
+                'vendor_phone' => $provider->phone ?? null,
+                'vendor_address' => $provider->address ?? null,
+                'company_name' => $provider->company_name ?? $provider->name ?? null,
+                'payment_method' => $booking->payments->first()->method ?? 'Not specified',
+                'payment_status' => $booking->payments->first()->status ?? $booking->status,
                 'notes' => $booking->notes,
                 'subtotal' => $booking->subtotal,
                 'deposit_amount' => $booking->deposit_amount,
@@ -1615,6 +1814,8 @@ Route::get('/clientAllBookings', function () {
 
     // Combine all bookings
     $allBookings = collect($vehicleBookings)
+        ->merge($airVehicleBookings)
+        ->merge($seaVehicleBookings)
         ->merge($trainBookings)
         ->merge($busBookings)
         ->merge($flightBookings)
@@ -1643,7 +1844,7 @@ Route::get('/clientAllBookings', function () {
         
         $monthlyData[] = [
             'month' => $month->format('M'),
-            'vehicle' => $monthBookings->where('booking_type', 'vehicle')->count(),
+            'vehicle' => $monthBookings->whereIn('booking_type', ['vehicle', 'air', 'sea'])->count(),
             'tickets' => $monthBookings->whereIn('booking_type', ['train', 'bus', 'flight'])->count(),
             'logistics' => $monthBookings->whereIn('booking_type', ['warehouse', 'courier', 'freight'])->count(),
         ];

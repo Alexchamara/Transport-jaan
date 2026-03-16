@@ -8,6 +8,7 @@ use App\Models\VehicleCategory;
 use App\Models\VehicleFeaturePricing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -319,7 +320,9 @@ class VehicleController extends Controller
                 $policyStreamUrl = route('vendor.vehicles.policy.stream', ['vehicle' => $v->id]);
                 $disk = $row->disk ?: 'public';
                 try {
-                    $policyPdfUrl = Storage::disk($disk)->url($row->file_path);
+                    $policyPdfUrl = $disk === 'public'
+                        ? '/storage/' . ltrim((string) $row->file_path, '/')
+                        : null;
                 } catch (\Throwable $e) {
                     $policyPdfUrl = null;
                 }
@@ -677,14 +680,24 @@ class VehicleController extends Controller
                     $currentMax = (int) ($vehicle->media()->max('sort_order') ?? 0);
                     foreach ($request->file('images') as $i => $file) {
                         if (!$file) continue;
-                        $path = $file->store("vehicles/{$vehicle->id}/images", 'public');
-                        $vehicle->media()->create([
-                            'media_type' => 'image',
-                            'title'      => $file->getClientOriginalName(),
-                            'path'       => 'storage/' . $path,
-                            'is_primary' => false,
-                            'sort_order' => $currentMax + $i + 1,
-                        ]);
+                        try {
+                            $path = $file->store("vehicles/{$vehicle->id}/images", 'public');
+                            if ($path) {
+                                $vehicle->media()->create([
+                                    'media_type' => 'image',
+                                    'title'      => $file->getClientOriginalName(),
+                                    'path'       => $path,
+                                    'is_primary' => false,
+                                    'sort_order' => $currentMax + $i + 1,
+                                ]);
+                            }
+                        } catch (\Throwable $e) {
+                            Log::error('Vehicle image upload failed', [
+                                'vehicle_id' => $vehicle->id,
+                                'file_name' => $file->getClientOriginalName(),
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
                     }
                 }
 

@@ -700,7 +700,11 @@ const Hero = () => {
                                 <div className="flex">
                                     <FilterSidebar searchParams={rentalFormData} />
                                     <div className="flex-1">
-                                        <SearchForm formData={rentalFormData} onFormChange={setRentalFormData} />
+                                        <SearchForm
+                                            formData={rentalFormData}
+                                            onFormChange={setRentalFormData}
+                                            redirectToFirstVehicle={true}
+                                        />
                                         <VehicleListContent
                                             vehicles={vehicleListData.vehicles}
                                             authUser={vehicleListData.auth?.user}

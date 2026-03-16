@@ -29,6 +29,29 @@ import car3 from "../../../assets/vendors/dashboard/icons/car3.svg";
 import { Link } from "@inertiajs/react";
 import UserDropdown from "../../../components/vendors/UserDropdown";
 
+const PERIOD_OPTIONS = [
+    { value: "3m", label: "Last 3 months" },
+    { value: "6m", label: "Last 6 months" },
+    { value: "8m", label: "Last 8 months" },
+    { value: "12m", label: "Last 12 months" },
+    { value: "year", label: "This Year" },
+];
+
+const normalizePeriod = (period) => {
+    if (period === "month") return "12m";
+    if (["3m", "6m", "8m", "12m", "year"].includes(period)) return period;
+    return "year";
+};
+
+const applyPeriodToSeries = (series, period) => {
+    const source = Array.isArray(series) ? series : [];
+    if (period === "year") return source;
+
+    const months = Number(String(period).replace("m", ""));
+    if (!Number.isFinite(months) || months <= 0) return source;
+    return source.slice(-months);
+};
+
 const DashContent = ({
     cards,
     bookingOverview,
@@ -77,6 +100,13 @@ const DashContent = ({
     const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
     const [dateFromFilter, setDateFromFilter] = useState("");
     const [dateToFilter, setDateToFilter] = useState("");
+    const [boPeriod, setBoPeriod] = useState(normalizePeriod(filters?.bo_period));
+    const [esPeriod, setEsPeriod] = useState(normalizePeriod(filters?.es_period));
+
+    useEffect(() => {
+        setBoPeriod(normalizePeriod(filters?.bo_period));
+        setEsPeriod(normalizePeriod(filters?.es_period));
+    }, [filters?.bo_period, filters?.es_period]);
 
     const normalizedBookings = useMemo(() => {
         if (Array.isArray(bookings)) return bookings;
@@ -130,6 +160,14 @@ const DashContent = ({
             return matchesSearch && matchesStatus && matchesPayment && matchesFrom && matchesTo;
         });
     }, [normalizedBookings, searchQuery, statusFilter, paymentStatusFilter, dateFromFilter, dateToFilter]);
+
+    const bookingOverviewDisplay = useMemo(() => {
+        return applyPeriodToSeries(bookingOverview, boPeriod);
+    }, [bookingOverview, boPeriod]);
+
+    const earningSummaryDisplay = useMemo(() => {
+        return applyPeriodToSeries(earningSummary, esPeriod);
+    }, [earningSummary, esPeriod]);
 
     useLayoutEffect(() => {
         const checkMobile = () => {
@@ -672,19 +710,26 @@ const DashContent = ({
                                 <h1 className="text-[20px] md:text-[24px] font-[700]">
                                     Booking Overview
                                 </h1>
-                                <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
-                                    <h1 className="text-[#00000080] font-[600] text-[14px]">
-                                        {filters?.bo_period === "month"
-                                            ? "This Month"
-                                            : "This Year"}
-                                    </h1>
-                                    <img src={miniDownArrow} />
+                                <div className="relative w-[154px] h-[38px] bg-[#D9D9D94F] rounded-[6px]">
+                                    <select
+                                        value={boPeriod}
+                                        onChange={(e) => setBoPeriod(e.target.value)}
+                                        className="w-full h-full rounded-[6px] bg-transparent text-[#00000080] font-[600] text-[14px] pl-3 pr-8 appearance-none outline-none cursor-pointer"
+                                        aria-label="Booking overview period"
+                                    >
+                                        {PERIOD_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <img src={miniDownArrow} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" alt="" />
                                 </div>
                             </div>
                             <div className="w-full min-w-0 flex flex-col justify-center items-center">
                                 {isMobile ? (
                                     <div className="flex flex-col gap-2">
-                                        {(bookingOverview ?? []).map((item, index) => (
+                                        {bookingOverviewDisplay.map((item, index) => (
                                             <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
                                                 <span className="font-medium text-gray-700">{item.name}</span>
                                                 <span className="font-bold text-blue-600">{item.bookings} bookings</span>
@@ -693,7 +738,7 @@ const DashContent = ({
                                     </div>
                                 ) : (
                                     <BookingOverviewBarChart
-                                        data={bookingOverview ?? []}
+                                        data={bookingOverviewDisplay}
                                     />
                                 )}
                             </div>
@@ -708,19 +753,26 @@ const DashContent = ({
                                 <h1 className="text-[20px] md:text-[24px] font-[700]">
                                     Earning Summary
                                 </h1>
-                                <div className="w-[132px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
-                                    <h1 className="text-[#00000080] font-[600] text-[14px]">
-                                        {filters?.es_period === "month"
-                                            ? "This Month"
-                                            : "This Year"}
-                                    </h1>
-                                    <img src={miniDownArrow} />
+                                <div className="relative w-[154px] h-[38px] bg-[#D9D9D94F] rounded-[6px]">
+                                    <select
+                                        value={esPeriod}
+                                        onChange={(e) => setEsPeriod(e.target.value)}
+                                        className="w-full h-full rounded-[6px] bg-transparent text-[#00000080] font-[600] text-[14px] pl-3 pr-8 appearance-none outline-none cursor-pointer"
+                                        aria-label="Earning summary period"
+                                    >
+                                        {PERIOD_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <img src={miniDownArrow} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" alt="" />
                                 </div>
                             </div>
                             <div className="w-full min-w-0">
                                 {isMobile ? (
                                     <div className="flex flex-col gap-2">
-                                        {(earningSummary ?? []).map((item, index) => (
+                                        {earningSummaryDisplay.map((item, index) => (
                                             <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
                                                 <span className="font-medium text-gray-700">{item.name}</span>
                                                 <span className="font-bold text-green-600">${Number(item.value || 0).toLocaleString()}</span>
@@ -729,7 +781,7 @@ const DashContent = ({
                                     </div>
                                 ) : (
                                     <EarningSummaryChart
-                                        data={earningSummary ?? []}
+                                        data={earningSummaryDisplay}
                                     />
                                 )}
                             </div>

@@ -1,4 +1,5 @@
 import React from "react";
+import { router } from "@inertiajs/react";
 import calendarBlue from "../../assets/vehicleList/calendarBlue.png"
 import locationBlue from "../../assets/vehicleList/locationBlue.png"
 
@@ -8,6 +9,42 @@ const SearchForm = ({ formData, onFormChange }) => {
     onFormChange({
       ...formData,
       [id]: value
+    });
+  };
+
+  const handleSearch = async () => {
+    const params = new URLSearchParams();
+    if (formData.pickupLocation) params.set('pickupLocation', formData.pickupLocation);
+    if (formData.pickupDate) params.set('pickupDate', formData.pickupDate);
+    if (formData.dropoffLocation) params.set('dropoffLocation', formData.dropoffLocation);
+    if (formData.dropoffDate) params.set('dropoffDate', formData.dropoffDate);
+
+    const queryString = params.toString();
+
+    try {
+      const response = await fetch(queryString ? `/airVehicleList/json?${queryString}` : '/airVehicleList/json');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      const vehicles = Array.isArray(data?.vehicles)
+        ? data.vehicles
+        : (Array.isArray(data?.vehicles?.data) ? data.vehicles.data : []);
+      const firstVehicle = vehicles[0];
+
+      if (firstVehicle?.id) {
+        router.visit(`/airVehicleDetails/${firstVehicle.id}${queryString ? `?${queryString}` : ''}`, {
+          method: 'get',
+          preserveScroll: true,
+        });
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to find an air vehicle:', error);
+    }
+
+    router.visit(queryString ? `/airVehicleList?${queryString}` : '/airVehicleList', {
+      method: 'get',
+      preserveScroll: true,
     });
   };
 
@@ -106,7 +143,7 @@ const SearchForm = ({ formData, onFormChange }) => {
           </div>
 
           {/* Find a Vehicle Button */}
-          <button className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[8px] focus:outline-none focus:shadow-outline cursor-pointer mt-4 sm:mt-0">
+          <button onClick={handleSearch} className="bg-[#0955AC] text-white font-bold h-[56px] w-full sm:w-[56px] flex items-center justify-center rounded-[8px] focus:outline-none focus:shadow-outline cursor-pointer mt-4 sm:mt-0">
             →
           </button>
         </div>

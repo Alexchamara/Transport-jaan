@@ -21,7 +21,8 @@ const VendorCancellationModal = ({ booking, isOpen, onClose, onSuccess }) => {
         try {
             setLoading(true);
             setError("");
-            const response = await axios.get(`/vendors/bookings/${booking.id}/vendor/cancellation-policy`);
+            const policyUrl = booking?.policyUrl || `/vendors/bookings/${booking.id}/vendor/cancellation-policy`;
+            const response = await axios.get(policyUrl);
             if (response.data.success) {
                 setPolicyData(response.data);
                 setStep("policy");
@@ -43,7 +44,8 @@ const VendorCancellationModal = ({ booking, isOpen, onClose, onSuccess }) => {
             setError("");
             setStep("processing");
 
-            const response = await axios.post(`/vendors/bookings/${booking.id}/vendor/cancel-booking`, {
+            const cancelUrl = booking?.cancelUrl || `/vendors/bookings/${booking.id}/vendor/cancel-booking`;
+            const response = await axios.post(cancelUrl, {
                 reason: cancellationReason || null,
             });
 

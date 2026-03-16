@@ -199,13 +199,7 @@ const VehicleDashboardRightSide = ({
                     <h1 className="text-white text-2xl font-semibold">Vehicle Rental Management</h1>
                     <p className="text-[#AEB9E1] text-sm mt-1">Complete overview of land, air & sea vehicle operations</p>
                 </div>
-                <button
-                    onClick={handleRefresh}
-                    className="flex items-center gap-2 bg-[#0E43FB] hover:bg-[#0A36D6] text-white text-sm px-4 py-2 rounded-lg transition-colors"
-                >
-                    <RefreshCw size={14} />
-                    Refresh
-                </button>
+                
             </div>
 
             {/* Tab Navigation */}
