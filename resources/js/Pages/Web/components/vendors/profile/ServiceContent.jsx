@@ -198,69 +198,19 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
 
     // Ticket Booking Service Content
     if (activeService === 'Ticket Booking') {
-        let vehicles = [];
-        
-        if (activeMode === 'Land') {
-            vehicles = landVehicles;
-        } else if (activeMode === 'Sea') {
-            vehicles = seaVehicles;
-        } else if (activeMode === 'Air') {
-            vehicles = airVehicles;
-        }
-
         return (
             <div className='w-full max-w-[1364px] mx-auto px-4 sm:px-6 xl:px-10 py-6'>
                 <h2 className='text-2xl font-bold mb-6'>
-                    {activeMode} Ticket Booking ({vehicles.length})
+                    Ticket Booking Services
                 </h2>
-                
-                {vehicles.length === 0 ? (
-                    <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
-                        <p className='text-gray-600'>No {activeMode.toLowerCase()} vehicles available for ticket booking.</p>
+
+                <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
+                    <div className='text-center mb-2'>
+                        <div className='text-3xl mb-2'>ℹ️</div>
+                        <h3 className='font-bold text-lg text-[#0955AC]'>No Service Available</h3>
                     </div>
-                ) : (
-                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                        {vehicles.map((vehicle) => (
-                            <div 
-                                key={vehicle.id} 
-                                className='bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow'
-                            >
-                                <div className='h-48 bg-[#F2F5F9]'>
-                                    {vehicle.primary_image_url ? (
-                                        <img 
-                                            src={vehicle.primary_image_url} 
-                                            alt={vehicle.model}
-                                            className='w-full h-full object-contain'
-                                        />
-                                    ) : (
-                                        <div className='w-full h-full flex items-center justify-center text-gray-400'>
-                                            No Image
-                                        </div>
-                                    )}
-                                </div>
-                                <div className='p-4'>
-                                    <h3 className='font-bold text-lg mb-2'>
-                                        {vehicle.manufacturer} {vehicle.model}
-                                    </h3>
-                                    <p className='text-sm text-gray-600 mb-3'>
-                                        {vehicle.manufacture_year} | {vehicle.passenger_capacity} Seats
-                                    </p>
-                                    <div className='flex justify-between items-center'>
-                                        <span className='text-blue-600 font-bold'>
-                                            ${vehicle.rental_price_per_day}/ticket
-                                        </span>
-                                        <Link
-                                            href={`/vehicleDetails/${vehicle.id}?tab=rental`}
-                                            className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition text-sm'
-                                        >
-                                            More Details
-                                        </Link>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                    <p className='text-sm text-gray-500 mt-2'>This service is not available for this vendor profile right now.</p>
+                </div>
             </div>
         );
     }
@@ -462,19 +412,13 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 <h2 className='text-2xl font-bold mb-6'>
                     Freight Services
                 </h2>
-                
+
                 <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
-                    <div className='text-center mb-4'>
-                        <div className='text-4xl mb-2'>🚛</div>
-                        <h3 className='font-bold text-lg text-[#0955AC]'>Freight Services</h3>
+                    <div className='text-center mb-2'>
+                        <div className='text-3xl mb-2'>ℹ️</div>
+                        <h3 className='font-bold text-lg text-[#0955AC]'>No Service Available</h3>
                     </div>
-                    <p className='text-gray-600'>Freight shipping and logistics services available.</p>
-                    <p className='text-sm text-gray-500 mt-2'>Air, sea, and road freight services offered by this vendor.</p>
-                    <div className='mt-4'>
-                        <button className='bg-[#0A55AC] text-white px-4 py-2 rounded hover:bg-[#0a4b97] transition text-sm'>
-                            Contact for Quote
-                        </button>
-                    </div>
+                    <p className='text-sm text-gray-500 mt-2'>This service is not available for this vendor profile right now.</p>
                 </div>
             </div>
         );
@@ -511,8 +455,11 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                 
                 {courierServices.length === 0 ? (
                     <div className='bg-gray-50 border border-gray-200 rounded-lg px-6 py-8 text-center'>
-                        <p className='text-gray-600'>No courier services available.</p>
-                        <p className='text-sm text-gray-500 mt-2'>This vendor offers courier services but specific service details are not yet configured.</p>
+                        <div className='text-center mb-2'>
+                            <div className='text-3xl mb-2'>ℹ️</div>
+                            <h3 className='font-bold text-lg text-[#0955AC]'>No Service Available</h3>
+                        </div>
+                        <p className='text-sm text-gray-500 mt-2'>This service is not available for this vendor profile right now.</p>
                     </div>
                 ) : (
                     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>

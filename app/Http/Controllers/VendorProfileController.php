@@ -601,9 +601,9 @@ class VendorProfileController extends Controller
         $vendorProfile = $vendor->vendorProfile;
 
         // Get approved services for this vendor and deduplicate by category name
-        $serviceDisplayOrder = ['Vehicle Rental', 'Courier Services', 'Warehousing', 'Freight'];
+        $serviceDisplayOrder = ['Vehicle Rental', 'Ticket Booking', 'Courier Services', 'Warehousing', 'Freight'];
 
-        $services = VendorServiceRegistration::where('user_id', $userId)
+        $registeredServices = VendorServiceRegistration::where('user_id', $userId)
             ->where('status', 'approved')
             ->with('serviceCategory')
             ->get()
@@ -619,11 +619,41 @@ class VendorProfileController extends Controller
                     'status' => $service->status,
                 ];
             })
-            ->values()
+            ->values();
+
+        $services = $registeredServices
             ->filter(function($service) use ($serviceDisplayOrder) {
                 // Only allow specific service categories
                 return in_array($service['category_name'], $serviceDisplayOrder);
             })
+            ->values();
+
+        $registeredCategoryNames = $registeredServices->pluck('category_name')->toArray();
+        $shownCategoryNames = $services->pluck('category_name')->toArray();
+
+        $hasTicketBookingRegistration = in_array('Ticket Booking', $registeredCategoryNames)
+            || count(array_intersect($registeredCategoryNames, ['Aviation Service', 'Railway Service', 'Waterborne Transport'])) > 0;
+
+        $hasFreightRegistration = in_array('Freight', $registeredCategoryNames)
+            || count(array_intersect($registeredCategoryNames, ['Courier Services', 'Waterborne Transport'])) > 0;
+
+        if ($hasTicketBookingRegistration && !in_array('Ticket Booking', $shownCategoryNames)) {
+            $services->push([
+                'id' => null,
+                'category_name' => 'Ticket Booking',
+                'status' => 'approved',
+            ]);
+        }
+
+        if ($hasFreightRegistration && !in_array('Freight', $shownCategoryNames)) {
+            $services->push([
+                'id' => null,
+                'category_name' => 'Freight',
+                'status' => 'approved',
+            ]);
+        }
+
+        $services = $services
             ->sortBy(function($service) use ($serviceDisplayOrder) {
                 // Sort by predefined order (Vehicle Rental first)
                 $index = array_search($service['category_name'], $serviceDisplayOrder);
