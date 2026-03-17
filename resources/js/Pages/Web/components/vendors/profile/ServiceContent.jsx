@@ -83,11 +83,11 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                                 className='w-full min-h-[140px] bg-white rounded-[12px] border border-[#DDE7F5] overflow-hidden flex flex-col md:flex-row'
                                 style={{ boxShadow: '0 4px 4px #0000001A' }}
                             >
-                                <div className='w-full md:w-[220px] h-[180px] md:h-auto bg-[#F2F5F9]'>
+                                <div className='w-full md:w-[220px] h-[180px] md:h-[180px] flex-shrink-0 bg-[#F2F5F9]'>
                                     <img
                                         src={vehicle.primary_image_url || '/placeholder.png'}
                                         alt={vehicle.model || 'vehicle'}
-                                        className='w-full h-full object-cover'
+                                        className='w-full h-full object-contain'
                                     />
                                 </div>
 
@@ -192,12 +192,12 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                                 key={vehicle.id} 
                                 className='bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow'
                             >
-                                <div className='h-48 bg-gray-200'>
+                                <div className='h-48 bg-[#F2F5F9]'>
                                     {vehicle.primary_image_url ? (
                                         <img 
                                             src={vehicle.primary_image_url} 
                                             alt={vehicle.model}
-                                            className='w-full h-full object-cover'
+                                            className='w-full h-full object-contain'
                                         />
                                     ) : (
                                         <div className='w-full h-full flex items-center justify-center text-gray-400'>
@@ -252,12 +252,12 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                                 className='w-full min-h-[140px] bg-white rounded-[12px] border border-[#DDE7F5] overflow-hidden flex flex-col md:flex-row'
                                 style={{ boxShadow: '0 4px 4px #0000001A' }}
                             >
-                                <div className='w-full md:w-[220px] h-[180px] md:h-auto bg-[#F2F5F9]'>
+                                <div className='w-full md:w-[220px] h-[180px] md:h-[180px] flex-shrink-0 bg-[#F2F5F9]'>
                                     {warehouse.primary_image_url ? (
                                         <img
                                             src={warehouse.primary_image_url}
                                             alt={warehouse.name || 'warehouse'}
-                                            className='w-full h-full object-cover'
+                                            className='w-full h-full object-contain'
                                         />
                                     ) : (
                                         <div className='w-full h-full flex items-center justify-center text-center text-gray-400'>

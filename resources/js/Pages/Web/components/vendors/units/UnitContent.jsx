@@ -708,11 +708,11 @@ const UnitContent = () => {
                         >
                             <div className="flex flex-col lg:flex-row items-stretch">
                                 {/* Image container */}
-                                <div className="shrink-0 w-full h-[190px] lg:w-[250px] lg:h-auto overflow-hidden self-stretch bg-[#F3F3F3]">
+                                <div className="shrink-0 w-full h-[190px] lg:w-[250px] lg:h-[190px] self-stretch bg-[#F3F3F3]">
                                     <img
                                         src={unit.image || car1}
                                         alt="Vehicle"
-                                        className="block w-full h-full object-cover"
+                                        className="block w-full h-full object-contain"
                                         loading="lazy"
                                         onError={(e) => {
                                             if (e.currentTarget.src !== car1) {

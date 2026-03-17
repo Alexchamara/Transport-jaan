@@ -857,7 +857,7 @@ const UnitContent = () => {
     };
 
     return (
-        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 lg:pl-4 lg:pl-5">
+        <div className="w-full h-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 lg:pl-5">
             {/* Header section */}
             <div className="flex md:flex-row flex-col gap-5 justify-between items-center">
                 <div className="flex items-center gap-4">
@@ -980,7 +980,7 @@ const UnitContent = () => {
                                         className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col lg:flex-row"
                                     >
                                         {/* Image */}
-                                        <div className="w-full lg:w-72 h-48 sm:h-56 lg:h-auto">
+                                        <div className="w-full lg:w-72 h-56 sm:h-64 lg:h-auto lg:self-stretch bg-[#F3F3F3] flex-shrink-0">
                                             {imageUrl ? (
                                                 <img src={imageUrl} alt={unit.name} className="w-full h-full object-cover" />
                                             ) : (
@@ -1027,7 +1027,7 @@ const UnitContent = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="mt-4 sm:mt-8 flex flex-col sm:flex-row gap-2 sm:gap-3">
+                                            <div className="mt-4 sm:mt-8 flex lg:hidden flex-col sm:flex-row gap-2 sm:gap-3">
                                                 <button
                                                     onClick={() => handleViewWarehouse(unit)}
                                                     className="flex-1 h-10 sm:h-12 bg-[#0955AC] text-white text-sm sm:text-base font-bold rounded-lg hover:bg-[#074a94] transition flex items-center justify-center gap-2"
@@ -1056,15 +1056,18 @@ const UnitContent = () => {
                                         </div>
 
                                         {/* Action Icons (Hidden on mobile, shown on desktop) */}
-                                        <div className="hidden lg:flex bg-[#D8E4F2] p-6 lg:p-8 lg:w-48 lg:flex-col justify-center items-center gap-6">
-                                            <button onClick={() => handleViewWarehouse(unit)} className="size-14 bg-white border-2 border-[#0955AC] rounded-xl hover:bg-blue-50 transition flex items-center justify-center text-sm" title="View">
+                                        <div className="hidden lg:flex bg-[#D8E4F2] p-6 lg:p-8 lg:w-48 lg:flex-col justify-center items-center gap-4">
+                                            <button onClick={() => handleViewWarehouse(unit)} className="w-28 h-10 bg-white border-2 border-[#0955AC] rounded-xl hover:bg-blue-50 transition flex items-center justify-center text-sm font-semibold text-[#0955AC]" title="View">
                                                 View
                                             </button>
-                                            <button onClick={() => handleEditWarehouse(unit)} className="size-14 bg-white border-2 border-orange-500 rounded-xl hover:bg-orange-50 transition flex items-center justify-center text-sm" title="Edit">
+                                            <button onClick={() => handleEditWarehouse(unit)} className="w-28 h-10 bg-white border-2 border-orange-500 rounded-xl hover:bg-orange-50 transition flex items-center justify-center text-sm font-semibold text-orange-500" title="Edit">
                                                 Edit
                                             </button>
-                                            <button onClick={() => handleDeleteWarehouse(unit)} className="size-14 bg-white border-2 border-red-600 rounded-xl hover:bg-red-50 transition flex items-center justify-center text-sm" title="Delete">
+                                            <button onClick={() => handleDeleteWarehouse(unit)} className="w-28 h-10 bg-white border-2 border-red-600 rounded-xl hover:bg-red-50 transition flex items-center justify-center text-sm font-semibold text-red-600" title="Delete">
                                                 Delete
+                                            </button>
+                                            <button onClick={() => handleToggleStatus(unit)} className={`w-28 h-10 bg-white border-2 rounded-xl transition flex items-center justify-center text-sm font-semibold ${unit.is_active ? "border-red-600 text-red-600 hover:bg-red-50" : "border-green-600 text-green-600 hover:bg-green-50"}`} title={unit.is_active ? "Deactivate" : "Activate"}>
+                                                {unit.is_active ? "Deactivate" : "Activate"}
                                             </button>
                                         </div>
                                     </div>
