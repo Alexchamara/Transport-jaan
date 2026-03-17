@@ -1450,8 +1450,8 @@ Route::get('/vendorAllBookings/expenses', [\App\Http\Controllers\VendorAllBookin
     ->middleware('auth')
     ->name('vendorAllBookingsExpenses');
 
-// Vendor Profile Page (public view)
-Route::get('/vendors/profile', fn() => Inertia::render('Web/home/vendors/VendorProfle'))->middleware('auth')->name('vendors.profile');
+// Vendor Profile Page (public view for clients)
+Route::get('/vendors/profile/{userId}', [\App\Http\Controllers\VendorProfileController::class, 'showPublicProfile'])->name('vendors.public.profile');
 
 // Vendor Profile & Service Registration Routes
 Route::middleware(['auth'])->prefix('vendor/profile')->name('vendor.profile.')->group(function () {

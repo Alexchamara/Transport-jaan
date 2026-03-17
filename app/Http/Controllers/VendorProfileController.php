@@ -583,4 +583,127 @@ class VendorProfileController extends Controller
 
         return redirect()->back()->with('success', 'Logo removed successfully.');
     }
+
+    /**
+     * Display public vendor profile page
+     */
+    public function showPublicProfile($userId)
+    {
+        // Fetch the vendor user and their profile
+        $vendor = \App\Models\User::with('vendorProfile')->find($userId);
+        
+        if (!$vendor) {
+            abort(404, 'Vendor not found');
+        }
+
+        $vendorProfile = $vendor->vendorProfile;
+
+        // Get approved services for this vendor
+        $services = VendorServiceRegistration::where('user_id', $userId)
+            ->where('status', 'approved')
+            ->with('serviceCategory')
+            ->get()
+            ->map(function ($service) {
+                return [
+                    'id' => $service->id,
+                    'category_name' => $service->serviceCategory->name ?? 'Unknown',
+                    'status' => $service->status,
+                ];
+            });
+
+        // Get vehicles by type
+        $landVehicles = \App\Models\Vehicle::where('provider_id', $userId)
+            ->where('type', 'land')
+            ->with('landSpec')
+            ->get()
+            ->map(function ($vehicle) {
+                return [
+                    'id' => $vehicle->id,
+                    'manufacturer' => $vehicle->manufacturer,
+                    'model' => $vehicle->model,
+                    'manufacture_year' => $vehicle->manufacture_year,
+                    'passenger_capacity' => $vehicle->passenger_capacity,
+                    'mileage_km' => $vehicle->mileage_km,
+                    'transmission_type' => $vehicle->landSpec->transmission_type ?? null,
+                    'fuel_type' => $vehicle->landSpec->fuel_type ?? null,
+                    'rental_price_per_day' => $vehicle->rental_price_per_day,
+                    'status' => $vehicle->status,
+                    'primary_image_url' => $vehicle->primary_image_url,
+                ];
+            });
+
+        $seaVehicles = \App\Models\Vehicle::where('provider_id', $userId)
+            ->where('type', 'sea')
+            ->get()
+            ->map(function ($vehicle) {
+                return [
+                    'id' => $vehicle->id,
+                    'manufacturer' => $vehicle->manufacturer,
+                    'model' => $vehicle->model,
+                    'manufacture_year' => $vehicle->manufacture_year,
+                    'passenger_capacity' => $vehicle->passenger_capacity,
+                    'mileage_km' => $vehicle->mileage_km,
+                    'rental_price_per_day' => $vehicle->rental_price_per_day,
+                    'status' => $vehicle->status,
+                    'primary_image_url' => $vehicle->primary_image_url,
+                ];
+            });
+
+        $airVehicles = \App\Models\Vehicle::where('provider_id', $userId)
+            ->where('type', 'air')
+            ->get()
+            ->map(function ($vehicle) {
+                return [
+                    'id' => $vehicle->id,
+                    'manufacturer' => $vehicle->manufacturer,
+                    'model' => $vehicle->model,
+                    'manufacture_year' => $vehicle->manufacture_year,
+                    'passenger_capacity' => $vehicle->passenger_capacity,
+                    'mileage_km' => $vehicle->mileage_km,
+                    'rental_price_per_day' => $vehicle->rental_price_per_day,
+                    'status' => $vehicle->status,
+                    'primary_image_url' => $vehicle->primary_image_url,
+                ];
+            });
+
+        // Calculate stats
+        $totalReviews = \App\Models\VehicleReview::whereHas('vehicle', function ($query) use ($userId) {
+            $query->where('provider_id', $userId);
+        })->count();
+
+        $avgRating = \App\Models\VehicleReview::whereHas('vehicle', function ($query) use ($userId) {
+            $query->where('provider_id', $userId);
+        })->avg('rating') ?? 0;
+
+        $createdAt = $vendor->created_at;
+        $now = now();
+        $monthsSinceJoined = $now->diffInMonths($createdAt);
+        $daysSinceJoined = $now->diffInDays($createdAt);
+
+        $stats = [
+            'totalReviews' => $totalReviews,
+            'avgRating' => round($avgRating, 1),
+            'monthsSinceJoined' => $monthsSinceJoined,
+            'daysSinceJoined' => $daysSinceJoined,
+        ];
+
+        $authUser = Auth::user();
+        $likedVehicleIds = [];
+
+        if ($authUser instanceof \App\Models\User) {
+            $likedVehicleIds = $authUser->vehicleLikes()->pluck('vehicle_id')->toArray();
+        }
+
+        return Inertia::render('Web/home/vendors/VendorProfle', [
+            'vendor' => $vendor,
+            'vendorProfile' => $vendorProfile,
+            'services' => $services,
+            'landVehicles' => $landVehicles,
+            'seaVehicles' => $seaVehicles,
+            'airVehicles' => $airVehicles,
+            'stats' => $stats,
+            'authUser' => $authUser,
+            'likedVehicleIds' => $likedVehicleIds,
+        ]);
+    }
 }

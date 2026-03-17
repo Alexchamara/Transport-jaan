@@ -1,10 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Header from '../../layouts/Header'
 import BackButton from "../../components/BackBtn";
-import Btns from '../../components/vendors/profile/Btns';
 import InformationCard from '../../components/vendors/profile/informationCard';
+import Btns from '../../components/vendors/profile/Btns';
+import ServiceContent from '../../components/vendors/profile/ServiceContent';
 
-const VendorProfile = () => {
+const VendorProfile = ({ vendor, vendorProfile, services, landVehicles, seaVehicles, airVehicles, stats, authUser, likedVehicleIds = [] }) => {
+    const [activeService, setActiveService] = useState('Vehicle Rental');
+    const [activeMode, setActiveMode] = useState('Land');
+
     return (
         <div className='min-h-screen'>
             <Header />
@@ -16,9 +20,31 @@ const VendorProfile = () => {
                     Profile Information
                 </div>
             </div>
-            <InformationCard />
-            <Btns />
-
+            
+            <InformationCard 
+                vendor={vendor}
+                vendorProfile={vendorProfile}
+                stats={stats}
+            />
+            
+            <Btns 
+                services={services}
+                initialService={activeService}
+                initialMode={activeMode}
+                onServiceChange={setActiveService}
+                onModeChange={setActiveMode}
+            />
+            
+            <ServiceContent 
+                activeService={activeService}
+                activeMode={activeMode}
+                services={services}
+                landVehicles={landVehicles}
+                seaVehicles={seaVehicles}
+                airVehicles={airVehicles}
+                authUser={authUser}
+                likedVehicleIds={likedVehicleIds}
+            />
         </div>
     )
 }
