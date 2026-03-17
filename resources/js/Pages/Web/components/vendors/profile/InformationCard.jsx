@@ -8,13 +8,14 @@ const InformationCard = ({ vendor, vendorProfile, stats }) => {
     const about = vendorProfile?.description || 'No description available for this vendor.';
     const rating = stats?.avgRating || 0;
     const totalReviews = stats?.totalReviews || 0;
-    const monthsSinceJoined = stats?.monthsSinceJoined || 0;
-    const daysSinceJoined = stats?.daysSinceJoined || 0;
-    
-    // Display logic: if less than 1 month, show days instead
-    const joinedText = monthsSinceJoined >= 1 
-        ? `Joined ${monthsSinceJoined} ${monthsSinceJoined === 1 ? 'month' : 'months'} ago`
-        : `Joined ${daysSinceJoined} ${daysSinceJoined === 1 ? 'day' : 'days'} ago`;
+    const registeredDate = vendor?.created_at
+        ? new Intl.DateTimeFormat('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        }).format(new Date(vendor.created_at))
+        : 'Unknown';
+    const joinedText = `Joined ${registeredDate}`;
     
     return (
         <div className='w-full max-w-[1364px] mx-auto px-4 sm:px-6 xl:px-10'>
