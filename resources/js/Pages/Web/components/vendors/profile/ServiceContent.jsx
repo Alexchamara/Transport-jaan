@@ -13,16 +13,21 @@ const nbsp = (text) => (typeof text === 'string' ? text.replace(/ /g, '\u00A0') 
 
 const specValue = (value) => (value || value === 0 ? value : '-');
 
-const ServiceContent = ({ activeService, activeMode, services, landVehicles = [], seaVehicles = [], airVehicles = [], warehouseUnits = [], courierServices = [], flightSchedules = [], trainSchedules = [], authUser, likedVehicleIds = [] }) => {
+const ServiceContent = ({ activeService, activeMode, services, landVehicles = [], seaVehicles = [], airVehicles = [], warehouseUnits = [], courierServices = [], flightSchedules = [], trainSchedules = [], authUser, likedVehicleIds = [], likedWarehouseIds = [] }) => {
     const [likedMap, setLikedMap] = useState({});
+    const [likedWarehouseMap, setLikedWarehouseMap] = useState({});
 
     useEffect(() => {
         const next = {};
-        (likedVehicleIds || []).forEach((id) => {
-            next[id] = true;
-        });
+        (likedVehicleIds || []).forEach((id) => { next[id] = true; });
         setLikedMap(next);
     }, [likedVehicleIds]);
+
+    useEffect(() => {
+        const next = {};
+        (likedWarehouseIds || []).forEach((id) => { next[id] = true; });
+        setLikedWarehouseMap(next);
+    }, [likedWarehouseIds]);
 
     const toggleLike = async (vehicleId) => {
         if (!authUser) {
@@ -53,6 +58,34 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
             alert('Something went wrong while updating favourite.');
         }
     };
+    const resolveWarehouseLikeUrl = () => {
+        if (typeof route === 'function') {
+            try { return route('client.warehouse.like.toggle'); } catch (_) {}
+        }
+        return '/api/warehouse/like-toggle';
+    };
+
+    const toggleWarehouseLike = async (warehouseId) => {
+        if (!authUser) {
+            alert('You must be logged in to add to favourites.');
+            router.visit('/signin');
+            return;
+        }
+        const optimistic = !likedWarehouseMap[warehouseId];
+        setLikedWarehouseMap((prev) => ({ ...prev, [warehouseId]: optimistic }));
+        try {
+            const { data } = await axios.post(
+                resolveWarehouseLikeUrl(),
+                { warehouse_id: warehouseId }
+            );
+            const updated = {};
+            (data.likedWarehouseIds || []).forEach((id) => { updated[id] = true; });
+            setLikedWarehouseMap(updated);
+        } catch (error) {
+            setLikedWarehouseMap((prev) => ({ ...prev, [warehouseId]: !optimistic }));
+        }
+    };
+
     // Vehicle Rental Service Content
     if (activeService === 'Vehicle Rental') {
         let vehicles = [];
@@ -293,12 +326,25 @@ const ServiceContent = ({ activeService, activeMode, services, landVehicles = []
                                         </div>
 
                                         <div className='flex items-center gap-3 shrink-0'>
-                                            <Link
-                                                href={`/warehouseDetails/${warehouse.id}`}
+                                            <button
+                                                type='button'
+                                                onClick={() => router.visit('/warehouseDetails', { data: { warehouse: { id: warehouse.id } }, preserveState: false })}
                                                 className='figtree w-[180px] h-[40px] bg-[#0A55AC] hover:bg-[#0a4b97] rounded-[6px] text-[16px] text-white font-[700] flex items-center justify-center shrink-0'
                                             >
                                                 More Details
-                                            </Link>
+                                            </button>
+                                            <button
+                                                type='button'
+                                                onClick={() => toggleWarehouseLike(warehouse.id)}
+                                                className='h-[40px] w-[40px] rounded-[4px] border border-[#0955AC] bg-white grid place-items-center'
+                                                aria-label={likedWarehouseMap[warehouse.id] ? 'Remove favourite' : 'Add favourite'}
+                                            >
+                                                <img
+                                                    src={likedWarehouseMap[warehouse.id] ? heartFill : heart}
+                                                    alt='favourite'
+                                                    className='w-[18px] h-[18px]'
+                                                />
+                                            </button>
                                         </div>
                                     </div>
 

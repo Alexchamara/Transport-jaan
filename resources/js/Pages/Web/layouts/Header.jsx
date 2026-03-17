@@ -43,20 +43,16 @@ const Header = () => {
 
     const fetchNotifications = async () => {
         try {
-            console.log('Fetching warehouse notifications...');
             const response = await fetch(`${API_BASE_URL}vendors/warehouse/notifications/data`);
-            console.log('Response status:', response.status);
-
+            // 403 is expected for non-vendor users — skip silently
+            if (response.status === 403) return;
             if (response.ok) {
                 const data = await response.json();
-                console.log('Notifications data:', data);
                 setNotifications(data.notifications || []);
                 setUnreadCount(data.unreadCount || 0);
-            } else {
-                console.error('Failed to fetch notifications:', response.status, response.statusText);
             }
         } catch (error) {
-            console.error('Failed to fetch notifications:', error);
+            // network/parse errors — ignore silently
         }
     };
 

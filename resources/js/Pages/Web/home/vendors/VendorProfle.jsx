@@ -5,7 +5,7 @@ import InformationCard from '../../components/vendors/profile/informationCard';
 import Btns from '../../components/vendors/profile/Btns';
 import ServiceContent from '../../components/vendors/profile/ServiceContent';
 
-const VendorProfile = ({ vendor, vendorProfile, services, landVehicles, seaVehicles, airVehicles, warehouseUnits, courierServices, flightSchedules, trainSchedules, stats, authUser, likedVehicleIds = [] }) => {
+const VendorProfile = ({ vendor, vendorProfile, services, landVehicles, seaVehicles, airVehicles, warehouseUnits, courierServices, flightSchedules, trainSchedules, stats, authUser, likedVehicleIds = [], likedWarehouseIds = [] }) => {
     // Set initial service based on vendor's registered services
     const firstService = services.length > 0 ? services[0].category_name : 'Vehicle Rental'
     const [activeService, setActiveService] = useState(firstService);
@@ -50,6 +50,7 @@ const VendorProfile = ({ vendor, vendorProfile, services, landVehicles, seaVehic
                 trainSchedules={trainSchedules}
                 authUser={authUser}
                 likedVehicleIds={likedVehicleIds}
+                likedWarehouseIds={likedWarehouseIds}
             />
         </div>
     )

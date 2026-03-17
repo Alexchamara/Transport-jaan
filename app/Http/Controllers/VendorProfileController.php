@@ -750,9 +750,13 @@ class VendorProfileController extends Controller
 
         $authUser = Auth::user();
         $likedVehicleIds = [];
+        $likedWarehouseIds = [];
 
         if ($authUser instanceof \App\Models\User) {
             $likedVehicleIds = $authUser->vehicleLikes()->pluck('vehicle_id')->toArray();
+            $likedWarehouseIds = \App\Models\Warehouse\WarehouseLike::where('user_id', $authUser->id)
+                ->pluck('warehouse_unit_id')
+                ->toArray();
         }
 
         return Inertia::render('Web/home/vendors/VendorProfle', [
@@ -769,6 +773,7 @@ class VendorProfileController extends Controller
             'stats' => $stats,
             'authUser' => $authUser,
             'likedVehicleIds' => $likedVehicleIds,
+            'likedWarehouseIds' => $likedWarehouseIds,
         ]);
     }
 }
