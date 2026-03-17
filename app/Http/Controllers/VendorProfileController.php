@@ -7,6 +7,8 @@ use App\Models\ServiceCategory;
 use App\Models\ServiceSubCategory;
 use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
+use App\Models\Warehouse\WarehouseUnit;
+use App\Models\Warehouse\WarehouseImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -598,73 +600,132 @@ class VendorProfileController extends Controller
 
         $vendorProfile = $vendor->vendorProfile;
 
-        // Get approved services for this vendor
+        // Get approved services for this vendor and deduplicate by category name
+        $serviceDisplayOrder = ['Vehicle Rental', 'Courier Services', 'Warehousing', 'Freight'];
+
         $services = VendorServiceRegistration::where('user_id', $userId)
             ->where('status', 'approved')
             ->with('serviceCategory')
             ->get()
-            ->map(function ($service) {
+            ->groupBy(function($service) {
+                return $service->serviceCategory->name ?? 'Unknown';
+            })
+            ->map(function($group, $categoryName) {
+                // Take first service from each category group
+                $service = $group->first();
                 return [
                     'id' => $service->id,
-                    'category_name' => $service->serviceCategory->name ?? 'Unknown',
+                    'category_name' => $categoryName,
                     'status' => $service->status,
                 ];
-            });
+            })
+            ->values()
+            ->filter(function($service) use ($serviceDisplayOrder) {
+                // Only allow specific service categories
+                return in_array($service['category_name'], $serviceDisplayOrder);
+            })
+            ->sortBy(function($service) use ($serviceDisplayOrder) {
+                // Sort by predefined order (Vehicle Rental first)
+                $index = array_search($service['category_name'], $serviceDisplayOrder);
+                return $index !== false ? $index : 999;
+            })
+            ->values();
 
-        // Get vehicles by type
-        $landVehicles = \App\Models\Vehicle::where('provider_id', $userId)
-            ->where('type', 'land')
-            ->with('landSpec')
-            ->get()
-            ->map(function ($vehicle) {
-                return [
-                    'id' => $vehicle->id,
-                    'manufacturer' => $vehicle->manufacturer,
-                    'model' => $vehicle->model,
-                    'manufacture_year' => $vehicle->manufacture_year,
-                    'passenger_capacity' => $vehicle->passenger_capacity,
-                    'mileage_km' => $vehicle->mileage_km,
-                    'transmission_type' => $vehicle->landSpec->transmission_type ?? null,
-                    'fuel_type' => $vehicle->landSpec->fuel_type ?? null,
-                    'rental_price_per_day' => $vehicle->rental_price_per_day,
-                    'status' => $vehicle->status,
-                    'primary_image_url' => $vehicle->primary_image_url,
-                ];
-            });
+        // Get service names for conditional data fetching
+        $serviceNames = $services->pluck('category_name')->toArray();
 
-        $seaVehicles = \App\Models\Vehicle::where('provider_id', $userId)
-            ->where('type', 'sea')
-            ->get()
-            ->map(function ($vehicle) {
-                return [
-                    'id' => $vehicle->id,
-                    'manufacturer' => $vehicle->manufacturer,
-                    'model' => $vehicle->model,
-                    'manufacture_year' => $vehicle->manufacture_year,
-                    'passenger_capacity' => $vehicle->passenger_capacity,
-                    'mileage_km' => $vehicle->mileage_km,
-                    'rental_price_per_day' => $vehicle->rental_price_per_day,
-                    'status' => $vehicle->status,
-                    'primary_image_url' => $vehicle->primary_image_url,
-                ];
-            });
+        // Initialize data arrays
+        $landVehicles = collect();
+        $seaVehicles = collect();
+        $airVehicles = collect();
+        $warehouseUnits = collect();
+        $courierServices = collect();
+        $flightSchedules = collect();
+        $trainSchedules = collect();
 
-        $airVehicles = \App\Models\Vehicle::where('provider_id', $userId)
-            ->where('type', 'air')
-            ->get()
-            ->map(function ($vehicle) {
-                return [
-                    'id' => $vehicle->id,
-                    'manufacturer' => $vehicle->manufacturer,
-                    'model' => $vehicle->model,
-                    'manufacture_year' => $vehicle->manufacture_year,
-                    'passenger_capacity' => $vehicle->passenger_capacity,
-                    'mileage_km' => $vehicle->mileage_km,
-                    'rental_price_per_day' => $vehicle->rental_price_per_day,
-                    'status' => $vehicle->status,
-                    'primary_image_url' => $vehicle->primary_image_url,
-                ];
-            });
+        // Fetch data based on registered services
+        if (in_array('Vehicle Rental', $serviceNames)) {
+            // Get vehicles by type
+            $landVehicles = \App\Models\Vehicle::where('provider_id', $userId)
+                ->where('type', 'land')
+                ->with('landSpec')
+                ->get()
+                ->map(function ($vehicle) {
+                    return [
+                        'id' => $vehicle->id,
+                        'manufacturer' => $vehicle->manufacturer,
+                        'model' => $vehicle->model,
+                        'manufacture_year' => $vehicle->manufacture_year,
+                        'passenger_capacity' => $vehicle->passenger_capacity,
+                        'mileage_km' => $vehicle->mileage_km,
+                        'transmission_type' => $vehicle->landSpec->transmission_type ?? null,
+                        'fuel_type' => $vehicle->landSpec->fuel_type ?? null,
+                        'rental_price_per_day' => $vehicle->rental_price_per_day,
+                        'status' => $vehicle->status,
+                        'primary_image_url' => $vehicle->primary_image_url,
+                    ];
+                });
+
+            $seaVehicles = \App\Models\Vehicle::where('provider_id', $userId)
+                ->where('type', 'sea')
+                ->get()
+                ->map(function ($vehicle) {
+                    return [
+                        'id' => $vehicle->id,
+                        'manufacturer' => $vehicle->manufacturer,
+                        'model' => $vehicle->model,
+                        'manufacture_year' => $vehicle->manufacture_year,
+                        'passenger_capacity' => $vehicle->passenger_capacity,
+                        'mileage_km' => $vehicle->mileage_km,
+                        'rental_price_per_day' => $vehicle->rental_price_per_day,
+                        'status' => $vehicle->status,
+                        'primary_image_url' => $vehicle->primary_image_url,
+                    ];
+                });
+
+            $airVehicles = \App\Models\Vehicle::where('provider_id', $userId)
+                ->where('type', 'air')
+                ->get()
+                ->map(function ($vehicle) {
+                    return [
+                        'id' => $vehicle->id,
+                        'manufacturer' => $vehicle->manufacturer,
+                        'model' => $vehicle->model,
+                        'manufacture_year' => $vehicle->manufacture_year,
+                        'passenger_capacity' => $vehicle->passenger_capacity,
+                        'mileage_km' => $vehicle->mileage_km,
+                        'rental_price_per_day' => $vehicle->rental_price_per_day,
+                        'status' => $vehicle->status,
+                        'primary_image_url' => $vehicle->primary_image_url,
+                    ];
+                });
+        }
+
+        if (in_array('Warehousing', $serviceNames)) {
+            $warehouseUnits = WarehouseUnit::where('user_id', $userId)
+                ->where('is_active', true)
+                ->with('mainImage')
+                ->get()
+                ->map(function ($warehouse) {
+                    $imagePath = $warehouse->mainImage?->file_path;
+                    return [
+                        'id' => $warehouse->id,
+                        'name' => $warehouse->name,
+                        'description' => $warehouse->description,
+                        'address' => $warehouse->address,
+                        'total_area' => $warehouse->total_area,
+                        'capacity' => $warehouse->capacity,
+                        'capacity_unit' => $warehouse->capacity_unit,
+                        'type' => $warehouse->type,
+                        'monthly_rate' => $warehouse->monthly_rate,
+                        'setup_fee' => $warehouse->setup_fee,
+                        'is_available' => $warehouse->is_available,
+                        'contact_person' => $warehouse->contact_person,
+                        'contact_phone' => $warehouse->contact_phone,
+                        'primary_image_url' => $imagePath ? '/storage/' . $imagePath : null,
+                    ];
+                });
+        }
 
         // Calculate stats
         $totalReviews = \App\Models\VehicleReview::whereHas('vehicle', function ($query) use ($userId) {
@@ -701,6 +762,10 @@ class VendorProfileController extends Controller
             'landVehicles' => $landVehicles,
             'seaVehicles' => $seaVehicles,
             'airVehicles' => $airVehicles,
+            'warehouseUnits' => $warehouseUnits,
+            'courierServices' => $courierServices,
+            'flightSchedules' => $flightSchedules,
+            'trainSchedules' => $trainSchedules,
             'stats' => $stats,
             'authUser' => $authUser,
             'likedVehicleIds' => $likedVehicleIds,
