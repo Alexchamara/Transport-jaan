@@ -38,6 +38,7 @@ use App\Http\Controllers\VehicleControllers\Client\ClientBookingController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientSettingsController;
 use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
+use App\Http\Controllers\CourierControllers\Vendor\VendorCourierDashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1104,21 +1105,37 @@ Route::get('/ticketBooking/settingsPage', function () {
 
 
 // vendor dashboard - courier service
-Route::get('/courierService/bookings', function () {
-    return Inertia::render('Web/home/vendors/courierService/Booking');
-})->name('courierService.bookings');
+Route::get('/courierService/bookings', [VendorCourierDashboardController::class, 'bookings'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.bookings');
 
-Route::get('/courierService/units', function () {
-    return Inertia::render('Web/home/vendors/courierService/Unit');
-})->name('courierService.units');
+Route::get('/courierService/units', [VendorCourierDashboardController::class, 'shipments'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.units');
 
-Route::get('/courierService/dashboard', function () {
-    return Inertia::render('Web/home/vendors/courierService/Dashboard');
-})->name('courierService.dashboard');
+Route::post('/courierService/shipments/{shipment}/stage', [VendorCourierDashboardController::class, 'updateShipmentStage'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.shipments.stage');
 
-Route::get('/courierService/clients', function () {
-    return Inertia::render('Web/home/vendors/courierService/Client');
-})->name('courierService.clients');
+Route::post('/courierService/shipments/bulk-stage', [VendorCourierDashboardController::class, 'bulkUpdateShipmentStage'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.shipments.bulk.stage');
+
+Route::get('/courierService/dashboard', [VendorCourierDashboardController::class, 'dashboard'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.dashboard');
+
+Route::get('/courierService/dashboard/report', [VendorCourierDashboardController::class, 'dashboard'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.dashboard.report');
+
+Route::get('/courierService/clients', [VendorCourierDashboardController::class, 'clients'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.clients');
+
+Route::post('/courierService/clients/{contact}/profile', [VendorCourierDashboardController::class, 'updateClientProfile'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.clients.profile');
 
 Route::get('/courierService/expenses', function () {
     return Inertia::render('Web/home/vendors/courierService/Expenses');

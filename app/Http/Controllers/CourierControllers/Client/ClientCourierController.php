@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\StoreCourierShipmentRequest;
 use App\Models\Courier\CourierContact;
 use App\Models\Courier\CourierShipment;
+use App\Services\Courier\CourierVendorAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -642,13 +643,14 @@ class ClientCourierController extends Controller
     public function store(StoreCourierShipmentRequest $request)
     {
         $payload = $request->validated();
+        $assignmentService = app(CourierVendorAssignmentService::class);
         $reviewContext = $request->input('reviewContext', []);
         $selectedQuotes = collect($reviewContext['selectedQuotes'] ?? [])->keyBy('packageIndex');
         $estimatedCostUsd = $selectedQuotes->reduce(function ($carry, $quote) {
             return $carry + (float) ($quote['priceUSD'] ?? 0);
         }, 0.0);
 
-        $shipment = DB::transaction(function () use ($payload, $selectedQuotes) {
+        $shipment = DB::transaction(function () use ($payload, $selectedQuotes, $assignmentService) {
             $sender = CourierContact::create([
                 'user_id' => Auth::id(),
                 'role' => CourierContact::ROLE_SENDER,
@@ -732,6 +734,8 @@ class ClientCourierController extends Controller
                     'description' => $package['description'] ?? null,
                 ]);
             }
+
+            $assignmentService->assignShipment($shipment);
 
             return $shipment;
         });

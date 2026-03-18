@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
-import { ArrowLeft, Menu, UserCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Menu, UserCircle } from "lucide-react";
 import CompanyLogo from "../../Pages/Web/components/CompanyLogo";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
@@ -61,8 +61,11 @@ const SERVICE_CONFIG = {
     "Courier Service": {
         dashboard: () => route("courierService.dashboard"),
         bookings: () => route("courierService.bookings"),
+        bookingsLabel: "Bookings",
         units: () => route("courierService.units"),
-        calendar: () => route("courierService.calendar"),
+        unitsLabel: "Shipments",
+        calendar: null,
+        tracking: () => route("courierService.tracking"),
         clients: () => route("courierService.clients"),
         drivers: null,
         payment: () => route("courierService.payment"),
@@ -357,7 +360,14 @@ const VendorShellLayout = ({
                                 {cfg.units && (
                                     <div className={menuCls(isActive(cfg.units))} onClick={() => navigate(cfg.units)}>
                                         <img src={uniLogo} className="w-[22px]" alt="" />
-                                        <span>Units</span>
+                                        <span>{cfg.unitsLabel || "Units"}</span>
+                                    </div>
+                                )}
+
+                                {cfg.tracking && (
+                                    <div className={menuCls(isActive(cfg.tracking))} onClick={() => navigate(cfg.tracking)}>
+                                        <MapPin className="w-[22px] h-[22px] text-[#666666]" />
+                                        <span>Tracking</span>
                                     </div>
                                 )}
 
