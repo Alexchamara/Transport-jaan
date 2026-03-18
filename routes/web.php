@@ -1153,9 +1153,9 @@ Route::get('/courierService/payment', function () {
     return Inertia::render('Web/home/vendors/courierService/Payment');
 })->name('courierService.payment');
 
-Route::get('/courierService/tracking', function () {
-    return Inertia::render('Web/home/vendors/courierService/Tracking');
-})->name('courierService.tracking');
+Route::get('/courierService/tracking', [VendorCourierDashboardController::class, 'tracking'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.tracking');
 
 Route::get('/courierService/calendar', function () {
     return Inertia::render('Web/home/vendors/courierService/Calendar');

@@ -248,6 +248,23 @@ class VendorCourierDashboardController extends Controller
         ]);
     }
 
+    public function tracking(Request $request)
+    {
+        [$filters, $shipments] = $this->buildFilteredShipments($request);
+
+        $trackingPayload = $this->buildTrackingPayload($shipments, $filters);
+
+        if ($request->query('export') === 'csv') {
+            return $this->downloadTrackingCsv(collect($trackingPayload['allRows'] ?? []));
+        }
+
+        unset($trackingPayload['allRows']);
+
+        return Inertia::render('Web/home/vendors/courierService/Tracking', [
+            'courierTracking' => $trackingPayload,
+        ]);
+    }
+
     public function updateClientProfile(Request $request, CourierContact $contact)
     {
         $vendorId = (int) optional($request->user())->id;
@@ -402,6 +419,10 @@ class VendorCourierDashboardController extends Controller
             'category' => trim((string) $request->query('category', '')),
             'bookingStatus' => trim((string) $request->query('bookingStatus', '')),
             'paymentStatus' => trim((string) $request->query('paymentStatus', '')),
+            'sla' => trim((string) $request->query('sla', '')),
+            'exceptionOnly' => trim((string) $request->query('exceptionOnly', '')),
+            'unscannedHours' => max(0, (int) $request->query('unscannedHours', 0)),
+            'groupBy' => trim((string) $request->query('groupBy', '')),
             'fromDate' => trim((string) $request->query('fromDate', '')),
             'toDate' => trim((string) $request->query('toDate', '')),
             'bookingRange' => trim((string) $request->query('bookingRange', 'this_year')),
@@ -419,7 +440,7 @@ class VendorCourierDashboardController extends Controller
                 'senderAddress:id,country,city,state',
                 'recipientAddress:id,country,city,state',
                 'packages:id,shipment_id,service_tier_label,service_tier_key,service_eta,courier_provider_name',
-                'trackingEvents:id,shipment_id,status,recorded_at',
+                'trackingEvents:id,shipment_id,status,location,description,recorded_at',
             ])
             ->where('assigned_vendor_user_id', $vendorId)
             ->orderByDesc('created_at');
@@ -546,6 +567,182 @@ class VendorCourierDashboardController extends Controller
         ];
     }
 
+    private function buildTrackingPayload(Collection $shipments, array $filters): array
+    {
+        $rows = $shipments->map(function (CourierShipment $shipment) {
+            $latestEvent = $this->getLatestTrackingEvent($shipment);
+            $stage = $this->getShipmentStage($shipment);
+            $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
+            $deliveredAt = $this->getDeliveredAt($shipment);
+            $timelineState = $this->getTimelineState($shipment, $estimatedDelivery, $deliveredAt);
+            $assignmentHealth = $this->resolveAssignmentHealth($shipment);
+
+            $timeline = $shipment->trackingEvents
+                ->sortByDesc(fn ($event) => optional($event->recorded_at)?->timestamp ?? 0)
+                ->map(function ($event) {
+                    return [
+                        'status' => (string) $event->status,
+                        'statusLabel' => ucwords(str_replace('_', ' ', (string) $event->status)),
+                        'location' => (string) ($event->location ?? ''),
+                        'description' => (string) ($event->description ?? ''),
+                        'recordedAt' => optional($event->recorded_at)->format('Y-m-d H:i'),
+                    ];
+                })
+                ->values();
+
+            return [
+                'id' => $shipment->id,
+                'bookingNumber' => $shipment->reference,
+                'trackingNumber' => $this->trackingNumber($shipment),
+                'service' => $this->normalizeServiceLabel($shipment->service_level),
+                'provider' => (string) optional($shipment->packages->first())->courier_provider_name,
+                'category' => $this->resolveCategory($shipment),
+                'status' => $shipment->status,
+                'statusLabel' => $this->statusLabel($shipment->status),
+                'stage' => $stage,
+                'stageLabel' => $this->stageLabel($stage),
+                'origin' => trim(implode(', ', array_filter([
+                    optional($shipment->senderAddress)->city,
+                    optional($shipment->senderAddress)->country,
+                ]))),
+                'destination' => trim(implode(', ', array_filter([
+                    optional($shipment->recipientAddress)->city,
+                    optional($shipment->recipientAddress)->country,
+                ]))),
+                'currentLocation' => (string) (optional($latestEvent)->location ?: '-'),
+                'lastScanAt' => optional(optional($latestEvent)->recorded_at)->format('Y-m-d H:i'),
+                'lastScanTimestamp' => optional(optional($latestEvent)->recorded_at)->timestamp,
+                'lastScanStatus' => (string) (optional($latestEvent)->status ?? ''),
+                'eta' => optional($estimatedDelivery)->format('Y-m-d H:i'),
+                'slaStatus' => $this->resolveSlaStatus($shipment, $estimatedDelivery, $timelineState),
+                'exception' => $this->hasException($shipment),
+                'assignmentHealth' => $assignmentHealth,
+                'allowedActions' => $assignmentHealth === 'assigned'
+                    ? $this->getAllowedActionsForStage($stage)
+                    : [],
+                'timeline' => $timeline,
+            ];
+        })->values();
+
+        $summary = [
+            'inTransitNow' => $rows->whereIn('stage', ['picked_up', 'in_transit'])->count(),
+            'outForDeliveryNow' => $rows->where('stage', 'out_for_delivery')->count(),
+            'delayedNow' => $rows->where('slaStatus', 'delayed')->count(),
+            'exceptionNow' => $rows->where('exception', true)->count(),
+            'unscanned6h' => $rows->filter(function ($row) {
+                if (empty($row['lastScanAt'])) {
+                    return true;
+                }
+
+                return Carbon::parse($row['lastScanAt'])->lt(now()->subHours(6));
+            })->count(),
+            'deliveredToday' => $rows->filter(function ($row) {
+                return $row['stage'] === 'delivered'
+                    && !empty($row['lastScanAt'])
+                    && Carbon::parse($row['lastScanAt'])->isToday();
+            })->count(),
+        ];
+
+        $slaFilter = trim((string) ($filters['sla'] ?? ''));
+        $exceptionOnly = trim((string) ($filters['exceptionOnly'] ?? ''));
+        $unscannedHours = max(0, (int) ($filters['unscannedHours'] ?? 0));
+
+        if ($slaFilter !== '') {
+            $rows = $rows->where('slaStatus', $slaFilter)->values();
+        }
+
+        if ($exceptionOnly === '1') {
+            $rows = $rows->where('exception', true)->values();
+        }
+
+        if ($unscannedHours > 0) {
+            $threshold = now()->subHours($unscannedHours)->timestamp;
+            $rows = $rows->filter(function ($row) use ($threshold) {
+                return empty($row['lastScanTimestamp']) || ((int) $row['lastScanTimestamp'] < $threshold);
+            })->values();
+        }
+
+        $providerStats = $rows
+            ->groupBy(fn ($row) => $row['provider'] !== '' ? $row['provider'] : 'Unspecified')
+            ->map(function (Collection $group, string $provider) {
+                return [
+                    'provider' => $provider,
+                    'total' => $group->count(),
+                    'inTransit' => $group->whereIn('stage', ['picked_up', 'in_transit', 'out_for_delivery'])->count(),
+                    'delayed' => $group->where('slaStatus', 'delayed')->count(),
+                    'exceptions' => $group->where('exception', true)->count(),
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        $filteredRows = $rows->values();
+
+        $perPage = max(5, min(50, (int) ($filters['perPage'] ?? 10)));
+        $total = $filteredRows->count();
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page = min((int) ($filters['page'] ?? 1), $totalPages);
+        $pagedRows = $filteredRows->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return [
+            'summary' => $summary,
+            'providerStats' => $providerStats,
+            'allRows' => $filteredRows,
+            'rows' => $pagedRows,
+            'filters' => [
+                'q' => (string) ($filters['q'] ?? ''),
+                'category' => (string) ($filters['category'] ?? ''),
+                'service' => (string) ($filters['service'] ?? ''),
+                'status' => (string) ($filters['status'] ?? ''),
+                'stage' => (string) ($filters['stage'] ?? ''),
+                'sla' => $slaFilter,
+                'exceptionOnly' => $exceptionOnly,
+                'unscannedHours' => $unscannedHours,
+                'groupBy' => (string) ($filters['groupBy'] ?? ''),
+                'fromDate' => (string) ($filters['fromDate'] ?? ''),
+                'toDate' => (string) ($filters['toDate'] ?? ''),
+                'perPage' => $perPage,
+                'page' => $page,
+            ],
+            'pagination' => [
+                'page' => $page,
+                'perPage' => $perPage,
+                'total' => $total,
+                'totalPages' => $totalPages,
+            ],
+            'filterOptions' => [
+                'stages' => collect(self::SHIPMENT_STAGE_OPTIONS)
+                    ->map(fn ($stage) => ['value' => $stage, 'label' => $this->stageLabel($stage)])
+                    ->values(),
+                'statuses' => $shipments
+                    ->pluck('status')
+                    ->filter()
+                    ->unique()
+                    ->map(fn ($status) => ['value' => $status, 'label' => $this->statusLabel($status)])
+                    ->values(),
+                'services' => $shipments->pluck('service_level')->filter()->unique()->sort()->values(),
+                'categories' => [
+                    ['value' => 'domestic', 'label' => 'Domestic'],
+                    ['value' => 'logistic', 'label' => 'Logistic'],
+                ],
+                'slaStatuses' => [
+                    ['value' => 'on_track', 'label' => 'On Track'],
+                    ['value' => 'at_risk', 'label' => 'At Risk'],
+                    ['value' => 'delayed', 'label' => 'Delayed'],
+                    ['value' => 'on_time', 'label' => 'On Time'],
+                    ['value' => 'early', 'label' => 'Early'],
+                    ['value' => 'unknown', 'label' => 'Unknown'],
+                ],
+                'unscannedHourOptions' => [0, 6, 12, 24],
+                'groupByOptions' => [
+                    ['value' => '', 'label' => 'None'],
+                    ['value' => 'provider', 'label' => 'Provider'],
+                ],
+                'perPageOptions' => [10, 20, 50],
+            ],
+        ];
+    }
+
     private function buildBookingsPayload(Collection $shipments, array $filters): array
     {
         $rows = $shipments->map(function (CourierShipment $shipment) {
@@ -597,6 +794,14 @@ class VendorCourierDashboardController extends Controller
                 : 0,
         ];
 
+        $statusCounts = collect(self::BOOKING_STATUS_OPTIONS)
+            ->map(fn ($status) => [
+                'value' => $status,
+                'label' => $this->bookingStatusLabel($status),
+                'count' => $rows->where('bookingStatus', $status)->count(),
+            ])
+            ->values();
+
         $statusFilter = trim((string) ($filters['bookingStatus'] ?? ''));
         $paymentFilter = trim((string) ($filters['paymentStatus'] ?? ''));
 
@@ -616,6 +821,7 @@ class VendorCourierDashboardController extends Controller
 
         return [
             'summary' => $summary,
+            'statusCounts' => $statusCounts,
             'rows' => $pagedRows,
             'filters' => [
                 'q' => (string) ($filters['q'] ?? ''),
@@ -1354,6 +1560,47 @@ class VendorCourierDashboardController extends Controller
                     $this->statusLabel($shipment->status),
                     optional($estimatedDelivery)->format('Y-m-d H:i'),
                     optional($deliveredAt)->format('Y-m-d H:i'),
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    private function downloadTrackingCsv(Collection $rows)
+    {
+        $filename = 'courier-tracking-report-' . now()->format('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, [
+                'Tracking Number',
+                'Booking Number',
+                'Category',
+                'Service',
+                'Provider',
+                'Current Stage',
+                'Current Location',
+                'Last Scan At',
+                'ETA',
+                'SLA Status',
+                'Exception',
+            ]);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row['trackingNumber'] ?? '',
+                    $row['bookingNumber'] ?? '',
+                    $row['category'] ?? '',
+                    $row['service'] ?? '',
+                    $row['provider'] ?? '',
+                    $row['stageLabel'] ?? '',
+                    $row['currentLocation'] ?? '',
+                    $row['lastScanAt'] ?? '',
+                    $row['eta'] ?? '',
+                    $row['slaStatus'] ?? '',
+                    !empty($row['exception']) ? 'Yes' : 'No',
                 ]);
             }
 

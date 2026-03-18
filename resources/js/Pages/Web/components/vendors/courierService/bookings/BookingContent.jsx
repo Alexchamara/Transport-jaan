@@ -39,6 +39,7 @@ const EMPTY = {
         perPageOptions: [10, 20, 50],
         actionOptions: [],
     },
+    statusCounts: [],
 };
 
 const actionLabels = {
@@ -127,6 +128,27 @@ const BookingContent = () => {
         ],
         [bookings.summary],
     );
+
+    const bookingStatusPills = useMemo(() => {
+        const allCount = bookings.statusCounts.reduce((total, item) => total + Number(item.count || 0), 0);
+
+        return [
+            { value: "", label: "All", count: allCount },
+            ...bookings.statusCounts,
+        ];
+    }, [bookings.statusCounts]);
+
+    const hasActiveFilters = useMemo(() => {
+        return Boolean(
+            filters.q ||
+            filters.category ||
+            filters.service ||
+            filters.bookingStatus ||
+            filters.paymentStatus ||
+            filters.fromDate ||
+            filters.toDate,
+        );
+    }, [filters]);
 
     const submitFilters = (page = 1, overrides = {}) => {
         router.get(
@@ -220,6 +242,29 @@ const BookingContent = () => {
                 ))}
             </div>
 
+            <div className="mt-6 overflow-x-auto">
+                <div className="flex gap-2 min-w-max">
+                    {bookingStatusPills.map((pill) => (
+                        <button
+                            key={pill.value || "all"}
+                            type="button"
+                            onClick={() => {
+                                setFilters((prev) => ({ ...prev, bookingStatus: pill.value }));
+                                submitFilters(1, { bookingStatus: pill.value });
+                            }}
+                            className={`px-3 py-2 rounded-full text-[12px] font-[700] transition-colors ${
+                                filters.bookingStatus === pill.value
+                                    ? "bg-[#0955AC] text-white"
+                                    : "bg-white text-[#4B5563]"
+                            }`}
+                            style={filters.bookingStatus === pill.value ? {} : { boxShadow: "2px 2px 4px #00000014" }}
+                        >
+                            {pill.label} ({pill.count})
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="bg-white rounded-[10px] p-4 mt-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-9 gap-2 mb-4">
                     <div className="xl:col-span-2 h-[38px] rounded-[8px] bg-[#F3F4F6] px-3 flex items-center gap-2">
@@ -259,9 +304,47 @@ const BookingContent = () => {
                     <button type="button" onClick={() => submitFilters(1)} className="h-[38px] rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700]">Apply</button>
                 </div>
 
+                <div className="flex items-center justify-between mb-4 text-[13px]">
+                    <p className="text-[#6B7280]">
+                        {hasActiveFilters
+                            ? "Filters are active"
+                            : "Showing all bookings"}
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const reset = {
+                                q: "",
+                                category: "",
+                                service: "",
+                                bookingStatus: "",
+                                paymentStatus: "",
+                                fromDate: "",
+                                toDate: "",
+                                perPage: filters.perPage,
+                            };
+
+                            setFilters(reset);
+                            submitFilters(1, reset);
+                        }}
+                        className="text-[#0955AC] font-[700] disabled:opacity-50"
+                        disabled={!hasActiveFilters}
+                    >
+                        Clear Filters
+                    </button>
+                </div>
+
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-3">
                     <p className="text-[13px] text-[#6B7280]">{selectedIds.length} selected for bulk lifecycle update</p>
                     <div className="flex gap-2">
+                        <button
+                            type="button"
+                            className="h-[36px] px-3 rounded-[8px] border border-[#D1D5DB] text-[13px] font-[700] disabled:opacity-50"
+                            onClick={() => setSelectedIds([])}
+                            disabled={selectedIds.length === 0}
+                        >
+                            Clear Selection
+                        </button>
                         <select value={bulkAction} onChange={(e) => setBulkAction(e.target.value)} className="h-[36px] rounded-[8px] border border-[#D1D5DB] px-3 text-[13px]">
                             <option value="">Bulk Action</option>
                             {bookings.filterOptions.actionOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
@@ -272,7 +355,7 @@ const BookingContent = () => {
 
                 <div className="overflow-x-auto">
                     <table className="min-w-full text-left text-[13px]">
-                        <thead className="bg-[#D8E4F2]">
+                        <thead className="bg-[#D8E4F2] sticky top-0 z-10">
                             <tr>
                                 <th className="px-3 py-3 font-[700]"><input type="checkbox" checked={bookings.rows.length > 0 && selectedIds.length === bookings.rows.length} onChange={(e) => setSelectedIds(e.target.checked ? bookings.rows.map((row) => row.id) : [])} /></th>
                                 <th className="px-3 py-3 font-[700]">Booking No</th>
@@ -311,7 +394,33 @@ const BookingContent = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            )) : <tr><td colSpan={12} className="px-3 py-10 text-center text-[#6B7280]">No bookings found for current filters.</td></tr>}
+                            )) : (
+                                <tr>
+                                    <td colSpan={12} className="px-3 py-10 text-center text-[#6B7280]">
+                                        <p className="font-[700] text-[15px]">No bookings found for current filters.</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const reset = {
+                                                    q: "",
+                                                    category: "",
+                                                    service: "",
+                                                    bookingStatus: "",
+                                                    paymentStatus: "",
+                                                    fromDate: "",
+                                                    toDate: "",
+                                                    perPage: filters.perPage,
+                                                };
+                                                setFilters(reset);
+                                                submitFilters(1, reset);
+                                            }}
+                                            className="mt-3 px-4 py-2 rounded-[8px] bg-[#0955AC] text-white text-[12px] font-[700]"
+                                        >
+                                            Reset and Show All
+                                        </button>
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
