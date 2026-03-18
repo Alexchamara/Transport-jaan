@@ -12,6 +12,8 @@ use App\Models\SeaVehicleBookings;
 use App\Models\Warehouse\WarehouseBooking;
 use App\Models\Courier\CourierShipment;
 use App\Models\FreightQuote;
+use App\Models\User;
+use App\Models\Driver;
 use App\Models\MultiModel\MultiModelBooking;
 use App\Models\MultiModel\MultiModelJourney;
 use Illuminate\Http\Request;
@@ -434,6 +436,116 @@ class ReportsController extends Controller
 
         return Inertia::render('Web/home/SuperAdmin/FreightReports', [
             'bookings' => $bookings,
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Display client users report
+     */
+    public function clientReports()
+    {
+        $users = User::where('role', 'client')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? 'N/A',
+                    'country' => $user->country ?? 'N/A',
+                    'status' => $user->status ?? 'unverified',
+                    'created_at' => optional($user->created_at)->format('Y-m-d H:i:s'),
+                ];
+            });
+
+        $stats = [
+            'totalUsers' => User::where('role', 'client')->count(),
+            'verifiedUsers' => User::where('role', 'client')->where('status', 'verified')->count(),
+            'inReviewUsers' => User::where('role', 'client')->where('status', 'inreview')->count(),
+            'blockedUsers' => User::where('role', 'client')->whereIn('status', ['blocked', 'rejected'])->count(),
+        ];
+
+        return Inertia::render('Web/home/SuperAdmin/ClientReports', [
+            'users' => $users,
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Display service provider users report
+     */
+    public function serviceProviderReports()
+    {
+        $providers = User::where('role', 'vendor')
+            ->with('vendorProfile')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? 'N/A',
+                    'vendor_type' => $user->vendor_type ?: ($user->vendorProfile->business_type ?? 'N/A'),
+                    'status' => $user->status ?? 'unverified',
+                    'submission_status' => $user->vendorProfile->submission_status ?? 'not_started',
+                    'created_at' => optional($user->created_at)->format('Y-m-d H:i:s'),
+                ];
+            });
+
+        $stats = [
+            'totalProviders' => User::where('role', 'vendor')->count(),
+            'verifiedProviders' => User::where('role', 'vendor')->where('status', 'verified')->count(),
+            'inReviewProviders' => User::where('role', 'vendor')->where('status', 'inreview')->count(),
+            'unverifiedProviders' => User::where('role', 'vendor')->where('status', 'unverified')->count(),
+        ];
+
+        return Inertia::render('Web/home/SuperAdmin/ServiceProviderReports', [
+            'providers' => $providers,
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Display drivers report
+     */
+    public function driverReports()
+    {
+        $drivers = Driver::with('user')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($driver) {
+                $daysToExpiry = null;
+                if ($driver->license_expiry) {
+                    $daysToExpiry = now()->diffInDays($driver->license_expiry, false);
+                }
+
+                return [
+                    'id' => $driver->id,
+                    'name' => $driver->full_name,
+                    'email' => $driver->email ?: ($driver->user->email ?? 'N/A'),
+                    'phone' => $driver->phone ?? 'N/A',
+                    'vehicle_type' => $driver->vehicle_type ?? 'N/A',
+                    'status' => $driver->status ?? 'Inactive',
+                    'license_expiry' => $driver->license_expiry ? $driver->license_expiry->format('Y-m-d') : 'N/A',
+                    'days_to_expiry' => $daysToExpiry,
+                    'created_at' => optional($driver->created_at)->format('Y-m-d H:i:s'),
+                ];
+            });
+
+        $stats = [
+            'totalDrivers' => Driver::count(),
+            'activeDrivers' => Driver::where('status', 'Active')->count(),
+            'inactiveDrivers' => Driver::where('status', 'Inactive')->count(),
+            'expiringSoon' => Driver::whereDate('license_expiry', '>=', now()->toDateString())
+                ->whereDate('license_expiry', '<=', now()->addDays(30)->toDateString())
+                ->count(),
+        ];
+
+        return Inertia::render('Web/home/SuperAdmin/DriverReports', [
+            'drivers' => $drivers,
             'stats' => $stats,
         ]);
     }

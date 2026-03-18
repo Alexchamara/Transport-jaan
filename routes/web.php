@@ -995,9 +995,11 @@ Route::get('/SuperAdmin/reports/courier', [\App\Http\Controllers\SuperAdmin\Repo
 
 Route::get('/SuperAdmin/reports/freight', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'freightBookings'])->name('SuperAdmin.reports.freight');
 
-Route::get('/SuperAdmin/reports/client', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'clientReport'])->name('SuperAdmin.reports.client');
+Route::get('/SuperAdmin/reports/users/clients', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'clientReports'])->name('SuperAdmin.reports.users.clients');
 
-Route::get('/SuperAdmin/reports/service-provider', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'serviceProviderReport'])->name('SuperAdmin.reports.service-provider');
+Route::get('/SuperAdmin/reports/users/service-providers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'serviceProviderReports'])->name('SuperAdmin.reports.users.serviceProviders');
+
+Route::get('/SuperAdmin/reports/users/drivers', [\App\Http\Controllers\SuperAdmin\ReportsController::class, 'driverReports'])->name('SuperAdmin.reports.users.drivers');
 
 // vendor - warehouse rent
 Route::get('/warehouse/unit', function () {
