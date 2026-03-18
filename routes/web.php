@@ -1177,6 +1177,18 @@ Route::post('/courierService/settingsPage', [VendorCourierDashboardController::c
     ->middleware(['auth', 'vendor.verified'])
     ->name('courierService.settings.update');
 
+Route::get('/courierService/profile', [VendorCourierDashboardController::class, 'profile'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.profile');
+
+Route::post('/courierService/profile', [VendorCourierDashboardController::class, 'updateProfile'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.profile.update');
+
+Route::delete('/courierService/profile/logo', [VendorCourierDashboardController::class, 'removeProfileLogo'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.profile.logo.remove');
+
 
 
 // vendor dashboard - freight

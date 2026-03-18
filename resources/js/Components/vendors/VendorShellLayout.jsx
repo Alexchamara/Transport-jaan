@@ -16,6 +16,8 @@ import finLogo from "../../Pages/Web/assets/vendors/dashboard/finLogo.svg";
 import settingsLogo from "../../Pages/Web/assets/vendors/dashboard/settings.svg";
 import bellIcon from "../../Pages/Web/assets/vendors/dashboard/bell.svg";
 
+const LIVE_REFRESH_INTERVAL_MS = 30000;
+
 /**
  * Per-service sidebar menu configuration.
  * Each value is a plain object of named route-getter functions.
@@ -71,7 +73,7 @@ const SERVICE_CONFIG = {
         payment: () => route("courierService.payment"),
         expenses: () => route("courierService.expenses"),
         settings: () => route("courierService.settingsPage"),
-        profile: () => route(""),
+        profile: () => route("courierService.profile"),
     },
     "Warehousing": {
         dashboard: () => route("vendors.warehouse.dashboard"),
@@ -153,6 +155,38 @@ const VendorShellLayout = ({
 
         return cleanup;
     }, []);
+
+    useEffect(() => {
+        if (activeService !== "Courier Service") {
+            return undefined;
+        }
+
+        const refreshNow = () => {
+            router.reload({
+                preserveScroll: true,
+                preserveState: true,
+            });
+        };
+
+        const timer = window.setInterval(() => {
+            if (document.visibilityState === "visible") {
+                refreshNow();
+            }
+        }, LIVE_REFRESH_INTERVAL_MS);
+
+        const onVisible = () => {
+            if (document.visibilityState === "visible") {
+                refreshNow();
+            }
+        };
+
+        document.addEventListener("visibilitychange", onVisible);
+
+        return () => {
+            window.clearInterval(timer);
+            document.removeEventListener("visibilitychange", onVisible);
+        };
+    }, [activeService]);
 
     const approvedSlugs = user?.approved_service_slugs || [];
 

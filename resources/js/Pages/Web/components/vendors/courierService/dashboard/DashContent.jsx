@@ -1,10 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
-import { CalendarDays, ChevronDown, Download, Filter, Search } from "lucide-react";
+import { CalendarDays, Download, Filter, Search } from "lucide-react";
 
-import BookingOverviewBarChart from "./BookingOverviewBarChart";
-import EarningSummaryChart from "./EarningSummaryChart";
-import RealStatusPieChart from "./RealStatusPieChart";
 
 const METRIC_CARD_CLASSES = {
     delayed: "bg-[#FFE9E9] text-[#8A1C1C]",
@@ -50,6 +47,12 @@ const EMPTY_DASHBOARD = {
             { value: "logistic", label: "Logistic" },
         ],
     },
+    ops: {
+        bookingFunnel: [],
+        stageBoard: [],
+        providerPerformance: [],
+        urgentQueue: [],
+    },
 };
 
 const statusBadgeCls = (status) => {
@@ -86,11 +89,60 @@ const DashContent = ({ mode = "dashboard" }) => {
         status: dashboard.filters.status || "",
         service: dashboard.filters.service || "",
         category: dashboard.filters.category || "",
+        urgentType: dashboard.filters.urgentType || "",
+        bookingRange: dashboard.filters.bookingRange || "this_year",
+        earningRange: dashboard.filters.earningRange || "last_12_months",
+        statusRange: dashboard.filters.statusRange || "this_week",
         fromDate: dashboard.filters.fromDate || "",
         toDate: dashboard.filters.toDate || "",
     });
 
     const heading = mode === "bookings" ? "Courier Bookings" : "Courier Service Dashboard";
+
+    const bookingFunnel = Array.isArray(dashboard?.ops?.bookingFunnel) ? dashboard.ops.bookingFunnel : [];
+    const stageBoard = Array.isArray(dashboard?.ops?.stageBoard) ? dashboard.ops.stageBoard : [];
+    const providerPerformance = Array.isArray(dashboard?.ops?.providerPerformance) ? dashboard.ops.providerPerformance : [];
+    const urgentQueue = Array.isArray(dashboard?.ops?.urgentQueue) ? dashboard.ops.urgentQueue : [];
+    const topRoutes = Array.isArray(dashboard?.ops?.topRoutes) ? dashboard.ops.topRoutes : [];
+    const urgentTypes = Array.isArray(dashboard?.filterOptions?.urgentTypes) ? dashboard.filterOptions.urgentTypes : [];
+
+    const commandCenter = useMemo(
+        () => [
+            {
+                key: "urgent-total",
+                label: "Urgent Queue",
+                value: urgentQueue.length,
+                tone: "bg-[#FFE9E9] text-[#8A1C1C]",
+                href: route("courierService.dashboard", { ...localFilters, urgentType: "delayed" }),
+                cta: "Focus Delayed",
+            },
+            {
+                key: "exceptions-now",
+                label: "Exceptions Now",
+                value: dashboard.metrics?.exceptions ?? 0,
+                tone: "bg-[#FFF2E5] text-[#8A4A00]",
+                href: route("courierService.tracking", { exceptionOnly: "1" }),
+                cta: "Open Exceptions",
+            },
+            {
+                key: "pending-pickups",
+                label: "Pending Pickups",
+                value: dashboard.metrics?.pendingPickups ?? 0,
+                tone: "bg-[#F2EEFF] text-[#3F2472]",
+                href: route("courierService.dashboard", { ...localFilters, urgentType: "pending_pickup" }),
+                cta: "Resolve Pickups",
+            },
+            {
+                key: "sla-delayed",
+                label: "SLA Delayed",
+                value: dashboard.metrics?.delayed ?? 0,
+                tone: "bg-[#EAF1FF] text-[#0F3D8A]",
+                href: route("courierService.tracking", { sla: "delayed" }),
+                cta: "View SLA Risks",
+            },
+        ],
+        [dashboard.metrics, localFilters, urgentQueue.length],
+    );
 
     const baseRoute = mode === "bookings" ? "courierService.bookings" : "courierService.dashboard";
 
@@ -100,6 +152,23 @@ const DashContent = ({ mode = "dashboard" }) => {
             {
                 ...localFilters,
                 page: nextPage,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
+    };
+
+    const applySingleFilter = (key, value) => {
+        const next = { ...localFilters, [key]: value };
+        setLocalFilters(next);
+        router.get(
+            route(baseRoute),
+            {
+                ...next,
+                page: 1,
             },
             {
                 preserveScroll: true,
@@ -128,6 +197,9 @@ const DashContent = ({ mode = "dashboard" }) => {
                     <p className="text-[14px] text-[#6B7280] mt-1">
                         Operational courier overview for Domestic and Logistic shipments.
                     </p>
+                    <p className="text-[12px] text-[#9CA3AF] mt-1">
+                        Last refreshed: {dashboard.generatedAt || "-"}
+                    </p>
                 </div>
                 <a
                     href={reportUrl}
@@ -138,56 +210,162 @@ const DashContent = ({ mode = "dashboard" }) => {
                 </a>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-6">
-                <div className="xl:col-span-2 flex flex-col gap-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                        {metricCards.map((item) => (
-                            <div
-                                key={item.key}
-                                className={`rounded-[10px] px-4 py-3 shadow-sm ${METRIC_CARD_CLASSES[item.key] || "bg-[#F4F4F5] text-[#1F2937]"}`}
+            <div className="bg-white rounded-[10px] shadow-sm p-4 mb-6 border border-[#E5E7EB]">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-[20px] font-[700] text-[#111827]">Dispatch Command Center</h2>
+                    <p className="text-[12px] text-[#6B7280]">Live operations shortcuts for fast triage</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                    {commandCenter.map((item) => (
+                        <div key={item.key} className={`rounded-[8px] px-3 py-3 ${item.tone}`}>
+                            <p className="text-[12px] font-[700]">{item.label}</p>
+                            <p className="text-[24px] font-[700] leading-tight mt-1">{item.value}</p>
+                            <a
+                                href={item.href}
+                                className="inline-flex mt-2 text-[11px] font-[700] underline underline-offset-2"
                             >
-                                <p className="text-[13px] font-[600]">{item.label}</p>
-                                <p className="text-[26px] font-[700] leading-tight mt-1">
-                                    {dashboard.metrics[item.key] ?? 0}
-                                </p>
+                                {item.cta}
+                            </a>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                {metricCards.map((item) => (
+                    <div
+                        key={item.key}
+                        className={`rounded-[10px] px-4 py-3 shadow-sm ${METRIC_CARD_CLASSES[item.key] || "bg-[#F4F4F5] text-[#1F2937]"}`}
+                    >
+                        <p className="text-[13px] font-[600]">{item.label}</p>
+                        <p className="text-[26px] font-[700] leading-tight mt-1">
+                            {dashboard.metrics[item.key] ?? 0}
+                        </p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-6">
+                <div className="bg-white rounded-[10px] shadow-sm p-5">
+                    <h2 className="text-[22px] font-[700] text-[#111827] mb-3">Booking Funnel</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {bookingFunnel.map((item) => (
+                            <div key={item.status} className="rounded-[8px] border border-[#E5E7EB] px-3 py-3">
+                                <p className="text-[11px] text-[#6B7280] font-[600]">{item.label}</p>
+                                <p className="text-[20px] font-[700] mt-1">{item.count}</p>
                             </div>
                         ))}
                     </div>
+                </div>
 
-                    <div className="bg-white rounded-[10px] shadow-sm py-8 px-6">
-                        <div className="flex flex-row items-center justify-between mb-8 w-full">
-                            <h2 className="text-[24px] font-[700]">Booking Overview</h2>
-                            <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-2">
-                                <h3 className="text-[#00000080] font-[600] text-[14px]">This Year</h3>
-                                <ChevronDown className="size-[16px]" />
+                <div className="bg-white rounded-[10px] shadow-sm p-5">
+                    <h2 className="text-[22px] font-[700] text-[#111827] mb-3">Shipment Stage Board</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {stageBoard.map((item) => (
+                            <div key={item.stage} className="rounded-[8px] border border-[#E5E7EB] px-3 py-3">
+                                <p className="text-[11px] text-[#6B7280] font-[600]">{item.label}</p>
+                                <p className="text-[20px] font-[700] mt-1">{item.count}</p>
                             </div>
-                        </div>
-                        <BookingOverviewBarChart data={dashboard.charts?.bookingOverview || []} />
+                        ))}
                     </div>
+                </div>
+            </div>
 
-                    <div className="bg-white rounded-[10px] shadow-sm py-8 px-6">
-                        <div className="flex flex-row items-center justify-between mb-8 w-full">
-                            <h2 className="text-[24px] font-[700]">Earning Summary</h2>
-                            <div className="w-[132px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-2">
-                                <h3 className="text-[#00000080] font-[600] text-[14px]">Last 12 Months</h3>
-                                <ChevronDown className="size-[16px]" />
-                            </div>
-                        </div>
-                        <EarningSummaryChart data={dashboard.charts?.earningSummary || []} />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-6">
+                <div className="bg-white rounded-[10px] shadow-sm p-5">
+                    <h2 className="text-[22px] font-[700] text-[#111827] mb-3">Provider Performance</h2>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-left text-[13px]">
+                            <thead className="bg-[#F3F4F6]">
+                                <tr>
+                                    <th className="px-3 py-2 font-[700]">Provider</th>
+                                    <th className="px-3 py-2 font-[700]">Total</th>
+                                    <th className="px-3 py-2 font-[700]">Delayed</th>
+                                    <th className="px-3 py-2 font-[700]">Exceptions</th>
+                                    <th className="px-3 py-2 font-[700]">On-Time %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {providerPerformance.length > 0 ? providerPerformance.map((item) => (
+                                    <tr key={item.provider} className="border-b border-[#E5E7EB]">
+                                        <td className="px-3 py-2">{item.provider}</td>
+                                        <td className="px-3 py-2">{item.total}</td>
+                                        <td className="px-3 py-2">{item.delayed}</td>
+                                        <td className="px-3 py-2">{item.exceptions}</td>
+                                        <td className="px-3 py-2">{item.onTimeRate}%</td>
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan={5} className="px-3 py-6 text-center text-[#6B7280]">No provider performance records.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-                <div className="xl:col-span-1">
-                    <div className="bg-white rounded-[10px] shadow-sm py-6 px-6 min-h-[420px]">
-                        <div className="flex flex-row items-center justify-between w-full mb-4">
-                            <h2 className="text-[24px] font-[700]">Real Status</h2>
-                            <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-2">
-                                <h3 className="text-[#00000080] font-[600] text-[14px]">This Week</h3>
-                                <ChevronDown className="size-[16px]" />
+                <div className="bg-white rounded-[10px] shadow-sm p-5">
+                    <h2 className="text-[22px] font-[700] text-[#111827] mb-3">Urgent Action Queue</h2>
+                    <div className="space-y-2 max-h-[310px] overflow-y-auto pr-1">
+                        {urgentQueue.length > 0 ? urgentQueue.map((item) => (
+                            <div key={item.id} className="border border-[#E5E7EB] rounded-[8px] px-3 py-3">
+                                <p className="text-[13px] font-[700]">{item.bookingNumber} • {item.trackingNumber}</p>
+                                <p className="text-[12px] text-[#6B7280] mt-1">{item.statusLabel}</p>
+                                <div className="flex gap-2 mt-2">
+                                    {item.timelineState === "delayed" && <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-[700] bg-[#FFE9E9] text-[#8A1C1C]">Delayed</span>}
+                                    {item.hasException && <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-[700] bg-[#FFF2E5] text-[#8A4A00]">Exception</span>}
+                                    {item.pendingPickup && <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-[700] bg-[#F2EEFF] text-[#3F2472]">Pending Pickup</span>}
+                                </div>
+                                <div className="flex gap-2 mt-3">
+                                    <a
+                                        href={route("courierService.tracking", { q: item.trackingNumber })}
+                                        className="inline-flex items-center justify-center h-[28px] px-2 rounded-[6px] text-[11px] font-[700] border border-[#0955AC] text-[#0955AC]"
+                                    >
+                                        Open in Tracking
+                                    </a>
+                                    <a
+                                        href={route("courierService.units", { q: item.trackingNumber })}
+                                        className="inline-flex items-center justify-center h-[28px] px-2 rounded-[6px] text-[11px] font-[700] border border-[#111827] text-[#111827]"
+                                    >
+                                        Open in Shipments
+                                    </a>
+                                </div>
                             </div>
-                        </div>
-                        <RealStatusPieChart data={dashboard.charts?.statusBreakdown || []} />
+                        )) : (
+                            <p className="text-[13px] text-[#6B7280]">No urgent actions right now.</p>
+                        )}
                     </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-[10px] shadow-sm p-5 mb-6">
+                <h2 className="text-[22px] font-[700] text-[#111827] mb-3">Top Routes (Delay Hotspots)</h2>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full text-left text-[13px]">
+                        <thead className="bg-[#F3F4F6]">
+                            <tr>
+                                <th className="px-3 py-2 font-[700]">Route</th>
+                                <th className="px-3 py-2 font-[700]">Total Shipments</th>
+                                <th className="px-3 py-2 font-[700]">Delayed</th>
+                                <th className="px-3 py-2 font-[700]">Delay Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {topRoutes.length > 0 ? topRoutes.map((item) => (
+                                <tr key={item.route} className="border-b border-[#E5E7EB]">
+                                    <td className="px-3 py-2">{item.route}</td>
+                                    <td className="px-3 py-2">{item.total}</td>
+                                    <td className="px-3 py-2">{item.delayed}</td>
+                                    <td className="px-3 py-2">{item.delayRate}%</td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={4} className="px-3 py-6 text-center text-[#6B7280]">No route insights available.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -215,7 +393,7 @@ const DashContent = ({ mode = "dashboard" }) => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-2 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-2 mb-4">
                     <select
                         value={localFilters.status}
                         onChange={(e) => setLocalFilters((prev) => ({ ...prev, status: e.target.value }))}
@@ -255,6 +433,18 @@ const DashContent = ({ mode = "dashboard" }) => {
                         ))}
                     </select>
 
+                    <select
+                        value={localFilters.urgentType}
+                        onChange={(e) => setLocalFilters((prev) => ({ ...prev, urgentType: e.target.value }))}
+                        className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-3 text-[14px]"
+                    >
+                        {urgentTypes.map((item) => (
+                            <option key={item.value || "all-priority"} value={item.value}>
+                                {item.label}
+                            </option>
+                        ))}
+                    </select>
+
                     <div className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-3 text-[14px] flex items-center gap-2">
                         <CalendarDays size={14} className="text-[#6B7280]" />
                         <input
@@ -283,6 +473,36 @@ const DashContent = ({ mode = "dashboard" }) => {
                         <Filter size={14} />
                         Apply Filters
                     </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                    {urgentTypes.filter((item) => item.value !== "").map((item) => (
+                        <button
+                            key={item.value}
+                            type="button"
+                            onClick={() => {
+                                const next = { ...localFilters, urgentType: item.value };
+                                setLocalFilters(next);
+                                router.get(route(baseRoute), { ...next, page: 1 }, { preserveScroll: true, preserveState: true, replace: true });
+                            }}
+                            className={`px-3 py-1.5 rounded-full text-[12px] font-[700] ${localFilters.urgentType === item.value ? "bg-[#0955AC] text-white" : "bg-[#F3F4F6] text-[#374151]"}`}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                    {localFilters.urgentType !== "" && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const next = { ...localFilters, urgentType: "" };
+                                setLocalFilters(next);
+                                router.get(route(baseRoute), { ...next, page: 1 }, { preserveScroll: true, preserveState: true, replace: true });
+                            }}
+                            className="px-3 py-1.5 rounded-full text-[12px] font-[700] border border-[#D1D5DB]"
+                        >
+                            Clear Priority
+                        </button>
+                    )}
                 </div>
 
                 <div className="overflow-x-auto">

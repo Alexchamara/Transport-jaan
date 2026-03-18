@@ -7,12 +7,15 @@ use App\Models\Courier\CourierContact;
 use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierClientProfile;
+use App\Models\VendorActivityLog;
+use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -352,6 +355,163 @@ class VendorCourierDashboardController extends Controller
         return back()->with('success', 'All courier settings saved successfully.');
     }
 
+    public function profile(Request $request)
+    {
+        $vendorId = (int) optional($request->user())->id;
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to access profile.');
+        }
+
+        return Inertia::render('Web/home/vendors/courierService/Profile', [
+            'courierProfile' => $this->buildCourierProfilePayload($request),
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $vendorId = (int) optional($request->user())->id;
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to update profile.');
+        }
+
+        $section = trim((string) $request->input('section', 'company'));
+
+        if (!in_array($section, ['company', 'compliance', 'services', 'activity'], true)) {
+            return back()->with('error', 'Invalid profile section.');
+        }
+
+        if ($section !== 'company') {
+            return back()->with('error', 'This profile section is currently read-only.');
+        }
+
+        $validated = $request->validate([
+            'section' => ['nullable', 'string'],
+            'companyName' => ['required', 'string', 'max:180'],
+            'displayName' => ['nullable', 'string', 'max:180'],
+            'businessRegistrationNo' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-\/\s]+$/'],
+            'taxId' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-\/\s]+$/'],
+            'contactPerson' => ['nullable', 'string', 'max:180'],
+            'contactEmail' => ['nullable', 'email', 'max:180'],
+            'contactPhone' => ['nullable', 'string', 'max:50', 'regex:/^[0-9\+\-\s\(\)]{7,25}$/'],
+            'supportEmail' => ['nullable', 'email', 'max:180'],
+            'supportHotline' => ['nullable', 'string', 'max:50', 'regex:/^[0-9\+\-\s\(\)]{7,25}$/'],
+            'website' => ['nullable', 'url', 'max:255'],
+            'addressLine1' => ['nullable', 'string', 'max:255'],
+            'addressLine2' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:120'],
+            'state' => ['nullable', 'string', 'max:120'],
+            'postalCode' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9\-\s]{3,12}$/'],
+            'country' => ['nullable', 'string', 'max:120'],
+            'publicAbout' => ['nullable', 'string', 'max:2000'],
+            'publicSupportHours' => ['nullable', 'string', 'max:120'],
+            'logo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:3072'],
+        ]);
+
+        $profile = VendorProfile::query()->firstOrCreate(
+            ['user_id' => $vendorId],
+            [
+                'company_name' => (string) ($validated['companyName'] ?? ''),
+                'business_type' => 'company',
+                'address_line1' => (string) ($validated['addressLine1'] ?? ''),
+                'city' => (string) ($validated['city'] ?? ''),
+                'postal_code' => (string) ($validated['postalCode'] ?? ''),
+                'country' => (string) ($validated['country'] ?? ''),
+                'contact_person' => (string) ($validated['contactPerson'] ?? ''),
+                'contact_phone' => (string) ($validated['contactPhone'] ?? ''),
+                'contact_email' => (string) ($validated['contactEmail'] ?? ''),
+                'submission_status' => 'draft',
+            ]
+        );
+
+        $profile->update([
+            'company_name' => (string) ($validated['companyName'] ?? ''),
+            'business_registration_no' => (string) ($validated['businessRegistrationNo'] ?? ''),
+            'tax_id' => (string) ($validated['taxId'] ?? ''),
+            'website' => (string) ($validated['website'] ?? ''),
+            'description' => (string) ($validated['publicAbout'] ?? ''),
+            'address_line1' => (string) ($validated['addressLine1'] ?? ''),
+            'address_line2' => (string) ($validated['addressLine2'] ?? ''),
+            'city' => (string) ($validated['city'] ?? ''),
+            'state' => (string) ($validated['state'] ?? ''),
+            'postal_code' => (string) ($validated['postalCode'] ?? ''),
+            'country' => (string) ($validated['country'] ?? ''),
+            'contact_person' => (string) ($validated['contactPerson'] ?? ''),
+            'contact_phone' => (string) ($validated['contactPhone'] ?? ''),
+            'contact_email' => (string) ($validated['contactEmail'] ?? ''),
+        ]);
+
+        if ($request->hasFile('logo')) {
+            if (!empty($profile->logo)) {
+                Storage::disk('public')->delete($profile->logo);
+            }
+
+            $logoPath = $request->file('logo')->store('uploads/vendors/' . $vendorId . '/logo', 'public');
+            $profile->update(['logo' => $logoPath]);
+        }
+
+        $setting = VendorCourierSetting::query()->firstOrCreate(
+            ['vendor_user_id' => $vendorId],
+            ['settings' => $this->defaultCourierSettings()]
+        );
+
+        $currentSettings = is_array($setting->settings) ? $setting->settings : $this->defaultCourierSettings();
+        $profileExtras = $currentSettings['profile'] ?? [];
+        $profileExtras = array_replace($profileExtras, [
+            'displayName' => (string) ($validated['displayName'] ?? ''),
+            'supportEmail' => (string) ($validated['supportEmail'] ?? ''),
+            'supportHotline' => (string) ($validated['supportHotline'] ?? ''),
+            'publicSupportHours' => (string) ($validated['publicSupportHours'] ?? ''),
+        ]);
+        $currentSettings['profile'] = $profileExtras;
+        $setting->update(['settings' => $currentSettings]);
+
+        VendorActivityLog::create([
+            'vendor_id' => $vendorId,
+            'action' => 'courier_profile_updated',
+            'target_type' => 'vendor_profile',
+            'target_id' => $profile->id,
+            'description' => 'Courier vendor profile updated from dashboard profile module.',
+            'metadata' => [
+                'company_name' => (string) ($validated['companyName'] ?? ''),
+                'section' => $section,
+            ],
+        ]);
+
+        return back()->with('success', ucfirst($section) . ' profile section updated successfully.');
+    }
+
+    public function removeProfileLogo(Request $request)
+    {
+        $vendorId = (int) optional($request->user())->id;
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to update profile.');
+        }
+
+        $profile = VendorProfile::query()->where('user_id', $vendorId)->first();
+
+        if (!$profile) {
+            return back()->with('error', 'Profile not found.');
+        }
+
+        if (!empty($profile->logo)) {
+            Storage::disk('public')->delete($profile->logo);
+            $profile->update(['logo' => null]);
+        }
+
+        VendorActivityLog::create([
+            'vendor_id' => $vendorId,
+            'action' => 'courier_profile_logo_removed',
+            'target_type' => 'vendor_profile',
+            'target_id' => $profile->id,
+            'description' => 'Courier vendor profile logo removed.',
+        ]);
+
+        return back()->with('success', 'Profile logo removed successfully.');
+    }
+
     public function updateClientProfile(Request $request, CourierContact $contact)
     {
         $vendorId = (int) optional($request->user())->id;
@@ -504,6 +664,7 @@ class VendorCourierDashboardController extends Controller
             'status' => trim((string) $request->query('status', '')),
             'service' => trim((string) $request->query('service', '')),
             'category' => trim((string) $request->query('category', '')),
+            'urgentType' => trim((string) $request->query('urgentType', '')),
             'bookingStatus' => trim((string) $request->query('bookingStatus', '')),
             'paymentStatus' => trim((string) $request->query('paymentStatus', '')),
             'sla' => trim((string) $request->query('sla', '')),
@@ -1436,6 +1597,9 @@ class VendorCourierDashboardController extends Controller
                     'bookingDate' => optional($shipment->created_at)->format('Y-m-d H:i'),
                     'trackingNumber' => $this->trackingNumber($shipment),
                     'service' => $this->normalizeServiceLabel($shipment->service_level),
+                    'provider' => (string) (optional($shipment->packages->first())->courier_provider_name ?? 'Unspecified'),
+                    'originCity' => (string) (optional($shipment->senderAddress)->city ?? '-'),
+                    'destinationCity' => (string) (optional($shipment->recipientAddress)->city ?? '-'),
                     'status' => $shipment->status,
                     'statusLabel' => $this->statusLabel($shipment->status),
                     'category' => $this->resolveCategory($shipment),
@@ -1449,6 +1613,26 @@ class VendorCourierDashboardController extends Controller
                 ];
             })
             ->values();
+
+        $urgentType = trim((string) ($filters['urgentType'] ?? ''));
+
+        if ($urgentType !== '') {
+            $rows = $rows->filter(function ($row) use ($urgentType) {
+                if ($urgentType === 'delayed') {
+                    return $row['timelineState'] === 'delayed';
+                }
+
+                if ($urgentType === 'exception') {
+                    return $row['hasException'] === true;
+                }
+
+                if ($urgentType === 'pending_pickup') {
+                    return $row['pendingPickup'] === true;
+                }
+
+                return true;
+            })->values();
+        }
 
         $pageSize = 12;
         $total = $rows->count();
@@ -1505,9 +1689,109 @@ class VendorCourierDashboardController extends Controller
             ],
         ];
 
+        $bookingFunnel = collect(self::BOOKING_STATUS_OPTIONS)
+            ->map(function ($status) use ($shipments) {
+                $count = $shipments->filter(function (CourierShipment $shipment) use ($status) {
+                    return $this->resolveBookingStatus($shipment) === $status;
+                })->count();
+
+                return [
+                    'status' => $status,
+                    'label' => $this->bookingStatusLabel($status),
+                    'count' => $count,
+                ];
+            })
+            ->values();
+
+        $stageBoard = collect(self::SHIPMENT_STAGE_OPTIONS)
+            ->map(function ($stage) use ($shipments) {
+                $count = $shipments->filter(function (CourierShipment $shipment) use ($stage) {
+                    return $this->getShipmentStage($shipment) === $stage;
+                })->count();
+
+                return [
+                    'stage' => $stage,
+                    'label' => $this->stageLabel($stage),
+                    'count' => $count,
+                ];
+            })
+            ->values();
+
+        $providerPerformance = $rows
+            ->groupBy(fn ($row) => (string) ($row['provider'] ?? 'Unspecified'))
+            ->map(function (Collection $group, string $provider) {
+                $total = max(1, $group->count());
+
+                return [
+                    'provider' => $provider,
+                    'total' => $group->count(),
+                    'delayed' => $group->where('timelineState', 'delayed')->count(),
+                    'exceptions' => $group->where('hasException', true)->count(),
+                    'onTimeRate' => round(($group->where('timelineState', 'on_time')->count() / $total) * 100, 1),
+                ];
+            })
+            ->sortByDesc('total')
+            ->take(6)
+            ->values();
+
+        $urgentQueue = $rows
+            ->filter(function ($row) {
+                return $row['timelineState'] === 'delayed'
+                    || $row['hasException'] === true
+                    || $row['pendingPickup'] === true;
+            })
+            ->sortByDesc(function ($row) {
+                if ($row['timelineState'] === 'delayed') {
+                    return 3;
+                }
+
+                if ($row['hasException'] === true) {
+                    return 2;
+                }
+
+                return 1;
+            })
+            ->take(10)
+            ->map(function ($row) {
+                return [
+                    'id' => $row['id'],
+                    'bookingNumber' => $row['bookingNumber'],
+                    'trackingNumber' => $row['trackingNumber'],
+                    'statusLabel' => $row['statusLabel'],
+                    'timelineState' => $row['timelineState'],
+                    'hasException' => $row['hasException'],
+                    'pendingPickup' => $row['pendingPickup'],
+                ];
+            })
+            ->values();
+
+        $topRoutes = $rows
+            ->map(function ($row) {
+                return [
+                    'route' => trim(($row['originCity'] ?? '-') . ' to ' . ($row['destinationCity'] ?? '-')),
+                    'delayed' => $row['timelineState'] === 'delayed' ? 1 : 0,
+                    'total' => 1,
+                ];
+            })
+            ->groupBy('route')
+            ->map(function (Collection $group, string $route) {
+                $total = max(1, $group->sum('total'));
+
+                return [
+                    'route' => $route,
+                    'total' => $group->sum('total'),
+                    'delayed' => $group->sum('delayed'),
+                    'delayRate' => round(($group->sum('delayed') / $total) * 100, 1),
+                ];
+            })
+            ->sortByDesc('total')
+            ->take(6)
+            ->values();
+
         return [
             'metrics' => $metrics,
             'rows' => $pagedRows,
+            'generatedAt' => now()->format('Y-m-d H:i:s'),
             'filters' => array_merge($filters, ['page' => $page]),
             'pagination' => [
                 'page' => $page,
@@ -1535,11 +1819,24 @@ class VendorCourierDashboardController extends Controller
                     ['value' => 'domestic', 'label' => 'Domestic'],
                     ['value' => 'logistic', 'label' => 'Logistic'],
                 ],
+                'urgentTypes' => [
+                    ['value' => '', 'label' => 'All Priorities'],
+                    ['value' => 'delayed', 'label' => 'Delayed'],
+                    ['value' => 'exception', 'label' => 'Exception'],
+                    ['value' => 'pending_pickup', 'label' => 'Pending Pickup'],
+                ],
             ],
             'charts' => [
                 'bookingOverview' => $bookingOverview,
                 'earningSummary' => $earningSummary,
                 'statusBreakdown' => $statusBreakdown,
+            ],
+            'ops' => [
+                'bookingFunnel' => $bookingFunnel,
+                'stageBoard' => $stageBoard,
+                'providerPerformance' => $providerPerformance,
+                'urgentQueue' => $urgentQueue,
+                'topRoutes' => $topRoutes,
             ],
         ];
     }
@@ -1709,6 +2006,12 @@ class VendorCourierDashboardController extends Controller
     private function defaultCourierSettings(): array
     {
         return [
+            'profile' => [
+                'displayName' => '',
+                'supportEmail' => '',
+                'supportHotline' => '',
+                'publicSupportHours' => '',
+            ],
             'business' => [
                 'companyName' => '',
                 'supportEmail' => '',
@@ -1756,6 +2059,98 @@ class VendorCourierDashboardController extends Controller
                 'financeCanViewRates' => true,
                 'enforce2FA' => true,
             ],
+        ];
+    }
+
+    private function buildCourierProfilePayload(Request $request): array
+    {
+        $user = $request->user();
+        $vendorId = (int) optional($user)->id;
+
+        $profile = VendorProfile::query()->where('user_id', $vendorId)->first();
+        $setting = VendorCourierSetting::query()->where('vendor_user_id', $vendorId)->first();
+        $settings = array_replace_recursive(
+            $this->defaultCourierSettings(),
+            is_array(optional($setting)->settings) ? $setting->settings : []
+        );
+
+        $registrations = VendorServiceRegistration::query()
+            ->where('user_id', $vendorId)
+            ->with(['serviceCategory:id,name', 'serviceSubCategory:id,name,slug'])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $activities = VendorActivityLog::query()
+            ->where('vendor_id', $vendorId)
+            ->orderByDesc('created_at')
+            ->limit(12)
+            ->get()
+            ->map(function (VendorActivityLog $item) {
+                return [
+                    'id' => $item->id,
+                    'action' => $item->action,
+                    'description' => $item->description,
+                    'createdAt' => optional($item->created_at)->format('Y-m-d H:i'),
+                ];
+            })
+            ->values();
+
+        $mandatoryChecks = [
+            !empty($profile?->company_name),
+            !empty($profile?->business_registration_no),
+            !empty($profile?->tax_id),
+            !empty($profile?->contact_person),
+            !empty($profile?->contact_email),
+            !empty($profile?->contact_phone),
+            !empty($profile?->address_line1),
+            !empty($profile?->city),
+            !empty($profile?->country),
+        ];
+
+        $completion = (int) round((collect($mandatoryChecks)->filter()->count() / count($mandatoryChecks)) * 100);
+
+        return [
+            'profile' => [
+                'logoUrl' => $profile?->logo ? asset('storage/' . $profile->logo) : null,
+                'companyName' => (string) ($profile?->company_name ?? ''),
+                'displayName' => (string) ($settings['profile']['displayName'] ?? ''),
+                'businessRegistrationNo' => (string) ($profile?->business_registration_no ?? ''),
+                'taxId' => (string) ($profile?->tax_id ?? ''),
+                'website' => (string) ($profile?->website ?? ''),
+                'contactPerson' => (string) ($profile?->contact_person ?? ''),
+                'contactEmail' => (string) ($profile?->contact_email ?? ''),
+                'contactPhone' => (string) ($profile?->contact_phone ?? ''),
+                'supportEmail' => (string) ($settings['profile']['supportEmail'] ?? ''),
+                'supportHotline' => (string) ($settings['profile']['supportHotline'] ?? ''),
+                'addressLine1' => (string) ($profile?->address_line1 ?? ''),
+                'addressLine2' => (string) ($profile?->address_line2 ?? ''),
+                'city' => (string) ($profile?->city ?? ''),
+                'state' => (string) ($profile?->state ?? ''),
+                'postalCode' => (string) ($profile?->postal_code ?? ''),
+                'country' => (string) ($profile?->country ?? ''),
+                'publicAbout' => (string) ($profile?->description ?? ''),
+                'publicSupportHours' => (string) ($settings['profile']['publicSupportHours'] ?? ''),
+                'status' => (string) ($profile?->submission_status ?? 'draft'),
+                'reviewedAt' => optional($profile?->reviewed_at)->format('Y-m-d H:i'),
+                'adminNotes' => (string) ($profile?->admin_notes ?? ''),
+            ],
+            'summary' => [
+                'completionScore' => $completion,
+                'approvedServices' => $registrations->where('status', 'approved')->count(),
+                'pendingServices' => $registrations->whereIn('status', ['draft', 'submitted', 'revision_requested'])->count(),
+                'rejectedServices' => $registrations->where('status', 'rejected')->count(),
+            ],
+            'serviceEnrollment' => $registrations->map(function (VendorServiceRegistration $item) {
+                return [
+                    'id' => $item->id,
+                    'service' => (string) optional($item->serviceSubCategory)->name,
+                    'category' => (string) optional($item->serviceCategory)->name,
+                    'status' => (string) $item->status,
+                    'submittedAt' => optional($item->submitted_at)->format('Y-m-d H:i'),
+                    'reviewedAt' => optional($item->reviewed_at)->format('Y-m-d H:i'),
+                ];
+            })->values(),
+            'activity' => $activities,
         ];
     }
 
