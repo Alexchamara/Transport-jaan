@@ -27,7 +27,8 @@ const SideMenu = () => {
     const [activeSubsection, setActiveSubsection] = useState(""); // Default active
     const [isDashboardOpen, setIsDashboardOpen] = useState(false);
     const [isReportsOpen, setIsReportsOpen] = useState(false);
-    const [isServiceReportOpen, setIsServiceReportOpen] = useState(false);
+    const [isServiceReportsOpen, setIsServiceReportsOpen] = useState(false);
+    const [isUserReportsOpen, setIsUserReportsOpen] = useState(false);
     const [isModelsOpen, setIsModelsOpen] = useState(false);
     const [isUsersOpen, setIsUsersOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -141,6 +142,8 @@ const SideMenu = () => {
             setIsAccountOpen(false);
         } else if (menu === "Reports") {
             setIsReportsOpen((prev) => !prev); // toggle open/close
+            setIsServiceReportsOpen(false);
+            setIsUserReportsOpen(false);
             setIsDashboardOpen(false);
             setIsModelsOpen(false);
             setIsSettingsOpen(false);
@@ -328,10 +331,28 @@ const SideMenu = () => {
                     <div
                         className={`flex flex-col gap-2 px-[8px] transition-all duration-300 ease-in-out overflow-hidden ${
                             isReportsOpen
-                                ? "max-h-[600px] opacity-100 py-4"
+                                ? "max-h-[900px] opacity-100 py-4"
                                 : "max-h-0 opacity-0 py-0"
                         }`}
                     >
+                        <div
+                            className="flex items-center justify-between cursor-pointer rounded-md px-4 py-2 hover:bg-[#181A2A]"
+                            onClick={() => setIsServiceReportsOpen((prev) => !prev)}
+                        >
+                            <div className="text-[12px] font-[600] uppercase tracking-[0.08em] text-[#6E7A9A]">
+                                Service Reports
+                            </div>
+                            <img
+                                src={isServiceReportsOpen ? drop : dropl}
+                                className="size-[12px] transition-transform duration-300"
+                                alt={isServiceReportsOpen ? "Collapse" : "Expand"}
+                            />
+                        </div>
+                        <div
+                            className={`flex flex-col gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
+                                isServiceReportsOpen ? "max-h-[520px] opacity-100 pb-2" : "max-h-0 opacity-0"
+                            }`}
+                        >
                         <Link
                             href="/SuperAdmin/reports/client"
                             className={`text-[14px] font-[500] px-4 py-2 border-l-[3px] cursor-pointer ${
@@ -504,6 +525,35 @@ const SideMenu = () => {
                             >
                                 Freight Booking Report
                             </Link>
+                        </div>
+
+                        <div
+                            className="mt-2 flex items-center justify-between cursor-pointer rounded-md px-4 py-2 hover:bg-[#181A2A]"
+                            onClick={() => setIsUserReportsOpen((prev) => !prev)}
+                        >
+                            <div className="text-[12px] font-[600] uppercase tracking-[0.08em] text-[#6E7A9A]">
+                                User Reports
+                            </div>
+                            <img
+                                src={isUserReportsOpen ? drop : dropl}
+                                className="size-[12px] transition-transform duration-300"
+                                alt={isUserReportsOpen ? "Collapse" : "Expand"}
+                            />
+                        </div>
+                        <div
+                            className={`flex flex-col gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
+                                isUserReportsOpen ? "max-h-[180px] opacity-100 pb-2" : "max-h-0 opacity-0"
+                            }`}
+                        >
+                        <div className="text-[14px] font-[500] px-4 py-2 border-l-[3px] text-[#AEB9E1] border-l-transparent">
+                            Client Report
+                        </div>
+                        <div className="text-[14px] font-[500] px-4 py-2 border-l-[3px] text-[#AEB9E1] border-l-transparent">
+                            Service Provider Report
+                        </div>
+                        <div className="text-[14px] font-[500] px-4 py-2 border-l-[3px] text-[#AEB9E1] border-l-transparent">
+                            Drivers Report
+                        </div>
                         </div>
                     </div>
 
