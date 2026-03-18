@@ -1,768 +1,426 @@
-import React, { useMemo, useRef, useState } from "react";
-import { usePage } from "@inertiajs/react";
-import { useForm } from "@inertiajs/react";
+import React, { useMemo, useState } from "react";
+import { router, usePage } from "@inertiajs/react";
+import { BellRing, Clock3, KeyRound, MapPinned, ShieldCheck, Users } from "lucide-react";
+import CourierFeedbackModal from "./common/CourierFeedbackModal";
+import useCourierActionModal from "./common/useCourierActionModal";
 
-import search from "../../../assets/vendors/dashboard/searchIcon.svg";
-import settings from "../../../assets/vendors/dashboard/settings.svg";
-import bell from "../../../assets/vendors/dashboard/bell.svg";
-import proPic from "../../../assets/vendors/dashboard/proPic.svg";
+const DEFAULT_SETTINGS = {
+    business: {
+        companyName: "Sonnac Lanka Enterprises",
+        supportEmail: "ops@sonnac.lk",
+        hotline: "+94 11 123 4567",
+        primaryHub: "Colombo Hub",
+        serviceZones: "Colombo, Gampaha, Kalutara, Kandy",
+    },
+    operations: {
+        autoAcceptBookings: false,
+        workStart: "08:00",
+        workEnd: "20:00",
+        sameDayCutoff: "14:00",
+        maxDailyBookings: 350,
+    },
+    sla: {
+        expressHours: 8,
+        economyHours: 24,
+        breachAlertMinutes: 90,
+        autoEscalateExceptions: true,
+    },
+    tracking: {
+        noScan6h: true,
+        noScan12h: true,
+        noScan24h: false,
+        requirePodPhoto: true,
+        requirePodSignature: false,
+        allowManualScanCorrection: true,
+    },
+    notifications: {
+        notifyClientPickup: true,
+        notifyClientOutForDelivery: true,
+        notifyClientDelivered: true,
+        notifyInternalException: true,
+        notifyInternalSlaRisk: true,
+    },
+    integrations: {
+        webhookUrl: "",
+        apiKeyAlias: "CourierProdKey",
+        retryWindowMinutes: 15,
+        rotateKeysEveryDays: 90,
+    },
+    team: {
+        dispatcherCanCancel: false,
+        opsLeadCanReassign: true,
+        financeCanViewRates: true,
+        enforce2FA: true,
+    },
+};
 
-const Section = ({ title, description, children }) => (
-    <section className="bg-white rounded-[10px] border border-gray-200 p-6 md:p-10">
-        <div className="mb-6">
-            <h2 className="text-[18px] font-[700] text-gray-900">{title}</h2>
-            {description && (
-                <p className="text-[12px] text-gray-500">{description}</p>
-            )}
+const TAB_CONFIG = [
+    { key: "business", label: "Business", icon: MapPinned },
+    { key: "operations", label: "Operations", icon: Clock3 },
+    { key: "sla", label: "SLA", icon: ShieldCheck },
+    { key: "tracking", label: "Tracking", icon: MapPinned },
+    { key: "notifications", label: "Notifications", icon: BellRing },
+    { key: "integrations", label: "Integrations", icon: KeyRound },
+    { key: "team", label: "Team Access", icon: Users },
+];
+
+const SectionCard = ({ title, description, children }) => (
+    <div className="bg-white rounded-[10px] p-5 md:p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+        <div className="mb-4">
+            <h2 className="text-[18px] font-[700] text-[#111827]">{title}</h2>
+            {description && <p className="text-[12px] text-[#6B7280] mt-1">{description}</p>}
         </div>
         {children}
-    </section>
+    </div>
 );
 
-const Field = ({ label, htmlFor, children, required, help }) => (
-    <label className="block" htmlFor={htmlFor}>
-        <span className="block text-[14px] font-[700] text-gray-700">
-            {label} {required && <span className="text-red-500">*</span>}
-        </span>
+const Field = ({ label, children, help }) => (
+    <label className="block">
+        <span className="text-[13px] font-[700] text-[#374151]">{label}</span>
         <div className="mt-1">{children}</div>
-        {help && <p className="mt-1 text-[10px] text-gray-500">{help}</p>}
+        {help && <p className="text-[11px] text-[#6B7280] mt-1">{help}</p>}
     </label>
 );
 
-const ErrorText = ({ children }) =>
-    children ? (
-        <p className="mt-1 text-[14px] text-red-600">{children}</p>
-    ) : null;
-
 const Toggle = ({ label, checked, onChange, description }) => (
-    <div className="flex items-start justify-between gap-4 py-3">
+    <div className="flex items-start justify-between gap-3 border border-[#E5E7EB] rounded-[8px] px-3 py-3">
         <div>
-            <p className="text-[14px] font-medium text-gray-900">{label}</p>
-            {description && (
-                <p className="text-[10px] text-gray-500">{description}</p>
-            )}
+            <p className="text-[13px] font-[700] text-[#111827]">{label}</p>
+            {description && <p className="text-[11px] text-[#6B7280] mt-0.5">{description}</p>}
         </div>
         <button
             type="button"
             role="switch"
             aria-checked={checked}
             onClick={() => onChange(!checked)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                checked ? "bg-[#0955AC]" : "bg-gray-300"
-            }`}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-[#0955AC]" : "bg-[#D1D5DB]"}`}
         >
-            <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    checked ? "translate-x-6" : "translate-x-1"
-                }`}
-            />
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
         </button>
     </div>
 );
 
-const MAX_AVATAR_MB = 3; // sensible default
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const Settings = () => {
+    const props = usePage().props;
+    const flash = props.flash || {};
+    const incoming = props.courierSettings || DEFAULT_SETTINGS;
 
-const Settings = ({ user = {} }) => {
-    const page = usePage();
-    const authUser = page?.props?.auth?.user;
-    const resolvedUser = authUser || user;
-
-    const fileInputRef = useRef(null);
-    const [photoPreview, setPhotoPreview] = useState(
-        resolvedUser?.avatar_url || null
-    );
-    const [clientErrors, setClientErrors] = useState({});
-
-    const initial = useMemo(
-        () => ({
-            // profile
-            first_name: resolvedUser?.first_name || "",
-            last_name: resolvedUser?.last_name || "",
-            email: resolvedUser?.email || "",
-            phone: resolvedUser?.phone || "",
-            // address
-            address_line1: resolvedUser?.address_line1 || "",
-            address_line2: resolvedUser?.address_line2 || "",
-            city: resolvedUser?.city || "",
-            state: resolvedUser?.state || "",
-            postal_code: resolvedUser?.postal_code || "",
-            country: resolvedUser?.country || "",
-            // security
-            current_password: "",
-            new_password: "",
-            confirm_password: "",
-            // payment (tokenized – last4/brand shown for UX)
-            cardholder_name: resolvedUser?.cardholder_name || "",
-            card_last4: resolvedUser?.card_last4 || "",
-            card_brand: resolvedUser?.card_brand || "",
-            expiry_month: resolvedUser?.expiry_month || "",
-            expiry_year: resolvedUser?.expiry_year || "",
-            // notifications
-            notify_email: resolvedUser?.notify_email ?? true,
-            notify_sms: resolvedUser?.notify_sms ?? false,
-            notify_push: resolvedUser?.notify_push ?? true,
-            // avatar file
-            avatar: null,
-        }),
-        [resolvedUser]
-    );
+    const [activeTab, setActiveTab] = useState("business");
+    const [settings, setSettings] = useState(() => ({
+        ...DEFAULT_SETTINGS,
+        ...incoming,
+    }));
 
     const {
-        data,
-        setData,
-        post,
-        processing,
-        errors,
-        clearErrors,
-        reset,
-        transform,
-    } = useForm(initial);
+        feedback,
+        closeFeedback,
+        setFeedback,
+        confirmState,
+        openConfirm,
+        closeConfirm,
+        runConfirm,
+    } = useCourierActionModal(flash, 2800);
 
-    // Resolve update URL safely (avoid Ziggy exceptions if route missing)
-    const resolveUpdateUrl = () => {
-        try {
-            if (typeof route === "function") {
-                // Ziggy may throw if name missing; check existence when possible
-                if (
-                    typeof route().has === "function"
-                        ? route().has("client.settings.update")
-                        : true
-                ) {
-                    return route("client.settings.update");
-                }
-            }
-        } catch (_) {
-            // ignore and fallback
-        }
-        return "/client/settings";
+    const updateValue = (section, key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            [section]: {
+                ...prev[section],
+                [key]: value,
+            },
+        }));
     };
 
-    const updateUrl = resolveUpdateUrl();
-
-    // Ensure file uploads work
-    transform((formData) => ({ ...formData }));
-
-        const validatePasswords = () => {
-        const e = {};
-        if (
-            data.new_password ||
-            data.confirm_password ||
-            data.current_password
-        ) {
-            if (!data.current_password)
-                e.current_password =
-                    "Current password is required to change your password.";
-            if ((data.new_password?.length || 0) < 8)
-                e.new_password = "Use at least 8 characters.";
-            if (data.new_password !== data.confirm_password)
-                e.confirm_password = "Passwords do not match.";
-        }
-        return e;
+    const saveSection = (sectionKey) => {
+        router.post(
+            route("courierService.settings.update"),
+            {
+                action: "save_section",
+                section: sectionKey,
+                settings: {
+                    [sectionKey]: settings[sectionKey],
+                },
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onError: () => {
+                    setFeedback({
+                        type: "error",
+                        message: "Failed to save section settings. Please review input and try again.",
+                    });
+                },
+            },
+        );
     };
 
-        const validateAvatar = (file) => {
-        const e = {};
-        if (!file) return e;
-        if (!ACCEPTED_IMAGE_TYPES.includes(file.type))
-            e.avatar = "Please upload a JPG, PNG, or WEBP image.";
-        const sizeMb = file.size / (1024 * 1024);
-        if (sizeMb > MAX_AVATAR_MB)
-            e.avatar = `Image must be under ${MAX_AVATAR_MB}MB (current ~${sizeMb.toFixed(
-                1
-            )}MB).`;
-        return e;
-    };
-
-        const handleImageChange = (e) => {
-        const file = e.target.files?.[0];
-        const eAvatar = validateAvatar(file);
-        setClientErrors((prev) => ({ ...prev, ...eAvatar }));
-        if (Object.keys(eAvatar).length === 0) {
-            setData("avatar", file || null);
-            clearErrors("avatar");
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => setPhotoPreview(ev.target.result);
-                reader.readAsDataURL(file);
-            } else {
-                setPhotoPreview(null);
-            }
-        }
-    };
-
-        const submitAll = (e) => {
-        e.preventDefault();
-        const ePwd = validatePasswords();
-        setClientErrors((prev) => ({ ...prev, ...ePwd }));
-        if (Object.keys(ePwd).length > 0) return; // stop submit
-
-        post(updateUrl, {
-            preserveScroll: true,
-            forceFormData: true, // required for file upload
+    const saveAll = () => {
+        openConfirm({
+            title: "Confirm Save All Settings",
+            message: "Apply all courier operational setting changes now?",
+            onConfirm: () => {
+                router.post(
+                    route("courierService.settings.update"),
+                    {
+                        action: "save_all",
+                        settings,
+                    },
+                    {
+                        preserveScroll: true,
+                        preserveState: true,
+                        onError: () => {
+                            setFeedback({ type: "error", message: "Failed to save all settings." });
+                        },
+                    },
+                );
+            },
         });
     };
 
-        const removePhoto = () => {
-        setData("avatar", null);
-        setPhotoPreview(null);
-        setClientErrors((prev) => ({ ...prev, avatar: undefined }));
+    const resetAll = () => {
+        openConfirm({
+            title: "Reset Settings",
+            message: "Reset all courier settings to defaults? This cannot be undone.",
+            onConfirm: () => {
+                setSettings(DEFAULT_SETTINGS);
+                router.post(
+                    route("courierService.settings.update"),
+                    {
+                        action: "reset_defaults",
+                    },
+                    {
+                        preserveScroll: true,
+                        preserveState: true,
+                        onError: () => {
+                            setFeedback({ type: "error", message: "Failed to reset settings." });
+                        },
+                    },
+                );
+            },
+        });
     };
 
-    return (
-        <div className="bg-[#E5E5E5] poppins w-full">
-            {/* <div className="max-w-[1300px] mx-auto px-4 md:px-6 lg:px-10 py-20"> */}
-            {/* <div className="mb-8">
-                    <h1 className="text-2xl md:text-[35px] font-[700] text-gray-900">
-                        Account <span className="text-[#0955AC]"> Settings</span>
-                    </h1>
-                    <p className="mt-3 text-gray-600 text-[14px]">
-                        Manage your personal info, security, and payment
-                        preferences.
-                    </p>
-                </div> */}
-            <div className="w-full h-auto pr-5 py-10">
-                {/* Header section */}
-                <div className="flex flex-row gap-5 justify-between items-center">
-                    <h1 className="figtree text-[35px] font-[700]">
-                        Ticket Booking Settings
-                    </h1>
-                    <div className="flex flex-row gap-5">
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={search} />
-                        </div>
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={bell} />
-                        </div>
-                        <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-                            <img src={proPic} />
-                        </div>
+    const saveButtonLabel = TAB_CONFIG.find((tab) => tab.key === activeTab)?.label;
 
-                        <div className="figtree flex flex-col justify-center items-start">
-                            <h1 className="text-[20px] font-[700]">
-                                Steve Gibson
-                            </h1>
-                            <h1 className="text-[16px] font-[600] text-[#7B7B7A]">
-                                Service Provider
-                            </h1>
+    if (!settings || typeof settings !== "object") {
+        return (
+            <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
+                <div className="bg-white rounded-[10px] p-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <p className="text-[14px] text-[#6B7280]">Unable to load settings data.</p>
+                </div>
+            </div>
+        );
+    }
+
+    const tabContent = useMemo(() => {
+        if (activeTab === "business") {
+            return (
+                <SectionCard title="Business Profile" description="Main identity and service coverage used across booking and tracking experiences.">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="Company Name">
+                            <input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.business.companyName} onChange={(e) => updateValue("business", "companyName", e.target.value)} />
+                        </Field>
+                        <Field label="Support Email">
+                            <input type="email" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.business.supportEmail} onChange={(e) => updateValue("business", "supportEmail", e.target.value)} />
+                        </Field>
+                        <Field label="Hotline">
+                            <input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.business.hotline} onChange={(e) => updateValue("business", "hotline", e.target.value)} />
+                        </Field>
+                        <Field label="Primary Hub">
+                            <input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.business.primaryHub} onChange={(e) => updateValue("business", "primaryHub", e.target.value)} />
+                        </Field>
+                        <div className="md:col-span-2">
+                            <Field label="Service Zones" help="Comma-separated zone list for booking/assignment filtering.">
+                                <textarea rows={3} className="w-full rounded-[8px] border border-[#D1D5DB]" value={settings.business.serviceZones} onChange={(e) => updateValue("business", "serviceZones", e.target.value)} />
+                            </Field>
                         </div>
+                    </div>
+                </SectionCard>
+            );
+        }
+
+        if (activeTab === "operations") {
+            return (
+                <SectionCard title="Operations" description="Daily operations guardrails for booking intake and dispatch capacity.">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Toggle label="Auto-Accept Bookings" checked={settings.operations.autoAcceptBookings} onChange={(next) => updateValue("operations", "autoAcceptBookings", next)} description="If disabled, all bookings require manual review." />
+                        <Field label="Max Daily Bookings">
+                            <input type="number" min={1} className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.operations.maxDailyBookings} onChange={(e) => updateValue("operations", "maxDailyBookings", Number(e.target.value || 0))} />
+                        </Field>
+                        <Field label="Workday Start">
+                            <input type="time" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.operations.workStart} onChange={(e) => updateValue("operations", "workStart", e.target.value)} />
+                        </Field>
+                        <Field label="Workday End">
+                            <input type="time" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.operations.workEnd} onChange={(e) => updateValue("operations", "workEnd", e.target.value)} />
+                        </Field>
+                        <Field label="Same Day Cutoff">
+                            <input type="time" className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.operations.sameDayCutoff} onChange={(e) => updateValue("operations", "sameDayCutoff", e.target.value)} />
+                        </Field>
+                    </div>
+                </SectionCard>
+            );
+        }
+
+        if (activeTab === "sla") {
+            return (
+                <SectionCard title="SLA Policies" description="Configure expected commitments and breach alerts by service tier.">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Field label="Express SLA (hours)">
+                            <input type="number" min={1} className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.sla.expressHours} onChange={(e) => updateValue("sla", "expressHours", Number(e.target.value || 0))} />
+                        </Field>
+                        <Field label="Economy SLA (hours)">
+                            <input type="number" min={1} className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.sla.economyHours} onChange={(e) => updateValue("sla", "economyHours", Number(e.target.value || 0))} />
+                        </Field>
+                        <Field label="Breach Alert Lead (minutes)">
+                            <input type="number" min={5} className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.sla.breachAlertMinutes} onChange={(e) => updateValue("sla", "breachAlertMinutes", Number(e.target.value || 0))} />
+                        </Field>
+                        <div className="md:col-span-3">
+                            <Toggle label="Auto Escalate Exceptions" checked={settings.sla.autoEscalateExceptions} onChange={(next) => updateValue("sla", "autoEscalateExceptions", next)} description="Automatically flag repeated exceptions to Ops lead queue." />
+                        </div>
+                    </div>
+                </SectionCard>
+            );
+        }
+
+        if (activeTab === "tracking") {
+            return (
+                <SectionCard title="Tracking and POD Rules" description="Define scan monitoring and proof-of-delivery requirements.">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Toggle label="No Scan Alert > 6h" checked={settings.tracking.noScan6h} onChange={(next) => updateValue("tracking", "noScan6h", next)} />
+                        <Toggle label="No Scan Alert > 12h" checked={settings.tracking.noScan12h} onChange={(next) => updateValue("tracking", "noScan12h", next)} />
+                        <Toggle label="No Scan Alert > 24h" checked={settings.tracking.noScan24h} onChange={(next) => updateValue("tracking", "noScan24h", next)} />
+                        <Toggle label="Require POD Photo" checked={settings.tracking.requirePodPhoto} onChange={(next) => updateValue("tracking", "requirePodPhoto", next)} />
+                        <Toggle label="Require POD Signature" checked={settings.tracking.requirePodSignature} onChange={(next) => updateValue("tracking", "requirePodSignature", next)} />
+                        <Toggle label="Allow Manual Scan Correction" checked={settings.tracking.allowManualScanCorrection} onChange={(next) => updateValue("tracking", "allowManualScanCorrection", next)} />
+                    </div>
+                </SectionCard>
+            );
+        }
+
+        if (activeTab === "notifications") {
+            return (
+                <SectionCard title="Notification Preferences" description="Choose what gets sent to clients and internal operations teams.">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Toggle label="Client: Pickup Update" checked={settings.notifications.notifyClientPickup} onChange={(next) => updateValue("notifications", "notifyClientPickup", next)} />
+                        <Toggle label="Client: Out For Delivery" checked={settings.notifications.notifyClientOutForDelivery} onChange={(next) => updateValue("notifications", "notifyClientOutForDelivery", next)} />
+                        <Toggle label="Client: Delivered" checked={settings.notifications.notifyClientDelivered} onChange={(next) => updateValue("notifications", "notifyClientDelivered", next)} />
+                        <Toggle label="Internal: Exception Alerts" checked={settings.notifications.notifyInternalException} onChange={(next) => updateValue("notifications", "notifyInternalException", next)} />
+                        <Toggle label="Internal: SLA Risk Alerts" checked={settings.notifications.notifyInternalSlaRisk} onChange={(next) => updateValue("notifications", "notifyInternalSlaRisk", next)} />
+                    </div>
+                </SectionCard>
+            );
+        }
+
+        if (activeTab === "integrations") {
+            return (
+                <SectionCard title="Integrations" description="Webhook and API configuration for operational integrations.">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                            <Field label="Webhook URL" help="Leave empty if you do not use external webhook consumers.">
+                                <input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.integrations.webhookUrl} onChange={(e) => updateValue("integrations", "webhookUrl", e.target.value)} placeholder="https://example.com/webhooks/courier" />
+                            </Field>
+                        </div>
+                        <Field label="API Key Alias">
+                            <input className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.integrations.apiKeyAlias} onChange={(e) => updateValue("integrations", "apiKeyAlias", e.target.value)} />
+                        </Field>
+                        <Field label="Retry Window (minutes)">
+                            <input type="number" min={1} className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.integrations.retryWindowMinutes} onChange={(e) => updateValue("integrations", "retryWindowMinutes", Number(e.target.value || 0))} />
+                        </Field>
+                        <Field label="Rotate Keys Every (days)">
+                            <input type="number" min={30} className="w-full h-[42px] rounded-[8px] border border-[#D1D5DB]" value={settings.integrations.rotateKeysEveryDays} onChange={(e) => updateValue("integrations", "rotateKeysEveryDays", Number(e.target.value || 0))} />
+                        </Field>
+                    </div>
+                </SectionCard>
+            );
+        }
+
+        return (
+            <SectionCard title="Team Access Control" description="Set role powers for key operational decisions.">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
+                    <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
+                    <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
+                    <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
+                </div>
+            </SectionCard>
+        );
+    }, [activeTab, settings]);
+
+    return (
+        <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
+            <CourierFeedbackModal
+                open={Boolean(feedback)}
+                type={feedback?.type || "info"}
+                message={feedback?.message || ""}
+                onClose={closeFeedback}
+            />
+
+            <CourierFeedbackModal
+                open={confirmState.open}
+                type={confirmState.type || "warning"}
+                title={confirmState.title}
+                message={confirmState.message}
+                confirmText={confirmState.confirmText || "Confirm"}
+                showCancel={true}
+                onConfirm={runConfirm}
+                onClose={closeConfirm}
+            />
+
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
+                <div>
+                    <h1 className="figtree text-[34px] font-[700]">Courier Settings</h1>
+                    <p className="text-[14px] text-[#6B7280] mt-1">
+                        Configure courier operations, SLA policies, tracking rules, notifications, and access controls.
+                    </p>
+                </div>
+
+                <div className="flex gap-2">
+                    <button type="button" onClick={resetAll} className="h-[38px] px-4 rounded-[8px] border border-[#D1D5DB] text-[13px] font-[700]">
+                        Reset Defaults
+                    </button>
+                    <button type="button" onClick={saveAll} className="h-[38px] px-4 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700]">
+                        Save All
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-5">
+                <div className="bg-white rounded-[10px] p-4 h-fit" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <p className="text-[12px] text-[#6B7280] font-[700] uppercase tracking-wide mb-3">Settings Modules</p>
+                    <div className="space-y-2">
+                        {TAB_CONFIG.map((tab) => {
+                            const Icon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.key}
+                                    type="button"
+                                    onClick={() => setActiveTab(tab.key)}
+                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-[8px] text-left text-[13px] font-[700] transition-colors ${
+                                        activeTab === tab.key
+                                            ? "bg-[#0955AC] text-white"
+                                            : "bg-[#F3F4F6] text-[#374151]"
+                                    }`}
+                                >
+                                    <Icon size={16} />
+                                    <span>{tab.label}</span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
-                <form onSubmit={submitAll} className="space-y-8 mt-10" noValidate>
-                    {/* Profile photo & basic info */}
-                    <Section
-                        title="Profile"
-                        description="Update your photo and personal details."
-                    >
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="md:col-span-1">
-                                <div className="flex items-center gap-4">
-                                    <div className="sm:h-40 sm:w-40 w-20 h-20 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
-                                        {photoPreview ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img
-                                                src={photoPreview}
-                                                alt="Profile preview"
-                                                className="h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="h-full w-full flex items-center justify-center text-gray-400 sm:text-[14px] text-[10px]">
-                                                No photo
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <input
-                                            ref={fileInputRef}
-                                            type="file"
-                                            accept={ACCEPTED_IMAGE_TYPES.join(
-                                                ","
-                                            )}
-                                            className="hidden"
-                                            onChange={handleImageChange}
-                                        />
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    fileInputRef.current?.click()
-                                                }
-                                                className="px-3 py-2 text-[14px] text-[#FFFFFF] font-[700] rounded-md bg-[#0955AC] border border-[#0955AC]"
-                                            >
-                                                Upload
-                                            </button>
-                                            {photoPreview && (
-                                                <button
-                                                    type="button"
-                                                    onClick={removePhoto}
-                                                    className="px-3 py-2 text-[14px] font-medium rounded-md border border-red-300 text-red-600 hover:bg-red-50"
-                                                >
-                                                    Remove
-                                                </button>
-                                            )}
-                                        </div>
-                                        <ErrorText>
-                                            {clientErrors.avatar ||
-                                                errors.avatar}
-                                        </ErrorText>
-                                        <p className="text-[12px] text-gray-500">
-                                            JPG, PNG, or WEBP up to{" "}
-                                            {MAX_AVATAR_MB}MB.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <Field
-                                    label="First name"
-                                    htmlFor="first_name"
-                                    required
-                                >
-                                    <input
-                                        id="first_name"
-                                        type="text"
-                                        value={data.first_name}
-                                        onChange={(e) =>
-                                            setData(
-                                                "first_name",
-                                                e.target.value
-                                            )
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="John"
-                                        required
-                                    />
-                                    <ErrorText>{errors.first_name}</ErrorText>
-                                </Field>
-
-                                <Field
-                                    label="Last name"
-                                    htmlFor="last_name"
-                                    required
-                                >
-                                    <input
-                                        id="last_name"
-                                        type="text"
-                                        value={data.last_name}
-                                        onChange={(e) =>
-                                            setData("last_name", e.target.value)
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="Doe"
-                                        required
-                                    />
-                                    <ErrorText>{errors.last_name}</ErrorText>
-                                </Field>
-
-                                <Field label="Email" htmlFor="email" required>
-                                    <input
-                                        id="email"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(e) =>
-                                            setData("email", e.target.value)
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="john@example.com"
-                                        required
-                                        autoComplete="email"
-                                    />
-                                    <ErrorText>{errors.email}</ErrorText>
-                                </Field>
-
-                                <Field
-                                    label="Phone"
-                                    htmlFor="phone"
-                                    help="Include country code, e.g., +94 70 123 4567"
-                                >
-                                    <input
-                                        id="phone"
-                                        type="tel"
-                                        value={data.phone}
-                                        onChange={(e) =>
-                                            setData("phone", e.target.value)
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="+94 70 123 4567"
-                                        autoComplete="tel"
-                                    />
-                                    <ErrorText>{errors.phone}</ErrorText>
-                                </Field>
-                            </div>
-                        </div>
-                    </Section>
-
-                    {/* Address */}
-                    <Section
-                        title="Address"
-                        description="Your primary address will be used for billing and receipts."
-                    >
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <Field
-                                label="Address line 1"
-                                htmlFor="address_line1"
-                                required
-                            >
-                                <input
-                                    id="address_line1"
-                                    type="text"
-                                    value={data.address_line1}
-                                    onChange={(e) =>
-                                        setData("address_line1", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="No. 123, Main Street"
-                                    required
-                                    autoComplete="address-line1"
-                                />
-                                <ErrorText>{errors.address_line1}</ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Address line 2"
-                                htmlFor="address_line2"
-                            >
-                                <input
-                                    id="address_line2"
-                                    type="text"
-                                    value={data.address_line2}
-                                    onChange={(e) =>
-                                        setData("address_line2", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="Apartment, suite, etc. (optional)"
-                                    autoComplete="address-line2"
-                                />
-                                <ErrorText>{errors.address_line2}</ErrorText>
-                            </Field>
-
-                            <Field label="City" htmlFor="city" required>
-                                <input
-                                    id="city"
-                                    type="text"
-                                    value={data.city}
-                                    onChange={(e) =>
-                                        setData("city", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    required
-                                    autoComplete="address-level2"
-                                />
-                                <ErrorText>{errors.city}</ErrorText>
-                            </Field>
-
-                            <Field label="State/Province" htmlFor="state">
-                                <input
-                                    id="state"
-                                    type="text"
-                                    value={data.state}
-                                    onChange={(e) =>
-                                        setData("state", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    autoComplete="address-level1"
-                                />
-                                <ErrorText>{errors.state}</ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Postal code"
-                                htmlFor="postal_code"
-                                required
-                            >
-                                <input
-                                    id="postal_code"
-                                    type="text"
-                                    value={data.postal_code}
-                                    onChange={(e) =>
-                                        setData("postal_code", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    required
-                                    autoComplete="postal-code"
-                                />
-                                <ErrorText>{errors.postal_code}</ErrorText>
-                            </Field>
-
-                            <Field label="Country" htmlFor="country" required>
-                                <input
-                                    id="country"
-                                    type="text"
-                                    value={data.country}
-                                    onChange={(e) =>
-                                        setData("country", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="Sri Lanka"
-                                    required
-                                    autoComplete="country-name"
-                                />
-                                <ErrorText>{errors.country}</ErrorText>
-                            </Field>
-                        </div>
-                    </Section>
-
-                    {/* Security */}
-                    <Section
-                        title="Security"
-                        description="Change your password to keep your account secure."
-                    >
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <Field
-                                label="Current password"
-                                htmlFor="current_password"
-                            >
-                                <input
-                                    id="current_password"
-                                    type="password"
-                                    value={data.current_password}
-                                    onChange={(e) =>
-                                        setData(
-                                            "current_password",
-                                            e.target.value
-                                        )
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    autoComplete="current-password"
-                                    aria-invalid={
-                                        !!clientErrors.current_password
-                                    }
-                                />
-                                <ErrorText>
-                                    {clientErrors.current_password ||
-                                        errors.current_password}
-                                </ErrorText>
-                            </Field>
-
-                            <Field label="New password" htmlFor="new_password">
-                                <input
-                                    id="new_password"
-                                    type="password"
-                                    value={data.new_password}
-                                    onChange={(e) =>
-                                        setData("new_password", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    autoComplete="new-password"
-                                    aria-invalid={!!clientErrors.new_password}
-                                />
-                                <ErrorText>
-                                    {clientErrors.new_password ||
-                                        errors.new_password}
-                                </ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Confirm password"
-                                htmlFor="confirm_password"
-                            >
-                                <input
-                                    id="confirm_password"
-                                    type="password"
-                                    value={data.confirm_password}
-                                    onChange={(e) =>
-                                        setData(
-                                            "confirm_password",
-                                            e.target.value
-                                        )
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    autoComplete="new-password"
-                                    aria-invalid={
-                                        !!clientErrors.confirm_password
-                                    }
-                                />
-                                <ErrorText>
-                                    {clientErrors.confirm_password ||
-                                        errors.confirm_password}
-                                </ErrorText>
-                            </Field>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                            If you fill any password field, all three are
-                            required. Password must be at least 8 characters.
-                        </p>
-                    </Section>
-
-                    {/* Payment */}
-                    <Section
-                        title="Payment details"
-                        description="Update your saved card details. We recommend using tokenized gateways; do not store raw card numbers."
-                    >
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <Field
-                                label="Cardholder name"
-                                htmlFor="cardholder_name"
-                                required
-                            >
-                                <input
-                                    id="cardholder_name"
-                                    type="text"
-                                    value={data.cardholder_name}
-                                    onChange={(e) =>
-                                        setData(
-                                            "cardholder_name",
-                                            e.target.value
-                                        )
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    required
-                                />
-                                <ErrorText>{errors.cardholder_name}</ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Card brand"
-                                htmlFor="card_brand"
-                                help="e.g., Visa / Mastercard"
-                            >
-                                <input
-                                    id="card_brand"
-                                    type="text"
-                                    value={data.card_brand}
-                                    onChange={(e) =>
-                                        setData("card_brand", e.target.value)
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="Visa / Mastercard"
-                                />
-                                <ErrorText>{errors.card_brand}</ErrorText>
-                            </Field>
-
-                            <Field
-                                label="Last 4 digits"
-                                htmlFor="card_last4"
-                                help="Shown for reference only; store tokens on backend."
-                            >
-                                <input
-                                    id="card_last4"
-                                    type="text"
-                                    inputMode="numeric"
-                                    maxLength={4}
-                                    value={data.card_last4}
-                                    onChange={(e) =>
-                                        setData(
-                                            "card_last4",
-                                            e.target.value
-                                                .replace(/\D/g, "")
-                                                .slice(0, 4)
-                                        )
-                                    }
-                                    className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                    placeholder="1234"
-                                />
-                                <ErrorText>{errors.card_last4}</ErrorText>
-                            </Field>
-
-                            <div className="grid grid-cols-2 gap-6">
-                                <Field
-                                    label="Expiry month"
-                                    htmlFor="expiry_month"
-                                >
-                                    <input
-                                        id="expiry_month"
-                                        type="text"
-                                        inputMode="numeric"
-                                        maxLength={2}
-                                        value={data.expiry_month}
-                                        onChange={(e) =>
-                                            setData(
-                                                "expiry_month",
-                                                e.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 2)
-                                            )
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="MM"
-                                    />
-                                    <ErrorText>{errors.expiry_month}</ErrorText>
-                                </Field>
-                                <Field
-                                    label="Expiry year"
-                                    htmlFor="expiry_year"
-                                >
-                                    <input
-                                        id="expiry_year"
-                                        type="text"
-                                        inputMode="numeric"
-                                        maxLength={4}
-                                        value={data.expiry_year}
-                                        onChange={(e) =>
-                                            setData(
-                                                "expiry_year",
-                                                e.target.value
-                                                    .replace(/\D/g, "")
-                                                    .slice(0, 4)
-                                            )
-                                        }
-                                        className="w-full h-16 rounded-[10px] border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                                        placeholder="YYYY"
-                                    />
-                                    <ErrorText>{errors.expiry_year}</ErrorText>
-                                </Field>
-                            </div>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                            Tip: Integrate Stripe/PayHere and collect a payment
-                            method token on the frontend; submit that token here
-                            instead of card numbers.
-                        </p>
-                    </Section>
-
-                    {/* Notifications */}
-                    <Section
-                        title="Notifications"
-                        description="Choose how you want to be notified."
-                    >
-                        <div className="divide-y divide-gray-200">
-                            <Toggle
-                                label="Email notifications"
-                                description="Get updates and receipts in your inbox."
-                                checked={data.notify_email}
-                                onChange={(v) => setData("notify_email", v)}
-                            />
-                            <Toggle
-                                label="SMS notifications"
-                                description="Receive updates via text messages."
-                                checked={data.notify_sms}
-                                onChange={(v) => setData("notify_sms", v)}
-                            />
-                            <Toggle
-                                label="Push notifications"
-                                description="Allow push notifications on this device."
-                                checked={data.notify_push}
-                                onChange={(v) => setData("notify_push", v)}
-                            />
-                        </div>
-                    </Section>
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-end gap-3">
+                <div className="space-y-4">
+                    {tabContent}
+                    <div className="flex justify-end">
                         <button
                             type="button"
-                            onClick={() => {
-                                reset();
-                                setPhotoPreview(resolvedUser?.avatar_url || null);
-                                clearErrors();
-                                setClientErrors({});
-                            }}
-                            className="px-4 py-2 rounded-[10px] text-[14px] font-[700] text-[#0955AC] border border-[#0955AC] disabled:opacity-60"
-                            disabled={processing}
+                            onClick={() => saveSection(activeTab)}
+                            className="h-[38px] px-5 rounded-[8px] bg-[#111827] text-white text-[13px] font-[700]"
                         >
-                            Reset
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 rounded-[10px] text-[14px] font-[700] bg-[#0955AC] text-[#FFFFFF] disabled:opacity-60"
-                            disabled={processing}
-                        >
-                            {processing ? "Saving…" : "Save changes"}
+                            Save {saveButtonLabel}
                         </button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     );

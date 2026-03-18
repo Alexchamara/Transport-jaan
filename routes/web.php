@@ -1169,9 +1169,13 @@ Route::get('/courierService/unitDetails', function () {
     return Inertia::render('Web/home/vendors/courierService/UnitDetails');
 })->name('courierService.unitDetails');
 
-Route::get('/courierService/settingsPage', function () {
-    return Inertia::render('Web/home/vendors/courierService/SettingsPage');
-})->name('courierService.settingsPage');
+Route::get('/courierService/settingsPage', [VendorCourierDashboardController::class, 'settings'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.settingsPage');
+
+Route::post('/courierService/settingsPage', [VendorCourierDashboardController::class, 'updateSettings'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.settings.update');
 
 
 

@@ -70,7 +70,7 @@ const SERVICE_CONFIG = {
         drivers: null,
         payment: () => route("courierService.payment"),
         expenses: () => route("courierService.expenses"),
-        settings: () => route(""),
+        settings: () => route("courierService.settingsPage"),
         profile: () => route(""),
     },
     "Warehousing": {

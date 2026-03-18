@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CourierControllers\Vendor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Courier\CourierContact;
+use App\Models\Courier\VendorCourierSetting;
 use App\Models\Courier\CourierShipment;
 use App\Models\Courier\VendorCourierClientProfile;
 use App\Models\VendorServiceRegistration;
@@ -263,6 +264,92 @@ class VendorCourierDashboardController extends Controller
         return Inertia::render('Web/home/vendors/courierService/Tracking', [
             'courierTracking' => $trackingPayload,
         ]);
+    }
+
+    public function settings(Request $request)
+    {
+        $vendorId = (int) optional($request->user())->id;
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to access settings.');
+        }
+
+        $record = VendorCourierSetting::query()->firstOrCreate(
+            ['vendor_user_id' => $vendorId],
+            ['settings' => $this->defaultCourierSettings()]
+        );
+
+        $mergedSettings = array_replace_recursive(
+            $this->defaultCourierSettings(),
+            is_array($record->settings) ? $record->settings : []
+        );
+
+        return Inertia::render('Web/home/vendors/courierService/SettingsPage', [
+            'courierSettings' => $mergedSettings,
+        ]);
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $vendorId = (int) optional($request->user())->id;
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to update settings.');
+        }
+
+        $validated = $request->validate([
+            'action' => ['required', 'string', 'in:save_section,save_all,reset_defaults'],
+            'section' => ['nullable', 'string', 'in:business,operations,sla,tracking,notifications,integrations,team'],
+            'settings' => ['nullable', 'array'],
+        ]);
+
+        $record = VendorCourierSetting::query()->firstOrCreate(
+            ['vendor_user_id' => $vendorId],
+            ['settings' => $this->defaultCourierSettings()]
+        );
+
+        $current = array_replace_recursive(
+            $this->defaultCourierSettings(),
+            is_array($record->settings) ? $record->settings : []
+        );
+
+        $action = $validated['action'];
+
+        if ($action === 'reset_defaults') {
+            $record->update(['settings' => $this->defaultCourierSettings()]);
+
+            return back()->with('success', 'Courier settings reset to defaults.');
+        }
+
+        if ($action === 'save_section') {
+            $section = (string) ($validated['section'] ?? '');
+
+            if ($section === '' || !isset($current[$section])) {
+                return back()->with('error', 'Invalid settings section selected.');
+            }
+
+            $incomingSection = $validated['settings'][$section] ?? [];
+
+            if (!is_array($incomingSection)) {
+                return back()->with('error', 'Invalid settings payload for the selected section.');
+            }
+
+            $current[$section] = array_replace($current[$section], $incomingSection);
+            $record->update(['settings' => $current]);
+
+            return back()->with('success', ucfirst($section) . ' settings saved successfully.');
+        }
+
+        $incomingAll = $validated['settings'] ?? [];
+
+        if (!is_array($incomingAll)) {
+            return back()->with('error', 'Invalid settings payload.');
+        }
+
+        $next = array_replace_recursive($current, $incomingAll);
+        $record->update(['settings' => $next]);
+
+        return back()->with('success', 'All courier settings saved successfully.');
     }
 
     public function updateClientProfile(Request $request, CourierContact $contact)
@@ -1617,6 +1704,59 @@ class VendorCourierDashboardController extends Controller
         }
 
         return 'Economy';
+    }
+
+    private function defaultCourierSettings(): array
+    {
+        return [
+            'business' => [
+                'companyName' => '',
+                'supportEmail' => '',
+                'hotline' => '',
+                'primaryHub' => '',
+                'serviceZones' => '',
+            ],
+            'operations' => [
+                'autoAcceptBookings' => false,
+                'workStart' => '08:00',
+                'workEnd' => '20:00',
+                'sameDayCutoff' => '14:00',
+                'maxDailyBookings' => 350,
+            ],
+            'sla' => [
+                'expressHours' => 8,
+                'economyHours' => 24,
+                'breachAlertMinutes' => 90,
+                'autoEscalateExceptions' => true,
+            ],
+            'tracking' => [
+                'noScan6h' => true,
+                'noScan12h' => true,
+                'noScan24h' => false,
+                'requirePodPhoto' => true,
+                'requirePodSignature' => false,
+                'allowManualScanCorrection' => true,
+            ],
+            'notifications' => [
+                'notifyClientPickup' => true,
+                'notifyClientOutForDelivery' => true,
+                'notifyClientDelivered' => true,
+                'notifyInternalException' => true,
+                'notifyInternalSlaRisk' => true,
+            ],
+            'integrations' => [
+                'webhookUrl' => '',
+                'apiKeyAlias' => '',
+                'retryWindowMinutes' => 15,
+                'rotateKeysEveryDays' => 90,
+            ],
+            'team' => [
+                'dispatcherCanCancel' => false,
+                'opsLeadCanReassign' => true,
+                'financeCanViewRates' => true,
+                'enforce2FA' => true,
+            ],
+        ];
     }
 
     private function trackingNumber(CourierShipment $shipment): string
