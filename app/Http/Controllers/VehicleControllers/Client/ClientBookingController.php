@@ -28,6 +28,7 @@ use App\Models\SeaVehicleBookingSchedule;
 use App\Models\SeaVehicleBookingAddon;
 use App\Models\SeaVehicleBookingCustomer;
 use App\Models\SeaVehicleBookingPayment;
+use App\Models\CancellationSetting;
 
 class ClientBookingController extends Controller
 {
@@ -1087,6 +1088,38 @@ class ClientBookingController extends Controller
         ]);
     }
 
+    public function seaVehicleQuote(Request $request)
+    {
+        [$vehicle, $pickup, $dropoff, $addonsReq] = $this->validateInputsForQuote($request);
+
+        $excludeId = $request->integer('exclude_booking_id');
+        $userId    = Auth::id();
+
+        $overlap = SeaVehicleBookings::where('vehicle_id', $vehicle->id)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->when($userId, function ($q) use ($userId) {
+                $q->where(function ($qq) use ($userId) {
+                    $qq->where('client_id', '!=', $userId)
+                       ->orWhere('status', 'confirmed');
+                });
+            })
+            ->whereHas('schedule', function ($q) use ($pickup, $dropoff) {
+                $q->where('pickup_at', '<', $dropoff)
+                  ->where('dropoff_at', '>', $pickup);
+            })
+            ->exists();
+
+        if ($overlap) {
+            return response()->json([
+                'message' => 'Vehicle is not available for the selected dates.'
+            ], 422);
+        }
+
+        $calc = $this->calculateTotals($vehicle, $pickup, $dropoff, $addonsReq);
+        return response()->json($calc);
+    }
+
     public function seaVehicleStore(Request $request)
     {
         $userId = Auth::id();
@@ -1344,6 +1377,173 @@ class ClientBookingController extends Controller
         return Inertia::render('Web/home/seaVehicle/Summary', [
             'booking' => $seaVehicleBooking,
         ]);
+    }
+
+    public function getAirVehicleCancellationPolicy(AirVehicleBookings $airVehicleBooking)
+    {
+        $this->authorizeAirVehicleBooking($airVehicleBooking);
+
+        $refundDetails = $this->buildVehicleRefundPreview(
+            (float) ($airVehicleBooking->total_amount ?? 0),
+            $airVehicleBooking->schedule?->pickup_at,
+            'client'
+        );
+
+        if (!$refundDetails['success']) {
+            return response()->json($refundDetails, 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'can_cancel' => strtolower((string) $airVehicleBooking->status) !== 'cancelled',
+            'refund_details' => $refundDetails['refund_details'],
+        ]);
+    }
+
+    public function getSeaVehicleCancellationPolicy(SeaVehicleBookings $seaVehicleBooking)
+    {
+        $this->authorizeSeaVehicleBooking($seaVehicleBooking);
+
+        $refundDetails = $this->buildVehicleRefundPreview(
+            (float) ($seaVehicleBooking->total_amount ?? 0),
+            $seaVehicleBooking->schedule?->pickup_at,
+            'client'
+        );
+
+        if (!$refundDetails['success']) {
+            return response()->json($refundDetails, 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'can_cancel' => strtolower((string) $seaVehicleBooking->status) !== 'cancelled',
+            'refund_details' => $refundDetails['refund_details'],
+        ]);
+    }
+
+    public function airVehicleCancel(Request $request, AirVehicleBookings $airVehicleBooking)
+    {
+        $this->authorizeAirVehicleBooking($airVehicleBooking);
+
+        if (strtolower((string) $airVehicleBooking->status) === 'cancelled') {
+            return redirect()->back()->with('error', 'Air booking is already cancelled.');
+        }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $notes = trim((string) ($airVehicleBooking->notes ?? ''));
+        $reason = trim((string) ($validated['reason'] ?? ''));
+        $cancelNote = 'Cancelled by client on ' . now()->toDateTimeString();
+        if ($reason !== '') {
+            $cancelNote .= ' | Reason: ' . $reason;
+        }
+
+        $refundPreview = $this->buildVehicleRefundPreview(
+            (float) ($airVehicleBooking->total_amount ?? 0),
+            $airVehicleBooking->schedule?->pickup_at,
+            'client'
+        );
+
+        $airVehicleBooking->update([
+            'status' => 'cancelled',
+            'notes' => trim($notes . "\n" . $cancelNote),
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Air booking cancelled successfully.',
+                'refund_details' => $refundPreview['refund_details'] ?? null,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Air booking cancelled successfully.');
+    }
+
+    public function seaVehicleCancel(Request $request, SeaVehicleBookings $seaVehicleBooking)
+    {
+        $this->authorizeSeaVehicleBooking($seaVehicleBooking);
+
+        if (strtolower((string) $seaVehicleBooking->status) === 'cancelled') {
+            return redirect()->back()->with('error', 'Sea booking is already cancelled.');
+        }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $notes = trim((string) ($seaVehicleBooking->notes ?? ''));
+        $reason = trim((string) ($validated['reason'] ?? ''));
+        $cancelNote = 'Cancelled by client on ' . now()->toDateTimeString();
+        if ($reason !== '') {
+            $cancelNote .= ' | Reason: ' . $reason;
+        }
+
+        $refundPreview = $this->buildVehicleRefundPreview(
+            (float) ($seaVehicleBooking->total_amount ?? 0),
+            $seaVehicleBooking->schedule?->pickup_at,
+            'client'
+        );
+
+        $seaVehicleBooking->update([
+            'status' => 'cancelled',
+            'notes' => trim($notes . "\n" . $cancelNote),
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Sea booking cancelled successfully.',
+                'refund_details' => $refundPreview['refund_details'] ?? null,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Sea booking cancelled successfully.');
+    }
+
+    private function buildVehicleRefundPreview(float $totalAmount, $pickupAt, string $cancelledBy = 'client'): array
+    {
+        try {
+            if (!$pickupAt) {
+                return [
+                    'success' => false,
+                    'message' => 'Cannot calculate refund: booking has no pickup date',
+                ];
+            }
+
+            $pickup = Carbon::parse($pickupAt);
+            $daysUntilPickup = Carbon::now()->diffInDays($pickup, false);
+            $threshold = CancellationSetting::getDaysForContext('vehicle');
+
+            $refundPercentage = $daysUntilPickup >= ($threshold - 0.01) ? 100 : 50;
+            $refundAmount = round(($totalAmount * $refundPercentage) / 100, 2);
+            $cancellationFee = round($totalAmount - $refundAmount, 2);
+            $actor = $cancelledBy === 'client' ? 'You' : 'Vendor';
+            $timingText = $daysUntilPickup >= $threshold
+                ? "more than {$threshold} days before pickup"
+                : "less than {$threshold} days before pickup";
+
+            return [
+                'success' => true,
+                'refund_details' => [
+                    'refund_amount' => $refundAmount,
+                    'refund_percentage' => $refundPercentage,
+                    'cancellation_fee' => $cancellationFee,
+                    'days_until_pickup' => round($daysUntilPickup, 2),
+                    'policy_message' => $refundPercentage === 100
+                        ? "{$actor} are cancelling {$timingText} and will receive 100% refund."
+                        : "{$actor} are cancelling {$timingText} and will receive 50% refund.",
+                    'vendor_commission_refund' => 0,
+                ],
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'message' => 'Cannot calculate refund: ' . $e->getMessage(),
+            ];
+        }
     }
 
     /**

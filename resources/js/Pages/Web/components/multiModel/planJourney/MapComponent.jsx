@@ -1,124 +1,105 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 
-const MapComponent = ({ 
-    startLocation, 
-    endLocation, 
-    stops = [], 
+const GOOGLE_MAPS_API_KEY = "AIzaSyBWjVf-wK6rdmSON8eOXJCgxq2MI10QasE"; // fallback only; prefer env
+
+const MapComponent = ({
+    startLocation,
+    endLocation,
+    stops = [],
     onMapReady,
     onLocationUpdate,
     onRouteCalculated,
     showAlternatives = false,
-    routePreference = 'balanced'
+    routePreference = "balanced",
 }) => {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
-    const routingControlRef = useRef(null);
+    const directionsServiceRef = useRef(null);
+    const directionsRendererRef = useRef(null);
     const markersRef = useRef([]);
     const routingTimeoutRef = useRef(null);
     const lastRouteRequestRef = useRef(0);
-    const lastLocationHashRef = useRef('');
+    const lastLocationHashRef = useRef("");
     const isUpdatingRouteRef = useRef(false);
-    
+
     const [mapLoaded, setMapLoaded] = useState(false);
     const [isMapReady, setIsMapReady] = useState(false);
     const [routeInfo, setRouteInfo] = useState({
         totalDistance: 0,
         totalDuration: 0,
-        segments: []
+        segments: [],
     });
     const [hasRoutingError, setHasRoutingError] = useState(false);
 
-    // Load Leaflet libraries
+    // Load Google Maps JavaScript API once
     useEffect(() => {
-        if (!document.getElementById("leaflet-css")) {
-            const link = document.createElement("link");
-            link.id = "leaflet-css";
-            link.rel = "stylesheet";
-            link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-            document.head.appendChild(link);
+        const apiKey = import.meta?.env?.VITE_GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY;
+
+        if (!apiKey) {
+            console.error("Google Maps API key missing: set VITE_GOOGLE_MAPS_API_KEY in .env");
+            setHasRoutingError(true);
+            return;
         }
 
-        if (!window.L) {
-            const script = document.createElement("script");
-            script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-            script.onload = () => {
-                const routingScript = document.createElement("script");
-                routingScript.src = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js";
-                routingScript.onload = () => setMapLoaded(true);
-                document.head.appendChild(routingScript);
-
-                const routingCSS = document.createElement("link");
-                routingCSS.rel = "stylesheet";
-                routingCSS.href = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css";
-                document.head.appendChild(routingCSS);
-            };
-            document.head.appendChild(script);
-        } else if (window.L.Routing) {
+        if (window.google && window.google.maps) {
             setMapLoaded(true);
-        } else {
-            const routingScript = document.createElement("script");
-            routingScript.src = "https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js";
-            routingScript.onload = () => setMapLoaded(true);
-            document.head.appendChild(routingScript);
+            return;
         }
 
-        const style = document.createElement('style');
-        style.id = 'leaflet-custom-styles';
-        style.innerHTML = `
-            .leaflet-routing-container {
-                display: none !important;
-            }
-            .leaflet-routing-alternatives-container {
-                display: none !important;
-            }
-            .custom-popup .leaflet-popup-content-wrapper {
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            }
-        `;
-        if (!document.getElementById('leaflet-custom-styles')) {
-            document.head.appendChild(style);
+        const existingScript = document.getElementById("google-maps-script");
+        if (existingScript) {
+            existingScript.addEventListener("load", () => setMapLoaded(true));
+            return;
         }
 
-        return () => {
-            const existingStyle = document.getElementById('leaflet-custom-styles');
-            if (existingStyle && existingStyle.parentNode) {
-                existingStyle.parentNode.removeChild(existingStyle);
-            }
+        const script = document.createElement("script");
+        script.id = "google-maps-script";
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => setMapLoaded(true);
+        script.onerror = () => {
+            console.error("Failed to load Google Maps script");
+            setHasRoutingError(true);
         };
+        document.head.appendChild(script);
     }, []);
 
-    // Initialize map
+    // Initialize map once the API is ready
     useEffect(() => {
         if (!mapLoaded || !mapRef.current || mapInstanceRef.current) return;
 
         try {
-            const map = window.L.map(mapRef.current, {
-                center: [7.8731, 80.7718],
-                zoom: 8,
-                zoomControl: true,
-                maxZoom: 19,
-                minZoom: 6,
-                zoomAnimation: true,
-                markerZoomAnimation: true,
+            const map = new window.google.maps.Map(mapRef.current, {
+                center: { lat: 7.8731, lng: 80.7718 },
+                zoom: 7.5,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
             });
 
-            window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                maxZoom: 19,
-            }).addTo(map);
+            const directionsService = new window.google.maps.DirectionsService();
+            const directionsRenderer = new window.google.maps.DirectionsRenderer({
+                suppressMarkers: true,
+                preserveViewport: true,
+                polylineOptions: {
+                    strokeColor: "#0955AC",
+                    strokeOpacity: 0.85,
+                    strokeWeight: 6,
+                },
+            });
+
+            directionsRenderer.setMap(map);
 
             mapInstanceRef.current = map;
+            directionsServiceRef.current = directionsService;
+            directionsRendererRef.current = directionsRenderer;
 
-            map.whenReady(() => {
-                setTimeout(() => {
-                    map.invalidateSize();
-                    setIsMapReady(true);
-                    if (onMapReady) onMapReady(map);
-                }, 200);
-            });
+            setIsMapReady(true);
+            onMapReady?.(map);
         } catch (error) {
-            console.error('Map initialization error:', error);
+            console.error("Map initialization error:", error);
+            setHasRoutingError(true);
         }
 
         return () => {
@@ -127,65 +108,211 @@ const MapComponent = ({
                 routingTimeoutRef.current = null;
             }
 
-            if (routingControlRef.current && mapInstanceRef.current) {
-                try {
-                    mapInstanceRef.current.removeControl(routingControlRef.current);
-                } catch (e) {
-                    console.warn('Error removing routing control:', e);
-                }
-                routingControlRef.current = null;
-            }
-
-            markersRef.current.forEach((marker) => {
-                try {
-                    if (marker && mapInstanceRef.current) {
-                        mapInstanceRef.current.removeLayer(marker);
-                    }
-                } catch (e) {
-                    console.warn('Error removing marker:', e);
-                }
-            });
+            markersRef.current.forEach((marker) => marker?.setMap(null));
             markersRef.current = [];
 
+            if (directionsRendererRef.current) {
+                directionsRendererRef.current.setMap(null);
+                directionsRendererRef.current = null;
+            }
+
+            directionsServiceRef.current = null;
+
             if (mapInstanceRef.current) {
-                try {
-                    mapInstanceRef.current.remove();
-                } catch (e) {
-                    console.warn('Error removing map:', e);
-                }
                 mapInstanceRef.current = null;
             }
         };
     }, [mapLoaded, onMapReady]);
 
-    // Clear route and markers helper
-    const clearRouteAndMarkers = useCallback(() => {
-        if (!mapInstanceRef.current) return;
-
-        const map = mapInstanceRef.current;
-
-        if (routingControlRef.current) {
-            try {
-                map.removeControl(routingControlRef.current);
-            } catch (e) {
-                console.warn('Error removing routing control:', e);
-            }
-            routingControlRef.current = null;
-        }
-
-        markersRef.current.forEach((marker) => {
-            try {
-                if (marker && marker._map) {
-                    map.removeLayer(marker);
-                }
-            } catch (e) {
-                console.warn('Error removing marker:', e);
-            }
-        });
+    const clearMarkers = useCallback(() => {
+        markersRef.current.forEach((marker) => marker?.setMap(null));
         markersRef.current = [];
     }, []);
 
-    // Update route effect
+    const addMarker = useCallback((position, color, label, title) => {
+        if (!mapInstanceRef.current || !window.google) return null;
+
+        const marker = new window.google.maps.Marker({
+            position,
+            map: mapInstanceRef.current,
+            title,
+            label: {
+                text: label,
+                color: "#FFFFFF",
+                fontWeight: "700",
+            },
+            icon: {
+                path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z",
+                fillColor: color,
+                fillOpacity: 1,
+                strokeColor: "#FFFFFF",
+                strokeWeight: 2,
+                scale: 1.4,
+                anchor: new window.google.maps.Point(12, 22),
+            },
+        });
+
+        markersRef.current.push(marker);
+        return marker;
+    }, []);
+
+    const renderSingleMarker = useCallback(() => {
+        if (!mapInstanceRef.current) return;
+        clearMarkers();
+
+        if (startLocation?.coordinates) {
+            const pos = {
+                lat: startLocation.coordinates.lat,
+                lng: startLocation.coordinates.lng,
+            };
+            addMarker(pos, "#22C55E", "S", startLocation.name || "Start");
+            mapInstanceRef.current.setCenter(pos);
+            mapInstanceRef.current.setZoom(13);
+        } else if (endLocation?.coordinates) {
+            const pos = {
+                lat: endLocation.coordinates.lat,
+                lng: endLocation.coordinates.lng,
+            };
+            addMarker(pos, "#EF4444", "E", endLocation.name || "End");
+            mapInstanceRef.current.setCenter(pos);
+            mapInstanceRef.current.setZoom(13);
+        }
+
+        isUpdatingRouteRef.current = false;
+    }, [addMarker, clearMarkers, endLocation, startLocation]);
+
+    const updateRoute = useCallback(() => {
+        if (!mapInstanceRef.current || !directionsServiceRef.current) {
+            isUpdatingRouteRef.current = false;
+            return;
+        }
+
+        const hasStart = !!startLocation?.coordinates;
+        const hasEnd = !!endLocation?.coordinates;
+
+        if (!hasStart && !hasEnd) {
+            clearMarkers();
+            setRouteInfo({ totalDistance: 0, totalDuration: 0, segments: [] });
+            isUpdatingRouteRef.current = false;
+            return;
+        }
+
+        if (!(hasStart && hasEnd)) {
+            directionsRendererRef.current?.set("directions", null);
+            renderSingleMarker();
+            setRouteInfo({ totalDistance: 0, totalDuration: 0, segments: [] });
+            return;
+        }
+
+        clearMarkers();
+
+        const request = {
+            origin: {
+                lat: startLocation.coordinates.lat,
+                lng: startLocation.coordinates.lng,
+            },
+            destination: {
+                lat: endLocation.coordinates.lat,
+                lng: endLocation.coordinates.lng,
+            },
+            travelMode: window.google.maps.TravelMode.DRIVING,
+            provideRouteAlternatives: showAlternatives,
+            waypoints: stops
+                .filter((s) => s.coordinates)
+                .map((stop) => ({
+                    location: new window.google.maps.LatLng(
+                        stop.coordinates.lat,
+                        stop.coordinates.lng
+                    ),
+                    stopover: true,
+                })),
+            optimizeWaypoints: false,
+        };
+
+        // Preference hook retained for future use
+        if (routePreference === "shortest") {
+            request.drivingOptions = { departureTime: new Date() };
+        }
+
+        directionsServiceRef.current.route(request, (result, status) => {
+            if (status !== window.google.maps.DirectionsStatus.OK || !result) {
+                console.error("Routing error:", status);
+                setHasRoutingError(true);
+                directionsRendererRef.current?.set("directions", null);
+                setTimeout(() => setHasRoutingError(false), 3000);
+                isUpdatingRouteRef.current = false;
+                return;
+            }
+
+            directionsRendererRef.current?.setDirections(result);
+
+            const route = result.routes[0];
+            const legs = route.legs || [];
+
+            const totalDistance = legs.reduce(
+                (sum, leg) => sum + (leg.distance?.value || 0),
+                0
+            );
+            const totalDuration = legs.reduce(
+                (sum, leg) => sum + (leg.duration?.value || 0),
+                0
+            );
+
+            const segmentDurations = legs.map((leg) =>
+                Math.round((leg.duration?.value || 0) / 60)
+            );
+
+            const bounds = new window.google.maps.LatLngBounds();
+            route.overview_path?.forEach((latLng) => bounds.extend(latLng));
+
+            // Build marker labels aligned with legs
+            legs.forEach((leg, idx) => {
+                if (idx === 0) {
+                    addMarker(
+                        leg.start_location,
+                        "#22C55E",
+                        "S",
+                        startLocation?.name || "Start"
+                    );
+                }
+
+                const isLast = idx === legs.length - 1;
+                const label = isLast ? "E" : String(idx + 1);
+                const color = isLast ? "#EF4444" : "#0955AC";
+                const title = isLast
+                    ? endLocation?.name || "End"
+                    : stops[idx]?.destination || `Stop ${idx + 1}`;
+
+                addMarker(leg.end_location, color, label, title);
+            });
+
+            if (!bounds.isEmpty()) {
+                mapInstanceRef.current.fitBounds(bounds, 60);
+            }
+
+            setRouteInfo({
+                totalDistance: (totalDistance / 1000).toFixed(2),
+                totalDuration: Math.round(totalDuration / 60),
+                segments: [],
+            });
+
+            onRouteCalculated?.(Math.round(totalDuration / 60), segmentDurations);
+            setHasRoutingError(false);
+            isUpdatingRouteRef.current = false;
+        });
+    }, [
+        addMarker,
+        clearMarkers,
+        endLocation,
+        renderSingleMarker,
+        routePreference,
+        showAlternatives,
+        startLocation,
+        stops,
+        onRouteCalculated,
+    ]);
+
+    // Recalculate route when inputs change (throttled)
     useEffect(() => {
         if (!isMapReady || !mapInstanceRef.current) return;
         if (isUpdatingRouteRef.current) return;
@@ -193,11 +320,10 @@ const MapComponent = ({
         const locationHash = JSON.stringify({
             start: startLocation?.coordinates,
             end: endLocation?.coordinates,
-            stops: stops?.map(s => s.coordinates)
+            stops: stops?.map((s) => s.coordinates),
         });
 
         if (lastLocationHashRef.current === locationHash) return;
-
         lastLocationHashRef.current = locationHash;
 
         if (routingTimeoutRef.current) {
@@ -206,7 +332,7 @@ const MapComponent = ({
 
         const now = Date.now();
         const timeSinceLastRequest = now - lastRouteRequestRef.current;
-        const minDelay = 2000;
+        const minDelay = 1500;
 
         const executeUpdate = () => {
             if (isUpdatingRouteRef.current) return;
@@ -216,7 +342,10 @@ const MapComponent = ({
         };
 
         if (timeSinceLastRequest < minDelay) {
-            routingTimeoutRef.current = setTimeout(executeUpdate, minDelay - timeSinceLastRequest);
+            routingTimeoutRef.current = setTimeout(
+                executeUpdate,
+                minDelay - timeSinceLastRequest
+            );
         } else {
             executeUpdate();
         }
@@ -226,325 +355,7 @@ const MapComponent = ({
                 clearTimeout(routingTimeoutRef.current);
             }
         };
-    }, [isMapReady, startLocation, endLocation, stops]);
-
-    // Update route function
-    const updateRoute = useCallback(() => {
-        if (!mapInstanceRef.current || hasRoutingError) {
-            isUpdatingRouteRef.current = false;
-            return;
-        }
-
-        const map = mapInstanceRef.current;
-        clearRouteAndMarkers();
-
-        try {
-            if (startLocation?.coordinates && endLocation?.coordinates) {
-                const waypoints = [
-                    window.L.latLng(startLocation.coordinates.lat, startLocation.coordinates.lng)
-                ];
-
-                if (stops && stops.length > 0) {
-                    stops.forEach((stop) => {
-                        if (stop.coordinates) {
-                            waypoints.push(window.L.latLng(stop.coordinates.lat, stop.coordinates.lng));
-                        }
-                    });
-                }
-
-                waypoints.push(window.L.latLng(endLocation.coordinates.lat, endLocation.coordinates.lng));
-
-                const routingControl = window.L.Routing.control({
-                    waypoints: waypoints,
-                    routeWhileDragging: false,
-                    addWaypoints: false,
-                    draggableWaypoints: false,
-                    fitSelectedRoutes: true,
-                    showAlternatives: false,
-                    lineOptions: {
-                        styles: [{
-                            color: "#0955AC",
-                            opacity: 0.8,
-                            weight: 6,
-                        }],
-                        extendToWaypoints: true,
-                        missingRouteTolerance: 1
-                    },
-                    show: false,
-                    router: window.L.Routing.osrmv1({
-                        serviceUrl: 'https://router.project-osrm.org/route/v1',
-                        profile: 'driving',
-                        timeout: 30000,
-                        suppressDemoServerWarning: true,
-                    }),
-                    createMarker: function (i, waypoint, n) {
-                        let markerColor, label;
-
-                        if (i === 0) {
-                            markerColor = "#22C55E";
-                            label = "S";
-                        } else if (i === n - 1) {
-                            markerColor = "#EF4444";
-                            label = "E";
-                        } else {
-                            markerColor = "#0955AC";
-                            label = i.toString();
-                        }
-
-                        const markerIcon = window.L.divIcon({
-                            className: "custom-marker",
-                            html: `
-                                <div style="
-                                    background-color: ${markerColor};
-                                    width: 30px;
-                                    height: 30px;
-                                    border-radius: 50% 50% 50% 0;
-                                    transform: rotate(-45deg);
-                                    border: 3px solid white;
-                                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                ">
-                                    <span style="
-                                        transform: rotate(45deg);
-                                        color: white;
-                                        font-weight: bold;
-                                        font-size: 14px;
-                                    ">${label}</span>
-                                </div>
-                            `,
-                            iconSize: [30, 30],
-                            iconAnchor: [15, 30],
-                        });
-
-                        const marker = window.L.marker(waypoint.latLng, {
-                            icon: markerIcon,
-                            draggable: false,
-                        });
-
-                        const locationName = i === 0
-                            ? startLocation.name
-                            : i === n - 1
-                            ? endLocation.name
-                            : stops[i - 1]?.destination || `Stop ${i}`;
-
-                        marker.bindPopup(`
-                            <div style="min-width: 150px;">
-                                <b style="color: ${markerColor}; font-size: 14px;">
-                                    ${i === 0 ? "Start" : i === n - 1 ? "End" : `Stop ${i}`}
-                                </b><br>
-                                <span style="font-size: 12px; color: #666;">${locationName}</span>
-                            </div>
-                        `, {
-                            maxWidth: 200,
-                            className: 'custom-popup'
-                        });
-
-                        markersRef.current.push(marker);
-                        return marker;
-                    },
-                });
-
-                routingControl.on('routesfound', function(e) {
-                    const routes = e.routes;
-                    const mainRoute = routes[0];
-
-                    const totalDistance = (mainRoute.summary.totalDistance / 1000).toFixed(2);
-                    const totalDuration = Math.round(mainRoute.summary.totalTime / 60);
-
-                    const segments = [];
-                    const segmentDurations = [];
-                    let currentSegmentDuration = 0;
-                    let waypointIndex = 0;
-
-                    for (let i = 0; i < mainRoute.instructions.length; i++) {
-                        const instruction = mainRoute.instructions[i];
-
-                        if (instruction.type === 'WaypointReached' && waypointIndex < mainRoute.waypoints.length - 1) {
-                            segmentDurations.push(Math.round(currentSegmentDuration / 60));
-                            currentSegmentDuration = 0;
-                            waypointIndex++;
-                        } else {
-                            currentSegmentDuration += instruction.time || 0;
-                        }
-
-                        if (instruction.distance) {
-                            segments.push({
-                                distance: (instruction.distance / 1000).toFixed(2),
-                                duration: Math.round(instruction.time / 60),
-                                instruction: instruction.text
-                            });
-                        }
-                    }
-
-                    if (currentSegmentDuration > 0) {
-                        segmentDurations.push(Math.round(currentSegmentDuration / 60));
-                    }
-
-                    setRouteInfo({
-                        totalDistance: totalDistance,
-                        totalDuration: totalDuration,
-                        segments: segments
-                    });
-
-                    if (onRouteCalculated) {
-                        onRouteCalculated(totalDuration, segmentDurations);
-                    }
-
-                    setHasRoutingError(false);
-                    isUpdatingRouteRef.current = false;
-                });
-
-                routingControl.on('routingerror', function(e) {
-                    console.error('Routing error:', e);
-                    setHasRoutingError(true);
-                    isUpdatingRouteRef.current = false;
-
-                    if (routingControlRef.current && map) {
-                        try {
-                            map.removeControl(routingControlRef.current);
-                            routingControlRef.current = null;
-                        } catch (err) {
-                            console.warn('Error removing failed routing control:', err);
-                        }
-                    }
-
-                    const errorStatus = e?.error?.status || e?.error?.target?.status;
-                    if (errorStatus === 429) {
-                        try {
-                            const errorPopup = window.L.popup({
-                                closeButton: true,
-                                closeOnClick: true
-                            })
-                            .setLatLng(map.getCenter())
-                            .setContent(`
-                                <div style="padding: 10px; max-width: 250px;">
-                                    <strong style="color: #DC2626;">Routing Temporarily Unavailable</strong>
-                                    <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">
-                                        Too many requests. Please wait before trying again.
-                                    </p>
-                                </div>
-                            `)
-                            .openOn(map);
-
-                            setTimeout(() => {
-                                try {
-                                    map.closePopup(errorPopup);
-                                } catch (err) {}
-                                setHasRoutingError(false);
-                            }, 5000);
-                        } catch (popupError) {
-                            console.warn('Error showing popup:', popupError);
-                            setTimeout(() => setHasRoutingError(false), 5000);
-                        }
-                    } else {
-                        setTimeout(() => setHasRoutingError(false), 3000);
-                    }
-                });
-
-                routingControl.addTo(map);
-                routingControlRef.current = routingControl;
-
-            } else if (startLocation?.coordinates) {
-                const startMarker = window.L.marker(
-                    [startLocation.coordinates.lat, startLocation.coordinates.lng],
-                    {
-                        icon: window.L.divIcon({
-                            className: "custom-marker",
-                            html: `
-                                <div style="
-                                    background-color: #22C55E;
-                                    width: 30px;
-                                    height: 30px;
-                                    border-radius: 50% 50% 50% 0;
-                                    transform: rotate(-45deg);
-                                    border: 3px solid white;
-                                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                ">
-                                    <span style="
-                                        transform: rotate(45deg);
-                                        color: white;
-                                        font-weight: bold;
-                                        font-size: 14px;
-                                    ">S</span>
-                                </div>
-                            `,
-                            iconSize: [30, 30],
-                            iconAnchor: [15, 30],
-                        }),
-                    }
-                ).addTo(map);
-
-                startMarker.bindPopup(`
-                    <div style="min-width: 150px;">
-                        <b style="color: #22C55E; font-size: 14px;">Start</b><br>
-                        <span style="font-size: 12px; color: #666;">${startLocation.name}</span>
-                    </div>
-                `);
-
-                markersRef.current.push(startMarker);
-                map.setView([startLocation.coordinates.lat, startLocation.coordinates.lng], 13);
-                isUpdatingRouteRef.current = false;
-
-            } else if (endLocation?.coordinates) {
-                const endMarker = window.L.marker(
-                    [endLocation.coordinates.lat, endLocation.coordinates.lng],
-                    {
-                        icon: window.L.divIcon({
-                            className: "custom-marker",
-                            html: `
-                                <div style="
-                                    background-color: #EF4444;
-                                    width: 30px;
-                                    height: 30px;
-                                    border-radius: 50% 50% 50% 0;
-                                    transform: rotate(-45deg);
-                                    border: 3px solid white;
-                                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                ">
-                                    <span style="
-                                        transform: rotate(45deg);
-                                        color: white;
-                                        font-weight: bold;
-                                        font-size: 14px;
-                                    ">E</span>
-                                </div>
-                            `,
-                            iconSize: [30, 30],
-                            iconAnchor: [15, 30],
-                        }),
-                    }
-                ).addTo(map);
-
-                endMarker.bindPopup(`
-                    <div style="min-width: 150px;">
-                        <b style="color: #EF4444; font-size: 14px;">End</b><br>
-                        <span style="font-size: 12px; color: #666;">${endLocation.name}</span>
-                    </div>
-                `);
-
-                markersRef.current.push(endMarker);
-                map.setView([endLocation.coordinates.lat, endLocation.coordinates.lng], 13);
-                isUpdatingRouteRef.current = false;
-            } else {
-                isUpdatingRouteRef.current = false;
-            }
-
-        } catch (error) {
-            console.error('Error updating route:', error);
-            isUpdatingRouteRef.current = false;
-            setHasRoutingError(true);
-            setTimeout(() => setHasRoutingError(false), 3000);
-        }
-    }, [startLocation, endLocation, stops, hasRoutingError, clearRouteAndMarkers, onRouteCalculated]);
-
+    }, [isMapReady, startLocation, endLocation, stops, updateRoute]);
     return (
         <div className="relative w-full h-full">
             <div
@@ -566,7 +377,12 @@ const MapComponent = ({
                 <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 z-[1000] max-w-[250px]">
                     <div className="flex items-center gap-2 mb-2">
                         <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+                            />
                         </svg>
                         <h3 className="font-bold text-sm text-gray-800">Route Info</h3>
                     </div>

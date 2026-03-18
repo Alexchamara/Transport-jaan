@@ -10,18 +10,23 @@ const BookingCancellationModal = ({ booking, isOpen, onClose, onSuccess }) => {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
+    const bookingId = booking?.id;
+    const policyUrl = booking?.policy_url || (bookingId ? `/client/bookings/${bookingId}/cancellation-policy` : null);
+    const cancelUrl = booking?.cancel_url || (bookingId ? `/client/bookings/${bookingId}/cancel-booking` : null);
+    const bookingAmount = Number(booking?.total_amount ?? booking?.amount ?? 0);
+
     // Fetch cancellation policy when modal opens
     React.useEffect(() => {
-        if (isOpen && booking?.id) {
+        if (isOpen && bookingId && policyUrl) {
             fetchCancellationPolicy();
         }
-    }, [isOpen, booking?.id]);
+    }, [isOpen, bookingId, policyUrl]);
 
     const fetchCancellationPolicy = async () => {
         try {
             setLoading(true);
             setError("");
-            const response = await axios.get(`/client/bookings/${booking.id}/cancellation-policy`);
+            const response = await axios.get(policyUrl);
             if (response.data.success) {
                 setPolicyData(response.data);
                 setStep("policy");
@@ -43,7 +48,7 @@ const BookingCancellationModal = ({ booking, isOpen, onClose, onSuccess }) => {
             setError("");
             setStep("processing");
 
-            const response = await axios.post(`/client/bookings/${booking.id}/cancel-booking`, {
+            const response = await axios.post(cancelUrl, {
                 reason: cancellationReason || null,
             });
 
@@ -143,7 +148,7 @@ const BookingCancellationModal = ({ booking, isOpen, onClose, onSuccess }) => {
                                                     <div className="flex justify-between items-center">
                                                         <span className="text-slate-600">Booking Amount:</span>
                                                         <span className="font-semibold text-slate-900">
-                                                            ${booking.total_amount?.toFixed(2) || booking.amount?.toFixed(2) || "0.00"}
+                                                            ${bookingAmount.toFixed(2)}
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between items-center">

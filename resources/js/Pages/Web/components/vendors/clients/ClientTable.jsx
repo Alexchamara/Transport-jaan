@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { usePage, router } from "@inertiajs/react";
 import miniSearchIcon from "../../../assets/vendors/dashboard/icons/miniSearchIcon.svg";
 import miniUp from "../../../assets/vendors/dashboard/icons/miniUp.svg";
@@ -19,6 +19,7 @@ const ClientTable = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isMobile, setIsMobile] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const exportMenuRef = useRef(null);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -26,6 +27,22 @@ const ClientTable = () => {
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+                setShowExportMenu(false);
+            }
+        };
+
+        if (showExportMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showExportMenu]);
 
     // Get clients based on active filter
     const getFilteredClients = () => {
@@ -84,55 +101,59 @@ const ClientTable = () => {
     };
 
     const exportToPDF = () => {
-        // Combine all clients from different categories
-        const allClients = [
-            ...(clientsData?.land || []),
-            ...(clientsData?.air || []),
-            ...(clientsData?.sea || [])
-        ];
+        try {
+            const allClients = [
+                ...(clientsData?.land || []),
+                ...(clientsData?.air || []),
+                ...(clientsData?.sea || [])
+            ];
 
-        if (allClients.length === 0) {
-            alert("No clients to export");
-            return;
-        }
-
-        const doc = new jsPDF();
-        const headers = [["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"]];
-        const data = allClients.map(client => [
-            client.name || "",
-            client.email || "",
-            client.phone || "",
-            client.type || "Rental",
-            client.totalBookings || 0,
-            client.totalSpent || "LKR 0",
-            client.joinDate || ""
-        ]);
-
-        doc.setFontSize(16);
-        doc.text("Clients Report", 14, 10);
-        doc.setFontSize(10);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
-
-        autoTable(doc, {
-            head: headers,
-            body: data,
-            startY: 25,
-            margin: { top: 20, right: 10, bottom: 10, left: 10 },
-            headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
-            alternateRowStyles: { fillColor: [230, 240, 250] },
-            didDrawPage: (data) => {
-                const pageCount = doc.internal.getPages().length;
-                doc.setFontSize(9);
-                doc.text(
-                    `Page ${data.pageNumber} of ${pageCount}`,
-                    doc.internal.pageSize.getWidth() / 2,
-                    doc.internal.pageSize.getHeight() - 10,
-                    { align: 'center' }
-                );
+            if (allClients.length === 0) {
+                alert("No clients to export");
+                return;
             }
-        });
 
-        doc.save(`clients-${new Date().toISOString().slice(0, 10)}.pdf`);
+            const doc = new jsPDF();
+            const headers = [["Name", "Email", "Phone", "Type", "Total Bookings", "Total Spent", "Join Date"]];
+            const data = allClients.map(client => [
+                client.name || "",
+                client.email || "",
+                client.phone || "",
+                client.type || "Rental",
+                client.totalBookings || 0,
+                client.totalSpent || "LKR 0",
+                client.joinDate || ""
+            ]);
+
+            doc.setFontSize(16);
+            doc.text("Clients Report", 14, 10);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
+
+            autoTable(doc, {
+                head: headers,
+                body: data,
+                startY: 25,
+                margin: { top: 20, right: 10, bottom: 10, left: 10 },
+                headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [230, 240, 250] },
+                didDrawPage: (tableData) => {
+                    const pageCount = doc.getNumberOfPages();
+                    doc.setFontSize(9);
+                    doc.text(
+                        `Page ${tableData.pageNumber} of ${pageCount}`,
+                        doc.internal.pageSize.getWidth() / 2,
+                        doc.internal.pageSize.getHeight() - 10,
+                        { align: 'center' }
+                    );
+                }
+            });
+
+            doc.save(`clients-${new Date().toISOString().slice(0, 10)}.pdf`);
+        } catch (error) {
+            console.error("Error exporting to PDF:", error);
+            alert("Error exporting to PDF. Please try again.");
+        }
         setShowExportMenu(false);
     };
 
@@ -267,10 +288,10 @@ console.log("Current Clients:", clients);
                         />
                     </div>
                 </div>
-                <div className="relative">
+                <div className="relative" ref={exportMenuRef}>
                         <button
                             onClick={() => setShowExportMenu(!showExportMenu)}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#3B8F31] text-white rounded-[6px] hover:bg-[#2d6b25] transition text-[14px] sm:text-[16px]"
+                            className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-[6px] hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition text-[14px] sm:text-[16px]"
                         >
                             <Download size={18} />
                             <span>Export</span>

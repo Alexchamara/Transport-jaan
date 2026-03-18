@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { Link } from "@inertiajs/react";
 
 import miles from "../../assets/landVehicleDetails/carSpec/miles.svg";
 import fuel from "../../assets/landVehicleDetails/carSpec/fuel.svg";
@@ -124,15 +125,12 @@ const SeaVehicleDetailsTab = ({ vehicle }) => {
             </div>
           </div>
           <div className="text-[10px] flex flex-col md:flex-row gap-4">
-            <a 
-              href={`tel:${specs.owner.phone}`} 
-              className="min-w-[123px] px-3 h-[29px] bg-[#0955AC] text-[#FFFFFF] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#074a94] transition-colors"
+            <Link
+              href={`/vendors/profile/${vehicle?.provider?.id}`}
+              className="w-[123px] h-[29px] border-[1.5px] border-[#0955AC] bg-[#E8EBEF] text-[#0955AC] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#0955AC] hover:text-white transition-colors"
             >
-              {specs.owner.phone}
-            </a>
-            <div className="w-[123px] h-[29px] border-[1.5px] border-[#0955AC] bg-[#E8EBEF] text-[#0955AC] font-[700] rounded-[5px] flex justify-center items-center cursor-pointer hover:bg-[#0955AC] hover:text-white transition-colors">
               VIEW PROFILE
-            </div>
+            </Link>
           </div>
         </div>
       </div>

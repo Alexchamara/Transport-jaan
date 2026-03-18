@@ -60,6 +60,7 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
   };
 
   const handleRowClick = (booking, index) => {
+    if (booking?.editable === false) return;
     setSelectedBooking({ ...booking, index: startIdx + index });
     setNewPayment(booking.payment);
     setNewPaymentStatus(booking.paymentStatus);
@@ -204,7 +205,7 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
 
           {/* Actions Column */}
           <div className="flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
-            {booking.status !== "Cancelled" && (
+            {booking.canCancel !== false && booking.status !== "Cancelled" && (
               <button
                 onClick={() => {
                   setBookingToCancel(booking);
@@ -309,13 +310,15 @@ const CarBookingTableTwo = ({ bookings = [], setBookings, statusColors }) => {
 
             {/* Mobile Action Buttons */}
             <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
-              <button
-                onClick={() => handleRowClick(booking, idx)}
-                className="flex-1 py-2 px-3 bg-[#0955AC] text-white rounded-lg text-[13px] font-[600] hover:bg-[#0744a0] transition-colors"
-              >
-                View Details
-              </button>
-              {booking.status !== "Cancelled" && (
+              {booking.editable !== false && (
+                <button
+                  onClick={() => handleRowClick(booking, idx)}
+                  className="flex-1 py-2 px-3 bg-[#0955AC] text-white rounded-lg text-[13px] font-[600] hover:bg-[#0744a0] transition-colors"
+                >
+                  View Details
+                </button>
+              )}
+              {booking.canCancel !== false && booking.status !== "Cancelled" && (
                 <button
                   onClick={() => {
                     setBookingToCancel(booking);

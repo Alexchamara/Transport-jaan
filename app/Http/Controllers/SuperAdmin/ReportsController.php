@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\FlightBooking;
 use App\Models\BusBooking;
 use App\Models\TrainBooking;
+use App\Models\AirVehicleBookings;
 use App\Models\SeaVehicleBookings;
 use App\Models\Warehouse\WarehouseBooking;
 use App\Models\Courier\CourierShipment;
@@ -40,16 +41,17 @@ class ReportsController extends Controller
                 ];
             });
 
-        // Get Air bookings
-        $airBookings = FlightBooking::orderBy('created_at', 'desc')
+        // Get Air vehicle bookings
+        $airBookings = AirVehicleBookings::with(['customer', 'schedule'])
+            ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($booking) {
                 return [
                     'id' => $booking->id,
-                    'booking_reference' => $booking->booking_reference ?? 'FB-' . str_pad($booking->id, 6, '0', STR_PAD_LEFT),
+                    'booking_reference' => 'AV-' . str_pad($booking->id, 6, '0', STR_PAD_LEFT),
                     'vehicle_type' => 'Air',
                     'status' => $booking->status,
-                    'final_amount' => 0,
+                    'final_amount' => (float) ($booking->total_amount ?? 0),
                     'created_at' => $booking->created_at->format('Y-m-d H:i:s'),
                 ];
             });
@@ -75,12 +77,12 @@ class ReportsController extends Controller
             ->values();
 
         $stats = [
-            'totalBookings' => Booking::count() + FlightBooking::count() + SeaVehicleBookings::count(),
+            'totalBookings' => Booking::count() + AirVehicleBookings::count() + SeaVehicleBookings::count(),
             'landTotal' => Booking::count(),
-            'airTotal' => FlightBooking::count(),
+            'airTotal' => AirVehicleBookings::count(),
             'seaTotal' => SeaVehicleBookings::count(),
             'landRevenue' => Booking::sum('total_amount'),
-            'airRevenue' => 0, // FlightBooking doesn't have amount field yet
+            'airRevenue' => AirVehicleBookings::sum('total_amount'),
             'seaRevenue' => SeaVehicleBookings::sum('total_amount'),
         ];
 
@@ -138,32 +140,34 @@ class ReportsController extends Controller
      */
     public function airVehicleBookings()
     {
-        $bookings = FlightBooking::orderBy('created_at', 'desc')
+        $bookings = AirVehicleBookings::with(['customer', 'schedule'])
+            ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($booking) {
                 return [
                     'id' => $booking->id,
-                    'booking_reference' => $booking->booking_reference ?? 'FB-' . str_pad($booking->id, 6, '0', STR_PAD_LEFT),
+                    'booking_reference' => 'AV-' . str_pad($booking->id, 6, '0', STR_PAD_LEFT),
                     'status' => $booking->status,
+                    'final_amount' => (float) ($booking->total_amount ?? 0),
                     'created_at' => $booking->created_at->format('Y-m-d H:i:s'),
                     'customer' => [
-                        'name' => $booking->name,
-                        'email' => $booking->email,
-                        'phone' => $booking->phone,
+                        'name' => trim((($booking->customer->first_name ?? '') . ' ' . ($booking->customer->last_name ?? ''))) ?: 'N/A',
+                        'email' => $booking->customer->email ?? 'N/A',
+                        'phone' => $booking->customer->phone ?? 'N/A',
                     ],
                     'route' => [
-                        'from' => $booking->departure_airport,
-                        'to' => $booking->arriving_airport,
+                        'from' => $booking->schedule->pickup_location ?? 'N/A',
+                        'to' => $booking->schedule->dropoff_location ?? 'N/A',
                     ],
-                    'departure_date' => $booking->departure_date,
+                    'departure_date' => $booking->schedule->pickup_at ?? null,
                 ];
             });
 
         $stats = [
-            'totalBookings' => FlightBooking::count(),
-            'totalRevenue' => 0, // No amount field yet
-            'confirmedBookings' => FlightBooking::where('status', 'confirmed')->count(),
-            'pendingBookings' => FlightBooking::where('status', 'pending')->count(),
+            'totalBookings' => AirVehicleBookings::count(),
+            'totalRevenue' => AirVehicleBookings::sum('total_amount'),
+            'confirmedBookings' => AirVehicleBookings::where('status', 'confirmed')->count(),
+            'pendingBookings' => AirVehicleBookings::where('status', 'pending')->count(),
         ];
 
         return Inertia::render('Web/home/SuperAdmin/AirVehicleReports', [

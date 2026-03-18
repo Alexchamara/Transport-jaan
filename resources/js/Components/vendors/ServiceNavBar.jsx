@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import bellIcon from "../../Pages/Web/assets/vendors/dashboard/bell.svg";
+import { installGlobalVendorButtonTracking, logVendorButtonClick } from "../../utils/vendorActivityLogger";
 
 
 const ServiceNavBar = ({ 
@@ -16,6 +17,14 @@ const ServiceNavBar = ({
     const [showModal, setShowModal] = useState(false);
     const [blockedService, setBlockedService] = useState('');
     const [isUnverified, setIsUnverified] = useState(false);
+
+    useEffect(() => {
+        const cleanup = installGlobalVendorButtonTracking({
+            screen: 'vendor_service_navbar',
+        });
+
+        return cleanup;
+    }, []);
 
     // All available services (centralized definition)
     const allServices = [
@@ -71,6 +80,13 @@ const ServiceNavBar = ({
 
     const handleNavbarClick = (e, serviceName, isAccountUnverified) => {
         e.preventDefault();
+        logVendorButtonClick('blocked_nav_service_click', {
+            screen: 'vendor_service_navbar',
+            serviceName,
+            metadata: { account_unverified: Boolean(isAccountUnverified) },
+            description: `Vendor clicked blocked navigation tab: ${serviceName}.`,
+        });
+
         setBlockedService(serviceName);
         setIsUnverified(isAccountUnverified);
         setShowModal(true);
@@ -93,11 +109,24 @@ const ServiceNavBar = ({
 
     const handleRegister = () => {
         const serviceSlug = getServiceSlug(blockedService);
+        logVendorButtonClick('register_from_navbar_modal', {
+            screen: 'vendor_service_navbar',
+            serviceName: blockedService,
+            metadata: { service_slug: serviceSlug },
+            description: `Vendor clicked Register Service from navbar modal for ${blockedService}.`,
+        });
+
         setShowModal(false);
         router.visit(`/vendor/profile?step=2&service=${serviceSlug}`);
     };
 
     const handleCancel = () => {
+        logVendorButtonClick('cancel_navbar_modal', {
+            screen: 'vendor_service_navbar',
+            serviceName: blockedService,
+            description: `Vendor cancelled navbar blocked-service modal for ${blockedService}.`,
+        });
+
         setShowModal(false);
         setBlockedService('');
     };
@@ -117,6 +146,11 @@ const ServiceNavBar = ({
                             <Link
                                 key={idx}
                                 href={service.route}
+                                onClick={() => logVendorButtonClick('service_tab_click', {
+                                    screen: 'vendor_service_navbar',
+                                    serviceName: service.name,
+                                    description: `Vendor clicked service tab: ${service.name}.`,
+                                })}
                                 className={`flex-1 lg:flex-none px-6 py-4 lg:px-8 lg:py-4 text-center font-[500] text-[14px] whitespace-nowrap border-b-4 transition-all rounded-t-lg ${
                                     currentActiveService === service.name 
                                         ? 'border-b-4 border-[#0955AC] bg-[#0955AC29] text-[#0955AC] font-[600]'

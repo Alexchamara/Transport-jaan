@@ -110,8 +110,6 @@ const Hero = ({
     const [q, setQ] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [sortBy, setSortBy] = useState("recent");
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(2);
     const [selectedBookings, setSelectedBookings] = useState([]);
     const [showBulkActions, setShowBulkActions] = useState(false);
     const [dateRange, setDateRange] = useState({ start: "", end: "" });
@@ -157,7 +155,7 @@ const Hero = ({
     // Group bookings by type
     const bookingsByType = useMemo(() => {
         return {
-            vehicle: allBookings.filter(b => b.booking_type === 'vehicle' || b.type === 'vehicle_rental'),
+            vehicle: allBookings.filter(b => ['vehicle', 'air', 'sea'].includes(b.booking_type) || b.type === 'vehicle_rental'),
             warehouse: allBookings.filter(b => b.booking_type === 'warehouse' || b.type === 'warehouse'),
             courier: allBookings.filter(b => b.booking_type === 'courier' || b.type === 'courier' || b.type === 'shipment'),
             train: allBookings.filter(b => b.booking_type === 'train' || b.type === 'train_ticket'),
@@ -214,6 +212,9 @@ const Hero = ({
                     if (bookingType === "logistics") {
                         return ['warehouse', 'courier', 'freight'].includes(b.booking_type);
                     }
+                    if (bookingType === "vehicle") {
+                        return ['vehicle', 'air', 'sea'].includes(b.booking_type);
+                    }
                     return b.booking_type === bookingType;
                 }
                 return true;
@@ -262,12 +263,7 @@ const Hero = ({
         return startDate > new Date() && ['confirmed', 'paid', 'active'].includes(r.status?.toLowerCase());
     }).slice(0, 5);
 
-    // Pagination
-    const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
-    const paginatedBookings = useMemo(() => {
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        return filteredBookings.slice(startIndex, startIndex + itemsPerPage);
-    }, [filteredBookings, currentPage, itemsPerPage]);
+    const visibleBookings = filteredBookings;
 
     // Advanced analytics
     const analytics = useMemo(() => {
@@ -293,10 +289,10 @@ const Hero = ({
 
     // Bulk actions handlers
     const handleSelectAll = () => {
-        if (selectedBookings.length === paginatedBookings.length) {
+        if (selectedBookings.length === visibleBookings.length) {
             setSelectedBookings([]);
         } else {
-            setSelectedBookings(paginatedBookings.map(b => b.id));
+            setSelectedBookings(visibleBookings.map(b => b.id));
         }
     };
 
@@ -864,31 +860,16 @@ const Hero = ({
                                     </button>
                                 </div> */}
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[12px] text-slate-600">
-                                    Page {currentPage} of {totalPages}
-                                </span>
-                                <select
-                                    value={itemsPerPage}
-                                    onChange={(e) => {
-                                        setItemsPerPage(Number(e.target.value));
-                                        setCurrentPage(1);
-                                    }}
-                                    className="h-10 px-3 rounded-lg border border-slate-300 text-[12px] focus:outline-none focus:ring-2 focus:ring-[#0955AC] min-w-[120px]"
-                                >
-                                    <option value={2}>2 per page</option>
-                                    <option value={5}>5 per page</option>
-                                    <option value={10}>10 per page</option>
-                                    <option value={20}>20 per page</option>
-                                    <option value={50}>50 per page</option>
-                                </select>
+                            <div className="text-[12px] text-slate-600">
+                                Showing 3 cards at a time
                             </div>
                         </div>
 
                         {/* Bookings Cards */}
-                        <div className="space-y-4">
-                            {paginatedBookings.length > 0 ? (
-                                paginatedBookings.map((booking) => (
+                        <div className="h-[700px] md:h-[620px] overflow-y-auto pr-1 md:pr-2">
+                            <div className="space-y-4">
+                            {visibleBookings.length > 0 ? (
+                                visibleBookings.map((booking) => (
                                     <motion.div
                                         key={booking.id}
                                         initial={{ opacity: 0, y: 8 }}
@@ -896,7 +877,7 @@ const Hero = ({
                                         transition={{ duration: 0.25 }}
                                     >
                                         <div className="group rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition-all">
-                                            <div className="p-4 sm:p-6">
+                                            <div className="p-4 sm:p-6 min-h-[190px] flex flex-col">
                                                 <div className="flex items-start gap-2 sm:gap-4 mb-3 sm:mb-4">
                                                     <div className="flex flex-col sm:flex-row items-start justify-between flex-1 gap-3">
                                                         <div className="flex items-start gap-2 sm:gap-4 flex-1 w-full">
@@ -951,7 +932,7 @@ const Hero = ({
                                                 </div>
 
                                                 {/* Action Buttons */}
-                                                <div className="flex flex-wrap items-center gap-2 pt-3 sm:pt-4 border-t border-slate-100">
+                                                <div className="mt-auto flex flex-wrap items-center gap-2 pt-3 sm:pt-4 border-t border-slate-100">
                                                     <button
                                                         onClick={() => handleViewDetails(booking)}
                                                         className="flex-1 min-w-[140px] h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl bg-[#0955AC] text-white text-[12px] sm:text-[13px] font-medium hover:bg-[#0744a0] inline-flex items-center justify-center gap-2 touch-manipulation"
@@ -1001,71 +982,15 @@ const Hero = ({
                                     </div>
                                 </div>
                             )}
-                        </div>
-
-                        {/* Pagination Controls */}
-                        {totalPages > 1 && (
-                            <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-                                <div className="text-[12px] sm:text-[13px] text-slate-600 text-center sm:text-left">
-                                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredBookings.length)} of {filteredBookings.length} results
-                                </div>
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                    <button
-                                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                                        disabled={currentPage === 1}
-                                        className="h-9 px-3 rounded-lg border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 inline-flex items-center gap-1 text-[13px] font-medium"
-                                    >
-                                        <ChevronLeft className="h-4 w-4" />
-                                        Previous
-                                    </button>
-                                    
-                                    <div className="flex items-center gap-1">
-                                        {[...Array(Math.min(5, totalPages))].map((_, idx) => {
-                                            let pageNum;
-                                            if (totalPages <= 5) {
-                                                pageNum = idx + 1;
-                                            } else if (currentPage <= 3) {
-                                                pageNum = idx + 1;
-                                            } else if (currentPage >= totalPages - 2) {
-                                                pageNum = totalPages - 4 + idx;
-                                            } else {
-                                                pageNum = currentPage - 2 + idx;
-                                            }
-                                            
-                                            return (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => setCurrentPage(pageNum)}
-                                                    className={`h-9 w-9 rounded-lg text-[13px] font-medium ${
-                                                        currentPage === pageNum
-                                                            ? 'bg-[#0955AC] text-white'
-                                                            : 'border border-slate-200 hover:bg-slate-50'
-                                                    }`}
-                                                >
-                                                    {pageNum}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    <button
-                                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="h-9 px-3 rounded-lg border border-slate-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 inline-flex items-center gap-1 text-[13px] font-medium"
-                                    >
-                                        Next
-                                        <ChevronRightIcon className="h-4 w-4" />
-                                    </button>
-                                </div>
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* Sidebar: Quick Actions */}
                     <div className="space-y-4 md:space-y-6">
                         {/* Quick Actions */}
-                        <div className="rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm">
-                            <div className="px-4 sm:px-6 pt-5 sm:pt-7 pb-4 sm:pb-5">
+                        <div className="rounded-xl md:rounded-2xl bg-white border border-slate-200 shadow-sm md:min-h-[660px]">
+                            <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-5 sm:pb-6">
                                 <h3 className="font-semibold leading-none tracking-tight text-[16px] sm:text-[18px]">
                                     Quick Actions
                                 </h3>
@@ -1073,52 +998,52 @@ const Hero = ({
                                     Book new services
                                 </p>
                             </div>
-                            <div className="px-4 sm:px-6 pb-6 sm:pb-8 space-y-2 font-medium">
+                            <div className="px-4 sm:px-6 pb-8 sm:pb-10 space-y-7 font-medium">
                                 <Link
                                     href="/multiModel/plan-journey"
-                                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
+                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <Car className="h-5 w-5 text-[#0955AC]" />
                                     <span>Rent Vehicle</span>
                                 </Link>
                                 <Link
                                     href="/ticketBooking?type=train"
-                                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
+                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <Train className="h-5 w-5 text-[#0955AC]" />
                                     <span>Book Train</span>
                                 </Link>
                                 <Link
                                     href="/ticketBooking?type=bus"
-                                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
+                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <Bus className="h-5 w-5 text-[#0955AC]" />
                                     <span>Book Bus</span>
                                 </Link>
                                 <Link
                                     href="/ticketBooking?type=flight"
-                                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
+                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <Plane className="h-5 w-5 text-[#0955AC]" />
                                     <span>Book Flight</span>
                                 </Link>
                                 <Link
                                     href="/warehouse"
-                                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
+                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <Warehouse className="h-5 w-5 text-[#0955AC]" />
                                     <span>Book Warehouse</span>
                                 </Link>
                                 <Link
                                     href="/courier-service"
-                                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
+                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <Package className="h-5 w-5 text-[#0955AC]" />
                                     <span>Book Courier</span>
                                 </Link>
                                 <Link
                                     href="/cargo-freight"
-                                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
+                                    className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
                                 >
                                     <Truck className="h-5 w-5 text-[#0955AC]" />
                                     <span>Freight Quote</span>

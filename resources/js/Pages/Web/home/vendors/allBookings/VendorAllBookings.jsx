@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { usePage, Link } from "@inertiajs/react";
 import { Download, ChevronDown as DropdownIcon, Plane, Car, Search as SearchIcon, Filter as FilterIcon, ChevronDown, Zap, Calendar } from "lucide-react";
 import jsPDF from "jspdf";
@@ -104,6 +104,10 @@ const VendorAllBookings = ({
     const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
     const [dateFromFilter, setDateFromFilter] = useState("");
     const [dateToFilter, setDateToFilter] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const perPageOptions = [10, 20, 50];
+    const exportMenuRef = useRef(null);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 640);
@@ -129,18 +133,32 @@ const VendorAllBookings = ({
         return () => clearInterval(interval);
     }, [auth?.user]);
 
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+                setShowExportMenu(false);
+            }
+        };
+
+        if (showExportMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [showExportMenu]);
+
     // Export bookings to CSV
     const exportToCSV = () => {
         try {
-            const headers = ["Booking Code", "Type", "Customer", "Service", "Amount", "Status", "Date"];
+            const headers = ["Booking ID", "Booking Date", "Client Name", "Service", "Travel Dates", "Payment Status", "Status"];
             const data = filteredBookings.map(booking => [
-                booking.booking_code || booking.id,
-                booking.booking_type,
-                booking.customer_name,
-                booking.service_name,
-                booking.total_amount,
-                booking.status,
-                booking.booking_date
+                booking.id || "—",
+                booking.date || "—",
+                booking.customer || "—",
+                booking.transport || "—",
+                `Start: ${booking.startDate || "—"} | End: ${booking.endDate || "—"}`,
+                booking.paymentStatus || "—",
+                booking.status || "—"
             ]);
 
             const csvContent = [
@@ -169,16 +187,16 @@ const VendorAllBookings = ({
         try {
             const doc = new jsPDF();
             const data = filteredBookings.map(booking => [
-                booking.booking_code || booking.id,
-                booking.booking_type,
-                booking.customer_name,
-                booking.service_name,
-                booking.total_amount,
-                booking.status,
-                booking.booking_date
+                booking.id || "—",
+                booking.date || "—",
+                booking.customer || "—",
+                booking.transport || "—",
+                `Start: ${booking.startDate || "—"} | End: ${booking.endDate || "—"}`,
+                booking.paymentStatus || "—",
+                booking.status || "—"
             ]);
 
-            const headers = [["Booking Code", "Type", "Customer", "Service", "Amount", "Status", "Date"]];
+            const headers = [["Booking ID", "Booking Date", "Client Name", "Service", "Travel Dates", "Payment Status", "Status"]];
 
             doc.setFontSize(16);
             doc.text("All Bookings Report", 14, 10);
@@ -217,18 +235,18 @@ const VendorAllBookings = ({
     const exportToXLSX = () => {
         try {
             const data = [
-                ["Booking Code", "Type", "Customer", "Service", "Amount", "Status", "Date"]
+                ["Booking ID", "Booking Date", "Client Name", "Service", "Travel Dates", "Payment Status", "Status"]
             ];
 
             filteredBookings.forEach(booking => {
                 data.push([
-                    booking.booking_code || booking.id,
-                    booking.booking_type,
-                    booking.customer_name,
-                    booking.service_name,
-                    booking.total_amount,
-                    booking.status,
-                    booking.booking_date
+                    booking.id || "—",
+                    booking.date || "—",
+                    booking.customer || "—",
+                    booking.transport || "—",
+                    `Start: ${booking.startDate || "—"} | End: ${booking.endDate || "—"}`,
+                    booking.paymentStatus || "—",
+                    booking.status || "—"
                 ]);
             });
 
@@ -263,18 +281,26 @@ const VendorAllBookings = ({
         setPaymentStatusFilter("All");
         setDateFromFilter("");
         setDateToFilter("");
+        setCurrentPage(1);
+    };
+
+    const formatDisplayDate = (value) => {
+        if (!value) return "—";
+        const text = String(value);
+        if (text.includes("T")) return text.split("T")[0];
+        return text;
     };
 
     // Map a booking to the field names AllBookingTable expects
     const mapToRow = (b) => ({
         id: b.id ?? b.booking_code,
-        date: b.date ?? b.booking_date,
+        date: formatDisplayDate(b.date ?? b.booking_date),
         customer: b.customer ?? b.customer_name,
         transport: b.transport ?? b.car ?? b.service_name,
         details: b.details ?? b.plate ?? b.booking_type,
         duration: b.duration ?? "—",
-        startDate: b.startDate ?? b.start_date ?? "—",
-        endDate: b.endDate ?? b.end_date ?? "—",
+        startDate: formatDisplayDate(b.startDate ?? b.start_date),
+        endDate: formatDisplayDate(b.endDate ?? b.end_date),
         price: b.price ?? (b.total_amount ? `Rs. ${Number(b.total_amount).toLocaleString()}` : "—"),
         paymentStatus: b.paymentStatus ?? b.payment_status ?? "—",
         status: b.status ?? "—",
@@ -298,6 +324,39 @@ const VendorAllBookings = ({
 
         return matchesSearch && matchesType && matchesStatus && matchesPayment && matchesFromDate && matchesToDate;
     }).map(mapToRow);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, statusFilter, typeFilter, paymentStatusFilter, dateFromFilter, dateToFilter]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [rowsPerPage]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredBookings.length / rowsPerPage));
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginatedBookings = filteredBookings.slice(startIndex, endIndex);
+
+    const getPageNumbers = () => {
+        const pages = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 3) {
+            pages.push(1, 2, 3, "...", totalPages);
+        } else if (currentPage >= totalPages - 2) {
+            pages.push(1, "...", totalPages - 2, totalPages - 1, totalPages);
+        } else {
+            pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
+        }
+        return pages;
+    };
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     // Get status styling (matching DashContent)
     const getStatusStyle = (status) => {
@@ -477,18 +536,18 @@ const VendorAllBookings = ({
                                     </div>
 
                                     <button onClick={() => setShowFilters(!showFilters)}
-                                        className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
+                                        className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">
                                         <img
                                             src={filterIcon}
-                                            className="size-[14px] shrink-0 brightness-0 "
+                                            className="size-[14px] shrink-0 brightness-0 group-hover:brightness-0 group-hover:invert"
                                         />
                                         <span>Filter</span>
                                     </button>
 
-                                    <div className="relative">
+                                    <div className="relative" ref={exportMenuRef}>
                                         <button
                                             onClick={() => setShowExportMenu(!showExportMenu)}
-                                            className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
+                                            className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">
                                             <Download size={14} className="shrink-0" />
                                             <span>Export</span>
                                             <DropdownIcon size={12} />
@@ -527,7 +586,7 @@ const VendorAllBookings = ({
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={handleResetFilters}
-                                                className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-blue-700 transition font-[500]"
+                                                className="px-3 py-2 text-[14px] bg-white border border-gray-300 rounded-[6px] text-gray-700 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500]"
                                             >
                                                 Reset Filters
                                             </button>
@@ -540,18 +599,7 @@ const VendorAllBookings = ({
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                                        {/* Search */}
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-[12px] font-[600] text-gray-700">Search</label>
-                                            <input
-                                                type="text"
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                placeholder="Customer, vehicle, ref..."
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                            />
-                                        </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
 
                                         {/* Status */}
                                         <div className="flex flex-col gap-2">
@@ -609,15 +657,71 @@ const VendorAllBookings = ({
 
                                     {/* Results count */}
                                     <div className="mt-3 text-[12px] text-gray-500">
-                                        Showing {filteredBookings.length} of {displayBookings.length} bookings
+                                        Showing {filteredBookings.length === 0 ? 0 : startIndex + 1} to {Math.min(endIndex, filteredBookings.length)} of {filteredBookings.length} bookings
                                     </div>
                                 </div>
                             )}
                         </div>
 
                         <AllBookingTable
-                            rows={filteredBookings}
+                            rows={paginatedBookings}
                         />
+
+                        {filteredBookings.length > 0 && (
+                            <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-2 mt-6 sm:mt-8 px-1">
+                                <div className="flex items-center">
+                                    <span className="mr-2 sm:mr-3 text-[#00000080] text-[13px] sm:text-[15px]">Results per page</span>
+                                    <select
+                                        value={rowsPerPage}
+                                        onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                                        className="rounded px-2 sm:px-3 py-2 font-[600] text-[14px] sm:text-[16px] bg-[#F4F3F3] border border-[#BEBEBE] w-[70px] sm:w-[90px] h-[36px] sm:h-[40px] focus:outline-none"
+                                    >
+                                        {perPageOptions.map((opt) => (
+                                            <option key={opt} value={opt}>{opt}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto max-w-full">
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="size-[36px] sm:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 flex-shrink-0"
+                                        aria-label="Previous page"
+                                    >
+                                        {'<'}
+                                    </button>
+
+                                    {getPageNumbers().map((num, i) =>
+                                        num === "..." ? (
+                                            <span key={`dots-${i}`} className="px-1 sm:px-2">...</span>
+                                        ) : (
+                                            <button
+                                                key={`p-${num}`}
+                                                className={`size-[36px] sm:size-[40px] rounded-[4px] text-[14px] sm:text-[16px] font-[600] flex-shrink-0 ${
+                                                    currentPage === num
+                                                        ? "bg-white border-2 border-[#0955AC] text-[#0955AC]"
+                                                        : "bg-[#F4F3F3]"
+                                                }`}
+                                                onClick={() => setCurrentPage(num)}
+                                                aria-current={currentPage === num ? "page" : undefined}
+                                            >
+                                                {num}
+                                            </button>
+                                        )
+                                    )}
+
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="size-[36px] sm:size-[40px] rounded-[4px] bg-[#F4F3F3] disabled:opacity-50 flex-shrink-0"
+                                        aria-label="Next page"
+                                    >
+                                        {'>'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

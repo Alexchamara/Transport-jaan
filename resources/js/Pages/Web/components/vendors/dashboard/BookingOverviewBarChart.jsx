@@ -3,6 +3,7 @@ import React from "react";
 function BookingOverviewBarChart({ data = [], maxBookings: maxFromProp }) {
   const bookingData = Array.isArray(data) ? data : [];
   const chartHeight = 217; // px
+  const yAxisWidth = 52;
   const maxBookings =
     typeof maxFromProp === "number" && maxFromProp > 0
       ? maxFromProp
@@ -25,7 +26,8 @@ function BookingOverviewBarChart({ data = [], maxBookings: maxFromProp }) {
         if (width < 640) newWidth = Math.min(400, width - 40);
         else if (width < 1024) newWidth = 500;
         setChartWidth(newWidth);
-        const newBarWidth = Math.max(15, (newWidth - 40) / bookingData.length);
+        const pointCount = Math.max(bookingData.length, 1);
+        const newBarWidth = Math.max(15, (newWidth - 40) / pointCount);
         setBarWidth(newBarWidth);
       };
       updateSize();
@@ -37,7 +39,7 @@ function BookingOverviewBarChart({ data = [], maxBookings: maxFromProp }) {
 
   return (
     <div className="max-w-full bg-white overflow-auto">
-      <div className="w-auto h-auto flex flex-col items-stretch relative" style={{ width: `${chartWidth}px` }}>
+      <div className="w-auto h-auto flex flex-col items-stretch relative" style={{ width: `${chartWidth + yAxisWidth}px` }}>
       {/* Chart area: grid lines and bars, fixed height */}
       <div className="relative w-full mt-16" style={{ height: `${chartHeight}px` }}>
         {/* Y-axis grid lines and labels */}
@@ -50,15 +52,23 @@ function BookingOverviewBarChart({ data = [], maxBookings: maxFromProp }) {
                 className="w-full absolute flex items-center"
                 style={{ bottom: `${percentFromBottom}%` }}
               >
-                <span className="text-[14px] text-gray-400 absolute -left-12 -top-7 w-8 text-left" style={{transform: 'translateY(50%)'}}>{v === 1000 ? '1K' : v}</span>
+                <span
+                  className="text-[14px] text-gray-400 absolute left-0 w-[44px] text-right"
+                  style={{ transform: "translateY(50%)" }}
+                >
+                  {v === 1000 ? "1K" : v}
+                </span>
 
-                <div className={`w-full border-t`}></div>
+                <div className="border-t" style={{ width: `${chartWidth}px`, marginLeft: `${yAxisWidth}px` }}></div>
               </div>
             );
           })}
         </div>
         {/* Bars */}
-        <div className="flex flex-row items-end w-full h-full z-30 relative" style={{ height: `${chartHeight}px`, marginBottom: 0 }}>
+        <div
+          className="flex flex-row items-end h-full z-30 relative"
+          style={{ height: `${chartHeight}px`, marginBottom: 0, width: `${chartWidth}px`, marginLeft: `${yAxisWidth}px` }}
+        >
           {bookingData.map((d, i) => (
             <div key={d.name} className="flex flex-col items-center flex-1 relative group">
               {/* Bar */}
@@ -80,7 +90,7 @@ function BookingOverviewBarChart({ data = [], maxBookings: maxFromProp }) {
         </div>
       </div>
       {/* Month labels below chart area */}
-      <div className="flex flex-row items-end w-full z-10 relative" style={{ marginTop: '8px' }}>
+      <div className="flex flex-row items-end z-10 relative" style={{ marginTop: '8px', width: `${chartWidth}px`, marginLeft: `${yAxisWidth}px` }}>
         {bookingData.map((d) => (
           <div key={d.name} className="flex-1 flex justify-center" style={{minWidth: `${barWidth}px`}}>
             <div className="text-[14px] font-[500] text-[#7B7B7A]">{d.name}</div>

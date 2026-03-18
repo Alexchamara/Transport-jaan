@@ -156,7 +156,11 @@ const AllBookingTableTwo = ({ bookings: bookingsProp = [], setBookings, statusCo
   };
 
   const handleRowClick = (booking, index) => {
-    setSelectedBooking({ ...booking, index: startIdx + index });
+    const sourceIndex = Number.isInteger(booking?.__sourceIndex)
+      ? booking.__sourceIndex
+      : startIdx + index;
+
+    setSelectedBooking({ ...booking, index: sourceIndex });
     setNewPayment(booking.payment);
     setNewPaymentStatus(booking.paymentStatus);
     setNewStatus(booking.status);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { usePage, router } from '@inertiajs/react';
 import Card from "./Card";
+import { logVendorButtonClick } from '../../../../../utils/vendorActivityLogger';
 
 const CardDashboard = () => {
   const { auth } = usePage().props;
@@ -9,6 +10,12 @@ const CardDashboard = () => {
   const [blockedService, setBlockedService] = useState('');
 
   const showAccessMessage = (serviceName) => {
+    logVendorButtonClick('open_service_access_modal', {
+      screen: 'vendor_main_dashboard',
+      serviceName,
+      description: `Vendor attempted to open ${serviceName} without access.`,
+    });
+
     setBlockedService(serviceName);
     setShowModal(true);
   };
@@ -27,11 +34,24 @@ const CardDashboard = () => {
 
   const handleRegister = () => {
     const serviceSlug = getServiceSlug(blockedService);
+    logVendorButtonClick('register_blocked_service', {
+      screen: 'vendor_main_dashboard',
+      serviceName: blockedService,
+      metadata: { service_slug: serviceSlug },
+      description: `Vendor clicked Register Service for ${blockedService}.`,
+    });
+
     setShowModal(false);
     router.visit(`/vendor/profile?step=2&service=${serviceSlug}`);
   };
 
   const handleCancel = () => {
+    logVendorButtonClick('cancel_blocked_service_modal', {
+      screen: 'vendor_main_dashboard',
+      serviceName: blockedService,
+      description: `Vendor cancelled blocked-service modal for ${blockedService}.`,
+    });
+
     setShowModal(false);
     setBlockedService('');
   };

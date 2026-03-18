@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Download, ChevronDown as DropdownIcon } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -28,6 +28,29 @@ import car3 from "../../../assets/vendors/dashboard/icons/car3.svg";
 
 import { Link } from "@inertiajs/react";
 import UserDropdown from "../../../components/vendors/UserDropdown";
+
+const PERIOD_OPTIONS = [
+    { value: "3m", label: "Last 3 months" },
+    { value: "6m", label: "Last 6 months" },
+    { value: "8m", label: "Last 8 months" },
+    { value: "12m", label: "Last 12 months" },
+    { value: "year", label: "This Year" },
+];
+
+const normalizePeriod = (period) => {
+    if (period === "month") return "12m";
+    if (["3m", "6m", "8m", "12m", "year"].includes(period)) return period;
+    return "year";
+};
+
+const applyPeriodToSeries = (series, period) => {
+    const source = Array.isArray(series) ? series : [];
+    if (period === "year") return source;
+
+    const months = Number(String(period).replace("m", ""));
+    if (!Number.isFinite(months) || months <= 0) return source;
+    return source.slice(-months);
+};
 
 const DashContent = ({
     cards,
@@ -59,11 +82,92 @@ const DashContent = ({
     // Filter state
     const [showFilters, setShowFilters] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const exportMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+                setShowExportMenu(false);
+            }
+        };
+        if (showExportMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [showExportMenu]);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("All");
     const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
     const [dateFromFilter, setDateFromFilter] = useState("");
     const [dateToFilter, setDateToFilter] = useState("");
+    const [boPeriod, setBoPeriod] = useState(normalizePeriod(filters?.bo_period));
+    const [esPeriod, setEsPeriod] = useState(normalizePeriod(filters?.es_period));
+
+    useEffect(() => {
+        setBoPeriod(normalizePeriod(filters?.bo_period));
+        setEsPeriod(normalizePeriod(filters?.es_period));
+    }, [filters?.bo_period, filters?.es_period]);
+
+    const normalizedBookings = useMemo(() => {
+        if (Array.isArray(bookings)) return bookings;
+        if (Array.isArray(bookings?.data)) return bookings.data;
+        return [];
+    }, [bookings]);
+
+    const parseDateSafe = (value) => {
+        if (!value) return null;
+        const dateObj = new Date(value);
+        if (!Number.isNaN(dateObj.getTime())) return dateObj;
+
+        const normalized = String(value).replace(/,/g, "").trim();
+        const retry = new Date(normalized);
+        if (!Number.isNaN(retry.getTime())) return retry;
+
+        return null;
+    };
+
+    const filteredBookings = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        const fromDate = dateFromFilter ? new Date(`${dateFromFilter}T00:00:00`) : null;
+        const toDate = dateToFilter ? new Date(`${dateToFilter}T23:59:59`) : null;
+
+        return normalizedBookings.filter((row) => {
+            const rowStatus = String(row?.status ?? "");
+            const rowPayment = String(row?.paymentStatus ?? "");
+
+            const rowDate = parseDateSafe(row?.date) || parseDateSafe(row?.startDate);
+
+            const haystack = [
+                row?.id,
+                row?.customer,
+                row?.car,
+                row?.plate,
+                row?.status,
+                row?.paymentStatus,
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            const matchesSearch = !query || haystack.includes(query);
+            const matchesStatus = statusFilter === "All" || rowStatus.toLowerCase() === statusFilter.toLowerCase();
+            const matchesPayment =
+                paymentStatusFilter === "All" ||
+                rowPayment.toLowerCase() === paymentStatusFilter.toLowerCase();
+            const matchesFrom = !fromDate || (rowDate && rowDate >= fromDate);
+            const matchesTo = !toDate || (rowDate && rowDate <= toDate);
+
+            return matchesSearch && matchesStatus && matchesPayment && matchesFrom && matchesTo;
+        });
+    }, [normalizedBookings, searchQuery, statusFilter, paymentStatusFilter, dateFromFilter, dateToFilter]);
+
+    const bookingOverviewDisplay = useMemo(() => {
+        return applyPeriodToSeries(bookingOverview, boPeriod);
+    }, [bookingOverview, boPeriod]);
+
+    const earningSummaryDisplay = useMemo(() => {
+        return applyPeriodToSeries(earningSummary, esPeriod);
+    }, [earningSummary, esPeriod]);
 
     useLayoutEffect(() => {
         const checkMobile = () => {
@@ -75,21 +179,24 @@ const DashContent = ({
 
     // Export bookings to CSV
     const exportToCSV = () => {
-        if (!bookings || bookings.length === 0) {
+        if (!filteredBookings || filteredBookings.length === 0) {
             alert("No bookings to export");
             return;
         }
 
-        const headers = ["Booking Ref", "Customer", "Car", "Start Date", "End Date", "Status", "Payment Status", "Total"];
-        const data = bookings.map(b => [
-            b.bookingRef || "",
-            b.customerName || "",
-            b.carName || "",
+        const headers = ["Booking Ref", "Booking Date", "Client Name", "Vehicle", "Plate", "Plan", "Start Date", "End Date", "Payment", "Payment Status", "Status"];
+        const data = filteredBookings.map(b => [
+            b.id || "",
+            b.date || "",
+            b.customer || "",
+            b.car || "",
+            b.plate || "",
+            b.duration || "",
             b.startDate || "",
             b.endDate || "",
-            b.status || "",
+            b.price || "",
             b.paymentStatus || "",
-            b.totalPrice || ""
+            b.status || ""
         ]);
 
         const csvContent = [
@@ -101,7 +208,7 @@ const DashContent = ({
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `car-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.setAttribute("download", `vehicle-bookings-${new Date().toISOString().slice(0, 10)}.csv`);
         link.style.visibility = "hidden";
         document.body.appendChild(link);
         link.click();
@@ -111,27 +218,30 @@ const DashContent = ({
 
     // Export bookings to PDF
     const exportToPDF = () => {
-        if (!bookings || bookings.length === 0) {
+        if (!filteredBookings || filteredBookings.length === 0) {
             alert("No bookings to export");
             return;
         }
 
-        const doc = new jsPDF();
-        const data = bookings.map(b => [
-            b.bookingRef || "",
-            b.customerName || "",
-            b.carName || "",
+        const doc = new jsPDF({ orientation: 'landscape' });
+        const data = filteredBookings.map(b => [
+            b.id || "",
+            b.date || "",
+            b.customer || "",
+            b.car || "",
+            b.plate || "",
+            b.duration || "",
             b.startDate || "",
             b.endDate || "",
-            b.status || "",
+            b.price || "",
             b.paymentStatus || "",
-            b.totalPrice || ""
+            b.status || ""
         ]);
 
-        const headers = [["Booking Ref", "Customer", "Car", "Start Date", "End Date", "Status", "Payment Status", "Total"]];
+        const headers = [["Booking Ref", "Booking Date", "Client Name", "Vehicle", "Plate", "Plan", "Start Date", "End Date", "Payment", "Pay. Status", "Status"]];
 
         doc.setFontSize(16);
-        doc.text("Car Bookings Report", 14, 10);
+        doc.text("Vehicle Bookings Report", 14, 10);
         doc.setFontSize(10);
         doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 18);
 
@@ -143,7 +253,7 @@ const DashContent = ({
             headStyles: { fillColor: [9, 85, 172], textColor: 255, fontStyle: 'bold' },
             alternateRowStyles: { fillColor: [230, 240, 250] },
             didDrawPage: (data) => {
-                const pageCount = doc.internal.getPages().length;
+                const pageCount = doc.internal.getNumberOfPages();
                 doc.setFontSize(9);
                 doc.text(
                     `Page ${data.pageNumber} of ${pageCount}`,
@@ -154,37 +264,40 @@ const DashContent = ({
             }
         });
 
-        doc.save(`car-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
+        doc.save(`vehicle-bookings-${new Date().toISOString().slice(0, 10)}.pdf`);
         setShowExportMenu(false);
     };
 
     // Export bookings to XLSX
     const exportToXLSX = () => {
         try {
-            if (!bookings || bookings.length === 0) {
+            if (!filteredBookings || filteredBookings.length === 0) {
                 alert("No bookings to export");
                 return;
             }
 
             const data = [
-                ["Booking Ref", "Customer", "Car", "Start Date", "End Date", "Status", "Payment Status", "Total"],
-                ...bookings.map(b => [
-                    b.bookingRef || "",
-                    b.customerName || "",
-                    b.carName || "",
+                ["Booking Ref", "Booking Date", "Client Name", "Vehicle", "Plate", "Plan", "Start Date", "End Date", "Payment", "Payment Status", "Status"],
+                ...filteredBookings.map(b => [
+                    b.id || "",
+                    b.date || "",
+                    b.customer || "",
+                    b.car || "",
+                    b.plate || "",
+                    b.duration || "",
                     b.startDate || "",
                     b.endDate || "",
-                    b.status || "",
+                    b.price || "",
                     b.paymentStatus || "",
-                    b.totalPrice || ""
+                    b.status || ""
                 ])
             ];
 
             const worksheet = XLSX.utils.aoa_to_sheet(data);
             const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Car Bookings");
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Vehicle Bookings");
 
-            XLSX.writeFile(workbook, `car-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
+            XLSX.writeFile(workbook, `vehicle-bookings-${new Date().toISOString().slice(0, 10)}.xlsx`);
         } catch (error) {
             console.error("Error exporting to XLSX:", error);
             alert("Error exporting to XLSX. Please try again.");
@@ -219,10 +332,10 @@ const DashContent = ({
             : n;
 
     return (
-        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12">
+        <div className="w-full max-w-full px-3 sm:px-5 lg:px-8 xl:pr-8 xl:pl-6 pt-6 pb-12 overflow-x-hidden">
             {/* Header */}
-            <div className="flex md:flex-row flex-col gap-5 justify-between xl:items-start items-center mb-6">
-                <h1 className="figtree text-[24px] sm:text-[28px] md:text-[35px] font-[700] text-center">
+            <div className="flex md:flex-row flex-col gap-5 justify-between xl:items-start items-start mb-6">
+                <h1 className="figtree text-[24px] sm:text-[28px] md:text-[35px] font-[700] text-left break-words">
                     Vehicle Rental Dashboard
                 </h1>
             </div>
@@ -238,7 +351,7 @@ const DashContent = ({
                         <p className="text-red-700 text-[13px] mt-0.5">The following driver(s) have been deactivated due to an expired license. Submit a renewed license document for admin review to reactivate.</p>
                         <ul className="mt-2 space-y-1">
                             {expiredDrivers.map(r => (
-                                <li key={r.id} className="text-red-700 text-[12px] flex items-center gap-2">
+                                <li key={r.id} className="text-red-700 text-[12px] flex flex-wrap items-start gap-2">
                                     <span className="font-semibold">{r.full_name}</span>
                                     <span>— expired {r.license_expiry}</span>
                                     <Link
@@ -255,16 +368,16 @@ const DashContent = ({
             )}
 
             <div className="flex flex-col gap-5 w-full">
-                {/* Top Section: Cards + Car Availability */}
-                <div className="flex flex-col xl:flex-row gap-5 w-full">
-                    {/* Left - Cards */}
-                    <div className="flex flex-col gap-10 w-full xl:w-1/2">
+                {/* Top Section: KPI Cards */}
+                <div className="flex flex-col xl:flex-row gap-5 w-full xl:items-start">
+                    {/* Cards */}
+                    <div className="flex flex-col gap-10 w-full">
                         {/* Cards */}
                         <div className="flex flex-col gap-5">
-                            <div className="flex xl:flex-row flex-col gap-5 justify-between w-full">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
                                 {/* Total Revenue */}
                                 <div
-                                    className="w-full xl:min-w-[300px] min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -280,7 +393,7 @@ const DashContent = ({
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
                                                 Total Revenue
                                             </h1>
-                                            <h1 className="text-[18px] md:text-[24px] font-[700] truncate">
+                                            <h1 className="text-[18px] md:text-[24px] font-[700] leading-tight">
                                                 {fmtMoney(
                                                     cards?.totalRevenue ?? 0
                                                 )}
@@ -305,7 +418,7 @@ const DashContent = ({
 
                                 {/* New Bookings */}
                                 <div
-                                    className="w-full xl:min-w-[300px] min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -343,10 +456,10 @@ const DashContent = ({
                                 </div>
                             </div>
 
-                            <div className="flex xl:flex-row flex-col gap-5 w-full">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
                                 {/* Rented Cars */}
                                 <div
-                                    className="w-full xl:min-w-[300px] min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -360,7 +473,7 @@ const DashContent = ({
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
-                                                Rented Cars
+                                                Rented Vehicles
                                             </h1>
                                             <h1 className="text-[18px] md:text-[24px] font-[700]">
                                                 {cards?.rentedCars ?? 0} Units
@@ -385,7 +498,7 @@ const DashContent = ({
 
                                 {/* Total Cars */}
                                 <div
-                                    className="w-full xl:min-w-[300px] md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
+                                    className="w-full md:max-w-none min-h-[91px] bg-white rounded-[8px] flex justify-between items-center gap-2 px-3 md:px-5 py-2"
                                     style={{
                                         boxShadow: "4px 4px 4px #0000001A",
                                     }}
@@ -399,7 +512,7 @@ const DashContent = ({
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <h1 className="text-[12px] md:text-[14px] font-[500] text-[#7B7B7A]">
-                                                Total Cars
+                                                Total Vehicles
                                             </h1>
                                             <h1 className="text-[18px] md:text-[24px] font-[700]">
                                                 {cards?.totalCars ?? 0} Units
@@ -424,69 +537,20 @@ const DashContent = ({
                             </div>
                         </div>
                     </div>
-
-                    {/* Right - Car Availability */}
-                    <div className="flex flex-col w-full xl:w-1/2">
-                        <div
-                            className="hidden xl:flex bg-[#D8E4F2] flex-col px-5 py-5 justify-center items-center rounded-[10px] w-full"
-                            style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                        >
-                            <h1 className="text-[20px] md:text-[24px] font-[700] mb-3">
-                                Car Availability
-                            </h1>
-                            <div className="flex flex-col gap-3 w-full max-w-[283px] items-center">
-                                <div className="w-full xl:w-[283px] xl:h-[35px] flex flex-row items-center gap-2 rounded-[6px] px-3 py-2 bg-white">
-                                    <img src={car} className="size-[20px]" />
-                                    <input
-                                        className="w-full outline-none bg-transparent border-0 focus:ring-0"
-                                        placeholder="Car Type"
-                                    />
-                                    <img src={miniDownArrow} />
-                                </div>
-
-                                <div className="flex flex-row gap-3 w-full">
-                                    <div className="flex-1 xl:w-[137px] xl:h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
-                                        <img
-                                            src={date}
-                                            className="size-[20px] shrink-0"
-                                        />
-                                        <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
-                                            placeholder="Start date"
-                                        />
-                                    </div>
-                                    <div className="flex-1 xl:w-[137px] h-[35px] bg-white rounded-[6px] flex flex-row items-center gap-2 py-2 px-3">
-                                        <img
-                                            src={clock}
-                                            className="size-[16px] shrink-0"
-                                        />
-                                        <input
-                                            className="w-full outline-none bg-transparent border-0 focus:ring-0 text-sm"
-                                            placeholder="Start time"
-                                        />
-                                    </div>
-                                </div>
-
-                                <button className="w-full xl:w-[283px] xl:h-[40px] bg-[#0955AC] rounded-[6px] text-[14px] md:text-[16px] font-[700] text-white border-0 focus:ring-0 py-2">
-                                    Check Availability
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Bottom Section: Booking, Overview & Earning */}
                 <div className="flex flex-col gap-10 w-full">
                         {/* Bookings table */}
                         <div
-                            className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-15 px-3 md:px-10"
+                            className="w-full max-w-full h-auto bg-white flex flex-col justify-center items-center rounded-[10px] py-6 md:py-10 px-3 sm:px-5 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col gap-4 w-full">
                                 {/* Header and Buttons */}
                                 <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4 w-full">
                                     <h1 className="text-[20px] md:text-[24px] font-[700]">
-                                        Car Booking
+                                        Vehicle Booking
                                     </h1>
 
                                     <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -505,18 +569,18 @@ const DashContent = ({
                                         </div>
 
                                         <button onClick={() => setShowFilters(!showFilters)} 
-                                            className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">
+                                            className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">
                                                     <img
                                                     src={filterIcon}
-                                                    className="size-[14px] shrink-0 brightness-0 "
+                                                    className="size-[14px] shrink-0 brightness-0 group-hover:brightness-0 group-hover:invert"
                                                 />
                                             <span>Filter</span>
                                         </button>
 
-                                        <div className="relative">
+                                        <div className="relative" ref={exportMenuRef}>
                                             <button 
                                                 onClick={() => setShowExportMenu(!showExportMenu)} 
-                                                className="w-full lg:w-auto xl:w-[115px] xl:h-[35px] text-white-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] transition font-[500] text-[14px]">    
+                                                className="w-full sm:w-auto min-w-[110px] h-[35px] bg-white border border-gray-300 text-gray-700 rounded-[6px] flex flex-row items-center justify-center gap-2 py-2 px-4 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500] text-[14px] group">    
                                                 <Download size={14} className="shrink-0" />
                                                 <span>Export</span>
                                                 <DropdownIcon size={12} />
@@ -555,7 +619,7 @@ const DashContent = ({
                                              <div className="flex items-center gap-2">
                                                 <button
                                                 onClick={handleResetFilters}
-                                                    className="px-2 py-2 text-[14px] text-gray-700 border border-gray-300 rounded-[6px] hover:bg-blue-700 transition font-[500]"
+                                                    className="px-3 py-2 text-[14px] bg-white border border-gray-300 rounded-[6px] text-gray-700 hover:bg-[#0955AC] hover:text-white hover:border-[#0955AC] transition font-[500]"
                                                 >
                                                     Reset Filters
                                                 </button>
@@ -568,19 +632,8 @@ const DashContent = ({
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                                            {/* Search */}
-                                            <div className="flex flex-col gap-2">
-                                                <label className="text-[12px] font-[600] text-gray-700">Search</label>
-                                                <input
-                                                    type="text"
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                    placeholder="Customer, vehicle, ref..."
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-[6px] text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0955AC]"
-                                                />
-                                            </div>
-
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                                            
                                             {/* Status */}
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-[12px] font-[600] text-gray-700">Status</label>
@@ -637,39 +690,46 @@ const DashContent = ({
 
                                         {/* Results count */}
                                         <div className="mt-3 text-[12px] text-gray-500">
-                                            Showing {bookings?.length || 0} of {bookings?.length || 0} bookings
+                                            Showing {filteredBookings.length} of {normalizedBookings.length} bookings
                                         </div>
                                     </div>
                                 )}
                             </div>
 
                             <CarBookingTable
-                                rows={bookings ?? []}
+                                rows={filteredBookings}
                             />
                         </div>
 
                         {/* Booking Overview */}
                         <div
-                            className="w-full max-w-full h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-10 px-10"
+                            className="w-full max-w-full h-auto bg-[#FFFFFF] flex flex-col justify-center items-center rounded-[10px] py-8 md:py-10 px-4 sm:px-6 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-16 w-full gap-4">
                                 <h1 className="text-[20px] md:text-[24px] font-[700]">
                                     Booking Overview
                                 </h1>
-                                <div className="w-[113px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
-                                    <h1 className="text-[#00000080] font-[600] text-[14px]">
-                                        {filters?.bo_period === "month"
-                                            ? "This Month"
-                                            : "This Year"}
-                                    </h1>
-                                    <img src={miniDownArrow} />
+                                <div className="relative w-[154px] h-[38px] bg-[#D9D9D94F] rounded-[6px]">
+                                    <select
+                                        value={boPeriod}
+                                        onChange={(e) => setBoPeriod(e.target.value)}
+                                        className="w-full h-full rounded-[6px] bg-transparent text-[#00000080] font-[600] text-[14px] pl-3 pr-8 appearance-none outline-none cursor-pointer"
+                                        aria-label="Booking overview period"
+                                    >
+                                        {PERIOD_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <img src={miniDownArrow} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" alt="" />
                                 </div>
                             </div>
                             <div className="w-full min-w-0 flex flex-col justify-center items-center">
                                 {isMobile ? (
                                     <div className="flex flex-col gap-2">
-                                        {(bookingOverview ?? []).map((item, index) => (
+                                        {bookingOverviewDisplay.map((item, index) => (
                                             <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
                                                 <span className="font-medium text-gray-700">{item.name}</span>
                                                 <span className="font-bold text-blue-600">{item.bookings} bookings</span>
@@ -678,7 +738,7 @@ const DashContent = ({
                                     </div>
                                 ) : (
                                     <BookingOverviewBarChart
-                                        data={bookingOverview ?? []}
+                                        data={bookingOverviewDisplay}
                                     />
                                 )}
                             </div>
@@ -686,26 +746,33 @@ const DashContent = ({
 
                         {/* Earning Summary */}
                         <div
-                            className="w-full max-w-full min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-10 px-10"
+                            className="w-full max-w-full min-h-[381px] bg-[#FFFFFF] rounded-[10px] py-8 md:py-10 px-4 sm:px-6 md:px-10"
                             style={{ boxShadow: "4px 4px 4px #0000001A" }}
                         >
                             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 md:mb-12 w-full gap-4">
                                 <h1 className="text-[20px] md:text-[24px] font-[700]">
                                     Earning Summary
                                 </h1>
-                                <div className="w-[132px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex flex-row justify-center items-center gap-3">
-                                    <h1 className="text-[#00000080] font-[600] text-[14px]">
-                                        {filters?.es_period === "month"
-                                            ? "This Month"
-                                            : "This Year"}
-                                    </h1>
-                                    <img src={miniDownArrow} />
+                                <div className="relative w-[154px] h-[38px] bg-[#D9D9D94F] rounded-[6px]">
+                                    <select
+                                        value={esPeriod}
+                                        onChange={(e) => setEsPeriod(e.target.value)}
+                                        className="w-full h-full rounded-[6px] bg-transparent text-[#00000080] font-[600] text-[14px] pl-3 pr-8 appearance-none outline-none cursor-pointer"
+                                        aria-label="Earning summary period"
+                                    >
+                                        {PERIOD_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <img src={miniDownArrow} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" alt="" />
                                 </div>
                             </div>
                             <div className="w-full min-w-0">
                                 {isMobile ? (
                                     <div className="flex flex-col gap-2">
-                                        {(earningSummary ?? []).map((item, index) => (
+                                        {earningSummaryDisplay.map((item, index) => (
                                             <div key={index} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-md">
                                                 <span className="font-medium text-gray-700">{item.name}</span>
                                                 <span className="font-bold text-green-600">${Number(item.value || 0).toLocaleString()}</span>
@@ -714,7 +781,7 @@ const DashContent = ({
                                     </div>
                                 ) : (
                                     <EarningSummaryChart
-                                        data={earningSummary ?? []}
+                                        data={earningSummaryDisplay}
                                     />
                                 )}
                             </div>

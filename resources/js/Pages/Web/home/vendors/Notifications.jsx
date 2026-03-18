@@ -382,8 +382,7 @@ const NotificationsPage = () => {
           )}
         </div>
       </div>
-    </div>
-    </VendorShellLayout >
+    </VendorShellLayout>
   );
 };
 

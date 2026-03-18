@@ -164,7 +164,12 @@ const HeaderTwo = () => {
                         />
                     </div>
                     <div className="relative">
-                        <div className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center cursor-pointer" onClick={() => toggleDropdown("profile")}>
+                        <button
+                            type="button"
+                            className="size-[27px] md:size-[55px] rounded-full overflow-hidden bg-[#E8EBEF] flex justify-center items-center cursor-pointer"
+                            onClick={() => toggleDropdown("profile")}
+                            aria-label="Open profile menu"
+                        >
                             {auth?.user?.image ? (
                                 <img
                                     src={auth.user.image}
@@ -178,17 +183,46 @@ const HeaderTwo = () => {
                                     alt="Profile"
                                 />
                             )}
-                        </div>
+                        </button>
                         {openDropdown.profile && (
-                            <div className="absolute top-full mt-2 right-0 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[120px]">
-                                <Link
-                                    href="/multiModel/reviewJourney"
-                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            <>
+                                <div
+                                    className="fixed inset-0 z-40"
                                     onClick={() => setOpenDropdown(prev => ({ ...prev, profile: false }))}
-                                >
-                                    Review Tab
-                                </Link>
-                            </div>
+                                />
+                                <div className="absolute top-full mt-2 right-0 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 min-w-[250px] overflow-hidden">
+                                    {auth?.user && (
+                                        <div className="px-4 py-3 border-b border-gray-100">
+                                            <p className="text-sm font-semibold text-gray-800 truncate">{auth.user.name}</p>
+                                            <p className="text-xs text-gray-500 truncate">{auth.user.email}</p>
+                                        </div>
+                                    )}
+
+                                    <Link
+                                        href="/clientDashboardSettings"
+                                        onClick={() => setOpenDropdown(prev => ({ ...prev, profile: false }))}
+                                        className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                        My Profile
+                                    </Link>
+
+                                    <button
+                                        onClick={(e) => {
+                                            setOpenDropdown(prev => ({ ...prev, profile: false }));
+                                            handleLogout(e);
+                                        }}
+                                        className="w-full text-left flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                        Logout
+                                    </button>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>

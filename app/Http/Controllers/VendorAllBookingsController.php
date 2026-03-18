@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\AirVehicleBookings;
+use App\Models\SeaVehicleBookings;
 use App\Models\FlightBooking;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -21,20 +23,53 @@ class VendorAllBookingsController extends Controller
             abort(403, 'Unauthorized access');
         }
 
-        // Fetch vehicle bookings where vendor is the provider
-        $vehicleBookings = Booking::whereHas('vehicle', function($q) use ($vendorId) {
+        $resolveCustomerName = static function ($customer, $client): string {
+            $fullName = trim((string) data_get($customer, 'full_name'));
+            if ($fullName !== '') {
+                return $fullName;
+            }
+
+            $combinedName = trim(
+                trim((string) data_get($customer, 'first_name'))
+                . ' ' .
+                trim((string) data_get($customer, 'last_name'))
+            );
+            if ($combinedName !== '') {
+                return $combinedName;
+            }
+
+            $customerName = trim((string) data_get($customer, 'name'));
+            if ($customerName !== '') {
+                return $customerName;
+            }
+
+            $clientName = trim((string) data_get($client, 'name'));
+            if ($clientName !== '') {
+                return $clientName;
+            }
+
+            $clientFullName = trim((string) data_get($client, 'full_name'));
+            if ($clientFullName !== '') {
+                return $clientFullName;
+            }
+
+            return 'N/A';
+        };
+
+        // Fetch land vehicle bookings where vendor is the provider
+        $landVehicleBookings = Booking::whereHas('vehicle', function($q) use ($vendorId) {
             $q->where('provider_id', $vendorId);
         })
             ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
             ->get()
-            ->map(function($booking) {
+            ->map(function($booking) use ($resolveCustomerName) {
                 $vehicle = $booking->vehicle;
                 $client = $booking->client;
                 $customer = $booking->customer;
                 $schedule = $booking->schedule;
                 
                 return [
-                    'id' => $booking->id,
+                    'id' => 'BKG-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
                     'booking_type' => 'vehicle',
                     'service_name' => 'Vehicle Rental',
                     'vehicle_name' => $vehicle->name ?? null,
@@ -53,7 +88,7 @@ class VendorAllBookingsController extends Controller
                     'created_at' => $booking->created_at,
                     
                     // Client Information
-                    'customer_name' => $customer->name ?? $client->name ?? null,
+                    'customer_name' => $resolveCustomerName($customer, $client),
                     'customer_email' => $customer->email ?? $client->email ?? null,
                     'customer_phone' => $customer->phone ?? $client->phone ?? null,
                     'customer_address' => $customer->address ?? $client->address ?? null,
@@ -70,6 +105,105 @@ class VendorAllBookingsController extends Controller
                     'rental_days' => $booking->rental_days,
                 ];
             });
+
+        // Fetch air vehicle bookings where vendor is the provider
+        $airVehicleBookings = AirVehicleBookings::whereHas('vehicle', function($q) use ($vendorId) {
+            $q->where('provider_id', $vendorId);
+        })
+            ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
+            ->get()
+            ->map(function($booking) use ($resolveCustomerName) {
+                $vehicle = $booking->vehicle;
+                $client = $booking->client;
+                $customer = $booking->customer;
+                $schedule = $booking->schedule;
+
+                return [
+                    'id' => 'ABK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                    'booking_type' => 'vehicle',
+                    'service_name' => 'Vehicle Rental',
+                    'vehicle_name' => $vehicle->name ?? null,
+                    'vehicle_category' => $vehicle->category ?? null,
+                    'status' => $booking->status,
+                    'total_amount' => $booking->total_amount,
+                    'amount' => $booking->total_amount,
+                    'booking_date' => $booking->created_at->format('Y-m-d'),
+                    'start_date' => optional($booking->start_date)->format('Y-m-d'),
+                    'end_date' => optional($booking->end_date)->format('Y-m-d'),
+                    'pickup_location' => $schedule->pickup_location ?? null,
+                    'dropoff_location' => $schedule->dropoff_location ?? null,
+                    'booking_code' => 'ABK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                    'reference_number' => 'ABK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                    'currency' => $booking->currency ?? 'LKR',
+                    'created_at' => $booking->created_at,
+
+                    'customer_name' => $resolveCustomerName($customer, $client),
+                    'customer_email' => $customer->email ?? $client->email ?? null,
+                    'customer_phone' => $customer->phone ?? $client->phone ?? null,
+                    'customer_address' => $customer->address ?? $client->address ?? null,
+
+                    'payment_method' => $booking->payments->first()->payment_method ?? 'Not specified',
+                    'payment_status' => $booking->payments->first()->status ?? $booking->status,
+
+                    'notes' => $booking->notes,
+                    'subtotal' => $booking->subtotal,
+                    'deposit_amount' => $booking->deposit_amount,
+                    'price_per_day' => $booking->price_per_day,
+                    'rental_days' => $booking->rental_days,
+                ];
+            });
+
+        // Fetch sea vehicle bookings where vendor is the provider
+        $seaVehicleBookings = SeaVehicleBookings::whereHas('vehicle', function($q) use ($vendorId) {
+            $q->where('provider_id', $vendorId);
+        })
+            ->with(['vehicle.provider', 'client', 'customer', 'schedule', 'payments'])
+            ->get()
+            ->map(function($booking) use ($resolveCustomerName) {
+                $vehicle = $booking->vehicle;
+                $client = $booking->client;
+                $customer = $booking->customer;
+                $schedule = $booking->schedule;
+
+                return [
+                    'id' => 'SBK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                    'booking_type' => 'vehicle',
+                    'service_name' => 'Vehicle Rental',
+                    'vehicle_name' => $vehicle->name ?? null,
+                    'vehicle_category' => $vehicle->category ?? null,
+                    'status' => $booking->status,
+                    'total_amount' => $booking->total_amount,
+                    'amount' => $booking->total_amount,
+                    'booking_date' => $booking->created_at->format('Y-m-d'),
+                    'start_date' => optional($booking->start_date)->format('Y-m-d'),
+                    'end_date' => optional($booking->end_date)->format('Y-m-d'),
+                    'pickup_location' => $schedule->pickup_location ?? null,
+                    'dropoff_location' => $schedule->dropoff_location ?? null,
+                    'booking_code' => 'SBK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                    'reference_number' => 'SBK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                    'currency' => $booking->currency ?? 'LKR',
+                    'created_at' => $booking->created_at,
+
+                    'customer_name' => $resolveCustomerName($customer, $client),
+                    'customer_email' => $customer->email ?? $client->email ?? null,
+                    'customer_phone' => $customer->phone ?? $client->phone ?? null,
+                    'customer_address' => $customer->address ?? $client->address ?? null,
+
+                    'payment_method' => $booking->payments->first()->payment_method ?? 'Not specified',
+                    'payment_status' => $booking->payments->first()->status ?? $booking->status,
+
+                    'notes' => $booking->notes,
+                    'subtotal' => $booking->subtotal,
+                    'deposit_amount' => $booking->deposit_amount,
+                    'price_per_day' => $booking->price_per_day,
+                    'rental_days' => $booking->rental_days,
+                ];
+            });
+
+        $vehicleBookings = collect($landVehicleBookings)
+            ->merge($airVehicleBookings)
+            ->merge($seaVehicleBookings)
+            ->values();
 
         // Fetch all flight bookings
         $flightBookings = FlightBooking::with(['user'])
@@ -310,13 +444,46 @@ class VendorAllBookingsController extends Controller
             abort(403, 'Unauthorized access');
         }
 
+        $resolveCustomerName = static function ($customer, $client): string {
+            $fullName = trim((string) data_get($customer, 'full_name'));
+            if ($fullName !== '') {
+                return $fullName;
+            }
+
+            $combinedName = trim(
+                trim((string) data_get($customer, 'first_name'))
+                . ' ' .
+                trim((string) data_get($customer, 'last_name'))
+            );
+            if ($combinedName !== '') {
+                return $combinedName;
+            }
+
+            $customerName = trim((string) data_get($customer, 'name'));
+            if ($customerName !== '') {
+                return $customerName;
+            }
+
+            $clientName = trim((string) data_get($client, 'name'));
+            if ($clientName !== '') {
+                return $clientName;
+            }
+
+            $clientFullName = trim((string) data_get($client, 'full_name'));
+            if ($clientFullName !== '') {
+                return $clientFullName;
+            }
+
+            return 'N/A';
+        };
+
         // ── Vehicle bookings ──────────────────────────────────────────────────
-        $vehicleBookings = Booking::whereHas('vehicle', function ($q) use ($vendorId) {
+        $landVehicleBookings = Booking::whereHas('vehicle', function ($q) use ($vendorId) {
             $q->where('provider_id', $vendorId);
         })
             ->with(['vehicle', 'client', 'customer', 'schedule', 'payments'])
             ->get()
-            ->map(function ($booking) {
+            ->map(function ($booking) use ($resolveCustomerName) {
                 $vehicle  = $booking->vehicle;
                 $customer = $booking->customer;
                 $client   = $booking->client;
@@ -330,10 +497,10 @@ class VendorAllBookingsController extends Controller
                     'payment_status'=> $booking->payments->first()?->status ?? 'Pending',
                     'total_amount'  => $booking->total_amount,
                     'booking_date'  => $booking->created_at->format('Y-m-d'),
-                    'start_date'    => $booking->start_date ?? null,
-                    'end_date'      => $booking->end_date ?? null,
+                    'start_date'    => optional($booking->start_date)->format('Y-m-d') ?? optional($schedule?->pickup_at)->format('Y-m-d'),
+                    'end_date'      => optional($booking->end_date)->format('Y-m-d') ?? optional($schedule?->dropoff_at)->format('Y-m-d'),
                     'booking_code'  => $booking->booking_code ?? 'BK-' . $booking->id,
-                    'customer_name' => $customer->name ?? $client->name ?? 'N/A',
+                    'customer_name' => $resolveCustomerName($customer, $client),
                     'customer_email'=> $customer->email ?? $client->email ?? 'N/A',
                     'customer_phone'=> $customer->phone ?? $client->phone ?? 'N/A',
                     'pickup_location'  => $schedule->pickup_location ?? null,
@@ -341,6 +508,71 @@ class VendorAllBookingsController extends Controller
                     'created_at'    => $booking->created_at,
                 ];
             });
+
+        $airVehicleBookings = AirVehicleBookings::whereHas('vehicle', function ($q) use ($vendorId) {
+            $q->where('provider_id', $vendorId);
+        })
+            ->with(['vehicle', 'client', 'customer', 'schedule', 'payments'])
+            ->get()
+            ->map(function ($booking) use ($resolveCustomerName) {
+                $customer = $booking->customer;
+                $client   = $booking->client;
+                $schedule = $booking->schedule;
+
+                return [
+                    'id'            => $booking->id,
+                    'booking_type'  => 'vehicle',
+                    'service_name'  => 'Vehicle Rental',
+                    'status'        => $booking->status,
+                    'payment_status'=> $booking->payments->first()?->status ?? 'Pending',
+                    'total_amount'  => $booking->total_amount,
+                    'booking_date'  => $booking->created_at->format('Y-m-d'),
+                    'start_date'    => optional($booking->start_date)->format('Y-m-d') ?? optional($schedule?->pickup_at)->format('Y-m-d'),
+                    'end_date'      => optional($booking->end_date)->format('Y-m-d') ?? optional($schedule?->dropoff_at)->format('Y-m-d'),
+                    'booking_code'  => 'ABK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                    'customer_name' => $resolveCustomerName($customer, $client),
+                    'customer_email'=> $customer->email ?? $client->email ?? 'N/A',
+                    'customer_phone'=> $customer->phone ?? $client->phone ?? 'N/A',
+                    'pickup_location'  => $schedule->pickup_location ?? null,
+                    'dropoff_location' => $schedule->dropoff_location ?? null,
+                    'created_at'    => $booking->created_at,
+                ];
+            });
+
+        $seaVehicleBookings = SeaVehicleBookings::whereHas('vehicle', function ($q) use ($vendorId) {
+            $q->where('provider_id', $vendorId);
+        })
+            ->with(['vehicle', 'client', 'customer', 'schedule', 'payments'])
+            ->get()
+            ->map(function ($booking) use ($resolveCustomerName) {
+                $customer = $booking->customer;
+                $client   = $booking->client;
+                $schedule = $booking->schedule;
+
+                return [
+                    'id'            => $booking->id,
+                    'booking_type'  => 'vehicle',
+                    'service_name'  => 'Vehicle Rental',
+                    'status'        => $booking->status,
+                    'payment_status'=> $booking->payments->first()?->status ?? 'Pending',
+                    'total_amount'  => $booking->total_amount,
+                    'booking_date'  => $booking->created_at->format('Y-m-d'),
+                    'start_date'    => optional($booking->start_date)->format('Y-m-d') ?? optional($schedule?->pickup_at)->format('Y-m-d'),
+                    'end_date'      => optional($booking->end_date)->format('Y-m-d') ?? optional($schedule?->dropoff_at)->format('Y-m-d'),
+                    'booking_code'  => 'SBK-' . str_pad($booking->id, 5, '0', STR_PAD_LEFT),
+                    'customer_name' => $resolveCustomerName($customer, $client),
+                    'customer_email'=> $customer->email ?? $client->email ?? 'N/A',
+                    'customer_phone'=> $customer->phone ?? $client->phone ?? 'N/A',
+                    'pickup_location'  => $schedule->pickup_location ?? null,
+                    'dropoff_location' => $schedule->dropoff_location ?? null,
+                    'created_at'    => $booking->created_at,
+                ];
+            });
+
+        $vehicleBookings = collect($landVehicleBookings)
+            ->merge($airVehicleBookings)
+            ->merge($seaVehicleBookings)
+            ->values();
 
         // ── Flight bookings ───────────────────────────────────────────────────
         $flightBookings = FlightBooking::with(['user'])

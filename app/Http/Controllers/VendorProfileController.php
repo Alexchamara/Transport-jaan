@@ -7,6 +7,8 @@ use App\Models\ServiceCategory;
 use App\Models\ServiceSubCategory;
 use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
+use App\Models\Warehouse\WarehouseUnit;
+use App\Models\Warehouse\WarehouseImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +18,44 @@ use Inertia\Inertia;
 
 class VendorProfileController extends Controller
 {
+    public function logButtonClick(Request $request)
+    {
+        $user = Auth::user();
+
+        $data = $request->validate([
+            'button_name' => ['required', 'string', 'max:120'],
+            'screen' => ['nullable', 'string', 'max:120'],
+            'step' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'service_name' => ['nullable', 'string', 'max:180'],
+            'target_type' => ['nullable', 'string', 'max:120'],
+            'target_id' => ['nullable', 'integer', 'min:1'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'metadata' => ['nullable', 'array'],
+        ]);
+
+        $description = $data['description']
+            ?? "Vendor clicked '{$data['button_name']}' button" . (!empty($data['screen']) ? " on {$data['screen']}" : '') . '.';
+
+        VendorActivityLog::create([
+            'vendor_id' => $user->id,
+            'action' => 'vendor_button_click',
+            'target_type' => $data['target_type'] ?? 'ui_button',
+            'target_id' => $data['target_id'] ?? null,
+            'description' => $description,
+            'metadata' => array_merge(
+                [
+                    'button_name' => $data['button_name'],
+                    'screen' => $data['screen'] ?? null,
+                    'step' => $data['step'] ?? null,
+                    'service_name' => $data['service_name'] ?? null,
+                ],
+                $data['metadata'] ?? []
+            ),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
     /**
      * Show the vendor registration page
      */
@@ -56,10 +96,8 @@ class VendorProfileController extends Controller
 
         $existingProfile = VendorProfile::where('user_id', $user->id)->first();
 
-        // Only allow edit if draft or revision_requested
-        if ($existingProfile && !$existingProfile->canEdit()) {
-            return redirect()->back()->withErrors(['profile' => 'Profile cannot be edited in its current status.']);
-        }
+        // Allow editing for all statuses - no restriction
+        // Profile updates won't change submission status
 
         // Handle logo upload
         if ($request->hasFile('logo')) {
@@ -80,9 +118,12 @@ class VendorProfileController extends Controller
             }
         }
 
+        // Preserve existing submission_status if profile exists, otherwise set to draft
+        $submissionStatus = $existingProfile ? $existingProfile->submission_status : 'draft';
+
         $vendorProfile = VendorProfile::updateOrCreate(
             ['user_id' => $user->id],
-            array_merge($data, ['submission_status' => 'draft'])
+            array_merge($data, ['submission_status' => $submissionStatus])
         );
 
         // Log activity
@@ -543,5 +584,226 @@ class VendorProfileController extends Controller
         }
 
         return redirect()->back()->with('success', 'Logo removed successfully.');
+    }
+
+    /**
+     * Display public vendor profile page
+     */
+    public function showPublicProfile($userId)
+    {
+        // Fetch the vendor user and their profile
+        $vendor = \App\Models\User::with('vendorProfile')->find($userId);
+        
+        if (!$vendor) {
+            abort(404, 'Vendor not found');
+        }
+
+        $vendorProfile = $vendor->vendorProfile;
+
+        // Get approved services for this vendor and deduplicate by category name
+        $serviceDisplayOrder = ['Vehicle Rental', 'Ticket Booking', 'Courier Services', 'Warehousing', 'Freight'];
+
+        $registeredServices = VendorServiceRegistration::where('user_id', $userId)
+            ->where('status', 'approved')
+            ->with('serviceCategory')
+            ->get()
+            ->groupBy(function($service) {
+                return $service->serviceCategory->name ?? 'Unknown';
+            })
+            ->map(function($group, $categoryName) {
+                // Take first service from each category group
+                $service = $group->first();
+                return [
+                    'id' => $service->id,
+                    'category_name' => $categoryName,
+                    'status' => $service->status,
+                ];
+            })
+            ->values();
+
+        $services = $registeredServices
+            ->filter(function($service) use ($serviceDisplayOrder) {
+                // Only allow specific service categories
+                return in_array($service['category_name'], $serviceDisplayOrder);
+            })
+            ->values();
+
+        $registeredCategoryNames = $registeredServices->pluck('category_name')->toArray();
+        $shownCategoryNames = $services->pluck('category_name')->toArray();
+
+        $hasTicketBookingRegistration = in_array('Ticket Booking', $registeredCategoryNames)
+            || count(array_intersect($registeredCategoryNames, ['Aviation Service', 'Railway Service', 'Waterborne Transport'])) > 0;
+
+        $hasFreightRegistration = in_array('Freight', $registeredCategoryNames)
+            || count(array_intersect($registeredCategoryNames, ['Courier Services', 'Waterborne Transport'])) > 0;
+
+        if ($hasTicketBookingRegistration && !in_array('Ticket Booking', $shownCategoryNames)) {
+            $services->push([
+                'id' => null,
+                'category_name' => 'Ticket Booking',
+                'status' => 'approved',
+            ]);
+        }
+
+        if ($hasFreightRegistration && !in_array('Freight', $shownCategoryNames)) {
+            $services->push([
+                'id' => null,
+                'category_name' => 'Freight',
+                'status' => 'approved',
+            ]);
+        }
+
+        $services = $services
+            ->sortBy(function($service) use ($serviceDisplayOrder) {
+                // Sort by predefined order (Vehicle Rental first)
+                $index = array_search($service['category_name'], $serviceDisplayOrder);
+                return $index !== false ? $index : 999;
+            })
+            ->values();
+
+        // Get service names for conditional data fetching
+        $serviceNames = $services->pluck('category_name')->toArray();
+
+        // Initialize data arrays
+        $landVehicles = collect();
+        $seaVehicles = collect();
+        $airVehicles = collect();
+        $warehouseUnits = collect();
+        $courierServices = collect();
+        $flightSchedules = collect();
+        $trainSchedules = collect();
+
+        // Fetch data based on registered services
+        if (in_array('Vehicle Rental', $serviceNames)) {
+            // Get vehicles by type
+            $landVehicles = \App\Models\Vehicle::where('provider_id', $userId)
+                ->where('type', 'land')
+                ->with('landSpec')
+                ->get()
+                ->map(function ($vehicle) {
+                    return [
+                        'id' => $vehicle->id,
+                        'manufacturer' => $vehicle->manufacturer,
+                        'model' => $vehicle->model,
+                        'manufacture_year' => $vehicle->manufacture_year,
+                        'passenger_capacity' => $vehicle->passenger_capacity,
+                        'mileage_km' => $vehicle->mileage_km,
+                        'transmission_type' => $vehicle->landSpec->transmission_type ?? null,
+                        'fuel_type' => $vehicle->landSpec->fuel_type ?? null,
+                        'rental_price_per_day' => $vehicle->rental_price_per_day,
+                        'status' => $vehicle->status,
+                        'primary_image_url' => $vehicle->primary_image_url,
+                    ];
+                });
+
+            $seaVehicles = \App\Models\Vehicle::where('provider_id', $userId)
+                ->where('type', 'sea')
+                ->get()
+                ->map(function ($vehicle) {
+                    return [
+                        'id' => $vehicle->id,
+                        'manufacturer' => $vehicle->manufacturer,
+                        'model' => $vehicle->model,
+                        'manufacture_year' => $vehicle->manufacture_year,
+                        'passenger_capacity' => $vehicle->passenger_capacity,
+                        'mileage_km' => $vehicle->mileage_km,
+                        'rental_price_per_day' => $vehicle->rental_price_per_day,
+                        'status' => $vehicle->status,
+                        'primary_image_url' => $vehicle->primary_image_url,
+                    ];
+                });
+
+            $airVehicles = \App\Models\Vehicle::where('provider_id', $userId)
+                ->where('type', 'air')
+                ->get()
+                ->map(function ($vehicle) {
+                    return [
+                        'id' => $vehicle->id,
+                        'manufacturer' => $vehicle->manufacturer,
+                        'model' => $vehicle->model,
+                        'manufacture_year' => $vehicle->manufacture_year,
+                        'passenger_capacity' => $vehicle->passenger_capacity,
+                        'mileage_km' => $vehicle->mileage_km,
+                        'rental_price_per_day' => $vehicle->rental_price_per_day,
+                        'status' => $vehicle->status,
+                        'primary_image_url' => $vehicle->primary_image_url,
+                    ];
+                });
+        }
+
+        if (in_array('Warehousing', $serviceNames)) {
+            $warehouseUnits = WarehouseUnit::where('user_id', $userId)
+                ->where('is_active', true)
+                ->with('mainImage')
+                ->get()
+                ->map(function ($warehouse) {
+                    $imagePath = $warehouse->mainImage?->file_path;
+                    return [
+                        'id' => $warehouse->id,
+                        'name' => $warehouse->name,
+                        'description' => $warehouse->description,
+                        'address' => $warehouse->address,
+                        'total_area' => $warehouse->total_area,
+                        'capacity' => $warehouse->capacity,
+                        'capacity_unit' => $warehouse->capacity_unit,
+                        'type' => $warehouse->type,
+                        'monthly_rate' => $warehouse->monthly_rate,
+                        'setup_fee' => $warehouse->setup_fee,
+                        'is_available' => $warehouse->is_available,
+                        'contact_person' => $warehouse->contact_person,
+                        'contact_phone' => $warehouse->contact_phone,
+                        'primary_image_url' => $imagePath ? '/storage/' . $imagePath : null,
+                    ];
+                });
+        }
+
+        // Calculate stats
+        $totalReviews = \App\Models\VehicleReview::whereHas('vehicle', function ($query) use ($userId) {
+            $query->where('provider_id', $userId);
+        })->count();
+
+        $avgRating = \App\Models\VehicleReview::whereHas('vehicle', function ($query) use ($userId) {
+            $query->where('provider_id', $userId);
+        })->avg('rating') ?? 0;
+
+        $createdAt = $vendor->created_at;
+        $now = now();
+        $monthsSinceJoined = $now->diffInMonths($createdAt);
+        $daysSinceJoined = $now->diffInDays($createdAt);
+
+        $stats = [
+            'totalReviews' => $totalReviews,
+            'avgRating' => round($avgRating, 1),
+            'monthsSinceJoined' => $monthsSinceJoined,
+            'daysSinceJoined' => $daysSinceJoined,
+        ];
+
+        $authUser = Auth::user();
+        $likedVehicleIds = [];
+        $likedWarehouseIds = [];
+
+        if ($authUser instanceof \App\Models\User) {
+            $likedVehicleIds = $authUser->vehicleLikes()->pluck('vehicle_id')->toArray();
+            $likedWarehouseIds = \App\Models\Warehouse\WarehouseLike::where('user_id', $authUser->id)
+                ->pluck('warehouse_unit_id')
+                ->toArray();
+        }
+
+        return Inertia::render('Web/home/vendors/VendorProfle', [
+            'vendor' => $vendor,
+            'vendorProfile' => $vendorProfile,
+            'services' => $services,
+            'landVehicles' => $landVehicles,
+            'seaVehicles' => $seaVehicles,
+            'airVehicles' => $airVehicles,
+            'warehouseUnits' => $warehouseUnits,
+            'courierServices' => $courierServices,
+            'flightSchedules' => $flightSchedules,
+            'trainSchedules' => $trainSchedules,
+            'stats' => $stats,
+            'authUser' => $authUser,
+            'likedVehicleIds' => $likedVehicleIds,
+            'likedWarehouseIds' => $likedWarehouseIds,
+        ]);
     }
 }

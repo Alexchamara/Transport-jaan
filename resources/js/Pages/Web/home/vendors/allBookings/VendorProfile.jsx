@@ -24,6 +24,7 @@ import {
     ArrowLeft,
     ArrowRight,
     Eye,
+    Pencil,
     Loader2,
     MapPin,
 } from "lucide-react";
@@ -33,6 +34,7 @@ import { Country, State, City } from "country-state-city";
 import ServiceRegistrationFields from "../../../../../Components/vendors/ServiceRegistrationFields";
 import VendorShellLayout from "../../../../../Components/vendors/VendorShellLayout";
 import ActionModalTemplate from "../../../components/SuperAdmin/Common/ActionModalTemplate";
+import { logVendorButtonClick } from "../../../../../utils/vendorActivityLogger";
 
 const CITY_SEARCH_API_URL =
     import.meta.env.VITE_CITY_SEARCH_API_URL || "https://nominatim.openstreetmap.org/search";
@@ -88,6 +90,7 @@ const VendorProfile = () => {
     const [errorMessage, setErrorMessage] = useState("");
     const [phoneValidationError, setPhoneValidationError] = useState("");
     const [actionModalState, setActionModalState] = useState({ isOpen: false, action: null, payload: null });
+    const [isEditingProfileSummary, setIsEditingProfileSummary] = useState(false);
     const fileInputRef = useRef(null);
     const cityDropdownRef = useRef(null);
     const countryDropdownRef = useRef(null);
@@ -389,6 +392,14 @@ const VendorProfile = () => {
     const isApprovedVendor = vendorProfile?.submission_status === "approved";
     const registeredServiceCount = vendorRegistrations ? Object.keys(vendorRegistrations).length : 0;
 
+    const logButtonActivity = (buttonName, extra = {}) => {
+        logVendorButtonClick(buttonName, {
+            screen: "vendor_profile",
+            step: currentStep,
+            ...extra,
+        });
+    };
+
     // Auto-clear success messages
     useEffect(() => {
         if (flash?.success) {
@@ -487,7 +498,48 @@ const VendorProfile = () => {
         }
     };
 
+    const saveProfileOnly = () => {
+        logButtonActivity("save_profile_summary");
+
+        if (!validateProfile()) {
+            setErrorMessage("Please fill in all required fields.");
+            setTimeout(() => setErrorMessage(""), 4000);
+            return;
+        }
+
+        setSaving(true);
+        const formData = new FormData();
+
+        Object.entries(profileData).forEach(([key, value]) => {
+            const finalValue = value === null || value === undefined ? '' : value;
+            formData.append(key, finalValue);
+        });
+
+        if (logoFile) {
+            formData.append("logo", logoFile);
+        }
+
+        router.post(route("vendor.profile.save"), formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setSaving(false);
+                setIsEditingProfileSummary(false);
+                setSuccessMessage("Profile updated successfully!");
+                setTimeout(() => setSuccessMessage(""), 3000);
+            },
+            onError: (errors) => {
+                setSaving(false);
+                setLocalErrors(errors);
+                setErrorMessage("Failed to save profile. Please check your inputs.");
+                setTimeout(() => setErrorMessage(""), 4000);
+            },
+        });
+    };
+
     const saveProfileAndNavigate = () => {
+        logButtonActivity("save_profile_continue", { targetType: "step", targetId: 2 });
+
         if (!validateProfile()) {
             setErrorMessage("Please fill in all required fields to continue.");
             setTimeout(() => setErrorMessage(""), 4000);
@@ -534,6 +586,11 @@ const VendorProfile = () => {
     };
 
     const removeLogo = () => {
+        logButtonActivity("remove_logo", {
+            targetType: "vendor_profile",
+            targetId: vendorProfile?.id || null,
+        });
+
         if (vendorProfile?.logo) {
             router.delete(route("vendor.profile.logo.remove"), {
                 preserveScroll: true,
@@ -634,6 +691,12 @@ const VendorProfile = () => {
     };
 
     const saveServiceRegistration = (subCategory, closeModalOnFinish = false) => {
+        logButtonActivity("save_service_registration", {
+            serviceName: subCategory?.name,
+            targetType: "vendor_service_registration",
+            targetId: subCategory?.id,
+        });
+
         const requiredFields = subCategory.required_fields || [];
         const values = serviceFieldValues[subCategory.id] || {};
         const fieldErrors = validateServiceFields(requiredFields, values);
@@ -771,6 +834,12 @@ const VendorProfile = () => {
 
     const handleActionConfirm = () => {
         if (actionModalState.action === "remove_service") {
+            logButtonActivity("confirm_remove_service", {
+                serviceName: actionModalState.payload?.name,
+                targetType: "vendor_service_registration",
+                targetId: actionModalState.payload?.id,
+            });
+
             const subCategory = actionModalState.payload;
             if (!subCategory) {
                 closeActionModal();
@@ -791,6 +860,11 @@ const VendorProfile = () => {
         }
 
         if (actionModalState.action === "submit_profile") {
+            logButtonActivity("confirm_submit_profile", {
+                targetType: "vendor_profile",
+                targetId: vendorProfile?.id || null,
+            });
+
             setSubmitting(true);
             router.post(route("vendor.profile.submit"), {}, {
                 preserveScroll: true,
@@ -810,6 +884,12 @@ const VendorProfile = () => {
         }
 
         if (actionModalState.action === "update_service") {
+            logButtonActivity("confirm_update_service", {
+                serviceName: actionModalState.payload?.subCategory?.name,
+                targetType: "vendor_service_registration",
+                targetId: actionModalState.payload?.subCategory?.id,
+            });
+
             const subCategory = actionModalState.payload?.subCategory;
             if (!subCategory) {
                 closeActionModal();
@@ -821,6 +901,10 @@ const VendorProfile = () => {
         }
 
         if (actionModalState.action === "submit_new_services") {
+            logButtonActivity("confirm_submit_new_services", {
+                metadata: { draft_service_count: draftServiceCount },
+            });
+
             setSubmitting(true);
             router.post(route("vendor.profile.submit-new-services"), {}, {
                 preserveScroll: true,
@@ -840,11 +924,18 @@ const VendorProfile = () => {
     };
 
     const removeServiceRegistration = (subCategory) => {
+        logButtonActivity("remove_service_registration", {
+            serviceName: subCategory?.name,
+            targetType: "vendor_service_registration",
+            targetId: subCategory?.id,
+        });
         openActionModal("remove_service", subCategory);
     };
 
     // ─── Step 3: Submit for Review ────────────────────────────
     const submitForReview = () => {
+        logButtonActivity("submit_for_review", { targetType: "vendor_profile", targetId: vendorProfile?.id || null });
+
         if (!vendorProfile) {
             setErrorMessage("Please complete your business profile first (Step 1).");
             setTimeout(() => setErrorMessage(""), 4000);
@@ -861,6 +952,8 @@ const VendorProfile = () => {
 
     // ─── Submit New Services (for submitted/approved vendors) ──
     const submitNewServices = () => {
+        logButtonActivity("submit_new_services", { metadata: { draft_service_count: draftServiceCount } });
+
         if (!hasDraftServices) {
             setErrorMessage("No new services to submit.");
             setTimeout(() => setErrorMessage(""), 4000);
@@ -930,6 +1023,12 @@ const VendorProfile = () => {
                                         <button
                                             onClick={() => {
                                                 if (isStepDisabled) return;
+
+                                                logButtonActivity("stepper_click", {
+                                                    targetType: "step",
+                                                    targetId: step.num,
+                                                    description: `Vendor clicked Step ${step.num}: ${step.label}.`,
+                                                });
 
                                                 // Validate when moving forward from step 1 to step 2
                                                 if (step.num === 2 && currentStep === 1) {
@@ -1938,58 +2037,279 @@ const VendorProfile = () => {
                                         <Eye className="w-5 h-5 text-[#0955AC]" />
                                         {isBusiness ? "Business Profile Summary" : "Personal Profile Summary"}
                                     </h2>
-                                    {!isReadOnly && !needsRevision && (
+                                    {!isEditingProfileSummary && (!needsRevision || isReadOnly) && (
                                         <button
-                                            onClick={() => setCurrentStep(1)}
-                                            className="text-sm font-medium text-[#0955AC] hover:underline"
+                                            onClick={() => {
+                                                logButtonActivity("edit_profile_summary", {
+                                                    targetType: "vendor_profile",
+                                                    targetId: vendorProfile?.id || null,
+                                                });
+                                                setIsEditingProfileSummary(true);
+                                            }}
+                                            className="h-9 w-9 rounded-lg border border-blue-200 text-[#0955AC] hover:bg-blue-50 flex items-center justify-center"
+                                            aria-label="Edit profile summary"
+                                            title="Edit"
                                         >
-                                            Edit
+                                            <Pencil className="w-4 h-4" />
                                         </button>
+                                    )}
+                                    {isEditingProfileSummary && (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    logButtonActivity("cancel_profile_summary_edit", {
+                                                        targetType: "vendor_profile",
+                                                        targetId: vendorProfile?.id || null,
+                                                    });
+
+                                                    setIsEditingProfileSummary(false);
+                                                    // Reset to original values
+                                                    setProfileData({
+                                                        company_name: vendorProfile?.company_name || "",
+                                                        business_registration_no: vendorProfile?.business_registration_no || "",
+                                                        tax_id: vendorProfile?.tax_id || "",
+                                                        business_type: vendorProfile?.business_type || (isBusiness ? "company" : "individual"),
+                                                        description: vendorProfile?.description || "",
+                                                        website: vendorProfile?.website || "",
+                                                        established_year: vendorProfile?.established_year || "",
+                                                        employee_count: vendorProfile?.employee_count || "",
+                                                        address_line1: vendorProfile?.address_line1 || "",
+                                                        address_line2: vendorProfile?.address_line2 || "",
+                                                        city: vendorProfile?.city || "",
+                                                        state: vendorProfile?.state || "",
+                                                        postal_code: vendorProfile?.postal_code || "",
+                                                        country: vendorProfile?.country || "Sri Lanka",
+                                                        contact_phone: vendorProfile?.contact_phone || "",
+                                                        contact_email: vendorProfile?.contact_email || user?.email || "",
+                                                        contact_person: vendorProfile?.contact_person || user?.name || "",
+                                                    });
+                                                }}
+                                                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                            >
+                                                <X className="w-4 h-4" />
+                                                
+                                            </button>
+                                            <button
+                                                onClick={saveProfileOnly}
+                                                disabled={saving}
+                                                className="flex items-center gap-1 px-4 py-1.5 text-sm bg-blue-700 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                            >
+                                                {saving ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <Save className="w-4 h-4" />
+                                                )}
+                                                
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
 
                                 {vendorProfile ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                        {logoPreview && (
-                                            <div className="md:col-span-2 mb-2">
-                                                <img
-                                                    src={logoPreview}
-                                                    alt="Company Logo"
-                                                    className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                                    isEditingProfileSummary ? (
+                                        <div className="space-y-4">
+                                            {/* Company/Full Name */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    {isBusiness ? "Company Name" : "Full Name"} <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={profileData.company_name}
+                                                    onChange={(e) => handleProfileChange("company_name", e.target.value)}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                />
+                                                {localErrors.company_name && (
+                                                    <p className="text-red-500 text-xs mt-1">{localErrors.company_name}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* NIC/Registration No */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        {isBusiness ? "Registration No." : "NIC Number"} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={profileData.business_registration_no}
+                                                        onChange={(e) => isBusiness 
+                                                            ? handleProfileChange("business_registration_no", e.target.value)
+                                                            : handleNICChange(e.target.value)
+                                                        }
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                    />
+                                                    {localErrors.business_registration_no && (
+                                                        <p className="text-red-500 text-xs mt-1">{localErrors.business_registration_no}</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Contact Person */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Contact Person <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={profileData.contact_person}
+                                                        onChange={(e) => handleProfileChange("contact_person", e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Phone */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Phone <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <PhoneInput
+                                                        country={'lk'}
+                                                        value={profileData.contact_phone}
+                                                        onChange={handlePhoneChange}
+                                                        inputClass="!w-full !px-4 !py-2 !border !border-gray-300 !rounded-lg"
+                                                        containerClass="w-full"
+                                                    />
+                                                    {phoneValidationError && (
+                                                        <p className="text-red-500 text-xs mt-1">{phoneValidationError}</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Email */}
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Email <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="email"
+                                                        value={profileData.contact_email}
+                                                        onChange={(e) => handleProfileChange("contact_email", e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Address */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Address Line 1 <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={profileData.address_line1}
+                                                    onChange={(e) => handleProfileChange("address_line1", e.target.value)}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
                                                 />
                                             </div>
-                                        )}
-                                        <SummaryItem label={isBusiness ? "Company Name" : "Full Name"} value={vendorProfile.company_name} />
-                                        <SummaryItem label={isBusiness ? "Registration No." : "NIC Number"} value={vendorProfile.business_registration_no} />
-                                        {isBusiness && <SummaryItem label="Tax ID" value={vendorProfile.tax_id} />}
-                                        {isBusiness && <SummaryItem label="Business Type" value={vendorProfile.business_type} />}
-                                        {isBusiness && <SummaryItem label="Established" value={vendorProfile.established_year} />}
-                                        {isBusiness && <SummaryItem label="Employees" value={vendorProfile.employee_count} />}
-                                        <SummaryItem
-                                            label="Address"
-                                            value={[
-                                                vendorProfile.address_line1,
-                                                vendorProfile.address_line2,
-                                                vendorProfile.city,
-                                                vendorProfile.state,
-                                                vendorProfile.postal_code,
-                                                vendorProfile.country,
-                                            ]
-                                                .filter(Boolean)
-                                                .join(", ")}
-                                        />
-                                        <SummaryItem label="Contact Person" value={vendorProfile.contact_person} />
-                                        <SummaryItem label="Phone" value={vendorProfile.contact_phone} />
-                                        <SummaryItem label="Email" value={vendorProfile.contact_email} />
-                                        {vendorProfile.website && (
-                                            <SummaryItem label="Website" value={vendorProfile.website} />
-                                        )}
-                                        {vendorProfile.description && (
-                                            <div className="md:col-span-2">
-                                                <SummaryItem label="Description" value={vendorProfile.description} />
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">City <span className="text-red-500">*</span></label>
+                                                    <input
+                                                        type="text"
+                                                        value={profileData.city}
+                                                        onChange={(e) => handleProfileChange("city", e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                                                    <input
+                                                        type="text"
+                                                        value={profileData.state}
+                                                        onChange={(e) => handleProfileChange("state", e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                                                    <input
+                                                        type="text"
+                                                        value={profileData.postal_code}
+                                                        onChange={(e) => handleProfileChange("postal_code", e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                    />
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
+
+                                            {isBusiness && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                                                        <input
+                                                            type="url"
+                                                            value={profileData.website}
+                                                            onChange={(e) => handleProfileChange("website", e.target.value)}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Tax ID</label>
+                                                        <input
+                                                            type="text"
+                                                            value={profileData.tax_id}
+                                                            onChange={(e) => handleProfileChange("tax_id", e.target.value)}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Description */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                                <textarea
+                                                    value={profileData.description}
+                                                    onChange={(e) => handleProfileChange("description", e.target.value)}
+                                                    rows={3}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0955AC] focus:border-transparent"
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                            {logoPreview && (
+                                                <div className="md:col-span-2 mb-2">
+                                                    <img
+                                                        src={logoPreview}
+                                                        alt="Company Logo"
+                                                        className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                                                    />
+                                                </div>
+                                            )}
+                                            <SummaryItem label={isBusiness ? "Company Name" : "Full Name"} value={vendorProfile.company_name} />
+                                            <SummaryItem label={isBusiness ? "Registration No." : "NIC Number"} value={vendorProfile.business_registration_no} />
+                                            {isBusiness && <SummaryItem label="Tax ID" value={vendorProfile.tax_id} />}
+                                            {isBusiness && <SummaryItem label="Business Type" value={vendorProfile.business_type} />}
+                                            {isBusiness && <SummaryItem label="Established" value={vendorProfile.established_year} />}
+                                            {isBusiness && <SummaryItem label="Employees" value={vendorProfile.employee_count} />}
+                                            <SummaryItem
+                                                label="Address"
+                                                value={[
+                                                    vendorProfile.address_line1,
+                                                    vendorProfile.address_line2,
+                                                    vendorProfile.city,
+                                                    vendorProfile.state,
+                                                    vendorProfile.postal_code,
+                                                    vendorProfile.country,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(", ")}
+                                            />
+                                            <SummaryItem label="Contact Person" value={vendorProfile.contact_person} />
+                                            <SummaryItem label="Phone" value={vendorProfile.contact_phone} />
+                                            <SummaryItem label="Email" value={vendorProfile.contact_email} />
+                                            {vendorProfile.website && (
+                                                <SummaryItem label="Website" value={vendorProfile.website} />
+                                            )}
+                                            {vendorProfile.description && (
+                                                <div className="md:col-span-2">
+                                                    <SummaryItem label="Description" value={vendorProfile.description} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
                                 ) : (
                                     <div className="text-center py-8 text-gray-400">
                                         <AlertCircle className="w-8 h-8 mx-auto mb-2" />

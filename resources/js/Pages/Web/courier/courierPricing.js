@@ -1,16 +1,147 @@
-const dhlLogo = "https://1000logos.net/wp-content/uploads/2018/08/DHL-emblem.jpg";
-const fedexLogo = "https://1000logos.net/wp-content/uploads/2021/04/Fedex-logo.png";
+const dhlLogo =
+    "https://1000logos.net/wp-content/uploads/2018/08/DHL-emblem.jpg";
+const fedexLogo =
+    "https://1000logos.net/wp-content/uploads/2021/04/Fedex-logo.png";
 const upsLogo = "https://1000logos.net/wp-content/uploads/2017/06/UPS-logo.jpg";
-const aramexLogo = "https://www.securitycargonetwork.com/wp-content/uploads/2024/09/aramex.jpg";
-const sfLogo = "https://logowik.com/content/uploads/images/sf-express9821.logowik.com.webp";
-const dpdLogo = "https://logos-world.net/wp-content/uploads/2021/02/DPD-Dynamic-Parcel-Distribution-Logo-2015-present.jpg";
-const tntLogo = "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/TNT_Express_Logo.svg/2560px-TNT_Express_Logo.svg.png";
+const aramexLogo =
+    "https://www.securitycargonetwork.com/wp-content/uploads/2024/09/aramex.jpg";
+const sfLogo =
+    "https://logowik.com/content/uploads/images/sf-express9821.logowik.com.webp";
+const dpdLogo =
+    "https://logos-world.net/wp-content/uploads/2021/02/DPD-Dynamic-Parcel-Distribution-Logo-2015-present.jpg";
+const tntLogo =
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/TNT_Express_Logo.svg/2560px-TNT_Express_Logo.svg.png";
 
 export const COURIER_SERVICES = [
+    // ── DOMESTIC SERVICES ──────────────────────────────────────────────────────
+    {
+        id: "pronto",
+        name: "Pronto Delivery",
+        logo: null,
+        category: "domestic",
+        brandColor: "#0055A4",
+        badgeColor: "#CCE5FF",
+        rateMultiplier: 1.01,
+        fuelSurcharge: 0.03,
+        customsBuffer: 0,
+        coverage: "Island-wide delivery",
+        cutoff: "Pickup by 5:00 PM",
+        badges: ["Same-day available", "Door-to-door"],
+        tiers: [
+            {
+                id: "economy",
+                label: "Economy",
+                base: 3,
+                perKg: 0.4,
+                eta: "2-3 business days",
+                description: "Standard door-to-door domestic delivery.",
+            },
+            {
+                id: "express",
+                label: "Express",
+                base: 6,
+                perKg: 0.7,
+                eta: "Next-day delivery",
+                description: "Next-day domestic courier service.",
+            },
+            {
+                id: "priority",
+                label: "Priority",
+                base: 10,
+                perKg: 1.0,
+                eta: "Same-day delivery",
+                description: "Same-day priority pickup and delivery.",
+            },
+        ],
+    },
+    {
+        id: "speedex",
+        name: "Speedex Courier",
+        logo: null,
+        category: "domestic",
+        brandColor: "#E84B1C",
+        badgeColor: "#FFE8E0",
+        rateMultiplier: 1.02,
+        fuelSurcharge: 0.025,
+        customsBuffer: 0,
+        coverage: "Major cities & towns",
+        cutoff: "Pickup by 4:00 PM",
+        badges: ["Real-time tracking", "Signature on delivery"],
+        tiers: [
+            {
+                id: "economy",
+                label: "Economy",
+                base: 2.5,
+                perKg: 0.35,
+                eta: "3-4 business days",
+                description: "Affordable island-wide parcel delivery.",
+            },
+            {
+                id: "express",
+                label: "Express",
+                base: 5,
+                perKg: 0.65,
+                eta: "Next-day delivery",
+                description: "Reliable next-day delivery to major cities.",
+            },
+            {
+                id: "priority",
+                label: "Priority",
+                base: 9,
+                perKg: 0.95,
+                eta: "Same-day by 8 PM",
+                description: "Priority same-day delivery with live tracking.",
+            },
+        ],
+    },
+    {
+        id: "flashpost",
+        name: "FlashPost Local",
+        logo: null,
+        category: "domestic",
+        brandColor: "#7C3AED",
+        badgeColor: "#EDE9FE",
+        rateMultiplier: 1.015,
+        fuelSurcharge: 0.028,
+        customsBuffer: 0,
+        coverage: "20+ districts served",
+        cutoff: "Pickup by 3:30 PM",
+        badges: ["Proof of delivery", "Fragile handling"],
+        tiers: [
+            {
+                id: "economy",
+                label: "Economy",
+                base: 2.8,
+                perKg: 0.38,
+                eta: "3-5 business days",
+                description: "Budget-friendly domestic parcel service.",
+            },
+            {
+                id: "express",
+                label: "Express",
+                base: 5.5,
+                perKg: 0.68,
+                eta: "Next-day delivery",
+                description: "Guaranteed next-day delivery with POD.",
+            },
+            {
+                id: "priority",
+                label: "Priority",
+                base: 9.5,
+                perKg: 0.98,
+                eta: "Same-day by 6 PM",
+                description:
+                    "Fastest domestic option with fragile-safe handling.",
+            },
+        ],
+    },
+
+    // ── LOGISTIC (INTERNATIONAL) SERVICES ─────────────────────────────────────
     {
         id: "dhl",
         name: "DHL Express",
         logo: dhlLogo,
+        category: "logistic",
         brandColor: "#FFB800",
         badgeColor: "#FFF4CC",
         rateMultiplier: 1.08,
@@ -26,7 +157,8 @@ export const COURIER_SERVICES = [
                 base: 18,
                 perKg: 1.35,
                 eta: "3-6 business days",
-                description: "Cost-effective door-to-door international delivery.",
+                description:
+                    "Cost-effective door-to-door international delivery.",
             },
             {
                 id: "express",
@@ -34,7 +166,8 @@ export const COURIER_SERVICES = [
                 base: 32,
                 perKg: 2.05,
                 eta: "1-3 business days",
-                description: "Balanced speed for most time-sensitive shipments.",
+                description:
+                    "Balanced speed for most time-sensitive shipments.",
             },
             {
                 id: "priority",
@@ -50,6 +183,7 @@ export const COURIER_SERVICES = [
         id: "fedex",
         name: "FedEx International",
         logo: fedexLogo,
+        category: "logistic",
         brandColor: "#4D148C",
         badgeColor: "#EFE6FB",
         rateMultiplier: 1.05,
@@ -89,6 +223,7 @@ export const COURIER_SERVICES = [
         id: "ups",
         name: "UPS Worldwide",
         logo: upsLogo,
+        category: "logistic",
         brandColor: "#3B2419",
         badgeColor: "#F4EDE5",
         rateMultiplier: 1.04,
@@ -128,6 +263,7 @@ export const COURIER_SERVICES = [
         id: "aramex",
         name: "Aramex International",
         logo: aramexLogo,
+        category: "logistic",
         brandColor: "#E7002A",
         badgeColor: "#FFE0E6",
         rateMultiplier: 1.02,
@@ -167,6 +303,7 @@ export const COURIER_SERVICES = [
         id: "sf",
         name: "SF Express Global",
         logo: sfLogo,
+        category: "logistic",
         brandColor: "#111",
         badgeColor: "#E9E9E9",
         rateMultiplier: 1.03,
@@ -206,6 +343,7 @@ export const COURIER_SERVICES = [
         id: "dpd",
         name: "DPDgroup International",
         logo: dpdLogo,
+        category: "logistic",
         brandColor: "#D70926",
         badgeColor: "#FFE5EA",
         rateMultiplier: 1.01,
@@ -245,6 +383,7 @@ export const COURIER_SERVICES = [
         id: "tnt",
         name: "TNT Express",
         logo: tntLogo,
+        category: "logistic",
         brandColor: "#FF6600",
         badgeColor: "#FFE3CC",
         rateMultiplier: 1.04,
@@ -320,10 +459,14 @@ export const computePackageMetrics = (packages = []) => {
         }
 
         if (length > 0 && width > 0 && height > 0 && quantity > 0) {
-            volumetricWeight += ((length * width * height) / VOLUMETRIC_DIVISOR) * quantity;
+            volumetricWeight +=
+                ((length * width * height) / VOLUMETRIC_DIVISOR) * quantity;
         }
 
-        if (pkg?.packageType === "temperature_controlled" || pkg?.packageType === "freight") {
+        if (
+            pkg?.packageType === "temperature_controlled" ||
+            pkg?.packageType === "freight"
+        ) {
             requiresSpecialHandling = true;
         }
     });
@@ -361,23 +504,40 @@ export const buildQuoteMatrix = (packages = [], options = {}) => {
             }
 
             const packageWeight = weight * quantity;
-            const volumetricWeight = length > 0 && width > 0 && height > 0
-                ? ((length * width * height) / VOLUMETRIC_DIVISOR) * quantity
-                : 0;
+            const volumetricWeight =
+                length > 0 && width > 0 && height > 0
+                    ? ((length * width * height) / VOLUMETRIC_DIVISOR) *
+                      quantity
+                    : 0;
             const billableWeight = Math.max(packageWeight, volumetricWeight);
-            const oversizedSurcharge = billableWeight > 25 ? (billableWeight - 25) * 0.75 : 0;
-            const specialHandlingFee = pkg?.packageType === "temperature_controlled" || pkg?.packageType === "freight" ? 12 : 0;
+            const oversizedSurcharge =
+                billableWeight > 25 ? (billableWeight - 25) * 0.75 : 0;
+            const specialHandlingFee =
+                pkg?.packageType === "temperature_controlled" ||
+                pkg?.packageType === "freight"
+                    ? 12
+                    : 0;
 
             const providers = services.map((provider) => {
                 const tiers = (provider.tiers || []).map((tier) => {
                     const baseComponent = tier.base;
                     const weightComponent = billableWeight * tier.perKg;
-                    const adjustmentsComponent = oversizedSurcharge + specialHandlingFee + (tier.flatMarkup || 0);
-                    const subtotal = baseComponent + weightComponent + adjustmentsComponent;
-                    const providerPremium = subtotal * ((provider.rateMultiplier || 1) - 1);
-                    const fuelComponent = subtotal * (provider.fuelSurcharge || 0);
+                    const adjustmentsComponent =
+                        oversizedSurcharge +
+                        specialHandlingFee +
+                        (tier.flatMarkup || 0);
+                    const subtotal =
+                        baseComponent + weightComponent + adjustmentsComponent;
+                    const providerPremium =
+                        subtotal * ((provider.rateMultiplier || 1) - 1);
+                    const fuelComponent =
+                        subtotal * (provider.fuelSurcharge || 0);
                     const customsComponent = provider.customsBuffer || 0;
-                    const total = subtotal + providerPremium + fuelComponent + customsComponent;
+                    const total =
+                        subtotal +
+                        providerPremium +
+                        fuelComponent +
+                        customsComponent;
 
                     return {
                         ...tier,
@@ -386,7 +546,12 @@ export const buildQuoteMatrix = (packages = [], options = {}) => {
                             base: Number(baseComponent.toFixed(2)),
                             weight: Number(weightComponent.toFixed(2)),
                             adjustments: Number(
-                                (adjustmentsComponent + providerPremium + fuelComponent + customsComponent).toFixed(2)
+                                (
+                                    adjustmentsComponent +
+                                    providerPremium +
+                                    fuelComponent +
+                                    customsComponent
+                                ).toFixed(2),
                             ),
                         },
                     };
@@ -408,7 +573,10 @@ export const buildQuoteMatrix = (packages = [], options = {}) => {
                 providers,
             };
         })
-        .filter((item) => Array.isArray(item.providers) && item.providers.length > 0);
+        .filter(
+            (item) =>
+                Array.isArray(item.providers) && item.providers.length > 0,
+        );
 };
 
 export const resolveDetailedQuotes = (packages = [], quoteMatrix = []) => {
@@ -422,17 +590,23 @@ export const resolveDetailedQuotes = (packages = [], quoteMatrix = []) => {
                 return null;
             }
 
-            const packageQuotes = quoteMatrix.find((item) => item.packageIndex === index);
+            const packageQuotes = quoteMatrix.find(
+                (item) => item.packageIndex === index,
+            );
             if (!packageQuotes) {
                 return null;
             }
 
-            const provider = (packageQuotes.providers || []).find((p) => p.id === pkg.courierProvider);
+            const provider = (packageQuotes.providers || []).find(
+                (p) => p.id === pkg.courierProvider,
+            );
             if (!provider) {
                 return null;
             }
 
-            const tier = (provider.tiers || []).find((t) => t.id === pkg.serviceLevel);
+            const tier = (provider.tiers || []).find(
+                (t) => t.id === pkg.serviceLevel,
+            );
             if (!tier) {
                 return null;
             }
@@ -449,17 +623,26 @@ export const resolveDetailedQuotes = (packages = [], quoteMatrix = []) => {
 
 export const summarizeDetailedQuotes = (detailedQuotes = []) => {
     return detailedQuotes.map((quote, index) => {
-        const label = quote?.packageInfo?.label || `Package ${quote?.packageIndex + 1 || index + 1}`;
+        const label =
+            quote?.packageInfo?.label ||
+            `Package ${quote?.packageIndex + 1 || index + 1}`;
         const weight = quote?.packageInfo?.weight;
         const billableWeight = quote?.packageInfo?.billableWeight;
         const provider = quote?.provider || {};
         const tier = quote?.tier || {};
 
         return {
-            packageIndex: typeof quote?.packageIndex === "number" ? quote.packageIndex : index,
+            packageIndex:
+                typeof quote?.packageIndex === "number"
+                    ? quote.packageIndex
+                    : index,
             label,
-            weight: weight !== undefined && weight !== null ? Number(weight) : null,
-            billableWeight: billableWeight !== undefined && billableWeight !== null ? Number(billableWeight) : null,
+            weight:
+                weight !== undefined && weight !== null ? Number(weight) : null,
+            billableWeight:
+                billableWeight !== undefined && billableWeight !== null
+                    ? Number(billableWeight)
+                    : null,
             providerId: provider.id || null,
             providerName: provider.name || "",
             serviceLevel: tier.id || "",
@@ -471,9 +654,15 @@ export const summarizeDetailedQuotes = (detailedQuotes = []) => {
     });
 };
 
-export const buildReviewContext = (detailedQuotes = [], displayCurrency = "LKR") => {
+export const buildReviewContext = (
+    detailedQuotes = [],
+    displayCurrency = "LKR",
+) => {
     const selectedQuotes = summarizeDetailedQuotes(detailedQuotes);
-    const totalPriceUSD = selectedQuotes.reduce((total, item) => total + (Number(item.priceUSD) || 0), 0);
+    const totalPriceUSD = selectedQuotes.reduce(
+        (total, item) => total + (Number(item.priceUSD) || 0),
+        0,
+    );
 
     return {
         selectedQuotes,

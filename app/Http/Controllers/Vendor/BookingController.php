@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Vendor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\AirVehicleBookings;
+use App\Models\SeaVehicleBookings;
+use App\Models\CancellationSetting;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,18 +29,44 @@ class BookingController extends Controller
             $ownerCol = collect(['provider_id', 'vendor_id', 'owner_id', 'user_id'])
                 ->first(fn ($col) => Schema::hasColumn('vehicles', $col));
 
-            // Base query with safe vendor filter (only if we found a real column)
-            $base = Booking::query()
+            $resolveClientName = static function ($booking): string {
+                $fullName = trim((string) data_get($booking, 'customer.full_name'));
+                if ($fullName !== '') {
+                    return $fullName;
+                }
+
+                $combinedName = trim(
+                    trim((string) data_get($booking, 'customer.first_name'))
+                    . ' ' .
+                    trim((string) data_get($booking, 'customer.last_name'))
+                );
+                if ($combinedName !== '') {
+                    return $combinedName;
+                }
+
+                $customerName = trim((string) data_get($booking, 'customer.name'));
+                if ($customerName !== '') {
+                    return $customerName;
+                }
+
+                $clientName = trim((string) data_get($booking, 'client.name'));
+                if ($clientName !== '') {
+                    return $clientName;
+                }
+
+                return '—';
+            };
+
+            // Land bookings
+            $landRows = Booking::query()
                 ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
                     $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
                 })
                 ->with(['client', 'customer', 'vehicle', 'schedule', 'payments'])
-                ->latest('created_at');
-
-            $rows = $base->take(100)->get();
-
-            // Map to your table row shape (no fatal if schedule/vehicle missing)
-            $initialBookings = $rows->map(function ($b) {
+                ->latest('created_at')
+                ->take(100)
+                ->get()
+                ->map(function ($b) use ($resolveClientName) {
                 $vehicleSnap = $b->vehicle_snapshot ?: [];
                 $veh         = $b->vehicle;
 
@@ -47,15 +76,15 @@ class BookingController extends Controller
                 }
                 $plate = $vehicleSnap['plate_number'] ?? ($veh->plate_number ?? '—');
 
-                $clientName = $b->client?->name
-                    ?? $b->customer?->name
-                    ?? '—';
+                $clientName = $resolveClientName($b);
 
                 $start = $b->start_date ?: ($b->schedule?->pickup_at ? Carbon::parse($b->schedule->pickup_at) : null);
                 $end   = $b->end_date   ?: ($b->schedule?->dropoff_at ? Carbon::parse($b->schedule->dropoff_at) : null);
 
                 $total         = (float) ($b->total_amount ?? $b->subtotal ?? 0);
-                $paid          = (float) $b->payments->sum('amount');
+                $paidAmount    = (float) $b->payments->sum('amount');
+                $paidAmountPaid = (float) $b->payments->sum('amount_paid');
+                $paid          = max($paidAmount, $paidAmountPaid);
                 $paymentStatus = ($total > 0 && $paid >= $total) ? 'Paid' : 'Pending';
 
                 // Normalize status to UI labels - match enum values with proper capitalization
@@ -85,11 +114,156 @@ class BookingController extends Controller
                     'payment'       => number_format($total, 2),
                     'paymentStatus' => $paymentStatus,
                     'status'        => $status,
+                    'bookingType'   => 'land',
+                    'editable'      => true,
+                    'canCancel'     => true,
+                    'policyUrl'     => '/vendors/bookings/' . $b->id . '/vendor/cancellation-policy',
+                    'cancelUrl'     => '/vendors/bookings/' . $b->id . '/vendor/cancel-booking',
                     'cancellationReason' => $b->cancellation_reason,
                     'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
                     'cancelledBy'   => $b->cancelled_by,
                 ];
             })->values();
+
+            // Air bookings
+            $airRows = AirVehicleBookings::query()
+                ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
+                    $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
+                })
+                ->with(['client', 'customer', 'vehicle', 'schedule', 'payments'])
+                ->latest('created_at')
+                ->take(100)
+                ->get()
+                ->map(function ($b) use ($resolveClientName) {
+                    $vehicleSnap = $b->vehicle_snapshot ?: [];
+                    $veh         = $b->vehicle;
+
+                    $carModel = trim(($vehicleSnap['make'] ?? '') . ' ' . ($vehicleSnap['model'] ?? ''));
+                    if (!$carModel && $veh) {
+                        $carModel = trim(($veh->make ?? '') . ' ' . ($veh->model ?? ''));
+                    }
+                    $plate = $vehicleSnap['plate_number']
+                        ?? ($veh->registration_number ?? $veh->plate_number ?? '—');
+
+                    $clientName = $resolveClientName($b);
+
+                    $start = $b->start_date ?: ($b->schedule?->pickup_at ? Carbon::parse($b->schedule->pickup_at) : null);
+                    $end   = $b->end_date   ?: ($b->schedule?->dropoff_at ? Carbon::parse($b->schedule->dropoff_at) : null);
+
+                    $total         = (float) ($b->total_amount ?? $b->subtotal ?? 0);
+                    $paid          = (float) $b->payments->sum('amount_paid');
+                    $paymentStatus = ($total > 0 && $paid >= $total) ? 'Paid' : 'Pending';
+
+                    $map = [
+                        'pending'   => 'Pending',
+                        'confirmed' => 'Confirmed',
+                        'active'    => 'Confirmed',
+                        'ongoing'   => 'Confirmed',
+                        'completed' => 'Completed',
+                        'finished'  => 'Completed',
+                        'returned'  => 'Completed',
+                        'cancelled' => 'Cancelled',
+                        'canceled'  => 'Cancelled',
+                    ];
+                    $statusKey = strtolower((string) $b->status);
+                    $status    = $map[$statusKey] ?? 'Pending';
+
+                    return [
+                        'id'            => 'ABK-' . str_pad((string) $b->id, 5, '0', STR_PAD_LEFT),
+                        'bookingDate'   => $b->created_at?->format('Y-m-d') ?? '',
+                        'clientName'    => $clientName,
+                        'carModel'      => $carModel ?: '—',
+                        'carPlate'      => $plate,
+                        'plan'          => $b->rental_days ? ($b->rental_days . ' days') : '—',
+                        'startDate'     => $start?->format('Y-m-d') ?? '',
+                        'endDate'       => $end?->format('Y-m-d') ?? '',
+                        'payment'       => number_format($total, 2),
+                        'paymentStatus' => $paymentStatus,
+                        'status'        => $status,
+                        'bookingType'   => 'air',
+                        'editable'      => false,
+                        'canCancel'     => true,
+                        'policyUrl'     => '/vendors/bookings/air/' . $b->id . '/vendor/cancellation-policy',
+                        'cancelUrl'     => '/vendors/bookings/air/' . $b->id . '/vendor/cancel-booking',
+                        'cancellationReason' => $b->cancellation_reason,
+                        'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
+                        'cancelledBy'   => $b->cancelled_by,
+                    ];
+                })->values();
+
+            // Sea bookings
+            $seaRows = SeaVehicleBookings::query()
+                ->when($ownerCol && $vendorId, function ($q) use ($ownerCol, $vendorId) {
+                    $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId));
+                })
+                ->with(['client', 'customer', 'vehicle', 'schedule', 'payments'])
+                ->latest('created_at')
+                ->take(100)
+                ->get()
+                ->map(function ($b) use ($resolveClientName) {
+                    $vehicleSnap = $b->vehicle_snapshot ?: [];
+                    $veh         = $b->vehicle;
+
+                    $carModel = trim(($vehicleSnap['make'] ?? '') . ' ' . ($vehicleSnap['model'] ?? ''));
+                    if (!$carModel && $veh) {
+                        $carModel = trim(($veh->make ?? '') . ' ' . ($veh->model ?? ''));
+                    }
+                    $plate = $vehicleSnap['plate_number']
+                        ?? ($veh->registration_number ?? $veh->plate_number ?? '—');
+
+                    $clientName = $resolveClientName($b);
+
+                    $start = $b->start_date ?: ($b->schedule?->pickup_at ? Carbon::parse($b->schedule->pickup_at) : null);
+                    $end   = $b->end_date   ?: ($b->schedule?->dropoff_at ? Carbon::parse($b->schedule->dropoff_at) : null);
+
+                    $total         = (float) ($b->total_amount ?? $b->subtotal ?? 0);
+                    $paid          = (float) $b->payments->sum('amount_paid');
+                    $paymentStatus = ($total > 0 && $paid >= $total) ? 'Paid' : 'Pending';
+
+                    $map = [
+                        'pending'   => 'Pending',
+                        'confirmed' => 'Confirmed',
+                        'active'    => 'Confirmed',
+                        'ongoing'   => 'Confirmed',
+                        'completed' => 'Completed',
+                        'finished'  => 'Completed',
+                        'returned'  => 'Completed',
+                        'cancelled' => 'Cancelled',
+                        'canceled'  => 'Cancelled',
+                    ];
+                    $statusKey = strtolower((string) $b->status);
+                    $status    = $map[$statusKey] ?? 'Pending';
+
+                    return [
+                        'id'            => 'SBK-' . str_pad((string) $b->id, 5, '0', STR_PAD_LEFT),
+                        'bookingDate'   => $b->created_at?->format('Y-m-d') ?? '',
+                        'clientName'    => $clientName,
+                        'carModel'      => $carModel ?: '—',
+                        'carPlate'      => $plate,
+                        'plan'          => $b->rental_days ? ($b->rental_days . ' days') : '—',
+                        'startDate'     => $start?->format('Y-m-d') ?? '',
+                        'endDate'       => $end?->format('Y-m-d') ?? '',
+                        'payment'       => number_format($total, 2),
+                        'paymentStatus' => $paymentStatus,
+                        'status'        => $status,
+                        'bookingType'   => 'sea',
+                        'editable'      => false,
+                        'canCancel'     => true,
+                        'policyUrl'     => '/vendors/bookings/sea/' . $b->id . '/vendor/cancellation-policy',
+                        'cancelUrl'     => '/vendors/bookings/sea/' . $b->id . '/vendor/cancel-booking',
+                        'cancellationReason' => $b->cancellation_reason,
+                        'cancelledAt'   => $b->cancelled_at?->format('Y-m-d H:i:s'),
+                        'cancelledBy'   => $b->cancelled_by,
+                    ];
+                })->values();
+
+            $initialBookings = $landRows
+                ->merge($airRows)
+                ->merge($seaRows)
+                ->sortByDesc(function ($row) {
+                    return $row['bookingDate'] ?? '';
+                })
+                ->values();
 
             // Build Booking Overview (last 8 months)
             $done   = ['completed', 'finished', 'returned'];
@@ -105,13 +279,33 @@ class BookingController extends Controller
                     ->when($ownerCol && $vendorId, fn ($q) => $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId)))
                     ->whereBetween('created_at', [$start, $end])
                     ->whereRaw('LOWER(status) IN (' . implode(',', array_fill(0, count($done), '?')) . ')', $done)
-                    ->count();
+                    ->count()
+                    + AirVehicleBookings::query()
+                        ->when($ownerCol && $vendorId, fn ($q) => $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId)))
+                        ->whereBetween('created_at', [$start, $end])
+                        ->whereRaw('LOWER(status) IN (' . implode(',', array_fill(0, count($done), '?')) . ')', $done)
+                        ->count()
+                    + SeaVehicleBookings::query()
+                        ->when($ownerCol && $vendorId, fn ($q) => $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId)))
+                        ->whereBetween('created_at', [$start, $end])
+                        ->whereRaw('LOWER(status) IN (' . implode(',', array_fill(0, count($done), '?')) . ')', $done)
+                        ->count();
 
                 $cancelCount = Booking::query()
                     ->when($ownerCol && $vendorId, fn ($q) => $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId)))
                     ->whereBetween('created_at', [$start, $end])
                     ->whereRaw('LOWER(status) IN (' . implode(',', array_fill(0, count($cancel), '?')) . ')', $cancel)
-                    ->count();
+                    ->count()
+                    + AirVehicleBookings::query()
+                        ->when($ownerCol && $vendorId, fn ($q) => $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId)))
+                        ->whereBetween('created_at', [$start, $end])
+                        ->whereRaw('LOWER(status) IN (' . implode(',', array_fill(0, count($cancel), '?')) . ')', $cancel)
+                        ->count()
+                    + SeaVehicleBookings::query()
+                        ->when($ownerCol && $vendorId, fn ($q) => $q->whereHas('vehicle', fn ($v) => $v->where($ownerCol, $vendorId)))
+                        ->whereBetween('created_at', [$start, $end])
+                        ->whereRaw('LOWER(status) IN (' . implode(',', array_fill(0, count($cancel), '?')) . ')', $cancel)
+                        ->count();
 
                 return [
                     'name'      => $m->format('M'),
@@ -561,6 +755,158 @@ class BookingController extends Controller
                 ],
                 'server_error' => 'Failed to load calendar data. Check logs.',
             ]);
+        }
+    }
+
+    public function getVendorCancellationPolicyByType(Request $request, string $bookingType, int $bookingId)
+    {
+        $vendor = Auth::user();
+        $vendorId = $vendor?->id;
+
+        $ownerCol = collect(['provider_id', 'vendor_id', 'owner_id', 'user_id'])
+            ->first(fn ($col) => Schema::hasColumn('vehicles', $col));
+
+        $booking = $this->resolveVendorVehicleBookingByType($bookingType, $bookingId, $vendorId, $ownerCol);
+
+        $refundDetails = $this->buildVehicleRefundPreview(
+            (float) ($booking->total_amount ?? $booking->subtotal ?? 0),
+            $booking->schedule?->pickup_at,
+            'vendor'
+        );
+
+        if (!$refundDetails['success']) {
+            return response()->json($refundDetails, 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'can_cancel' => strtolower((string) $booking->status) !== 'cancelled',
+            'refund_details' => $refundDetails['refund_details'],
+        ]);
+    }
+
+    public function cancelBookingAsVendorByType(Request $request, string $bookingType, int $bookingId)
+    {
+        $vendor = Auth::user();
+        $vendorId = $vendor?->id;
+
+        $ownerCol = collect(['provider_id', 'vendor_id', 'owner_id', 'user_id'])
+            ->first(fn ($col) => Schema::hasColumn('vehicles', $col));
+
+        $booking = $this->resolveVendorVehicleBookingByType($bookingType, $bookingId, $vendorId, $ownerCol);
+
+        if (strtolower((string) $booking->status) === 'cancelled') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Booking is already cancelled.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $refundPreview = $this->buildVehicleRefundPreview(
+            (float) ($booking->total_amount ?? $booking->subtotal ?? 0),
+            $booking->schedule?->pickup_at,
+            'vendor'
+        );
+
+        if (!$refundPreview['success']) {
+            return response()->json($refundPreview, 422);
+        }
+
+        $notes = trim((string) ($booking->notes ?? ''));
+        $reason = trim((string) ($validated['reason'] ?? ''));
+        $cancelNote = 'Cancelled by vendor on ' . now()->toDateTimeString();
+        if ($reason !== '') {
+            $cancelNote .= ' | Reason: ' . $reason;
+        }
+
+        $updatePayload = [
+            'status' => 'cancelled',
+            'notes' => trim($notes . "\n" . $cancelNote),
+        ];
+
+        $table = $booking->getTable();
+        if (Schema::hasColumn($table, 'cancellation_reason')) {
+            $updatePayload['cancellation_reason'] = $reason !== '' ? $reason : null;
+        }
+        if (Schema::hasColumn($table, 'cancelled_at')) {
+            $updatePayload['cancelled_at'] = now();
+        }
+        if (Schema::hasColumn($table, 'cancelled_by')) {
+            $updatePayload['cancelled_by'] = 'vendor';
+        }
+
+        $booking->update($updatePayload);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking cancelled successfully.',
+            'refund_details' => $refundPreview['refund_details'] ?? null,
+        ]);
+    }
+
+    private function resolveVendorVehicleBookingByType(string $bookingType, int $bookingId, ?int $vendorId, ?string $ownerCol)
+    {
+        $type = strtolower(trim($bookingType));
+
+        $booking = match ($type) {
+            'land' => Booking::with(['vehicle', 'schedule'])->findOrFail($bookingId),
+            'air'  => AirVehicleBookings::with(['vehicle', 'schedule'])->findOrFail($bookingId),
+            'sea'  => SeaVehicleBookings::with(['vehicle', 'schedule'])->findOrFail($bookingId),
+            default => abort(404, 'Unknown booking type'),
+        };
+
+        $vehicle = $booking->vehicle;
+        if (!$vehicle || !$ownerCol || !$vendorId || (int) $vehicle->{$ownerCol} !== (int) $vendorId) {
+            abort(403, 'Unauthorized');
+        }
+
+        return $booking;
+    }
+
+    private function buildVehicleRefundPreview(float $totalAmount, $pickupAt, string $cancelledBy = 'vendor'): array
+    {
+        try {
+            if (!$pickupAt) {
+                return [
+                    'success' => false,
+                    'message' => 'Cannot calculate refund: booking has no pickup date',
+                ];
+            }
+
+            $pickup = Carbon::parse($pickupAt);
+            $daysUntilPickup = Carbon::now()->diffInDays($pickup, false);
+            $threshold = CancellationSetting::getDaysForContext('vehicle');
+
+            $refundPercentage = $daysUntilPickup >= ($threshold - 0.01) ? 100 : 50;
+            $refundAmount = round(($totalAmount * $refundPercentage) / 100, 2);
+            $cancellationFee = round($totalAmount - $refundAmount, 2);
+            $actor = $cancelledBy === 'vendor' ? 'Vendor' : 'You';
+            $timingText = $daysUntilPickup >= $threshold
+                ? "more than {$threshold} days before pickup"
+                : "less than {$threshold} days before pickup";
+
+            return [
+                'success' => true,
+                'refund_details' => [
+                    'refund_amount' => $refundAmount,
+                    'refund_percentage' => $refundPercentage,
+                    'cancellation_fee' => $cancellationFee,
+                    'days_until_pickup' => round($daysUntilPickup, 2),
+                    'policy_message' => $refundPercentage === 100
+                        ? "{$actor} are cancelling {$timingText} and customer will receive 100% refund."
+                        : "{$actor} are cancelling {$timingText} and customer will receive 50% refund.",
+                    'vendor_commission_refund' => 0,
+                ],
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'message' => 'Cannot calculate refund: ' . $e->getMessage(),
+            ];
         }
     }
 
