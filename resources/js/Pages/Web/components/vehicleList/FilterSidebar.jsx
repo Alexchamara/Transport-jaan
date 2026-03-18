@@ -359,7 +359,7 @@ const handleMileagesChange = (mileageChange) => {
                 name="mileage"
                 value="limited"
                 className="mr-1.5"
-                changed={selectedMileage === "limited"}
+                checked={selectedMileage === "limited"}
                 onChange={() => handleMileagesChange("limited")}
               />
               <label htmlFor="limited">Limited</label>
@@ -374,7 +374,7 @@ const handleMileagesChange = (mileageChange) => {
                 name="mileage"
                 value="unlimited"
                 className="mr-1.5"
-                changed={selectedMileage === "unlimited"}
+                checked={selectedMileage === "unlimited"}
                 onChange={() => handleMileagesChange("unlimited")}
               />
               <label htmlFor="unlimited">Unlimited</label>
