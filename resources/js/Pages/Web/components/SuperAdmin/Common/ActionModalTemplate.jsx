@@ -11,6 +11,7 @@ const ActionModalTemplate = ({
     notesRequired,
     processing,
     processingText = 'Processing...',
+    cancelText = 'Cancel',
     confirmText,
     confirmClassName,
     onClose,
@@ -99,7 +100,7 @@ const ActionModalTemplate = ({
                             : `border text-[13px] px-4 py-2 rounded-[5px] transition-colors ${config.cancelBtn}`
                         }
                     >
-                        Cancel
+                        {cancelText}
                     </button>
                     <button
                         onClick={onConfirm}

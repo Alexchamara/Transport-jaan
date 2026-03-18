@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { CalendarDays, ChevronDown, Search } from "lucide-react";
+import CourierFeedbackModal from "../common/CourierFeedbackModal";
+import useCourierActionModal from "../common/useCourierActionModal";
 
 const EMPTY = {
     summary: {
@@ -49,6 +51,8 @@ const actionLabels = {
     expire_booking: "Expire",
     reopen_booking: "Reopen",
 };
+
+const DESTRUCTIVE_BOOKING_ACTIONS = ["cancel_booking", "reject_booking", "expire_booking"];
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -103,30 +107,14 @@ const BookingContent = () => {
     const [selectedIds, setSelectedIds] = useState([]);
     const [bulkAction, setBulkAction] = useState("");
     const [selectedBooking, setSelectedBooking] = useState(null);
-    const [toast, setToast] = useState(null);
-
-    useEffect(() => {
-        if (flash.success) {
-            setToast({ type: "success", message: flash.success });
-            return;
-        }
-
-        if (flash.error) {
-            setToast({ type: "error", message: flash.error });
-        }
-    }, [flash.success, flash.error]);
-
-    useEffect(() => {
-        if (!toast) {
-            return;
-        }
-
-        const timer = setTimeout(() => {
-            setToast(null);
-        }, 3200);
-
-        return () => clearTimeout(timer);
-    }, [toast]);
+    const {
+        feedback,
+        closeFeedback,
+        confirmState,
+        openConfirm,
+        closeConfirm,
+        runConfirm,
+    } = useCourierActionModal(flash);
 
     const summaryCards = useMemo(
         () => [
@@ -157,7 +145,20 @@ const BookingContent = () => {
     };
 
     const runAction = (shipmentId, action) => {
-        router.post(route("courierService.bookings.lifecycle", shipmentId), { action }, { preserveScroll: true });
+        const execute = () => {
+            router.post(route("courierService.bookings.lifecycle", shipmentId), { action }, { preserveScroll: true });
+        };
+
+        if (DESTRUCTIVE_BOOKING_ACTIONS.includes(action)) {
+            openConfirm({
+                title: "Confirm Booking Action",
+                message: `Are you sure you want to ${titleCase(action)} for this booking? This affects booking lifecycle and can impact operations.`,
+                onConfirm: execute,
+            });
+            return;
+        }
+
+        execute();
     };
 
     const runBulkAction = () => {
@@ -165,40 +166,43 @@ const BookingContent = () => {
             return;
         }
 
-        router.post(
-            route("courierService.bookings.bulk.lifecycle"),
-            { shipmentIds: selectedIds, action: bulkAction },
-            {
-                preserveScroll: true,
-                onSuccess: () => setSelectedIds([]),
-            },
-        );
+        const execute = () => {
+            router.post(
+                route("courierService.bookings.bulk.lifecycle"),
+                { shipmentIds: selectedIds, action: bulkAction },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => setSelectedIds([]),
+                },
+            );
+        };
+
+        openConfirm({
+            title: "Confirm Bulk Booking Action",
+            message: `Apply ${titleCase(bulkAction)} to ${selectedIds.length} selected booking(s)?`,
+            onConfirm: execute,
+        });
     };
 
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
-            {toast && (
-                <div className="fixed right-5 top-5 z-50">
-                    <div
-                        className={`min-w-[280px] max-w-[420px] rounded-[10px] px-4 py-3 text-[13px] font-[600] shadow-lg ${
-                            toast.type === "success"
-                                ? "bg-[#DCFCE7] text-[#166534] border border-[#86EFAC]"
-                                : "bg-[#FEE2E2] text-[#991B1B] border border-[#FCA5A5]"
-                        }`}
-                    >
-                        <div className="flex items-start justify-between gap-3">
-                            <p>{toast.message}</p>
-                            <button
-                                type="button"
-                                className="text-[12px] opacity-80 hover:opacity-100"
-                                onClick={() => setToast(null)}
-                            >
-                                Dismiss
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <CourierFeedbackModal
+                open={Boolean(feedback)}
+                type={feedback?.type || "info"}
+                message={feedback?.message || ""}
+                onClose={closeFeedback}
+            />
+
+            <CourierFeedbackModal
+                open={confirmState.open}
+                type={confirmState.type || "warning"}
+                title={confirmState.title}
+                message={confirmState.message}
+                confirmText={confirmState.confirmText || "Confirm"}
+                showCancel={true}
+                onConfirm={runConfirm}
+                onClose={closeConfirm}
+            />
 
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
                 <div>

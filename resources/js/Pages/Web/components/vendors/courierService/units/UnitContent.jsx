@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { CalendarDays, ChevronDown, Search } from "lucide-react";
+import CourierFeedbackModal from "../common/CourierFeedbackModal";
+import useCourierActionModal from "../common/useCourierActionModal";
 
 const EMPTY = {
     summary: {
@@ -64,6 +66,8 @@ const actionLabels = {
     cancel_shipment: "Cancel",
 };
 
+const DESTRUCTIVE_SHIPMENT_ACTIONS = ["cancel_shipment"];
+
 const stageBadge = (stage) => {
     switch (stage) {
         case "new_assignments":
@@ -118,6 +122,7 @@ const titleCase = (value) => value.replaceAll("_", " ").replace(/\b\w/g, (c) => 
 const UnitContent = () => {
     const props = usePage().props;
     const shipments = props.courierShipments || EMPTY;
+    const flash = props.flash || {};
 
     const [filters, setFilters] = useState({
         q: shipments.filters.q || "",
@@ -133,6 +138,14 @@ const UnitContent = () => {
     const [selectedShipment, setSelectedShipment] = useState(null);
     const [selectedIds, setSelectedIds] = useState([]);
     const [bulkAction, setBulkAction] = useState("");
+    const {
+        feedback,
+        closeFeedback,
+        confirmState,
+        openConfirm,
+        closeConfirm,
+        runConfirm,
+    } = useCourierActionModal(flash);
 
     const submitFilters = (page = 1, overrides = {}) => {
         router.get(
@@ -151,13 +164,26 @@ const UnitContent = () => {
     };
 
     const runAction = (shipmentId, action) => {
-        router.post(
-            route("courierService.shipments.stage", shipmentId),
-            { action },
-            {
-                preserveScroll: true,
-            },
-        );
+        const execute = () => {
+            router.post(
+                route("courierService.shipments.stage", shipmentId),
+                { action },
+                {
+                    preserveScroll: true,
+                },
+            );
+        };
+
+        if (DESTRUCTIVE_SHIPMENT_ACTIONS.includes(action)) {
+            openConfirm({
+                title: "Confirm Shipment Action",
+                message: `Are you sure you want to ${titleCase(action)} for this shipment?`,
+                onConfirm: execute,
+            });
+            return;
+        }
+
+        execute();
     };
 
     const runBulkAction = () => {
@@ -165,19 +191,27 @@ const UnitContent = () => {
             return;
         }
 
-        router.post(
-            route("courierService.shipments.bulk.stage"),
-            {
-                shipmentIds: selectedIds,
-                action: bulkAction,
-            },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setSelectedIds([]);
+        const execute = () => {
+            router.post(
+                route("courierService.shipments.bulk.stage"),
+                {
+                    shipmentIds: selectedIds,
+                    action: bulkAction,
                 },
-            },
-        );
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setSelectedIds([]);
+                    },
+                },
+            );
+        };
+
+        openConfirm({
+            title: "Confirm Bulk Shipment Action",
+            message: `Apply ${titleCase(bulkAction)} to ${selectedIds.length} selected shipment(s)?`,
+            onConfirm: execute,
+        });
     };
 
     const summaryCards = useMemo(
@@ -194,6 +228,24 @@ const UnitContent = () => {
 
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
+            <CourierFeedbackModal
+                open={Boolean(feedback)}
+                type={feedback?.type || "info"}
+                message={feedback?.message || ""}
+                onClose={closeFeedback}
+            />
+
+            <CourierFeedbackModal
+                open={confirmState.open}
+                type={confirmState.type || "warning"}
+                title={confirmState.title}
+                message={confirmState.message}
+                confirmText={confirmState.confirmText || "Confirm"}
+                showCancel={true}
+                onConfirm={runConfirm}
+                onClose={closeConfirm}
+            />
+
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
                 <div>
                     <h1 className="figtree text-[34px] font-[700]">Courier Shipments</h1>
