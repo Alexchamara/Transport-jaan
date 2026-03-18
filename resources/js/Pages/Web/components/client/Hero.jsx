@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@inertiajs/react";
 import jsPDF from "jspdf";
@@ -72,6 +72,8 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     const [endDate, setEndDate] = useState("");
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [historyPage, setHistoryPage] = useState(1);
+    const historyPerPage = 8;
 
     const handleClearFilters = () => {
         setQ("");
@@ -339,6 +341,20 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
     const upcoming = bookings.filter((r) =>
         ["confirmed", "paid", "pending"].includes(r.status?.toLowerCase())
     );
+
+    const totalHistoryPages = Math.max(
+        1,
+        Math.ceil(bookings.length / historyPerPage)
+    );
+
+    const paginatedHistoryRows = useMemo(() => {
+        const startIdx = (historyPage - 1) * historyPerPage;
+        return bookings.slice(startIdx, startIdx + historyPerPage);
+    }, [bookings, historyPage]);
+
+    useEffect(() => {
+        setHistoryPage((prev) => Math.min(prev, totalHistoryPages));
+    }, [totalHistoryPages]);
 
     const handleNewBooking = () => {
         window.location.href = '/multiModel/plan-journey';
@@ -861,7 +877,7 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                 </thead>
                                 <tbody>
                                     {bookings.length > 0 ? (
-                                        bookings.map((r) => (
+                                        paginatedHistoryRows.map((r) => (
                                             <tr
                                                 key={r.unique_key || r.id || r.code}
                                                 className="rounded-xl bg-white shadow-sm"
@@ -911,6 +927,36 @@ const Hero = ({ bookings = [], vehicles = [], monthlyData = [] }) => {
                                 </tbody>
                             </table>
                         </div>
+
+                        {bookings.length > 0 && (
+                            <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-[13px] text-slate-600">
+                                <div>
+                                    Showing {(historyPage - 1) * historyPerPage + 1}-
+                                    {Math.min(historyPage * historyPerPage, bookings.length)} of {bookings.length}
+                                </div>
+                                <div className="inline-flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
+                                        disabled={historyPage === 1}
+                                        className="h-9 px-3 rounded-lg border border-slate-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                                    >
+                                        Prev
+                                    </button>
+                                    <span className="text-slate-500">
+                                        Page {historyPage} of {totalHistoryPages}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setHistoryPage((prev) => Math.min(totalHistoryPages, prev + 1))}
+                                        disabled={historyPage === totalHistoryPages}
+                                        className="h-9 px-3 rounded-lg border border-slate-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
