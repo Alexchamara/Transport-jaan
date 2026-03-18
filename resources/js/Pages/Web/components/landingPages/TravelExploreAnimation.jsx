@@ -43,7 +43,7 @@ const IMAGES = [
         description:
             "Arrange freight shipping for large or bulk goods via road, sea, or air. Track shipments and optimize your supply chain.",
         ctaLabel: "Ship Freight",
-        href: "/freight-home",
+        href: "/ffreight",
         url: img5,
         tags: ["Freight", "Shipping", "Logistics"],
     },
@@ -83,7 +83,7 @@ const SERVICES = [
     { title: "Multimodal", subtitle: "Combined transport", href: "/multiModel/plan-journey?tab=multimodal", img: img6 },
     { title: "Courier Booking", subtitle: "Local & international parcels", href: "/couriers/create", img: img8 },
     { title: "Warehouse Booking", subtitle: "Storage & fulfillment", href: "/warehouseList", img: img4 },
-    { title: "Freight", subtitle: "Bulk cargo shipments", href: "/freight-home", img: img5 },
+    { title: "Freight", subtitle: "Bulk cargo shipments", href: "/ffreight", img: img5 },
 
 ];
 
