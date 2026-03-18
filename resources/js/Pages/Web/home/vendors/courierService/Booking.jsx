@@ -1,11 +1,11 @@
 ﻿import React from "react";
 import VendorShellLayout from "../../../../../Components/vendors/VendorShellLayout";
-import DashContent from "../../../components/vendors/courierService/dashboard/DashContent";
+import BookingContent from "../../../components/vendors/courierService/bookings/BookingContent";
 
 const Booking = () => {
     return (
         <VendorShellLayout activeService="Courier Service">
-            <DashContent mode="bookings" />
+            <BookingContent />
         </VendorShellLayout>
     );
 };

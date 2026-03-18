@@ -1109,6 +1109,14 @@ Route::get('/courierService/bookings', [VendorCourierDashboardController::class,
     ->middleware(['auth', 'vendor.verified'])
     ->name('courierService.bookings');
 
+Route::post('/courierService/bookings/{shipment}/lifecycle', [VendorCourierDashboardController::class, 'updateBookingLifecycle'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.bookings.lifecycle');
+
+Route::post('/courierService/bookings/bulk-lifecycle', [VendorCourierDashboardController::class, 'bulkUpdateBookingLifecycle'])
+    ->middleware(['auth', 'vendor.verified'])
+    ->name('courierService.bookings.bulk.lifecycle');
+
 Route::get('/courierService/units', [VendorCourierDashboardController::class, 'shipments'])
     ->middleware(['auth', 'vendor.verified'])
     ->name('courierService.units');

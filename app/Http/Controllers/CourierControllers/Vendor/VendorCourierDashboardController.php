@@ -12,10 +12,76 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class VendorCourierDashboardController extends Controller
 {
+    private const BOOKING_STATUS_OPTIONS = [
+        'new_request',
+        'quote_pending',
+        'quoted',
+        'awaiting_client_confirmation',
+        'confirmed',
+        'cancelled',
+        'rejected',
+        'expired',
+    ];
+
+    private const BOOKING_ACTION_META = [
+        'accept_booking' => [
+            'status' => CourierShipment::STATUS_CONFIRMED,
+            'event' => 'booking_confirmed',
+            'nextBookingStatus' => 'confirmed',
+        ],
+        'request_revision' => [
+            'status' => null,
+            'event' => 'booking_revision_requested',
+            'nextBookingStatus' => 'quote_pending',
+        ],
+        'send_quote' => [
+            'status' => null,
+            'event' => 'booking_quoted',
+            'nextBookingStatus' => 'quoted',
+        ],
+        'mark_awaiting_confirmation' => [
+            'status' => null,
+            'event' => 'booking_awaiting_client_confirmation',
+            'nextBookingStatus' => 'awaiting_client_confirmation',
+        ],
+        'cancel_booking' => [
+            'status' => CourierShipment::STATUS_CANCELLED,
+            'event' => 'booking_cancelled',
+            'nextBookingStatus' => 'cancelled',
+        ],
+        'reject_booking' => [
+            'status' => CourierShipment::STATUS_CANCELLED,
+            'event' => 'booking_rejected',
+            'nextBookingStatus' => 'rejected',
+        ],
+        'expire_booking' => [
+            'status' => CourierShipment::STATUS_CANCELLED,
+            'event' => 'booking_expired',
+            'nextBookingStatus' => 'expired',
+        ],
+        'reopen_booking' => [
+            'status' => CourierShipment::STATUS_PENDING,
+            'event' => 'booking_reopened',
+            'nextBookingStatus' => 'new_request',
+        ],
+    ];
+
+    private const BOOKING_ALLOWED_ACTIONS = [
+        'new_request' => ['send_quote', 'request_revision', 'accept_booking', 'reject_booking', 'expire_booking'],
+        'quote_pending' => ['send_quote', 'request_revision', 'reject_booking', 'expire_booking'],
+        'quoted' => ['mark_awaiting_confirmation', 'accept_booking', 'request_revision', 'reject_booking'],
+        'awaiting_client_confirmation' => ['accept_booking', 'request_revision', 'cancel_booking'],
+        'confirmed' => ['cancel_booking'],
+        'cancelled' => ['reopen_booking'],
+        'rejected' => ['reopen_booking'],
+        'expired' => ['reopen_booking'],
+    ];
+
     private const SHIPMENT_STAGE_OPTIONS = [
         'new_assignments',
         'ready_for_pickup',
@@ -99,8 +165,78 @@ class VendorCourierDashboardController extends Controller
         [$filters, $shipments] = $this->buildFilteredShipments($request);
 
         return Inertia::render('Web/home/vendors/courierService/Booking', [
-            'courierDashboard' => $this->buildDashboardPayload($shipments, $filters),
+            'courierBookings' => $this->buildBookingsPayload($shipments, $filters),
         ]);
+    }
+
+    public function updateBookingLifecycle(Request $request, CourierShipment $shipment)
+    {
+        $vendorId = (int) optional($request->user())->id;
+
+        if ((int) $shipment->assigned_vendor_user_id !== $vendorId) {
+            abort(403, 'You are not allowed to modify this booking.');
+        }
+
+        $validated = $request->validate([
+            'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::BOOKING_ACTION_META))],
+        ]);
+
+        $result = $this->applyBookingAction($shipment, $validated['action']);
+
+        if (!$result['ok']) {
+            return back()->with('error', $result['message']);
+        }
+
+        return back()->with('success', 'Booking updated successfully.');
+    }
+
+    public function bulkUpdateBookingLifecycle(Request $request)
+    {
+        $vendorId = (int) optional($request->user())->id;
+
+        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+            abort(403, 'Courier service registration approval is required to manage bookings.');
+        }
+
+        $validated = $request->validate([
+            'shipmentIds' => ['required', 'array', 'min:1', 'max:200'],
+            'shipmentIds.*' => ['required', 'integer'],
+            'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::BOOKING_ACTION_META))],
+        ]);
+
+        $ids = collect($validated['shipmentIds'])->unique()->values();
+        $action = $validated['action'];
+
+        $shipments = CourierShipment::query()
+            ->where('assigned_vendor_user_id', $vendorId)
+            ->whereIn('id', $ids)
+            ->with('trackingEvents:id,shipment_id,status,recorded_at')
+            ->get();
+
+        $successCount = 0;
+        $blockedCount = 0;
+
+        foreach ($shipments as $shipment) {
+            $result = $this->applyBookingAction($shipment, $action);
+
+            if ($result['ok']) {
+                $successCount++;
+            } else {
+                $blockedCount++;
+            }
+        }
+
+        if ($successCount === 0) {
+            return back()->with('error', 'No bookings were updated. Selected action is not allowed for current booking statuses.');
+        }
+
+        $message = $successCount . ' booking(s) updated successfully.';
+
+        if ($blockedCount > 0) {
+            $message .= ' ' . $blockedCount . ' booking(s) skipped due to lifecycle rules.';
+        }
+
+        return back()->with('success', $message);
     }
 
     public function clients(Request $request)
@@ -264,6 +400,8 @@ class VendorCourierDashboardController extends Controller
             'status' => trim((string) $request->query('status', '')),
             'service' => trim((string) $request->query('service', '')),
             'category' => trim((string) $request->query('category', '')),
+            'bookingStatus' => trim((string) $request->query('bookingStatus', '')),
+            'paymentStatus' => trim((string) $request->query('paymentStatus', '')),
             'fromDate' => trim((string) $request->query('fromDate', '')),
             'toDate' => trim((string) $request->query('toDate', '')),
             'bookingRange' => trim((string) $request->query('bookingRange', 'this_year')),
@@ -406,6 +544,221 @@ class VendorCourierDashboardController extends Controller
                 'perPageOptions' => [10, 20, 50],
             ],
         ];
+    }
+
+    private function buildBookingsPayload(Collection $shipments, array $filters): array
+    {
+        $rows = $shipments->map(function (CourierShipment $shipment) {
+            $bookingStatus = $this->resolveBookingStatus($shipment);
+            $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
+            $confirmHours = $this->resolveBookingConfirmHours($shipment);
+
+            return [
+                'id' => $shipment->id,
+                'bookingNumber' => $shipment->reference,
+                'createdAt' => optional($shipment->created_at)->format('Y-m-d H:i'),
+                'client' => $shipment->sender?->name,
+                'clientCompany' => $shipment->sender?->company_name,
+                'trackingNumber' => $this->trackingNumber($shipment),
+                'category' => $this->resolveCategory($shipment),
+                'service' => $this->normalizeServiceLabel($shipment->service_level),
+                'route' => trim(implode(' to ', array_filter([
+                    trim(implode(', ', array_filter([
+                        optional($shipment->senderAddress)->city,
+                        optional($shipment->senderAddress)->country,
+                    ]))),
+                    trim(implode(', ', array_filter([
+                        optional($shipment->recipientAddress)->city,
+                        optional($shipment->recipientAddress)->country,
+                    ]))),
+                ]))),
+                'quoteAmount' => (float) ($shipment->estimated_cost ?? 0),
+                'currency' => (string) ($shipment->currency_code ?? 'LKR'),
+                'paymentStatus' => $this->derivePaymentStatus($shipment),
+                'bookingStatus' => $bookingStatus,
+                'bookingStatusLabel' => $this->bookingStatusLabel($bookingStatus),
+                'pickupWindow' => $this->formatPickupWindow($shipment),
+                'eta' => optional($estimatedDelivery)->format('Y-m-d H:i'),
+                'allowedActions' => $this->getAllowedBookingActionsForStatus($bookingStatus),
+                'confirmHours' => $confirmHours,
+            ];
+        })->values();
+
+        $summary = [
+            'newRequestsToday' => $rows->filter(fn ($row) => $row['bookingStatus'] === 'new_request' && str_starts_with((string) $row['createdAt'], now()->format('Y-m-d')))->count(),
+            'awaitingConfirmation' => $rows->where('bookingStatus', 'awaiting_client_confirmation')->count(),
+            'confirmedToday' => $rows->filter(fn ($row) => $row['bookingStatus'] === 'confirmed' && str_starts_with((string) $row['createdAt'], now()->format('Y-m-d')))->count(),
+            'cancellationsToday' => $rows->filter(fn ($row) => in_array($row['bookingStatus'], ['cancelled', 'rejected', 'expired'], true) && str_starts_with((string) $row['createdAt'], now()->format('Y-m-d')))->count(),
+            'conversionRate' => $rows->count() > 0
+                ? round(($rows->where('bookingStatus', 'confirmed')->count() / $rows->count()) * 100, 1)
+                : 0,
+            'avgConfirmationHours' => $rows->filter(fn ($row) => $row['confirmHours'] !== null)->count() > 0
+                ? round($rows->filter(fn ($row) => $row['confirmHours'] !== null)->avg('confirmHours'), 1)
+                : 0,
+        ];
+
+        $statusFilter = trim((string) ($filters['bookingStatus'] ?? ''));
+        $paymentFilter = trim((string) ($filters['paymentStatus'] ?? ''));
+
+        if ($statusFilter !== '' && in_array($statusFilter, self::BOOKING_STATUS_OPTIONS, true)) {
+            $rows = $rows->where('bookingStatus', $statusFilter)->values();
+        }
+
+        if ($paymentFilter !== '') {
+            $rows = $rows->where('paymentStatus', $paymentFilter)->values();
+        }
+
+        $perPage = max(5, min(50, (int) ($filters['perPage'] ?? 10)));
+        $total = $rows->count();
+        $totalPages = max(1, (int) ceil($total / $perPage));
+        $page = min((int) ($filters['page'] ?? 1), $totalPages);
+        $pagedRows = $rows->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return [
+            'summary' => $summary,
+            'rows' => $pagedRows,
+            'filters' => [
+                'q' => (string) ($filters['q'] ?? ''),
+                'category' => (string) ($filters['category'] ?? ''),
+                'service' => (string) ($filters['service'] ?? ''),
+                'bookingStatus' => $statusFilter,
+                'paymentStatus' => $paymentFilter,
+                'fromDate' => (string) ($filters['fromDate'] ?? ''),
+                'toDate' => (string) ($filters['toDate'] ?? ''),
+                'perPage' => $perPage,
+                'page' => $page,
+            ],
+            'pagination' => [
+                'page' => $page,
+                'perPage' => $perPage,
+                'total' => $total,
+                'totalPages' => $totalPages,
+            ],
+            'filterOptions' => [
+                'bookingStatuses' => collect(self::BOOKING_STATUS_OPTIONS)
+                    ->map(fn ($status) => ['value' => $status, 'label' => $this->bookingStatusLabel($status)])
+                    ->values(),
+                'paymentStatuses' => [
+                    ['value' => 'paid', 'label' => 'Paid'],
+                    ['value' => 'pending', 'label' => 'Pending'],
+                    ['value' => 'failed', 'label' => 'Failed'],
+                ],
+                'categories' => [
+                    ['value' => 'domestic', 'label' => 'Domestic'],
+                    ['value' => 'logistic', 'label' => 'Logistic'],
+                ],
+                'services' => $shipments->pluck('service_level')->filter()->unique()->sort()->values(),
+                'perPageOptions' => [10, 20, 50],
+                'actionOptions' => collect(array_keys(self::BOOKING_ACTION_META))
+                    ->map(fn ($action) => [
+                        'value' => $action,
+                        'label' => Str::title(str_replace('_', ' ', $action)),
+                    ])
+                    ->values(),
+            ],
+        ];
+    }
+
+    private function resolveBookingStatus(CourierShipment $shipment): string
+    {
+        $latestEventStatus = strtolower((string) optional($this->getLatestTrackingEvent($shipment))->status);
+
+        return match ($latestEventStatus) {
+            'booking_quote_pending', 'booking_revision_requested' => 'quote_pending',
+            'booking_quoted' => 'quoted',
+            'booking_awaiting_client_confirmation' => 'awaiting_client_confirmation',
+            'booking_confirmed' => 'confirmed',
+            'booking_cancelled' => 'cancelled',
+            'booking_rejected' => 'rejected',
+            'booking_expired' => 'expired',
+            'booking_reopened' => 'new_request',
+            default => match ($shipment->status) {
+                CourierShipment::STATUS_PENDING => 'new_request',
+                CourierShipment::STATUS_CONFIRMED,
+                CourierShipment::STATUS_IN_TRANSIT,
+                CourierShipment::STATUS_DELIVERED => 'confirmed',
+                CourierShipment::STATUS_CANCELLED => 'cancelled',
+                default => 'new_request',
+            },
+        };
+    }
+
+    private function bookingStatusLabel(string $status): string
+    {
+        return ucwords(str_replace('_', ' ', $status));
+    }
+
+    private function derivePaymentStatus(CourierShipment $shipment): string
+    {
+        if ($shipment->status === CourierShipment::STATUS_CANCELLED) {
+            return 'failed';
+        }
+
+        if ((float) ($shipment->estimated_cost ?? 0) <= 0 || $shipment->status === CourierShipment::STATUS_PENDING) {
+            return 'pending';
+        }
+
+        return 'paid';
+    }
+
+    private function resolveBookingConfirmHours(CourierShipment $shipment): ?float
+    {
+        $confirmedEvent = $shipment->trackingEvents
+            ->filter(fn ($event) => strtolower((string) $event->status) === 'booking_confirmed')
+            ->sortBy('recorded_at')
+            ->first();
+
+        if (!$confirmedEvent || !$confirmedEvent->recorded_at || !$shipment->created_at) {
+            return null;
+        }
+
+        return round($shipment->created_at->diffInMinutes($confirmedEvent->recorded_at) / 60, 2);
+    }
+
+    private function getAllowedBookingActionsForStatus(string $bookingStatus): array
+    {
+        return self::BOOKING_ALLOWED_ACTIONS[$bookingStatus] ?? [];
+    }
+
+    private function canPerformBookingAction(string $bookingStatus, string $action): bool
+    {
+        return in_array($action, $this->getAllowedBookingActionsForStatus($bookingStatus), true);
+    }
+
+    private function applyBookingAction(CourierShipment $shipment, string $action): array
+    {
+        $shipment->loadMissing('trackingEvents:id,shipment_id,status,recorded_at');
+
+        $bookingStatus = $this->resolveBookingStatus($shipment);
+
+        if (!$this->canPerformBookingAction($bookingStatus, $action)) {
+            return [
+                'ok' => false,
+                'message' => 'Action "' . str_replace('_', ' ', $action) . '" is not allowed from booking status "' . $this->bookingStatusLabel($bookingStatus) . '".',
+            ];
+        }
+
+        $meta = self::BOOKING_ACTION_META[$action];
+
+        DB::transaction(function () use ($shipment, $meta, $action) {
+            $updateData = [];
+
+            if (!empty($meta['status'])) {
+                $updateData['status'] = $meta['status'];
+            }
+
+            if (!empty($updateData)) {
+                $shipment->update($updateData);
+            }
+
+            $shipment->trackingEvents()->create([
+                'status' => $meta['event'],
+                'description' => 'Booking action: ' . str_replace('_', ' ', $action),
+                'recorded_at' => now(),
+            ]);
+        });
+
+        return ['ok' => true, 'message' => 'Updated'];
     }
 
     private function buildClientsPayload(Request $request): array
