@@ -159,6 +159,9 @@ const VendorShellLayout = ({
 
     useEffect(() => {
         if (flash?.error) {
+            if (flash.error === "Please update your password before continuing.") {
+                return;
+            }
             setShellFlash({ type: "error", message: flash.error });
             return;
         }
