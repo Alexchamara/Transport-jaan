@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\VendorServiceRegistration;
+use App\Models\VendorUserMembership;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,11 +30,28 @@ class EnsureVendorHasApprovedServiceAccess
 
         $user = Auth::user();
 
-        if ($user->role !== 'vendor') {
-            abort(403, 'Vendor access required.');
-        }
+        $vendorUserId = (int) $user->id;
 
-        if ($user->status !== 'verified') {
+        if ($user->role !== 'vendor') {
+            $membership = VendorUserMembership::query()
+                ->where('user_id', $user->id)
+                ->where('status', 'active')
+                ->first();
+
+            if (!$membership) {
+                abort(403, 'Vendor team membership required.');
+            }
+
+            $vendorUserId = (int) $membership->vendor_user_id;
+
+            foreach ($requiredSlugs as $slug) {
+                $serviceKey = $this->serviceKeyFromSlug($slug);
+
+                if ($serviceKey && $membership->isBlockedForService($serviceKey)) {
+                    abort(403, 'Your access to this service is blocked by admin.');
+                }
+            }
+        } elseif ($user->status !== 'verified') {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Your vendor account is pending admin verification.'], 403);
             }
@@ -42,7 +60,7 @@ class EnsureVendorHasApprovedServiceAccess
         }
 
         $approvedSlugs = VendorServiceRegistration::query()
-            ->where('user_id', $user->id)
+            ->where('user_id', $vendorUserId)
             ->where('status', 'approved')
             ->with('serviceCategory:id,slug')
             ->get()
@@ -62,6 +80,18 @@ class EnsureVendorHasApprovedServiceAccess
         }
 
         return redirect()->route('vendorAllBookings')->with('error', 'Access denied. This dashboard is available only for your admin-approved registered services.');
+    }
+
+    private function serviceKeyFromSlug(string $slug): ?string
+    {
+        return match ($slug) {
+            'courier-services' => 'courier_service',
+            'vehicle-rental' => 'vehicle_rental',
+            'aviation-service', 'railway-service' => 'ticket_booking',
+            'warehousing' => 'warehousing',
+            'waterborne-transport' => 'freight',
+            default => null,
+        };
     }
 
     /**

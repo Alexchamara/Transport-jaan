@@ -39,6 +39,7 @@ use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientSettingsController;
 use App\Http\Controllers\CourierControllers\Client\ClientCourierController;
 use App\Http\Controllers\CourierControllers\Vendor\VendorCourierDashboardController;
+use App\Http\Controllers\CourierControllers\Vendor\CourierTeamController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1104,90 +1105,124 @@ Route::get('/ticketBooking/settingsPage', function () {
 
 
 
-// vendor dashboard - courier service
-Route::get('/courierService/bookings', [VendorCourierDashboardController::class, 'bookings'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.bookings');
+// vendor dashboard - courier service (service-scoped RBAC)
+Route::middleware(['auth', 'service.workspace:courier_service'])->group(function () {
+    Route::get('/courierService/bookings', [VendorCourierDashboardController::class, 'bookings'])
+        ->middleware('service.permission:courier.bookings.view')
+        ->name('courierService.bookings');
 
-Route::post('/courierService/bookings/{shipment}/lifecycle', [VendorCourierDashboardController::class, 'updateBookingLifecycle'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.bookings.lifecycle');
+    Route::post('/courierService/bookings/{shipment}/lifecycle', [VendorCourierDashboardController::class, 'updateBookingLifecycle'])
+        ->middleware('service.permission:courier.bookings.manage_lifecycle')
+        ->name('courierService.bookings.lifecycle');
 
-Route::post('/courierService/bookings/bulk-lifecycle', [VendorCourierDashboardController::class, 'bulkUpdateBookingLifecycle'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.bookings.bulk.lifecycle');
+    Route::post('/courierService/bookings/bulk-lifecycle', [VendorCourierDashboardController::class, 'bulkUpdateBookingLifecycle'])
+        ->middleware('service.permission:courier.bookings.bulk_update')
+        ->name('courierService.bookings.bulk.lifecycle');
 
-Route::get('/courierService/units', [VendorCourierDashboardController::class, 'shipments'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.units');
+    Route::get('/courierService/units', [VendorCourierDashboardController::class, 'shipments'])
+        ->middleware('service.permission:courier.shipments.view')
+        ->name('courierService.units');
 
-Route::post('/courierService/shipments/{shipment}/stage', [VendorCourierDashboardController::class, 'updateShipmentStage'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.shipments.stage');
+    Route::post('/courierService/shipments/{shipment}/stage', [VendorCourierDashboardController::class, 'updateShipmentStage'])
+        ->middleware('service.permission:courier.shipments.update_stage')
+        ->name('courierService.shipments.stage');
 
-Route::post('/courierService/shipments/bulk-stage', [VendorCourierDashboardController::class, 'bulkUpdateShipmentStage'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.shipments.bulk.stage');
+    Route::post('/courierService/shipments/bulk-stage', [VendorCourierDashboardController::class, 'bulkUpdateShipmentStage'])
+        ->middleware('service.permission:courier.shipments.bulk_update')
+        ->name('courierService.shipments.bulk.stage');
 
-Route::get('/courierService/dashboard', [VendorCourierDashboardController::class, 'dashboard'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.dashboard');
+    Route::get('/courierService/dashboard', [VendorCourierDashboardController::class, 'dashboard'])
+        ->middleware('service.permission:courier.dashboard.view')
+        ->name('courierService.dashboard');
 
-Route::get('/courierService/dashboard/report', [VendorCourierDashboardController::class, 'dashboard'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.dashboard.report');
+    Route::get('/courierService/dashboard/report', [VendorCourierDashboardController::class, 'dashboard'])
+        ->middleware('service.permission:courier.reports.export')
+        ->name('courierService.dashboard.report');
 
-Route::get('/courierService/clients', [VendorCourierDashboardController::class, 'clients'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.clients');
+    Route::get('/courierService/clients', [VendorCourierDashboardController::class, 'clients'])
+        ->middleware('service.permission:courier.clients.view')
+        ->name('courierService.clients');
 
-Route::post('/courierService/clients/{contact}/profile', [VendorCourierDashboardController::class, 'updateClientProfile'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.clients.profile');
+    Route::post('/courierService/clients/{contact}/profile', [VendorCourierDashboardController::class, 'updateClientProfile'])
+        ->middleware('service.permission:courier.clients.manage')
+        ->name('courierService.clients.profile');
 
-Route::get('/courierService/expenses', function () {
-    return Inertia::render('Web/home/vendors/courierService/Expenses');
-})->name('courierService.expenses');
+    Route::get('/courierService/expenses', function () {
+        return Inertia::render('Web/home/vendors/courierService/Expenses');
+    })->middleware('service.permission:courier.finance.view')->name('courierService.expenses');
 
-Route::get('/courierService/payment', function () {
-    return Inertia::render('Web/home/vendors/courierService/Payment');
-})->name('courierService.payment');
+    Route::get('/courierService/payment', function () {
+        return Inertia::render('Web/home/vendors/courierService/Payment');
+    })->middleware('service.permission:courier.finance.view')->name('courierService.payment');
 
-Route::get('/courierService/tracking', [VendorCourierDashboardController::class, 'tracking'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.tracking');
+    Route::get('/courierService/tracking', [VendorCourierDashboardController::class, 'tracking'])
+        ->middleware('service.permission:courier.tracking.view')
+        ->name('courierService.tracking');
 
-Route::get('/courierService/calendar', function () {
-    return Inertia::render('Web/home/vendors/courierService/Calendar');
-})->name('courierService.calendar');
+    Route::get('/courierService/calendar', function () {
+        return Inertia::render('Web/home/vendors/courierService/Calendar');
+    })->middleware('service.permission:courier.calendar.view')->name('courierService.calendar');
 
-Route::get('/courierService/addUnit', function () {
-    return Inertia::render('Web/home/vendors/courierService/AddUnit');
-})->name('courierService.addUnit');
+    Route::get('/courierService/addUnit', function () {
+        return Inertia::render('Web/home/vendors/courierService/AddUnit');
+    })->middleware('service.permission:courier.shipments.create')->name('courierService.addUnit');
 
-Route::get('/courierService/unitDetails', function () {
-    return Inertia::render('Web/home/vendors/courierService/UnitDetails');
-})->name('courierService.unitDetails');
+    Route::get('/courierService/unitDetails', function () {
+        return Inertia::render('Web/home/vendors/courierService/UnitDetails');
+    })->middleware('service.permission:courier.shipments.view')->name('courierService.unitDetails');
 
-Route::get('/courierService/settingsPage', [VendorCourierDashboardController::class, 'settings'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.settingsPage');
+    Route::get('/courierService/settingsPage', [VendorCourierDashboardController::class, 'settings'])
+        ->middleware('service.permission:courier.settings.view')
+        ->name('courierService.settingsPage');
 
-Route::post('/courierService/settingsPage', [VendorCourierDashboardController::class, 'updateSettings'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.settings.update');
+    Route::post('/courierService/settingsPage', [VendorCourierDashboardController::class, 'updateSettings'])
+        ->middleware('service.permission:courier.settings.update')
+        ->name('courierService.settings.update');
 
-Route::get('/courierService/profile', [VendorCourierDashboardController::class, 'profile'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.profile');
+    Route::get('/courierService/profile', [VendorCourierDashboardController::class, 'profile'])
+        ->middleware('service.permission:courier.profile.view')
+        ->name('courierService.profile');
 
-Route::post('/courierService/profile', [VendorCourierDashboardController::class, 'updateProfile'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.profile.update');
+    Route::post('/courierService/profile', [VendorCourierDashboardController::class, 'updateProfile'])
+        ->middleware('service.permission:courier.profile.update')
+        ->name('courierService.profile.update');
 
-Route::delete('/courierService/profile/logo', [VendorCourierDashboardController::class, 'removeProfileLogo'])
-    ->middleware(['auth', 'vendor.verified'])
-    ->name('courierService.profile.logo.remove');
+    Route::delete('/courierService/profile/logo', [VendorCourierDashboardController::class, 'removeProfileLogo'])
+        ->middleware('service.permission:courier.profile.update')
+        ->name('courierService.profile.logo.remove');
+
+    Route::get('/courierService/team', [CourierTeamController::class, 'index'])
+        ->middleware('service.permission:courier.team.view')
+        ->name('courierService.team.index');
+
+    Route::post('/courierService/team', [CourierTeamController::class, 'store'])
+        ->middleware(['service.permission:courier.team.create_user', 'throttle:20,1'])
+        ->name('courierService.team.store');
+
+    Route::patch('/courierService/team/{user}/access', [CourierTeamController::class, 'updateAccess'])
+        ->middleware(['service.permission:courier.team.view', 'throttle:30,1'])
+        ->name('courierService.team.access.update');
+
+    Route::post('/courierService/team/bulk', [CourierTeamController::class, 'bulkUpdate'])
+        ->middleware(['service.permission:courier.team.manage_status', 'throttle:15,1'])
+        ->name('courierService.team.bulk');
+
+    Route::get('/courierService/team/{user}/sessions', [CourierTeamController::class, 'listSessions'])
+        ->middleware('service.permission:courier.team.sessions.view')
+        ->name('courierService.team.sessions.index');
+
+    Route::delete('/courierService/team/{user}/sessions/{sessionId}', [CourierTeamController::class, 'revokeSession'])
+        ->middleware(['service.permission:courier.team.sessions.revoke', 'throttle:40,1'])
+        ->name('courierService.team.sessions.revoke');
+
+    Route::delete('/courierService/team/{user}/sessions', [CourierTeamController::class, 'revokeAllSessions'])
+        ->middleware(['service.permission:courier.team.sessions.revoke', 'throttle:20,1'])
+        ->name('courierService.team.sessions.revoke-all');
+
+    Route::post('/courierService/team/ownership/{newOwner}', [CourierTeamController::class, 'transferOwnership'])
+        ->middleware(['service.permission:courier.team.transfer_ownership', 'throttle:10,1'])
+        ->name('courierService.team.transfer-ownership');
+});
 
 
 

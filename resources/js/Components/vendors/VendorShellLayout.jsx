@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, usePage, router } from "@inertiajs/react";
-import { ArrowLeft, MapPin, Menu, UserCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Menu, UserCircle, Users } from "lucide-react";
 import CompanyLogo from "../../Pages/Web/components/CompanyLogo";
 import NotificationDropdown from "../../Pages/Web/components/vendors/NotificationDropdown";
 import UserDropdown from "../../Pages/Web/components/vendors/UserDropdown";
@@ -69,6 +69,7 @@ const SERVICE_CONFIG = {
         calendar: null,
         tracking: () => route("courierService.tracking"),
         clients: () => route("courierService.clients"),
+        team: () => route("courierService.team.index"),
         drivers: null,
         payment: () => route("courierService.payment"),
         expenses: () => route("courierService.expenses"),
@@ -189,6 +190,19 @@ const VendorShellLayout = ({
     }, [activeService]);
 
     const approvedSlugs = user?.approved_service_slugs || [];
+    const courierPermissions = Array.isArray(user?.courier_permissions) ? user.courier_permissions : [];
+
+    const hasCourierPermission = (permission) => {
+        if (activeService !== "Courier Service") {
+            return true;
+        }
+
+        if (user?.role === "vendor") {
+            return true;
+        }
+
+        return courierPermissions.includes(permission);
+    };
 
     const canAccessService = (serviceName) => {
         switch (serviceName) {
@@ -377,28 +391,28 @@ const VendorShellLayout = ({
                         <div className="flex-1 overflow-y-auto overflow-x-hidden w-full pr-2 sidebar-scroll pb-4">
                             <div className="figtree flex flex-col items-start gap-3 text-[18px] font-[500]">
 
-                                {cfg.dashboard && (
+                                {cfg.dashboard && hasCourierPermission("courier.dashboard.view") && (
                                     <div className={menuCls(isActive(cfg.dashboard))} onClick={() => navigate(cfg.dashboard)}>
                                         <img src={dashLogo} className="w-[22px]" alt="" />
                                         <span>Dashboard</span>
                                     </div>
                                 )}
 
-                                {cfg.bookings && (
+                                {cfg.bookings && hasCourierPermission("courier.bookings.view") && (
                                     <div className={menuCls(isActive(cfg.bookings))} onClick={() => navigate(cfg.bookings)}>
                                         <img src={bookLogo} className="w-[22px]" alt="" />
                                         <span>{cfg.bookingsLabel || "Bookings"}</span>
                                     </div>
                                 )}
 
-                                {cfg.units && (
+                                {cfg.units && hasCourierPermission("courier.shipments.view") && (
                                     <div className={menuCls(isActive(cfg.units))} onClick={() => navigate(cfg.units)}>
                                         <img src={uniLogo} className="w-[22px]" alt="" />
                                         <span>{cfg.unitsLabel || "Units"}</span>
                                     </div>
                                 )}
 
-                                {cfg.tracking && (
+                                {cfg.tracking && hasCourierPermission("courier.tracking.view") && (
                                     <div className={menuCls(isActive(cfg.tracking))} onClick={() => navigate(cfg.tracking)}>
                                         <MapPin className="w-[22px] h-[22px] text-[#666666]" />
                                         <span>Tracking</span>
@@ -412,10 +426,17 @@ const VendorShellLayout = ({
                                     </div>
                                 )}
 
-                                {cfg.clients && (
+                                {cfg.clients && hasCourierPermission("courier.clients.view") && (
                                     <div className={menuCls(isActive(cfg.clients))} onClick={() => navigate(cfg.clients)}>
                                         <img src={clientsLogo} className="w-[22px]" alt="" />
                                         <span>Clients</span>
+                                    </div>
+                                )}
+
+                                {cfg.team && hasCourierPermission("courier.team.view") && (
+                                    <div className={menuCls(isActive(cfg.team))} onClick={() => navigate(cfg.team)}>
+                                        <Users className="w-[22px] h-[22px] text-[#666666]" />
+                                        <span>Team</span>
                                     </div>
                                 )}
 
@@ -426,7 +447,8 @@ const VendorShellLayout = ({
                                     </div>
                                 )}
 
-                                {(cfg.payment || cfg.expenses) && (
+                                {((cfg.payment && hasCourierPermission("courier.finance.view")) ||
+                                    (cfg.expenses && hasCourierPermission("courier.finance.view"))) && (
                                     <>
                                         <div
                                             className={menuCls(
@@ -447,7 +469,7 @@ const VendorShellLayout = ({
 
                                         {showFinancial && (
                                             <div className="ml-8 w-full flex flex-col gap-1 text-[16px] font-[500]">
-                                                {cfg.payment && (
+                                                {cfg.payment && hasCourierPermission("courier.finance.view") && (
                                                     <div
                                                         className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.payment)
                                                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
@@ -458,7 +480,7 @@ const VendorShellLayout = ({
                                                         Payment
                                                     </div>
                                                 )}
-                                                {cfg.expenses && (
+                                                {cfg.expenses && hasCourierPermission("courier.finance.view") && (
                                                     <div
                                                         className={`px-3 py-2 cursor-pointer rounded-lg ${isActive(cfg.expenses)
                                                             ? "bg-[#0955AC29] text-[#000000] font-[700]"
@@ -474,14 +496,14 @@ const VendorShellLayout = ({
                                     </>
                                 )}
 
-                                {cfg.settings && (
+                                {cfg.settings && hasCourierPermission("courier.settings.view") && (
                                     <div className={menuCls(isActive(cfg.settings))} onClick={() => navigate(cfg.settings)}>
                                         <img src={settingsLogo} className="w-[22px] opacity-60" alt="" />
                                         <span>Settings</span>
                                     </div>
                                 )}
 
-                                {cfg.profile && (
+                                {cfg.profile && hasCourierPermission("courier.profile.view") && (
                                     <div className={menuCls(isActive(cfg.profile))} onClick={() => navigate(cfg.profile)}>
                                         <UserCircle className="w-[22px] h-[22px] text-gray-500" />
                                         <span>Profile</span>

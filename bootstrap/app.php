@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\RefreshSessionOnAuth::class,
             \App\Http\Middleware\EnsureVendorHasApprovedServiceAccess::class,
+            \App\Http\Middleware\RequirePasswordChange::class,
         ]);
 
         // Exclude specific URIs from CSRF verification
@@ -41,6 +42,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'vendor.verified' => \App\Http\Middleware\VendorVerificationCheck::class,
             'vendor.service.approved' => \App\Http\Middleware\EnsureVendorHasApprovedServiceAccess::class,
+            'service.workspace' => \App\Http\Middleware\SetServiceWorkspaceContext::class,
+            'service.permission' => \App\Http\Middleware\EnsureServicePermission::class,
         ]);
 
         //

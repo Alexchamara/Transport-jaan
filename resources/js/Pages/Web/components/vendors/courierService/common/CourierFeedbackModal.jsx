@@ -42,9 +42,20 @@ const CourierFeedbackModal = ({
     }
 
     const config = TYPE_CONFIG[type] || TYPE_CONFIG.info;
-    const resolvedConfirmText = confirmText || config.confirmText;
+    const requiresPasswordUpdate = typeof message === "string"
+        && message.toLowerCase().includes("please update your password before continuing");
+
+    const resolvedConfirmText = requiresPasswordUpdate
+        ? "Go to Security"
+        : (confirmText || config.confirmText);
     const resolvedTitle = title || config.title;
-    const handleConfirm = onConfirm || onClose;
+    const handleConfirm = requiresPasswordUpdate
+        ? () => {
+            window.location.href = `${route("courierService.profile")}?tab=security`;
+        }
+        : (onConfirm || onClose);
+    const resolvedCancelText = requiresPasswordUpdate ? "Close" : cancelText;
+    const shouldShowCancel = showCancel || requiresPasswordUpdate;
 
     return (
         <ActionModalTemplate
@@ -59,10 +70,10 @@ const CourierFeedbackModal = ({
             processingText={processingText}
             confirmText={resolvedConfirmText}
             confirmClassName={config.confirmClassName}
-            onClose={showCancel ? onClose : handleConfirm}
+            onClose={shouldShowCancel ? onClose : handleConfirm}
             onConfirm={handleConfirm}
             theme="light"
-            cancelText={cancelText}
+            cancelText={resolvedCancelText}
         />
     );
 };

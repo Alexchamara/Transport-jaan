@@ -10,6 +10,7 @@ use App\Models\Courier\VendorCourierClientProfile;
 use App\Models\VendorActivityLog;
 use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
+use App\Models\VendorUserMembership;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -175,7 +176,7 @@ class VendorCourierDashboardController extends Controller
 
     public function updateBookingLifecycle(Request $request, CourierShipment $shipment)
     {
-        $vendorId = (int) optional($request->user())->id;
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
 
         if ((int) $shipment->assigned_vendor_user_id !== $vendorId) {
             abort(403, 'You are not allowed to modify this booking.');
@@ -196,7 +197,7 @@ class VendorCourierDashboardController extends Controller
 
     public function bulkUpdateBookingLifecycle(Request $request)
     {
-        $vendorId = (int) optional($request->user())->id;
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to manage bookings.');
@@ -271,7 +272,7 @@ class VendorCourierDashboardController extends Controller
 
     public function settings(Request $request)
     {
-        $vendorId = (int) optional($request->user())->id;
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access settings.');
@@ -294,7 +295,7 @@ class VendorCourierDashboardController extends Controller
 
     public function updateSettings(Request $request)
     {
-        $vendorId = (int) optional($request->user())->id;
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to update settings.');
@@ -357,22 +358,30 @@ class VendorCourierDashboardController extends Controller
 
     public function profile(Request $request)
     {
-        $vendorId = (int) optional($request->user())->id;
+        $actorUserId = (int) optional($request->user())->id;
 
-        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+        if (!$this->hasApprovedCourierRegistration($actorUserId) && !$this->isActiveCourierTeamMember($actorUserId)) {
             abort(403, 'Courier service registration approval is required to access profile.');
         }
 
         return Inertia::render('Web/home/vendors/courierService/Profile', [
-            'courierProfile' => $this->buildCourierProfilePayload($request),
+            'courierProfile' => $this->buildCourierProfilePayload($request, $actorUserId),
         ]);
     }
 
     public function updateProfile(Request $request)
     {
-        $vendorId = (int) optional($request->user())->id;
+        $actor = $request->user();
+        $vendorId = (int) optional($actor)->id;
 
-        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+        $membership = VendorUserMembership::query()
+            ->where('user_id', $vendorId)
+            ->where('status', 'active')
+            ->first();
+
+        $isTeamUser = $membership && (int) $membership->vendor_user_id !== $vendorId;
+
+        if (!$this->hasApprovedCourierRegistration($vendorId) && !$this->isActiveCourierTeamMember($vendorId)) {
             abort(403, 'Courier service registration approval is required to update profile.');
         }
 
@@ -442,6 +451,14 @@ class VendorCourierDashboardController extends Controller
             'contact_email' => (string) ($validated['contactEmail'] ?? ''),
         ]);
 
+        if ($isTeamUser && $actor) {
+            $actor->update([
+                'name' => (string) ($validated['displayName'] ?: $validated['companyName']),
+                'email' => (string) ($validated['contactEmail'] ?: $actor->email),
+                'phone' => (string) ($validated['contactPhone'] ?: $actor->phone),
+            ]);
+        }
+
         if ($request->hasFile('logo')) {
             if (!empty($profile->logo)) {
                 Storage::disk('public')->delete($profile->logo);
@@ -449,6 +466,14 @@ class VendorCourierDashboardController extends Controller
 
             $logoPath = $request->file('logo')->store('uploads/vendors/' . $vendorId . '/logo', 'public');
             $profile->update(['logo' => $logoPath]);
+
+            if ($isTeamUser && $actor) {
+                if (!empty($actor->image)) {
+                    Storage::disk('public')->delete($actor->image);
+                }
+
+                $actor->update(['image' => $logoPath]);
+            }
         }
 
         $setting = VendorCourierSetting::query()->firstOrCreate(
@@ -486,7 +511,7 @@ class VendorCourierDashboardController extends Controller
     {
         $vendorId = (int) optional($request->user())->id;
 
-        if (!$this->hasApprovedCourierRegistration($vendorId)) {
+        if (!$this->hasApprovedCourierRegistration($vendorId) && !$this->isActiveCourierTeamMember($vendorId)) {
             abort(403, 'Courier service registration approval is required to update profile.');
         }
 
@@ -514,7 +539,7 @@ class VendorCourierDashboardController extends Controller
 
     public function updateClientProfile(Request $request, CourierContact $contact)
     {
-        $vendorId = (int) optional($request->user())->id;
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to manage clients.');
@@ -582,7 +607,7 @@ class VendorCourierDashboardController extends Controller
 
     public function updateShipmentStage(Request $request, CourierShipment $shipment)
     {
-        $vendorId = (int) optional($request->user())->id;
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
 
         if ((int) $shipment->assigned_vendor_user_id !== $vendorId) {
             abort(403, 'You are not allowed to modify this shipment.');
@@ -604,7 +629,7 @@ class VendorCourierDashboardController extends Controller
 
     public function bulkUpdateShipmentStage(Request $request)
     {
-        $vendorId = (int) optional($request->user())->id;
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to manage shipments.');
@@ -653,7 +678,7 @@ class VendorCourierDashboardController extends Controller
 
     private function buildFilteredShipments(Request $request): array
     {
-        $vendorId = (int) optional($request->user())->id;
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access this dashboard.');
@@ -1217,7 +1242,7 @@ class VendorCourierDashboardController extends Controller
 
     private function buildClientsPayload(Request $request): array
     {
-        $vendorId = (int) optional($request->user())->id;
+        $vendorId = (int) $request->attributes->get('vendor_user_id');
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access clients.');
@@ -2062,26 +2087,35 @@ class VendorCourierDashboardController extends Controller
         ];
     }
 
-    private function buildCourierProfilePayload(Request $request): array
+    private function buildCourierProfilePayload(Request $request, int $profileUserId): array
     {
         $user = $request->user();
-        $vendorId = (int) optional($user)->id;
+        $actorUserId = (int) optional($user)->id;
 
-        $profile = VendorProfile::query()->where('user_id', $vendorId)->first();
-        $setting = VendorCourierSetting::query()->where('vendor_user_id', $vendorId)->first();
+        $membership = VendorUserMembership::query()
+            ->where('user_id', $actorUserId)
+            ->where('status', 'active')
+            ->first();
+
+        $isTeamUser = $membership && (int) $membership->vendor_user_id !== $actorUserId;
+
+        $profile = VendorProfile::query()->where('user_id', $profileUserId)->first();
+        $setting = VendorCourierSetting::query()->where('vendor_user_id', $profileUserId)->first();
         $settings = array_replace_recursive(
             $this->defaultCourierSettings(),
             is_array(optional($setting)->settings) ? $setting->settings : []
         );
 
-        $registrations = VendorServiceRegistration::query()
-            ->where('user_id', $vendorId)
-            ->with(['serviceCategory:id,name', 'serviceSubCategory:id,name,slug'])
-            ->orderByDesc('updated_at')
-            ->get();
+        $registrations = $isTeamUser
+            ? collect()
+            : VendorServiceRegistration::query()
+                ->where('user_id', $profileUserId)
+                ->with(['serviceCategory:id,name', 'serviceSubCategory:id,name,slug'])
+                ->orderByDesc('updated_at')
+                ->get();
 
         $activities = VendorActivityLog::query()
-            ->where('vendor_id', $vendorId)
+            ->where('vendor_id', $profileUserId)
             ->orderByDesc('created_at')
             ->limit(12)
             ->get()
@@ -2110,16 +2144,19 @@ class VendorCourierDashboardController extends Controller
         $completion = (int) round((collect($mandatoryChecks)->filter()->count() / count($mandatoryChecks)) * 100);
 
         return [
+            'isTeamUser' => (bool) $isTeamUser,
             'profile' => [
-                'logoUrl' => $profile?->logo ? asset('storage/' . $profile->logo) : null,
-                'companyName' => (string) ($profile?->company_name ?? ''),
-                'displayName' => (string) ($settings['profile']['displayName'] ?? ''),
+                'logoUrl' => $profile?->logo
+                    ? asset('storage/' . $profile->logo)
+                    : ($user?->image ? asset('storage/' . $user->image) : null),
+                'companyName' => (string) ($profile?->company_name ?? $user?->name ?? ''),
+                'displayName' => (string) ($settings['profile']['displayName'] ?? $user?->name ?? ''),
                 'businessRegistrationNo' => (string) ($profile?->business_registration_no ?? ''),
                 'taxId' => (string) ($profile?->tax_id ?? ''),
                 'website' => (string) ($profile?->website ?? ''),
-                'contactPerson' => (string) ($profile?->contact_person ?? ''),
-                'contactEmail' => (string) ($profile?->contact_email ?? ''),
-                'contactPhone' => (string) ($profile?->contact_phone ?? ''),
+                'contactPerson' => (string) ($profile?->contact_person ?? $user?->name ?? ''),
+                'contactEmail' => (string) ($profile?->contact_email ?? $user?->email ?? ''),
+                'contactPhone' => (string) ($profile?->contact_phone ?? $user?->phone ?? ''),
                 'supportEmail' => (string) ($settings['profile']['supportEmail'] ?? ''),
                 'supportHotline' => (string) ($settings['profile']['supportHotline'] ?? ''),
                 'addressLine1' => (string) ($profile?->address_line1 ?? ''),
@@ -2130,9 +2167,9 @@ class VendorCourierDashboardController extends Controller
                 'country' => (string) ($profile?->country ?? ''),
                 'publicAbout' => (string) ($profile?->description ?? ''),
                 'publicSupportHours' => (string) ($settings['profile']['publicSupportHours'] ?? ''),
-                'status' => (string) ($profile?->submission_status ?? 'draft'),
+                'status' => (string) ($isTeamUser ? 'active' : ($profile?->submission_status ?? 'draft')),
                 'reviewedAt' => optional($profile?->reviewed_at)->format('Y-m-d H:i'),
-                'adminNotes' => (string) ($profile?->admin_notes ?? ''),
+                'adminNotes' => (string) ($isTeamUser ? '' : ($profile?->admin_notes ?? '')),
             ],
             'summary' => [
                 'completionScore' => $completion,
@@ -2351,6 +2388,18 @@ class VendorCourierDashboardController extends Controller
             ->whereHas('serviceCategory', function (Builder $query) {
                 $query->where('slug', 'courier-services');
             })
+            ->exists();
+    }
+
+    private function isActiveCourierTeamMember(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        return VendorUserMembership::query()
+            ->where('user_id', $userId)
+            ->where('status', 'active')
             ->exists();
     }
 }
