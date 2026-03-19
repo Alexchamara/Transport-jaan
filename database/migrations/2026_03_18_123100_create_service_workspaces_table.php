@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('service_workspaces', function (Blueprint $table) {
+        Schema::create('team_user_service_workspaces', function (Blueprint $table) {
             $table->id();
             $table->foreignId('vendor_user_id')->constrained('users')->cascadeOnDelete();
             $table->string('service_key', 80);
@@ -17,13 +17,13 @@ return new class extends Migration
             $table->enum('status', ['active', 'suspended'])->default('active');
             $table->timestamps();
 
-            $table->unique(['vendor_user_id', 'service_key'], 'service_workspaces_vendor_service_unique');
+            $table->unique(['vendor_user_id', 'service_key'], 'team_user_service_workspaces_vendor_service_unique');
             $table->index(['service_key', 'status']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('service_workspaces');
+        Schema::dropIfExists('team_user_service_workspaces');
     }
 };

@@ -10,6 +10,8 @@ class VendorCourierClientProfile extends Model
 {
     use HasFactory;
 
+    protected $table = 'courier_vendor_client_profiles';
+
     protected $fillable = [
         'vendor_user_id',
         'contact_id',

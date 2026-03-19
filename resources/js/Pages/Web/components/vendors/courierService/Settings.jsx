@@ -51,6 +51,10 @@ const DEFAULT_SETTINGS = {
         opsLeadCanReassign: true,
         financeCanViewRates: true,
         enforce2FA: true,
+        teamAccessControl: {
+            applyRoleDefaultsOnCreate: true,
+            defaultDirectPermissions: [],
+        },
     },
 };
 
@@ -103,13 +107,35 @@ const Toggle = ({ label, checked, onChange, description }) => (
 const Settings = () => {
     const props = usePage().props;
     const flash = props.flash || {};
-    const incoming = props.courierSettings || DEFAULT_SETTINGS;
+    const incoming = props.courierSettings || {};
+    const teamPermissionOptions = Array.isArray(props.teamPermissionOptions) ? props.teamPermissionOptions : [];
+    const teamCapabilities = props.teamCapabilities || {};
+    const canAssignPermissions = Boolean(teamCapabilities.assignPermissions);
 
     const [activeTab, setActiveTab] = useState("business");
-    const [settings, setSettings] = useState(() => ({
-        ...DEFAULT_SETTINGS,
-        ...incoming,
-    }));
+    const [settings, setSettings] = useState(() => {
+        const incomingTeam = incoming.team && typeof incoming.team === "object" ? incoming.team : {};
+        const incomingTeamAccessControl = incomingTeam.teamAccessControl && typeof incomingTeam.teamAccessControl === "object"
+            ? incomingTeam.teamAccessControl
+            : {};
+
+        return {
+            ...DEFAULT_SETTINGS,
+            ...incoming,
+            team: {
+                ...DEFAULT_SETTINGS.team,
+                ...incomingTeam,
+                teamAccessControl: {
+                    ...DEFAULT_SETTINGS.team.teamAccessControl,
+                    ...incomingTeamAccessControl,
+                    defaultDirectPermissions: Array.isArray(incomingTeamAccessControl.defaultDirectPermissions)
+                        ? incomingTeamAccessControl.defaultDirectPermissions
+                        : [],
+                },
+            },
+        };
+    });
+    const [teamDefaultPermissionSearch, setTeamDefaultPermissionSearch] = useState("");
 
     const {
         feedback,
@@ -130,6 +156,40 @@ const Settings = () => {
             },
         }));
     };
+
+    const updateTeamAccessControlValue = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                teamAccessControl: {
+                    ...prev.team.teamAccessControl,
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
+    const toggleInArray = (list, value) => {
+        if (list.includes(value)) {
+            return list.filter((item) => item !== value);
+        }
+
+        return [...list, value];
+    };
+
+    const groupedTeamPermissions = useMemo(() => {
+        return teamPermissionOptions.reduce((acc, perm) => {
+            const group = String(perm || "").split(".")[1] || "other";
+
+            if (!acc[group]) {
+                acc[group] = [];
+            }
+
+            acc[group].push(perm);
+            return acc;
+        }, {});
+    }, [teamPermissionOptions]);
 
     const saveSection = (sectionKey) => {
         router.post(
@@ -336,15 +396,75 @@ const Settings = () => {
 
         return (
             <SectionCard title="Team Access Control" description="Set role powers for key operational decisions.">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                     <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
                     <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
                     <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
                     <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
                 </div>
+
+                <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
+                    <p className="text-[15px] font-[700] text-[#111827]">Team User Creation Defaults</p>
+                    <p className="text-[12px] text-[#6B7280] mt-1">Configure permissions auto-applied when creating courier team users.</p>
+
+                    <label className="inline-flex items-center gap-2 text-[13px] font-[600] mt-3">
+                        <input
+                            type="checkbox"
+                            disabled={!canAssignPermissions}
+                            checked={Boolean(settings.team.teamAccessControl.applyRoleDefaultsOnCreate)}
+                            onChange={(e) => updateTeamAccessControlValue("applyRoleDefaultsOnCreate", e.target.checked)}
+                        />
+                        Auto-apply selected role default permissions for new users
+                    </label>
+
+                    <p className="text-[12px] font-[700] text-[#374151] mt-4 mb-2">Always Add These Default Direct Permissions</p>
+                    <input
+                        className="h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-3 mb-2 text-[13px]"
+                        placeholder="Search default permissions"
+                        disabled={!canAssignPermissions}
+                        value={teamDefaultPermissionSearch}
+                        onChange={(e) => setTeamDefaultPermissionSearch(e.target.value)}
+                    />
+
+                    <div className="max-h-[220px] overflow-y-auto border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                        {Object.keys(groupedTeamPermissions).length === 0 && (
+                            <p className="text-[12px] text-[#6B7280] px-1 py-2">No courier permissions found.</p>
+                        )}
+
+                        {Object.keys(groupedTeamPermissions).map((group) => (
+                            <div key={group} className="mb-2">
+                                <p className="text-[11px] font-[700] uppercase text-[#6B7280] mb-1">{group.replaceAll("_", " ")}</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {groupedTeamPermissions[group]
+                                        .filter((perm) => perm.toLowerCase().includes(teamDefaultPermissionSearch.toLowerCase()))
+                                        .map((perm) => (
+                                            <label key={perm} className="inline-flex items-center gap-2 text-[12px]">
+                                                <input
+                                                    type="checkbox"
+                                                    disabled={!canAssignPermissions}
+                                                    checked={settings.team.teamAccessControl.defaultDirectPermissions.includes(perm)}
+                                                    onChange={() => updateTeamAccessControlValue(
+                                                        "defaultDirectPermissions",
+                                                        toggleInArray(settings.team.teamAccessControl.defaultDirectPermissions, perm),
+                                                    )}
+                                                />
+                                                {perm}
+                                            </label>
+                                        ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </SectionCard>
         );
-    }, [activeTab, settings]);
+    }, [
+        activeTab,
+        canAssignPermissions,
+        groupedTeamPermissions,
+        settings,
+        teamDefaultPermissionSearch,
+    ]);
 
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">

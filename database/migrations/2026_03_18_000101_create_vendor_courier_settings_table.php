@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('vendor_courier_settings', function (Blueprint $table) {
+        Schema::create('courier_vendor_settings', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('vendor_user_id')->unique();
             $table->json('settings')->nullable();
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('vendor_courier_settings');
+        Schema::dropIfExists('courier_vendor_settings');
     }
 };

@@ -9,6 +9,8 @@ class VendorUserMembership extends Model
 {
     use HasFactory;
 
+    protected $table = 'team_user_memberships';
+
     protected $fillable = [
         'vendor_user_id',
         'user_id',

@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class VendorCourierDashboardController extends Controller
 {
@@ -311,6 +313,7 @@ class VendorCourierDashboardController extends Controller
     public function settings(Request $request)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access settings.');
@@ -326,8 +329,18 @@ class VendorCourierDashboardController extends Controller
             is_array($record->settings) ? $record->settings : []
         );
 
+        app(PermissionRegistrar::class)->setPermissionsTeamId($workspaceId);
+
         return Inertia::render('Web/home/vendors/courierService/SettingsPage', [
             'courierSettings' => $mergedSettings,
+            'teamPermissionOptions' => Permission::query()
+                ->where('name', 'like', 'courier.%')
+                ->orderBy('name')
+                ->pluck('name')
+                ->values(),
+            'teamCapabilities' => [
+                'assignPermissions' => $request->user()->can('courier.team.assign_permissions'),
+            ],
         ]);
     }
 
@@ -2332,6 +2345,10 @@ class VendorCourierDashboardController extends Controller
                 'opsLeadCanReassign' => true,
                 'financeCanViewRates' => true,
                 'enforce2FA' => true,
+                'teamAccessControl' => [
+                    'applyRoleDefaultsOnCreate' => true,
+                    'defaultDirectPermissions' => [],
+                ],
             ],
         ];
     }

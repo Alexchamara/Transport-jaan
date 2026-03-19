@@ -16,6 +16,10 @@ const EMPTY = {
     roleOptions: [],
     rolePermissionMap: {},
     permissionOptions: [],
+    teamAccessControl: {
+        applyRoleDefaultsOnCreate: true,
+        defaultDirectPermissions: [],
+    },
     serviceKey: "courier_service",
     filters: {
         memberSearch: "",
@@ -88,6 +92,13 @@ const TeamContent = () => {
         blockedServiceKeys: [],
     });
 
+    const [teamAccessControlForm, setTeamAccessControlForm] = useState({
+        applyRoleDefaultsOnCreate: Boolean(team.teamAccessControl?.applyRoleDefaultsOnCreate ?? true),
+        defaultDirectPermissions: Array.isArray(team.teamAccessControl?.defaultDirectPermissions)
+            ? team.teamAccessControl.defaultDirectPermissions
+            : [],
+    });
+
     const [editForm, setEditForm] = useState({
         role: "",
         status: "active",
@@ -134,8 +145,21 @@ const TeamContent = () => {
     );
 
     const effectiveCreatePermissions = useMemo(
-        () => Array.from(new Set([...(selectedCreateRolePermissions || []), ...(createForm.directPermissions || [])])),
-        [selectedCreateRolePermissions, createForm.directPermissions],
+        () => {
+            const alwaysAppliedDefaults = Array.isArray(teamAccessControlForm.defaultDirectPermissions)
+                ? teamAccessControlForm.defaultDirectPermissions
+                : [];
+            const roleDefaults = teamAccessControlForm.applyRoleDefaultsOnCreate
+                ? (selectedCreateRolePermissions || [])
+                : [];
+
+            return Array.from(new Set([
+                ...(roleDefaults || []),
+                ...(alwaysAppliedDefaults || []),
+                ...(createForm.directPermissions || []),
+            ]));
+        },
+        [selectedCreateRolePermissions, createForm.directPermissions, teamAccessControlForm.applyRoleDefaultsOnCreate, teamAccessControlForm.defaultDirectPermissions],
     );
 
     const effectiveEditPermissions = useMemo(
@@ -194,7 +218,10 @@ const TeamContent = () => {
             title: "Create Team User",
             message: "Create this team user with selected role and permissions?",
             onConfirm: () => {
-                router.post(route("courierService.team.store"), createForm, {
+                router.post(route("courierService.team.store"), {
+                    ...createForm,
+                    directPermissions: effectiveCreatePermissions,
+                }, {
                     preserveScroll: true,
                     preserveState: true,
                     onSuccess: () => {
@@ -608,15 +635,28 @@ const TeamContent = () => {
                                             {groupedPermissions[group]
                                                 .filter((perm) => perm.toLowerCase().includes(permissionSearchCreate.toLowerCase()))
                                                 .map((perm) => (
+                                                    (() => {
+                                                        const roleDefaultChecked = Boolean(teamAccessControlForm.applyRoleDefaultsOnCreate) && selectedCreateRolePermissions.includes(perm);
+                                                        const adminDefaultChecked = teamAccessControlForm.defaultDirectPermissions.includes(perm);
+                                                        const checked = effectiveCreatePermissions.includes(perm);
+                                                        const lockedByDefault = roleDefaultChecked || adminDefaultChecked;
+
+                                                        return (
                                                     <label key={perm} className="inline-flex items-center gap-2 text-[12px]">
                                                         <input
                                                             type="checkbox"
-                                                            disabled={!canAssignPermissions}
-                                                            checked={createForm.directPermissions.includes(perm)}
+                                                            disabled={!canAssignPermissions || lockedByDefault}
+                                                            checked={checked}
                                                             onChange={() => setCreateForm((prev) => ({ ...prev, directPermissions: toggleInArray(prev.directPermissions, perm) }))}
                                                         />
-                                                        {perm}
+                                                        <span>
+                                                            {perm}
+                                                            {roleDefaultChecked && <span className="ml-1 text-[10px] text-[#0F3D8A]">(role default)</span>}
+                                                            {adminDefaultChecked && <span className="ml-1 text-[10px] text-[#166534]">(admin default)</span>}
+                                                        </span>
                                                     </label>
+                                                        );
+                                                    })()
                                                 ))}
                                         </div>
                                     </div>

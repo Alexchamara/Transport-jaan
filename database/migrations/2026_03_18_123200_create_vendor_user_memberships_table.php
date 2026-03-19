@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('vendor_user_memberships', function (Blueprint $table) {
+        Schema::create('team_user_memberships', function (Blueprint $table) {
             $table->id();
             $table->foreignId('vendor_user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
@@ -20,14 +20,14 @@ return new class extends Migration
             $table->timestamp('suspended_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['vendor_user_id', 'user_id'], 'vendor_user_memberships_vendor_user_unique');
-            $table->unique('user_id', 'vendor_user_memberships_user_unique');
+            $table->unique(['vendor_user_id', 'user_id'], 'team_user_memberships_vendor_user_unique');
+            $table->unique('user_id', 'team_user_memberships_user_unique');
             $table->index(['vendor_user_id', 'status']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('vendor_user_memberships');
+        Schema::dropIfExists('team_user_memberships');
     }
 };

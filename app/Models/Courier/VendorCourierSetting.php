@@ -9,6 +9,8 @@ class VendorCourierSetting extends Model
 {
     use HasFactory;
 
+    protected $table = 'courier_vendor_settings';
+
     protected $fillable = [
         'vendor_user_id',
         'settings',

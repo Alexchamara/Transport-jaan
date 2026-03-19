@@ -1199,6 +1199,10 @@ Route::middleware(['auth', 'service.workspace:courier_service'])->group(function
         ->middleware(['service.permission:courier.team.create_user', 'throttle:20,1'])
         ->name('courierService.team.store');
 
+    Route::patch('/courierService/team/access-control-settings', [CourierTeamController::class, 'updateTeamAccessControlSettings'])
+        ->middleware(['service.permission:courier.team.assign_permissions', 'throttle:20,1'])
+        ->name('courierService.team.access-control-settings.update');
+
     Route::patch('/courierService/team/{user}/access', [CourierTeamController::class, 'updateAccess'])
         ->middleware(['service.permission:courier.team.view', 'throttle:30,1'])
         ->name('courierService.team.access.update');

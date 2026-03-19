@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('vendor_courier_client_profiles', function (Blueprint $table) {
+        Schema::create('courier_vendor_client_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('vendor_user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('contact_id')->constrained('courier_contacts')->cascadeOnDelete();
@@ -25,6 +25,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('vendor_courier_client_profiles');
+        Schema::dropIfExists('courier_vendor_client_profiles');
     }
 };

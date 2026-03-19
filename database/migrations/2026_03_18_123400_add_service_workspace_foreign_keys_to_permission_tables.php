@@ -16,23 +16,23 @@ return new class extends Migration
         $tableNames = config('permission.table_names');
 
         Schema::table($tableNames['roles'], function (Blueprint $table) use ($teamKey) {
-            $table->foreign($teamKey, 'roles_service_workspace_fk')
+            $table->foreign($teamKey, 'team_user_roles_service_workspace_fk')
                 ->references('id')
-                ->on('service_workspaces')
+                ->on('team_user_service_workspaces')
                 ->nullOnDelete();
         });
 
         Schema::table($tableNames['model_has_roles'], function (Blueprint $table) use ($teamKey) {
-            $table->foreign($teamKey, 'model_has_roles_service_workspace_fk')
+            $table->foreign($teamKey, 'team_user_model_has_roles_service_workspace_fk')
                 ->references('id')
-                ->on('service_workspaces')
+                ->on('team_user_service_workspaces')
                 ->cascadeOnDelete();
         });
 
         Schema::table($tableNames['model_has_permissions'], function (Blueprint $table) use ($teamKey) {
-            $table->foreign($teamKey, 'model_has_permissions_service_workspace_fk')
+            $table->foreign($teamKey, 'team_user_model_has_permissions_service_workspace_fk')
                 ->references('id')
-                ->on('service_workspaces')
+                ->on('team_user_service_workspaces')
                 ->cascadeOnDelete();
         });
     }
@@ -46,15 +46,27 @@ return new class extends Migration
         $tableNames = config('permission.table_names');
 
         Schema::table($tableNames['model_has_permissions'], function (Blueprint $table) {
-            $table->dropForeign('model_has_permissions_service_workspace_fk');
+            try {
+                $table->dropForeign('team_user_model_has_permissions_service_workspace_fk');
+            } catch (\Throwable) {
+                $table->dropForeign('model_has_permissions_service_workspace_fk');
+            }
         });
 
         Schema::table($tableNames['model_has_roles'], function (Blueprint $table) {
-            $table->dropForeign('model_has_roles_service_workspace_fk');
+            try {
+                $table->dropForeign('team_user_model_has_roles_service_workspace_fk');
+            } catch (\Throwable) {
+                $table->dropForeign('model_has_roles_service_workspace_fk');
+            }
         });
 
         Schema::table($tableNames['roles'], function (Blueprint $table) {
-            $table->dropForeign('roles_service_workspace_fk');
+            try {
+                $table->dropForeign('team_user_roles_service_workspace_fk');
+            } catch (\Throwable) {
+                $table->dropForeign('roles_service_workspace_fk');
+            }
         });
     }
 };

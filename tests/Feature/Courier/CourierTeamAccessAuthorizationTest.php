@@ -74,7 +74,7 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         $response->assertRedirect();
         $response->assertSessionHas('success');
 
-        $this->assertDatabaseHas('vendor_user_memberships', [
+        $this->assertDatabaseHas('team_user_memberships', [
             'vendor_user_id' => $vendor->id,
             'user_id' => $target->id,
             'status' => 'suspended',

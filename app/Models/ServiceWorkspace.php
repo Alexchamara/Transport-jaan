@@ -9,6 +9,8 @@ class ServiceWorkspace extends Model
 {
     use HasFactory;
 
+    protected $table = 'team_user_service_workspaces';
+
     protected $fillable = [
         'vendor_user_id',
         'service_key',
