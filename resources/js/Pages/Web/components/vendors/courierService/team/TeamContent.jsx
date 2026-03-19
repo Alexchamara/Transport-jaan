@@ -17,7 +17,7 @@ const EMPTY = {
     rolePermissionMap: {},
     permissionOptions: [],
     teamAccessControl: {
-        applyRoleDefaultsOnCreate: true,
+        applyRoleDefaultsOnCreate: false,
         defaultDirectPermissions: [],
     },
     serviceKey: "courier_service",
@@ -93,7 +93,7 @@ const TeamContent = () => {
     });
 
     const [teamAccessControlForm, setTeamAccessControlForm] = useState({
-        applyRoleDefaultsOnCreate: Boolean(team.teamAccessControl?.applyRoleDefaultsOnCreate ?? true),
+        applyRoleDefaultsOnCreate: Boolean(team.teamAccessControl?.applyRoleDefaultsOnCreate ?? false),
         defaultDirectPermissions: Array.isArray(team.teamAccessControl?.defaultDirectPermissions)
             ? team.teamAccessControl.defaultDirectPermissions
             : [],

@@ -863,7 +863,7 @@ class CourierTeamController extends Controller
     private function defaultTeamAccessControlSettings(): array
     {
         return [
-            'applyRoleDefaultsOnCreate' => true,
+            'applyRoleDefaultsOnCreate' => false,
             'defaultDirectPermissions' => [],
         ];
     }

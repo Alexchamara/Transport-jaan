@@ -52,7 +52,7 @@ const DEFAULT_SETTINGS = {
         financeCanViewRates: true,
         enforce2FA: true,
         teamAccessControl: {
-            applyRoleDefaultsOnCreate: true,
+            applyRoleDefaultsOnCreate: false,
             defaultDirectPermissions: [],
         },
     },

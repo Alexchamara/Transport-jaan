@@ -2346,7 +2346,7 @@ class VendorCourierDashboardController extends Controller
                 'financeCanViewRates' => true,
                 'enforce2FA' => true,
                 'teamAccessControl' => [
-                    'applyRoleDefaultsOnCreate' => true,
+                    'applyRoleDefaultsOnCreate' => false,
                     'defaultDirectPermissions' => [],
                 ],
             ],
