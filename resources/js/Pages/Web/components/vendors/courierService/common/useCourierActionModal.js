@@ -14,6 +14,16 @@ const useCourierActionModal = (flash = {}, autoDismissMs = 3200) => {
     const [confirmState, setConfirmState] = useState(EMPTY_CONFIRM);
 
     useEffect(() => {
+        if (flash.password_change_required) {
+            setFeedback({
+                type: "error",
+                message: flash.error || "Please update your password before continuing.",
+                passwordChangeRequired: true,
+                passwordChangeTargetUrl: flash.password_change_target || "",
+            });
+            return;
+        }
+
         if (flash.success) {
             setFeedback({ type: "success", message: flash.success });
             return;
@@ -22,7 +32,7 @@ const useCourierActionModal = (flash = {}, autoDismissMs = 3200) => {
         if (flash.error) {
             setFeedback({ type: "error", message: flash.error });
         }
-    }, [flash.success, flash.error]);
+    }, [flash.success, flash.error, flash.password_change_required, flash.password_change_target]);
 
     useEffect(() => {
         if (!feedback) {

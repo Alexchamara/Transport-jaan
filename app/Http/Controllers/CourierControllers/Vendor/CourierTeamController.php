@@ -50,6 +50,16 @@ class CourierTeamController extends Controller
             $membershipsQuery->where('status', $filters['memberStatus']);
         }
 
+        $summaryQuery = VendorUserMembership::query()
+            ->where('vendor_user_id', $vendorUserId);
+
+        $summary = [
+            'total' => (int) (clone $summaryQuery)->count(),
+            'active' => (int) (clone $summaryQuery)->where('status', 'active')->count(),
+            'suspended' => (int) (clone $summaryQuery)->where('status', 'suspended')->count(),
+            'owners' => (int) (clone $summaryQuery)->where('membership_role', 'owner')->count(),
+        ];
+
         $memberships = $membershipsQuery->paginate(
             perPage: $filters['memberPerPage'],
             columns: ['*'],
@@ -115,6 +125,7 @@ class CourierTeamController extends Controller
 
         $payload = [
             'members' => $rows,
+            'summary' => $summary,
             'memberPagination' => [
                 'page' => $memberships->currentPage(),
                 'perPage' => $memberships->perPage(),
