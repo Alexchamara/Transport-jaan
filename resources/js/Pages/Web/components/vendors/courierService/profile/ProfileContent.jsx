@@ -340,6 +340,11 @@ const ProfileContent = () => {
                 message={feedback?.message || ""}
                 onClose={closeFeedback}
             />
+            onConfirm={
+                typeof feedback?.message === "string" && feedback.message.toLowerCase().includes("please update your password before continuing")
+                    ? () => { closeFeedback(); setActiveTab("security"); }
+                    : undefined
+            }
 
             <CourierFeedbackModal
                 open={confirmState.open}

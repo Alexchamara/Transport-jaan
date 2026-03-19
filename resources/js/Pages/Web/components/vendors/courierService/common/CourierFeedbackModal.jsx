@@ -74,6 +74,7 @@ const CourierFeedbackModal = ({
             onConfirm={handleConfirm}
             theme="light"
             cancelText={resolvedCancelText}
+            overlayZIndexClass="z-[80]"
         />
     );
 };

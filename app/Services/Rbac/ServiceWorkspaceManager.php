@@ -6,6 +6,7 @@ use App\Models\ServiceWorkspace;
 use App\Models\User;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
+use App\Support\CourierRbac;
 use Spatie\Permission\PermissionRegistrar;
 
 class ServiceWorkspaceManager
@@ -28,6 +29,10 @@ class ServiceWorkspaceManager
 
     public function ensureWorkspaceForVendor(User $vendorUser, string $serviceKey): ServiceWorkspace
     {
+        if ($serviceKey === self::COURIER_SERVICE_KEY) {
+            CourierRbac::ensureDefinitionsExist();
+        }
+
         $workspaceName = match ($serviceKey) {
             self::COURIER_SERVICE_KEY => 'Courier Service Workspace',
             default => ucfirst(str_replace('_', ' ', $serviceKey)) . ' Workspace',

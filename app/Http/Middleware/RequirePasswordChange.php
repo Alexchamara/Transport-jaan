@@ -60,6 +60,8 @@ class RequirePasswordChange
             'password.update',
             'logout',
             'logout.alt',
+            'courierService.profile',
+            'courierService.profile.update',
         ];
 
         if (in_array($routeName, $allowed, true)) {

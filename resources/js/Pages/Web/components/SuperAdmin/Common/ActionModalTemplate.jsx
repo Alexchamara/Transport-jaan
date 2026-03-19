@@ -20,6 +20,7 @@ const ActionModalTemplate = ({
     styleVariant = 'default',
     headerIcon = null,
     headerIconBg = 'bg-[#AEB9E120]',
+    overlayZIndexClass = 'z-50',
 }) => {
     const isDisabled = processing || (notesRequired && !notes.trim());
 
@@ -55,7 +56,7 @@ const ActionModalTemplate = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`fixed inset-0 ${config.backdrop} backdrop-blur-sm z-50 flex items-center justify-center`}
+            className={`fixed inset-0 ${config.backdrop} backdrop-blur-sm ${overlayZIndexClass} flex items-center justify-center`}
             onClick={onClose}
         >
             <motion.div
