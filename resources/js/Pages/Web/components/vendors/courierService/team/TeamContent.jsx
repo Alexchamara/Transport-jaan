@@ -6,6 +6,12 @@ import useCourierActionModal from "../common/useCourierActionModal";
 
 const EMPTY = {
     members: [],
+    summary: {
+        total: 0,
+        active: 0,
+        suspended: 0,
+        owners: 0,
+    },
     memberPagination: { page: 1, perPage: 10, total: 0, totalPages: 1 },
     roleOptions: [],
     rolePermissionMap: {},
@@ -89,15 +95,12 @@ const TeamContent = () => {
         blockedServiceKeys: [],
     });
 
-    const stats = useMemo(() => {
-        const members = Array.isArray(team.members) ? team.members : [];
-        return {
-            total: members.length,
-            active: members.filter((item) => item.status === "active").length,
-            suspended: members.filter((item) => item.status === "suspended").length,
-            owners: members.filter((item) => item.membershipRole === "owner").length,
-        };
-    }, [team.members]);
+    const stats = useMemo(() => ({
+        total: Number(team.summary?.total || 0),
+        active: Number(team.summary?.active || 0),
+        suspended: Number(team.summary?.suspended || 0),
+        owners: Number(team.summary?.owners || 0),
+    }), [team.summary]);
 
     const caps = team.capabilities || {};
     const canCreateUser = caps.createUser ?? true;
@@ -353,7 +356,14 @@ const TeamContent = () => {
 
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
-            <CourierFeedbackModal open={Boolean(feedback)} type={feedback?.type || "info"} message={feedback?.message || ""} onClose={closeFeedback} />
+            <CourierFeedbackModal
+                open={Boolean(feedback)}
+                type={feedback?.type || "info"}
+                message={feedback?.message || ""}
+                passwordChangeRequired={Boolean(feedback?.passwordChangeRequired)}
+                passwordChangeTargetUrl={feedback?.passwordChangeTargetUrl || ""}
+                onClose={closeFeedback}
+            />
 
             <CourierFeedbackModal
                 open={confirmState.open}

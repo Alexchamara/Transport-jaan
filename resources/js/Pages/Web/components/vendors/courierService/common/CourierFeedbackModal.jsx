@@ -34,6 +34,8 @@ const CourierFeedbackModal = ({
     processing = false,
     processingText = "Processing...",
     showCancel = false,
+    passwordChangeRequired = false,
+    passwordChangeTargetUrl = "",
     onConfirm,
     onClose,
 }) => {
@@ -42,8 +44,7 @@ const CourierFeedbackModal = ({
     }
 
     const config = TYPE_CONFIG[type] || TYPE_CONFIG.info;
-    const requiresPasswordUpdate = typeof message === "string"
-        && message.toLowerCase().includes("please update your password before continuing");
+    const requiresPasswordUpdate = Boolean(passwordChangeRequired);
 
     const resolvedConfirmText = requiresPasswordUpdate
         ? "Go to Security"
@@ -51,7 +52,7 @@ const CourierFeedbackModal = ({
     const resolvedTitle = title || config.title;
     const handleConfirm = requiresPasswordUpdate
         ? () => {
-            window.location.href = `${route("courierService.profile")}?tab=security`;
+            window.location.href = passwordChangeTargetUrl || `${route("courierService.profile")}?tab=security`;
         }
         : (onConfirm || onClose);
     const resolvedCancelText = requiresPasswordUpdate ? "Close" : cancelText;

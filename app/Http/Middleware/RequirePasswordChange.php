@@ -51,7 +51,11 @@ class RequirePasswordChange
                 return $next($request);
             }
 
-            return redirect()->route('courierService.profile')->with('error', 'Please update your password before continuing.');
+            return redirect()->route('courierService.profile')->with([
+                'error' => 'Please update your password before continuing.',
+                'password_change_required' => true,
+                'password_change_target' => route('courierService.profile') . '?tab=security',
+            ]);
         }
 
         $allowed = [
@@ -68,6 +72,10 @@ class RequirePasswordChange
             return $next($request);
         }
 
-        return redirect()->route('profile.edit')->with('error', 'Please update your password before continuing.');
+        return redirect()->route('profile.edit')->with([
+            'error' => 'Please update your password before continuing.',
+            'password_change_required' => true,
+            'password_change_target' => route('profile.edit'),
+        ]);
     }
 }

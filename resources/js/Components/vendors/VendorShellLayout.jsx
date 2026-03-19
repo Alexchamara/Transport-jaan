@@ -66,7 +66,7 @@ const SERVICE_CONFIG = {
         bookingsLabel: "Bookings",
         units: () => route("courierService.units"),
         unitsLabel: "Shipments",
-        calendar: null,
+        calendar: () => route("courierService.calendar"),
         tracking: () => route("courierService.tracking"),
         clients: () => route("courierService.clients"),
         team: () => route("courierService.team.index"),
@@ -419,7 +419,7 @@ const VendorShellLayout = ({
                                     </div>
                                 )}
 
-                                {cfg.calendar && (
+                                {cfg.calendar && hasCourierPermission("courier.calendar.view") && (
                                     <div className={menuCls(isActive(cfg.calendar))} onClick={() => navigate(cfg.calendar)}>
                                         <img src={calendarLogo} className="w-[22px]" alt="" />
                                         <span>Calendar</span>
