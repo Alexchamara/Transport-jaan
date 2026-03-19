@@ -47,7 +47,10 @@ class RequirePasswordChange
                 'logout.alt',
             ];
 
-            if (in_array($routeName, $allowedTeamRoutes, true)) {
+            $isCourierRouteName = str_starts_with($routeName, 'courierService.');
+            $isCourierPath = $request->is('courierService') || $request->is('courierService/*');
+
+            if (in_array($routeName, $allowedTeamRoutes, true) || $isCourierRouteName || $isCourierPath) {
                 return $next($request);
             }
 

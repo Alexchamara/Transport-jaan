@@ -14,7 +14,18 @@ const useCourierActionModal = (flash = {}, autoDismissMs = 3200) => {
     const [confirmState, setConfirmState] = useState(EMPTY_CONFIRM);
 
     useEffect(() => {
+        const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+        const currentTab = typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("tab")
+            : "";
+        const isOnCourierSecurityTab = currentPath === "/courierService/profile" && currentTab === "security";
+
         if (flash.password_change_required) {
+            if (isOnCourierSecurityTab) {
+                setFeedback(null);
+                return;
+            }
+
             setFeedback({
                 type: "error",
                 message: flash.error || "Please update your password before continuing.",
@@ -30,12 +41,21 @@ const useCourierActionModal = (flash = {}, autoDismissMs = 3200) => {
         }
 
         if (flash.error) {
+            if (isOnCourierSecurityTab && flash.error === "Please update your password before continuing.") {
+                setFeedback(null);
+                return;
+            }
+
             setFeedback({ type: "error", message: flash.error });
         }
     }, [flash.success, flash.error, flash.password_change_required, flash.password_change_target]);
 
     useEffect(() => {
         if (!feedback) {
+            return;
+        }
+
+        if (feedback.passwordChangeRequired) {
             return;
         }
 
