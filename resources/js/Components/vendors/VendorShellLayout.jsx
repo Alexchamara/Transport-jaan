@@ -135,7 +135,7 @@ const VendorShellLayout = ({
     activeService = "Vehicle Rental",
     isVerified: isVerifiedProp,
 }) => {
-    const { auth } = usePage().props;
+    const { auth, flash } = usePage().props;
     const user = auth?.user;
     const isVerified = isVerifiedProp !== undefined
         ? isVerifiedProp
@@ -143,7 +143,7 @@ const VendorShellLayout = ({
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showFinancial, setShowFinancial] = useState(false);
-    const [showAlert, setShowAlert] = useState(false);
+    const [shellFlash, setShellFlash] = useState(null);
     const [showComingSoon, setShowComingSoon] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [blockedService, setBlockedService] = useState("");
@@ -156,6 +156,29 @@ const VendorShellLayout = ({
 
         return cleanup;
     }, []);
+
+    useEffect(() => {
+        if (flash?.error) {
+            setShellFlash({ type: "error", message: flash.error });
+            return;
+        }
+
+        if (flash?.success) {
+            setShellFlash({ type: "success", message: flash.success });
+        }
+    }, [flash?.error, flash?.success]);
+
+    useEffect(() => {
+        if (!shellFlash?.message) {
+            return undefined;
+        }
+
+        const timer = window.setTimeout(() => {
+            setShellFlash(null);
+        }, 3600);
+
+        return () => window.clearTimeout(timer);
+    }, [shellFlash]);
 
     useEffect(() => {
         if (activeService !== "Courier Service") {
@@ -630,6 +653,32 @@ const VendorShellLayout = ({
                                 </button>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {shellFlash?.message && (
+                <div className="fixed top-5 right-5 z-[90] w-[92%] max-w-[420px]">
+                    <div
+                        className={`rounded-xl border shadow-xl backdrop-blur-sm px-4 py-3 flex items-start gap-3 ${shellFlash.type === "error"
+                            ? "bg-[#FFEFF0] border-[#FCA5A5] text-[#7F1D1D]"
+                            : "bg-[#ECFDF3] border-[#86EFAC] text-[#14532D]"
+                            }`}
+                    >
+                        <div className={`mt-0.5 h-2.5 w-2.5 rounded-full ${shellFlash.type === "error" ? "bg-[#DC2626]" : "bg-[#16A34A]"}`} />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-[700] uppercase tracking-wide opacity-80">
+                                {shellFlash.type === "error" ? "Access Notice" : "Success"}
+                            </p>
+                            <p className="text-[14px] font-[500] leading-5 break-words">{shellFlash.message}</p>
+                        </div>
+                        <button
+                            onClick={() => setShellFlash(null)}
+                            className="text-[12px] font-[700] opacity-70 hover:opacity-100 transition"
+                            aria-label="Close message"
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
             )}

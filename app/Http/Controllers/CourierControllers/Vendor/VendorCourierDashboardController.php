@@ -23,6 +23,34 @@ use Inertia\Inertia;
 
 class VendorCourierDashboardController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('service.workspace:courier_service');
+
+        $this->middleware('service.permission:courier.dashboard.view')->only(['dashboard']);
+
+        $this->middleware('service.permission:courier.bookings.view')->only(['bookings']);
+        $this->middleware('service.permission:courier.bookings.manage_lifecycle')->only(['updateBookingLifecycle']);
+        $this->middleware('service.permission:courier.bookings.bulk_update')->only(['bulkUpdateBookingLifecycle']);
+
+        $this->middleware('service.permission:courier.shipments.view')->only(['shipments']);
+        $this->middleware('service.permission:courier.shipments.update_stage')->only(['updateShipmentStage']);
+        $this->middleware('service.permission:courier.shipments.bulk_update')->only(['bulkUpdateShipmentStage']);
+
+        $this->middleware('service.permission:courier.clients.view')->only(['clients']);
+        $this->middleware('service.permission:courier.clients.manage')->only(['updateClientProfile']);
+
+        $this->middleware('service.permission:courier.tracking.view')->only(['tracking']);
+        $this->middleware('service.permission:courier.calendar.view')->only(['calendar']);
+
+        $this->middleware('service.permission:courier.settings.view')->only(['settings']);
+        $this->middleware('service.permission:courier.settings.update')->only(['updateSettings']);
+
+        $this->middleware('service.permission:courier.profile.view')->only(['profile']);
+        $this->middleware('service.permission:courier.profile.update')->only(['updateProfile', 'removeProfileLogo']);
+    }
+
     private const BOOKING_STATUS_OPTIONS = [
         'new_request',
         'quote_pending',

@@ -136,6 +136,40 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         $this->assertSame($originalEmail, (string) $actor->fresh()->email);
     }
 
+    public function test_units_url_is_forbidden_without_workspace_shipments_permission(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.dashboard.view',
+            'courier.tracking.view',
+        ]);
+
+        $response = $this->actingAs($actor)->get(route('courierService.units'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_global_shipments_permission_does_not_bypass_workspace_units_route_protection(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, [
+            'courier.dashboard.view',
+        ]);
+
+        $registrar = app(PermissionRegistrar::class);
+        $registrar->setPermissionsTeamId(null);
+        $actor->syncPermissions(['courier.shipments.view']);
+
+        $registrar->setPermissionsTeamId($workspace->id);
+        $actor->syncPermissions(['courier.dashboard.view']);
+
+        $response = $this->actingAs($actor)->get(route('courierService.units'));
+
+        $response->assertForbidden();
+    }
+
     private function createCourierVendorWorkspace(): array
     {
         $vendor = User::factory()->create([
