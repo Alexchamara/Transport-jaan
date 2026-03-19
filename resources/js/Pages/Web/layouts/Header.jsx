@@ -10,7 +10,8 @@ import NotificationDropdown from "../components/vendors/warehouse/NotificationDr
 import { API_BASE_URL } from "../../../config/api";
 
 const Header = () => {
-    const { auth, url } = usePage();
+    const { url } = usePage();
+    const { auth } = usePage().props;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
