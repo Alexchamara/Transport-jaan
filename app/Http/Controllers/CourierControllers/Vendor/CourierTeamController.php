@@ -18,6 +18,19 @@ use Spatie\Permission\PermissionRegistrar;
 
 class CourierTeamController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware('service.workspace:courier_service');
+
+        $this->middleware('service.permission:courier.team.view')->only(['index', 'updateAccess']);
+        $this->middleware('service.permission:courier.team.create_user')->only(['store']);
+        $this->middleware('service.permission:courier.team.manage_status')->only(['bulkUpdate']);
+        $this->middleware('service.permission:courier.team.sessions.view')->only(['listSessions']);
+        $this->middleware('service.permission:courier.team.sessions.revoke')->only(['revokeSession', 'revokeAllSessions']);
+        $this->middleware('service.permission:courier.team.transfer_ownership')->only(['transferOwnership']);
+    }
+
     public function index(Request $request)
     {
         $vendorUserId = (int) $request->attributes->get('vendor_user_id');

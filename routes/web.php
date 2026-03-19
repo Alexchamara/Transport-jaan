@@ -1159,9 +1159,9 @@ Route::middleware(['auth', 'service.workspace:courier_service'])->group(function
         ->middleware('service.permission:courier.tracking.view')
         ->name('courierService.tracking');
 
-    Route::get('/courierService/calendar', function () {
-        return Inertia::render('Web/home/vendors/courierService/Calendar');
-    })->middleware('service.permission:courier.calendar.view')->name('courierService.calendar');
+    Route::get('/courierService/calendar', [VendorCourierDashboardController::class, 'calendar'])
+        ->middleware('service.permission:courier.calendar.view')
+        ->name('courierService.calendar');
 
     Route::get('/courierService/addUnit', function () {
         return Inertia::render('Web/home/vendors/courierService/AddUnit');
@@ -2008,7 +2008,6 @@ Route::get('/freightBookingDashboard', function () {
 $sections = [
     'warehouse'     => 'Web/home/vendors/warehouse',
     'ticketBooking' => 'Web/home/vendors/ticketBooking',
-    'courierService'=> 'Web/home/vendors/courierService',
     'freight'       => 'Web/home/vendors/freight',
     'multimodal'    => 'Web/home/vendors/multimodal',
 ];
@@ -2031,7 +2030,14 @@ $pages = [
 foreach ($sections as $slug => $baseView) {
     Route::prefix($slug)->group(function () use ($slug, $baseView, $pages, $render) {
         foreach ($pages as $view => $route) {
-            Route::get("/{$route}", $render("{$baseView}/{$view}"))->name("{$slug}.{$route}");
+            $routeName = "{$slug}.{$route}";
+
+            // Do not override routes that were already defined with explicit middleware.
+            if (Route::has($routeName)) {
+                continue;
+            }
+
+            Route::get("/{$route}", $render("{$baseView}/{$view}"))->name($routeName);
         }
     });
 }

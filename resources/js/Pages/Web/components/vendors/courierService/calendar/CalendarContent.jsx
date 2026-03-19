@@ -1,428 +1,394 @@
-import React, { useState, useRef, useEffect } from "react";
-import { usePage, Link } from "@inertiajs/react";
-import proPicTwo from "../../../../assets/vendors/tracking/proPic.svg";
-import proPic from "../../../../assets/vendors/dashboard/proPic.svg"; // Added
-import logOutLogo from "../../../../assets/vendors/dashboard/logOutLogo.svg"; // Added
+import React, { useEffect, useMemo, useState } from "react";
+import { router, usePage } from "@inertiajs/react";
+import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Search, Truck } from "lucide-react";
 
-import {
-    Search,
-    Settings,
-    Bell,
-    UserCircle2,
-    Truck,
-    Package,
-    Calendar as CalendarIcon,
-    CalendarDays,
-    ChevronLeft,
-    ChevronRight,
-    ChevronDown,
-} from "lucide-react";
+const EMPTY = {
+    summary: {
+        totalEvents: 0,
+        pickups: 0,
+        deliveries: 0,
+        exceptions: 0,
+        highPriority: 0,
+        activeShipments: 0,
+    },
+    filters: {
+        month: "",
+        eventType: "all",
+        q: "",
+        selectedDate: "",
+    },
+    monthLabel: "",
+    monthStart: "",
+    monthEnd: "",
+    selectedDate: "",
+    events: [],
+    dayBuckets: {},
+    agenda: [],
+    exceptionQueue: [],
+    eventTypeOptions: [
+        { value: "all", label: "All" },
+        { value: "pickup", label: "Pickup" },
+        { value: "delivery", label: "Delivery" },
+        { value: "exception", label: "Exception" },
+    ],
+};
 
-import CalendarMonthPicker from "./CalendarMonthPicker";
-import CalendarGrid from "./CalendarGrid";
+const monthKeyToDate = (monthKey) => {
+    if (!monthKey || !/^\d{4}-\d{2}$/.test(monthKey)) {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    }
 
+    const [year, month] = monthKey.split("-").map((value) => Number(value));
+    return new Date(year, month - 1, 1);
+};
 
-import UserDropdown from "../../UserDropdown";
+const formatMonthKey = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+};
 
-// Define days, times, and events for the calendar
-const days = [
-    { label: "Mon", date: 14 },
-    { label: "Tue", date: 15 },
-    { label: "Wed", date: 16 },
-    { label: "Thu", date: 17 },
-    { label: "Fri", date: 18 },
-    { label: "Sat", date: 19 },
-    { label: "Sun", date: 20 },
-];
+const shiftMonth = (monthKey, delta) => {
+    const base = monthKeyToDate(monthKey);
+    return formatMonthKey(new Date(base.getFullYear(), base.getMonth() + delta, 1));
+};
 
-const times = [
-    "8:00 AM",
-    "9:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "1:00 PM",
-    "2:00 PM",
-    "3:00 PM",
-    "4:00 PM",
-];
+const toDateKey = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+};
 
-const events = [
-    {
-        day: 0,
-        time: "8:00 AM",
-        title: "Express Delivery",
-        person: "Alice Johnson",
-        status: "done",
-    },
-    {
-        day: 0,
-        time: "12:00 PM",
-        title: "Standard Delivery",
-        person: "Bob Smith",
-        status: "done",
-    },
-    {
-        day: 0,
-        time: "3:00 PM",
-        title: "Same Day",
-        person: "Nimal Perera",
-        status: "done",
-    },
-    {
-        day: 1,
-        time: "9:00 AM",
-        title: "International",
-        person: "Chamari Silva",
-        status: "cancelled",
-    },
-    {
-        day: 1,
-        time: "1:00 PM",
-        title: "Express Delivery",
-        person: "Steve Gibson",
-        status: "cancelled",
-    },
-    {
-        day: 2,
-        time: "8:00 AM",
-        title: "Economy",
-        person: "Alice Johnson",
-        status: "done",
-    },
-    {
-        day: 3,
-        time: "9:30 AM",
-        title: "Express Delivery",
-        person: "Bob Smith",
-        status: "done",
-    },
-    {
-        day: 3,
-        time: "9:30 AM",
-        title: "International",
-        person: "Nimal Perera",
-        status: "done",
-    },
-    {
-        day: 3,
-        time: "12:30 PM",
-        title: "Standard Delivery",
-        person: "Chamari Silva",
-        status: "done",
-    },
-    {
-        day: 3,
-        time: "1:00 PM",
-        title: "Same Day",
-        person: "Alice Johnson",
-        status: "cancelled",
-    },
-    {
-        day: 3,
-        time: "1:00 PM",
-        title: "Economy",
-        person: "Steve Gibson",
-        status: "cancelled",
-    },
-    {
-        day: 4,
-        time: "8:00 AM",
-        title: "Express Delivery",
-        person: "Nimal Perera",
-        status: "done",
-    },
-    {
-        day: 4,
-        time: "11:00 AM",
-        title: "Standard Delivery",
-        person: "Bob Smith",
-        status: "cancelled",
-    },
-    {
-        day: 5,
-        time: "9:00 AM",
-        title: "International",
-        person: "Alice Johnson",
-        status: "done",
-    },
-    {
-        day: 6,
-        time: "8:00 AM",
-        title: "Same Day",
-        person: "Chamari Silva",
-        status: "cancelled",
-    },
-    {
-        day: 6,
-        time: "1:00 PM",
-        title: "Economy",
-        person: "Bob Smith",
-        status: "cancelled",
-    },
-    {
-        day: 6,
-        time: "4:00 PM",
-        title: "Express Delivery",
-        person: "Steve Gibson",
-        status: "done",
-    },
-];
+const buildMonthMatrix = (monthKey) => {
+    const monthDate = monthKeyToDate(monthKey);
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
 
-const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-];
+    const first = new Date(year, month, 1);
+    const start = new Date(first);
+    start.setDate(first.getDate() - first.getDay());
+
+    const last = new Date(year, month + 1, 0);
+    const end = new Date(last);
+    end.setDate(last.getDate() + (6 - last.getDay()));
+
+    const weeks = [];
+    const cursor = new Date(start);
+
+    while (cursor <= end) {
+        const week = [];
+        for (let i = 0; i < 7; i += 1) {
+            week.push({
+                dateKey: toDateKey(cursor),
+                day: cursor.getDate(),
+                inMonth: cursor.getMonth() === month,
+            });
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        weeks.push(week);
+    }
+
+    return weeks;
+};
+
+const toneClasses = {
+    pickup: "bg-[#EAF1FF] text-[#0F3D8A]",
+    delivery: "bg-[#E8FAEF] text-[#1B6C3A]",
+    exception: "bg-[#FFE9E9] text-[#8A1C1C]",
+    eta: "bg-[#FEF3C7] text-[#92400E]",
+    delivered: "bg-[#E8FAEF] text-[#1B6C3A]",
+};
 
 const CalendarContent = () => {
-    const { auth } = usePage().props;
-    const user = auth?.user;
-    const isVerified = user?.status === 'verified' || user?.status === 'Verified';
-    const today = new Date();
-    const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-    const [currentYear, setCurrentYear] = useState(today.getFullYear());
+    const pageProps = usePage().props;
+    const calendar = pageProps.courierCalendar || EMPTY;
 
-    const handlePrevMonth = () => {
-        setCurrentMonth((prev) => {
-            if (prev === 0) {
-                setCurrentYear((y) => y - 1);
-                return 11;
+    const [search, setSearch] = useState(calendar.filters?.q || "");
+    const [selectedDate, setSelectedDate] = useState(calendar.selectedDate || "");
+
+    useEffect(() => {
+        setSearch(calendar.filters?.q || "");
+        setSelectedDate(calendar.selectedDate || "");
+    }, [calendar.filters?.q, calendar.selectedDate, calendar.filters?.month]);
+
+    const weeks = useMemo(() => buildMonthMatrix(calendar.filters?.month), [calendar.filters?.month]);
+
+    const eventsByDate = useMemo(() => {
+        const grouped = {};
+        (calendar.events || []).forEach((event) => {
+            if (!grouped[event.date]) {
+                grouped[event.date] = [];
             }
-            return prev - 1;
+            grouped[event.date].push(event);
         });
+        return grouped;
+    }, [calendar.events]);
+
+    const agenda = useMemo(() => {
+        if (!selectedDate) {
+            return [];
+        }
+
+        return (eventsByDate[selectedDate] || []).slice().sort((a, b) => {
+            const at = String(a.time || "");
+            const bt = String(b.time || "");
+            if (at === bt) return 0;
+            return at > bt ? 1 : -1;
+        });
+    }, [eventsByDate, selectedDate]);
+
+    const applyFilters = (next) => {
+        const selectedDateForRequest =
+            next.selectedDate ?? selectedDate ?? calendar.filters?.selectedDate ?? calendar.selectedDate;
+
+        router.get(
+            route("courierService.calendar"),
+            {
+                month: next.month ?? calendar.filters?.month,
+                eventType: next.eventType ?? calendar.filters?.eventType,
+                q: next.q ?? calendar.filters?.q,
+                selectedDate: selectedDateForRequest,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                replace: true,
+            },
+        );
     };
 
-    const handleNextMonth = () => {
-        setCurrentMonth((prev) => {
-            if (prev === 11) {
-                setCurrentYear((y) => y + 1);
-                return 0;
-            }
-            return prev + 1;
-        });
+    const goToToday = () => {
+        const today = new Date();
+        const todayKey = toDateKey(today);
+        setSelectedDate(todayKey);
+        applyFilters({ month: formatMonthKey(today), selectedDate: todayKey });
     };
+
+    const isToday = (dateKey) => dateKey === toDateKey(new Date());
 
     return (
         <div className="w-full h-auto lg:pl-4 lg:pr-5 pt-6 pb-12">
-            {/* Header section */}
-            <div className="flex flex-row gap-5 justify-between items-center">
-                <h1 className="figtree text-[35px] font-[700]">
-                    Courier Service Calendar
-                </h1>
-                <div className="flex flex-row gap-5 relative items-center">
-                    {/* <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <Search size={28} />
-          </div>
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <Settings size={28} />
-          </div>
-          <div className="size-[60px] rounded-[10px] bg-[#E8EBEF] flex justify-center items-center">
-            <Bell size={28} />
-          </div> */}
-
-                    {/* <div className="flex flex-row gap-5 relative items-center">
-                        <UserDropdown />
-                    </div> */}
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
+                <div>
+                    <h1 className="figtree text-[34px] font-[700]">Courier Operations Calendar</h1>
+                    <p className="text-[14px] text-[#6B7280] mt-1">
+                        Plan pickups, monitor delivery windows, and resolve exceptions by day.
+                    </p>
                 </div>
+                <button
+                    type="button"
+                    onClick={goToToday}
+                    className="h-[38px] px-4 rounded-[8px] bg-[#0955AC] text-white text-[13px] font-[700] inline-flex items-center gap-2"
+                >
+                    <CalendarDays size={15} />
+                    Today
+                </button>
             </div>
-            {/* end of header section */}
 
-            <div className="mt-10 flex flex-row gap-5 w-full justify-between">
-                <div
-                    className="w-full h-auto bg-[#FFFFFF] rounded-[10px] flex flex-col gap-5 justify-between px-8 py-10"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                >
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
-                        <div className="size-[90px] rounded-full bg-[#E8EBEF] flex items-center justify-center text-[#0955AC]">
-                            <UserCircle2 size={48} />
-                        </div>
-                        <div className="flex flex-col gap-3">
-                            <h1 className="text-[18px] font-[700]">
-                                Recipient: Alice Johnson
-                            </h1>
-                            <div className="flex flex-row gap-10 text-[16px] font-[500]">
-                                <div className="flex flex-col gap-3 text-[#00000080]">
-                                    <h1>Pickup Date</h1>
-                                    <h1>Delivery Date</h1>
-                                </div>
-                                <div className="flex flex-col gap-3">
-                                    <h1>25 Aug 2025</h1>
-                                    <h1>26 Aug 2025</h1>
-                                </div>
-                            </div>
-                            <h1 className="text-[16px] font-[600] text-[#0955AC]">
-                                Fragile item — handle with care.
-                            </h1>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-row gap-2 justify-center items-center w-full h-auto bg-[#E5E5E5] rounded-[10px] px-5 py-5">
-                        <div className="size-[90px] rounded-[10px] bg-[#E8EBEF] flex items-center justify-center text-[#0955AC]">
-                            <Truck size={48} />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <h1 className="text-[18px] font-[700]">
-                                Delivery Vehicle
-                            </h1>
-                            <div className="flex flex-row gap-10 text-[16px] font-[500]">
-                                <div className="flex flex-col gap-2 text-[#00000080]">
-                                    <h1>Vehicle</h1>
-                                    <h1>Reg No</h1>
-                                    <h1>Capacity</h1>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <h1>Van</h1>
-                                    <h1>CBL 3245</h1>
-                                    <h1>1200 kg</h1>
-                                </div>
-                            </div>
-                            <h1 className="text-[16px] font-[600] text-[#0955AC]">
-                                Fragile item — handle with care.
-                            </h1>
-                        </div>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4 mb-6">
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <p className="text-[12px] text-[#6B7280] font-[600]">Total Events</p>
+                    <p className="text-[26px] leading-tight font-[700] mt-1">{calendar.summary.totalEvents}</p>
                 </div>
-
-                <div
-                    className="min-w-[349px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] px-10 py-10"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                >
-                    {/* Reminder section */}
-                    <div className="flex flex-row items-center justify-between w-full">
-                        <h1 className="text-[24px] font-[700]">Reminders</h1>
-                        <div className="w-[39px] h-[33px] bg-[#D9D9D94F] rounded-[6px] flex justify-center items-center gap-3 text-[#00000080] font-[600] text-[30px]">
-                            +
-                        </div>
-                    </div>
-                    <div className="py-5 flex flex-col justify-center items-center gap-5">
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                            <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                !
-                            </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
-                                Update the car rental plans for the upcoming
-                                sessions.
-                            </h1>
-                        </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                            <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                !
-                            </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
-                                Update the car rental plans for the upcoming
-                                sessions.
-                            </h1>
-                        </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                            <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                !
-                            </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
-                                Update the car rental plans for the upcoming
-                                sessions.
-                            </h1>
-                        </div>
-                        <div className="w-[286px] h-[68px] bg-[#D8E4F2] rounded-[10px] flex flex-row justify-center items-center gap-5 px-3 py-2">
-                            <div className="size-[24px] border-[1px] border-[#FF0000] rounded-full bg-[#FFFFFF] flex justify-center items-center text-[18px] font-[600] text-[#FF0000]">
-                                !
-                            </div>
-                            <h1 className="text-[14px] font-[500] w-[199px]">
-                                Update the car rental plans for the upcoming
-                                sessions.
-                            </h1>
-                        </div>
-                    </div>
-                    {/* end */}
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <p className="text-[12px] text-[#6B7280] font-[600]">Pickups</p>
+                    <p className="text-[26px] leading-tight font-[700] mt-1">{calendar.summary.pickups}</p>
                 </div>
-
-                <div
-                    className="min-w-[315px] w-full h-auto min-h-[428px] bg-[#FFFFFF] rounded-[10px] flex justify-center items-center px-5 py-5"
-                    style={{ boxShadow: "4px 4px 4px #0000001A" }}
-                >
-                    <CalendarMonthPicker />
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <p className="text-[12px] text-[#6B7280] font-[600]">Deliveries / ETA</p>
+                    <p className="text-[26px] leading-tight font-[700] mt-1">{calendar.summary.deliveries}</p>
+                </div>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <p className="text-[12px] text-[#6B7280] font-[600]">Exceptions</p>
+                    <p className="text-[26px] leading-tight font-[700] mt-1 text-[#B91C1C]">{calendar.summary.exceptions}</p>
+                </div>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <p className="text-[12px] text-[#6B7280] font-[600]">High Priority</p>
+                    <p className="text-[26px] leading-tight font-[700] mt-1 text-[#92400E]">{calendar.summary.highPriority}</p>
+                </div>
+                <div className="bg-white rounded-[10px] px-4 py-3" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <p className="text-[12px] text-[#6B7280] font-[600]">Active Shipments</p>
+                    <p className="text-[26px] leading-tight font-[700] mt-1">{calendar.summary.activeShipments}</p>
                 </div>
             </div>
 
-            <div
-                className="w-full h-auto bg-[#FFFFFF] rounded-[10px] mt-10 py-10"
-                style={{ boxShadow: "4px 4px 4px #0000001A" }}
-            >
-                <div className="px-20 flex flex-row items-center justify-between">
-                    <div className="flex flex-row justify-center items-center gap-6">
-                        <div className="w-[75px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center">
-                            Today
-                        </div>
-                        <div className="flex flex-row justify-center items-center gap-2">
-                            <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer"
-                                onClick={handlePrevMonth}
-                            >
-                                <ChevronLeft size={16} />
-                            </div>
-                            <div
-                                className="size-[35px] bg-[#F3F3F3] rounded-[6px] flex justify-center items-center cursor-pointer"
-                                onClick={handleNextMonth}
-                            >
-                                <ChevronRight size={16} />
-                            </div>
-                        </div>
-                        <h1 className="text-[18px] font-[700]">
-                            {monthNames[currentMonth]} {currentYear}
-                        </h1>
+            <div className="bg-white rounded-[10px] p-4 mb-6" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1fr_auto_auto_auto] gap-3 items-center">
+                    <div className="h-[38px] rounded-[8px] bg-[#F3F4F6] px-3 flex items-center gap-2">
+                        <Search size={16} className="text-[#6B7280]" />
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    applyFilters({ q: search });
+                                }
+                            }}
+                            placeholder="Search by booking, tracking, client, service"
+                            className="w-full border-none bg-transparent outline-none focus:ring-0"
+                        />
                     </div>
-                    <div className="flex flex-row justify-center items-center gap-5">
-                        <div className="flex flex-row justify-center items-center text-[#0955AC] text-[14px] font-[700]">
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-l-[6px] flex justify-center items-center">
-                                All
+
+                    <select
+                        value={calendar.filters?.eventType || "all"}
+                        onChange={(e) => applyFilters({ eventType: e.target.value })}
+                        className="h-[38px] rounded-[8px] border border-[#E5E7EB] px-3 text-[13px]"
+                    >
+                        {(calendar.eventTypeOptions || []).map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
+
+                    <div className="flex items-center justify-center gap-1">
+                        <button
+                            type="button"
+                            className="size-[34px] rounded-[8px] bg-[#F3F4F6] flex items-center justify-center"
+                            onClick={() => applyFilters({ month: shiftMonth(calendar.filters?.month, -1) })}
+                            aria-label="Previous month"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                        <button
+                            type="button"
+                            className="size-[34px] rounded-[8px] bg-[#F3F4F6] flex items-center justify-center"
+                            onClick={() => applyFilters({ month: shiftMonth(calendar.filters?.month, 1) })}
+                            aria-label="Next month"
+                        >
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+
+                    <div className="h-[38px] rounded-[8px] bg-[#F3F4F6] px-4 flex items-center justify-center text-[13px] font-[700] text-[#111827]">
+                        {calendar.monthLabel || "Calendar"}
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_330px] gap-5">
+                <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                    <div className="grid grid-cols-7 gap-2 text-center text-[12px] font-[700] text-[#6B7280] mb-2">
+                        <div>Sun</div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
+                    </div>
+
+                    <div className="space-y-2">
+                        {weeks.map((week, weekIdx) => (
+                            <div key={`week-${weekIdx}`} className="grid grid-cols-7 gap-2">
+                                {week.map((day) => {
+                                    const bucket = calendar.dayBuckets?.[day.dateKey] || { total: 0, pickup: 0, delivery: 0, exception: 0 };
+                                    const dayEvents = eventsByDate[day.dateKey] || [];
+                                    const active = selectedDate === day.dateKey;
+
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={day.dateKey}
+                                            onClick={() => {
+                                                setSelectedDate(day.dateKey);
+                                                applyFilters({ selectedDate: day.dateKey });
+                                            }}
+                                            className={`min-h-[112px] rounded-[10px] border p-2 text-left transition-colors ${
+                                                active
+                                                    ? "border-[#0955AC] bg-[#0955AC12]"
+                                                    : "border-[#E5E7EB] hover:bg-[#F8FAFC]"
+                                            } ${day.inMonth ? "" : "opacity-50"}`}
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className={`text-[12px] font-[700] ${isToday(day.dateKey) ? "text-[#0955AC]" : "text-[#374151]"}`}>
+                                                    {day.day}
+                                                </span>
+                                                {bucket.exception > 0 && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#FFE9E9] text-[#8A1C1C] font-[700]">
+                                                        {bucket.exception}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-[10px] text-[#6B7280] mb-1">{bucket.total} events</div>
+                                            <div className="space-y-1">
+                                                {dayEvents.slice(0, 2).map((event) => (
+                                                    <div key={event.id} className={`text-[10px] px-2 py-1 rounded ${toneClasses[event.tone] || "bg-[#F3F4F6] text-[#374151]"}`}>
+                                                        {event.time} • {event.type}
+                                                    </div>
+                                                ))}
+                                                {dayEvents.length > 2 && (
+                                                    <div className="text-[10px] text-[#6B7280]">+{dayEvents.length - 2} more</div>
+                                                )}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] flex justify-center items-center">
-                                Pickup
-                            </div>
-                            <div className="w-[85px] h-[35px] bg-[#F3F3F3] rounded-r-[6px] flex justify-center items-center">
-                                Delivery
-                            </div>
-                        </div>
-                        <div className="w-[96px] h-[35px] bg-[#F3F3F3] rounded-[6px] text-[14px] font-[500] text-[#00000080] flex justify-center items-center gap-3">
-                            <h1>Week</h1>
-                            <ChevronDown size={14} />
-                        </div>
+                        ))}
                     </div>
                 </div>
 
-                <div className="flex flex-row gap-10 justify-start items-center px-20 py-5">
-                    <div className="flex flex-row justify-start items-center gap-5">
-                        <div className="size-[16px] bg-[#C5E6F9] rounded-[4px]" />
-                        <h1 className="text-[#00000080] font-[600] text-[16px]">
-                            Delivered
-                        </h1>
-                    </div>
-                    <div className="flex flex-row justify-start items-center gap-5">
-                        <div className="size-[16px] bg-[#FFDBDF] rounded-[4px]" />
-                        <h1 className="text-[#00000080] font-[600] text-[16px]">
-                            Cancelled
-                        </h1>
-                    </div>
-                </div>
+                <div className="space-y-4">
+                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                        <h2 className="text-[18px] font-[700] mb-1">Daily Agenda</h2>
+                        <p className="text-[12px] text-[#6B7280] mb-3">{selectedDate || "Select a date"}</p>
 
-                <div className="grid grid-cols-8 border-t border-l border-[#00000026]">
-                    <CalendarGrid
-                        days={days}
-                        times={times}
-                        events={events}
-                        proPicTwo={proPicTwo}
-                        currentMonth={currentMonth}
-                        currentYear={currentYear}
-                    />
+                        <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
+                            {agenda.length > 0 ? (
+                                agenda.map((item) => (
+                                    <div key={item.id} className={`rounded-[8px] px-3 py-2 ${toneClasses[item.tone] || "bg-[#F3F4F6] text-[#374151]"}`}>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="text-[12px] font-[700] truncate">{item.title}</p>
+                                            <span className="text-[11px] font-[700]">{item.time}</span>
+                                        </div>
+                                        <p className="text-[11px] mt-1 truncate">{item.subtitle}</p>
+                                        <p className="text-[10px] mt-1 opacity-80">{item.bookingNumber}</p>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-[13px] text-[#6B7280] bg-[#F8FAFC] border border-[#E5E7EB] rounded-[8px] px-3 py-4">
+                                    No scheduled events for this date.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                        <div className="flex items-center gap-2 mb-3">
+                            <AlertTriangle size={16} className="text-[#B91C1C]" />
+                            <h2 className="text-[16px] font-[700]">Exception Queue</h2>
+                        </div>
+                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                            {(calendar.exceptionQueue || []).length > 0 ? (
+                                (calendar.exceptionQueue || []).map((item) => (
+                                    <div key={item.id} className="rounded-[8px] px-3 py-2 bg-[#FFE9E9] text-[#8A1C1C]">
+                                        <p className="text-[12px] font-[700] truncate">{item.title}</p>
+                                        <p className="text-[11px] mt-1">{item.date} • {item.time}</p>
+                                        <p className="text-[11px] mt-1 truncate">{item.client}</p>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-[13px] text-[#6B7280] bg-[#F8FAFC] border border-[#E5E7EB] rounded-[8px] px-3 py-4">
+                                    No exception events in this period.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-[10px] p-4" style={{ boxShadow: "4px 4px 4px #0000001A" }}>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Truck size={16} className="text-[#0955AC]" />
+                            <h2 className="text-[16px] font-[700]">Legend</h2>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[12px]">
+                            <div className="px-2 py-1 rounded bg-[#EAF1FF] text-[#0F3D8A]">Pickup</div>
+                            <div className="px-2 py-1 rounded bg-[#E8FAEF] text-[#1B6C3A]">Delivery</div>
+                            <div className="px-2 py-1 rounded bg-[#FEF3C7] text-[#92400E]">ETA</div>
+                            <div className="px-2 py-1 rounded bg-[#FFE9E9] text-[#8A1C1C]">Exception</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
