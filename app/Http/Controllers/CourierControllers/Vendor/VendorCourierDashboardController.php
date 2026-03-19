@@ -271,6 +271,15 @@ class VendorCourierDashboardController extends Controller
         ]);
     }
 
+    public function calendar(Request $request)
+    {
+        [$filters, $shipments] = $this->buildFilteredShipments($request);
+
+        return Inertia::render('Web/home/vendors/courierService/Calendar', [
+            'courierCalendar' => $this->buildCalendarPayload($shipments, $request, $filters),
+        ]);
+    }
+
     public function settings(Request $request)
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
@@ -1141,6 +1150,211 @@ class VendorCourierDashboardController extends Controller
                         'label' => Str::title(str_replace('_', ' ', $action)),
                     ])
                     ->values(),
+            ],
+        ];
+    }
+
+    private function buildCalendarPayload(Collection $shipments, Request $request, array $filters): array
+    {
+        $monthParam = trim((string) $request->query('month', now()->format('Y-m')));
+        try {
+            $monthDate = preg_match('/^\d{4}-\d{2}$/', $monthParam)
+                ? Carbon::createFromFormat('Y-m', $monthParam)
+                : null;
+        } catch (\Throwable) {
+            $monthDate = null;
+        }
+
+        if (!$monthDate) {
+            $monthDate = now();
+        }
+
+        $monthStart = $monthDate->copy()->startOfMonth();
+        $monthEnd = $monthDate->copy()->endOfMonth();
+
+        $eventType = trim((string) $request->query('eventType', 'all'));
+        if (!in_array($eventType, ['all', 'pickup', 'delivery', 'exception'], true)) {
+            $eventType = 'all';
+        }
+
+        $events = $shipments->flatMap(function (CourierShipment $shipment) {
+            $stage = $this->getShipmentStage($shipment);
+            $status = (string) ($shipment->status ?? 'pending');
+            $trackingNumber = $this->trackingNumber($shipment);
+            $service = $this->normalizeServiceLabel($shipment->service_level);
+            $clientName = (string) ($shipment->sender?->name ?? '-');
+            $bookingNumber = (string) $shipment->reference;
+            $destination = trim(implode(', ', array_filter([
+                optional($shipment->recipientAddress)->city,
+                optional($shipment->recipientAddress)->country,
+            ])));
+
+            $pickupDate = $shipment->pickup_date ? Carbon::parse($shipment->pickup_date) : null;
+            $pickupTime = $shipment->pickup_window_start
+                ? Carbon::parse($shipment->pickup_window_start)->format('H:i')
+                : '09:00';
+
+            $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
+            $deliveredAt = $this->getDeliveredAt($shipment);
+            $deliveryDate = $deliveredAt ?: $estimatedDelivery;
+
+            $base = [
+                'shipmentId' => $shipment->id,
+                'bookingNumber' => $bookingNumber,
+                'trackingNumber' => $trackingNumber,
+                'service' => $service,
+                'client' => $clientName,
+                'stage' => $stage,
+                'status' => $status,
+                'destination' => $destination,
+            ];
+
+            $eventRows = collect();
+
+            if ($pickupDate) {
+                $eventRows->push(array_merge($base, [
+                    'id' => 'pickup-' . $shipment->id,
+                    'type' => 'pickup',
+                    'title' => 'Pickup • ' . $trackingNumber,
+                    'subtitle' => $clientName,
+                    'date' => $pickupDate->format('Y-m-d'),
+                    'time' => $pickupTime,
+                    'priority' => in_array($stage, ['new_assignments', 'ready_for_pickup'], true) ? 'high' : 'normal',
+                    'tone' => 'pickup',
+                ]));
+            }
+
+            if ($deliveryDate) {
+                $eventRows->push(array_merge($base, [
+                    'id' => 'delivery-' . $shipment->id,
+                    'type' => 'delivery',
+                    'title' => ($deliveredAt ? 'Delivered' : 'ETA') . ' • ' . $trackingNumber,
+                    'subtitle' => $destination !== '' ? $destination : $clientName,
+                    'date' => $deliveryDate->format('Y-m-d'),
+                    'time' => $deliveryDate->format('H:i'),
+                    'priority' => $this->hasException($shipment) ? 'high' : 'normal',
+                    'tone' => $deliveredAt ? 'delivered' : 'eta',
+                ]));
+            }
+
+            if ($this->hasException($shipment)) {
+                $latest = $this->getLatestTrackingEvent($shipment);
+                $exceptionDate = optional($latest?->recorded_at)
+                    ? Carbon::parse($latest->recorded_at)
+                    : ($pickupDate ?: now());
+
+                $eventRows->push(array_merge($base, [
+                    'id' => 'exception-' . $shipment->id,
+                    'type' => 'exception',
+                    'title' => 'Exception • ' . $trackingNumber,
+                    'subtitle' => $this->statusLabel($status),
+                    'date' => $exceptionDate->format('Y-m-d'),
+                    'time' => $exceptionDate->format('H:i'),
+                    'priority' => 'high',
+                    'tone' => 'exception',
+                ]));
+            }
+
+            return $eventRows;
+        })->values();
+
+        $q = trim((string) ($filters['q'] ?? ''));
+
+        $events = $events
+            ->filter(function (array $event) use ($monthStart, $monthEnd) {
+                try {
+                    $eventDate = Carbon::createFromFormat('Y-m-d', (string) $event['date']);
+                } catch (\Throwable) {
+                    return false;
+                }
+
+                return $eventDate->betweenIncluded($monthStart, $monthEnd);
+            })
+            ->values();
+
+        if ($eventType !== 'all') {
+            $events = $events->where('type', $eventType)->values();
+        }
+
+        if ($q !== '') {
+            $qUpper = strtoupper($q);
+            $events = $events->filter(function (array $event) use ($qUpper) {
+                $searchBlob = strtoupper(implode(' ', [
+                    (string) ($event['title'] ?? ''),
+                    (string) ($event['subtitle'] ?? ''),
+                    (string) ($event['trackingNumber'] ?? ''),
+                    (string) ($event['bookingNumber'] ?? ''),
+                    (string) ($event['client'] ?? ''),
+                    (string) ($event['service'] ?? ''),
+                ]));
+
+                return str_contains($searchBlob, $qUpper);
+            })->values();
+        }
+
+        $dayBuckets = $events
+            ->groupBy('date')
+            ->map(function (Collection $dayEvents) {
+                return [
+                    'total' => $dayEvents->count(),
+                    'pickup' => $dayEvents->where('type', 'pickup')->count(),
+                    'delivery' => $dayEvents->where('type', 'delivery')->count(),
+                    'exception' => $dayEvents->where('type', 'exception')->count(),
+                ];
+            })
+            ->toArray();
+
+        $selectedDate = trim((string) $request->query('selectedDate', now()->format('Y-m-d')));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) {
+            $selectedDate = $monthStart->format('Y-m-d');
+        }
+
+        try {
+            $selectedDateValue = Carbon::createFromFormat('Y-m-d', $selectedDate);
+            if (!$selectedDateValue->betweenIncluded($monthStart, $monthEnd)) {
+                $selectedDate = $monthStart->format('Y-m-d');
+            }
+        } catch (\Throwable) {
+            $selectedDate = $monthStart->format('Y-m-d');
+        }
+
+        $agendaRows = $events
+            ->where('date', $selectedDate)
+            ->sortBy(['time', 'type'])
+            ->values();
+
+        return [
+            'summary' => [
+                'totalEvents' => $events->count(),
+                'pickups' => $events->where('type', 'pickup')->count(),
+                'deliveries' => $events->where('type', 'delivery')->count(),
+                'exceptions' => $events->where('type', 'exception')->count(),
+                'highPriority' => $events->where('priority', 'high')->count(),
+                'activeShipments' => $events->pluck('shipmentId')->unique()->count(),
+            ],
+            'filters' => [
+                'month' => $monthStart->format('Y-m'),
+                'eventType' => $eventType,
+                'q' => $q,
+                'selectedDate' => $selectedDate,
+            ],
+            'monthLabel' => $monthStart->format('F Y'),
+            'monthStart' => $monthStart->format('Y-m-d'),
+            'monthEnd' => $monthEnd->format('Y-m-d'),
+            'selectedDate' => $selectedDate,
+            'events' => $events->values(),
+            'dayBuckets' => $dayBuckets,
+            'agenda' => $agendaRows,
+            'exceptionQueue' => $events
+                ->where('type', 'exception')
+                ->sortBy('date')
+                ->take(8)
+                ->values(),
+            'eventTypeOptions' => [
+                ['value' => 'all', 'label' => 'All'],
+                ['value' => 'pickup', 'label' => 'Pickup'],
+                ['value' => 'delivery', 'label' => 'Delivery'],
+                ['value' => 'exception', 'label' => 'Exception'],
             ],
         ];
     }

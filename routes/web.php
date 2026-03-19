@@ -1159,9 +1159,9 @@ Route::middleware(['auth', 'service.workspace:courier_service'])->group(function
         ->middleware('service.permission:courier.tracking.view')
         ->name('courierService.tracking');
 
-    Route::get('/courierService/calendar', function () {
-        return Inertia::render('Web/home/vendors/courierService/Calendar');
-    })->middleware('service.permission:courier.calendar.view')->name('courierService.calendar');
+    Route::get('/courierService/calendar', [VendorCourierDashboardController::class, 'calendar'])
+        ->middleware('service.permission:courier.calendar.view')
+        ->name('courierService.calendar');
 
     Route::get('/courierService/addUnit', function () {
         return Inertia::render('Web/home/vendors/courierService/AddUnit');
