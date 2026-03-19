@@ -338,8 +338,15 @@ const ProfileContent = () => {
                 open={Boolean(feedback)}
                 type={feedback?.type || "info"}
                 message={feedback?.message || ""}
+                passwordChangeRequired={Boolean(feedback?.passwordChangeRequired)}
+                passwordChangeTargetUrl={feedback?.passwordChangeTargetUrl || ""}
                 onClose={closeFeedback}
             />
+            onConfirm={
+                typeof feedback?.message === "string" && feedback.message.toLowerCase().includes("please update your password before continuing")
+                    ? () => { closeFeedback(); setActiveTab("security"); }
+                    : undefined
+            }
 
             <CourierFeedbackModal
                 open={confirmState.open}

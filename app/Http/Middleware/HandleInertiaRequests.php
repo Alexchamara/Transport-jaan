@@ -114,6 +114,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->pull('success'),
                 'error'   => fn () => $request->session()->pull('error'),
+                'password_change_required' => fn () => (bool) $request->session()->pull('password_change_required', false),
+                'password_change_target' => fn () => $request->session()->pull('password_change_target'),
             ],
         ]);
     }

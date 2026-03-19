@@ -18,6 +18,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class VendorCourierDashboardController extends Controller
@@ -395,6 +396,12 @@ class VendorCourierDashboardController extends Controller
             return back()->with('error', 'This profile section is currently read-only.');
         }
 
+        $contactEmailRules = ['nullable', 'email', 'max:180'];
+
+        if ($isTeamUser && $actor) {
+            $contactEmailRules[] = Rule::unique('users', 'email')->ignore((int) $actor->id);
+        }
+
         $validated = $request->validate([
             'section' => ['nullable', 'string'],
             'companyName' => ['required', 'string', 'max:180'],
@@ -402,7 +409,7 @@ class VendorCourierDashboardController extends Controller
             'businessRegistrationNo' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-\/\s]+$/'],
             'taxId' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9\-\/\s]+$/'],
             'contactPerson' => ['nullable', 'string', 'max:180'],
-            'contactEmail' => ['nullable', 'email', 'max:180'],
+            'contactEmail' => $contactEmailRules,
             'contactPhone' => ['nullable', 'string', 'max:50', 'regex:/^[0-9\+\-\s\(\)]{7,25}$/'],
             'supportEmail' => ['nullable', 'email', 'max:180'],
             'supportHotline' => ['nullable', 'string', 'max:50', 'regex:/^[0-9\+\-\s\(\)]{7,25}$/'],

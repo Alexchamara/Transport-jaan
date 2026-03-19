@@ -109,6 +109,33 @@ class CourierTeamAccessAuthorizationTest extends TestCase
         $this->assertCount(0, $created->permissions);
     }
 
+    public function test_team_user_profile_update_rejects_duplicate_contact_email(): void
+    {
+        [$vendor, $workspace] = $this->createCourierVendorWorkspace();
+
+        $actor = $this->createActorWithMembership($vendor, $workspace, ['courier.profile.update']);
+        $originalEmail = (string) $actor->email;
+
+        $existing = User::factory()->create([
+            'email' => 'already.used@example.com',
+            'role' => 'client',
+            'status' => 'verified',
+        ]);
+
+        $response = $this->actingAs($actor)->post(route('courierService.profile.update'), [
+            'section' => 'company',
+            'companyName' => 'Team Member Name',
+            'displayName' => 'Team Display',
+            'contactEmail' => $existing->email,
+            'contactPhone' => '+94 77 123 4567',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasErrors(['contactEmail']);
+
+        $this->assertSame($originalEmail, (string) $actor->fresh()->email);
+    }
+
     private function createCourierVendorWorkspace(): array
     {
         $vendor = User::factory()->create([

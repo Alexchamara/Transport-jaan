@@ -352,6 +352,8 @@ const Settings = () => {
                 open={Boolean(feedback)}
                 type={feedback?.type || "info"}
                 message={feedback?.message || ""}
+                passwordChangeRequired={Boolean(feedback?.passwordChangeRequired)}
+                passwordChangeTargetUrl={feedback?.passwordChangeTargetUrl || ""}
                 onClose={closeFeedback}
             />
 
