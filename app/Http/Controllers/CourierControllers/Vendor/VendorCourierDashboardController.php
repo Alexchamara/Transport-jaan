@@ -2700,6 +2700,8 @@ class VendorCourierDashboardController extends Controller
                 'enforce2FA' => true,
                 'teamAccessControl' => [
                     'defaultDirectPermissionsByRole' => [],
+                    'defaultDataScopeByRole' => [],
+                    'onboardingBundles' => [],
                 ],
                 'permissionModel' => $this->defaultAdvancedPermissionModel(),
             ],
@@ -2720,13 +2722,73 @@ class VendorCourierDashboardController extends Controller
             $merged['teamAccessControl']['defaultDirectPermissionsByRole'] = [];
         }
 
+        if (!is_array($merged['teamAccessControl']['defaultDataScopeByRole'] ?? null)) {
+            $merged['teamAccessControl']['defaultDataScopeByRole'] = [];
+        }
+
+        if (!is_array($merged['teamAccessControl']['onboardingBundles'] ?? null)) {
+            $merged['teamAccessControl']['onboardingBundles'] = [];
+        }
+
         $merged['permissionModel'] = $this->normalizeAdvancedPermissionModel(
             is_array($merged['permissionModel'] ?? null)
                 ? $merged['permissionModel']
                 : []
         );
 
+        $merged['permissionModel'] = $this->applyProvisioningDataScopeDefaultsToPermissionModel(
+            $merged['permissionModel'],
+            is_array($merged['teamAccessControl'] ?? null) ? $merged['teamAccessControl'] : []
+        );
+
         return $merged;
+    }
+
+    private function applyProvisioningDataScopeDefaultsToPermissionModel(array $permissionModel, array $teamAccessControl): array
+    {
+        $rolePolicies = is_array($permissionModel['rolePolicies'] ?? null) ? $permissionModel['rolePolicies'] : [];
+        $scopeDefaultsByRole = is_array($teamAccessControl['defaultDataScopeByRole'] ?? null)
+            ? $teamAccessControl['defaultDataScopeByRole']
+            : [];
+
+        foreach ($rolePolicies as $roleName => $rolePolicy) {
+            if (!is_array($rolePolicy)) {
+                continue;
+            }
+
+            $scopeDefault = is_array($scopeDefaultsByRole[$roleName] ?? null) ? $scopeDefaultsByRole[$roleName] : [];
+
+            $scope = trim((string) ($scopeDefault['scope'] ?? $rolePolicy['scope'] ?? ''));
+            if (!in_array($scope, self::ADVANCED_SCOPE_LEVELS, true)) {
+                $scope = (string) ($rolePolicy['scope'] ?? 'own_records');
+            }
+
+            $constraints = $this->normalizeRoleDataScopeConstraints(
+                is_array($rolePolicy['constraints'] ?? null) ? $rolePolicy['constraints'] : [],
+                $this->defaultRoleDataScopeConstraints()
+            );
+
+            if (is_array($scopeDefault)) {
+                $constraints['regionZones'] = collect($scopeDefault['regionZones'] ?? $constraints['regionZones'] ?? [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                $constraints['hubBranches'] = collect($scopeDefault['hubBranches'] ?? $constraints['hubBranches'] ?? [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter()
+                    ->values()
+                    ->all();
+            }
+
+            $rolePolicies[$roleName]['scope'] = $scope;
+            $rolePolicies[$roleName]['constraints'] = $constraints;
+        }
+
+        $permissionModel['rolePolicies'] = $rolePolicies;
+
+        return $permissionModel;
     }
 
     private function defaultAdvancedPermissionModel(): array

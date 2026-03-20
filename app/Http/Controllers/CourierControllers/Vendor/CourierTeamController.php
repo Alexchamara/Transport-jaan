@@ -22,6 +22,13 @@ use Spatie\Permission\PermissionRegistrar;
 
 class CourierTeamController extends Controller
 {
+    private const TEAM_SCOPE_LEVELS = [
+        'own_records',
+        'assigned_region',
+        'assigned_hub',
+        'all_workspace',
+    ];
+
     public function __construct()
     {
         $this->middleware('auth');
@@ -216,6 +223,7 @@ class CourierTeamController extends Controller
             'email' => ['required', 'email', 'max:180'],
             'password' => ['nullable', 'string', 'min:8', 'max:120'],
             'role' => ['nullable', Rule::in($assignableRoleNames)],
+            'provisioningBundleKey' => ['nullable', 'string', 'max:120'],
             'directPermissions' => ['nullable', 'array'],
             'directPermissions.*' => ['string', 'max:120'],
             'blockedServiceKeys' => ['nullable', 'array'],
@@ -240,11 +248,20 @@ class CourierTeamController extends Controller
         }
 
         $teamAccessControl = $this->readTeamAccessControlSettings($vendorUserId, $workspaceId);
+        $bundleByKey = collect($teamAccessControl['onboardingBundles'] ?? [])->keyBy('key');
+        $selectedBundle = $bundleByKey->get((string) ($validated['provisioningBundleKey'] ?? ''));
+
+        if ($selectedBundle && $canAssignRole) {
+            $validated['role'] = (string) ($selectedBundle['role'] ?? $validated['role']);
+        }
 
         $requestedDirectPermissions = collect($validated['directPermissions'] ?? [])
             ->map(fn ($perm) => (string) $perm);
 
         $roleDefaultPermissions = collect($teamAccessControl['defaultDirectPermissionsByRole'][$validated['role']] ?? [])
+            ->map(fn ($perm) => (string) $perm);
+
+        $bundleDefaultPermissions = collect($selectedBundle['defaultDirectPermissions'] ?? [])
             ->map(fn ($perm) => (string) $perm);
 
         $validCourierPermissions = Permission::query()
@@ -255,12 +272,21 @@ class CourierTeamController extends Controller
 
         $resolvedDirectPermissions = $canAssignPermissions
             ? $requestedDirectPermissions
+                ->merge($bundleDefaultPermissions)
                 ->merge($roleDefaultPermissions)
                 ->filter(fn ($perm) => $validCourierPermissions->contains($perm))
                 ->unique()
                 ->values()
                 ->all()
             : [];
+
+        $resolvedBlockedServiceKeys = collect($validated['blockedServiceKeys'] ?? [])
+            ->merge($selectedBundle['blockedServiceKeys'] ?? [])
+            ->map(fn ($serviceKey) => (string) $serviceKey)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
 
         $existingMembership = VendorUserMembership::query()
             ->whereHas('user', function ($query) use ($email) {
@@ -272,7 +298,7 @@ class CourierTeamController extends Controller
             return back()->with('error', 'This user already belongs to another vendor.');
         }
 
-        DB::transaction(function () use ($validated, $email, $actor, $vendorUserId, $workspaceId, $resolvedDirectPermissions, $teamAccessControl) {
+        DB::transaction(function () use ($validated, $email, $actor, $vendorUserId, $workspaceId, $resolvedDirectPermissions, $resolvedBlockedServiceKeys, $teamAccessControl, $selectedBundle) {
             $user = User::query()->firstOrCreate(
                 ['email' => $email],
                 [
@@ -298,7 +324,7 @@ class CourierTeamController extends Controller
                     'vendor_user_id' => $vendorUserId,
                     'membership_role' => 'member',
                     'status' => 'active',
-                    'blocked_service_keys' => array_values(array_unique($validated['blockedServiceKeys'] ?? [])),
+                    'blocked_service_keys' => $resolvedBlockedServiceKeys,
                     'invited_by_user_id' => $actor->id,
                 ],
             );
@@ -321,7 +347,8 @@ class CourierTeamController extends Controller
                     'role' => $validated['role'],
                     'direct_permissions_count' => count($resolvedDirectPermissions),
                     'role_default_permissions_count' => count($teamAccessControl['defaultDirectPermissionsByRole'][$validated['role']] ?? []),
-                    'blocked_service_keys' => $validated['blockedServiceKeys'] ?? [],
+                    'blocked_service_keys' => $resolvedBlockedServiceKeys,
+                    'provisioning_bundle_key' => (string) ($selectedBundle['key'] ?? ''),
                 ],
             );
         });
@@ -341,6 +368,7 @@ class CourierTeamController extends Controller
         $canAssignRole = $actor->can('courier.team.assign_role');
         $canAssignPermissions = $actor->can('courier.team.assign_permissions');
         $canManageStatus = $actor->can('courier.team.manage_status');
+        $teamAccessControl = $this->readTeamAccessControlSettings($vendorUserId, $workspaceId);
 
         if (!$canAssignRole && !$canAssignPermissions && !$canManageStatus) {
             abort(403, 'You do not have permission to update team access.');
@@ -419,7 +447,7 @@ class CourierTeamController extends Controller
             return back()->with('error', 'Owner cannot be blocked from Courier service.');
         }
 
-        DB::transaction(function () use ($validated, $workspaceId, $membership, $user, $request, $roleChanged, $permissionsChanged, $statusChanged, $blockedKeysChanged) {
+        DB::transaction(function () use ($validated, $workspaceId, $membership, $user, $request, $roleChanged, $permissionsChanged, $statusChanged, $blockedKeysChanged, $teamAccessControl, $requestedRole) {
             if ($blockedKeysChanged) {
                 $membership->blocked_service_keys = array_values(array_unique($validated['blockedServiceKeys'] ?? []));
             }
@@ -447,7 +475,17 @@ class CourierTeamController extends Controller
             }
 
             if ($permissionsChanged) {
-                $user->syncPermissions($validated['directPermissions'] ?? []);
+                $requestedDirectPermissions = collect($validated['directPermissions'] ?? [])->map(fn ($perm) => (string) $perm);
+                $roleDefaultPermissions = collect($teamAccessControl['defaultDirectPermissionsByRole'][$requestedRole] ?? [])->map(fn ($perm) => (string) $perm);
+
+                $user->syncPermissions(
+                    $requestedDirectPermissions
+                        ->merge($roleDefaultPermissions)
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all()
+                );
             }
 
             if (($validated['status'] ?? '') === 'suspended') {
@@ -494,6 +532,21 @@ class CourierTeamController extends Controller
             'defaultDirectPermissionsByRole' => ['nullable', 'array'],
             'defaultDirectPermissionsByRole.*' => ['array'],
             'defaultDirectPermissionsByRole.*.*' => ['string', Rule::in($validCourierPermissions)],
+            'defaultDataScopeByRole' => ['nullable', 'array'],
+            'defaultDataScopeByRole.*.scope' => ['nullable', 'string', Rule::in(self::TEAM_SCOPE_LEVELS)],
+            'defaultDataScopeByRole.*.regionZones' => ['nullable', 'array'],
+            'defaultDataScopeByRole.*.regionZones.*' => ['string', 'max:120'],
+            'defaultDataScopeByRole.*.hubBranches' => ['nullable', 'array'],
+            'defaultDataScopeByRole.*.hubBranches.*' => ['string', 'max:120'],
+            'onboardingBundles' => ['nullable', 'array'],
+            'onboardingBundles.*.key' => ['required', 'string', 'max:80'],
+            'onboardingBundles.*.label' => ['required', 'string', 'max:160'],
+            'onboardingBundles.*.role' => ['required', 'string', 'max:120'],
+            'onboardingBundles.*.description' => ['nullable', 'string', 'max:240'],
+            'onboardingBundles.*.defaultDirectPermissions' => ['nullable', 'array'],
+            'onboardingBundles.*.defaultDirectPermissions.*' => ['string', Rule::in($validCourierPermissions)],
+            'onboardingBundles.*.blockedServiceKeys' => ['nullable', 'array'],
+            'onboardingBundles.*.blockedServiceKeys.*' => ['string', 'max:80'],
         ]);
 
         $validCourierRoles = $this->workspaceRoleNames($workspaceId);
@@ -512,6 +565,71 @@ class CourierTeamController extends Controller
                 ->all();
         }
 
+        $scopeOptions = $this->resolveScopeOptionsForVendor($vendorUserId);
+        $incomingScopeByRole = is_array($validated['defaultDataScopeByRole'] ?? null)
+            ? $validated['defaultDataScopeByRole']
+            : [];
+
+        $sanitizedScopeByRole = [];
+        foreach ($validCourierRoles as $role) {
+            $rawScope = is_array($incomingScopeByRole[$role] ?? null) ? $incomingScopeByRole[$role] : [];
+            $scope = (string) ($rawScope['scope'] ?? $this->defaultScopeForRole($role));
+            if (!in_array($scope, self::TEAM_SCOPE_LEVELS, true)) {
+                $scope = $this->defaultScopeForRole($role);
+            }
+
+            $sanitizedScopeByRole[$role] = [
+                'scope' => $scope,
+                'regionZones' => collect($rawScope['regionZones'] ?? [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter()
+                    ->values()
+                    ->all(),
+                'hubBranches' => collect($rawScope['hubBranches'] ?? [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter()
+                    ->values()
+                    ->all(),
+            ];
+        }
+
+        $rawBundles = is_array($validated['onboardingBundles'] ?? null)
+            ? $validated['onboardingBundles']
+            : ($this->defaultTeamAccessControlSettings()['onboardingBundles'] ?? []);
+
+        $sanitizedBundles = collect($rawBundles)
+            ->filter(fn ($bundle) => is_array($bundle))
+            ->map(function (array $bundle) use ($validCourierRoles, $validCourierPermissions) {
+                $role = (string) ($bundle['role'] ?? '');
+                if (!in_array($role, $validCourierRoles, true)) {
+                    $role = in_array('courier_dispatcher', $validCourierRoles, true)
+                        ? 'courier_dispatcher'
+                        : ($validCourierRoles[0] ?? 'courier_viewer');
+                }
+
+                return [
+                    'key' => Str::slug((string) ($bundle['key'] ?? Str::random(8)), '_'),
+                    'label' => trim((string) ($bundle['label'] ?? 'Provisioning Bundle')),
+                    'description' => trim((string) ($bundle['description'] ?? '')),
+                    'role' => $role,
+                    'defaultDirectPermissions' => collect($bundle['defaultDirectPermissions'] ?? [])
+                        ->map(fn ($perm) => (string) $perm)
+                        ->filter(fn ($perm) => in_array($perm, $validCourierPermissions, true))
+                        ->unique()
+                        ->values()
+                        ->all(),
+                    'blockedServiceKeys' => collect($bundle['blockedServiceKeys'] ?? [])
+                        ->map(fn ($serviceKey) => trim((string) $serviceKey))
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->unique('key')
+            ->values()
+            ->all();
+
         $setting = VendorCourierSetting::query()->firstOrCreate(
             ['vendor_user_id' => $vendorUserId],
             ['settings' => []],
@@ -522,6 +640,8 @@ class CourierTeamController extends Controller
 
         $teamSettings['teamAccessControl'] = [
             'defaultDirectPermissionsByRole' => $sanitizedByRole,
+            'defaultDataScopeByRole' => $sanitizedScopeByRole,
+            'onboardingBundles' => $sanitizedBundles,
         ];
 
         $settings['team'] = $teamSettings;
@@ -540,6 +660,11 @@ class CourierTeamController extends Controller
                     $settings['team']['teamAccessControl']['defaultDirectPermissionsByRole'],
                     fn ($permissions) => is_array($permissions) && count($permissions) > 0
                 )),
+                'scope_roles_configured_count' => count(array_filter(
+                    $settings['team']['teamAccessControl']['defaultDataScopeByRole'],
+                    fn ($scope) => is_array($scope)
+                )),
+                'bundles_count' => count($settings['team']['teamAccessControl']['onboardingBundles'] ?? []),
             ],
         );
 
@@ -999,6 +1124,28 @@ class CourierTeamController extends Controller
     {
         return [
             'defaultDirectPermissionsByRole' => [],
+            'defaultDataScopeByRole' => [],
+            'onboardingBundles' => [
+                [
+                    'key' => 'dispatcher_colombo_hub',
+                    'label' => 'Dispatcher - Colombo Hub',
+                    'description' => 'Dispatcher profile with operational defaults for Colombo hub workflows.',
+                    'role' => 'courier_dispatcher',
+                    'defaultDirectPermissions' => [],
+                    'blockedServiceKeys' => [],
+                ],
+                [
+                    'key' => 'support_global_read_exceptions',
+                    'label' => 'Support - Global Read + Exceptions',
+                    'description' => 'Support profile focused on global visibility and exception handling.',
+                    'role' => 'courier_support',
+                    'defaultDirectPermissions' => [
+                        'courier.tracking.view',
+                        'courier.clients.manage',
+                    ],
+                    'blockedServiceKeys' => [],
+                ],
+            ],
         ];
     }
 
@@ -1025,7 +1172,14 @@ class CourierTeamController extends Controller
             ? $current['defaultDirectPermissionsByRole']
             : [];
 
+        $rawScopeByRole = is_array($current['defaultDataScopeByRole'] ?? null)
+            ? $current['defaultDataScopeByRole']
+            : [];
+
+        $scopeOptions = $this->resolveScopeOptionsForVendor($vendorUserId);
+
         $normalizedByRole = [];
+        $normalizedScopeByRole = [];
         foreach ($validCourierRoles as $role) {
             $normalizedByRole[$role] = collect($rawByRole[$role] ?? [])
                 ->map(fn ($perm) => (string) $perm)
@@ -1033,11 +1187,121 @@ class CourierTeamController extends Controller
                 ->unique()
                 ->values()
                 ->all();
+
+            $rolePolicy = is_array($teamSettings['permissionModel']['rolePolicies'][$role] ?? null)
+                ? $teamSettings['permissionModel']['rolePolicies'][$role]
+                : [];
+
+            $roleConstraints = is_array($rolePolicy['constraints'] ?? null) ? $rolePolicy['constraints'] : [];
+            $roleScopeSource = is_array($rawScopeByRole[$role] ?? null) ? $rawScopeByRole[$role] : [];
+
+            $scope = (string) ($roleScopeSource['scope'] ?? $rolePolicy['scope'] ?? $this->defaultScopeForRole($role));
+            if (!in_array($scope, self::TEAM_SCOPE_LEVELS, true)) {
+                $scope = $this->defaultScopeForRole($role);
+            }
+
+            $normalizedScopeByRole[$role] = [
+                'scope' => $scope,
+                'regionZones' => collect($roleScopeSource['regionZones'] ?? $roleConstraints['regionZones'] ?? [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter()
+                    ->values()
+                    ->all(),
+                'hubBranches' => collect($roleScopeSource['hubBranches'] ?? $roleConstraints['hubBranches'] ?? [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter()
+                    ->values()
+                    ->all(),
+            ];
         }
+
+        $validCourierPermissions = Permission::query()
+            ->where('name', 'like', 'courier.%')
+            ->pluck('name')
+            ->map(fn ($perm) => (string) $perm)
+            ->values()
+            ->all();
+
+        $rawBundles = is_array($current['onboardingBundles'] ?? null)
+            ? $current['onboardingBundles']
+            : ($defaults['onboardingBundles'] ?? []);
+
+        $normalizedBundles = collect($rawBundles)
+            ->filter(fn ($bundle) => is_array($bundle))
+            ->map(function (array $bundle) use ($validCourierRoles, $validCourierPermissions) {
+                $role = (string) ($bundle['role'] ?? '');
+                if (!in_array($role, $validCourierRoles, true)) {
+                    $role = in_array('courier_dispatcher', $validCourierRoles, true)
+                        ? 'courier_dispatcher'
+                        : ($validCourierRoles[0] ?? 'courier_viewer');
+                }
+
+                return [
+                    'key' => Str::slug((string) ($bundle['key'] ?? Str::random(8)), '_'),
+                    'label' => trim((string) ($bundle['label'] ?? 'Provisioning Bundle')),
+                    'description' => trim((string) ($bundle['description'] ?? '')),
+                    'role' => $role,
+                    'defaultDirectPermissions' => collect($bundle['defaultDirectPermissions'] ?? [])
+                        ->map(fn ($perm) => (string) $perm)
+                        ->filter(fn ($perm) => in_array($perm, $validCourierPermissions, true))
+                        ->unique()
+                        ->values()
+                        ->all(),
+                    'blockedServiceKeys' => collect($bundle['blockedServiceKeys'] ?? [])
+                        ->map(fn ($serviceKey) => trim((string) $serviceKey))
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->unique('key')
+            ->values()
+            ->all();
 
         return [
             'defaultDirectPermissionsByRole' => $normalizedByRole,
+            'defaultDataScopeByRole' => $normalizedScopeByRole,
+            'onboardingBundles' => $normalizedBundles,
+            'scopeLevels' => self::TEAM_SCOPE_LEVELS,
+            'scopeOptions' => $scopeOptions,
         ];
+    }
+
+    private function resolveScopeOptionsForVendor(int $vendorUserId): array
+    {
+        $record = VendorCourierSetting::query()->firstWhere('vendor_user_id', $vendorUserId);
+        $settings = is_array($record?->settings) ? $record->settings : [];
+        $business = is_array($settings['business'] ?? null) ? $settings['business'] : [];
+
+        $availableZones = collect(explode(',', (string) ($business['serviceZones'] ?? '')))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $availableHubs = collect([(string) ($business['primaryHub'] ?? '')])
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return [
+            'availableZones' => $availableZones,
+            'availableHubs' => $availableHubs,
+        ];
+    }
+
+    private function defaultScopeForRole(string $role): string
+    {
+        return match ($role) {
+            'courier_owner', 'courier_admin', 'courier_finance' => 'all_workspace',
+            'courier_dispatcher' => 'assigned_hub',
+            'courier_tracking_officer', 'courier_viewer' => 'assigned_region',
+            default => 'own_records',
+        };
     }
 
     private function workspaceRoleNames(int $workspaceId): array

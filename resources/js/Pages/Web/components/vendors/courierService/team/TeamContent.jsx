@@ -18,6 +18,13 @@ const EMPTY = {
     permissionOptions: [],
     teamAccessControl: {
         defaultDirectPermissionsByRole: {},
+        defaultDataScopeByRole: {},
+        onboardingBundles: [],
+        scopeLevels: ["own_records", "assigned_region", "assigned_hub", "all_workspace"],
+        scopeOptions: {
+            availableZones: [],
+            availableHubs: [],
+        },
     },
     serviceKey: "courier_service",
     filters: {
@@ -87,6 +94,7 @@ const TeamContent = () => {
         email: "",
         password: "",
         role: "courier_dispatcher",
+        provisioningBundleKey: "",
         directPermissions: [],
         blockedServiceKeys: [],
     });
@@ -96,6 +104,19 @@ const TeamContent = () => {
         && typeof team.teamAccessControl.defaultDirectPermissionsByRole === "object"
             ? team.teamAccessControl.defaultDirectPermissionsByRole
             : {},
+        defaultDataScopeByRole: team.teamAccessControl?.defaultDataScopeByRole
+        && typeof team.teamAccessControl.defaultDataScopeByRole === "object"
+            ? team.teamAccessControl.defaultDataScopeByRole
+            : {},
+        onboardingBundles: Array.isArray(team.teamAccessControl?.onboardingBundles)
+            ? team.teamAccessControl.onboardingBundles
+            : [],
+        scopeLevels: Array.isArray(team.teamAccessControl?.scopeLevels)
+            ? team.teamAccessControl.scopeLevels
+            : ["own_records", "assigned_region", "assigned_hub", "all_workspace"],
+        scopeOptions: team.teamAccessControl?.scopeOptions && typeof team.teamAccessControl.scopeOptions === "object"
+            ? team.teamAccessControl.scopeOptions
+            : { availableZones: [], availableHubs: [] },
     });
 
     const [editForm, setEditForm] = useState({
@@ -138,14 +159,23 @@ const TeamContent = () => {
         [team.rolePermissionMap, editForm.role],
     );
 
+    const selectedProvisioningBundle = useMemo(() => {
+        return (teamAccessControlForm.onboardingBundles || []).find((bundle) => bundle.key === createForm.provisioningBundleKey) || null;
+    }, [teamAccessControlForm.onboardingBundles, createForm.provisioningBundleKey]);
+
     const effectiveCreatePermissions = useMemo(
         () => {
             const roleDefaults = Array.isArray(teamAccessControlForm.defaultDirectPermissionsByRole?.[createForm.role])
                 ? teamAccessControlForm.defaultDirectPermissionsByRole[createForm.role]
                 : [];
 
+            const bundleDefaults = Array.isArray(selectedProvisioningBundle?.defaultDirectPermissions)
+                ? selectedProvisioningBundle.defaultDirectPermissions
+                : [];
+
             return Array.from(new Set([
                 ...(roleDefaults || []),
+                ...(bundleDefaults || []),
                 ...(createForm.directPermissions || []),
             ]));
         },
@@ -153,8 +183,19 @@ const TeamContent = () => {
             createForm.directPermissions,
             createForm.role,
             teamAccessControlForm.defaultDirectPermissionsByRole,
+            createForm.provisioningBundleKey,
         ],
     );
+
+    const effectiveCreateScope = useMemo(() => {
+        const roleDefaults = teamAccessControlForm.defaultDataScopeByRole?.[createForm.role] || {};
+        return {
+            scope: roleDefaults.scope || "own_records",
+            regionZones: Array.isArray(roleDefaults.regionZones) ? roleDefaults.regionZones : [],
+            hubBranches: Array.isArray(roleDefaults.hubBranches) ? roleDefaults.hubBranches : [],
+        };
+    }, [teamAccessControlForm.defaultDataScopeByRole, createForm.role]);
+
 
     const effectiveEditPermissions = useMemo(
         () => Array.from(new Set([...(selectedEditRolePermissions || []), ...(editForm.directPermissions || [])])),
@@ -214,6 +255,7 @@ const TeamContent = () => {
             onConfirm: () => {
                 router.post(route("courierService.team.store"), {
                     ...createForm,
+                    provisioningBundleKey: createForm.provisioningBundleKey || null,
                     directPermissions: effectiveCreatePermissions,
                 }, {
                     preserveScroll: true,
@@ -225,6 +267,7 @@ const TeamContent = () => {
                             email: "",
                             password: "",
                             role: "courier_dispatcher",
+                            provisioningBundleKey: "",
                             directPermissions: [],
                             blockedServiceKeys: [],
                         });
@@ -602,12 +645,48 @@ const TeamContent = () => {
                             <select disabled={!canAssignRole} className="h-[40px] rounded-[8px] border border-[#D1D5DB] px-3 disabled:opacity-50" value={createForm.role} onChange={(e) => setCreateForm((prev) => ({ ...prev, role: e.target.value }))}>
                                 {team.roleOptions.map((role) => (<option key={role} value={role}>{titleCase(role)}</option>))}
                             </select>
+                            <select
+                                className="h-[40px] rounded-[8px] border border-[#D1D5DB] px-3 md:col-span-2"
+                                value={createForm.provisioningBundleKey}
+                                onChange={(e) => {
+                                    const bundleKey = e.target.value;
+                                    const bundle = (teamAccessControlForm.onboardingBundles || []).find((item) => item.key === bundleKey) || null;
+                                    setCreateForm((prev) => ({
+                                        ...prev,
+                                        provisioningBundleKey: bundleKey,
+                                        role: bundle?.role || prev.role,
+                                        directPermissions: bundle
+                                            ? Array.from(new Set([...(prev.directPermissions || []), ...((bundle.defaultDirectPermissions || []))]))
+                                            : prev.directPermissions,
+                                        blockedServiceKeys: bundle
+                                            ? Array.from(new Set([...(prev.blockedServiceKeys || []), ...((bundle.blockedServiceKeys || []))]))
+                                            : prev.blockedServiceKeys,
+                                    }));
+                                }}
+                            >
+                                <option value="">No onboarding bundle</option>
+                                {(teamAccessControlForm.onboardingBundles || []).map((bundle) => (
+                                    <option key={bundle.key} value={bundle.key}>{bundle.label}</option>
+                                ))}
+                            </select>
                         </div>
                         {(errors.name || errors.email || errors.password || errors.role) && (
                             <p className="text-[12px] text-[#DC2626] mt-2">{errors.name || errors.email || errors.password || errors.role}</p>
                         )}
 
                         <div className="mt-4">
+                            <div className="mb-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-[#F9FAFB]">
+                                <p className="text-[12px] font-[700] text-[#374151]">New-User Wizard Preview</p>
+                                <p className="text-[11px] text-[#6B7280] mt-1">Role: {titleCase(createForm.role || "-")}</p>
+                                <p className="text-[11px] text-[#6B7280] mt-1">Effective permissions after role defaults, bundle, and direct grants: {effectiveCreatePermissions.length}</p>
+                                <p className="text-[11px] text-[#6B7280] mt-1">Data scope: {titleCase(effectiveCreateScope.scope)}</p>
+                                <p className="text-[11px] text-[#6B7280] mt-1">Region zones: {effectiveCreateScope.regionZones.length > 0 ? effectiveCreateScope.regionZones.join(", ") : "Any"}</p>
+                                <p className="text-[11px] text-[#6B7280] mt-1">Hub branches: {effectiveCreateScope.hubBranches.length > 0 ? effectiveCreateScope.hubBranches.join(", ") : "Any"}</p>
+                                {selectedProvisioningBundle && (
+                                    <p className="text-[11px] text-[#0F3D8A] mt-1">Bundle: {selectedProvisioningBundle.label}</p>
+                                )}
+                            </div>
+
                             <p className="text-[13px] font-[700] mb-2">Direct Permissions</p>
                             <input
                                 className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-3 mb-2"

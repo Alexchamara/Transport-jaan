@@ -53,6 +53,8 @@ const DEFAULT_SETTINGS = {
         enforce2FA: true,
         teamAccessControl: {
             defaultDirectPermissionsByRole: {},
+            defaultDataScopeByRole: {},
+            onboardingBundles: [],
         },
         permissionModel: {
             enabled: true,
@@ -208,6 +210,13 @@ const Settings = () => {
                     && typeof incomingTeamAccessControl.defaultDirectPermissionsByRole === "object"
                         ? incomingTeamAccessControl.defaultDirectPermissionsByRole
                         : {},
+                    defaultDataScopeByRole: incomingTeamAccessControl.defaultDataScopeByRole
+                    && typeof incomingTeamAccessControl.defaultDataScopeByRole === "object"
+                        ? incomingTeamAccessControl.defaultDataScopeByRole
+                        : {},
+                    onboardingBundles: Array.isArray(incomingTeamAccessControl.onboardingBundles)
+                        ? incomingTeamAccessControl.onboardingBundles
+                        : [],
                 },
                 permissionModel: {
                     ...DEFAULT_SETTINGS.team.permissionModel,
@@ -378,6 +387,26 @@ const Settings = () => {
         const selected = byRole[activeRoleForDefaults];
         return Array.isArray(selected) ? selected : [];
     }, [activeRoleForDefaults, settings.team]);
+
+    const activeRoleDefaultDataScope = useMemo(() => {
+        const byRole = settings.team?.teamAccessControl?.defaultDataScopeByRole;
+
+        if (!byRole || typeof byRole !== "object") {
+            return {
+                scope: "own_records",
+                regionZones: [],
+                hubBranches: [],
+            };
+        }
+
+        const selected = byRole[activeRoleForDefaults];
+
+        return {
+            scope: permissionScopes.includes(selected?.scope) ? selected.scope : "own_records",
+            regionZones: Array.isArray(selected?.regionZones) ? selected.regionZones : [],
+            hubBranches: Array.isArray(selected?.hubBranches) ? selected.hubBranches : [],
+        };
+    }, [activeRoleForDefaults, settings.team, permissionScopes]);
 
     const permissionModelRoleOptions = useMemo(() => {
         const fromRoles = Array.isArray(teamRoleOptions) ? teamRoleOptions : [];
@@ -768,6 +797,36 @@ const Settings = () => {
                 },
             },
         }));
+    };
+
+    const updateRoleDefaultDataScope = (key, value) => {
+        setSettings((prev) => {
+            const currentScope = prev.team?.teamAccessControl?.defaultDataScopeByRole?.[activeRoleForDefaults] || {};
+
+            return {
+                ...prev,
+                team: {
+                    ...prev.team,
+                    teamAccessControl: {
+                        ...prev.team.teamAccessControl,
+                        defaultDataScopeByRole: {
+                            ...(prev.team.teamAccessControl.defaultDataScopeByRole || {}),
+                            [activeRoleForDefaults]: {
+                                scope: permissionScopes.includes(currentScope.scope) ? currentScope.scope : "own_records",
+                                regionZones: Array.isArray(currentScope.regionZones) ? currentScope.regionZones : [],
+                                hubBranches: Array.isArray(currentScope.hubBranches) ? currentScope.hubBranches : [],
+                                [key]: value,
+                            },
+                        },
+                    },
+                },
+            };
+        });
+    };
+
+    const toggleRoleDefaultDataScopeArray = (key, value) => {
+        const current = Array.isArray(activeRoleDefaultDataScope[key]) ? activeRoleDefaultDataScope[key] : [];
+        updateRoleDefaultDataScope(key, toggleInArray(current, value));
     };
 
     const updatePermissionModelEnabled = (enabled) => {
@@ -1846,7 +1905,7 @@ const Settings = () => {
                     {activeTeamAccessTopic === "user-defaults" && (
                         <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
                             <p className="text-[15px] font-[700] text-[#111827]">Team User Creation Defaults</p>
-                            <p className="text-[12px] text-[#6B7280] mt-1">Configure permissions auto-applied when creating courier team users.</p>
+                            <p className="text-[12px] text-[#6B7280] mt-1">Configure default direct permissions, data scope defaults, and available onboarding bundles used during team-user creation.</p>
 
                             <div className="mt-3 mb-2">
                                 <label className="text-[12px] font-[700] text-[#374151]">Role To Configure</label>
@@ -1897,6 +1956,78 @@ const Settings = () => {
                                     </div>
                                 ))}
                             </div>
+
+                            <div className="mt-4 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                <p className="text-[12px] font-[700] text-[#374151] mb-2">Default Data Scope For Selected Role</p>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                    <Field label="Scope Level">
+                                        <select
+                                            className="h-[38px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[13px] leading-[1.2]"
+                                            disabled={!canAssignPermissions}
+                                            value={activeRoleDefaultDataScope.scope}
+                                            onChange={(e) => updateRoleDefaultDataScope("scope", e.target.value)}
+                                        >
+                                            {permissionScopes.map((scope) => (
+                                                <option key={scope} value={scope}>{titleCase(scope)}</option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                </div>
+
+                                {(scopeZoneOptions.length > 0 || scopeHubOptions.length > 0) && (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-2">
+                                        <div>
+                                            <p className="text-[11px] font-[700] text-[#6B7280] mb-1">Region Zones</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {scopeZoneOptions.map((zone) => (
+                                                    <label key={`${activeRoleForDefaults}-zone-${zone}`} className="inline-flex items-center gap-1 text-[11px] text-[#374151]">
+                                                        <input
+                                                            type="checkbox"
+                                                            disabled={!canAssignPermissions}
+                                                            checked={activeRoleDefaultDataScope.regionZones.includes(zone)}
+                                                            onChange={() => toggleRoleDefaultDataScopeArray("regionZones", zone)}
+                                                        />
+                                                        {zone}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-[11px] font-[700] text-[#6B7280] mb-1">Hub Branches</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {scopeHubOptions.map((hub) => (
+                                                    <label key={`${activeRoleForDefaults}-hub-${hub}`} className="inline-flex items-center gap-1 text-[11px] text-[#374151]">
+                                                        <input
+                                                            type="checkbox"
+                                                            disabled={!canAssignPermissions}
+                                                            checked={activeRoleDefaultDataScope.hubBranches.includes(hub)}
+                                                            onChange={() => toggleRoleDefaultDataScopeArray("hubBranches", hub)}
+                                                        />
+                                                        {hub}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {(settings.team?.teamAccessControl?.onboardingBundles || []).length > 0 && (
+                                <div className="mt-4 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                    <p className="text-[13px] font-[700] text-[#111827] mb-2">Optional Onboarding Bundles</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {settings.team.teamAccessControl.onboardingBundles.map((bundle) => (
+                                            <div key={bundle.key} className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                <p className="text-[12px] font-[700]">{bundle.label}</p>
+                                                <p className="text-[11px] text-[#6B7280] mt-1">Role: {titleCase(bundle.role)}</p>
+                                                {bundle.description && <p className="text-[11px] text-[#6B7280] mt-1">{bundle.description}</p>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
