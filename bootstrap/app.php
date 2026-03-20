@@ -45,6 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'service.workspace' => \App\Http\Middleware\SetServiceWorkspaceContext::class,
             'service.permission' => \App\Http\Middleware\EnsureServicePermission::class,
             'courier.session.security' => \App\Http\Middleware\CourierSessionSecurityMiddleware::class,
+            'courier.access.review.lifecycle' => \App\Http\Middleware\CourierAccessReviewLifecycle::class,
         ]);
 
         //

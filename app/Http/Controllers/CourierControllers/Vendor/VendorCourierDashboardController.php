@@ -15,6 +15,7 @@ use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
+use App\Services\Courier\CourierAccessReviewService;
 use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTemporaryAccessService;
 use App\Services\Rbac\CourierRoleModelService;
@@ -620,6 +621,7 @@ class VendorCourierDashboardController extends Controller
             'teamAccessAudit' => $teamAccessAudit,
             'teamSensitiveApprovals' => $this->listTeamSensitiveApprovals($vendorId, $workspaceId),
             'teamTemporaryAccessGrants' => $this->listTeamTemporaryAccessGrants($vendorId, $workspaceId),
+            'teamAccessReviewQueue' => app(CourierAccessReviewService::class)->listPendingForWorkspace($vendorId, $workspaceId),
             'teamSessionSecurityStatus' => [
                 'trustedDevices' => app(CourierSessionSecurityService::class)->trustedDevicesForActor($vendorId, $workspaceId, (int) optional($request->user())->id),
                 'stepUpVerifiedAt' => (string) $request->session()->get('courier_security.step_up_verified_at', ''),
@@ -2823,6 +2825,7 @@ class VendorCourierDashboardController extends Controller
                 'approvalControl' => app(CourierSensitiveActionApprovalService::class)->defaultPolicy(),
                 'sodControl' => $this->defaultSodControlPolicy(),
                 'temporaryAccessControl' => app(CourierTemporaryAccessService::class)->defaultPolicy(),
+                'accessReviewControl' => app(CourierAccessReviewService::class)->defaultPolicy(),
                 'sessionSecurity' => app(CourierSessionSecurityService::class)->defaultPolicy(),
                 'teamAccessControl' => [
                     'defaultDirectPermissionsByRole' => [],
@@ -2866,6 +2869,11 @@ class VendorCourierDashboardController extends Controller
         $merged['temporaryAccessControl'] = app(CourierTemporaryAccessService::class)->normalizePolicy(
             is_array($merged['temporaryAccessControl'] ?? null)
                 ? $merged['temporaryAccessControl']
+                : []
+        );
+        $merged['accessReviewControl'] = app(CourierAccessReviewService::class)->normalizePolicy(
+            is_array($merged['accessReviewControl'] ?? null)
+                ? $merged['accessReviewControl']
                 : []
         );
         $merged['sessionSecurity'] = app(CourierSessionSecurityService::class)->normalizePolicy(

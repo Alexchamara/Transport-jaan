@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 import { BellRing, ChevronDown, Clock3, KeyRound, MapPinned, ShieldCheck, Users } from "lucide-react";
 import CourierFeedbackModal from "./common/CourierFeedbackModal";
@@ -121,6 +121,17 @@ const DEFAULT_SETTINGS = {
                 alertWebhookUrl: "",
             },
         },
+        accessReviewControl: {
+            enabled: true,
+            reviewFrequency: "monthly",
+            reviewDueDays: 7,
+            requireManagerCertification: true,
+            autoDisableStaleAccounts: true,
+            staleAccountDays: 45,
+            alertDormantPrivilegedUsers: true,
+            dormantPrivilegedDays: 21,
+            privilegedRoles: ["courier_owner", "courier_admin", "courier_finance"],
+        },
         sessionSecurity: {
             enabled: true,
             deviceTrust: {
@@ -167,6 +178,7 @@ const DEFAULT_SETTINGS = {
                     "courierService.team.temporary-access.reject",
                     "courierService.team.temporary-access.revoke",
                     "courierService.team.temporary-access.break-glass",
+                    "courierService.team.access-reviews.certify",
                 ],
             },
             mandatory2FA: {
@@ -274,6 +286,7 @@ const Settings = () => {
     const teamAccessAudit = Array.isArray(props.teamAccessAudit) ? props.teamAccessAudit : [];
     const teamSensitiveApprovals = Array.isArray(props.teamSensitiveApprovals) ? props.teamSensitiveApprovals : [];
     const teamTemporaryAccessGrants = Array.isArray(props.teamTemporaryAccessGrants) ? props.teamTemporaryAccessGrants : [];
+    const teamAccessReviewQueue = Array.isArray(props.teamAccessReviewQueue) ? props.teamAccessReviewQueue : [];
     const teamSessionSecurityStatus = props.teamSessionSecurityStatus && typeof props.teamSessionSecurityStatus === "object"
         ? props.teamSessionSecurityStatus
         : {};
@@ -325,6 +338,9 @@ const Settings = () => {
         const incomingTemporaryAccessControl = incomingTeam.temporaryAccessControl && typeof incomingTeam.temporaryAccessControl === "object"
             ? incomingTeam.temporaryAccessControl
             : {};
+        const incomingAccessReviewControl = incomingTeam.accessReviewControl && typeof incomingTeam.accessReviewControl === "object"
+            ? incomingTeam.accessReviewControl
+            : {};
         const incomingSessionSecurity = incomingTeam.sessionSecurity && typeof incomingTeam.sessionSecurity === "object"
             ? incomingTeam.sessionSecurity
             : {};
@@ -370,6 +386,13 @@ const Settings = () => {
                             ? incomingTemporaryAccessControl.breakGlass
                             : {}),
                     },
+                },
+                accessReviewControl: {
+                    ...DEFAULT_SETTINGS.team.accessReviewControl,
+                    ...incomingAccessReviewControl,
+                    privilegedRoles: Array.isArray(incomingAccessReviewControl.privilegedRoles)
+                        ? incomingAccessReviewControl.privilegedRoles
+                        : DEFAULT_SETTINGS.team.accessReviewControl.privilegedRoles,
                 },
                 sessionSecurity: {
                     ...DEFAULT_SETTINGS.team.sessionSecurity,
@@ -486,6 +509,7 @@ const Settings = () => {
     const [approvalQueue, setApprovalQueue] = useState(teamSensitiveApprovals);
     const [approvalActionBusyId, setApprovalActionBusyId] = useState(null);
     const [temporaryAccessQueue, setTemporaryAccessQueue] = useState(teamTemporaryAccessGrants);
+    const [accessReviewQueue, setAccessReviewQueue] = useState(teamAccessReviewQueue);
     const [temporaryAccessActionBusyId, setTemporaryAccessActionBusyId] = useState(null);
     const [temporaryAccessForm, setTemporaryAccessForm] = useState({
         targetUserId: "",
@@ -505,6 +529,9 @@ const Settings = () => {
         currentPassword: "",
         otpCode: "",
     });
+    const [stepUpGuidanceHighlight, setStepUpGuidanceHighlight] = useState(false);
+    const stepUpGuidanceRef = useRef(null);
+    const stepUpGuidanceTimerRef = useRef(null);
 
     const {
         feedback,
@@ -557,11 +584,63 @@ const Settings = () => {
         const payload = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-            throw new Error(payload?.message || "Request failed");
+            const error = new Error(payload?.message || "Request failed");
+            error.code = payload?.code || null;
+            error.status = response.status;
+            throw error;
         }
 
         return payload;
     };
+
+    const isStepUpRequiredError = (error) => {
+        const code = String(error?.code || "").toLowerCase();
+        const message = String(error?.message || "").toLowerCase();
+
+        return code === "step_up_required" || message.includes("step-up authentication is required");
+    };
+
+    const openStepUpGuidance = (message) => {
+        setActiveTeamAccessTopic("policy-controls");
+        setTeamPolicyPanels((prev) => ({ ...prev, basic: true }));
+        setFeedback({
+            type: "error",
+            message: message || "Step-up authentication is required before this action. Complete Step-up Verification (Runtime), then try again.",
+        });
+
+        if (stepUpGuidanceTimerRef.current) {
+            window.clearTimeout(stepUpGuidanceTimerRef.current);
+        }
+
+        window.requestAnimationFrame(() => {
+            window.setTimeout(() => {
+                if (!stepUpGuidanceRef.current) {
+                    return;
+                }
+
+                stepUpGuidanceRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+                setStepUpGuidanceHighlight(true);
+                stepUpGuidanceTimerRef.current = window.setTimeout(() => {
+                    setStepUpGuidanceHighlight(false);
+                }, 4200);
+            }, 80);
+        });
+    };
+
+    const handleActionError = (error, fallbackMessage) => {
+        if (isStepUpRequiredError(error)) {
+            openStepUpGuidance(error?.message);
+            return;
+        }
+
+        setFeedback({ type: "error", message: error?.message || fallbackMessage });
+    };
+
+    useEffect(() => () => {
+        if (stepUpGuidanceTimerRef.current) {
+            window.clearTimeout(stepUpGuidanceTimerRef.current);
+        }
+    }, []);
 
     const refreshRoleStudioRoles = async () => {
         try {
@@ -900,6 +979,10 @@ const Settings = () => {
     }, [teamTemporaryAccessGrants]);
 
     useEffect(() => {
+        setAccessReviewQueue(teamAccessReviewQueue);
+    }, [teamAccessReviewQueue]);
+
+    useEffect(() => {
         setSessionSecurityStatus(teamSessionSecurityStatus);
     }, [teamSessionSecurityStatus]);
 
@@ -1231,6 +1314,19 @@ const Settings = () => {
         }));
     };
 
+    const updateAccessReviewControl = (key, value) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                accessReviewControl: {
+                    ...(prev.team.accessReviewControl || DEFAULT_SETTINGS.team.accessReviewControl),
+                    [key]: value,
+                },
+            },
+        }));
+    };
+
     const updateSessionSecurityNested = (groupKey, key, value) => {
         setSettings((prev) => ({
             ...prev,
@@ -1306,6 +1402,25 @@ const Settings = () => {
         }
     };
 
+    const certifyAccessReview = async (reviewId, keepAccess) => {
+        setTemporaryAccessActionBusyId(`access_review_${reviewId}_${keepAccess ? "keep" : "revoke"}`);
+
+        try {
+            const payload = await requestJson("POST", route("courierService.team.access-reviews.certify", { review: reviewId }), {
+                keepAccess,
+                notes: keepAccess
+                    ? "Manager certified access still required."
+                    : "Manager revoked access during periodic certification.",
+            });
+            setFeedback({ type: "success", message: payload?.message || "Access review processed." });
+            router.reload({ only: ["teamAccessReviewQueue"], preserveScroll: true, preserveState: true });
+        } catch (error) {
+            handleActionError(error, "Failed to process access review.");
+        } finally {
+            setTemporaryAccessActionBusyId(null);
+        }
+    };
+
     const approveSensitiveAction = async (approvalId) => {
         setApprovalActionBusyId(approvalId);
 
@@ -1314,7 +1429,7 @@ const Settings = () => {
             setFeedback({ type: "success", message: payload?.message || "Approval recorded." });
             router.reload({ only: ["teamSensitiveApprovals"], preserveScroll: true, preserveState: true });
         } catch (error) {
-            setFeedback({ type: "error", message: error.message || "Failed to approve request." });
+            handleActionError(error, "Failed to approve request.");
         } finally {
             setApprovalActionBusyId(null);
         }
@@ -1330,7 +1445,7 @@ const Settings = () => {
             setFeedback({ type: "success", message: payload?.message || "Approval rejected." });
             router.reload({ only: ["teamSensitiveApprovals"], preserveScroll: true, preserveState: true });
         } catch (error) {
-            setFeedback({ type: "error", message: error.message || "Failed to reject request." });
+            handleActionError(error, "Failed to reject request.");
         } finally {
             setApprovalActionBusyId(null);
         }
@@ -1367,7 +1482,7 @@ const Settings = () => {
             setFeedback({ type: "success", message: payload?.message || "Temporary access approved." });
             router.reload({ only: ["teamTemporaryAccessGrants"], preserveScroll: true, preserveState: true });
         } catch (error) {
-            setFeedback({ type: "error", message: error.message || "Failed to approve temporary access." });
+            handleActionError(error, "Failed to approve temporary access.");
         } finally {
             setTemporaryAccessActionBusyId(null);
         }
@@ -1382,7 +1497,7 @@ const Settings = () => {
             setFeedback({ type: "success", message: payload?.message || "Temporary access request rejected." });
             router.reload({ only: ["teamTemporaryAccessGrants"], preserveScroll: true, preserveState: true });
         } catch (error) {
-            setFeedback({ type: "error", message: error.message || "Failed to reject temporary access request." });
+            handleActionError(error, "Failed to reject temporary access request.");
         } finally {
             setTemporaryAccessActionBusyId(null);
         }
@@ -1397,7 +1512,7 @@ const Settings = () => {
             setFeedback({ type: "success", message: payload?.message || "Temporary access revoked." });
             router.reload({ only: ["teamTemporaryAccessGrants"], preserveScroll: true, preserveState: true });
         } catch (error) {
-            setFeedback({ type: "error", message: error.message || "Failed to revoke temporary access." });
+            handleActionError(error, "Failed to revoke temporary access.");
         } finally {
             setTemporaryAccessActionBusyId(null);
         }
@@ -1420,7 +1535,7 @@ const Settings = () => {
             setFeedback({ type: "success", message: payload?.message || "Break-glass access activated." });
             router.reload({ only: ["teamTemporaryAccessGrants"], preserveScroll: true, preserveState: true });
         } catch (error) {
-            setFeedback({ type: "error", message: error.message || "Failed to activate break-glass access." });
+            handleActionError(error, "Failed to activate break-glass access.");
         } finally {
             setTemporaryAccessActionBusyId(null);
         }
@@ -2431,9 +2546,18 @@ const Settings = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-[#F8FAFC]">
+                                            <div
+                                                ref={stepUpGuidanceRef}
+                                                className={`mt-3 border rounded-[8px] p-2 transition-all duration-300 ${stepUpGuidanceHighlight
+                                                    ? "border-[#0955AC] ring-2 ring-[#93C5FD] bg-[#EFF6FF]"
+                                                    : "border-[#E5E7EB] bg-[#F8FAFC]"
+                                                }`}
+                                            >
                                                 <p className="text-[12px] font-[700] text-[#111827] mb-1">Step-up Verification (Runtime)</p>
                                                 <p className="text-[11px] text-[#6B7280] mb-2">Risky actions are blocked until step-up is verified with password + one-time code.</p>
+                                                {stepUpGuidanceHighlight && (
+                                                    <p className="text-[11px] font-[700] text-[#0955AC] mb-2">Complete this verification now, then retry your previous action.</p>
+                                                )}
                                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                                                     <input
                                                         type="password"
@@ -2484,6 +2608,119 @@ const Settings = () => {
                                                     {(!Array.isArray(sessionSecurityStatus?.trustedDevices) || sessionSecurityStatus.trustedDevices.length === 0) && (
                                                         <p className="text-[11px] text-[#6B7280]">No trusted devices recorded for current actor.</p>
                                                     )}
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-2 bg-white">
+                                                <p className="text-[12px] font-[700] text-[#111827] mb-2">Access Review and Certification</p>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    <Toggle
+                                                        label="Enable Access Review Control"
+                                                        checked={Boolean(settings.team?.accessReviewControl?.enabled)}
+                                                        onChange={(next) => updateAccessReviewControl("enabled", next)}
+                                                        description="Run periodic certifications and stale account governance automatically."
+                                                    />
+                                                    <Toggle
+                                                        label="Require Manager Certification"
+                                                        checked={Boolean(settings.team?.accessReviewControl?.requireManagerCertification)}
+                                                        onChange={(next) => updateAccessReviewControl("requireManagerCertification", next)}
+                                                    />
+                                                    <Toggle
+                                                        label="Auto-disable Stale Accounts"
+                                                        checked={Boolean(settings.team?.accessReviewControl?.autoDisableStaleAccounts)}
+                                                        onChange={(next) => updateAccessReviewControl("autoDisableStaleAccounts", next)}
+                                                    />
+                                                    <Toggle
+                                                        label="Alert Dormant Privileged Users"
+                                                        checked={Boolean(settings.team?.accessReviewControl?.alertDormantPrivilegedUsers)}
+                                                        onChange={(next) => updateAccessReviewControl("alertDormantPrivilegedUsers", next)}
+                                                    />
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-2">
+                                                    <Field label="Review Frequency">
+                                                        <select
+                                                            className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            value={String(settings.team?.accessReviewControl?.reviewFrequency || "monthly")}
+                                                            onChange={(e) => updateAccessReviewControl("reviewFrequency", e.target.value)}
+                                                        >
+                                                            <option value="monthly">Monthly</option>
+                                                            <option value="quarterly">Quarterly</option>
+                                                        </select>
+                                                    </Field>
+                                                    <Field label="Review Due (days)">
+                                                        <input
+                                                            type="number"
+                                                            min={1}
+                                                            max={30}
+                                                            className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            value={Number(settings.team?.accessReviewControl?.reviewDueDays || 7)}
+                                                            onChange={(e) => updateAccessReviewControl("reviewDueDays", Number(e.target.value || 7))}
+                                                        />
+                                                    </Field>
+                                                    <Field label="Stale Account Days">
+                                                        <input
+                                                            type="number"
+                                                            min={7}
+                                                            max={365}
+                                                            className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            value={Number(settings.team?.accessReviewControl?.staleAccountDays || 45)}
+                                                            onChange={(e) => updateAccessReviewControl("staleAccountDays", Number(e.target.value || 45))}
+                                                        />
+                                                    </Field>
+                                                    <Field label="Dormant Privileged Days">
+                                                        <input
+                                                            type="number"
+                                                            min={3}
+                                                            max={180}
+                                                            className="h-[36px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                                            value={Number(settings.team?.accessReviewControl?.dormantPrivilegedDays || 21)}
+                                                            onChange={(e) => updateAccessReviewControl("dormantPrivilegedDays", Number(e.target.value || 21))}
+                                                        />
+                                                    </Field>
+                                                </div>
+
+                                                <div className="mt-3">
+                                                    <p className="text-[12px] font-[700] text-[#111827] mb-1">Pending Manager Certifications</p>
+                                                    {(accessReviewQueue || []).length === 0 && (
+                                                        <p className="text-[11px] text-[#6B7280]">No pending access review certifications.</p>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        {(accessReviewQueue || []).map((review) => (
+                                                            <div key={`ar-${review.id}`} className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <p className="text-[12px] font-[700] text-[#111827]">
+                                                                        {review.subjectUser?.name || "Unknown User"} • {String(review.cycleType || "monthly").toUpperCase()} • {review.cycleKey || "-"}
+                                                                    </p>
+                                                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-[700] bg-[#FEF3C7] text-[#92400E]">
+                                                                        {titleCase(review.status || "pending")}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-[11px] text-[#6B7280] mt-1">
+                                                                    Due: {review.dueAt || "-"} • Last Access: {review.lastAccessAt || "Unknown"}
+                                                                </p>
+                                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={temporaryAccessActionBusyId === `access_review_${review.id}_keep`}
+                                                                        className="h-[28px] px-2 rounded-[6px] bg-[#0955AC] text-white text-[10px] font-[700] disabled:opacity-50"
+                                                                        onClick={() => certifyAccessReview(review.id, true)}
+                                                                    >
+                                                                        Certify Keep Access
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={temporaryAccessActionBusyId === `access_review_${review.id}_revoke`}
+                                                                        className="h-[28px] px-2 rounded-[6px] border border-[#FCA5A5] text-[#B91C1C] text-[10px] font-[700] disabled:opacity-50"
+                                                                        onClick={() => certifyAccessReview(review.id, false)}
+                                                                    >
+                                                                        Revoke Access
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

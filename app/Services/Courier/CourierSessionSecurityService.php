@@ -61,6 +61,7 @@ class CourierSessionSecurityService
                     'courierService.team.temporary-access.reject',
                     'courierService.team.temporary-access.revoke',
                     'courierService.team.temporary-access.break-glass',
+                    'courierService.team.access-reviews.certify',
                 ],
             ],
             'mandatory2FA' => [

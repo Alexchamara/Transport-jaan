@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CourierControllers\Vendor;
 
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\CourierTemporaryAccessLifecycle;
+use App\Models\Courier\CourierAccessReviewCertification;
 use App\Models\Courier\CourierSensitiveActionApproval;
 use App\Models\Courier\CourierTemporaryAccessGrant;
 use App\Models\Courier\VendorCourierSetting;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Models\VendorActivityLog;
 use App\Models\VendorUserMembership;
 use App\Services\Courier\CourierSensitiveActionApprovalService;
+use App\Services\Courier\CourierAccessReviewService;
 use App\Services\Courier\CourierBreakGlassAlertService;
 use App\Services\Courier\CourierSessionSecurityService;
 use App\Services\Courier\CourierTemporaryAccessService;
@@ -56,6 +58,8 @@ class CourierTeamController extends Controller
         $this->middleware('service.permission:courier.team.assign_permissions')->only(['approveSensitiveApproval', 'rejectSensitiveApproval']);
         $this->middleware('service.permission:courier.team.view')->only(['requestTemporaryAccessElevation']);
         $this->middleware('service.permission:courier.team.assign_permissions')->only(['approveTemporaryAccessElevation', 'rejectTemporaryAccessElevation', 'revokeTemporaryAccessElevation', 'activateBreakGlassAccess']);
+        $this->middleware('service.permission:courier.team.access_review.view')->only(['listAccessReviews']);
+        $this->middleware('service.permission:courier.team.access_review.certify')->only(['certifyAccessReview']);
     }
 
     public function index(Request $request)
@@ -174,6 +178,8 @@ class CourierTeamController extends Controller
                 ->values(),
             'serviceKey' => 'courier_service',
             'teamAccessControl' => $this->readTeamAccessControlSettings($vendorUserId, $workspaceId),
+            'accessReviewPolicy' => $this->resolveAccessReviewControlPolicy($vendorUserId),
+            'accessReviews' => app(CourierAccessReviewService::class)->listPendingForWorkspace($vendorUserId, $workspaceId),
             'temporaryAccessPolicy' => $this->resolveTemporaryAccessControlPolicy($vendorUserId),
             'temporaryAccessGrants' => $this->listTemporaryAccessGrants($vendorUserId, $workspaceId),
             'roleTemplates' => $roleModel->roleTemplates(),
@@ -1671,6 +1677,73 @@ class CourierTeamController extends Controller
         ]);
     }
 
+    public function listAccessReviews(Request $request)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+
+        return response()->json([
+            'policy' => $this->resolveAccessReviewControlPolicy($vendorUserId),
+            'reviews' => app(CourierAccessReviewService::class)->listPendingForWorkspace($vendorUserId, $workspaceId),
+        ]);
+    }
+
+    public function certifyAccessReview(Request $request, CourierAccessReviewCertification $review)
+    {
+        $vendorUserId = (int) $request->attributes->get('vendor_user_id');
+        $workspaceId = (int) $request->attributes->get('service_workspace_id');
+        $actor = $request->user();
+
+        if ((int) $review->vendor_user_id !== $vendorUserId
+            || ($review->service_workspace_id !== null && (int) $review->service_workspace_id !== $workspaceId)) {
+            abort(404, 'Access review item not found.');
+        }
+
+        $targetUser = User::query()->findOrFail((int) $review->subject_user_id);
+        $targetMembership = VendorUserMembership::query()
+            ->where('vendor_user_id', $vendorUserId)
+            ->where('user_id', (int) $review->subject_user_id)
+            ->firstOrFail();
+
+        $this->assertCanManageMember($request, $targetMembership, $targetUser, allowOwnerTarget: false);
+
+        $validated = $request->validate([
+            'keepAccess' => ['required', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $result = app(CourierAccessReviewService::class)->certify(
+            $review,
+            (int) $actor->id,
+            (bool) $validated['keepAccess'],
+            (string) ($validated['notes'] ?? '')
+        );
+
+        if (!(bool) ($result['ok'] ?? false)) {
+            return response()->json(['message' => (string) ($result['message'] ?? 'Unable to process access review certification.')], 422);
+        }
+
+        $this->logTeamAction(
+            $vendorUserId,
+            (int) $actor->id,
+            'courier_team_access_review_certified',
+            'access_review',
+            (int) $review->id,
+            (bool) $validated['keepAccess']
+                ? 'Access review certified and access retained.'
+                : 'Access review certified and access revoked.',
+            [
+                'subject_user_id' => (int) $review->subject_user_id,
+                'status' => (string) ($result['status'] ?? ''),
+            ],
+        );
+
+        return response()->json([
+            'message' => (string) ($result['message'] ?? 'Access review processed successfully.'),
+            'status' => (string) ($result['status'] ?? ''),
+        ]);
+    }
+
     private function assertCanManageMember(
         Request $request,
         VendorUserMembership $targetMembership,
@@ -1950,6 +2023,16 @@ class CourierTeamController extends Controller
         $temporaryAccessControl = is_array($team['temporaryAccessControl'] ?? null) ? $team['temporaryAccessControl'] : [];
 
         return app(CourierTemporaryAccessService::class)->normalizePolicy($temporaryAccessControl);
+    }
+
+    private function resolveAccessReviewControlPolicy(int $vendorUserId): array
+    {
+        $record = VendorCourierSetting::query()->firstWhere('vendor_user_id', $vendorUserId);
+        $settings = is_array($record?->settings) ? $record->settings : [];
+        $team = is_array($settings['team'] ?? null) ? $settings['team'] : [];
+        $accessReviewControl = is_array($team['accessReviewControl'] ?? null) ? $team['accessReviewControl'] : [];
+
+        return app(CourierAccessReviewService::class)->normalizePolicy($accessReviewControl);
     }
 
     private function listTemporaryAccessGrants(int $vendorUserId, int $workspaceId): array

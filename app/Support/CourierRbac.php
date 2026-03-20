@@ -40,6 +40,8 @@ class CourierRbac
             'courier.team.access_requests.approve',
             'courier.team.temporary_access.manage',
             'courier.team.break_glass',
+            'courier.team.access_review.view',
+            'courier.team.access_review.certify',
             'courier.team.manage_status',
             'courier.team.sessions.view',
             'courier.team.sessions.revoke',

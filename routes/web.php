@@ -1106,7 +1106,7 @@ Route::get('/ticketBooking/settingsPage', function () {
 
 
 // vendor dashboard - courier service (service-scoped RBAC)
-Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session.security'])->group(function () {
+Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session.security', 'courier.access.review.lifecycle'])->group(function () {
     Route::get('/courierService/bookings', [VendorCourierDashboardController::class, 'bookings'])
         ->middleware('service.permission:courier.bookings.view')
         ->name('courierService.bookings');
@@ -1307,6 +1307,15 @@ Route::middleware(['auth', 'service.workspace:courier_service', 'courier.session
     Route::post('/courierService/security/device/trust', [CourierTeamController::class, 'trustCurrentDevice'])
         ->middleware(['service.permission:courier.team.view', 'throttle:15,1'])
         ->name('courierService.security.device.trust');
+
+    Route::get('/courierService/team/access-reviews', [CourierTeamController::class, 'listAccessReviews'])
+        ->middleware('service.permission:courier.team.access_review.view')
+        ->name('courierService.team.access-reviews.index');
+
+    Route::post('/courierService/team/access-reviews/{review}/certify', [CourierTeamController::class, 'certifyAccessReview'])
+        ->whereNumber('review')
+        ->middleware(['service.permission:courier.team.access_review.certify', 'throttle:20,1'])
+        ->name('courierService.team.access-reviews.certify');
 });
 
 
