@@ -58,6 +58,27 @@ const statusBadge = (status) => {
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
+const formatDateTime = (value) => {
+    if (!value) {
+        return "-";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+    }).format(date);
+};
+
 const TeamContent = () => {
     const props = usePage().props;
     const flash = props.flash || {};
@@ -615,7 +636,7 @@ const TeamContent = () => {
                     {Array.isArray(team.activity) && team.activity.length > 0 ? team.activity.map((item) => (
                         <div key={item.id} className="border border-[#E5E7EB] rounded-[8px] px-3 py-3">
                             <p className="text-[13px] font-[700]">{item.description}</p>
-                            <p className="text-[11px] text-[#6B7280] mt-1">{titleCase(item.action)} • {item.actorName || "Unknown"} • {item.createdAt || "-"}</p>
+                            <p className="text-[11px] text-[#6B7280] mt-1">{titleCase(item.action)} • {item.actorName || "Unknown"} • {formatDateTime(item.createdAt)}</p>
                             <button type="button" onClick={() => openActivityDetail(item)} className="mt-2 h-[26px] px-2 rounded-[6px] border border-[#D1D5DB] text-[11px] font-[700]">View Details</button>
                         </div>
                     )) : (
@@ -871,7 +892,7 @@ const TeamContent = () => {
                         <div className="space-y-2 text-[13px]">
                             <p><span className="font-[700]">Action:</span> {titleCase(activeActivity.action)}</p>
                             <p><span className="font-[700]">Actor:</span> {activeActivity.actorName || "Unknown"}</p>
-                            <p><span className="font-[700]">At:</span> {activeActivity.createdAt || "-"}</p>
+                            <p><span className="font-[700]">At:</span> {formatDateTime(activeActivity.createdAt)}</p>
                             <p><span className="font-[700]">Description:</span> {activeActivity.description || "-"}</p>
                             <div>
                                 <p className="font-[700] mb-1">Metadata</p>

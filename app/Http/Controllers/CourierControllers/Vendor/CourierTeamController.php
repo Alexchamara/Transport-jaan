@@ -201,7 +201,7 @@ class CourierTeamController extends Controller
                         'actorName' => $row->admin?->name,
                         'description' => $row->description,
                         'metadata' => $row->metadata,
-                        'createdAt' => optional($row->created_at)->format('Y-m-d H:i:s'),
+                        'createdAt' => optional($row->created_at)->toIso8601String(),
                     ];
                 })
                 ->values(),
