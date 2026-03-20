@@ -54,6 +54,16 @@ const DEFAULT_SETTINGS = {
         teamAccessControl: {
             defaultDirectPermissionsByRole: {},
         },
+        permissionModel: {
+            enabled: true,
+            rolePolicies: {},
+            fieldVisibility: {
+                rate_cards: { visibleToRoles: [] },
+                margin: { visibleToRoles: [] },
+                customer_phone: { visibleToRoles: [] },
+                payment_refs: { visibleToRoles: [] },
+            },
+        },
     },
 };
 
@@ -110,6 +120,7 @@ const Toggle = ({ label, checked, onChange, description }) => (
 );
 
 const titleCase = (value) => String(value || "").replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+const humanizeFieldKey = (value) => titleCase(String(value || "").replaceAll("_", " "));
 
 const Settings = () => {
     const props = usePage().props;
@@ -119,6 +130,12 @@ const Settings = () => {
     const teamRoleOptions = Array.isArray(props.teamRoleOptions) ? props.teamRoleOptions : [];
     const teamRoleCatalog = Array.isArray(props.teamRoleCatalog) ? props.teamRoleCatalog : [];
     const teamRoleTemplates = props.teamRoleTemplates && typeof props.teamRoleTemplates === "object" ? props.teamRoleTemplates : {};
+    const teamAccessAudit = Array.isArray(props.teamAccessAudit) ? props.teamAccessAudit : [];
+    const permissionModelMeta = props.permissionModelMeta && typeof props.permissionModelMeta === "object" ? props.permissionModelMeta : {};
+    const permissionResources = Array.isArray(permissionModelMeta.resources) ? permissionModelMeta.resources : ["shipments", "bookings", "clients", "reports", "pricing", "payouts"];
+    const permissionActions = Array.isArray(permissionModelMeta.actions) ? permissionModelMeta.actions : ["view", "create", "update", "cancel", "reassign", "export", "approve", "refund"];
+    const permissionScopes = Array.isArray(permissionModelMeta.scopes) ? permissionModelMeta.scopes : ["own_records", "assigned_region", "assigned_hub", "all_workspace"];
+    const sensitiveFieldKeys = Array.isArray(permissionModelMeta.sensitiveFields) ? permissionModelMeta.sensitiveFields : ["rate_cards", "margin", "customer_phone", "payment_refs"];
     const initialSettingsModule = String(props.initialSettingsModule || "business");
     const initialTeamAccessTopic = String(props.initialTeamAccessTopic || "policy-controls");
     const teamCapabilities = props.teamCapabilities || {};
@@ -138,6 +155,12 @@ const Settings = () => {
         const incomingTeamAccessControl = incomingTeam.teamAccessControl && typeof incomingTeam.teamAccessControl === "object"
             ? incomingTeam.teamAccessControl
             : {};
+        const incomingPermissionModel = incomingTeam.permissionModel && typeof incomingTeam.permissionModel === "object"
+            ? incomingTeam.permissionModel
+            : {};
+        const incomingFieldVisibility = incomingPermissionModel.fieldVisibility && typeof incomingPermissionModel.fieldVisibility === "object"
+            ? incomingPermissionModel.fieldVisibility
+            : {};
 
         return {
             ...DEFAULT_SETTINGS,
@@ -153,11 +176,34 @@ const Settings = () => {
                         ? incomingTeamAccessControl.defaultDirectPermissionsByRole
                         : {},
                 },
+                permissionModel: {
+                    ...DEFAULT_SETTINGS.team.permissionModel,
+                    ...incomingPermissionModel,
+                    rolePolicies: incomingPermissionModel.rolePolicies && typeof incomingPermissionModel.rolePolicies === "object"
+                        ? incomingPermissionModel.rolePolicies
+                        : {},
+                    fieldVisibility: sensitiveFieldKeys.reduce((acc, fieldKey) => {
+                        const incomingField = incomingFieldVisibility[fieldKey] && typeof incomingFieldVisibility[fieldKey] === "object"
+                            ? incomingFieldVisibility[fieldKey]
+                            : {};
+                        acc[fieldKey] = {
+                            visibleToRoles: Array.isArray(incomingField.visibleToRoles)
+                                ? incomingField.visibleToRoles
+                                : [],
+                        };
+                        return acc;
+                    }, {}),
+                },
             },
         };
     });
     const [teamDefaultPermissionSearch, setTeamDefaultPermissionSearch] = useState("");
+    const [auditTypeFilter, setAuditTypeFilter] = useState("all");
+    const [auditResourceFilter, setAuditResourceFilter] = useState("all");
+    const [auditSearch, setAuditSearch] = useState("");
+    const [auditPage, setAuditPage] = useState(1);
     const [activeRoleForDefaults, setActiveRoleForDefaults] = useState(() => teamRoleOptions[0] || "courier_dispatcher");
+    const [activeRoleForPermissionModel, setActiveRoleForPermissionModel] = useState(() => teamRoleOptions[0] || "courier_dispatcher");
     const [roleStudioRoles, setRoleStudioRoles] = useState(teamRoleCatalog);
     const [roleStudioTemplates] = useState(teamRoleTemplates);
     const [selectedRoleName, setSelectedRoleName] = useState(() => teamRoleCatalog[0]?.name || teamRoleOptions[0] || "");
@@ -300,6 +346,40 @@ const Settings = () => {
         return Array.isArray(selected) ? selected : [];
     }, [activeRoleForDefaults, settings.team]);
 
+    const permissionModelRoleOptions = useMemo(() => {
+        const fromRoles = Array.isArray(teamRoleOptions) ? teamRoleOptions : [];
+        const fromPolicies = Object.keys(settings.team?.permissionModel?.rolePolicies || {});
+        return [...new Set([...fromRoles, ...fromPolicies])].filter(Boolean);
+    }, [teamRoleOptions, settings.team]);
+
+    const activePermissionRolePolicy = useMemo(() => {
+        const policies = settings.team?.permissionModel?.rolePolicies || {};
+        const fallbackResources = permissionResources.reduce((acc, resource) => {
+            acc[resource] = permissionActions.reduce((actionAcc, action) => {
+                actionAcc[action] = false;
+                return actionAcc;
+            }, {});
+            return acc;
+        }, {});
+
+        const selected = policies[activeRoleForPermissionModel] || {};
+        const selectedResources = selected.resources && typeof selected.resources === "object" ? selected.resources : {};
+
+        return {
+            scope: permissionScopes.includes(selected.scope) ? selected.scope : "own_records",
+            resources: permissionResources.reduce((acc, resource) => {
+                const incoming = selectedResources[resource] && typeof selectedResources[resource] === "object"
+                    ? selectedResources[resource]
+                    : {};
+                acc[resource] = permissionActions.reduce((actionsAcc, action) => {
+                    actionsAcc[action] = Boolean(incoming[action] ?? fallbackResources[resource][action]);
+                    return actionsAcc;
+                }, {});
+                return acc;
+            }, {}),
+        };
+    }, [settings.team, activeRoleForPermissionModel, permissionResources, permissionActions, permissionScopes]);
+
     const selectedRole = useMemo(
         () => roleStudioRoles.find((role) => role.name === selectedRoleName) || null,
         [roleStudioRoles, selectedRoleName],
@@ -350,11 +430,128 @@ const Settings = () => {
         }, {});
     }, [teamPermissionOptions]);
 
+    const filteredTeamAccessAudit = useMemo(() => {
+        return teamAccessAudit.filter((event) => {
+            const isDenied = event.action === "courier_permission_denied";
+            const type = isDenied ? "denied" : "updated";
+            const meta = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+            const resource = String(meta.resource || "").trim();
+
+            if (auditTypeFilter !== "all" && auditTypeFilter !== type) {
+                return false;
+            }
+
+            if (auditResourceFilter !== "all" && auditResourceFilter !== resource) {
+                return false;
+            }
+
+            const needle = auditSearch.trim().toLowerCase();
+            if (!needle) {
+                return true;
+            }
+
+            const haystack = [
+                String(event.action || ""),
+                String(event.description || ""),
+                String(meta.resource || ""),
+                String(meta.requested_action || ""),
+                String(meta.scope || ""),
+                String(meta.reason || ""),
+                String(meta.mode || ""),
+                String(event.createdAt || ""),
+            ].join(" ").toLowerCase();
+
+            return haystack.includes(needle);
+        });
+    }, [teamAccessAudit, auditTypeFilter, auditResourceFilter, auditSearch]);
+
+    const auditResourceOptions = useMemo(() => {
+        return [...new Set(teamAccessAudit
+            .map((event) => (event.metadata && typeof event.metadata === "object" ? String(event.metadata.resource || "").trim() : ""))
+            .filter(Boolean))]
+            .sort();
+    }, [teamAccessAudit]);
+
+    const auditPerPage = 10;
+
+    const auditPagination = useMemo(() => {
+        const total = filteredTeamAccessAudit.length;
+        const totalPages = Math.max(1, Math.ceil(total / auditPerPage));
+        const currentPage = Math.min(Math.max(auditPage, 1), totalPages);
+        const start = (currentPage - 1) * auditPerPage;
+        const rows = filteredTeamAccessAudit.slice(start, start + auditPerPage);
+
+        return {
+            total,
+            totalPages,
+            currentPage,
+            rows,
+        };
+    }, [filteredTeamAccessAudit, auditPage]);
+
+    const exportAuditCsv = () => {
+        if (filteredTeamAccessAudit.length === 0) {
+            return;
+        }
+
+        const escapeCsv = (value) => {
+            const text = String(value ?? "");
+            return `"${text.replaceAll("\"", "\"\"")}"`;
+        };
+
+        const lines = [
+            [
+                "Timestamp",
+                "Event Type",
+                "Description",
+                "Resource",
+                "Requested Action",
+                "Scope",
+                "Reason",
+                "Mode",
+            ].join(","),
+            ...filteredTeamAccessAudit.map((event) => {
+                const isDenied = event.action === "courier_permission_denied";
+                const meta = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+                return [
+                    escapeCsv(event.createdAt || ""),
+                    escapeCsv(isDenied ? "Denied" : "Policy Updated"),
+                    escapeCsv(event.description || ""),
+                    escapeCsv(meta.resource || ""),
+                    escapeCsv(meta.requested_action || ""),
+                    escapeCsv(meta.scope || ""),
+                    escapeCsv(meta.reason || ""),
+                    escapeCsv(meta.mode || ""),
+                ].join(",");
+            }),
+        ];
+
+        const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+        const href = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = href;
+        anchor.setAttribute("download", `team-access-audit-${new Date().toISOString().slice(0, 19).replaceAll(":", "-")}.csv`);
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(href);
+    };
+
+    useEffect(() => {
+        setAuditPage(1);
+    }, [auditTypeFilter, auditResourceFilter, auditSearch]);
+
     useEffect(() => {
         if (teamRoleOptions.length > 0 && !teamRoleOptions.includes(activeRoleForDefaults)) {
             setActiveRoleForDefaults(teamRoleOptions[0]);
         }
     }, [teamRoleOptions, activeRoleForDefaults]);
+
+    useEffect(() => {
+        if (permissionModelRoleOptions.length > 0 && !permissionModelRoleOptions.includes(activeRoleForPermissionModel)) {
+            setActiveRoleForPermissionModel(permissionModelRoleOptions[0]);
+        }
+    }, [permissionModelRoleOptions, activeRoleForPermissionModel]);
 
     useEffect(() => {
         if (filteredRoleStudioRoles.length > 0 && !filteredRoleStudioRoles.some((role) => role.name === selectedRoleName)) {
@@ -478,6 +675,89 @@ const Settings = () => {
                     defaultDirectPermissionsByRole: {
                         ...(prev.team.teamAccessControl.defaultDirectPermissionsByRole || {}),
                         [activeRoleForDefaults]: nextRoleDefaults,
+                    },
+                },
+            },
+        }));
+    };
+
+    const updatePermissionModelEnabled = (enabled) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                permissionModel: {
+                    ...prev.team.permissionModel,
+                    enabled,
+                },
+            },
+        }));
+    };
+
+    const updatePermissionRoleScope = (roleName, scope) => {
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                permissionModel: {
+                    ...prev.team.permissionModel,
+                    rolePolicies: {
+                        ...(prev.team.permissionModel.rolePolicies || {}),
+                        [roleName]: {
+                            ...(prev.team.permissionModel.rolePolicies?.[roleName] || {}),
+                            scope,
+                            resources: {
+                                ...(prev.team.permissionModel.rolePolicies?.[roleName]?.resources || activePermissionRolePolicy.resources),
+                            },
+                        },
+                    },
+                },
+            },
+        }));
+    };
+
+    const togglePermissionRoleAction = (roleName, resource, action) => {
+        const currentValue = Boolean(activePermissionRolePolicy.resources?.[resource]?.[action]);
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                permissionModel: {
+                    ...prev.team.permissionModel,
+                    rolePolicies: {
+                        ...(prev.team.permissionModel.rolePolicies || {}),
+                        [roleName]: {
+                            ...(prev.team.permissionModel.rolePolicies?.[roleName] || {}),
+                            scope: prev.team.permissionModel.rolePolicies?.[roleName]?.scope || activePermissionRolePolicy.scope,
+                            resources: {
+                                ...(prev.team.permissionModel.rolePolicies?.[roleName]?.resources || activePermissionRolePolicy.resources),
+                                [resource]: {
+                                    ...(prev.team.permissionModel.rolePolicies?.[roleName]?.resources?.[resource] || activePermissionRolePolicy.resources?.[resource] || {}),
+                                    [action]: !currentValue,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        }));
+    };
+
+    const toggleFieldVisibilityRole = (fieldKey, roleName) => {
+        const currentRoles = settings.team?.permissionModel?.fieldVisibility?.[fieldKey]?.visibleToRoles || [];
+        const nextRoles = toggleInArray(currentRoles, roleName);
+
+        setSettings((prev) => ({
+            ...prev,
+            team: {
+                ...prev.team,
+                permissionModel: {
+                    ...prev.team.permissionModel,
+                    fieldVisibility: {
+                        ...(prev.team.permissionModel.fieldVisibility || {}),
+                        [fieldKey]: {
+                            visibleToRoles: nextRoles,
+                        },
                     },
                 },
             },
@@ -861,11 +1141,217 @@ const Settings = () => {
 
                 <SectionCard title="Team Access Control" description="Set role powers for key operational decisions.">
                     {activeTeamAccessTopic === "policy-controls" && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
-                            <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
-                            <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
-                            <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <Toggle label="Dispatcher Can Cancel Shipments" checked={settings.team.dispatcherCanCancel} onChange={(next) => updateValue("team", "dispatcherCanCancel", next)} />
+                                <Toggle label="Ops Lead Can Reassign" checked={settings.team.opsLeadCanReassign} onChange={(next) => updateValue("team", "opsLeadCanReassign", next)} />
+                                <Toggle label="Finance Can View Rate Cards" checked={settings.team.financeCanViewRates} onChange={(next) => updateValue("team", "financeCanViewRates", next)} />
+                                <Toggle label="Enforce 2FA For All Staff" checked={settings.team.enforce2FA} onChange={(next) => updateValue("team", "enforce2FA", next)} />
+                            </div>
+
+                            <div className="border border-[#E5E7EB] rounded-[10px] p-4 bg-[#FAFBFD]">
+                                <div className="flex items-center justify-between gap-3 mb-3">
+                                    <div>
+                                        <p className="text-[14px] font-[700] text-[#111827]">Advanced Permission Model</p>
+                                        <p className="text-[12px] text-[#6B7280]">Configure action-level permissions by resource, role scope, and sensitive field visibility.</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={Boolean(settings.team?.permissionModel?.enabled)}
+                                        onClick={() => updatePermissionModelEnabled(!Boolean(settings.team?.permissionModel?.enabled))}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.team?.permissionModel?.enabled ? "bg-[#0955AC]" : "bg-[#D1D5DB]"}`}
+                                    >
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.team?.permissionModel?.enabled ? "translate-x-6" : "translate-x-1"}`} />
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3 mb-3">
+                                    <div>
+                                        <label className="text-[12px] font-[700] text-[#374151]">Role</label>
+                                        <select
+                                            className="mt-1 h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
+                                            value={activeRoleForPermissionModel}
+                                            onChange={(e) => setActiveRoleForPermissionModel(e.target.value)}
+                                        >
+                                            {permissionModelRoleOptions.map((role) => (
+                                                <option key={role} value={role}>{titleCase(role)}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[12px] font-[700] text-[#374151]">Scope Level</label>
+                                        <select
+                                            className="mt-1 h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
+                                            value={activePermissionRolePolicy.scope}
+                                            onChange={(e) => updatePermissionRoleScope(activeRoleForPermissionModel, e.target.value)}
+                                        >
+                                            {permissionScopes.map((scope) => (
+                                                <option key={scope} value={scope}>{titleCase(scope)}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="overflow-x-auto border border-[#E5E7EB] rounded-[8px] bg-white">
+                                    <table className="w-full min-w-[760px] text-[12px]">
+                                        <thead>
+                                            <tr className="bg-[#F9FAFB] text-left">
+                                                <th className="px-3 py-2 font-[700] text-[#374151]">Resource</th>
+                                                {permissionActions.map((action) => (
+                                                    <th key={action} className="px-3 py-2 font-[700] text-[#374151]">{titleCase(action)}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {permissionResources.map((resource) => (
+                                                <tr key={resource} className="border-t border-[#E5E7EB]">
+                                                    <td className="px-3 py-2 font-[700] text-[#111827]">{titleCase(resource)}</td>
+                                                    {permissionActions.map((action) => (
+                                                        <td key={`${resource}-${action}`} className="px-3 py-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={Boolean(activePermissionRolePolicy.resources?.[resource]?.[action])}
+                                                                onChange={() => togglePermissionRoleAction(activeRoleForPermissionModel, resource, action)}
+                                                            />
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                    <p className="text-[13px] font-[700] text-[#111827] mb-2">Sensitive Field Visibility</p>
+                                    <div className="space-y-2">
+                                        {sensitiveFieldKeys.map((fieldKey) => {
+                                            const visibleTo = settings.team?.permissionModel?.fieldVisibility?.[fieldKey]?.visibleToRoles || [];
+                                            return (
+                                                <div key={fieldKey} className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                    <p className="text-[12px] font-[700] text-[#374151]">{humanizeFieldKey(fieldKey)}</p>
+                                                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 mt-2">
+                                                        {permissionModelRoleOptions.map((role) => (
+                                                            <label key={`${fieldKey}-${role}`} className="inline-flex items-center gap-2 text-[12px] text-[#374151]">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={visibleTo.includes(role)}
+                                                                    onChange={() => toggleFieldVisibilityRole(fieldKey, role)}
+                                                                />
+                                                                {titleCase(role)}
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                    <div className="flex items-center justify-between gap-2 mb-2">
+                                        <p className="text-[13px] font-[700] text-[#111827]">Access Denials and Policy Audit</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[11px] text-[#6B7280]">Showing {filteredTeamAccessAudit.length} / {teamAccessAudit.length}</span>
+                                            <button
+                                                type="button"
+                                                className="h-[30px] px-2 rounded-[6px] border border-[#D1D5DB] text-[11px] font-[700] text-[#374151] disabled:opacity-50"
+                                                onClick={exportAuditCsv}
+                                                disabled={filteredTeamAccessAudit.length === 0}
+                                            >
+                                                Export CSV
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                                        <select
+                                            className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                            value={auditTypeFilter}
+                                            onChange={(e) => setAuditTypeFilter(e.target.value)}
+                                        >
+                                            <option value="all">All Event Types</option>
+                                            <option value="denied">Denied Only</option>
+                                            <option value="updated">Policy Updated Only</option>
+                                        </select>
+
+                                        <select
+                                            className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                            value={auditResourceFilter}
+                                            onChange={(e) => setAuditResourceFilter(e.target.value)}
+                                        >
+                                            <option value="all">All Resources</option>
+                                            {auditResourceOptions.map((resource) => (
+                                                <option key={resource} value={resource}>{titleCase(resource)}</option>
+                                            ))}
+                                        </select>
+
+                                        <input
+                                            className="h-[34px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px]"
+                                            placeholder="Search reason, scope, action"
+                                            value={auditSearch}
+                                            onChange={(e) => setAuditSearch(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="max-h-[280px] overflow-y-auto border border-[#E5E7EB] rounded-[8px]">
+                                        {auditPagination.rows.length === 0 && (
+                                            <p className="text-[12px] text-[#6B7280] px-3 py-3">No Team Access audit events found yet.</p>
+                                        )}
+
+                                        {auditPagination.rows.map((event) => {
+                                            const isDenied = event.action === "courier_permission_denied";
+                                            const meta = event.metadata && typeof event.metadata === "object" ? event.metadata : {};
+
+                                            return (
+                                                <div key={event.id} className="px-3 py-2 border-b border-[#E5E7EB] last:border-b-0">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <p className="text-[12px] font-[700] text-[#111827]">{isDenied ? "Permission Denied" : "Policy Updated"}</p>
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-[700] ${isDenied ? "bg-[#FEE2E2] text-[#B91C1C]" : "bg-[#DCFCE7] text-[#166534]"}`}>
+                                                            {isDenied ? "Denied" : "Updated"}
+                                                        </span>
+                                                    </div>
+
+                                                    <p className="text-[11px] text-[#374151] mt-1">{event.description || "-"}</p>
+
+                                                    <div className="text-[11px] text-[#6B7280] mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                                                        {meta.resource && <span>Resource: {titleCase(meta.resource)}</span>}
+                                                        {meta.requested_action && <span>Action: {titleCase(meta.requested_action)}</span>}
+                                                        {meta.scope && <span>Scope: {titleCase(meta.scope)}</span>}
+                                                        {meta.reason && <span>Reason: {titleCase(meta.reason)}</span>}
+                                                        {meta.mode && <span>Mode: {titleCase(meta.mode)}</span>}
+                                                    </div>
+
+                                                    <p className="text-[10px] text-[#9CA3AF] mt-1">{event.createdAt || "-"}</p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="mt-2 flex items-center justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            className="h-[30px] px-2 rounded-[6px] border border-[#D1D5DB] text-[11px] font-[700] text-[#374151] disabled:opacity-50"
+                                            disabled={auditPagination.currentPage <= 1}
+                                            onClick={() => setAuditPage((prev) => Math.max(1, prev - 1))}
+                                        >
+                                            Prev
+                                        </button>
+                                        <span className="text-[11px] text-[#6B7280]">
+                                            Page {auditPagination.currentPage} of {auditPagination.totalPages}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="h-[30px] px-2 rounded-[6px] border border-[#D1D5DB] text-[11px] font-[700] text-[#374151] disabled:opacity-50"
+                                            disabled={auditPagination.currentPage >= auditPagination.totalPages}
+                                            onClick={() => setAuditPage((prev) => Math.min(auditPagination.totalPages, prev + 1))}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 

@@ -184,11 +184,47 @@ class VendorCourierDashboardController extends Controller
         'cancelled' => [],
     ];
 
+    private const ADVANCED_PERMISSION_RESOURCES = [
+        'shipments',
+        'bookings',
+        'clients',
+        'reports',
+        'pricing',
+        'payouts',
+    ];
+
+    private const ADVANCED_PERMISSION_ACTIONS = [
+        'view',
+        'create',
+        'update',
+        'cancel',
+        'reassign',
+        'export',
+        'approve',
+        'refund',
+    ];
+
+    private const ADVANCED_SCOPE_LEVELS = [
+        'own_records',
+        'assigned_region',
+        'assigned_hub',
+        'all_workspace',
+    ];
+
+    private const SENSITIVE_FIELD_KEYS = [
+        'rate_cards',
+        'margin',
+        'customer_phone',
+        'payment_refs',
+    ];
+
     public function dashboard(Request $request)
     {
-        [$filters, $shipments] = $this->buildFilteredShipments($request);
+        [$filters, $shipments] = $this->buildFilteredShipments($request, 'reports', 'view');
+        $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
 
         if ($request->query('export') === 'csv') {
+            $this->assertAdvancedPermission($request, $policy, 'reports', 'export');
             return $this->downloadCsv($shipments);
         }
 
@@ -199,7 +235,7 @@ class VendorCourierDashboardController extends Controller
 
     public function bookings(Request $request)
     {
-        [$filters, $shipments] = $this->buildFilteredShipments($request);
+        [$filters, $shipments] = $this->buildFilteredShipments($request, 'bookings', 'view');
         $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
         $canViewRates = $this->canActorViewRates($request, $policy);
 
@@ -217,11 +253,21 @@ class VendorCourierDashboardController extends Controller
             abort(403, 'You are not allowed to modify this booking.');
         }
 
+        $this->assertAdvancedPermission($request, $policy, 'bookings', 'update', $shipment);
+
         $this->assertStaffSecurityPolicy($request, $policy);
 
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::BOOKING_ACTION_META))],
         ]);
+
+        $this->assertAdvancedPermission(
+            $request,
+            $policy,
+            'bookings',
+            $this->mapBookingLifecycleActionToPermissionAction((string) $validated['action']),
+            $shipment
+        );
 
         $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, (string) $validated['action']);
         if (!$cancelGuard['ok']) {
@@ -254,6 +300,13 @@ class VendorCourierDashboardController extends Controller
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::BOOKING_ACTION_META))],
         ]);
 
+        $this->assertAdvancedPermission(
+            $request,
+            $policy,
+            'bookings',
+            $this->mapBookingLifecycleActionToPermissionAction((string) $validated['action'])
+        );
+
         $ids = collect($validated['shipmentIds'])->unique()->values();
         $action = $validated['action'];
 
@@ -266,7 +319,16 @@ class VendorCourierDashboardController extends Controller
             ->where('assigned_vendor_user_id', $vendorId)
             ->whereIn('id', $ids)
             ->with('trackingEvents:id,shipment_id,status,recorded_at')
-            ->get();
+            ;
+
+        $this->applyShipmentScopeFilter(
+            $shipments,
+            $this->resolveScopeForPermission($request, $policy, 'bookings', $this->mapBookingLifecycleActionToPermissionAction((string) $action)),
+            $request,
+            $vendorId
+        );
+
+        $shipments = $shipments->get();
 
         $successCount = 0;
         $blockedCount = 0;
@@ -305,11 +367,13 @@ class VendorCourierDashboardController extends Controller
 
     public function tracking(Request $request)
     {
-        [$filters, $shipments] = $this->buildFilteredShipments($request);
+        [$filters, $shipments] = $this->buildFilteredShipments($request, 'reports', 'view');
+        $policy = $this->resolveTeamAccessPolicy((int) $request->attributes->get('vendor_user_id'));
 
         $trackingPayload = $this->buildTrackingPayload($shipments, $filters);
 
         if ($request->query('export') === 'csv') {
+            $this->assertAdvancedPermission($request, $policy, 'reports', 'export');
             return $this->downloadTrackingCsv(collect($trackingPayload['allRows'] ?? []));
         }
 
@@ -322,7 +386,7 @@ class VendorCourierDashboardController extends Controller
 
     public function calendar(Request $request)
     {
-        [$filters, $shipments] = $this->buildFilteredShipments($request);
+        [$filters, $shipments] = $this->buildFilteredShipments($request, 'reports', 'view');
 
         return Inertia::render('Web/home/vendors/courierService/Calendar', [
             'courierCalendar' => $this->buildCalendarPayload($shipments, $request, $filters),
@@ -376,6 +440,25 @@ class VendorCourierDashboardController extends Controller
         $roleModel = app(CourierRoleModelService::class);
         $roleModel->ensureWorkspaceRoleProfiles($workspaceId, (int) $request->user()->id);
         $workspaceRoles = $roleModel->listWorkspaceRoles($workspaceId);
+        $teamAccessAudit = VendorActivityLog::query()
+            ->where('vendor_id', $vendorId)
+            ->whereIn('action', [
+                'courier_permission_denied',
+                'courier_team_permission_model_updated',
+            ])
+            ->orderByDesc('created_at')
+            ->limit(60)
+            ->get()
+            ->map(function (VendorActivityLog $log) {
+                return [
+                    'id' => (int) $log->id,
+                    'action' => (string) $log->action,
+                    'description' => (string) ($log->description ?? ''),
+                    'createdAt' => optional($log->created_at)->format('Y-m-d H:i:s'),
+                    'metadata' => is_array($log->metadata) ? $log->metadata : [],
+                ];
+            })
+            ->values();
 
         return Inertia::render('Web/home/vendors/courierService/SettingsPage', [
             'courierSettings' => $mergedSettings,
@@ -393,6 +476,13 @@ class VendorCourierDashboardController extends Controller
                 'assignPermissions' => $request->user()->can('courier.team.assign_permissions'),
                 'assignRole' => $request->user()->can('courier.team.assign_role'),
             ],
+            'permissionModelMeta' => [
+                'resources' => self::ADVANCED_PERMISSION_RESOURCES,
+                'actions' => self::ADVANCED_PERMISSION_ACTIONS,
+                'scopes' => self::ADVANCED_SCOPE_LEVELS,
+                'sensitiveFields' => self::SENSITIVE_FIELD_KEYS,
+            ],
+            'teamAccessAudit' => $teamAccessAudit,
         ]);
     }
 
@@ -449,8 +539,18 @@ class VendorCourierDashboardController extends Controller
                 return back()->with('error', 'Invalid settings payload for the selected section.');
             }
 
+            if ($section === 'team') {
+                $incomingSection = $this->normalizeTeamSettings(array_replace_recursive($current['team'] ?? [], $incomingSection));
+            }
+
             $current[$section] = array_replace($current[$section], $incomingSection);
             $record->update(['settings' => $current]);
+
+            if ($section === 'team') {
+                $this->logTeamAccessPolicyChange($request, 'courier_team_permission_model_updated', [
+                    'mode' => 'save_section',
+                ]);
+            }
 
             return back()->with('success', ucfirst($section) . ' settings saved successfully.');
         }
@@ -462,7 +562,18 @@ class VendorCourierDashboardController extends Controller
         }
 
         $next = array_replace_recursive($current, $incomingAll);
+
+        if (is_array($next['team'] ?? null)) {
+            $next['team'] = $this->normalizeTeamSettings($next['team']);
+        }
+
         $record->update(['settings' => $next]);
+
+        if (array_key_exists('team', $incomingAll)) {
+            $this->logTeamAccessPolicyChange($request, 'courier_team_permission_model_updated', [
+                'mode' => 'save_all',
+            ]);
+        }
 
         return back()->with('success', 'All courier settings saved successfully.');
     }
@@ -668,11 +779,22 @@ class VendorCourierDashboardController extends Controller
         $belongsToVendor = CourierShipment::query()
             ->where('assigned_vendor_user_id', $vendorId)
             ->where('sender_contact_id', $contact->id)
-            ->exists();
+            ;
+
+        $this->applyShipmentScopeFilter(
+            $belongsToVendor,
+            $this->resolveScopeForPermission($request, $policy, 'clients', 'update'),
+            $request,
+            $vendorId
+        );
+
+        $belongsToVendor = $belongsToVendor->exists();
 
         if (!$belongsToVendor) {
             abort(403, 'You are not allowed to modify this client profile.');
         }
+
+        $this->assertAdvancedPermission($request, $policy, 'clients', 'update');
 
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:toggle_watchlist,set_priority,set_owner,add_note,set_tier'],
@@ -688,6 +810,8 @@ class VendorCourierDashboardController extends Controller
         ]);
 
         $action = $validated['action'];
+
+        $this->assertAdvancedPermission($request, $policy, 'clients', $this->mapClientActionToPermissionAction($action));
 
         if ($action === 'set_owner' && !$this->canActorReassignOwner($request, $policy)) {
             return back()->with('error', 'Reassigning client ownership is disabled by Team Access Control policy.');
@@ -722,7 +846,7 @@ class VendorCourierDashboardController extends Controller
 
     public function shipments(Request $request)
     {
-        [$filters, $shipments] = $this->buildFilteredShipments($request);
+        [$filters, $shipments] = $this->buildFilteredShipments($request, 'shipments', 'view');
 
         return Inertia::render('Web/home/vendors/courierService/Unit', [
             'courierShipments' => $this->buildShipmentsPayload($shipments, $filters),
@@ -738,11 +862,21 @@ class VendorCourierDashboardController extends Controller
             abort(403, 'You are not allowed to modify this shipment.');
         }
 
+        $this->assertAdvancedPermission($request, $policy, 'shipments', 'update', $shipment);
+
         $this->assertStaffSecurityPolicy($request, $policy);
 
         $validated = $request->validate([
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::ACTION_META))],
         ]);
+
+        $this->assertAdvancedPermission(
+            $request,
+            $policy,
+            'shipments',
+            $this->mapShipmentActionToPermissionAction((string) $validated['action']),
+            $shipment
+        );
 
         $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, (string) $validated['action']);
         if (!$cancelGuard['ok']) {
@@ -776,6 +910,13 @@ class VendorCourierDashboardController extends Controller
             'action' => ['required', 'string', 'in:' . implode(',', array_keys(self::ACTION_META))],
         ]);
 
+        $this->assertAdvancedPermission(
+            $request,
+            $policy,
+            'shipments',
+            $this->mapShipmentActionToPermissionAction((string) $validated['action'])
+        );
+
         $cancelGuard = $this->guardCancelActionByPolicy($request, $policy, (string) $validated['action']);
         if (!$cancelGuard['ok']) {
             return back()->with('error', $cancelGuard['message']);
@@ -788,7 +929,16 @@ class VendorCourierDashboardController extends Controller
             ->where('assigned_vendor_user_id', $vendorId)
             ->whereIn('id', $ids)
             ->with('trackingEvents:id,shipment_id,status,recorded_at')
-            ->get();
+            ;
+
+        $this->applyShipmentScopeFilter(
+            $shipments,
+            $this->resolveScopeForPermission($request, $policy, 'shipments', $this->mapShipmentActionToPermissionAction((string) $action)),
+            $request,
+            $vendorId
+        );
+
+        $shipments = $shipments->get();
 
         $successCount = 0;
         $blockedCount = 0;
@@ -816,13 +966,16 @@ class VendorCourierDashboardController extends Controller
         return back()->with('success', $message);
     }
 
-    private function buildFilteredShipments(Request $request): array
+    private function buildFilteredShipments(Request $request, string $resource = 'shipments', string $action = 'view'): array
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access this dashboard.');
         }
+
+        $this->assertAdvancedPermission($request, $policy, $resource, $action);
 
         $filters = [
             'q' => trim((string) $request->query('q', '')),
@@ -857,6 +1010,9 @@ class VendorCourierDashboardController extends Controller
             ])
             ->where('assigned_vendor_user_id', $vendorId)
             ->orderByDesc('created_at');
+
+        $scope = $this->resolveScopeForPermission($request, $policy, $resource, $action);
+        $this->applyShipmentScopeFilter($query, $scope, $request, $vendorId);
 
         $this->applyFilters($query, $filters);
 
@@ -1595,10 +1751,13 @@ class VendorCourierDashboardController extends Controller
     private function buildClientsPayload(Request $request): array
     {
         $vendorId = (int) $request->attributes->get('vendor_user_id');
+        $policy = $this->resolveTeamAccessPolicy($vendorId);
 
         if (!$this->hasApprovedCourierRegistration($vendorId)) {
             abort(403, 'Courier service registration approval is required to access clients.');
         }
+
+        $this->assertAdvancedPermission($request, $policy, 'clients', 'view');
 
         $filters = [
             'q' => trim((string) $request->query('q', '')),
@@ -1610,7 +1769,8 @@ class VendorCourierDashboardController extends Controller
             'page' => max(1, (int) $request->query('page', 1)),
         ];
 
-        $shipments = CourierShipment::query()
+        $scope = $this->resolveScopeForPermission($request, $policy, 'clients', 'view');
+        $shipmentQuery = CourierShipment::query()
             ->with([
                 'sender:id,name,email,phone,company_name',
                 'senderAddress:id,contact_id,city,country',
@@ -1618,8 +1778,10 @@ class VendorCourierDashboardController extends Controller
                 'trackingEvents:id,shipment_id,status,recorded_at',
             ])
             ->where('assigned_vendor_user_id', $vendorId)
-            ->orderByDesc('created_at')
-            ->get();
+            ->orderByDesc('created_at');
+
+        $this->applyShipmentScopeFilter($shipmentQuery, $scope, $request, $vendorId);
+        $shipments = $shipmentQuery->get();
 
         $clientGroups = $shipments
             ->filter(fn (CourierShipment $shipment) => $shipment->sender_contact_id !== null)
@@ -1694,6 +1856,13 @@ class VendorCourierDashboardController extends Controller
                 'logisticCount' => $logisticCount,
             ];
         })->values();
+
+        if (!$this->canActorViewSensitiveField($request, $policy, 'customer_phone')) {
+            $rows = $rows->map(function (array $row) {
+                $row['phone'] = null;
+                return $row;
+            })->values();
+        }
 
         if ($filters['q'] !== '') {
             $needle = strtolower($filters['q']);
@@ -2438,8 +2607,186 @@ class VendorCourierDashboardController extends Controller
                 'teamAccessControl' => [
                     'defaultDirectPermissionsByRole' => [],
                 ],
+                'permissionModel' => $this->defaultAdvancedPermissionModel(),
             ],
         ];
+    }
+
+    private function normalizeTeamSettings(array $team): array
+    {
+        $defaults = $this->defaultCourierSettings()['team'] ?? [];
+        $merged = array_replace_recursive($defaults, $team);
+
+        $merged['teamAccessControl'] = array_replace(
+            $defaults['teamAccessControl'] ?? ['defaultDirectPermissionsByRole' => []],
+            is_array($merged['teamAccessControl'] ?? null) ? $merged['teamAccessControl'] : []
+        );
+
+        if (!is_array($merged['teamAccessControl']['defaultDirectPermissionsByRole'] ?? null)) {
+            $merged['teamAccessControl']['defaultDirectPermissionsByRole'] = [];
+        }
+
+        $merged['permissionModel'] = $this->normalizeAdvancedPermissionModel(
+            is_array($merged['permissionModel'] ?? null)
+                ? $merged['permissionModel']
+                : []
+        );
+
+        return $merged;
+    }
+
+    private function defaultAdvancedPermissionModel(): array
+    {
+        $resourcesAll = $this->buildPermissionResourceActions(true);
+        $resourcesReadMostly = $this->buildPermissionResourceActions(false, [
+            'shipments' => ['view' => true, 'export' => true],
+            'bookings' => ['view' => true, 'export' => true],
+            'clients' => ['view' => true, 'export' => true],
+            'reports' => ['view' => true, 'export' => true],
+            'pricing' => ['view' => true, 'export' => true],
+            'payouts' => ['view' => true, 'export' => true],
+        ]);
+        $resourcesFinance = $this->buildPermissionResourceActions(false, [
+            'pricing' => ['view' => true, 'update' => true, 'approve' => true],
+            'payouts' => ['view' => true, 'approve' => true, 'refund' => true, 'export' => true],
+            'reports' => ['view' => true, 'export' => true],
+            'bookings' => ['view' => true],
+            'shipments' => ['view' => true],
+            'clients' => ['view' => true],
+        ]);
+
+        return [
+            'enabled' => true,
+            'rolePolicies' => [
+                'courier_owner' => [
+                    'scope' => 'all_workspace',
+                    'resources' => $resourcesAll,
+                ],
+                'courier_admin' => [
+                    'scope' => 'all_workspace',
+                    'resources' => $resourcesAll,
+                ],
+                'courier_dispatcher' => [
+                    'scope' => 'assigned_hub',
+                    'resources' => $this->buildPermissionResourceActions(false, [
+                        'bookings' => ['view' => true, 'create' => true, 'update' => true, 'cancel' => false, 'reassign' => false, 'approve' => true],
+                        'shipments' => ['view' => true, 'create' => false, 'update' => true, 'cancel' => false, 'reassign' => true, 'approve' => true],
+                        'clients' => ['view' => true, 'update' => true, 'reassign' => false],
+                        'reports' => ['view' => true, 'export' => true],
+                    ]),
+                ],
+                'courier_tracking_officer' => [
+                    'scope' => 'assigned_region',
+                    'resources' => $this->buildPermissionResourceActions(false, [
+                        'shipments' => ['view' => true, 'update' => true, 'cancel' => false, 'reassign' => false],
+                        'bookings' => ['view' => true],
+                        'clients' => ['view' => true],
+                        'reports' => ['view' => true, 'export' => true],
+                    ]),
+                ],
+                'courier_support' => [
+                    'scope' => 'own_records',
+                    'resources' => $this->buildPermissionResourceActions(false, [
+                        'clients' => ['view' => true, 'update' => true],
+                        'bookings' => ['view' => true, 'update' => true, 'cancel' => false],
+                        'shipments' => ['view' => true],
+                        'reports' => ['view' => true],
+                    ]),
+                ],
+                'courier_finance' => [
+                    'scope' => 'all_workspace',
+                    'resources' => $resourcesFinance,
+                ],
+                'courier_viewer' => [
+                    'scope' => 'assigned_region',
+                    'resources' => $resourcesReadMostly,
+                ],
+            ],
+            'fieldVisibility' => [
+                'rate_cards' => ['visibleToRoles' => ['courier_owner', 'courier_admin', 'courier_finance']],
+                'margin' => ['visibleToRoles' => ['courier_owner', 'courier_admin', 'courier_finance']],
+                'customer_phone' => ['visibleToRoles' => ['courier_owner', 'courier_admin', 'courier_dispatcher', 'courier_support']],
+                'payment_refs' => ['visibleToRoles' => ['courier_owner', 'courier_admin', 'courier_finance']],
+            ],
+        ];
+    }
+
+    private function buildPermissionResourceActions(bool $allEnabled, array $overrides = []): array
+    {
+        $resourceTemplate = [];
+
+        foreach (self::ADVANCED_PERMISSION_RESOURCES as $resource) {
+            $resourceTemplate[$resource] = [];
+            foreach (self::ADVANCED_PERMISSION_ACTIONS as $action) {
+                $resourceTemplate[$resource][$action] = $allEnabled;
+            }
+        }
+
+        foreach ($overrides as $resource => $override) {
+            if (!isset($resourceTemplate[$resource]) || !is_array($override)) {
+                continue;
+            }
+
+            foreach ($override as $action => $enabled) {
+                if (array_key_exists($action, $resourceTemplate[$resource])) {
+                    $resourceTemplate[$resource][$action] = (bool) $enabled;
+                }
+            }
+        }
+
+        return $resourceTemplate;
+    }
+
+    private function normalizeAdvancedPermissionModel(array $input): array
+    {
+        $defaults = $this->defaultAdvancedPermissionModel();
+        $normalized = [
+            'enabled' => (bool) ($input['enabled'] ?? $defaults['enabled']),
+            'rolePolicies' => [],
+            'fieldVisibility' => [],
+        ];
+
+        $inputRolePolicies = is_array($input['rolePolicies'] ?? null) ? $input['rolePolicies'] : [];
+        foreach ($defaults['rolePolicies'] as $roleName => $defaultPolicy) {
+            $incoming = is_array($inputRolePolicies[$roleName] ?? null) ? $inputRolePolicies[$roleName] : [];
+            $scope = (string) ($incoming['scope'] ?? $defaultPolicy['scope']);
+            if (!in_array($scope, self::ADVANCED_SCOPE_LEVELS, true)) {
+                $scope = (string) $defaultPolicy['scope'];
+            }
+
+            $resources = $this->buildPermissionResourceActions(false);
+            $incomingResources = is_array($incoming['resources'] ?? null) ? $incoming['resources'] : [];
+
+            foreach ($resources as $resource => $actions) {
+                foreach ($actions as $action => $placeholder) {
+                    $resources[$resource][$action] = (bool) (
+                        $incomingResources[$resource][$action]
+                        ?? $defaultPolicy['resources'][$resource][$action]
+                        ?? false
+                    );
+                }
+            }
+
+            $normalized['rolePolicies'][$roleName] = [
+                'scope' => $scope,
+                'resources' => $resources,
+            ];
+        }
+
+        $inputFieldVisibility = is_array($input['fieldVisibility'] ?? null) ? $input['fieldVisibility'] : [];
+        foreach (self::SENSITIVE_FIELD_KEYS as $fieldKey) {
+            $defaultRoles = $defaults['fieldVisibility'][$fieldKey]['visibleToRoles'] ?? [];
+            $incomingRoles = $inputFieldVisibility[$fieldKey]['visibleToRoles'] ?? $defaultRoles;
+            $normalized['fieldVisibility'][$fieldKey] = [
+                'visibleToRoles' => collect(is_array($incomingRoles) ? $incomingRoles : [])
+                    ->map(fn ($role) => trim((string) $role))
+                    ->filter()
+                    ->values()
+                    ->all(),
+            ];
+        }
+
+        return $normalized;
     }
 
     private function buildCourierProfilePayload(Request $request, int $profileUserId): array
@@ -2733,18 +3080,11 @@ class VendorCourierDashboardController extends Controller
 
     private function resolveTeamAccessPolicy(int $vendorId): array
     {
-        $defaults = $this->defaultCourierSettings()['team'] ?? [];
-
         $record = VendorCourierSetting::query()->firstWhere('vendor_user_id', $vendorId);
         $settings = is_array($record?->settings) ? $record->settings : [];
-        $team = is_array($settings['team'] ?? null) ? $settings['team'] : [];
+        $team = $this->normalizeTeamSettings(is_array($settings['team'] ?? null) ? $settings['team'] : []);
 
-        return [
-            'dispatcherCanCancel' => (bool) ($team['dispatcherCanCancel'] ?? ($defaults['dispatcherCanCancel'] ?? false)),
-            'opsLeadCanReassign' => (bool) ($team['opsLeadCanReassign'] ?? ($defaults['opsLeadCanReassign'] ?? true)),
-            'financeCanViewRates' => (bool) ($team['financeCanViewRates'] ?? ($defaults['financeCanViewRates'] ?? true)),
-            'enforce2FA' => (bool) ($team['enforce2FA'] ?? ($defaults['enforce2FA'] ?? true)),
-        ];
+        return array_replace($this->defaultCourierSettings()['team'] ?? [], $team);
     }
 
     private function isVendorOwnerActor(Request $request): bool
@@ -2758,19 +3098,13 @@ class VendorCourierDashboardController extends Controller
             return ['ok' => true, 'message' => null];
         }
 
-        if ((bool) ($policy['dispatcherCanCancel'] ?? false)) {
-            return ['ok' => true, 'message' => null];
+        if (!(bool) ($policy['dispatcherCanCancel'] ?? false) && !$this->isVendorOwnerActor($request)) {
+            return ['ok' => false, 'message' => 'Cancellation by dispatchers is disabled by Team Access Control policy.'];
         }
 
-        if ($this->isVendorOwnerActor($request)) {
-            return ['ok' => true, 'message' => null];
-        }
+        $resource = $action === 'cancel_booking' ? 'bookings' : 'shipments';
 
-        $actor = $request->user();
-        $canManageLifecycle = (bool) $actor?->can('courier.bookings.manage_lifecycle');
-        $canAssignRole = (bool) $actor?->can('courier.team.assign_role');
-
-        if ($canManageLifecycle && !$canAssignRole) {
+        if (!$this->canRolePerformAction($request, $policy, $resource, 'cancel')) {
             return ['ok' => false, 'message' => 'Cancellation by dispatchers is disabled by Team Access Control policy.'];
         }
 
@@ -2779,24 +3113,334 @@ class VendorCourierDashboardController extends Controller
 
     private function canActorReassignOwner(Request $request, array $policy): bool
     {
+        if (!(bool) ($policy['opsLeadCanReassign'] ?? true) && !$this->isVendorOwnerActor($request)) {
+            return false;
+        }
+
+        return $this->canRolePerformAction($request, $policy, 'clients', 'reassign');
+    }
+
+    private function canActorViewRates(Request $request, array $policy): bool
+    {
+        if (!(bool) ($policy['financeCanViewRates'] ?? true) && !$this->isVendorOwnerActor($request)) {
+            return false;
+        }
+
+        return $this->canRolePerformAction($request, $policy, 'pricing', 'view')
+            && $this->canActorViewSensitiveField($request, $policy, 'rate_cards');
+    }
+
+    private function actorCourierRoles(Request $request): array
+    {
+        if ($this->isVendorOwnerActor($request)) {
+            return ['courier_owner'];
+        }
+
+        return collect(optional($request->user())->roles ?? [])
+            ->filter(fn ($role) => ($role->guard_name ?? null) === 'courier')
+            ->map(fn ($role) => (string) $role->name)
+            ->filter(fn ($role) => str_starts_with($role, 'courier_'))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function canRolePerformAction(Request $request, array $policy, string $resource, string $action): bool
+    {
+        if (!in_array($resource, self::ADVANCED_PERMISSION_RESOURCES, true)
+            || !in_array($action, self::ADVANCED_PERMISSION_ACTIONS, true)) {
+            return false;
+        }
+
         if ($this->isVendorOwnerActor($request)) {
             return true;
         }
 
-        return (bool) ($policy['opsLeadCanReassign'] ?? true);
+        $permissionModel = $this->normalizeAdvancedPermissionModel(is_array($policy['permissionModel'] ?? null) ? $policy['permissionModel'] : []);
+        if (!(bool) ($permissionModel['enabled'] ?? true)) {
+            return true;
+        }
+
+        $roles = $this->actorCourierRoles($request);
+        if (empty($roles)) {
+            return false;
+        }
+
+        foreach ($roles as $roleName) {
+            $rolePolicy = $permissionModel['rolePolicies'][$roleName] ?? null;
+            if (!$rolePolicy) {
+                continue;
+            }
+
+            if ((bool) ($rolePolicy['resources'][$resource][$action] ?? false)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
-    private function canActorViewRates(Request $request, array $policy): bool
+    private function resolveScopeForPermission(Request $request, array $policy, string $resource, string $action): string
+    {
+        if ($this->isVendorOwnerActor($request)) {
+            return 'all_workspace';
+        }
+
+        $permissionModel = $this->normalizeAdvancedPermissionModel(is_array($policy['permissionModel'] ?? null) ? $policy['permissionModel'] : []);
+        if (!(bool) ($permissionModel['enabled'] ?? true)) {
+            return 'all_workspace';
+        }
+
+        $roles = $this->actorCourierRoles($request);
+        $bestScope = 'own_records';
+
+        foreach ($roles as $roleName) {
+            $rolePolicy = $permissionModel['rolePolicies'][$roleName] ?? null;
+            if (!$rolePolicy) {
+                continue;
+            }
+
+            if (!(bool) ($rolePolicy['resources'][$resource][$action] ?? false)) {
+                continue;
+            }
+
+            $candidate = (string) ($rolePolicy['scope'] ?? 'own_records');
+            if ($this->scopeRank($candidate) > $this->scopeRank($bestScope)) {
+                $bestScope = $candidate;
+            }
+        }
+
+        return in_array($bestScope, self::ADVANCED_SCOPE_LEVELS, true) ? $bestScope : 'own_records';
+    }
+
+    private function scopeRank(string $scope): int
+    {
+        return match ($scope) {
+            'all_workspace' => 4,
+            'assigned_hub' => 3,
+            'assigned_region' => 2,
+            default => 1,
+        };
+    }
+
+    private function assertAdvancedPermission(
+        Request $request,
+        array $policy,
+        string $resource,
+        string $action,
+        ?CourierShipment $shipment = null
+    ): void {
+        if (!$this->canRolePerformAction($request, $policy, $resource, $action)) {
+            $this->logPermissionDenied($request, $resource, $action, [
+                'reason' => 'role_action_blocked',
+            ]);
+            abort(403, 'Team Access Control policy blocks this action for your role.');
+        }
+
+        if (!$shipment) {
+            return;
+        }
+
+        $scope = $this->resolveScopeForPermission($request, $policy, $resource, $action);
+        if ($scope === 'all_workspace') {
+            return;
+        }
+
+        $query = CourierShipment::query()->whereKey($shipment->id);
+        $this->applyShipmentScopeFilter(
+            $query,
+            $scope,
+            $request,
+            (int) $request->attributes->get('vendor_user_id')
+        );
+
+        if (!$query->exists()) {
+            $this->logPermissionDenied($request, $resource, $action, [
+                'reason' => 'scope_blocked',
+                'scope' => $scope,
+                'shipment_id' => $shipment->id,
+            ]);
+            abort(403, 'Team Access Control scope does not allow this record.');
+        }
+    }
+
+    private function logPermissionDenied(Request $request, string $resource, string $action, array $context = []): void
+    {
+        try {
+            VendorActivityLog::create([
+                'vendor_id' => (int) $request->attributes->get('vendor_user_id'),
+                'admin_id' => (int) optional($request->user())->id,
+                'action' => 'courier_permission_denied',
+                'target_type' => 'team_access_policy',
+                'target_id' => null,
+                'description' => 'Permission denied by Team Access Control policy.',
+                'metadata' => array_merge([
+                    'resource' => $resource,
+                    'requested_action' => $action,
+                    'roles' => $this->actorCourierRoles($request),
+                ], $context),
+            ]);
+        } catch (\Throwable) {
+            // Ignore audit write failures to avoid breaking business flow.
+        }
+    }
+
+    private function logTeamAccessPolicyChange(Request $request, string $action, array $context = []): void
+    {
+        try {
+            VendorActivityLog::create([
+                'vendor_id' => (int) $request->attributes->get('vendor_user_id'),
+                'admin_id' => (int) optional($request->user())->id,
+                'action' => $action,
+                'target_type' => 'team_access_policy',
+                'target_id' => null,
+                'description' => 'Team Access Control policy updated.',
+                'metadata' => $context,
+            ]);
+        } catch (\Throwable) {
+            // Ignore audit write failures to avoid breaking settings updates.
+        }
+    }
+
+    private function applyShipmentScopeFilter(Builder $query, string $scope, Request $request, int $vendorId): void
+    {
+        if ($this->isVendorOwnerActor($request) || $scope === 'all_workspace') {
+            return;
+        }
+
+        if ($scope === 'own_records') {
+            $query->where(function (Builder $builder) use ($request) {
+                $actorId = (int) optional($request->user())->id;
+                $builder->where('requested_by_user_id', $actorId)
+                    ->orWhereHas('sender', function (Builder $sender) use ($actorId) {
+                        $sender->where('user_id', $actorId);
+                    });
+            });
+            return;
+        }
+
+        if ($scope === 'assigned_hub') {
+            $keywords = $this->resolveScopeKeywords($vendorId, 'assigned_hub');
+            if (empty($keywords)) {
+                $query->whereRaw('1 = 0');
+                return;
+            }
+
+            $query->where(function (Builder $builder) use ($keywords) {
+                $builder->whereHas('senderAddress', function (Builder $address) use ($keywords) {
+                    $address->where(function (Builder $nested) use ($keywords) {
+                        foreach ($keywords as $keyword) {
+                            $nested->orWhere('city', 'like', '%' . $keyword . '%')
+                                ->orWhere('state', 'like', '%' . $keyword . '%');
+                        }
+                    });
+                })->orWhereHas('recipientAddress', function (Builder $address) use ($keywords) {
+                    $address->where(function (Builder $nested) use ($keywords) {
+                        foreach ($keywords as $keyword) {
+                            $nested->orWhere('city', 'like', '%' . $keyword . '%')
+                                ->orWhere('state', 'like', '%' . $keyword . '%');
+                        }
+                    });
+                });
+            });
+            return;
+        }
+
+        if ($scope === 'assigned_region') {
+            $keywords = $this->resolveScopeKeywords($vendorId, 'assigned_region');
+            if (empty($keywords)) {
+                $query->whereRaw('1 = 0');
+                return;
+            }
+
+            $query->where(function (Builder $builder) use ($keywords) {
+                $builder->whereHas('senderAddress', function (Builder $address) use ($keywords) {
+                    $address->where(function (Builder $nested) use ($keywords) {
+                        foreach ($keywords as $keyword) {
+                            $nested->orWhere('city', 'like', '%' . $keyword . '%')
+                                ->orWhere('country', 'like', '%' . $keyword . '%')
+                                ->orWhere('state', 'like', '%' . $keyword . '%');
+                        }
+                    });
+                })->orWhereHas('recipientAddress', function (Builder $address) use ($keywords) {
+                    $address->where(function (Builder $nested) use ($keywords) {
+                        foreach ($keywords as $keyword) {
+                            $nested->orWhere('city', 'like', '%' . $keyword . '%')
+                                ->orWhere('country', 'like', '%' . $keyword . '%')
+                                ->orWhere('state', 'like', '%' . $keyword . '%');
+                        }
+                    });
+                });
+            });
+        }
+    }
+
+    private function resolveScopeKeywords(int $vendorId, string $scope): array
+    {
+        $record = VendorCourierSetting::query()->firstWhere('vendor_user_id', $vendorId);
+        $settings = is_array($record?->settings) ? $record->settings : [];
+        $business = is_array($settings['business'] ?? null) ? $settings['business'] : [];
+
+        if ($scope === 'assigned_hub') {
+            $hub = trim((string) ($business['primaryHub'] ?? ''));
+            return $hub !== '' ? [$hub] : [];
+        }
+
+        $zones = collect(explode(',', (string) ($business['serviceZones'] ?? '')))
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->values()
+            ->all();
+
+        return $zones;
+    }
+
+    private function canActorViewSensitiveField(Request $request, array $policy, string $fieldKey): bool
     {
         if ($this->isVendorOwnerActor($request)) {
             return true;
         }
 
-        if (!(bool) ($policy['financeCanViewRates'] ?? true)) {
+        if (!in_array($fieldKey, self::SENSITIVE_FIELD_KEYS, true)) {
+            return true;
+        }
+
+        $permissionModel = $this->normalizeAdvancedPermissionModel(is_array($policy['permissionModel'] ?? null) ? $policy['permissionModel'] : []);
+        if (!(bool) ($permissionModel['enabled'] ?? true)) {
+            return true;
+        }
+
+        $allowedRoles = collect($permissionModel['fieldVisibility'][$fieldKey]['visibleToRoles'] ?? [])->map(fn ($role) => (string) $role)->all();
+        if (empty($allowedRoles)) {
             return false;
         }
 
-        return (bool) optional($request->user())->can('courier.finance.view');
+        return collect($this->actorCourierRoles($request))
+            ->intersect($allowedRoles)
+            ->isNotEmpty();
+    }
+
+    private function mapBookingLifecycleActionToPermissionAction(string $action): string
+    {
+        return match ($action) {
+            'accept_booking' => 'approve',
+            'cancel_booking', 'reject_booking', 'expire_booking' => 'cancel',
+            default => 'update',
+        };
+    }
+
+    private function mapShipmentActionToPermissionAction(string $action): string
+    {
+        return match ($action) {
+            'accept_assignment' => 'approve',
+            'cancel_shipment' => 'cancel',
+            default => 'update',
+        };
+    }
+
+    private function mapClientActionToPermissionAction(string $action): string
+    {
+        return $action === 'set_owner' ? 'reassign' : 'update';
     }
 
     private function assertStaffSecurityPolicy(Request $request, array $policy): void
