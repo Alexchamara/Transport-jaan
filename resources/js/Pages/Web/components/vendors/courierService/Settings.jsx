@@ -134,6 +134,7 @@ const DEFAULT_ROLE_SCOPE_CONSTRAINTS = {
         production: [],
         sandbox: [],
     },
+    policyRules: [],
 };
 
 const Settings = () => {
@@ -151,6 +152,19 @@ const Settings = () => {
     const permissionScopes = Array.isArray(permissionModelMeta.scopes) ? permissionModelMeta.scopes : ["own_records", "assigned_region", "assigned_hub", "all_workspace"];
     const sensitiveFieldKeys = Array.isArray(permissionModelMeta.sensitiveFields) ? permissionModelMeta.sensitiveFields : ["rate_cards", "margin", "customer_phone", "payment_refs"];
     const permissionEnvironments = Array.isArray(permissionModelMeta.environments) ? permissionModelMeta.environments : ["production", "sandbox"];
+    const permissionRuleEffects = Array.isArray(permissionModelMeta.ruleEffects) ? permissionModelMeta.ruleEffects : ["allow", "deny"];
+    const permissionRuleConditionOptions = permissionModelMeta.ruleConditionOptions && typeof permissionModelMeta.ruleConditionOptions === "object"
+        ? permissionModelMeta.ruleConditionOptions
+        : {};
+    const permissionRuleShipmentStages = Array.isArray(permissionRuleConditionOptions.shipmentStages)
+        ? permissionRuleConditionOptions.shipmentStages
+        : ["new_assignments", "ready_for_pickup", "picked_up", "in_transit", "out_for_delivery", "exception", "delivered", "cancelled"];
+    const permissionRuleClientTiers = Array.isArray(permissionRuleConditionOptions.clientTiers)
+        ? permissionRuleConditionOptions.clientTiers
+        : ["enterprise", "sme", "individual"];
+    const permissionRuleSlaClasses = Array.isArray(permissionRuleConditionOptions.slaClasses)
+        ? permissionRuleConditionOptions.slaClasses
+        : ["on_track", "at_risk", "on_time", "delayed", "early", "unknown"];
     const teamScopeControlOptions = props.teamScopeControlOptions && typeof props.teamScopeControlOptions === "object" ? props.teamScopeControlOptions : {};
     const scopeZoneOptions = Array.isArray(teamScopeControlOptions.availableZones) ? teamScopeControlOptions.availableZones : [];
     const scopeHubOptions = Array.isArray(teamScopeControlOptions.availableHubs) ? teamScopeControlOptions.availableHubs : [];
@@ -415,9 +429,45 @@ const Settings = () => {
                         ? selected.constraints.blockedActionsByEnvironment.sandbox
                         : [],
                 },
+                policyRules: Array.isArray(selected.constraints?.policyRules)
+                    ? selected.constraints.policyRules.map((rule, index) => {
+                        const conditions = rule && typeof rule.conditions === "object" ? rule.conditions : {};
+                        return {
+                            id: String(rule?.id || `rule_${index + 1}`),
+                            label: String(rule?.label || ""),
+                            effect: permissionRuleEffects.includes(rule?.effect) ? rule.effect : "allow",
+                            resource: permissionResources.includes(rule?.resource) || rule?.resource === "*" ? rule.resource : "*",
+                            action: permissionActions.includes(rule?.action) || rule?.action === "*" ? rule.action : "*",
+                            conditions: {
+                                shipmentStages: Array.isArray(conditions.shipmentStages)
+                                    ? conditions.shipmentStages.filter((value) => permissionRuleShipmentStages.includes(value))
+                                    : [],
+                                minAmount: Number.isFinite(Number(conditions.minAmount)) ? Number(conditions.minAmount) : "",
+                                maxAmount: Number.isFinite(Number(conditions.maxAmount)) ? Number(conditions.maxAmount) : "",
+                                clientTiers: Array.isArray(conditions.clientTiers)
+                                    ? conditions.clientTiers.filter((value) => permissionRuleClientTiers.includes(value))
+                                    : [],
+                                slaClasses: Array.isArray(conditions.slaClasses)
+                                    ? conditions.slaClasses.filter((value) => permissionRuleSlaClasses.includes(value))
+                                    : [],
+                            },
+                        };
+                    })
+                    : [],
             },
         };
-    }, [settings.team, activeRoleForPermissionModel, permissionResources, permissionActions, permissionScopes, permissionEnvironments]);
+    }, [
+        settings.team,
+        activeRoleForPermissionModel,
+        permissionResources,
+        permissionActions,
+        permissionScopes,
+        permissionEnvironments,
+        permissionRuleEffects,
+        permissionRuleShipmentStages,
+        permissionRuleClientTiers,
+        permissionRuleSlaClasses,
+    ]);
 
     const selectedRole = useMemo(
         () => roleStudioRoles.find((role) => role.name === selectedRoleName) || null,
@@ -829,6 +879,43 @@ const Settings = () => {
             ...(activePermissionRolePolicy.constraints?.blockedActionsByEnvironment || {}),
             [environment]: toggleInArray(current, action),
         });
+    };
+
+    const addPermissionPolicyRule = (roleName) => {
+        const nextRules = [
+            ...(Array.isArray(activePermissionRolePolicy.constraints?.policyRules) ? activePermissionRolePolicy.constraints.policyRules : []),
+            {
+                id: `rule_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+                label: "",
+                effect: "allow",
+                resource: "*",
+                action: "*",
+                conditions: {
+                    shipmentStages: [],
+                    minAmount: "",
+                    maxAmount: "",
+                    clientTiers: [],
+                    slaClasses: [],
+                },
+            },
+        ];
+
+        updatePermissionRoleConstraint(roleName, "policyRules", nextRules);
+    };
+
+    const updatePermissionPolicyRule = (roleName, ruleId, updater) => {
+        const currentRules = Array.isArray(activePermissionRolePolicy.constraints?.policyRules)
+            ? activePermissionRolePolicy.constraints.policyRules
+            : [];
+        const nextRules = currentRules.map((rule) => (rule.id === ruleId ? updater(rule) : rule));
+        updatePermissionRoleConstraint(roleName, "policyRules", nextRules);
+    };
+
+    const removePermissionPolicyRule = (roleName, ruleId) => {
+        const currentRules = Array.isArray(activePermissionRolePolicy.constraints?.policyRules)
+            ? activePermissionRolePolicy.constraints.policyRules
+            : [];
+        updatePermissionRoleConstraint(roleName, "policyRules", currentRules.filter((rule) => rule.id !== ruleId));
     };
 
     const toggleFieldVisibilityRole = (fieldKey, roleName) => {
@@ -1258,7 +1345,7 @@ const Settings = () => {
                                     <div>
                                         <label className="text-[12px] font-[700] text-[#374151]">Role</label>
                                         <select
-                                            className="mt-1 h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
+                                            className="mt-1 h-[42px] w-full rounded-[8px] border border-[#D1D5DB] px-3 text-[13px] leading-[1.35]"
                                             value={activeRoleForPermissionModel}
                                             onChange={(e) => setActiveRoleForPermissionModel(e.target.value)}
                                         >
@@ -1271,7 +1358,7 @@ const Settings = () => {
                                     <div>
                                         <label className="text-[12px] font-[700] text-[#374151]">Scope Level</label>
                                         <select
-                                            className="mt-1 h-[34px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[13px]"
+                                            className="mt-1 h-[42px] w-full rounded-[8px] border border-[#D1D5DB] px-3 text-[13px] leading-[1.35]"
                                             value={activePermissionRolePolicy.scope}
                                             onChange={(e) => updatePermissionRoleScope(activeRoleForPermissionModel, e.target.value)}
                                         >
@@ -1436,6 +1523,191 @@ const Settings = () => {
                                                 </div>
                                             ))}
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 border border-[#E5E7EB] rounded-[8px] p-3 bg-white">
+                                    <div className="flex items-center justify-between gap-2 mb-2">
+                                        <p className="text-[13px] font-[700] text-[#111827]">Policy Rules (ABAC)</p>
+                                        <button
+                                            type="button"
+                                            className="h-[30px] px-2 rounded-[6px] border border-[#D1D5DB] text-[11px] font-[700] text-[#374151]"
+                                            onClick={() => addPermissionPolicyRule(activeRoleForPermissionModel)}
+                                        >
+                                            Add Rule
+                                        </button>
+                                    </div>
+                                    <p className="text-[11px] text-[#6B7280] mb-2">Rules are evaluated with deny-over-allow priority. If any scoped rule exists for an action, at least one matching allow rule is required.</p>
+
+                                    {activePermissionRolePolicy.constraints.policyRules.length === 0 && (
+                                        <p className="text-[12px] text-[#6B7280]">No ABAC rules configured for this role.</p>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        {activePermissionRolePolicy.constraints.policyRules.map((rule) => (
+                                            <div key={rule.id} className="border border-[#E5E7EB] rounded-[8px] p-2">
+                                                <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_110px_1fr_1fr_auto] gap-2 items-end">
+                                                    <div>
+                                                        <label className="text-[11px] font-[700] text-[#374151]">Rule Label</label>
+                                                        <input
+                                                            className="mt-1 h-[38px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px] leading-[1.35]"
+                                                            value={rule.label || ""}
+                                                            placeholder="High-value delivery restriction"
+                                                            onChange={(e) => updatePermissionPolicyRule(activeRoleForPermissionModel, rule.id, (prev) => ({ ...prev, label: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[11px] font-[700] text-[#374151]">Effect</label>
+                                                        <select
+                                                            className="mt-1 h-[38px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px] leading-[1.35]"
+                                                            value={rule.effect}
+                                                            onChange={(e) => updatePermissionPolicyRule(activeRoleForPermissionModel, rule.id, (prev) => ({ ...prev, effect: e.target.value }))}
+                                                        >
+                                                            {permissionRuleEffects.map((effect) => (
+                                                                <option key={effect} value={effect}>{titleCase(effect)}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[11px] font-[700] text-[#374151]">Resource</label>
+                                                        <select
+                                                            className="mt-1 h-[38px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px] leading-[1.35]"
+                                                            value={rule.resource}
+                                                            onChange={(e) => updatePermissionPolicyRule(activeRoleForPermissionModel, rule.id, (prev) => ({ ...prev, resource: e.target.value }))}
+                                                        >
+                                                            <option value="*">Any Resource</option>
+                                                            {permissionResources.map((resource) => (
+                                                                <option key={resource} value={resource}>{titleCase(resource)}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[11px] font-[700] text-[#374151]">Action</label>
+                                                        <select
+                                                            className="mt-1 h-[38px] w-full rounded-[8px] border border-[#D1D5DB] px-2 text-[12px] leading-[1.35]"
+                                                            value={rule.action}
+                                                            onChange={(e) => updatePermissionPolicyRule(activeRoleForPermissionModel, rule.id, (prev) => ({ ...prev, action: e.target.value }))}
+                                                        >
+                                                            <option value="*">Any Action</option>
+                                                            {permissionActions.map((action) => (
+                                                                <option key={action} value={action}>{titleCase(action)}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="h-[32px] px-2 rounded-[6px] border border-[#FECACA] text-[11px] font-[700] text-[#B91C1C]"
+                                                        onClick={() => removePermissionPolicyRule(activeRoleForPermissionModel, rule.id)}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-2">
+                                                    <div>
+                                                        <p className="text-[11px] font-[700] text-[#374151] mb-1">Shipment Stage</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {permissionRuleShipmentStages.map((stage) => (
+                                                                <label key={`${rule.id}-stage-${stage}`} className="inline-flex items-center gap-1 text-[11px] text-[#374151]">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={Array.isArray(rule.conditions?.shipmentStages) && rule.conditions.shipmentStages.includes(stage)}
+                                                                        onChange={() => updatePermissionPolicyRule(activeRoleForPermissionModel, rule.id, (prev) => ({
+                                                                            ...prev,
+                                                                            conditions: {
+                                                                                ...(prev.conditions || {}),
+                                                                                shipmentStages: toggleInArray(Array.isArray(prev.conditions?.shipmentStages) ? prev.conditions.shipmentStages : [], stage),
+                                                                            },
+                                                                        }))}
+                                                                    />
+                                                                    {titleCase(stage)}
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <p className="text-[11px] font-[700] text-[#374151] mb-1">Amount Threshold (LKR)</p>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                className="h-[38px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px] leading-[1.35]"
+                                                                placeholder="Min"
+                                                                value={rule.conditions?.minAmount ?? ""}
+                                                                onChange={(e) => updatePermissionPolicyRule(activeRoleForPermissionModel, rule.id, (prev) => ({
+                                                                    ...prev,
+                                                                    conditions: {
+                                                                        ...(prev.conditions || {}),
+                                                                        minAmount: e.target.value === "" ? "" : Number(e.target.value),
+                                                                    },
+                                                                }))}
+                                                            />
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                className="h-[38px] rounded-[8px] border border-[#D1D5DB] px-2 text-[12px] leading-[1.35]"
+                                                                placeholder="Max"
+                                                                value={rule.conditions?.maxAmount ?? ""}
+                                                                onChange={(e) => updatePermissionPolicyRule(activeRoleForPermissionModel, rule.id, (prev) => ({
+                                                                    ...prev,
+                                                                    conditions: {
+                                                                        ...(prev.conditions || {}),
+                                                                        maxAmount: e.target.value === "" ? "" : Number(e.target.value),
+                                                                    },
+                                                                }))}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <p className="text-[11px] font-[700] text-[#374151] mb-1">Client Tier</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {permissionRuleClientTiers.map((tier) => (
+                                                                <label key={`${rule.id}-tier-${tier}`} className="inline-flex items-center gap-1 text-[11px] text-[#374151]">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={Array.isArray(rule.conditions?.clientTiers) && rule.conditions.clientTiers.includes(tier)}
+                                                                        onChange={() => updatePermissionPolicyRule(activeRoleForPermissionModel, rule.id, (prev) => ({
+                                                                            ...prev,
+                                                                            conditions: {
+                                                                                ...(prev.conditions || {}),
+                                                                                clientTiers: toggleInArray(Array.isArray(prev.conditions?.clientTiers) ? prev.conditions.clientTiers : [], tier),
+                                                                            },
+                                                                        }))}
+                                                                    />
+                                                                    {titleCase(tier)}
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <p className="text-[11px] font-[700] text-[#374151] mb-1">SLA Class</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {permissionRuleSlaClasses.map((slaClass) => (
+                                                                <label key={`${rule.id}-sla-${slaClass}`} className="inline-flex items-center gap-1 text-[11px] text-[#374151]">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={Array.isArray(rule.conditions?.slaClasses) && rule.conditions.slaClasses.includes(slaClass)}
+                                                                        onChange={() => updatePermissionPolicyRule(activeRoleForPermissionModel, rule.id, (prev) => ({
+                                                                            ...prev,
+                                                                            conditions: {
+                                                                                ...(prev.conditions || {}),
+                                                                                slaClasses: toggleInArray(Array.isArray(prev.conditions?.slaClasses) ? prev.conditions.slaClasses : [], slaClass),
+                                                                            },
+                                                                        }))}
+                                                                    />
+                                                                    {titleCase(slaClass)}
+                                                                </label>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
 
@@ -1918,7 +2190,7 @@ const Settings = () => {
                         {selectedLeftVersion && selectedRightVersion && (
                             <div className="border border-[#D1D5DB] rounded-[8px] p-2 bg-white mb-2">
                                 <p className="text-[12px] font-[700] text-[#111827]">
-                                    Permission Diff: v{selectedLeftVersion.version} -> v{selectedRightVersion.version}
+                                    Permission Diff: v{selectedLeftVersion.version}{" -> "}v{selectedRightVersion.version}
                                 </p>
                                 <p className="text-[11px] text-[#166534] mt-1">Added: {roleVersionDiff.added.length}</p>
                                 {roleVersionDiff.added.length > 0 && (

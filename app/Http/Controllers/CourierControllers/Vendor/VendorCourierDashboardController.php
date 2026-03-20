@@ -12,6 +12,7 @@ use App\Models\VendorProfile;
 use App\Models\VendorServiceRegistration;
 use App\Models\VendorUserMembership;
 use App\Services\Rbac\CourierRoleModelService;
+use App\Support\CourierRbac;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -221,6 +222,26 @@ class VendorCourierDashboardController extends Controller
     private const ADVANCED_ENVIRONMENTS = [
         'production',
         'sandbox',
+    ];
+
+    private const ABAC_RULE_EFFECTS = [
+        'allow',
+        'deny',
+    ];
+
+    private const ABAC_CLIENT_TIERS = [
+        'enterprise',
+        'sme',
+        'individual',
+    ];
+
+    private const ABAC_SLA_CLASSES = [
+        'on_track',
+        'at_risk',
+        'on_time',
+        'delayed',
+        'early',
+        'unknown',
     ];
 
     public function dashboard(Request $request)
@@ -512,6 +533,12 @@ class VendorCourierDashboardController extends Controller
                 'scopes' => self::ADVANCED_SCOPE_LEVELS,
                 'sensitiveFields' => self::SENSITIVE_FIELD_KEYS,
                 'environments' => self::ADVANCED_ENVIRONMENTS,
+                'ruleEffects' => self::ABAC_RULE_EFFECTS,
+                'ruleConditionOptions' => [
+                    'shipmentStages' => self::SHIPMENT_STAGE_OPTIONS,
+                    'clientTiers' => self::ABAC_CLIENT_TIERS,
+                    'slaClasses' => self::ABAC_SLA_CLASSES,
+                ],
             ],
             'teamScopeControlOptions' => [
                 'availableZones' => $serviceZones,
@@ -852,7 +879,18 @@ class VendorCourierDashboardController extends Controller
 
         $action = $validated['action'];
 
-        $this->assertAdvancedPermission($request, $policy, 'clients', $this->mapClientActionToPermissionAction($action));
+        $clientContext = [
+            'clientTier' => (string) ($validated['clientTier'] ?? $profile->client_tier ?? ''),
+        ];
+
+        $this->assertAdvancedPermission(
+            $request,
+            $policy,
+            'clients',
+            $this->mapClientActionToPermissionAction($action),
+            null,
+            $clientContext
+        );
 
         if ($action === 'set_owner' && !$this->canActorReassignOwner($request, $policy)) {
             return back()->with('error', 'Reassigning client ownership is disabled by Team Access Control policy.');
@@ -2833,6 +2871,7 @@ class VendorCourierDashboardController extends Controller
                 'production' => [],
                 'sandbox' => [],
             ],
+            'policyRules' => [],
         ];
     }
 
@@ -2943,6 +2982,83 @@ class VendorCourierDashboardController extends Controller
                 ->values()
                 ->all();
         }
+
+        $incomingRules = is_array($incoming['policyRules'] ?? null) ? $incoming['policyRules'] : [];
+        $normalized['policyRules'] = collect($incomingRules)
+            ->filter(fn ($rule) => is_array($rule))
+            ->map(function (array $rule, int $index) {
+                $effect = trim((string) ($rule['effect'] ?? 'allow'));
+                if (!in_array($effect, self::ABAC_RULE_EFFECTS, true)) {
+                    $effect = 'allow';
+                }
+
+                $resource = trim((string) ($rule['resource'] ?? '*'));
+                if ($resource !== '*' && !in_array($resource, self::ADVANCED_PERMISSION_RESOURCES, true)) {
+                    $resource = '*';
+                }
+
+                $action = trim((string) ($rule['action'] ?? '*'));
+                if ($action !== '*' && !in_array($action, self::ADVANCED_PERMISSION_ACTIONS, true)) {
+                    $action = '*';
+                }
+
+                $conditions = is_array($rule['conditions'] ?? null) ? $rule['conditions'] : [];
+
+                $shipmentStages = collect(is_array($conditions['shipmentStages'] ?? null) ? $conditions['shipmentStages'] : [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter(fn ($stage) => in_array($stage, self::SHIPMENT_STAGE_OPTIONS, true))
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $clientTiers = collect(is_array($conditions['clientTiers'] ?? null) ? $conditions['clientTiers'] : [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter(fn ($tier) => in_array($tier, self::ABAC_CLIENT_TIERS, true))
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $slaClasses = collect(is_array($conditions['slaClasses'] ?? null) ? $conditions['slaClasses'] : [])
+                    ->map(fn ($item) => trim((string) $item))
+                    ->filter(fn ($sla) => in_array($sla, self::ABAC_SLA_CLASSES, true))
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $minAmount = is_numeric($conditions['minAmount'] ?? null)
+                    ? max(0, (float) $conditions['minAmount'])
+                    : null;
+
+                $maxAmount = is_numeric($conditions['maxAmount'] ?? null)
+                    ? max(0, (float) $conditions['maxAmount'])
+                    : null;
+
+                if ($minAmount !== null && $maxAmount !== null && $minAmount > $maxAmount) {
+                    [$minAmount, $maxAmount] = [$maxAmount, $minAmount];
+                }
+
+                $ruleId = trim((string) ($rule['id'] ?? ''));
+                if ($ruleId === '') {
+                    $ruleId = 'rule_' . ($index + 1);
+                }
+
+                return [
+                    'id' => $ruleId,
+                    'label' => trim((string) ($rule['label'] ?? '')),
+                    'effect' => $effect,
+                    'resource' => $resource,
+                    'action' => $action,
+                    'conditions' => [
+                        'shipmentStages' => $shipmentStages,
+                        'minAmount' => $minAmount,
+                        'maxAmount' => $maxAmount,
+                        'clientTiers' => $clientTiers,
+                        'slaClasses' => $slaClasses,
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
 
         return $normalized;
     }
@@ -3293,7 +3409,7 @@ class VendorCourierDashboardController extends Controller
             return false;
         }
 
-        if (!$this->passesContextualRestrictionChecks($request, $policy, 'pricing', 'view', null, null, null)) {
+        if (!$this->passesContextualRestrictionChecks($request, $policy, 'pricing', 'view', null, [], null, null)) {
             return false;
         }
 
@@ -3308,7 +3424,7 @@ class VendorCourierDashboardController extends Controller
         }
 
         return collect(optional($request->user())->roles ?? [])
-            ->filter(fn ($role) => ($role->guard_name ?? null) === 'courier')
+            ->filter(fn ($role) => ($role->guard_name ?? null) === CourierRbac::GUARD)
             ->map(fn ($role) => (string) $role->name)
             ->filter(fn ($role) => str_starts_with($role, 'courier_'))
             ->unique()
@@ -3399,7 +3515,8 @@ class VendorCourierDashboardController extends Controller
         array $policy,
         string $resource,
         string $action,
-        ?CourierShipment $shipment = null
+        ?CourierShipment $shipment = null,
+        array $extraContext = []
     ): void {
         if (!$this->canRolePerformAction($request, $policy, $resource, $action)) {
             $this->logPermissionDenied($request, $resource, $action, [
@@ -3410,7 +3527,7 @@ class VendorCourierDashboardController extends Controller
 
         $deniedReason = null;
         $contextMeta = [];
-        if (!$this->passesContextualRestrictionChecks($request, $policy, $resource, $action, $shipment, $deniedReason, $contextMeta)) {
+        if (!$this->passesContextualRestrictionChecks($request, $policy, $resource, $action, $shipment, $extraContext, $deniedReason, $contextMeta)) {
             $this->logPermissionDenied($request, $resource, $action, array_merge([
                 'reason' => $deniedReason ?: 'context_restriction_blocked',
             ], $contextMeta));
@@ -3752,6 +3869,7 @@ class VendorCourierDashboardController extends Controller
         string $resource,
         string $action,
         ?CourierShipment $shipment,
+        array $extraContext = [],
         ?string &$reason = null,
         ?array &$contextMeta = null
     ): bool {
@@ -3783,6 +3901,177 @@ class VendorCourierDashboardController extends Controller
                 ];
                 return false;
             }
+        }
+
+        if (!$this->evaluateAbacPolicyRules($request, $policy, $resource, $action, $shipment, $extraContext, $reason, $contextMeta)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function evaluateAbacPolicyRules(
+        Request $request,
+        array $policy,
+        string $resource,
+        string $action,
+        ?CourierShipment $shipment,
+        array $extraContext,
+        ?string &$reason = null,
+        ?array &$contextMeta = null
+    ): bool {
+        if ($this->isVendorOwnerActor($request)) {
+            return true;
+        }
+
+        $permissionModel = $this->normalizeAdvancedPermissionModel(is_array($policy['permissionModel'] ?? null) ? $policy['permissionModel'] : []);
+        if (!(bool) ($permissionModel['enabled'] ?? true)) {
+            return true;
+        }
+
+        $applicablePolicies = $this->resolveApplicableRolePolicies($request, $permissionModel, $resource, $action);
+        if (empty($applicablePolicies)) {
+            return true;
+        }
+
+        $context = $this->resolveAbacContext($shipment, $extraContext, (int) $request->attributes->get('vendor_user_id'));
+
+        $matchingAllowRules = [];
+        $matchingDenyRules = [];
+        $hasScopedRules = false;
+
+        foreach ($applicablePolicies as $rolePolicy) {
+            $rules = is_array($rolePolicy['constraints']['policyRules'] ?? null) ? $rolePolicy['constraints']['policyRules'] : [];
+
+            foreach ($rules as $rule) {
+                if (!$this->ruleTargetsActionAndResource($rule, $resource, $action)) {
+                    continue;
+                }
+
+                $hasScopedRules = true;
+
+                if (!$this->ruleConditionsMatchContext($rule, $context)) {
+                    continue;
+                }
+
+                if (($rule['effect'] ?? 'allow') === 'deny') {
+                    $matchingDenyRules[] = $rule;
+                } else {
+                    $matchingAllowRules[] = $rule;
+                }
+            }
+        }
+
+        if (!empty($matchingDenyRules)) {
+            $rule = $matchingDenyRules[0];
+            $reason = 'abac_deny_rule';
+            $contextMeta = [
+                'rule_id' => (string) ($rule['id'] ?? ''),
+                'rule_label' => (string) ($rule['label'] ?? ''),
+            ];
+            return false;
+        }
+
+        if (!empty($matchingAllowRules)) {
+            return true;
+        }
+
+        if ($hasScopedRules) {
+            $reason = 'abac_allow_not_matched';
+            $contextMeta = [
+                'abac_context' => $context,
+            ];
+            return false;
+        }
+
+        return true;
+    }
+
+    private function resolveAbacContext(?CourierShipment $shipment, array $extraContext, int $vendorId): array
+    {
+        $context = [
+            'shipmentStage' => null,
+            'amount' => null,
+            'clientTier' => null,
+            'slaClass' => null,
+        ];
+
+        if ($shipment) {
+            $estimatedDelivery = $this->estimateDeliveryDateTime($shipment);
+            $deliveredAt = $this->getDeliveredAt($shipment);
+            $timelineState = $this->getTimelineState($shipment, $estimatedDelivery, $deliveredAt);
+
+            $context['shipmentStage'] = $this->getShipmentStage($shipment);
+            $context['amount'] = (float) ($shipment->estimated_cost ?? 0);
+            $context['slaClass'] = $this->resolveSlaStatus($shipment, $estimatedDelivery, $timelineState);
+
+            if ($shipment->sender_contact_id) {
+                $context['clientTier'] = VendorCourierClientProfile::query()
+                    ->where('vendor_user_id', $vendorId)
+                    ->where('contact_id', (int) $shipment->sender_contact_id)
+                    ->value('client_tier');
+            }
+        }
+
+        if (array_key_exists('shipmentStage', $extraContext)) {
+            $context['shipmentStage'] = trim((string) $extraContext['shipmentStage']) ?: null;
+        }
+
+        if (array_key_exists('amount', $extraContext) && is_numeric($extraContext['amount'])) {
+            $context['amount'] = (float) $extraContext['amount'];
+        }
+
+        if (array_key_exists('clientTier', $extraContext)) {
+            $tier = trim((string) $extraContext['clientTier']);
+            $context['clientTier'] = $tier !== '' ? $tier : null;
+        }
+
+        if (array_key_exists('slaClass', $extraContext)) {
+            $slaClass = trim((string) $extraContext['slaClass']);
+            $context['slaClass'] = $slaClass !== '' ? $slaClass : null;
+        }
+
+        return $context;
+    }
+
+    private function ruleTargetsActionAndResource(array $rule, string $resource, string $action): bool
+    {
+        $ruleResource = trim((string) ($rule['resource'] ?? '*'));
+        $ruleAction = trim((string) ($rule['action'] ?? '*'));
+
+        $resourceMatches = $ruleResource === '*' || $ruleResource === $resource;
+        $actionMatches = $ruleAction === '*' || $ruleAction === $action;
+
+        return $resourceMatches && $actionMatches;
+    }
+
+    private function ruleConditionsMatchContext(array $rule, array $context): bool
+    {
+        $conditions = is_array($rule['conditions'] ?? null) ? $rule['conditions'] : [];
+
+        $shipmentStages = collect($conditions['shipmentStages'] ?? [])->map(fn ($item) => trim((string) $item))->filter()->values()->all();
+        if (!empty($shipmentStages) && !in_array((string) ($context['shipmentStage'] ?? ''), $shipmentStages, true)) {
+            return false;
+        }
+
+        $minAmount = is_numeric($conditions['minAmount'] ?? null) ? (float) $conditions['minAmount'] : null;
+        if ($minAmount !== null && (!is_numeric($context['amount'] ?? null) || (float) $context['amount'] < $minAmount)) {
+            return false;
+        }
+
+        $maxAmount = is_numeric($conditions['maxAmount'] ?? null) ? (float) $conditions['maxAmount'] : null;
+        if ($maxAmount !== null && (!is_numeric($context['amount'] ?? null) || (float) $context['amount'] > $maxAmount)) {
+            return false;
+        }
+
+        $clientTiers = collect($conditions['clientTiers'] ?? [])->map(fn ($item) => trim((string) $item))->filter()->values()->all();
+        if (!empty($clientTiers) && !in_array((string) ($context['clientTier'] ?? ''), $clientTiers, true)) {
+            return false;
+        }
+
+        $slaClasses = collect($conditions['slaClasses'] ?? [])->map(fn ($item) => trim((string) $item))->filter()->values()->all();
+        if (!empty($slaClasses) && !in_array((string) ($context['slaClass'] ?? ''), $slaClasses, true)) {
+            return false;
         }
 
         return true;
